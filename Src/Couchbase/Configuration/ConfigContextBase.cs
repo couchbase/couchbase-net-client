@@ -460,6 +460,17 @@ namespace Couchbase.Configuration
         {
             return QueryNodes.Sum(x => x.InvalidateQueryCache());
         }
+
+        protected IIOService CreateIOService(PoolConfiguration poolConfiguration, IPEndPoint endpoint)
+        {
+            var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
+            connectionPool.SaslMechanism = SaslFactory(UserName, Password, connectionPool, Transcoder);
+
+            var ioService = IOServiceFactory(connectionPool);
+            connectionPool.Initialize();
+
+            return ioService;
+        }
     }
 }
 

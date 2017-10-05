@@ -63,6 +63,11 @@
         VBucketBelongsToAnotherServer = 0x0007,
 
         /// <summary>
+        /// Not connected to a bucket.
+        /// </summary>
+        BucketNotConnected = 0x0008,
+
+        /// <summary>
         /// The connection to Couchbase could not be authenticated.
         /// </summary>
         /// <remarks>Check the bucket name and/or password being used.</remarks>

@@ -71,6 +71,7 @@ namespace Couchbase.IO
             if (_connections.Count >= Configuration.MaxSize)
             {
                 var connection = _connections[GetIndex()];
+                Authenticate(connection);
                 EnableEnhancedAuthentication(connection);
                 return connection;
             }

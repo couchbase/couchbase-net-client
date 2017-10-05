@@ -84,6 +84,7 @@ namespace Couchbase
                 case ResponseStatus.Busy:
                 case ResponseStatus.OperationTimeout:
                 case ResponseStatus.TemporaryFailure:
+                case ResponseStatus.BucketNotConnected:
                     return false;
                 case ResponseStatus.Failure: // used for server retry straegies
                     return true;
@@ -151,6 +152,7 @@ namespace Couchbase
             {
                 case ResponseStatus.None:
                 case ResponseStatus.Success:
+                case ResponseStatus.BucketNotConnected:
                     break;
                 case ResponseStatus.KeyNotFound:
                     Exception = new DocumentDoesNotExistException(ExceptionUtil.DocumentNotFoundMsg.WithParams(Id));

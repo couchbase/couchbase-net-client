@@ -82,9 +82,8 @@ namespace Couchbase.Configuration
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
 
-                                var connectionPool = CreateConnectionPool(poolConfiguration, endpoint);
+                                var ioService = CreateIOService(poolConfiguration, endpoint);
 
-                                var ioService = IOServiceFactory(connectionPool);
                                 server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache);
 
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
@@ -221,9 +220,8 @@ namespace Couchbase.Configuration
                                 var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                                 var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
 
-                                var connectionPool = CreateConnectionPool(poolConfiguration, endpoint);
+                                var newIoService = CreateIOService(poolConfiguration, endpoint);
 
-                                var newIoService = IOServiceFactory(connectionPool);
                                 server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
 
                                 //Note: "ioService has" already made a HELO command to check what features
@@ -312,9 +310,8 @@ namespace Couchbase.Configuration
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                             var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
 
-                            var connectionPool = CreateConnectionPool(poolConfiguration, endpoint);
+                            var newIoService = CreateIOService(poolConfiguration, endpoint);
 
-                            var newIoService = IOServiceFactory(connectionPool);
                             server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
 
                             SupportsEnhancedDurability = newIoService.SupportsEnhancedDurability;
@@ -418,15 +415,6 @@ namespace Couchbase.Configuration
                 .Select(x => x.Value)
                 .ToList();
             Interlocked.Exchange(ref AnalyticsNodes, analyticsNodes);
-        }
-
-        IConnectionPool CreateConnectionPool(PoolConfiguration poolConfiguration, IPEndPoint endpoint)
-        {
-            var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
-            connectionPool.SaslMechanism = SaslFactory(UserName, Password, connectionPool, Transcoder);
-            connectionPool.Initialize();
-
-            return connectionPool;
         }
 
         internal List<IServer> GetServers()
