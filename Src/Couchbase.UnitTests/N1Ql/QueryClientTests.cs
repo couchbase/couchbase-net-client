@@ -142,59 +142,6 @@ namespace Couchbase.UnitTests.N1Ql
         }
 
         [Test]
-        public async Task Test_QueryAsync_Will_Clear_Stale_PreparedStatement()
-        {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
-
-            // create hander that takes some time to return
-            var httpClient = new HttpClient(
-                FakeHttpMessageHandler.Create(request => {
-                        return new HttpResponseMessage(HttpStatusCode.OK);
-                    }
-                ));
-
-            var config = new ClientConfiguration();
-
-            var queryClientMock = new Mock<QueryClient>(httpClient, new JsonDataMapper(config), config, new ConcurrentDictionary<string, QueryPlan>());
-            queryClientMock.Setup(x => x.PrepareAsync(It.IsAny<IQueryRequest>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult<IQueryResult<QueryPlan>>(new QueryResult<QueryPlan>
-                {
-                    Rows = new List<QueryPlan>
-                    {
-                        new QueryPlan
-                        {
-                            EncodedPlan = "daplan"
-                        }
-                    },
-                    Status = QueryStatus.Success,
-                    Success = true
-                }));
-
-            queryClientMock.Setup(
-                x => x.ExecuteQueryAsync<dynamic>(It.IsAny<IQueryRequest>(), It.IsAny<CancellationToken>())).Returns(
-                Task.FromResult<IQueryResult<dynamic>>(new QueryResult<dynamic>
-                {
-                    HttpStatusCode = HttpStatusCode.OK,
-                    Status = QueryStatus.Fatal,
-                    Errors = new List<Error>
-                    {
-                        new Error
-                        {
-                            Code = (int) ErrorPrepared.UnableToDecode
-                        }
-                    }
-                }));
-
-            var queryClient = queryClientMock.Object;
-
-            var queryRequest = new QueryRequest("SELECT * FROM `default`;").AdHoc(false);
-            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-            var result = await queryClient.QueryAsync<dynamic>(queryRequest, cancellationTokenSource.Token);
-
-            Assert.False(result.Success);
-        }
-
-        [Test]
         public async Task Test_PrepareQueryAsync_CanCancel()
         {
             ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));

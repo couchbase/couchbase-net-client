@@ -28,7 +28,7 @@ namespace Couchbase.N1QL
             HttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
-        internal override async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
+        protected override async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             var queryResult = new StreamingQueryResult<T>();
 
