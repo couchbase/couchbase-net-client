@@ -132,32 +132,32 @@ namespace Couchbase.Core.Buckets
             }
         }
 
-        static async Task<IQueryResult<T>> RetryQueryEveryAsync<T>(Func<IQueryRequest, IConfigInfo, Task<IQueryResult<T>>> execute,
+        private static async Task<IQueryResult<T>> RetryQueryEveryAsync<T>(Func<IQueryRequest, IConfigInfo, Task<IQueryResult<T>>> execute,
             IQueryRequest query,
             IConfigInfo configInfo,
             CancellationToken cancellationToken)
         {
+            // todo: configurable n1ql query retry attempts
             const int maxAttempts = 10;
             var attempts = 0;
             while (true)
             {
                 IResult result = await execute(query, configInfo).ContinueOnAnyContext();
-                if (result.Success || query.TimedOut() ||
+                if (result.Success || query.IsAdHoc ||query.TimedOut() ||
                     !result.ShouldRetry() || attempts >= maxAttempts)
                 {
-                    return (IQueryResult<T>)result;
+                    return (IQueryResult<T>) result;
                 }
 
                 Log.Debug("trying query again: {0}", attempts);
-                var sleepTime = (int)Math.Pow(2, attempts++);
-                var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
+                var sleepTime = (int) Math.Pow(2, attempts++);
                 try
                 {
-                    await task;
+                    await Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
                 }
                 catch (TaskCanceledException)
                 {
-                    return (IQueryResult<T>)result;
+                    return (IQueryResult<T>) result;
                 }
             }
         }

@@ -7,6 +7,8 @@
     /// retry is applicable or not</remarks>
     internal enum ErrorPrepared
     {
+        None,
+        PreparedStatementNotFound = 4040,
         Unrecognized = 4050,
         UnableToDecode = 4070,
         Generic = 5000,

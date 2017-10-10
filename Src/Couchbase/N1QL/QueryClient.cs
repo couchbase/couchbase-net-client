@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -162,50 +163,17 @@ namespace Couchbase.N1QL
                 return errorResult;
             }
 
-            //execute first attempt
+            // execute optimized query
             var result = await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
-            //if needed, do a second attempt after having cleared the cache
-            if (CheckRetry(queryRequest, result))
-            {
-                return await RetryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
-            }
-            else
-            {
-                return result;
-            }
-        }
 
-        /// <summary>
-        /// Checks the request and result to see if a retry is waranted. Will only retry if
-        /// the request is not adhoc, has not already been retried and contains a N1QL error
-        /// that matches criteria for retry (errors 4050, 4070 and some 5000).
-        /// </summary>
-        internal static bool CheckRetry<T>(IQueryRequest request, IQueryResult<T> result)
-        {
-            if (result.Success || request.IsAdHoc || request.HasBeenRetried)
+            // if the query failed, check if the query plan should be evicted
+            if (!result.Success && result.IsQueryPlanStale())
             {
-                return false;
+                var originalStatement = queryRequest.GetOriginalStatement();
+                _queryCache.TryRemove(originalStatement, out QueryPlan _);
             }
 
-            return result.Errors.Any(error =>
-                    error.Code == (int) ErrorPrepared.Unrecognized ||
-                    error.Code == (int) ErrorPrepared.UnableToDecode ||
-                    error.Code == (int) ErrorPrepared.IndexNotFound ||
-                    (error.Code == (int) ErrorPrepared.Generic && error.Message != null && error.Message.Contains(ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND))
-            );
-        }
-
-        private async Task<IQueryResult<T>> RetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
-        {
-            //mark as retried, remove from cache
-            queryRequest.HasBeenRetried = true;
-            _queryCache.TryRemove(queryRequest.GetOriginalStatement(), out QueryPlan _);
-
-            //re-optimize asynchronously
-            await PrepareStatementIfNotAdHocAsync(queryRequest, cancellationToken).ContinueOnAnyContext();
-
-            //re-execute asynchronously
-            return await ExecuteQueryAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
+            return result;
         }
 
         /// <summary>

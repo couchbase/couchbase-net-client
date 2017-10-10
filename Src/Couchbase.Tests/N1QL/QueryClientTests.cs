@@ -342,19 +342,19 @@ namespace Couchbase.Tests.N1QL
             };
 
             listErrors.Add(error4050);
-            Assert.IsTrue(QueryClient.CheckRetry(request, response));
+            Assert.IsTrue(response.ShouldRetry());
 
             listErrors.Clear();
             listErrors.Add(error4070);
-            Assert.IsTrue(QueryClient.CheckRetry(request, response));
+            Assert.IsTrue(response.ShouldRetry());
 
             listErrors.Clear();
             listErrors.Add(error5000);
-            Assert.IsTrue(QueryClient.CheckRetry(request, response));
+            Assert.IsTrue(response.ShouldRetry());
 
             listErrors.Clear();
             listErrors.Add(notAnError5000);
-            Assert.IsFalse(QueryClient.CheckRetry(request, response));
+            Assert.IsFalse(response.ShouldRetry());
         }
 
         [Test]
@@ -367,8 +367,7 @@ namespace Couchbase.Tests.N1QL
                 Success = true
             };
 
-            Assert.IsFalse(QueryClient.CheckRetry(requestExplicit, response));
-            Assert.IsFalse(QueryClient.CheckRetry(requestDefault, response));
+            Assert.IsFalse(response.ShouldRetry());
         }
 
         [Test]
@@ -381,7 +380,7 @@ namespace Couchbase.Tests.N1QL
                 Success = true
             };
 
-            Assert.IsFalse(QueryClient.CheckRetry(requestAdhocRetried, response));
+            Assert.IsFalse(response.ShouldRetry());
         }
 
         public static IQueryClient GetQueryClient()

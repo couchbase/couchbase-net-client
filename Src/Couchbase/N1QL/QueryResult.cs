@@ -120,26 +120,20 @@ namespace Couchbase.N1QL
         /// <remarks>Intended for internal use only.</remarks>
         public bool ShouldRetry()
         {
-            var retry = false;
             switch (Status)
             {
-                case QueryStatus.Success:
                 case QueryStatus.Errors:
-                case QueryStatus.Running:
-                case QueryStatus.Completed:
-                case QueryStatus.Stopped:
-                    break;
                 case QueryStatus.Timeout:
                 case QueryStatus.Fatal:
-                    var status = (int) HttpStatusCode;
-                    if(status > 399)
-                    {
-                        break;
-                    }
-                    retry = true;
-                    break;
+                    return Errors.Any(error =>
+                        error.Code == (int) ErrorPrepared.Unrecognized ||
+                        error.Code == (int) ErrorPrepared.UnableToDecode ||
+                        error.Code == (int) ErrorPrepared.IndexNotFound ||
+                        (error.Code == (int) ErrorPrepared.Generic && error.Message != null && error.Message.Contains(QueryClient.ERROR_5000_MSG_QUERYPORT_INDEXNOTFOUND))
+                    );
+                default:
+                    return false;
             }
-            return retry;
         }
 
         /// <summary>
