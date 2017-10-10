@@ -3832,7 +3832,8 @@ namespace Couchbase
                     {
                         var key = keys[i];
                         var value = items[key];
-                        var result = Upsert(key, value, timeout);
+                        const UInt32 expiration = 0;
+                        var result = Upsert(key, value, expiration, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -5655,7 +5656,8 @@ namespace Couchbase
                     {
                         var key = keys[i];
                         var value = items[key];
-                        var result = Upsert(key, value, timeout);
+                        const UInt32 expiration = 0;
+                        var result = Upsert(key, value, expiration, timeout);
                         results.TryAdd(key, result);
                     }
                 });
@@ -5704,7 +5706,8 @@ namespace Couchbase
                     {
                         var key = keys[i];
                         var value = items[key];
-                        var result = Upsert(key, value);
+                        const UInt32 expiration = 0;
+                        var result = Upsert(key, value, expiration, timeout);
                         results.TryAdd(key, result);
                     }
                 });
