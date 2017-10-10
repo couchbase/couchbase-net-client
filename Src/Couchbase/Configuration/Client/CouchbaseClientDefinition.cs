@@ -119,6 +119,7 @@ namespace Couchbase.Configuration.Client
         /// The interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
         /// </summary>
         /// <remarks>The default is 10000ms.</remarks>
+        [Obsolete("Use ConfigPollInterval.")]
         public int HeartbeatConfigInterval { get; set; }
 
         /// <summary>
@@ -126,7 +127,30 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         /// <remarks>The default is "enabled" or true.</remarks>
         /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="HeartbeatConfigInterval"/> property.</remarks>
+        [Obsolete("Use ConfigPollEnabled.")]
         public bool EnableConfigHeartBeat { get; set; }
+
+        /// <summary>
+        /// The interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
+        /// </summary>
+        /// <remarks>The default is 10000ms.</remarks>
+        public uint ConfigPollInterval { get; set; }
+
+        /// <summary>
+        /// Enables configuration "heartbeat" checks.
+        /// </summary>
+        /// <remarks>The default is "enabled" or true.</remarks>
+        /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="ConfigPollInterval"/> property.</remarks>
+        public bool ConfigPollEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        /// <remarks>The default is 50ms.</remarks>
+        public uint ConfigPollCheckFloor { get; set; }
 
         /// <summary>
         /// The timeout for each HTTP View request.
@@ -402,6 +426,9 @@ namespace Couchbase.Configuration.Client
             UseConnectionPooling = ClientConfiguration.Defaults.UseConnectionPooling;
             EnableDeadServiceUriPing = ClientConfiguration.Defaults.EnableDeadServiceUriPing;
             HeartbeatConfigCheckFloor = ClientConfiguration.Defaults.HeartbeatConfigCheckFloor;
+            ConfigPollEnabled = ClientConfiguration.Defaults.ConfigPollEnabled;
+            ConfigPollCheckFloor = ClientConfiguration.Defaults.ConfigPollCheckFloor;
+            ConfigPollInterval = ClientConfiguration.Defaults.ConfigPollInterval;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations

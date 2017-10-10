@@ -79,7 +79,7 @@ namespace Couchbase.Core
             }
 
             LastConfigCheckedTime = DateTime.Now;
-            if (Configuration.EnableConfigHeartBeat)
+            if (Configuration.ConfigPollEnabled)
             {
                 _configMonitor = new ConfigMonitor(this);
                 _configMonitor.StartMonitoring();
@@ -381,7 +381,7 @@ namespace Couchbase.Core
             {
                 Monitor.TryEnter(_syncObject, ref lockAcquired);
                 var now = DateTime.Now;
-                var lastCheckedPlus = LastConfigCheckedTime.AddMilliseconds(Configuration.HeartbeatConfigCheckFloor);
+                var lastCheckedPlus = LastConfigCheckedTime.AddMilliseconds(Configuration.ConfigPollCheckFloor);
                 if (!lockAcquired || lastCheckedPlus > now)
                 {
                     Log.Info("Not checking config because {0} > {1} or a lock ({2}) could not be acquired.",

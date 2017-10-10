@@ -79,7 +79,7 @@ namespace Couchbase.Utils
             "The SDK was disconnected from {0} before the operation was processed. This may be a temporary error while the SDK re-establishes a connection.";
 
         public const string HeartbeatConfigIntervalMsg =
-            "HeartbeatConfigInterval must be greater than HeartbeatConfigCheckFloor";
+            "ConfigPollInterval must be greater than ConfigPollCheckFloor";
 
         public const string GenericResponseMessageFormat = "Couchbase response error {0}.";
 

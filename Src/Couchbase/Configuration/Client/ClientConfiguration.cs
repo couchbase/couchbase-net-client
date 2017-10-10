@@ -44,10 +44,13 @@ namespace Couchbase.Configuration.Client
         private bool _useSslChanged;
         private int _maxViewRetries;
         private int _viewHardTimeout;
-        private double _heartbeatConfigInterval;
+        private uint _configPollInterval;
         private int _viewRequestTimeout;
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
+
+        [Obsolete]
+        private double _heartbeatConfigInterval;
 
         public static class Defaults
         {
@@ -65,12 +68,23 @@ namespace Couchbase.Configuration.Client
             public static uint ObserveTimeout = 500; //ms
             public static uint MaxViewRetries = 2;
             public static uint ViewHardTimeout = 30000; //ms
+
+            //older obsolete config polling settings
+            [Obsolete("Use ConfigPollInterval.")]
             public static uint HeartbeatConfigInterval = 2500; //ms
+            [Obsolete ("Use ConfigPollEnabled.")]
             public static bool EnableConfigHeartBeat = true;
+            [Obsolete("Use ConfigPollCheckFloor.")]
+            public static uint HeartbeatConfigCheckFloor = 50; //ms
+
+            //Fast-forward config polling settings
+            public static uint ConfigPollInterval = 2500; //ms
+            public static uint ConfigPollCheckFloor = 50; //ms
+            public static bool ConfigPollEnabled = true;
+
             public static uint ViewRequestTimeout = 75000; //ms
             public static uint SearchRequestTimeout = 75000; //ms
             public static uint VBucketRetrySleepTime = 100; //ms
-            public static uint HeartbeatConfigCheckFloor = 50; //ms
 
             //service point settings
             public static int DefaultConnectionLimit = 5; //connections
@@ -114,8 +128,17 @@ namespace Couchbase.Configuration.Client
 #pragma warning disable 618
             ViewHardTimeout = (int) Defaults.ViewHardTimeout; //ms
 #pragma warning restore 618
+
+            //Config poll settings - obsolete
             HeartbeatConfigInterval = Defaults.HeartbeatConfigInterval; //ms
             EnableConfigHeartBeat = Defaults.EnableConfigHeartBeat;
+            HeartbeatConfigCheckFloor = Defaults.HeartbeatConfigCheckFloor;
+
+            //Config poll settings
+            ConfigPollInterval = Defaults.ConfigPollInterval; //ms
+            ConfigPollEnabled = Defaults.ConfigPollEnabled;
+            ConfigPollCheckFloor = Defaults.ConfigPollCheckFloor;
+
 #pragma warning disable 618
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
@@ -142,7 +165,6 @@ namespace Couchbase.Configuration.Client
             IOErrorCheckInterval = Defaults.IOErrorCheckInterval;
             IOErrorThreshold = Defaults.IOErrorThreshold;
             EnableDeadServiceUriPing = Defaults.EnableDeadServiceUriPing;
-            HeartbeatConfigCheckFloor = Defaults.HeartbeatConfigCheckFloor;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
@@ -224,8 +246,16 @@ namespace Couchbase.Configuration.Client
             SerializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
             DeserializationSettings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
 #pragma warning restore 618
+
+            //Obsolete config poll settings
             EnableConfigHeartBeat = definition.EnableConfigHeartBeat;
             HeartbeatConfigInterval = definition.HeartbeatConfigInterval;
+
+            //Fast-failover config poll settings
+            ConfigPollEnabled = definition.ConfigPollEnabled;
+            ConfigPollCheckFloor = definition.ConfigPollCheckFloor;
+            ConfigPollInterval = definition.ConfigPollInterval;
+
             ViewRequestTimeout = definition.ViewRequestTimeout;
             Expect100Continue = definition.Expect100Continue;
             DefaultConnectionLimit = definition.DefaultConnectionLimit;
@@ -777,6 +807,7 @@ namespace Couchbase.Configuration.Client
         /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
         /// </summary>
         /// <remarks>The default is 2500ms.</remarks>
+        [Obsolete("Use ConfigPollInterval.")]
         public double HeartbeatConfigInterval
         {
             get { return _heartbeatConfigInterval; }
@@ -789,6 +820,23 @@ namespace Couchbase.Configuration.Client
             }
         }
 
+
+        /// <summary>
+        /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
+        /// </summary>
+        /// <remarks>The default is 2500ms.</remarks>
+        public uint ConfigPollInterval
+        {
+            get => _configPollInterval;
+            set
+            {
+                if (value > 0 && value < int.MaxValue)
+                {
+                    _configPollInterval = value;
+                }
+            }
+        }
+
         /// <summary>
         /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
         /// </summary>
@@ -796,7 +844,17 @@ namespace Couchbase.Configuration.Client
         /// The heartbeat configuration check floor.
         /// </value>
         /// <remarks>The default is 50ms.</remarks>
+        [Obsolete("Use ConfigPollCheckFloor.")]
         public uint HeartbeatConfigCheckFloor { get; set; }
+
+        /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        /// <remarks>The default is 50ms.</remarks>
+        public uint ConfigPollCheckFloor { get; set; }
 
         /// <summary>
         /// Sets the timeout for each HTTP View request.
@@ -844,7 +902,15 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         /// <remarks>The default is "enabled" or true.</remarks>
         /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="HeartbeatConfigInterval"/> property.</remarks>
+        [Obsolete("Use ConfigPollEnabled instead.")]
         public bool EnableConfigHeartBeat { get; set; }
+
+        /// <summary>
+        /// Enables configuration "heartbeat" checks.
+        /// </summary>
+        /// <remarks>The default is "enabled" or true.</remarks>
+        /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="ConfigPollInterval"/> property.</remarks>
+        public bool ConfigPollEnabled { get; set; }
 
         /// <summary>
         /// Writes the elasped time for an operation to the log appender Disabled by default.
@@ -956,9 +1022,47 @@ namespace Couchbase.Configuration.Client
             get { return 75000; }
         }
 
+        /// <summary>
+        /// Checks to see if each Heartbeat setting has changed from its defaults and whether
+        /// it should override the newer fast-failover poll settings.
+        /// </summary>
+        void ResolveObsoletePollSettings()
+        {
+#pragma warning disable 618
+            if (EnableConfigHeartBeat != Defaults.EnableConfigHeartBeat &&
+#pragma warning restore 618
+                ConfigPollEnabled == Defaults.ConfigPollEnabled)
+            {
+#pragma warning disable 618
+                ConfigPollEnabled = EnableConfigHeartBeat;
+#pragma warning restore 618
+            }
+#pragma warning disable 618
+            if ((uint)HeartbeatConfigInterval != Defaults.HeartbeatConfigInterval &&
+#pragma warning restore 618
+                ConfigPollInterval == Defaults.ConfigPollInterval)
+            {
+#pragma warning disable 618
+                ConfigPollInterval = (uint)HeartbeatConfigInterval;
+#pragma warning restore 618
+            }
+#pragma warning disable 618
+            if (HeartbeatConfigCheckFloor != Defaults.HeartbeatConfigCheckFloor &&
+#pragma warning restore 618
+                ConfigPollCheckFloor == Defaults.ConfigPollCheckFloor)
+            {
+#pragma warning disable 618
+                ConfigPollCheckFloor = HeartbeatConfigCheckFloor;
+#pragma warning restore 618
+            }
+        }
+
         internal void Initialize()
         {
-            if (HeartbeatConfigInterval <= HeartbeatConfigCheckFloor)
+            //
+            ResolveObsoletePollSettings();
+
+            if (ConfigPollInterval <= ConfigPollCheckFloor)
             {
                 throw new ArgumentOutOfRangeException(ExceptionUtil.HeartbeatConfigIntervalMsg);
             }

@@ -515,5 +515,44 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(2500, clientConfig.HeartbeatConfigInterval);
         }
 #endif
+
+        [Test]
+        public void When_HeartbeatConfigInterval_Is_Set_ConfigPollInterval_Is_Same()
+        {
+            var config = new ClientConfiguration
+            {
+                HeartbeatConfigInterval = 1000
+            };
+            config.Initialize();
+
+            Assert.AreEqual(1000, config.ConfigPollInterval);
+            Assert.AreEqual(config.ConfigPollInterval, config.HeartbeatConfigInterval);
+        }
+
+        [Test]
+        public void When_HeartbeatConfigCheckFloor_Is_Set_ConfigPollFloor_Is_Same()
+        {
+            var config = new ClientConfiguration
+            {
+                HeartbeatConfigCheckFloor = 100
+            };
+            config.Initialize();
+
+            Assert.AreEqual(100, config.ConfigPollCheckFloor);
+            Assert.AreEqual(config.ConfigPollCheckFloor, config.HeartbeatConfigCheckFloor);
+        }
+
+        [Test]
+        public void When_EnableConfigHeartBeatr_Is_Set_ConfigPollEnabled_Is_Same()
+        {
+            var config = new ClientConfiguration
+            {
+                EnableConfigHeartBeat = false
+            };
+            config.Initialize();
+
+            Assert.AreEqual(false, config.ConfigPollEnabled);
+            Assert.AreEqual(config.ConfigPollEnabled, config.EnableConfigHeartBeat);
+        }
     }
 }

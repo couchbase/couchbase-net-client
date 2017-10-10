@@ -204,6 +204,25 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Sets the interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
+        /// </summary>
+        /// <remarks>The default is 2500ms.</remarks>
+        [ConfigurationProperty("pollConfigInterval", DefaultValue = 2500u, IsRequired = false)]
+        public uint ConfigPollInterval
+        {
+            get => (uint)this["pollConfigInterval"];
+            set => this["pollConfigInterval"] = value;
+        }
+
+        /// <inheritdoc />
+        [ConfigurationProperty("pollConfigEnabled", DefaultValue = true, IsRequired = false)]
+        public bool ConfigPollEnabled
+        {
+            get => (bool)this["pollConfigEnabled"];
+            set => this["pollConfigEnabled"] = value;
+        }
+
+        /// <summary>
         /// Enables configuration "heartbeat" checks.
         /// </summary>
         /// <remarks>The default is "enabled" or true.</remarks>
@@ -580,10 +599,26 @@ namespace Couchbase.Configuration.Client.Providers
         /// </value>
         /// <remarks>The default is 50ms.</remarks>
         [ConfigurationProperty("heartbeatConfigCheckFloor", DefaultValue = 50u, IsRequired = false)]
+        [Obsolete("Use ConfigPollCheckFloor.")]
         public uint HeartbeatConfigCheckFloor
         {
             get { return (uint)this["heartbeatConfigCheckFloor"]; }
             set { this["heartbeatConfigCheckFloor"] = value; }
+        }
+
+
+        /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        /// <remarks>The default is 50ms.</remarks>
+        [ConfigurationProperty("pollConfigCheckFloor", DefaultValue = 50u, IsRequired = false)]
+        public uint ConfigPollCheckFloor
+        {
+            get => (uint)this["pollConfigCheckFloor"];
+            set => this["pollConfigCheckFloor"] = value;
         }
 
         #region Additional ICouchbaseClientDefinition implementations

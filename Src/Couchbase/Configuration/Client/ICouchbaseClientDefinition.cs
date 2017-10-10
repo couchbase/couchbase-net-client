@@ -119,12 +119,6 @@ namespace Couchbase.Configuration.Client
         int ViewHardTimeout { get; }
 
         /// <summary>
-        /// The interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
-        /// </summary>
-        /// <remarks>The default is 10000ms.</remarks>
-        int HeartbeatConfigInterval { get; }
-
-        /// <summary>
         /// Enables configuration "heartbeat" checks.
         /// </summary>
         /// <remarks>The default is "enabled" or true.</remarks>
@@ -365,7 +359,37 @@ namespace Couchbase.Configuration.Client
         /// <value>
         /// The heartbeat configuration check floor.
         /// </value>
+        [Obsolete("Use ConfigPollCheckFloor.")]
         uint HeartbeatConfigCheckFloor { get; set; }
+
+        /// <summary>
+        /// The interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
+        /// </summary>
+        /// <remarks>The default is 10000ms.</remarks>
+        [Obsolete("Use ConfigPollInterval.")]
+        int HeartbeatConfigInterval { get; }
+
+        /// <summary>
+        /// The interval for configuration "heartbeat" checks, which check for changes in the configuration that are otherwise undetected by the client.
+        /// </summary>
+        /// <remarks>The default is 10000ms.</remarks>
+        uint ConfigPollInterval { get; set; }
+
+        /// <summary>
+        /// Enables configuration "heartbeat" checks.
+        /// </summary>
+        /// <remarks>The default is "enabled" or true.</remarks>
+        /// <remarks>The interval of the configuration hearbeat check is controlled by the <see cref="ConfigPollInterval"/> property.</remarks>
+        bool ConfigPollEnabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the heartbeat configuration check floor - which is the minimum time between config checks.
+        /// </summary>
+        /// <value>
+        /// The heartbeat configuration check floor.
+        /// </value>
+        /// <remarks>The default is 50ms.</remarks>
+        uint ConfigPollCheckFloor { get; set; }
     }
 }
 

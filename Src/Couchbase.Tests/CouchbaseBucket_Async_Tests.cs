@@ -558,7 +558,7 @@ namespace Couchbase.Tests
                 {
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 },
-                EnableConfigHeartBeat = false
+                ConfigPollEnabled = false
             };
             using (var cluster = new Cluster(config))
             {
@@ -592,7 +592,7 @@ namespace Couchbase.Tests
                 {
                     new Uri(ConfigurationManager.AppSettings["bootstrapUrl"])
                 },
-                EnableConfigHeartBeat = false
+                ConfigPollEnabled = false
             };
             using (var cluster = new Cluster(config))
             {
