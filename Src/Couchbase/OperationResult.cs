@@ -153,6 +153,7 @@ namespace Couchbase
                 case ResponseStatus.None:
                 case ResponseStatus.Success:
                 case ResponseStatus.BucketNotConnected:
+                case ResponseStatus.Failure:
                     break;
                 case ResponseStatus.KeyNotFound:
                     Exception = new DocumentDoesNotExistException(ExceptionUtil.DocumentNotFoundMsg.WithParams(Id));
