@@ -296,13 +296,18 @@ namespace Couchbase.Core
                     catch (Exception e)
                     {
                         Log.Warn(e);
+
+                        if (e is AggregateException aggExp)
+                        {
+                            exceptions.AddRange(aggExp.InnerExceptions);
+                        }
                         exceptions.Add(e);
                     }
                 }
 
                 if (!success)
                 {
-                    throw new AggregateException("Could not bootstrap - check inner exceptions for details.", exceptions);
+                    throw new BootstrapException("Could not bootstrap - check inner exceptions for details.", exceptions);
                 }
                 return bucket;
             }

@@ -112,17 +112,15 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     //CCCP only supported for Couchbase Buckets
                     if (operationResult.Status == ResponseStatus.UnknownCommand)
                     {
-                        throw new ConfigException("{0} is this a Memcached bucket?", operationResult.Value);
+                        const string message = "Config operation returned UnknownCommand.";
+                        Log.Info(message);
+                        exceptions.Add(new ConfigException(message));
+                        break;
                     }
+
                     Log.Warn("Could not retrieve configuration for {0}. Reason: {1}",
                         bucketName,
                         operationResult.Message);
-                }
-                catch (ConfigException)
-                {
-                    ioService.Dispose();
-                    Log.Debug("Bootstrapping with {0} failed.", endPoint);
-                    throw;
                 }
                 catch (AuthenticationException e)
                 {
@@ -154,7 +152,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
             //Client cannot bootstrap with this provider
             if (configInfo == null)
             {
-                throw new AggregateException(exceptions);
+                throw new AggregateException("Could not bootstrap with CCCP.", exceptions);
             }
 
             return configInfo;

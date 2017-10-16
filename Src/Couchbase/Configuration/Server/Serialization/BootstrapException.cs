@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+
+#if NET45
 using System.Runtime.Serialization;
+#endif
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    public class BootstrapException : Exception
+    public class BootstrapException : AggregateException
     {
         public BootstrapException()
         {
@@ -16,6 +20,11 @@ namespace Couchbase.Configuration.Server.Serialization
         public BootstrapException(string message, Exception innerException) : base(message, innerException)
         {
         }
+
+        public BootstrapException(string message, IEnumerable<Exception> innerExceptions) : base(message, innerExceptions)
+        {
+        }
+
 
 #if NET45
         protected BootstrapException(SerializationInfo info, StreamingContext context) : base(info, context)
