@@ -162,6 +162,13 @@ namespace Couchbase.IO
         {
             if (SupportsEnhancedAuthentication && !connection.CheckedForEnhancedAuthentication) // only execute this if RBAC is enabled on the cluster
             {
+                if (string.IsNullOrWhiteSpace(Configuration.BucketName))
+                {
+                    const string bucketNameIsEmptyMessage = "BucketName cannot be empty when sending SelectBucket operation";
+                    Log.Error(bucketNameIsEmptyMessage);
+                    throw new AuthenticationException(bucketNameIsEmptyMessage);
+                }
+
                 var selectBucketOp = new SelectBucket(Configuration.BucketName, new DefaultTranscoder(), 0);
                 var response = connection.Send(selectBucketOp.Write());
                 selectBucketOp.Read(response);
