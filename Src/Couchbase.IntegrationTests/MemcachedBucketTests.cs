@@ -141,19 +141,6 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public void When_Key_Exists_Exists_Returns_True()
-        {
-            var key = "thekeythatexists";
-            using (var bucket = _cluster.OpenBucket())
-            {
-                bucket.Remove(key);
-                bucket.Upsert(key, "somevalue");
-                var result = bucket.Exists(key);
-                Assert.IsTrue(result);
-            }
-        }
-
-        [Test]
         public void Test_That_OpenBucket_Throws_Correct_Exception_If_Bucket_Does_Not_Exist()
         {
             var ex = Assert.Throws<AggregateException>(() => _cluster.OpenBucket("doesnotexist"));
@@ -659,6 +646,25 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        [Category("Integration")]
+        [Category("Memcached")]
+        public async Task When_Key_Is_Touched_Expiration_Is_Extended_Async()
+        {
+            var key = "When_Key_Is_Touched_Expiration_Is_Extended_Async";
+            await _bucket.RemoveAsync(key);
+            await _bucket.InsertAsync(key, "{value}", new TimeSpan(0, 0, 0, 2));
+            Thread.Sleep(3000);
+            var result = await _bucket.GetAsync<string>(key);
+            Assert.AreEqual(result.Status, ResponseStatus.KeyNotFound);
+            await _bucket.RemoveAsync(key);
+            await _bucket.InsertAsync(key, "{value}", new TimeSpan(0, 0, 0, 2));
+            await _bucket.TouchAsync(key, new TimeSpan(0, 0, 0, 5));
+            Thread.Sleep(3000);
+            result = await _bucket.GetAsync<string>(key);
+            Assert.AreEqual(result.Status, ResponseStatus.Success);
+        }
+
+        [Test]
         public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert()
         {
             var document = new Document<dynamic>
@@ -749,6 +755,31 @@ namespace Couchbase.IntegrationTests
 
             get = _bucket.Get<string>(key);
             Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+        }
+
+        [Test]
+        public void Can_Upsert_With_Dictionary_Variants()
+        {
+            var documentsToUpsert = Enumerable.Range(1, 100).ToDictionary(index => $"key-{index}", index => new { });
+
+            var result = _bucket.Upsert(documentsToUpsert);
+            Assert.IsTrue(result.All(r => r.Value.Success));
+
+            result = _bucket.Upsert(documentsToUpsert, TimeSpan.MaxValue);
+            Assert.IsTrue(result.All(r => r.Value.Success));
+
+            result = _bucket.Upsert(documentsToUpsert, new ParallelOptions());
+            Assert.IsTrue(result.All(r => r.Value.Success));
+
+            // https://issues.couchbase.com/browse/NCBC-1570
+            //result = _bucket.Upsert(documentsToUpsert, new ParallelOptions(), TimeSpan.MaxValue);
+            //Assert.IsTrue(result.All(r => r.Value.Success));
+
+            result = _bucket.Upsert(documentsToUpsert, new ParallelOptions(), 10);
+            Assert.IsTrue(result.All(r => r.Value.Success));
+
+            result = _bucket.Upsert(documentsToUpsert, new ParallelOptions(), 10, TimeSpan.MaxValue);
+            Assert.IsTrue(result.All(r => r.Value.Success));
         }
 
         #region GetClusterVersion

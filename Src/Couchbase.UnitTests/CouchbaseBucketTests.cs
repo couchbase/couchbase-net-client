@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Authentication;
 using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Configuration;
@@ -555,6 +556,17 @@ namespace Couchbase.UnitTests
         }
 
         #endregion
+
+        [Test]
+        public void CreateManager_With_Null_Authenticator_Throws_AuthenticationException()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
+            var bucket = new CouchbaseBucket(mockController.Object, "", new DefaultConverter(), new DefaultTranscoder(), null);
+
+            Assert.Throws<AuthenticationException>(() => bucket.CreateManager());
+        }
     }
 }
 

@@ -246,7 +246,7 @@ namespace Couchbase
         /// <returns>
         /// A <see cref="T:System.Threading.Tasks.Task`1" /> object representing the asynchronous operation.
         /// </returns>
-        public async Task<bool> ExistsAsync(string key, TimeSpan timeout)
+        public Task<bool> ExistsAsync(string key, TimeSpan timeout)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }

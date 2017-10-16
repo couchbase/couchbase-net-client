@@ -761,7 +761,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Test]
+        [Test, Ignore("https://issues.couchbase.com/browse/NCBC-1593")]
         public async Task Test_RemoveAsync_With_Durability_Requirements_And_Custom_Timeout()
         {
             const string key = "Test_RemoveAsync_With_Durability_Requirements_And_Custom_Timeout";

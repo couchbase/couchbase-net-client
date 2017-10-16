@@ -1,4 +1,8 @@
-﻿using NUnit.Framework;
+﻿using System;
+using System.Net.Sockets;
+using Couchbase.IO;
+using Couchbase.IO.Operations;
+using NUnit.Framework;
 
 namespace Couchbase.UnitTests
 {
@@ -71,6 +75,203 @@ namespace Couchbase.UnitTests
 
             var expected = "{\"id\":\"foo\",\"cas\":10202020202,\"token\":null,\"content\":\"{\\\"Name\\\":\\\"ted\\\",\\\"Age\\\":10}\"}";
             Assert.AreEqual(expected, result.Document.ToString());
+        }
+
+        [TestCase(ResponseStatus.TransportFailure, true)]
+        [TestCase(ResponseStatus.VBucketBelongsToAnotherServer, true)]
+        [TestCase(ResponseStatus.Failure, true)]
+        [TestCase(ResponseStatus.NodeUnavailable, false)]
+        [TestCase(ResponseStatus.Success, false)]
+        [TestCase(ResponseStatus.KeyNotFound, false)]
+        [TestCase(ResponseStatus.KeyExists, false)]
+        [TestCase(ResponseStatus.ValueTooLarge, false)]
+        [TestCase(ResponseStatus.InvalidArguments, false)]
+        [TestCase(ResponseStatus.ItemNotStored, false)]
+        [TestCase(ResponseStatus.IncrDecrOnNonNumericValue, false)]
+        [TestCase(ResponseStatus.AuthenticationError, false)]
+        [TestCase(ResponseStatus.AuthenticationContinue, false)]
+        [TestCase(ResponseStatus.InvalidRange, false)]
+        [TestCase(ResponseStatus.UnknownCommand, false)]
+        [TestCase(ResponseStatus.OutOfMemory, false)]
+        [TestCase(ResponseStatus.NotSupported, false)]
+        [TestCase(ResponseStatus.InternalError, false)]
+        [TestCase(ResponseStatus.Busy, false)]
+        [TestCase(ResponseStatus.OperationTimeout, false)]
+        [TestCase(ResponseStatus.TemporaryFailure, false)]
+        [TestCase(ResponseStatus.None, false)] // default case
+        public void ShouldRetry_Should_Return_ExpectedValue(ResponseStatus status, bool shouldRetry)
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = status
+            };
+
+            Assert.AreEqual(shouldRetry, operationResult.ShouldRetry());
+        }
+
+        [Test]
+        public void ShouldRetry_Should_Return_True_When_Exception_Is_SocketExeption()
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = ResponseStatus.ClientFailure,
+                Exception = new SocketException()
+            };
+
+            Assert.IsTrue(operationResult.ShouldRetry());
+        }
+
+        [Test]
+        public void ShouldRetry_Should_Return_True_When_Exception_Is_TimeoutExeption()
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = ResponseStatus.ClientFailure,
+                Exception = new TimeoutException()
+            };
+
+            Assert.IsTrue(operationResult.ShouldRetry());
+        }
+
+        [Test]
+        public void ShouldRetry_Should_Return_False_When_Generic_Exception()
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = ResponseStatus.ClientFailure,
+                Exception = new Exception()
+            };
+
+            Assert.IsFalse(operationResult.ShouldRetry());
+        }
+
+        [Test]
+        public void SetException_Should_Set_DocumentDoesNotExistException_When_Status_Is_KeyNotFound()
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = ResponseStatus.KeyNotFound
+            };
+
+            operationResult.SetException();
+
+            Assert.IsInstanceOf<DocumentDoesNotExistException>(operationResult.Exception);
+        }
+
+        [Test]
+        public void SetException_Should_Set_DocumentAlreadyExistsException_When_Status_Is_KeyExists_And_OpCode_Is_Add()
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = ResponseStatus.KeyExists,
+                OpCode = OperationCode.Add
+            };
+
+            operationResult.SetException();
+
+            Assert.IsInstanceOf<DocumentAlreadyExistsException>(operationResult.Exception);
+        }
+
+        [Test]
+        public void SetException_Should_Set_CasMismatchException_When_Status_Is_KeyExists_And_OpCode_Is_Not_Add()
+        {
+            foreach (var value in Enum.GetValues(typeof(OperationCode)))
+            {
+                var opCode = (OperationCode) value;
+                if (opCode == OperationCode.Add)
+                {
+                    break;
+                }
+
+                var operationResult = new OperationResult
+                {
+                    Success = false,
+                    Status = ResponseStatus.KeyExists,
+                    OpCode = opCode
+                };
+
+                operationResult.SetException();
+                Assert.IsInstanceOf<CasMismatchException>(operationResult.Exception);
+            }
+        }
+
+        [Test]
+        public void SetException_Should_Set_CasMismatchException_When_Status_Is_DocumentMutationDetected()
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = ResponseStatus.DocumentMutationDetected
+            };
+
+            operationResult.SetException();
+            Assert.IsInstanceOf<CasMismatchException>(operationResult.Exception);
+        }
+
+        [TestCase(ResponseStatus.ValueTooLarge)]
+        [TestCase(ResponseStatus.InvalidArguments)]
+        [TestCase(ResponseStatus.ItemNotStored)]
+        [TestCase(ResponseStatus.IncrDecrOnNonNumericValue)]
+        [TestCase(ResponseStatus.VBucketBelongsToAnotherServer)]
+        [TestCase(ResponseStatus.AuthenticationError)]
+        [TestCase(ResponseStatus.AuthenticationContinue)]
+        [TestCase(ResponseStatus.InvalidRange)]
+        [TestCase(ResponseStatus.UnknownCommand)]
+        [TestCase(ResponseStatus.OutOfMemory)]
+        [TestCase(ResponseStatus.NotSupported)]
+        [TestCase(ResponseStatus.InternalError)]
+        [TestCase(ResponseStatus.Busy)]
+        [TestCase(ResponseStatus.TemporaryFailure)]
+        public void SetException_Should_Set_TemporaryLockFailureException_When_Message_Contatains_LOCKED(ResponseStatus status)
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = status,
+                Message = "error - LOCK_ERROR"
+            };
+
+            operationResult.SetException();
+            Assert.IsInstanceOf<TemporaryLockFailureException>(operationResult.Exception);
+        }
+
+        [TestCase(ResponseStatus.None)]
+        [TestCase(ResponseStatus.Success)]
+        [TestCase(ResponseStatus.ClientFailure)]
+        [TestCase(ResponseStatus.OperationTimeout)]
+        [TestCase(ResponseStatus.NoReplicasFound)]
+        [TestCase(ResponseStatus.NodeUnavailable)]
+        [TestCase(ResponseStatus.TransportFailure)]
+        [TestCase(ResponseStatus.DocumentMutationLost)]
+        [TestCase(ResponseStatus.SubDocPathNotFound)]
+        [TestCase(ResponseStatus.SubDocPathMismatch)]
+        [TestCase(ResponseStatus.SubDocPathInvalid)]
+        [TestCase(ResponseStatus.SubDocPathTooBig)]
+        [TestCase(ResponseStatus.SubDocDocTooDeep)]
+        [TestCase(ResponseStatus.SubDocCannotInsert)]
+        [TestCase(ResponseStatus.SubDocDocNotJson)]
+        [TestCase(ResponseStatus.SubDocNumRange)]
+        [TestCase(ResponseStatus.SubDocDeltaRange)]
+        [TestCase(ResponseStatus.SubDocPathExists)]
+        [TestCase(ResponseStatus.SubDocValueTooDeep)]
+        [TestCase(ResponseStatus.SubDocInvalidCombo)]
+        [TestCase(ResponseStatus.SubDocMultiPathFailure)]
+        public void SetException_Should_Not_Set_An_Exception_For_Given_Status(ResponseStatus status)
+        {
+            var operationResult = new OperationResult
+            {
+                Success = false,
+                Status = status
+            };
+
+            operationResult.SetException();
+            Assert.IsNull(operationResult.Exception);
         }
     }
 }
