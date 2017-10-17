@@ -486,7 +486,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
-            return Upsert(key, value, GlobalTimeout);
+            return Upsert(key, value, TimeSpan.Zero);
         }
 
         /// <summary>
