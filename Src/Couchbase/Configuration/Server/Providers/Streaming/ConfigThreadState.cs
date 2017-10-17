@@ -64,7 +64,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             //Make a copy of the nodes and shuffle them for randomness
             var nodes = _bucketConfig.Nodes.ToList();
 
-            using (var httpClient = new CouchbaseHttpClient(_bucketConfig.Name, _bucketConfig.Password))
+            //if RBAC is being used with >= CB 5.0, then use the username otherwise use the bucket name
+            var bucketNameOrUserName = string.IsNullOrWhiteSpace(_bucketConfig.Username)
+                ? _bucketConfig.Name
+                : _bucketConfig.Username;
+
+            using (var httpClient = new CouchbaseHttpClient(bucketNameOrUserName, _bucketConfig.Password))
             {
                 httpClient.Timeout = Timeout.InfiniteTimeSpan;
 
@@ -119,6 +124,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                                         if (_configChangedDelegate != null)
                                         {
                                             bucketConfig.Password = _bucketConfig.Password;
+                                            bucketConfig.Username = _bucketConfig.Username;
                                             _configChangedDelegate(bucketConfig);
                                         }
                                     }

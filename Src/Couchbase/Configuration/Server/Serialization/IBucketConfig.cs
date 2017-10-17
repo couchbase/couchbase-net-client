@@ -89,6 +89,8 @@ namespace Couchbase.Configuration.Server.Serialization
 
         string Password { get; set; }
 
+        string Username { get; set; }
+
         bool UseSsl { get; set; }
 
         Node GetRandomNode();

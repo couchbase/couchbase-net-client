@@ -59,7 +59,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             }
 
             StartProvider(bucketName, username, password);
-            var bucketConfig = GetBucketConfig(bucketName, password);
+            var bucketConfig = GetBucketConfig(bucketName, password, username);
 
             try
             {
@@ -105,6 +105,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                                 : BucketTypeEnum.Ephemeral).ToString().ToLowerInvariant();
                         }
                         newConfig.Password = password;
+                        newConfig.Username = username;
                         if (ClientConfig.UseSsl)
                         {
                             foreach (var ipEndPoint in bucketConfig.VBucketServerMap.IPEndPoints)
@@ -319,7 +320,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             return _serverConfig;
         }
 
-        IBucketConfig GetBucketConfig(string bucketName, string password)
+        IBucketConfig GetBucketConfig(string bucketName, string password, string username)
         {
             try
             {
@@ -330,6 +331,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     throw new BucketNotFoundException(bucketName);
                 }
                 bucketConfig.Password = password;
+                bucketConfig.Username = username;
                 return bucketConfig;
             }
             finally

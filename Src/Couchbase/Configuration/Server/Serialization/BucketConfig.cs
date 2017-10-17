@@ -107,6 +107,8 @@ namespace Couchbase.Configuration.Server.Serialization
 
         public string Password { get; set; }
 
+        public string Username { get; set; }
+
         public Node GetRandomNode()
         {
             Nodes.Shuffle();
