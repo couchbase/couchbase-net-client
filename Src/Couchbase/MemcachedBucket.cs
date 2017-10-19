@@ -373,7 +373,6 @@ namespace Couchbase
         /// </summary>
         /// <param name="key">The key to "touch".</param>
         /// <param name="expiration">The expiration to extend.</param>
-        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
         /// <returns>An <see cref="Task{IOperationResult}"/>object representing the asynchronous operation.</returns>
         public Task<IOperationResult> TouchAsync(string key, TimeSpan expiration)
         {
