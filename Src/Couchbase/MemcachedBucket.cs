@@ -1140,7 +1140,24 @@ namespace Couchbase
         /// </remarks>
         public IDictionary<string, IOperationResult<T>> Upsert<T>(IDictionary<string, T> items, ParallelOptions options, TimeSpan timeout)
         {
-            throw new NotSupportedException();
+            var results = new ConcurrentDictionary<string, IOperationResult<T>>();
+            if (items != null && items.Count > 0)
+            {
+                var keys = items.Keys.ToList();
+                var partitionar = Partitioner.Create(0, items.Count());
+                Parallel.ForEach(partitionar, options, (range, loopstate) =>
+                {
+                    for (var i = range.Item1; i < range.Item2; i++)
+                    {
+                        var key = keys[i];
+                        var value = items[key];
+                        const UInt32 expiration = 0;
+                        var result = Upsert(key, value, expiration, timeout);
+                        results.TryAdd(key, result);
+                    }
+                });
+            }
+            return results;
         }
 
         /// <summary>
