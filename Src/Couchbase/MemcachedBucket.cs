@@ -212,7 +212,7 @@ namespace Couchbase
         /// <returns>True if the key exists.</returns>
         public bool Exists(string key)
         {
-            return Exists(key, GlobalTimeout);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -225,9 +225,7 @@ namespace Couchbase
         /// </returns>
         public bool Exists(string key, TimeSpan timeout)
         {
-            var observe = new Observe(key, null, _transcoder, timeout.GetSeconds());
-            var result = _requestExecuter.SendWithRetry(observe);
-            return result.Success && result.Value.KeyState != KeyState.NotFound;
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -237,7 +235,7 @@ namespace Couchbase
         /// <returns>A <see cref="Task{boolean}"/> object representing the asynchronous operation.</returns>
         public Task<bool> ExistsAsync(string key)
         {
-            return ExistsAsync(key, GlobalTimeout);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -250,9 +248,7 @@ namespace Couchbase
         /// </returns>
         public async Task<bool> ExistsAsync(string key, TimeSpan timeout)
         {
-            var observe = new Observe(key, null, _transcoder, timeout.GetSeconds());
-            var result = await _requestExecuter.SendWithRetryAsync(observe).ContinueOnAnyContext();
-            return result.Success && result.Value.KeyState != KeyState.NotFound;
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
