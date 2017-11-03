@@ -350,6 +350,23 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
+        public async Task Test_ReplaceAsync_With_Durability_Requirements_and_Custom_Timeout()
+        {
+            var documents = Enumerable.Range(1, 10)
+                .Select(i => (IDocument<dynamic>) new Document<dynamic> {Id = $"the-key-{i}", Content = new { }})
+                .ToList();
+
+            // upsert documents
+            await _bucket.UpsertAsync(documents);
+
+            // replace documents
+            var result = await _bucket.ReplaceAsync(documents, ReplicateTo.Zero, PersistTo.Zero, TimeSpan.FromSeconds(5));
+
+            // verify
+            Assert.IsTrue(result.ToList().TrueForAll(x => x.Success));
+        }
+
+        [Test]
         public async Task RemoveAsync_Batch()
         {
             var documents = new List<IDocument<object>>

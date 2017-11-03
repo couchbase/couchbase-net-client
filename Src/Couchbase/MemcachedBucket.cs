@@ -4831,6 +4831,22 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Replaces a list of <see cref="T:Couchbase.IDocument`1" /> into a bucket asynchronously.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="documents">The documents to upsert.</param>
+        /// <param name="replicateTo"></param>
+        /// <param name="persistTo"></param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:System.Threading.Tasks.Task`1" /> list.
+        /// </returns>
+        public Task<IDocumentResult<T>[]> ReplaceAsync<T>(List<IDocument<T>> documents, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
         /// Replaces a document if it exists, otherwise fails as an asynchronous operation.
         /// </summary>
         /// <typeparam name="T">The Type T value of the document to be inserted.</typeparam>
