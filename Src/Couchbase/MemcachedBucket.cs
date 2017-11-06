@@ -5236,9 +5236,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo)
         {
-            CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -5373,9 +5371,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -5389,12 +5385,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                Cas = cas
-            };
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, PersistTo.Zero);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -5408,9 +5399,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout);
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
@@ -5425,12 +5414,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, _operationLifespanTimeout)
-            {
-                Cas = cas
-            };
-            return _requestExecuter.SendWithDurabilityAsync(operation, true, replicateTo, persistTo);
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
         /// <summary>
