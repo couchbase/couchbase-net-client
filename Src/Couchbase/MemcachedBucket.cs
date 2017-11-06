@@ -2504,6 +2504,18 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
+        public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <summary>
         /// Retrieves a document by key and additionally updates the expiry with a new value as an asynchronous operation.
         /// </summary>
         /// <typeparam name="T"></typeparam>

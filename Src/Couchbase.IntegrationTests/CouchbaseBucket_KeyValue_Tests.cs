@@ -761,6 +761,17 @@ namespace Couchbase.IntegrationTests
             }
         }
 
+        [Test]
+        public async Task Test_RemoveAsync_With_Durability_Requirements_And_Custom_Timeout()
+        {
+            const string key = "Test_RemoveAsync_With_Durability_Requirements_And_Custom_Timeout";
+
+            var upsertResult = _bucket.Upsert(key, new { });
+
+            var result = await _bucket.RemoveAsync(key, ReplicateTo.Zero, PersistTo.Zero, TimeSpan.FromSeconds(5));
+            Assert.IsTrue(result.Success);
+        }
+
         #region Helpers
 
         private void IgnoreIfNoReplicas()

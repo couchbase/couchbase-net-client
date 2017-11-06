@@ -3765,6 +3765,18 @@ namespace Couchbase
         /// Removes a document for a given key from the database as an asynchronous operation.
         /// </summary>
         /// <param name="key">The key to remove from the database</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
+        public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, TimeSpan timeout)
+        {
+            return RemoveAsync(key, replicateTo, PersistTo.Zero, timeout);
+        }
+
+        /// <summary>
+        /// Removes a document for a given key from the database as an asynchronous operation.
+        /// </summary>
+        /// <param name="key">The key to remove from the database</param>
         /// <param name="cas">The CAS (Check and Set) value for optimistic concurrency.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <returns>
