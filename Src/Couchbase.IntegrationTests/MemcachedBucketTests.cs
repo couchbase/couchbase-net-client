@@ -736,11 +736,11 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public void Upsert_When_Expiration_Is_Passed_It_Is_Honored()
+        public void Upsert_When_Expiration_And_Timeout_Is_Passed_It_Is_Honored()
         {
             var timeout = new TimeSpan(0, 0, 15);
             var expiration = 1000u;
-            var key = "Upsert_When_Expiration_Is_Passed_It_Is_Honored";
+            var key = "Upsert_When_Expiration_And_Timeout_Is_Passed_It_Is_Honored";
 
             //start clean
             _bucket.Remove(key);
@@ -780,6 +780,27 @@ namespace Couchbase.IntegrationTests
 
             result = _bucket.Upsert(documentsToUpsert, new ParallelOptions(), 10, TimeSpan.MaxValue);
             Assert.IsTrue(result.All(r => r.Value.Success));
+
+        }
+
+        [Test]
+        public void Upsert_When_Expiration_Is_Passed_It_Is_Honored()
+        {
+            var key = "Upsert_When_Expiration_And_Timeout_Is_Passed_It_Is_Honored";
+            var value = "thevalue";
+
+            _bucket.Remove(key);
+
+            var result = _bucket.Upsert(key, value, new TimeSpan(0, 0, 0, 1));
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+
+            var get = _bucket.Get<string>(key);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+            Thread.Sleep(1200);
+
+            get = _bucket.Get<string>(key);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
 
         #region GetClusterVersion

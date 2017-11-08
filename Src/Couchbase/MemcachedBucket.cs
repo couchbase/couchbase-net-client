@@ -553,7 +553,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration)
         {
-            return Upsert(key, value, expiration.ToTtl(), GlobalTimeout);
+            return Upsert(key, value, expiration, GlobalTimeout);
         }
 
         /// <summary>
