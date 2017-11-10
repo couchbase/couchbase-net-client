@@ -68,7 +68,11 @@
 
     "secureConnectionString": {
       "password": "secure123",
-      "servers": ["http://CustomUser@localhost:8081"]
+      "servers": [ "http://CustomUser@localhost:8081" ]
+    },
+
+    "plainAuth": {
+      "forceSaslPlain": true
     }
   }
 }

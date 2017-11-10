@@ -621,6 +621,19 @@ namespace Couchbase.Configuration.Client.Providers
             set => this["pollConfigCheckFloor"] = value;
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the client must use the Plain SASL mechanism to authenticate KV connections.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("forceSaslPlain", IsRequired = false, DefaultValue = false)]
+        public bool ForceSaslPlain
+        {
+            get => (bool) this["forceSaslPlain"];
+            set => this["forceSaslPlain"] = value;
+        }
+
         #region Additional ICouchbaseClientDefinition implementations
 
         IEnumerable<Uri> ICouchbaseClientDefinition.Servers

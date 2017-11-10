@@ -107,6 +107,8 @@ namespace Couchbase.Configuration.Client
 
             public static bool UseConnectionPooling = false;
             public static bool EnableDeadServiceUriPing = true;
+
+            public static bool ForceSaslPlain = false;
         }
 
         public ClientConfiguration()
@@ -165,6 +167,7 @@ namespace Couchbase.Configuration.Client
             IOErrorCheckInterval = Defaults.IOErrorCheckInterval;
             IOErrorThreshold = Defaults.IOErrorThreshold;
             EnableDeadServiceUriPing = Defaults.EnableDeadServiceUriPing;
+            ForceSaslPlain = Defaults.ForceSaslPlain;
 
             //the default serializer
             Serializer = SerializerFactory.GetSerializer();
@@ -267,6 +270,7 @@ namespace Couchbase.Configuration.Client
             EnableQueryTiming = definition.EnableQueryTiming;
             SearchRequestTimeout = definition.SearchRequestTimeout;
             VBucketRetrySleepTime = definition.VBucketRetrySleepTime;
+            ForceSaslPlain = definition.ForceSaslPlain;
 
             IOErrorCheckInterval = definition.IOErrorCheckInterval;
             IOErrorThreshold = definition.IOErrorThreshold;
@@ -1239,6 +1243,14 @@ namespace Couchbase.Configuration.Client
         {
             return Authenticator.GetCredentials(context);
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the client must use the Plain SASL mechanism to authenticate KV connections.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
+        /// </value>
+        public bool ForceSaslPlain { get; set; }
     }
 }
 

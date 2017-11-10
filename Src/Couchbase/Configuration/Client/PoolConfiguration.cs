@@ -345,6 +345,14 @@ namespace Couchbase.Configuration.Client
         }
 
         internal string BucketName { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the client must use the Plain SASL mechanism to authenticate KV connections.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
+        /// </value>
+        public bool ForceSaslPlain => ClientConfiguration?.ForceSaslPlain ?? ClientConfiguration.Defaults.ForceSaslPlain;
     }
 }
 

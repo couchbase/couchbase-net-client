@@ -27,6 +27,11 @@ namespace Couchbase.Authentication.SASL
                 IConnection connection = null;
                 try
                 {
+                    if (pool.Configuration?.ForceSaslPlain ?? false)
+                    {
+                        return new PlainTextMechanism(username, password, transcoder);
+                    }
+
                     connection = pool.Acquire();
                     var saslListResult = Execute(new SaslList(transcoder, DefaultTimeout), connection);
                     if (saslListResult.Success)

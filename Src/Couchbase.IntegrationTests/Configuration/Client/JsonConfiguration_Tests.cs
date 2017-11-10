@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
 
@@ -83,6 +84,20 @@ namespace Couchbase.IntegrationTests.Configuration.Client
             Assert.IsNotNull(authenticator);
             Assert.AreEqual("CustomUser", authenticator.Username);
             Assert.AreEqual("secure123", authenticator.Password);
+        }
+
+        [Test]
+        public void ClientConfiguration_Authentication_Mechanism_From_Config()
+        {
+            var config = Utils.TestConfiguration.GetConfiguration("basic");
+            Assert.IsFalse(config.ForceSaslPlain);
+        }
+
+        [Test]
+        public void ClientConfiguration_Authentication_Mechanism_From_Config_()
+        {
+            var config = Utils.TestConfiguration.GetConfiguration("plainAuth");
+            Assert.IsTrue(config.ForceSaslPlain);
         }
     }
 }

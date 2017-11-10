@@ -390,6 +390,14 @@ namespace Couchbase.Configuration.Client
         /// </value>
         /// <remarks>The default is 50ms.</remarks>
         uint ConfigPollCheckFloor { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the client must use the Plain SASL mechanism to authenticate KV connections.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
+        /// </value>
+        bool ForceSaslPlain { get; set; }
     }
 }
 

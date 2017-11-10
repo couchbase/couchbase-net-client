@@ -391,6 +391,14 @@ namespace Couchbase.Configuration.Client
         /// <remarks>The default is 50ms.</remarks>
         public uint HeartbeatConfigCheckFloor { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the client must use the Plain SASL mechanism to authenticate KV connections.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
+        /// </value>
+        public bool ForceSaslPlain { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -429,6 +437,7 @@ namespace Couchbase.Configuration.Client
             ConfigPollEnabled = ClientConfiguration.Defaults.ConfigPollEnabled;
             ConfigPollCheckFloor = ClientConfiguration.Defaults.ConfigPollCheckFloor;
             ConfigPollInterval = ClientConfiguration.Defaults.ConfigPollInterval;
+            ForceSaslPlain = ClientConfiguration.Defaults.ForceSaslPlain;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations
