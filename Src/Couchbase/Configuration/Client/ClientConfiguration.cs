@@ -271,6 +271,7 @@ namespace Couchbase.Configuration.Client
             SearchRequestTimeout = definition.SearchRequestTimeout;
             VBucketRetrySleepTime = definition.VBucketRetrySleepTime;
             ForceSaslPlain = definition.ForceSaslPlain;
+            ConfigurationProviders = definition.ConfigurationProviders;
 
             IOErrorCheckInterval = definition.IOErrorCheckInterval;
             IOErrorThreshold = definition.IOErrorThreshold;
@@ -948,12 +949,13 @@ namespace Couchbase.Configuration.Client
         }
 
         /// <summary>
-        /// Control which server configuration providers are enabled.
+        /// Control which server configuration providers are used to bootstrap the cluster
+        /// and monitor for cluster changes.
         /// </summary>
         /// <remarks>
-        /// Intended for testing to force the use of specific providers.
+        /// By default all configuration providers are enabled.
         /// </remarks>
-        internal ServerConfigurationProviders ConfigurationProviders { get; set; } =
+        public ServerConfigurationProviders ConfigurationProviders { get; set; } =
             ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming;
 
         /// <summary>

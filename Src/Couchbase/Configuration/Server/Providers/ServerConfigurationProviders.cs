@@ -1,16 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Couchbase.Configuration.Server.Providers
 {
+    /// <summary>
+    /// Types of configuration providers which can be used to bootstrap the cluster
+    /// and monitor for cluster changes.
+    /// </summary>
     [Flags]
-    internal enum ServerConfigurationProviders
+    public enum ServerConfigurationProviders
     {
         None = 0,
+
+        /// <summary>
+        /// Binary protocol for streaming cluster information.
+        /// </summary>
         CarrierPublication = 1,
+
+        /// <summary>
+        /// Uses HTTP RESTful API calls to get cluster information.
+        /// </summary>
         HttpStreaming = 2
     }
 }

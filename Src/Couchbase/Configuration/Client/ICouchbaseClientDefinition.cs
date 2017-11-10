@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Couchbase.Authentication;
+using Couchbase.Configuration.Server.Providers;
 using Couchbase.Logging;
 using Couchbase.Core;
 using Couchbase.Core.Serialization;
@@ -398,6 +400,15 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
         /// </value>
         bool ForceSaslPlain { get; set; }
+
+        /// <summary>
+        /// Control which server configuration providers are used to bootstrap the cluster
+        /// and monitor for cluster changes.
+        /// </summary>
+        /// <remarks>
+        /// By default all configuration providers are enabled.
+        /// </remarks>
+        ServerConfigurationProviders ConfigurationProviders { get; set; }
     }
 }
 

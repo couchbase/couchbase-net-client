@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using Couchbase.Authentication;
+using Couchbase.Configuration.Server.Providers;
+using Couchbase.Core;
 
 namespace Couchbase.Configuration.Client.Providers
 {
@@ -619,6 +621,15 @@ namespace Couchbase.Configuration.Client.Providers
         {
             get => (uint)this["pollConfigCheckFloor"];
             set => this["pollConfigCheckFloor"] = value;
+        }
+
+        /// <inheritdoc />
+        [ConfigurationProperty("providers",
+            DefaultValue = ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming,
+            IsRequired = false)]
+        public ServerConfigurationProviders ConfigurationProviders {
+            get => (ServerConfigurationProviders)this["providers"];
+            set => this["providers"] = value;
         }
 
         /// <summary>

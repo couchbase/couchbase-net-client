@@ -1,6 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using Couchbase.Authentication;
+using Couchbase.Configuration.Server.Providers;
+using Couchbase.Core;
+using Couchbase.Core.Serialization;
+using Couchbase.Core.Transcoders;
+using Couchbase.IO;
+using Couchbase.IO.Converters;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Client
@@ -399,6 +405,9 @@ namespace Couchbase.Configuration.Client
         /// </value>
         public bool ForceSaslPlain { get; set; }
 
+        /// <inheritdoc />
+        public ServerConfigurationProviders ConfigurationProviders { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -438,6 +447,7 @@ namespace Couchbase.Configuration.Client
             ConfigPollCheckFloor = ClientConfiguration.Defaults.ConfigPollCheckFloor;
             ConfigPollInterval = ClientConfiguration.Defaults.ConfigPollInterval;
             ForceSaslPlain = ClientConfiguration.Defaults.ForceSaslPlain;
+            ConfigurationProviders = ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations

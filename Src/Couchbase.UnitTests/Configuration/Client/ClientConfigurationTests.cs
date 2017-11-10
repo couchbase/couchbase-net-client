@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO;
 using Couchbase.IO.Services;
 using Couchbase.Utils;
@@ -554,5 +555,65 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(false, config.ConfigPollEnabled);
             Assert.AreEqual(config.ConfigPollEnabled, config.EnableConfigHeartBeat);
         }
+
+        [Test]
+        public void CouchbaseClientDefinition_CorrectDefault()
+        {
+            var definition = new CouchbaseClientDefinition();
+
+            var config = new ClientConfiguration(definition);
+            config.Initialize();
+
+            Assert.AreEqual(ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming,
+                config.ConfigurationProviders);
+        }
+
+        [Test]
+        [TestCase(ServerConfigurationProviders.CarrierPublication)]
+        [TestCase(ServerConfigurationProviders.HttpStreaming)]
+        [TestCase(ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming)]
+        public void CouchbaseClientDefinition_ConfigurationProviders_Passthrough(ServerConfigurationProviders configurationProviders)
+        {
+            var definition = new CouchbaseClientDefinition
+            {
+                ConfigurationProviders = configurationProviders
+            };
+
+            var config = new ClientConfiguration(definition);
+            config.Initialize();
+
+            Assert.AreEqual(configurationProviders, config.ConfigurationProviders);
+        }
+
+#if NET45
+        [Test]
+        public void CouchbaseConfigurationSection_CorrectDefault()
+        {
+            var section = new CouchbaseClientSection();
+
+            var config = new ClientConfiguration(section);
+            config.Initialize();
+
+            Assert.AreEqual(ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming,
+                config.ConfigurationProviders);
+        }
+
+        [Test]
+        [TestCase(ServerConfigurationProviders.CarrierPublication)]
+        [TestCase(ServerConfigurationProviders.HttpStreaming)]
+        [TestCase(ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming)]
+        public void CouchbaseConfigurationSection_ConfigurationProviders_Passthrough(ServerConfigurationProviders configurationProviders)
+        {
+            var section = new CouchbaseClientSection
+            {
+                ConfigurationProviders = configurationProviders
+            };
+
+            var config = new ClientConfiguration(section);
+            config.Initialize();
+
+            Assert.AreEqual(configurationProviders, config.ConfigurationProviders);
+        }
+#endif
     }
 }
