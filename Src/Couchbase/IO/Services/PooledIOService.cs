@@ -30,7 +30,7 @@ namespace Couchbase.IO.Services
             Log.Debug("Creating PooledIOService {0}", Identity);
             ConnectionPool = connectionPool;
 
-            var conn = ConnectionPool.Connections.FirstOrDefault();
+            var conn = connectionPool.Acquire();
             CheckEnabledServerFeatures(conn);
         }
 
@@ -45,7 +45,7 @@ namespace Couchbase.IO.Services
             ConnectionPool = connectionPool;
             SaslMechanism = saslMechanism;
 
-            var conn = ConnectionPool.Connections.FirstOrDefault();
+            var conn = connectionPool.Acquire();
             CheckEnabledServerFeatures(conn);
         }
 
