@@ -141,14 +141,6 @@ namespace Couchbase.IntegrationTests
         }
 
         [Test]
-        public void When_Key_Does_Not_Exist_Exists_Returns_False()
-        {
-            var key = "thekeythatdoesnotexists_perhaps";
-            var result = _bucket.Exists(key);
-            Assert.IsFalse(result);
-        }
-
-        [Test]
         public void When_Key_Exists_Exists_Returns_True()
         {
             var key = "thekeythatexists";

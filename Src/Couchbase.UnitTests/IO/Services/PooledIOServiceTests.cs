@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests.IO.Services
             var features = new short[] {(byte) ServerFeatures.SubdocXAttributes, (byte) ServerFeatures.SelectBucket, (short)ServerFeatures.XError, (byte) ServerFeatures.MutationSeqno};
             var expectedBytes = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0).Write();
 
-            mockConnectionPool.Verify(x => x.Acquire(), Times.Once);
+            mockConnectionPool.Verify(x => x.Acquire(), Times.Exactly(2));
             mockConnection.Verify(x => x.Send(It.Is<byte[]>(bytes => bytes.SequenceEqual(expectedBytes))));
         }
 
@@ -58,7 +58,7 @@ namespace Couchbase.UnitTests.IO.Services
             var features = new short[] {(byte) ServerFeatures.SubdocXAttributes, (byte) ServerFeatures.SelectBucket, (short)ServerFeatures.XError};
             var expectedBytes = new Hello(features.ToArray(), new DefaultTranscoder(), 0, 0).Write();
 
-            mockConnectionPool.Verify(x => x.Acquire(), Times.Once);
+            mockConnectionPool.Verify(x => x.Acquire(), Times.Exactly(2));
             mockConnection.Verify(x => x.Send(It.Is<byte[]>(bytes => bytes.SequenceEqual(expectedBytes))));
         }
 
