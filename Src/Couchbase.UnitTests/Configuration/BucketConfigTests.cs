@@ -21,5 +21,16 @@ namespace Couchbase.UnitTests.Configuration
             Assert.IsTrue(config.NodesExt[1].Services.KV > 0);
             Assert.IsFalse(config.NodesExt[2].Services.KV > 0);
         }
+
+        [Test]
+        public void When_Serialized_Password_Not_Written()
+        {
+            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Data\cb-mds-missing-hostname.json"));
+            config.Password = "Potatoe";
+
+            var json = JsonConvert.SerializeObject(config);
+
+            Assert.IsFalse(json.Contains("Potatoe"));
+        }
     }
 }

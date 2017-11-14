@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -105,6 +106,7 @@ namespace Couchbase.Configuration.Server.Serialization
             set { _surrogateHost = value; }
         }
 
+        [JsonIgnore]
         public string Password { get; set; }
 
         public string Username { get; set; }
