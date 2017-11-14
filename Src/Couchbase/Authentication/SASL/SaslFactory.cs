@@ -1,4 +1,5 @@
 ﻿using System;
+using Couchbase.Configuration.Client;
 using Couchbase.Logging;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
@@ -27,7 +28,7 @@ namespace Couchbase.Authentication.SASL
                 IConnection connection = null;
                 try
                 {
-                    if (pool.Configuration?.ForceSaslPlain ?? false)
+                    if (pool.Configuration?.ForceSaslPlain ?? ClientConfiguration.Defaults.ForceSaslPlain)
                     {
                         return new PlainTextMechanism(username, password, transcoder);
                     }

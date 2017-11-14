@@ -651,7 +651,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
         /// </value>
-        [ConfigurationProperty("forceSaslPlain", IsRequired = false, DefaultValue = false)]
+        [ConfigurationProperty("forceSaslPlain", IsRequired = false, DefaultValue = true)]
         public bool ForceSaslPlain
         {
             get => (bool) this["forceSaslPlain"];

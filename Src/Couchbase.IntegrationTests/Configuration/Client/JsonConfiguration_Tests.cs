@@ -87,17 +87,17 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         }
 
         [Test]
-        public void ClientConfiguration_Authentication_Mechanism_From_Config()
+        public void ClientConfiguration_ForceSaslPlain_Default_Is_True()
         {
             var config = Utils.TestConfiguration.GetConfiguration("basic");
-            Assert.IsFalse(config.ForceSaslPlain);
+            Assert.IsTrue(config.ForceSaslPlain);
         }
 
         [Test]
-        public void ClientConfiguration_Authentication_Mechanism_From_Config_()
+        public void ClientConfiguration_ForceSaslPlain_Can_Be_Overridden_To_False()
         {
-            var config = Utils.TestConfiguration.GetConfiguration("plainAuth");
-            Assert.IsTrue(config.ForceSaslPlain);
+            var config = Utils.TestConfiguration.GetConfiguration("saslAuth");
+            Assert.IsFalse(config.ForceSaslPlain);
         }
     }
 }

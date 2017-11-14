@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
+using Couchbase.Configuration.Client;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -28,9 +29,15 @@ namespace Couchbase.UnitTests.Authentication
         public void SaslFactory_WhenSCRAM_SHA1Available_FuncReturnsScramShaMechanism(string mechanismType)
         {
             //arrange
+            var config = new PoolConfiguration(new ClientConfiguration
+            {
+                ForceSaslPlain = false
+            });
+
             var connection = new Mock<IConnection>();
             var connectionPool = new Mock<IConnectionPool>();
             connectionPool.Setup(x => x.Acquire()).Returns(connection.Object);
+            connectionPool.Setup(x => x.Configuration).Returns(config);
 
             var opResult = new Mock<IOperationResult<string>>();
             opResult.Setup(x => x.Success).Returns(true);

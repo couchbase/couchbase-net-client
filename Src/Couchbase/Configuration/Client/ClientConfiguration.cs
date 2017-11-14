@@ -112,7 +112,7 @@ namespace Couchbase.Configuration.Client
             public static bool UseConnectionPooling = false;
             public static bool EnableDeadServiceUriPing = true;
 
-            public static bool ForceSaslPlain = false;
+            public static bool ForceSaslPlain = true;
 
             public static bool ResponseTimeObservabiltyEnabled = true;
             public static bool OrphanedResponseLoggingEnabled = true;

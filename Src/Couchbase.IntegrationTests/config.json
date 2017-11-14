@@ -75,8 +75,8 @@
       "servers": [ "http://CustomUser@localhost:8081" ]
     },
 
-    "plainAuth": {
-      "forceSaslPlain": true
+    "saslAuth": {
+      "forceSaslPlain": false
     }
   }
 }
