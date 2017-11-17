@@ -1,5 +1,6 @@
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Core
@@ -33,6 +34,36 @@ namespace Couchbase.UnitTests.Core
 
             Assert.AreEqual(18095, adapater.AnalyticsSsl);
             Assert.IsTrue(adapater.IsAnalyticsNode);
+        }
+
+        [Test]
+        public void When_IPv6_NodeAdapter_Does_Not_Fail()
+        {
+            //arrange
+            var serverConfigJson = ResourceHelper.ReadResource("config_with_ipv6");
+            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+
+            //act
+            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0]);
+
+            //assert
+            Assert.IsNotNull(adapter);
+        }
+
+        [Test]
+        public void When_IPv6_NodeAdapter_GetEndpoint_Succeeds()
+        {
+            //arrange
+            var serverConfigJson = ResourceHelper.ReadResource("config_with_ipv6");
+            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+
+            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0]);
+
+            //act
+            var endpoint = adapter.GetIPEndPoint(false);
+
+            //assert
+            Assert.IsNotNull(endpoint);
         }
     }
 }

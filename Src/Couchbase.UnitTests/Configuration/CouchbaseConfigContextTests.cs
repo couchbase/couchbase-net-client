@@ -1,10 +1,12 @@
-﻿using Couchbase.Authentication.SASL;
+﻿using System.Collections.Generic;
+using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Moq;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Configuration
@@ -271,6 +273,40 @@ namespace Couchbase.UnitTests.Configuration
             context.LoadConfig(mockIoService.Object);
 
             Assert.IsTrue(context.SupportsKvErrorMap);
+        }
+
+        [Test]
+        public void LoadConfig_Accepts_IPv6_Addresses()
+        {
+            var serverConfigJson = ResourceHelper.ReadResource("config_with_ipv6");
+            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            var mockIoService = new Mock<IIOService>();
+            mockIoService.Setup(x => x.ConnectionPool).Returns(mockConnectionPool.Object);
+            mockIoService.Setup(x => x.SupportsSubdocXAttributes).Returns(true);
+            var mockSasl = new Mock<ISaslMechanism>();
+
+            var clientConfig = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {"samplebucket",
+                    new BucketConfiguration{BucketName = "samplebucket"}}
+                }
+            };
+            var context = new CouchbaseConfigContext(
+                serverConfig,
+                clientConfig,
+                p => mockIoService.Object,
+                (a, b) => mockConnectionPool.Object,
+                (a, b, c, d) => mockSasl.Object,
+                new DefaultTranscoder(),
+                null, null);
+
+            context.LoadConfig(serverConfig);
+
+            Assert.IsTrue(context.IsDataCapable);
         }
     }
 }

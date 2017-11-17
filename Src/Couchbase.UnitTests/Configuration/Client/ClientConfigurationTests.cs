@@ -585,6 +585,22 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(configurationProviders, config.ConfigurationProviders);
         }
 
+        [Test]
+        [TestCase("http://10.111.170.102:8091")]
+        [TestCase("http://[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]:8091")]
+        public void Initialize_Supports_IPv6_Uri(string uri)
+        {
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>
+                {
+                   new Uri(uri)
+                }
+            };
+
+            config.Initialize();
+        }
+
 #if NET45
         [Test]
         public void CouchbaseConfigurationSection_CorrectDefault()

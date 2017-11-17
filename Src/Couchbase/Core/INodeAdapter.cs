@@ -94,6 +94,11 @@ namespace Couchbase.Core
         /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
         /// </value>
         bool IsAnalyticsNode { get; }
+
+        /// <summary>
+        /// True if the endpoint is using IPv6.
+        /// </summary>
+        bool IsIPv6 { get; }
     }
 }
 

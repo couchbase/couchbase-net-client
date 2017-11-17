@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Sockets;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
 
@@ -23,16 +24,11 @@ namespace Couchbase.Core
             Hostname = Hostname ?? node.Hostname;
 
             //strip off the admin port - we can use services
-            if (Hostname.Contains(":"))
+            if (Hostname.Contains("$HOST"))
             {
-                var hostAndPorts = Hostname.Split(':');
-                Hostname = hostAndPorts[0];
-                if (Hostname.Contains("$HOST"))
-                {
-                    Hostname = "localhost";
-                }
-                MgmtApi = int.Parse(hostAndPorts[1]);
+                Hostname = "localhost";
             }
+
             if (_node != null)
             {
                 CouchbaseApiBase = _node.CouchApiBase.Replace("$HOST", Hostname);
@@ -130,19 +126,19 @@ namespace Couchbase.Core
         }
 
         /// <summary>
-        /// Gets the <see cref="IPEndPoint" /> for the KV port for this node.
+        /// Gets the <see cref="T:System.Net.IPEndPoint" /> for the KV port for this node.
         /// </summary>
-        /// <param name="port">The port for the <see cref="IPEndPoint" /></param>
+        /// <param name="port">The port for the <see cref="T:System.Net.IPEndPoint" /></param>
         /// <returns>
-        /// An <see cref="IPEndPoint" /> with the port passed in.
+        /// An <see cref="T:System.Net.IPEndPoint" /> with the port passed in.
         /// </returns>
         public IPEndPoint GetIPEndPoint(int port)
         {
             var key = Hostname + ":" + port;
-            IPEndPoint endPoint;
-            if (!_cachedEndPoints.TryGetValue(key, out endPoint))
+            if (!_cachedEndPoints.TryGetValue(key, out var endPoint))
             {
-                endPoint = IPEndPointExtensions.GetEndPoint(Hostname + ":" + port);
+                endPoint = IPEndPointExtensions.GetEndPoint(Hostname, port);
+                IsIPv6 = endPoint.AddressFamily == AddressFamily.InterNetworkV6;
                 _cachedEndPoints.TryAdd(key, endPoint);
             }
             return endPoint;
@@ -156,11 +152,7 @@ namespace Couchbase.Core
         /// </returns>
         public IPAddress GetIPAddress()
         {
-            if (_cachedIPAddress == null)
-            {
-                _cachedIPAddress = GetIPEndPoint().Address;
-            }
-            return _cachedIPAddress;
+            return _cachedIPAddress ?? (_cachedIPAddress = GetIPEndPoint().Address);
         }
 
         /// <summary>
@@ -179,10 +171,7 @@ namespace Couchbase.Core
         /// <value>
         /// 	<c>true</c> if this instance is data node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsDataNode
-        {
-            get { return KeyValue > 0 || KeyValueSsl > 0; }
-        }
+        public bool IsDataNode => KeyValue > 0 || KeyValueSsl > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is index node.
@@ -190,10 +179,7 @@ namespace Couchbase.Core
         /// <value>
         /// 	<c>true</c> if this instance is index node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsIndexNode
-        {
-            get { return IndexHttp > 0; }
-        }
+        public bool IsIndexNode => IndexHttp > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is query node.
@@ -201,10 +187,7 @@ namespace Couchbase.Core
         /// <value>
         /// 	<c>true</c> if this instance is query node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsQueryNode
-        {
-            get { return N1QL > 0; }
-        }
+        public bool IsQueryNode => N1QL > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is search node.
@@ -212,10 +195,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSearchNode
-        {
-            get { return Fts > 0; }
-        }
+        public bool IsSearchNode => Fts > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is an analytics node.
@@ -223,10 +203,12 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsAnalyticsNode
-        {
-            get { return Analytics > 0 || AnalyticsSsl > 0; }
-        }
+        public bool IsAnalyticsNode => Analytics > 0 || AnalyticsSsl > 0;
+
+        /// <summary>
+        /// True if the endpoint is using IPv6.
+        /// </summary>
+        public bool IsIPv6 { get; set;  }
     }
 }
 

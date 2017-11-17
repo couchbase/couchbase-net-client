@@ -24,7 +24,19 @@ namespace Couchbase.Tests.Utils
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
             const string expected = "192.168.56.101:11207";
-            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.NodesExt[0], clientConfig, serverConfig);
+            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.NodesExt[0].Hostname);
+            Assert.AreEqual(expected, actual.ToString());
+        }
+
+        [Test]
+        public void When_NodeExt_And_UseSsl_Is_True_And_IPv6_IPEndpoint_Uses_Port_11207()
+        {
+            var serverConfigJson = ResourceHelper.ReadResource("Data\\Configuration\\config-with-nodes-ext.json");
+            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+            var clientConfig = new BucketConfiguration { UseSsl = true };
+
+            const string expected = "192.168.56.101:11207";
+            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.NodesExt[0].Hostname);
             Assert.AreEqual(expected, actual.ToString());
         }
 
@@ -36,7 +48,7 @@ namespace Couchbase.Tests.Utils
             var clientConfig = new BucketConfiguration { UseSsl = false };
 
             const string expected = "192.168.56.101:11210";
-            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.NodesExt[0], clientConfig, serverConfig);
+            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.NodesExt[0].Hostname);
             Assert.AreEqual(expected, actual.ToString());
         }
 
@@ -48,7 +60,7 @@ namespace Couchbase.Tests.Utils
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
             const string expected = "192.168.56.101:11207";
-            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.Nodes[0], clientConfig, serverConfig);
+            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.Nodes[0].Hostname);
             Assert.AreEqual(expected, actual.ToString());
         }
 
@@ -60,7 +72,7 @@ namespace Couchbase.Tests.Utils
             var clientConfig = new BucketConfiguration { UseSsl = false};
 
             const string expected = "192.168.56.101:11210";
-            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.Nodes[0], clientConfig, serverConfig);
+            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.Nodes[0].Hostname);
             Assert.AreEqual(expected, actual.ToString());
         }
 
@@ -72,7 +84,7 @@ namespace Couchbase.Tests.Utils
             var clientConfig = new BucketConfiguration { UseSsl = true };
 
             const string expected = "192.168.56.102:11207";
-            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.GetNodes()[0], clientConfig, serverConfig);
+            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.GetNodes()[0].Hostname);
             Assert.AreEqual(expected, actual.ToString());
         }
 
@@ -84,7 +96,7 @@ namespace Couchbase.Tests.Utils
             var clientConfig = new BucketConfiguration { UseSsl = false };
 
             const string expected = "192.168.56.102:11210";
-            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.GetNodes()[0], clientConfig, serverConfig);
+            var actual = IPEndPointExtensions.GetEndPoint(serverConfig.GetNodes()[0].Hostname);
             Assert.AreEqual(expected, actual.ToString());
         }
 

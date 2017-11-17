@@ -2,90 +2,72 @@
 using System.Linq;
 using System.Net;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
 
 namespace Couchbase.Utils
 {
 // ReSharper disable once InconsistentNaming
     internal static class IPEndPointExtensions
     {
-        public static IPEndPoint GetEndPoint(string server)
+        public static string DefaultPort = "8091";
+
+        public static IPEndPoint GetEndPoint(string hostname, int port)
+        {
+            if (!IPAddress.TryParse(hostname, out var ipAddress))
+            {
+                var uri = new Uri($"http://{hostname}");
+                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
+                if (ipAddress == null)
+                {
+                    throw new ArgumentException("ipAddress");
+                }
+            }
+            return new IPEndPoint(ipAddress, port);
+        }
+
+        public static IPEndPoint GetIPv4EndPoint(string server)
         {
             const int maxSplits = 2;
             var address = server.Split(':');
-            if (address.Count() != maxSplits)
+            if (address.Length != maxSplits)
             {
                 throw new ArgumentException("server");
             }
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(address[0], out ipAddress))
-            {
-                var uri = new Uri(String.Format("http://{0}", address[0]));
-                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
-                if (ipAddress == null)
-                {
-                    throw new ArgumentException("ipAddress");
-                }
-            }
-            int port;
-            if (!int.TryParse(address[1], out port))
+            if (!int.TryParse(address[1], out var port))
             {
                 throw new ArgumentException("port");
             }
-            return new IPEndPoint(ipAddress, port);
+            return GetEndPoint(address[0], port);
         }
 
-        public static IPEndPoint GetEndPoint(INodeAdapter adapter, BucketConfiguration clientConfig, IBucketConfig server)
+        public static IPEndPoint GetIPv6EndPoint(string server)
         {
-            var address = adapter.Hostname.Split(':').First();
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(address, out ipAddress))
+            var address = string.Empty;
+            var portString = DefaultPort; //we need a port to create the EP
+
+            if (server.Contains("["))
             {
-                var uri = new Uri(String.Format("http://{0}", address));
-                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
-                if (ipAddress == null)
-                {
-                    throw new ArgumentException("ipAddress");
-                }
+                var startIndex = server.LastIndexOf(':');
+                address = server.Substring(0, startIndex);
+                portString = server.Substring(startIndex + 1, server.Length - startIndex - 1);
             }
-            var port = clientConfig.UseSsl ? adapter.KeyValueSsl : adapter.KeyValue;
-            return new IPEndPoint(ipAddress, port);
+            else
+            {
+                address = server;
+            }
+
+            if (!int.TryParse(portString, out var port))
+            {
+                throw new ArgumentException("port");
+            }
+
+            return GetEndPoint(address, port);
         }
 
-
-        public static IPEndPoint GetEndPoint(Node node, BucketConfiguration clientConfig, IBucketConfig serverConfig)
+        public static IPEndPoint GetEndPoint(string server)
         {
-            var address = node.Hostname.Split(':').First();
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(address, out ipAddress))
-            {
-                var uri = new Uri(String.Format("http://{0}", address));
-                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
-                if (ipAddress == null)
-                {
-                    throw new ArgumentException("ipAddress");
-                }
-            }
-            var port = clientConfig.UseSsl ? node.Ports.SslDirect : node.Ports.Direct;
-            return new IPEndPoint(ipAddress, port);
-        }
-
-        public static IPEndPoint GetEndPoint(NodeExt nodeExt, BucketConfiguration bucketConfig, IBucketConfig serverConfig)
-        {
-            var address = nodeExt.Hostname.Split(':').First();
-            IPAddress ipAddress;
-            if (!IPAddress.TryParse(address, out ipAddress))
-            {
-                var uri = new Uri(String.Format("http://{0}", address));
-                ipAddress = uri.GetIpAddress(ClientConfiguration.UseInterNetworkV6Addresses);
-                if (ipAddress == null)
-                {
-                    throw new ArgumentException("ipAddress");
-                }
-            }
-            var port = bucketConfig.UseSsl ? nodeExt.Services.KvSSL : nodeExt.Services.KV;
-            return new IPEndPoint(ipAddress, port);
+            return server.Contains('.') && !server.Contains("[") ?
+                GetIPv4EndPoint(server) :
+                GetIPv6EndPoint(server);
         }
     }
 }

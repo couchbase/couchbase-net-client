@@ -48,7 +48,7 @@ namespace Couchbase.Utils
         {
             var uriAsString = string.Format(BaseUriFormat,
                 config.UseSsl ? Https : Http,
-                adapter.Hostname,
+                GetHostName(adapter),
                 config.UseSsl ? adapter.FtsSsl : adapter.Fts);
 
             return uriAsString;
@@ -64,7 +64,7 @@ namespace Couchbase.Utils
         {
             var uriAsString = string.Format(ViewUriFormat,
                 config.UseSsl ? Https : Http,
-                adapter.Hostname,
+                GetHostName(adapter),
                 config.UseSsl ? adapter.ViewsSsl : adapter.Views,
                 config.BucketName);
 
@@ -76,7 +76,7 @@ namespace Couchbase.Utils
         {
             var uriAsString = string.Format(N1QLUriFormat,
                 config.UseSsl ? Https : Http,
-                adapter.Hostname,
+                GetHostName(adapter),
                 config.UseSsl ? adapter.N1QLSsl : adapter.N1QL);
 
             return uriAsString;
@@ -86,7 +86,7 @@ namespace Couchbase.Utils
         {
             var uriAsString = string.Format(BaseUriFormat,
                 config.UseSsl ? Https : Http,
-                adapter.Hostname,
+                GetHostName(adapter),
                 config.UseSsl ? adapter.MgmtApiSsl: adapter.MgmtApi);
 
             return uriAsString;
@@ -96,10 +96,17 @@ namespace Couchbase.Utils
         {
             var uri = string.Format(AnalyticsUriFormat,
                 config.UseSsl ? Https : Http,
-                adapter.Hostname,
+                GetHostName(adapter),
                 config.UseSsl ? adapter.AnalyticsSsl : adapter.Analytics);
 
             return uri;
+        }
+
+        public static string GetHostName(INodeAdapter adapter)
+        {
+            return adapter.IsIPv6 && !adapter.Hostname.Contains("[")
+                ? string.Concat("[", adapter.Hostname, "]")
+                : adapter.Hostname;
         }
     }
 }
