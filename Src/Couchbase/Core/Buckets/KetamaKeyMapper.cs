@@ -99,23 +99,20 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         public void Initialize()
         {
-            foreach (var server in _servers.Values.Where(x=>x.IsDataNode))
+            using (var md5 = MD5.Create())
             {
-                const int weight = 1; //may change this later
-                var factor = Math.Floor(40*_servers.Count()*weight/(double) _totalWeight);
-
-                for (long n = 0; n < factor; n++)
+                foreach (var server in _servers.Values.Where(x => x.IsDataNode))
                 {
-                    var bytes = Encoding.UTF8.GetBytes(server.EndPoint + "-" + n);
-                    using (var md5 = MD5.Create())
+                    for (var rep = 0; rep < 40; rep++)
                     {
+                        var bytes = Encoding.UTF8.GetBytes($"{server.EndPoint}-{rep}");
                         var hash = md5.ComputeHash(bytes);
                         for (var j = 0; j < 4; j++)
                         {
-                            var key = ((long) (hash[3 + j*4] & 0xFF) << 24)
-                                      | ((long) (hash[2 + j*4] & 0xFF) << 16)
-                                      | ((long) (hash[1 + j*4] & 0xFF) << 8)
-                                      | (uint) (hash[0 + j*4] & 0xFF);
+                            var key = ((long) (hash[3 + j * 4] & 0xFF) << 24)
+                                      | ((long) (hash[2 + j * 4] & 0xFF) << 16)
+                                      | ((long) (hash[1 + j * 4] & 0xFF) << 8)
+                                      | (uint) (hash[0 + j * 4] & 0xFF);
 
                             Hashes[key] = server;
                         }
