@@ -2,6 +2,8 @@
 using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using Couchbase.Core.Serialization;
+using Couchbase.IO.Converters;
 
 namespace Couchbase.Core.Transcoders
 {
@@ -12,6 +14,20 @@ namespace Couchbase.Core.Transcoders
     public class BinaryTranscoder : DefaultTranscoder
     {
         private readonly BinaryFormatter _formatter = new BinaryFormatter();
+
+        public BinaryTranscoder()
+        {
+        }
+
+        public BinaryTranscoder(IByteConverter converter)
+            : base(converter)
+        {
+        }
+
+        public BinaryTranscoder(IByteConverter converter, ITypeSerializer serializer)
+            : base(converter, serializer)
+        {
+        }
 
         public override T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
