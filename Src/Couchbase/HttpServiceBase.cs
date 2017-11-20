@@ -27,6 +27,11 @@ namespace Couchbase
         /// </summary>
         protected IDataMapper DataMapper { get; set; }
 
+        /// <summary>
+        /// Gets or sets the last activity.
+        /// </summary>
+        public DateTime? LastActivity { get; private set; }
+
         protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration configuration)
             : this(httpClient, dataMapper)
         {
@@ -45,6 +50,11 @@ namespace Couchbase
             {
                 HttpClient.Dispose();
             }
+        }
+
+        protected void UpdateLastActivity()
+        {
+            LastActivity = DateTime.UtcNow;
         }
     }
 }

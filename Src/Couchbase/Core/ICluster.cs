@@ -2,6 +2,7 @@ using System;
 using Couchbase.Authentication;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Monitoring;
 using Couchbase.Core.Version;
 using Couchbase.Management;
 using Couchbase.N1QL;
@@ -162,6 +163,23 @@ namespace Couchbase.Core
         /// Will fail on Couchbase Server 5.0 and later if the cluster is not authenticated.
         /// </remarks>
         Task<ClusterVersion?> GetClusterVersionAsync();
+
+        #region Diagnostics API
+
+        /// <summary>
+        /// Creates a diagnostics report from the perspective of the client connected to each of the requeted services.
+        /// </summary>
+        /// <returns>An <see cref="IDiagnosticsReport"/> with details of connected services.</returns>
+        IDiagnosticsReport Diagnostics();
+
+        /// <summary>
+        /// Creates a diagnostics report from the perspective of the client connected to each of the requeted services.
+        /// </summary>
+        /// <param name="reportId">The report ID.</param>
+        /// <returns>An <see cref="IDiagnosticsReport"/> with details of connected services.</returns>
+        IDiagnosticsReport Diagnostics(string reportId);
+
+        #endregion
     }
 }
 

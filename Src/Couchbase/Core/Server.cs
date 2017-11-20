@@ -44,7 +44,6 @@ namespace Couchbase.Core
         private readonly object _syncObj = new object();
         private readonly IQueryClient _streamingQueryClient;
         private readonly IViewClient _streamingViewClient;
-        private readonly IAnalyticsClient _analyticsClient;
         private readonly AutoResetEvent _resetEvent = new AutoResetEvent(true);
 
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
@@ -115,7 +114,7 @@ namespace Couchbase.Core
             QueryClient = queryClient;
             SearchClient = searchClient;
             _streamingQueryClient = streamingQueryClient;
-            _analyticsClient = analyticsClient;
+            AnalyticsClient = analyticsClient;
 
             CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
             CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
@@ -269,6 +268,14 @@ namespace Couchbase.Core
         /// The view client.
         /// </value>
         public IViewClient ViewClient { get; private set; }
+
+        /// <summary>
+        /// Gets the analytics client for sending Anlytics requests to the Analytics service.
+        /// </summary>
+        /// <value>
+        /// The analytics client.
+        /// </value>
+        public IAnalyticsClient AnalyticsClient { get; private set; }
 
         /// <summary>
         /// Gets the <see cref="ISearchClient" /> for this node if <see cref="IsSearchNode" /> is <c>true</c>.
@@ -867,7 +874,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    result = _analyticsClient.Query<T>(analyticsRequest);
+                    result = AnalyticsClient.Query<T>(analyticsRequest);
                 }
                 catch (Exception exception)
                 {
@@ -900,7 +907,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    result = _analyticsClient.QueryAsync<T>(analyticsRequest, cancellationToken);
+                    result = AnalyticsClient.QueryAsync<T>(analyticsRequest, cancellationToken);
                 }
                 catch (Exception exception)
                 {

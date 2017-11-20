@@ -168,7 +168,7 @@ namespace Couchbase.IO
 
         /// <summary>
         /// Executed by a dedicated background thread to constantly listen for responses
-        /// cpming back from the server and writes them to the <see cref="_receiveBuffer"/>.
+        /// coming back from the server and writes them to the <see cref="_receiveBuffer"/>.
         /// </summary>
         internal void ReceiveThreadBody()
         {
@@ -238,6 +238,8 @@ namespace Couchbase.IO
                 {
                     state.Complete(response);
                 }
+
+                UpdateLastActivity();
             }
 
             if (parsedOffset > 0)

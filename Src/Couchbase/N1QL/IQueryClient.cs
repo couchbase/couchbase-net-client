@@ -10,6 +10,11 @@ namespace Couchbase.N1QL
     public interface IQueryClient : IQueryCacheInvalidator
     {
         /// <summary>
+        /// Gets the timestamp of the last activity.
+        /// </summary>
+        DateTime? LastActivity { get; }
+
+        /// <summary>
         /// Executes an ad-hoc N1QL query against a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>

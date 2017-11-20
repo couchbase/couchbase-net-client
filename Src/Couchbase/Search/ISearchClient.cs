@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Search
 {
@@ -7,6 +8,11 @@ namespace Couchbase.Search
     /// </summary>
     public interface ISearchClient
     {
+        /// <summary>
+        /// Gets the timestamp of the last activity.
+        /// </summary>
+        DateTime? LastActivity { get; }
+
         /// <summary>
         /// Executes a <see cref="IFtsQuery"/> request including any <see cref="ISearchParams"/> parameters.
         /// </summary>

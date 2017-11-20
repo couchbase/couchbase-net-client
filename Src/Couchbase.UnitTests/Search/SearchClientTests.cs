@@ -7,6 +7,7 @@ using Couchbase.Configuration;
 using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
+using Couchbase.UnitTests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -337,6 +338,46 @@ namespace Couchbase.UnitTests.Search
                 Query = new MatchQuery("foo")
             });
             Assert.IsEmpty(response.Facets);
+        }
+
+        [Test]
+        public void Query_Sets_LastActivity()
+        {
+            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{ }")
+            });
+
+            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper());
+            Assert.IsNull(client.LastActivity);
+
+            client.Query(new SearchQuery
+            {
+                Index = "index",
+                Query = new MatchQuery("foo")
+            });
+            Assert.IsNotNull(client.LastActivity);
+        }
+
+        [Test]
+        public async Task QueryAsync_Sets_LastActivity()
+        {
+            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{ }")
+            });
+
+            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper());
+            Assert.IsNull(client.LastActivity);
+
+            await client.QueryAsync(new SearchQuery
+            {
+                Index = "index",
+                Query = new MatchQuery("foo")
+            });
+            Assert.IsNotNull(client.LastActivity);
         }
 
         class FakeMessageHandler : HttpMessageHandler

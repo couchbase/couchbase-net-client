@@ -1,13 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Couchbase.Core.Monitoring;
 using Couchbase.Core.Version;
 using Couchbase.IO.Http;
 using Couchbase.Management;
@@ -400,6 +403,35 @@ namespace Couchbase
         public async Task<ClusterVersion?> GetClusterVersionAsync()
         {
             return await ClusterVersionProvider.Instance.GetVersionAsync(this);
+        }
+
+        #endregion
+
+        #region Diagnostics API
+
+        /// <summary>
+        /// Creates a diagnostics report from the perspective of the client connected to each of the requeted services.
+        /// </summary>
+        /// <returns>An <see cref="IDiagnosticsReport"/> with details of connected services.</returns>
+        public IDiagnosticsReport Diagnostics()
+        {
+            return Diagnostics(Guid.NewGuid().ToString());
+        }
+
+        /// <summary>
+        /// Creates a diagnostics report from the perspective of the client connected to each of the requeted services.
+        /// </summary>
+        /// <param name="reportId">The report identifer.</param>
+        /// <returns>An <see cref="IDiagnosticsReport"/> with details of connected services.</returns>
+        public IDiagnosticsReport Diagnostics(string reportId)
+        {
+            if (string.IsNullOrWhiteSpace(reportId))
+            {
+                throw new ArgumentException(nameof(reportId));
+            }
+
+            var configs = _clusterController.Buckets.Cast<IConfigObserver>().Select(x => x.ConfigInfo);
+            return DiagnosticsReportProvider.CreateDiagnosticsReport(reportId, configs);
         }
 
         #endregion

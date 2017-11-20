@@ -87,6 +87,8 @@ namespace Couchbase.N1QL
                 }
             }
 
+            UpdateLastActivity();
+
             return queryResult;
         }
 

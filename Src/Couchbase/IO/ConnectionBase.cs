@@ -32,7 +32,7 @@ namespace Couchbase.IO
         {
         }
 
-       public ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferAllocator)
+        public ConnectionBase(Socket socket, OperationAsyncState asyncState, IByteConverter converter, BufferAllocator bufferAllocator)
         {
             _socket = socket;
             _state = asyncState;
@@ -275,6 +275,16 @@ namespace Couchbase.IO
         /// <c>true</c> if the connection must enable server features; otherwise, <c>false</c>.
         /// </value>
         public bool MustEnableServerFeatures { get; set; }
+
+        /// <summary>
+        /// Gets the timestamp of the last activity.
+        /// </summary>
+        public DateTime? LastActivity { get; private set; }
+
+        protected void UpdateLastActivity()
+        {
+            LastActivity = DateTime.UtcNow;
+        }
     }
 }
 

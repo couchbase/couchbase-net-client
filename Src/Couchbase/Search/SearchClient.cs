@@ -97,6 +97,9 @@ namespace Couchbase.Search
                 Log.Info(e);
                 ProcessError(e, searchResult);
             }
+
+            UpdateLastActivity();
+
             return searchResult;
         }
 

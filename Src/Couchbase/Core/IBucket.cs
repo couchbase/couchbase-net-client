@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Core.Monitoring;
 using Couchbase.Core.Version;
 using Couchbase.IO.Operations;
 using Couchbase.Management;
@@ -4312,6 +4313,7 @@ namespace Couchbase.Core
         /// <returns>The cluster version, or null if unavailable.</returns>
         Task<ClusterVersion?> GetClusterVersionAsync();
 
+        /// <summary>
         /// Returns the number of items in the queue stored in the JSON document asynchronously.
         /// </summary>
         /// <param name="key">The key for the document.</param>
@@ -4325,6 +4327,29 @@ namespace Couchbase.Core
         /// <param name="expiration">The expiration to extend.</param>
         /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
         IOperationResult Touch(string key, TimeSpan expiration, TimeSpan timeout);
+
+        #region Diagnostics API
+
+        /// <summary>
+        /// Pings the specified services.
+        /// </summary>
+        /// <param name="services">The services to ping.</param>
+        /// <returns>
+        /// A <see cref="IPingReport"/> with details of requested services.
+        /// </returns>
+        IPingReport Ping(params ServiceType[] services);
+
+        /// <summary>
+        /// Pings the specified services.
+        /// </summary>
+        /// <param name="reportId">The report identifier.</param>
+        /// <param name="services">The services to ping.</param>
+        /// <returns>
+        /// A <see cref="IPingReport"/> with details of requested services.
+        /// </returns>
+        IPingReport Ping(string reportId, params ServiceType[] services);
+
+        #endregion
     }
 }
 

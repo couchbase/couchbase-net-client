@@ -1,10 +1,16 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Couchbase.Analytics
 {
     public interface IAnalyticsClient
     {
+        /// <summary>
+        /// Gets the timestamp of the last activity.
+        /// </summary>
+        DateTime? LastActivity { get; }
+
         /// <summary>
         /// Executes an Analytics request against a Couchbase Server.
         /// </summary>

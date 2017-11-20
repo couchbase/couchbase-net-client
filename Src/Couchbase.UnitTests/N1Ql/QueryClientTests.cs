@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.N1QL;
 using Couchbase.Views;
 using Moq;
@@ -169,6 +165,126 @@ namespace Couchbase.UnitTests.N1Ql
             Assert.False(result.Success);
             Assert.NotNull(result.Exception);
             Assert.IsInstanceOf<OperationCanceledException>(result.Exception);
+        }
+
+        [Test]
+        public void Query_Sets_LastActivity()
+        {
+            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var config = new ClientConfiguration();
+            var client = new QueryClient(
+                httpClient,
+                new JsonDataMapper(config),
+                config,
+                new ConcurrentDictionary<string, QueryPlan>()
+            );
+            Assert.IsNull(client.LastActivity);
+
+            var queryRequest = new QueryRequest("SELECT * FROM `default`;");
+            client.Query<dynamic>(queryRequest);
+
+            Assert.IsNotNull(client.LastActivity);
+        }
+
+        [Test]
+        public async Task QueryAsync_Sets_LastActivity()
+        {
+            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var config = new ClientConfiguration();
+            var client = new QueryClient(
+                httpClient,
+                new JsonDataMapper(config),
+                config,
+                new ConcurrentDictionary<string, QueryPlan>()
+            );
+            Assert.IsNull(client.LastActivity);
+
+            var queryRequest = new QueryRequest("SELECT * FROM `default`;");
+            await client.QueryAsync<dynamic>(queryRequest);
+
+            Assert.IsNotNull(client.LastActivity);
+        }
+
+        [Test]
+        public async Task QueryAsync_With_CancellationToken_Sets_LastActivity()
+        {
+            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var config = new ClientConfiguration();
+            var client = new QueryClient(
+                httpClient,
+                new JsonDataMapper(config),
+                config,
+                new ConcurrentDictionary<string, QueryPlan>()
+            );
+            Assert.IsNull(client.LastActivity);
+
+            var queryRequest = new QueryRequest("SELECT * FROM `default`;");
+            await client.QueryAsync<dynamic>(queryRequest, CancellationToken.None);
+
+            Assert.IsNotNull(client.LastActivity);
+        }
+
+        [Test]
+        public void Prepare_Sets_LastActivity()
+        {
+            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var config = new ClientConfiguration();
+            var client = new QueryClient(
+                httpClient,
+                new JsonDataMapper(config),
+                config,
+                new ConcurrentDictionary<string, QueryPlan>()
+            );
+            Assert.IsNull(client.LastActivity);
+
+            var queryRequest = new QueryRequest("SELECT * FROM `default`;");
+            client.Prepare(queryRequest);
+
+            Assert.IsNotNull(client.LastActivity);
+        }
+
+        [Test]
+        public async Task PrepareAsync_Sets_LastActivity()
+        {
+            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var config = new ClientConfiguration();
+            var client = new QueryClient(
+                httpClient,
+                new JsonDataMapper(config),
+                config,
+                new ConcurrentDictionary<string, QueryPlan>()
+            );
+            Assert.IsNull(client.LastActivity);
+
+            var queryRequest = new QueryRequest("SELECT * FROM `default`;");
+            await client.PrepareAsync(queryRequest, CancellationToken.None);
+
+            Assert.IsNotNull(client.LastActivity);
         }
     }
 }

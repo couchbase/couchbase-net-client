@@ -78,6 +78,8 @@ namespace Couchbase.Core
 
         IQueryClient QueryClient { get; }
 
+        IAnalyticsClient AnalyticsClient { get; }
+
         /// <summary>
         /// Gets the <see cref="ISearchClient"/> for this node if <see cref="IsSearchNode"/> is <c>true</c>.
         /// </summary>

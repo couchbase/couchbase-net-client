@@ -323,6 +323,8 @@ namespace Couchbase.IO
                 }
                 break;
             }
+
+            UpdateLastActivity();
         }
 
 #if DEBUG

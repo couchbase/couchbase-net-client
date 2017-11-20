@@ -55,6 +55,11 @@ namespace Couchbase.IO
         bool IsDead { get; set; }
 
         /// <summary>
+        /// Gets the timestamp of the last activity.
+        /// </summary>
+        DateTime? LastActivity { get; }
+
+        /// <summary>
         /// Sends a request packet as an asynchronous operation.
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>

@@ -93,6 +93,8 @@ namespace Couchbase.Analytics
                 }
             }
 
+            UpdateLastActivity();
+
             return result;
         }
 

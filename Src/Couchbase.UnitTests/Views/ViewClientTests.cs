@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Couchbase.Core.Serialization;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
@@ -83,5 +84,46 @@ namespace Couchbase.UnitTests.Views
             Assert.IsTrue(result.Success);
         }
 
+        [Test]
+        public void Execute_Sets_LastActivity()
+        {
+            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{ }")
+            });
+
+            var httpClient = new HttpClient(handler);
+            var queryClient = new StreamingViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()));
+            Assert.IsNull(queryClient.LastActivity);
+
+            var query = new ViewQuery("bucket-name", "http://localhost");
+            query.Keys("test-key");
+            query.UseStreaming(true);
+
+            var result = queryClient.Execute<dynamic>(query);
+            Assert.IsTrue(result.Success);
+            Assert.IsNotNull(queryClient.LastActivity);
+        }
+
+        [Test]
+        public async Task ExecuteAsync_Sets_LastActivity()
+        {
+            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{ }")
+            });
+
+            var httpClient = new HttpClient(handler);
+            var queryClient = new StreamingViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()));
+            Assert.IsNull(queryClient.LastActivity);
+
+            var query = new ViewQuery("bucket-name", "http://localhost");
+            query.Keys("test-key");
+            query.UseStreaming(true);
+
+            var result = await queryClient.ExecuteAsync<dynamic>(query);
+            Assert.IsTrue(result.Success);
+            Assert.IsNotNull(queryClient.LastActivity);
+        }
     }
 }

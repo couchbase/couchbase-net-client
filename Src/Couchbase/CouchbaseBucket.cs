@@ -16,6 +16,7 @@ using Couchbase.Configuration.Server.Providers;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.IO.SubDocument;
+using Couchbase.Core.Monitoring;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.Core.Version;
@@ -7923,6 +7924,40 @@ namespace Couchbase
         {
             CheckDisposed();
             return _requestExecuter.SendWithRetryAsync<T>(analyticsRequest, cancellationToken);
+        }
+
+        #endregion
+
+        #region Diagnostics
+
+        /// <summary>
+        /// Pings the specified services.
+        /// </summary>
+        /// <param name="services">The services to ping. Default is all services.</param>
+        /// <returns>
+        /// An <see cref="IPingReport"/> for the requested services.
+        /// </returns>
+        public IPingReport Ping(params ServiceType[] services)
+        {
+            return Ping(Guid.NewGuid().ToString(), services);
+        }
+
+        /// <summary>
+        /// Pings the specified services.
+        /// </summary>
+        /// <param name="reportId">The report identifier.</param>
+        /// <param name="services">The services to ping. Default is all services.</param>
+        /// <returns>
+        /// An <see cref="IPingReport"/> for the requested services.
+        /// </returns>
+        public IPingReport Ping(string reportId, params ServiceType[] services)
+        {
+            if (string.IsNullOrWhiteSpace(reportId))
+            {
+                throw new ArgumentException(nameof(reportId));
+            }
+
+            return DiagnosticsReportProvider.CreatePingReport(reportId, _configInfo, services);
         }
 
         #endregion

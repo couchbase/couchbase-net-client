@@ -139,5 +139,7 @@ namespace Couchbase.Tests.Fakes
         {
             get { return true; }
         }
+
+        public DateTime? LastActivity { get; set; }
     }
 }

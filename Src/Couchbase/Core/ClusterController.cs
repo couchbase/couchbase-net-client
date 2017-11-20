@@ -131,6 +131,8 @@ namespace Couchbase.Core
 
         public List<IConfigProvider> ConfigProviders { get { return _configProviders; } }
 
+        public IEnumerable<IBucket> Buckets { get { return _buckets.Values; } }
+
         private void Initialize()
         {
             _clientConfig.Initialize();

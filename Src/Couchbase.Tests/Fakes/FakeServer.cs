@@ -33,6 +33,8 @@ namespace Couchbase.Tests.Fakes
 
         public ISearchClient SearchClient { get; internal set; }
 
+        public IAnalyticsClient AnalyticsClient { get; internal set; }
+
         public IPEndPoint EndPoint { get; private set; }
 
         public IIOService Service { get; set; }

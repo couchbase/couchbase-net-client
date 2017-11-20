@@ -77,6 +77,9 @@ namespace Couchbase.Views
                 ProcessError(e, viewResult);
                 Log.Error(uri.ToString(), e);
             }
+
+            UpdateLastActivity();
+
             return viewResult;
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Views
 {
@@ -7,6 +8,11 @@ namespace Couchbase.Views
     /// </summary>
     public interface IViewClient
     {
+        /// <summary>
+        /// Gets the timestamp of the last activity.
+        /// </summary>
+        DateTime? LastActivity { get; }
+
         /// <summary>
         /// Executes a <see cref="IViewQuery"/> asynchronously against a View.
         /// </summary>

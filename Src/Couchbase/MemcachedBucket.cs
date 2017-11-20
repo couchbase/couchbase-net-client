@@ -25,6 +25,7 @@
  using Couchbase.Search;
  using Couchbase.Views;
  using Couchbase.Utils;
+using Couchbase.Core.Monitoring;
 
 namespace Couchbase
 {
@@ -6940,6 +6941,40 @@ namespace Couchbase
         public Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest request, CancellationToken token)
         {
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        #endregion
+
+        #region Diagnostics
+
+        /// <summary>
+        /// Pings the specified services.
+        /// </summary>
+        /// <param name="services">The services to ping. Default is all services.</param>
+        /// <returns>
+        /// An <see cref="IPingReport"/> for the requested services.
+        /// </returns>
+        public IPingReport Ping(params ServiceType[] services)
+        {
+            return Ping(Guid.NewGuid().ToString(), services);
+        }
+
+        /// <summary>
+        /// Pings the specified services.
+        /// </summary>
+        /// <param name="reportId">The report identifier.</param>
+        /// <param name="services">The services to ping. Default is all services.</param>
+        /// <returns>
+        /// An <see cref="IPingReport"/> for the requested services.
+        /// </returns>
+        public IPingReport Ping(string reportId, params ServiceType[] services)
+        {
+            if (string.IsNullOrWhiteSpace(reportId))
+            {
+                throw new ArgumentException(nameof(reportId));
+            }
+
+            return DiagnosticsReportProvider.CreatePingReport(reportId, _configInfo, services);
         }
 
         #endregion

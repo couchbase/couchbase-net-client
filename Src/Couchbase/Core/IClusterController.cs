@@ -25,6 +25,8 @@ namespace Couchbase.Core
 
         ITypeTranscoder Transcoder { get; }
 
+        IEnumerable<IBucket> Buckets { get; }
+
         ITypeTranscoder ServerConfigTranscoder { get; }
 
         IConfigProvider GetProvider(string name);
