@@ -129,7 +129,8 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     const string msg =
                         "A failure to authenticate may mean that the server has not joined the cluster" +
                         " yet or that the Bucket does not exist. Please check that {0} has joined that" +
-                        " cluster and that the Bucket '{1}' exists.";
+                        " cluster and that the Bucket '{1}' exists. If using LDAP, please set" +
+                        " forceSaslPlain to true.";
 
                     Log.Warn(msg, endPoint, bucketName);
                     Log.Warn(e);
