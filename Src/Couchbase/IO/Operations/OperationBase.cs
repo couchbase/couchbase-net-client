@@ -47,7 +47,7 @@ namespace Couchbase.IO.Operations
             VBucket = vBucket;
             Converter = transcoder.Converter;
             MaxRetries = DefaultRetries;
-            Data = new MemoryStream();
+            Data = MemoryStreamFactory.GetMemoryStream();
             Header = new OperationHeader {Status = ResponseStatus.None};
         }
 
@@ -124,7 +124,7 @@ namespace Couchbase.IO.Operations
             {
                 Data.Dispose();
             }
-            Data = new MemoryStream();
+            Data = MemoryStreamFactory.GetMemoryStream();
             LengthReceived = 0;
 
             Header = new OperationHeader
@@ -145,7 +145,7 @@ namespace Couchbase.IO.Operations
             LengthReceived += msgBytes.Length;
             if (Data == null)
             {
-                Data = new MemoryStream();
+                Data = MemoryStreamFactory.GetMemoryStream();
             }
             Data.Write(msgBytes, 0, msgBytes.Length);
         }

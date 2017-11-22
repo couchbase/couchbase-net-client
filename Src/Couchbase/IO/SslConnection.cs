@@ -81,7 +81,7 @@ namespace Couchbase.IO
             {
                 state = new SocketAsyncState
                 {
-                    Data = new MemoryStream(),
+                    Data = MemoryStreamFactory.GetMemoryStream(),
                     Opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque),
                     Buffer = request,
                     Completed = callback
@@ -184,7 +184,7 @@ namespace Couchbase.IO
 
             var state = new SocketAsyncState
             {
-                Data = new MemoryStream(),
+                Data = MemoryStreamFactory.GetMemoryStream(),
                 Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
             };
 

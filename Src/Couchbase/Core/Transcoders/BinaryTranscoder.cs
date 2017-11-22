@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using Couchbase.Core.Serialization;
+using Couchbase.IO;
 using Couchbase.IO.Converters;
 
 namespace Couchbase.Core.Transcoders
@@ -49,7 +50,7 @@ namespace Couchbase.Core.Transcoders
                 return new byte[0];
             }
 
-            using (var ms = new MemoryStream())
+            using (var ms = MemoryStreamFactory.GetMemoryStream())
             {
                 _formatter.Serialize(ms, value);
                 return ms.ToArray();
