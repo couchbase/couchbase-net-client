@@ -44,7 +44,7 @@ namespace Couchbase.IO
             {
                 state = new SocketAsyncState
                 {
-                    Data = new MemoryStream(),
+                    Data = MemoryStreamFactory.GetMemoryStream(),
                     Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
                     Buffer = buffer,
                     Completed = callback,
@@ -99,7 +99,7 @@ namespace Couchbase.IO
             //create the state object and set it
             var state = new SocketAsyncState
             {
-                Data = new MemoryStream(),
+                Data = MemoryStreamFactory.GetMemoryStream(),
                 Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
                 Buffer = buffer,
                 SendOffset = _eventArgs.Offset

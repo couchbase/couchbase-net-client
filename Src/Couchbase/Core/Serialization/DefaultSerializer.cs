@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Couchbase.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -168,7 +169,7 @@ namespace Couchbase.Core.Serialization
         /// <returns>A <see cref="byte"/> array that is the serialized value of the key.</returns>
         public byte[] Serialize(object obj)
         {
-            using (var ms = new MemoryStream())
+            using (var ms = MemoryStreamFactory.GetMemoryStream())
             {
                 using (var sw = new StreamWriter(ms))
                 {
