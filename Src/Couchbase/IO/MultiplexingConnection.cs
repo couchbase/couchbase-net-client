@@ -63,19 +63,12 @@ namespace Couchbase.IO
                 EndPoint = (IPEndPoint)EndPoint
             };
 
-            lock (_statesInFlight)
-            {
-                _statesInFlight.TryAdd(state.Id, state);
-            }
+            _statesInFlight.TryAdd(state.Id, state);
 
             state.Timer = new Timer(o =>
             {
                 AsyncState a = (AsyncState)o;
-                lock (_statesInFlight)
-                {
-                    IState inflight;
-                    _statesInFlight.TryRemove(a.Id, out inflight);
-                }
+                _statesInFlight.TryRemove(a.Id, out _);
                 a.Cancel(ResponseStatus.OperationTimeout, new SendTimeoutExpiredException());
             }, state, Configuration.SendTimeout, Timeout.Infinite);
 
@@ -109,10 +102,7 @@ namespace Couchbase.IO
             var state = AcquireState();
             var opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque);
 
-            lock (_statesInFlight)
-            {
-                _statesInFlight.TryAdd(opaque, state);
-            }
+            _statesInFlight.TryAdd(opaque, state);
 
             var sentBytesCount = 0;
             lock (Socket)
@@ -135,11 +125,7 @@ namespace Couchbase.IO
             var didComplete = state.SyncWait.WaitOne(Configuration.SendTimeout);
             var response = state.Response;
 
-            lock (_statesInFlight)
-            {
-                IState inflight;
-                _statesInFlight.TryRemove(opaque, out inflight);
-            }
+            _statesInFlight.TryRemove(opaque, out _);
 
             ReleaseState(state);
 
@@ -245,16 +231,12 @@ namespace Couchbase.IO
 
                 parsedOffset += responseSize;
 
-                IState state;
-                lock (_statesInFlight)
-                {
-                    _statesInFlight.TryRemove(opaque, out state);
+                _statesInFlight.TryRemove(opaque, out var state);
 
-                    //must be inside the lock to prevent race condition between read and timeout
-                    if (state != null)
-                    {
-                        state.Complete(response);
-                    }
+                //must be inside the lock to prevent race condition between read and timeout
+                if (state != null)
+                {
+                    state.Complete(response);
                 }
             }
 
