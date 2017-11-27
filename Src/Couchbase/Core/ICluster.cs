@@ -23,16 +23,37 @@ namespace Couchbase.Core
         /// Opens a Couchbase Bucket instance.
         /// </summary>
         /// <param name="bucketname">The name of the bucket to open.</param>
-        /// <param name="password">The password to use if it's a SASL authenticated bucket.</param>
-        /// <returns>A object that implements IBucket.</returns>
-        IBucket OpenBucket(string bucketname, string password);
+        /// <returns>A object that implements <see cref="IBucket"/>.</returns>
+        IBucket OpenBucket(string bucketname);
 
         /// <summary>
         /// Opens a Couchbase Bucket instance.
         /// </summary>
         /// <param name="bucketname">The name of the bucket to open.</param>
-        /// <returns>A object that implements IBucket.</returns>
-        IBucket OpenBucket(string bucketname);
+        /// <param name="password">The password to use if it's a SASL authenticated bucket.</param>
+        /// <returns>A object that implements <see cref="IBucket"/>.</returns>
+        IBucket OpenBucket(string bucketname, string password);
+
+        /// <summary>
+        /// Opens a Couchbase Bucket instance.
+        /// </summary>
+        /// <returns>The default bucket for a Couchbase Cluster.</returns>
+        Task<IBucket> OpenBucketAsync();
+
+        /// <summary>
+        /// Opens a Couchbase Bucket instance.
+        /// </summary>
+        /// <param name="bucketname">The name of the bucket to open.</param>
+        /// <returns>A object that implements <see cref="IBucket"/>.</returns>
+        Task<IBucket> OpenBucketAsync(string bucketname);
+
+        /// <summary>
+        /// Opens a Couchbase Bucket instance.
+        /// </summary>
+        /// <param name="bucketname">The name of the bucket to open.</param>
+        /// <param name="password">The password to use if it's a SASL authenticated bucket.</param>
+        /// <returns>A object that implements <see cref="IBucket"/>.</returns>
+        Task<IBucket> OpenBucketAsync(string bucketname, string password);
 
         /// <summary>
         /// Closes a Couchbase Bucket Instance.

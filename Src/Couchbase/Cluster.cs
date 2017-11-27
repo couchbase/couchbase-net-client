@@ -101,45 +101,85 @@ namespace Couchbase
         /// <summary>
         /// Opens the default bucket associated with a Couchbase Cluster.
         /// </summary>
-        /// <returns>An instance which implements the IBucket interface with the
+        /// <returns>An instance which implements the <see cref="IBucket"/> interface with the
         /// default buckets configuration.</returns>
-        /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
+        /// <remarks>Use <see cref="CloseBucket(IBucket)"/> to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket()
         {
-            return _clusterController.CreateBucket(DefaultBucket, _configuration.Authenticator);
-        }
-
-        /// <summary>
-        /// Creates a connection to a specific SASL authenticated Couchbase Bucket.
-        /// </summary>
-        /// <param name="bucketname">The Couchbase Bucket to connect to.</param>
-        /// <param name="password">The SASL password to use.</param>
-        /// <returns>An instance which implements the IBucket interface.</returns>
-        /// <remarks>Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.</remarks>
-        public IBucket OpenBucket(string bucketname, string password)
-        {
-            return _clusterController.CreateBucket(bucketname, password, _configuration.Authenticator);
+            return OpenBucket(DefaultBucket, null);
         }
 
         /// <summary>
         /// Creates a connection to a non-SASL Couchbase bucket.
         /// </summary>
         /// <param name="bucketname">The Couchbase Bucket to connect to.</param>
-        /// <returns>An instance which implements the IBucket interface.</returns>
-        /// <remarks>
-        /// Use Cluster.CloseBucket(bucket) to release resources associated with a Bucket.
-        /// </remarks>
+        /// <returns>An instance which implements the <see cref="IBucket"/> interface.</returns>
+        /// <remarks>Use <see cref="CloseBucket(IBucket)"/> to release resources associated with a Bucket.</remarks>
         public IBucket OpenBucket(string bucketname)
         {
-            if (string.IsNullOrWhiteSpace(bucketname))
+            return OpenBucket(bucketname, null);
+        }
+
+        /// <summary>
+        /// Creates a connection to a specific SASL authenticated Couchbase Bucket.
+        /// </summary>
+        /// <param name="bucketName">The Couchbase Bucket to connect to.</param>
+        /// <param name="password">The SASL password to use.</param>
+        /// <returns>An instance which implements the <see cref="IBucket"/> interface.</returns>
+        /// <remarks>Use <see cref="CloseBucket(IBucket)"/> to release resources associated with a Bucket.</remarks>
+        public IBucket OpenBucket(string bucketName, string password)
+        {
+            if (string.IsNullOrWhiteSpace(bucketName))
             {
-                if (bucketname == null)
+                if (bucketName == null)
                 {
-                    throw new ArgumentNullException("bucketname");
+                    throw new ArgumentNullException(nameof(bucketName));
                 }
-                throw new ArgumentException("bucketname cannot be null, empty or whitespace.");
+                throw new ArgumentException("bucketname cannot be null, empty or whitespace.", nameof(bucketName));
             }
-            return _clusterController.CreateBucket(bucketname, _configuration.Authenticator);
+            return _clusterController.CreateBucket(bucketName, password, _configuration.Authenticator);
+        }
+
+        /// <summary>
+        /// Opens the default bucket associated with a Couchbase Cluster.
+        /// </summary>
+        /// <returns>An instance which implements the <see cref="IBucket"/> interface with the
+        /// default buckets configuration.</returns>
+        /// <remarks>Use <see cref="CloseBucket(IBucket)"/> to release resources associated with a Bucket.</remarks>
+        public async Task<IBucket> OpenBucketAsync()
+        {
+            return await OpenBucketAsync(DefaultBucket, null);
+        }
+
+        /// <summary>
+        /// Creates a connection to a non-SASL Couchbase bucket.
+        /// </summary>
+        /// <param name="bucketname">The Couchbase Bucket to connect to.</param>
+        /// <returns>An instance which implements the <see cref="IBucket"/> interface.</returns>
+        /// <remarks>Use <see cref="CloseBucket(IBucket)"/> to release resources associated with a Bucket.</remarks>
+        public async Task<IBucket> OpenBucketAsync(string bucketname)
+        {
+            return await OpenBucketAsync(bucketname, null);
+        }
+
+        /// <summary>
+        /// Creates a connection to a specific SASL authenticated Couchbase Bucket.
+        /// </summary>
+        /// <param name="bucketName">The Couchbase Bucket to connect to.</param>
+        /// <param name="password">The SASL password to use.</param>
+        /// <returns>An instance which implements the <see cref="IBucket"/> interface.</returns>
+        /// <remarks>Use <see cref="CloseBucket(IBucket)"/> to release resources associated with a Bucket.</remarks>
+        public async Task<IBucket> OpenBucketAsync(string bucketName, string password)
+        {
+            if (string.IsNullOrWhiteSpace(bucketName))
+            {
+                if (bucketName == null)
+                {
+                    throw new ArgumentNullException(nameof(bucketName));
+                }
+                throw new ArgumentException("bucketname cannot be null, empty or whitespace.", nameof(bucketName));
+            }
+            return await _clusterController.CreateBucketAsync(bucketName, password, _configuration.Authenticator);
         }
 
         /// <summary>
