@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>CouchbaseNetClient</PackageId>
-    <Title>Couchbase SDK 2.4</Title>
+    <Title>Couchbase SDK 2.5</Title>
     <Authors>Couchbase, Inc.</Authors>
     <Owners>Couchbase, Inc.</Owners>
     <Copyright>Copyright 2017</Copyright>
