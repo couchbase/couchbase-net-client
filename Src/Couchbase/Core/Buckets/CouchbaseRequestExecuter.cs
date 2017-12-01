@@ -1101,7 +1101,7 @@ namespace Couchbase.Core.Buckets
                     Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
                 };
 
-                using (var timeoutCancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
+                using (var timeoutCancellationTokenSource = new CancellationTokenSource((int) ConfigInfo.ClientConfig.QueryRequestTimeout))
                 {
                     // If we received a functional cancellationToken (not just CancellationToken.None),
                     // then combine with the timeout token source
