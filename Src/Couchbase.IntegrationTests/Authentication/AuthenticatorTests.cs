@@ -234,7 +234,7 @@ namespace Couchbase.IntegrationTests.Authentication
             TestConfiguration.IgnoreIfRbacOnly();
 
             var authentictor = GetPasswordAuthenticator();
-            var config = TestConfiguration.GetCurrentConfiguration();
+            var config = TestConfiguration.GetConfiguration("basic");
             config.UseSsl = true;
 
             ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;
@@ -398,7 +398,7 @@ namespace Couchbase.IntegrationTests.Authentication
             catch (AggregateException e)
             {
                 var exp = e.Flatten().InnerExceptions;
-                Assert.AreEqual("Authentication failed for user 'default'", exp[1].Message);
+                Assert.AreEqual("Authentication failed for user 'default'", exp[0].Message);
             }
         }
 
@@ -421,7 +421,7 @@ namespace Couchbase.IntegrationTests.Authentication
             catch (AggregateException e)
             {
                 var exp = e.Flatten().InnerExceptions;
-                Assert.AreEqual(exp[1].Message, "Authentication failed for bucket 'doesnotexist'");
+                Assert.AreEqual("Authentication failed for user 'doesnotexist'", exp[0].Message);
             }
         }
 

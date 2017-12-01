@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ namespace Couchbase.IO.Services
         {
             Log.Info("Creating IOService {0}", Identity);
             ConnectionPool = connectionPool;
-            _connection = ConnectionPool.Acquire();
+            _connection = connectionPool.Connections.FirstOrDefault() ?? connectionPool.Acquire();
 
             //enable the server features
             CheckEnabledServerFeatures(_connection);

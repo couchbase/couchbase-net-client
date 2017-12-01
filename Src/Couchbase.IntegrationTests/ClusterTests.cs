@@ -4,6 +4,7 @@ using System.Security.Authentication;
 using System.Threading.Tasks;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Version;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.N1QL;
@@ -93,7 +94,7 @@ namespace Couchbase.IntegrationTests
             };
             cluster.Authenticate(credentials);
 
-            Assert.Throws<AggregateException>(()=>cluster.Query<dynamic>("select * from authenticated limit 1;"));
+            Assert.Throws<BootstrapException>(()=>cluster.Query<dynamic>("select * from authenticated limit 1;"));
         }
 
         [Test]

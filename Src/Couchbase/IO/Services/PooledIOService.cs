@@ -30,8 +30,8 @@ namespace Couchbase.IO.Services
             Log.Debug("Creating PooledIOService {0}", Identity);
             ConnectionPool = connectionPool;
 
-            var conn = connectionPool.Acquire();
-            CheckEnabledServerFeatures(conn);
+            var connection = connectionPool.Connections.FirstOrDefault() ?? connectionPool.Acquire();
+            CheckEnabledServerFeatures(connection);
         }
 
         /// <summary>

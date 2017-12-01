@@ -656,6 +656,11 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void GetAndLock_TemporaryLockFailureException()
         {
+            if (TestConfiguration.Settings.EnhancedAuth)
+            {
+                Assert.Ignore("https://issues.couchbase.com/browse/NCBC-1499");
+            }
+
             //setup
             var key = "GetAndLock_TemporaryLockFailureException";
             _bucket.Remove(new Document<dynamic> { Id = key });

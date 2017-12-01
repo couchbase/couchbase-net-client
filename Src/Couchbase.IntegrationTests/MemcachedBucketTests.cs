@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Version;
 using Couchbase.IntegrationTests.Utils;
@@ -143,7 +144,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_That_OpenBucket_Throws_Correct_Exception_If_Bucket_Does_Not_Exist()
         {
-            var ex = Assert.Throws<AggregateException>(() => _cluster.OpenBucket("doesnotexist"));
+            var ex = Assert.Throws<BootstrapException>(() => _cluster.OpenBucket("doesnotexist"));
 
             Assert.True(TestConfiguration.Settings.EnhancedAuth
                 ? ex.InnerExceptions.OfType<BucketNotFoundException>().Any()

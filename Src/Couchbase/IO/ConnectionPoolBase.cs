@@ -179,7 +179,7 @@ namespace Couchbase.IO
                 if (!selectBucketResult.Success)
                 {
                     Log.Error($"Failed to perform SelectBucket operation for '{Configuration.BucketName}'");
-                    throw new AuthenticationException(ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(Configuration.BucketName));
+                    throw new AuthenticationException(ExceptionUtil.FailedUserAuthenticationMsg.WithParams(Configuration.BucketName));
                 }
             }
         }

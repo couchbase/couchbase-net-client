@@ -248,9 +248,8 @@ namespace Couchbase.IntegrationTests
             }
 
             //arrange
-            var request = new QueryRequest("SELECT RAW `travel-sample`.`call-sign` FROM `travel-sample` WHERE type = 'airline' LIMIT 100;")
-                .UseStreaming(true)
-                .AdHoc(false);
+            var request = new QueryRequest("SELECT RAW `travel-sample`.`callsign` FROM `travel-sample` WHERE type = 'airline' LIMIT 100;")
+                .UseStreaming(true);
 
             //act
             using (var result = _bucket.Query<string>(request))
