@@ -417,7 +417,7 @@ namespace Couchbase.Core.Transcoders
         /// <returns></returns>
         protected string DecodeString(byte[] buffer, int offset, int length)
         {
-            var result = string.Empty;
+            string result = null;
             if (buffer != null && buffer.Length > 0 && length > 0)
             {
                 result = Encoding.UTF8.GetString(buffer, offset, length);

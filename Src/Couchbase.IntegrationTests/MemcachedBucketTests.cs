@@ -162,7 +162,7 @@ namespace Couchbase.IntegrationTests
             Assert.IsTrue(result.Success);
             Assert.AreEqual(ResponseStatus.Success, result.Status);
             Assert.AreEqual(string.Empty, result.Message);
-            Assert.AreEqual(string.Empty, result.Value);
+            Assert.AreEqual(null, result.Value);
             Assert.Greater(result.Cas, zero);
         }
 
