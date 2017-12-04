@@ -1,3 +1,4 @@
+using System.Linq;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Newtonsoft.Json;
@@ -64,6 +65,33 @@ namespace Couchbase.UnitTests.Core
 
             //assert
             Assert.IsNotNull(endpoint);
+        }
+
+        [TestCase("$HOST", "localhost")]
+        [TestCase("$HOST:8091", "localhost")]
+        [TestCase("192.168.1.1", "192.168.1.1")]
+        [TestCase("192.168.1.1:8091", "192.168.1.1")]
+        [TestCase("cb1.somewhere.org", "cb1.somewhere.org")]
+        [TestCase("cb1.somewhere.org:8091", "cb1.somewhere.org")]
+        [TestCase("::1", "::1")]
+        [TestCase("[::1]", "[::1]")]
+        [TestCase("[::1]:8091", "[::1]")]
+        [TestCase("fd63:6f75:6368:2068", "fd63:6f75:6368:2068")]
+        [TestCase("[fd63:6f75:6368:2068]", "[fd63:6f75:6368:2068]")]
+        [TestCase("[fd63:6f75:6368:2068]:8091", "[fd63:6f75:6368:2068]")]
+        [TestCase("fd63:6f75:6368:2068:1471:75ff:fe25:a8be", "fd63:6f75:6368:2068:1471:75ff:fe25:a8be")]
+        [TestCase("[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]", "[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]")]
+        [TestCase("[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]:8091", "[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]")]
+        public void When_NodeExt_Hostname_Is_Null_NodeAdapater_Can_Parse_Hostname_and_Port_From_Node(string hostname, string expectedHostname)
+        {
+            var node = new Node
+            {
+                Hostname = hostname
+            };
+            var nodeExt = new NodeExt();
+
+            var adapter = new NodeAdapter(node, nodeExt);
+            Assert.AreEqual(expectedHostname, adapter.Hostname);
         }
     }
 }

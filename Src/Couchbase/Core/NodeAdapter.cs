@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Couchbase.Configuration.Server.Serialization;
@@ -19,15 +20,7 @@ namespace Couchbase.Core
             _node = node;
             _nodeExt = nodeExt;
 
-            //normalize the interfaces providing defaults where applicable
-            Hostname = nodeExt == null ? node.Hostname : nodeExt.Hostname;
-            Hostname = Hostname ?? node.Hostname;
-
-            //strip off the admin port - we can use services
-            if (Hostname.Contains("$HOST"))
-            {
-                Hostname = "localhost";
-            }
+            Hostname = GetHostname(node, nodeExt);
 
             if (_node != null)
             {
@@ -65,6 +58,39 @@ namespace Couchbase.Core
                 Analytics = _nodeExt.Services.Analytics;
                 AnalyticsSsl = _nodeExt.Services.AnalyticsSsl;
             }
+        }
+
+        private static string GetHostname(Node node, NodeExt nodeExt)
+        {
+            var hostname = string.IsNullOrWhiteSpace(nodeExt?.Hostname) ? node.Hostname : nodeExt.Hostname;
+            if (hostname.Contains("$HOST"))
+            {
+                return "localhost";
+            }
+
+            var parts = hostname.Split(':');
+            switch (parts.Length)
+            {
+                case 1: // hostname or IPv4 no port
+                    hostname = parts[0];
+                    break;
+                case 2: // hostname or IPv4 with port
+                    hostname = parts[0];
+                    break;
+                default: // IPv6
+                    // is it [a:b:c:d]:<port>
+                    if (parts.First().StartsWith("[") && parts[parts.Length - 2].EndsWith("]"))
+                    {
+                        hostname = string.Join(":", parts.Take(parts.Length - 1));
+                    }
+                    else
+                    {
+                        hostname = string.Join(":", parts);
+                    }
+                    break;
+            }
+
+            return hostname;
         }
 
         public string Hostname { get; set; }
