@@ -1177,16 +1177,17 @@ namespace Couchbase.IntegrationTests
         {
             Setup(useMutation);
 
-            var key = "MutateIn_ExecuteAsync_ModifiesDocument";
-            await _bucket.UpsertAsync(key, new { foo = "bar", bar = "foo" });
+            var key = "MutateIn_ExecuteAsync_ModifiesDocument_" + useMutation;
+            var upsert = await _bucket.UpsertAsync(key, new { foo = "bar", bar = "foo" });
+            Assert.AreEqual(ResponseStatus.Success, upsert.Status);
 
             var builder = _bucket.MutateIn<dynamic>(key).Replace("foo", "baz").Replace("bar", "fot");
 
             var result = await builder.ExecuteAsync();
-
-            Assert.IsTrue(result.Success);
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
 
             var document = await _bucket.GetDocumentAsync<dynamic>(key);
+            Assert.AreEqual(ResponseStatus.Success, document.Status);
 
             Assert.AreEqual("baz", document.Content.foo.ToString());
             Assert.AreEqual("fot", document.Content.bar.ToString());
