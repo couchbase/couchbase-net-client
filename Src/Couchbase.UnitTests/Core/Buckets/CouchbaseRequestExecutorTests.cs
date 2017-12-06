@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -92,7 +93,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             };
             var keyMapper = new VBucketKeyMapper(new Dictionary<IPEndPoint, IServer>
             {
-                { new IPEndPoint(IPAddress.Loopback, 8901), server1.Object },
+                { new IPEndPoint(IPAddress.Loopback, 8091), server1.Object },
                 { new IPEndPoint(IPAddress.Parse("255.255.0.0"), 8091), server2.Object }
             }, vBucketServerMap, 1, "default");
 
@@ -127,7 +128,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             {
                 ServerList = new[]
                 {
-                    "localhost:8901",
+                    "localhost:8091",
                     "255.255.0.0:8091"
                 },
                 VBucketMap = new[] { new[] { 0 } },
@@ -135,7 +136,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             };
             var keyMapper = new VBucketKeyMapper(new Dictionary<IPEndPoint, IServer>
             {
-                { new IPEndPoint(IPAddress.Loopback, 8901), server1.Object },
+                { new IPEndPoint(IPAddress.Loopback, 8091), server1.Object },
                 { new IPEndPoint(IPAddress.Parse("255.255.0.0"), 8091), server2.Object }
             }, vBucketServerMap, 3, "default");
 
