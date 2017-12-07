@@ -1,6 +1,6 @@
 {
   "testSettings": {
-    "current": "multiplexio",
+    "current": "basic",
     "hostname": "localhost",
     "bootPort": "8091",
     "adminUsername": "Administrator",
@@ -14,7 +14,11 @@
       "buckets": [
         {
           "name": "default",
-          "useEnhancedDurability": false
+          "useEnhancedDurability": true
+        },
+        {
+          "name": "travel-sample",
+          "useEnhancedDurability": true
         }
       ]
     },

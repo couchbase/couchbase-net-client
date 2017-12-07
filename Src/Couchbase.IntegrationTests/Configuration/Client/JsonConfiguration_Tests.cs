@@ -60,7 +60,7 @@ namespace Couchbase.IntegrationTests.Configuration.Client
 
             var config = Utils.TestConfiguration.GetConfiguration("basic");
 
-            Assert.AreEqual(1, config.BucketConfigs.Count);
+            Assert.AreEqual(2, config.BucketConfigs.Count);
             Assert.IsTrue(config.BucketConfigs.ContainsKey("default"));
         }
 
