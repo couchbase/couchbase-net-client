@@ -349,7 +349,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
 
             var configInfo = new Mock<IConfigInfo>();
-            configInfo.Setup(x => x.BucketConfig.BucketType).Returns("couchbase");
+            configInfo.Setup(x => x.BucketConfig.BucketType).Returns("Couchbase");
             configInfo.Setup(x => x.IsViewCapable).Returns(true);
             configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
             configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);

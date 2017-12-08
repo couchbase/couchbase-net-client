@@ -9,7 +9,6 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
-using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -26,8 +25,7 @@ namespace Couchbase.Core.Buckets
     /// </summary>
     internal class CouchbaseRequestExecuter : RequestExecuterBase
     {
-        protected static readonly new ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
-        private object _syncObj = new object();
+        private new static readonly ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
 
         public CouchbaseRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
             string bucketName, ConcurrentDictionary<uint, IOperation> pending)
@@ -39,7 +37,6 @@ namespace Couchbase.Core.Buckets
         /// Checks the <see cref="IOperation"/> to see if it supports retries and then checks the <see cref="IOperationResult"/>
         ///  to see if the error or server response supports retries.
         /// </summary>
-        /// <typeparam name="T">The Type of the body of the request.</typeparam>
         /// <param name="operationResult">The <see cref="IOperationResult"/> to check from the server.</param>
         /// <param name="operation">The <see cref="IOperation"/> to check to see if it supports retries. Not all operations support retries.</param>
         /// <returns></returns>
@@ -91,75 +88,6 @@ namespace Couchbase.Core.Buckets
             var keyMapper = ConfigInfo.GetKeyMapper();
             vBucket = (IVBucket) keyMapper.MapKey(key, revision);
             return vBucket.LocatePrimary();
-        }
-
-        /// <summary>
-        /// Executes an <see cref="IViewQuery"/> asynchronously. If it fails, the response is checked and
-        ///  if certain criteria are met the request is retried until it times out.
-        /// </summary>
-        /// <typeparam name="T">The Type of View result body.</typeparam>
-        /// <param name="execute">A delegate with the send logic that is executed on each attempt. </param>
-        /// <param name="query">The <see cref="IViewQuery"/> to execute.</param>
-        /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
-        /// <param name="cancellationToken">For canceling the async operation.</param>
-        /// <returns>A <see cref="Task{IViewResult}"/> object representing the asynchronous operation.</returns>
-        private static async Task<IViewResult<T>> RetryViewEveryAsync<T>(Func<IViewQueryable, IConfigInfo, Task<IViewResult<T>>> execute,
-            IViewQueryable query,
-            IConfigInfo configInfo,
-            CancellationToken cancellationToken)
-        {
-            while (true)
-            {
-                var result = await execute(query, configInfo).ContinueOnAnyContext();
-                if (query.RetryAttempts >= configInfo.ClientConfig.MaxViewRetries ||
-                    result.Success ||
-                    !result.ShouldRetry())
-                {
-                    return result;
-                }
-
-                Log.Debug("trying again: {0}", ++query.RetryAttempts);
-                var sleepTime = (int)Math.Pow(2, query.RetryAttempts);
-                var task = Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
-                try
-                {
-                    await task;
-                }
-                catch (TaskCanceledException)
-                {
-                    return result;
-                }
-            }
-        }
-
-        private static async Task<IQueryResult<T>> RetryQueryEveryAsync<T>(Func<IQueryRequest, IConfigInfo, Task<IQueryResult<T>>> execute,
-            IQueryRequest query,
-            IConfigInfo configInfo,
-            CancellationToken cancellationToken)
-        {
-            // todo: configurable n1ql query retry attempts
-            const int maxAttempts = 10;
-            var attempts = 0;
-            while (true)
-            {
-                IResult result = await execute(query, configInfo).ContinueOnAnyContext();
-                if (result.Success || query.IsAdHoc ||query.TimedOut() ||
-                    !result.ShouldRetry() || attempts >= maxAttempts)
-                {
-                    return (IQueryResult<T>) result;
-                }
-
-                Log.Debug("trying query again: {0}", attempts);
-                var sleepTime = (int) Math.Pow(2, attempts++);
-                try
-                {
-                    await Task.Delay(sleepTime, cancellationToken).ContinueOnAnyContext();
-                }
-                catch (TaskCanceledException)
-                {
-                    return (IQueryResult<T>) result;
-                }
-            }
         }
 
         /// <summary>
@@ -554,53 +482,6 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Sends a View request with retry.
-        /// </summary>
-        /// <typeparam name="T">The Type T of the <see cref="ViewRow{T}"/> value.</typeparam>
-        /// <param name="viewQuery">The view query.</param>
-        /// <returns>A <see cref="IViewResult{T}"/> with the results of the query.</returns>
-        /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
-        public override IViewResult<T> SendWithRetry<T>(IViewQueryable viewQuery)
-        {
-            IViewResult<T> viewResult;
-            try
-            {
-                EnsureViewsAreAvailable();
-
-                while (true)
-                {
-                    var server = ConfigInfo.GetViewNode();
-                    viewResult = server.Send<T>(viewQuery);
-
-                    if (viewResult.Success ||
-                        !viewResult.ShouldRetry() ||
-                        viewQuery.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries)
-                    {
-                        break;
-                    }
-
-                    Log.Debug("trying again: {0}", ++viewQuery.RetryAttempts);
-                    var sleepTime = (int) Math.Pow(2, viewQuery.RetryAttempts);
-                    Thread.Sleep(sleepTime);
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                const string message = "View request failed, check Error and Exception fields for details.";
-                viewResult = new ViewResult<T>
-                {
-                    Message = message,
-                    Error = e.Message,
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            return viewResult;
-        }
-
-        /// <summary>
         /// Sends a <see cref="IOperation" /> to the Couchbase Server using the Memcached protocol.
         /// </summary>
         /// <param name="operation">The <see cref="IOperation" /> to send.</param>
@@ -772,50 +653,6 @@ namespace Couchbase.Core.Buckets
         }
 
         /// <summary>
-        /// Sends a View request to the server to be executed using async/await
-        /// </summary>
-        /// <typeparam name="T">The Type of the body of the Views return value or row.</typeparam>
-        /// <param name="query">An <see cref="IViewQuery" /> to be executed.</param>
-        /// <returns>
-        /// The result of the View request as an <see cref="Task{IViewResult}" /> to be awaited on where T is the Type of each row.
-        /// </returns>
-        /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
-        public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
-        {
-            IViewResult<T> viewResult;
-            try
-            {
-                EnsureViewsAreAvailable();
-
-                using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
-                {
-                    var task = RetryViewEveryAsync(async (e, c) =>
-                    {
-                        var server = c.GetViewNode();
-                        return await server.SendAsync<T>(query).ContinueOnAnyContext();
-                    },
-                    query, ConfigInfo, cancellationTokenSource.Token).ContinueOnAnyContext();
-
-                    viewResult = await task;
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                const string message = "View request failed, check Error and Exception fields for details.";
-                viewResult = new ViewResult<T>
-                {
-                    Message = message,
-                    Error = e.Message,
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            return viewResult;
-        }
-
-        /// <summary>
         /// Sends a <see cref="IOperation{T}" /> to the Couchbase Server using the Memcached protocol using async/await.
         /// </summary>
         /// <typeparam name="T">The Type of the body of the request.</typeparam>
@@ -930,26 +767,111 @@ namespace Couchbase.Core.Buckets
             return await tcs.Task.ContinueOnAnyContext();
         }
 
-        public override ISearchQueryResult SendWithRetry(SearchQuery searchQuery)
+        /// <summary>
+        /// Sends a View request with retry.
+        /// </summary>
+        /// <typeparam name="T">The Type T of the <see cref="ViewRow{T}"/> value.</typeparam>
+        /// <param name="viewQuery">The view query.</param>
+        /// <returns>A <see cref="IViewResult{T}"/> with the results of the query.</returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
+        public override IViewResult<T> SendWithRetry<T>(IViewQueryable viewQuery)
         {
-            ISearchQueryResult searchResult = null;
+            IViewResult<T> viewResult;
             try
             {
-                if (!ConfigInfo.IsSearchCapable)
-                {
-                    throw new ServiceNotSupportedException
-                      (ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "FTS"));
-                }
+                EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
+                EnsureServiceAvailable(ConfigInfo.IsViewCapable, "View");
 
-                var attempts = 0;
-                IServer server;
-                while ((server = ConfigInfo.GetSearchNode()) == null)
+                viewResult = RetryRequest(
+                    ConfigInfo.GetViewNode,
+                    (server, request) => server.Send<T>(request),
+                    (request, result) =>
+                    {
+                        if(!(result.Success || !result.ShouldRetry() || request.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries))
+                        {
+                            request.RetryAttempts++;
+                            return true;
+                        }
+                        return false;
+                    },
+                    viewQuery
+                );
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+                const string message = "View request failed, check Error and Exception fields for details.";
+                viewResult = new ViewResult<T>
                 {
-                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    Thread.Sleep((int)Math.Pow(2, attempts));
-                }
+                    Message = message,
+                    Error = e.Message,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Success = false,
+                    Exception = e
+                };
+            }
+            return viewResult;
+        }
 
-                searchResult = server.Send(searchQuery);
+        /// <summary>
+        /// Sends a View request to the server to be executed using async/await
+        /// </summary>
+        /// <typeparam name="T">The Type of the body of the Views return value or row.</typeparam>
+        /// <param name="query">An <see cref="IViewQuery" /> to be executed.</param>
+        /// <returns>
+        /// The result of the View request as an <see cref="Task{IViewResult}" /> to be awaited on where T is the Type of each row.
+        /// </returns>
+        /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
+        public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
+        {
+            IViewResult<T> viewResult;
+            try
+            {
+                EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
+                EnsureServiceAvailable(ConfigInfo.IsViewCapable, "View");
+
+                viewResult = await RetryRequestAsync(
+                    ConfigInfo.GetViewNode,
+                    (server, request, token) =>
+                    {
+                        request.RetryAttempts++;
+                        return server.SendAsync<T>(request);
+                    },
+                    (request, result) => !(result.Success || !result.ShouldRetry() || request.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries),
+                    query,
+                    CancellationToken.None,
+                    ConfigInfo.ClientConfig.ViewRequestTimeout
+                ).ContinueOnAnyContext();
+            }
+            catch (Exception e)
+            {
+                Log.Info(e);
+                const string message = "View request failed, check Error and Exception fields for details.";
+                viewResult = new ViewResult<T>
+                {
+                    Message = message,
+                    Error = e.Message,
+                    StatusCode = HttpStatusCode.BadRequest,
+                    Success = false,
+                    Exception = e
+                };
+            }
+            return viewResult;
+        }
+
+        public override ISearchQueryResult SendWithRetry(SearchQuery searchQuery)
+        {
+            ISearchQueryResult searchResult;
+            try
+            {
+                EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
+
+                searchResult = RetryRequest(
+                    ConfigInfo.GetSearchNode,
+                    (server, request) => server.Send(request),
+                    (request, result) => !result.Success,
+                    searchQuery
+                );
             }
             catch (Exception e)
             {
@@ -966,24 +888,19 @@ namespace Couchbase.Core.Buckets
 
         public override async Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery)
         {
-            ISearchQueryResult searchResult = null;
+            ISearchQueryResult searchResult;
             try
             {
-                if (!ConfigInfo.IsSearchCapable)
-                {
-                    throw new ServiceNotSupportedException
-                      (ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "FTS"));
-                }
+                EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
 
-                var attempts = 0;
-                IServer server;
-                while ((server = ConfigInfo.GetSearchNode()) == null)
-                {
-                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
-                }
-
-                searchResult = await server.SendAsync(searchQuery).ContinueOnAnyContext();
+                searchResult = await RetryRequestAsync(
+                    ConfigInfo.GetSearchNode,
+                    (server, request, token) => server.SendAsync(request),
+                    (request, result) => !result.Success,
+                    searchQuery,
+                    CancellationToken.None,
+                    (int) ConfigInfo.ClientConfig.SearchRequestTimeout
+                ).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -1009,40 +926,23 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
         {
-            IQueryResult<T> queryResult = null;
+            IQueryResult<T> queryResult;
             try
             {
-                //Is the cluster configured for Query services?
-                if (!ConfigInfo.IsQueryCapable)
-                {
-                    throw new ServiceNotSupportedException
-                        (ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
-                }
+                EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
 
                 queryRequest.Lifespan = new Lifespan
                 {
                     CreationTime = DateTime.UtcNow,
                     Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
                 };
-                do
-                {
-                    var attempts = 0;
-                    IServer server;
-                    while ((server = ConfigInfo.GetQueryNode()) == null)
-                    {
-                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                        Thread.Sleep((int)Math.Pow(2, attempts));
-                    }
 
-                    queryResult = server.Send<T>(queryRequest);
-
-                    //if this is too loose, we may need to constrain it to HttpRequestException or another exception later on
-                    var exception = queryResult.Exception;
-                    if (exception != null)
-                    {
-                        UpdateConfig();
-                    }
-                } while (!queryResult.Success && queryResult.ShouldRetry() && !queryRequest.TimedOut());
+                queryResult = RetryRequest(
+                    ConfigInfo.GetQueryNode,
+                    (server, req) => server.Send<T>(req),
+                    (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
+                    queryRequest
+                );
             }
             catch (Exception e)
             {
@@ -1069,15 +969,10 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
-            IQueryResult<T> queryResult = null;
+            IQueryResult<T> queryResult;
             try
             {
-                //Is the cluster configured for Query services?
-                if (!ConfigInfo.IsQueryCapable)
-                {
-                    throw new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Query"));
-                }
+                EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
 
                 queryRequest.Lifespan = new Lifespan
                 {
@@ -1085,53 +980,14 @@ namespace Couchbase.Core.Buckets
                     Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
                 };
 
-                using (var timeoutCancellationTokenSource = new CancellationTokenSource((int) ConfigInfo.ClientConfig.QueryRequestTimeout))
-                {
-                    // If we received a functional cancellationToken (not just CancellationToken.None),
-                    // then combine with the timeout token source
-                    var cancellationTokenSource = cancellationToken.CanBeCanceled
-                        ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellationTokenSource.Token)
-                        : timeoutCancellationTokenSource;
-
-                    using (cancellationTokenSource)
-                    {
-                        // Note: it is safe to dispose the same CTS twice, so this using statement is safe
-
-                        queryResult = await RetryQueryEveryAsync(async (e, c) =>
-                        {
-                            var attempts = 0;
-                            IServer server;
-                            while ((server = c.GetQueryNode()) == null)
-                            {
-                                if (attempts++ > 10)
-                                {
-                                    throw new TimeoutException("Could not acquire a server.");
-                                }
-                                await Task.Delay((int) Math.Pow(2, attempts), cancellationTokenSource.Token).ContinueOnAnyContext();
-                            }
-
-                            // Don't forward our new cancellation token to the query layer,
-                            // it has its own timeout implementation.  Just forward the cancellation token
-                            // which was passed as a parameter.
-                            var result = await server.SendAsync<T>(queryRequest, cancellationToken).ContinueOnAnyContext();
-                            if (!result.Success)
-                            {
-                                //if this is too loose, we may need to constrain it to HttpRequestException or another exception later on
-                                var exception = result.Exception;
-                                if (exception != null && !(exception is TaskCanceledException))
-                                {
-                                    lock (_syncObj)
-                                    {
-                                        Log.Trace("Request failed checking config:", exception);
-                                        UpdateConfig();
-                                    }
-                                }
-                            }
-                            return result;
-                        },
-                        queryRequest, ConfigInfo, cancellationTokenSource.Token).ContinueOnAnyContext();
-                    }
-                }
+                queryResult = await RetryRequestAsync(
+                    ConfigInfo.GetQueryNode,
+                    (server, request, token) => server.SendAsync<T>(request, token),
+                    (request, result) => !(result.Success || request.TimedOut()) && result.ShouldRetry(),
+                    queryRequest,
+                    cancellationToken,
+                    (int)ConfigInfo.ClientConfig.AnalyticsRequestTimeout
+                ).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -1170,7 +1026,7 @@ namespace Couchbase.Core.Buckets
                 result = RetryRequest(
                     ConfigInfo.GetAnalyticsNode,
                     (server, req) => server.Send<T>(req),
-                    (req, res) => !req.TimedOut() && !res.Success && res.ShouldRetry(),
+                    (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
                     request);
             }
             catch (Exception exception)
@@ -1202,11 +1058,12 @@ namespace Couchbase.Core.Buckets
 
                 result = await RetryRequestAsync(
                     ConfigInfo.GetAnalyticsNode,
-                    async (server, req, token) => await server.SendAsync<T>(req, token).ContinueOnAnyContext(),
-                    (req, res) => !req.TimedOut() && !res.Success && res.ShouldRetry(),
+                    (server, req, token) => server.SendAsync<T>(req, token),
+                    (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
                     request,
                     cancellationToken,
-                    (int) ConfigInfo.ClientConfig.AnalyticsRequestTimeout).ContinueOnAnyContext();
+                    (int) ConfigInfo.ClientConfig.AnalyticsRequestTimeout
+                ).ContinueOnAnyContext();
             }
             catch (Exception exception)
             {
@@ -1226,151 +1083,6 @@ namespace Couchbase.Core.Buckets
                 Message = message,
                 Exception = exception
             };
-        }
-
-        #endregion
-
-        #region utility methods
-
-        private static void EnsureServiceAvailable(bool serviceEnabled, string serviceName)
-        {
-            if (!serviceEnabled)
-            {
-                throw new ServiceNotSupportedException(ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, serviceName));
-            }
-        }
-
-        private static IServer GetServerWithRetry(Func<IServer> getServer)
-        {
-            const int maxAttempts = 10;
-            var attempts = 0;
-            do
-            {
-                var server = getServer();
-                if (server != null)
-                {
-                    return server;
-                }
-
-                Thread.Sleep((int) Math.Pow(2, attempts));
-            } while (attempts++ <= maxAttempts);
-
-            throw new TimeoutException("Could not acquire a server.");
-        }
-
-        private static async Task<IServer> GetServerWithRetryAsync(Func<IServer> getServer, CancellationToken cancellationToken)
-        {
-            const int maxAttempts = 10;
-            var attempts = 0;
-            do
-            {
-                var server = getServer();
-                if (server != null)
-                {
-                    return server;
-                }
-
-                try
-                {
-                    await Task.Delay((int) Math.Pow(2, attempts), cancellationToken).ContinueOnAnyContext();
-                }
-                catch (TaskCanceledException)
-                {
-                    break;
-                }
-            } while (attempts++ <= maxAttempts);
-
-            throw new TimeoutException("Could not acquire a server.");
-        }
-
-        private static TResult RetryRequest<TRequest, TResult>(
-            Func<IServer> getServer,
-            Func<IServer, TRequest, TResult> sendRequest,
-            Func<TRequest, TResult, bool> canRetry,
-            TRequest request)
-        {
-            const int maxAttempts = 10;
-            TResult result;
-            var attempts = 0;
-
-            do
-            {
-                var server = GetServerWithRetry(getServer);
-                result = sendRequest(server, request);
-                if (!canRetry(request, result))
-                {
-                    break;
-                }
-
-                Thread.Sleep((int) Math.Pow(2, attempts));
-            } while (attempts++ <= maxAttempts);
-
-            return result;
-        }
-
-        private static async Task<TResult> RetryRequestAsync<TRequest, TResult>(
-            Func<IServer> getServer,
-            Func<IServer, TRequest, CancellationToken, Task<TResult>> sendRequest,
-            Func<TRequest, TResult, bool> canRetry,
-            TRequest request,
-            CancellationToken cancellationToken,
-            int getServerTimeout)
-        {
-            const int maxAttempts = 10;
-            TResult result;
-            var attempts = 0;
-
-            using (var timeoutCancellationTokenSource = new CancellationTokenSource(getServerTimeout))
-            {
-                // If we received a functional cancellationToken (not just CancellationToken.None),
-                // then combine with the timeout token source
-                var cancellationTokenSource = cancellationToken.CanBeCanceled
-                    ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellationTokenSource.Token)
-                    : timeoutCancellationTokenSource;
-
-                using (cancellationTokenSource)
-                {
-                    do
-                    {
-                        var server = await GetServerWithRetryAsync(getServer, cancellationTokenSource.Token).ContinueOnAnyContext();
-
-                        // Don't forward our new cancellation token to the next layer,
-                        // it has its own timeout implementation.  Just forward the cancellation token
-                        // which was passed as a parameter.
-                        result = await sendRequest(server, request, cancellationToken).ContinueOnAnyContext();
-                        if (!canRetry(request, result))
-                        {
-                            break;
-                        }
-
-                        try
-                        {
-                            await Task.Delay((int)Math.Pow(2, attempts++), cancellationToken).ContinueOnAnyContext();
-                        }
-                        catch (TaskCanceledException)
-                        {
-                            break;
-                        }
-                    } while (attempts++ <= maxAttempts);
-                }
-            }
-
-            return result;
-        }
-
-        private void EnsureViewsAreAvailable()
-        {
-            // Is this an ephemeral bucket?
-            if (string.Equals("ephemeral", ConfigInfo.BucketConfig.BucketType, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new NotSupportedException(ExceptionUtil.EphemeralBucketViewQueries);
-            }
-
-            // Is the cluster configured for View services?
-            if (!ConfigInfo.IsViewCapable)
-            {
-                throw new ServiceNotSupportedException(ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "View"));
-            }
         }
 
         #endregion

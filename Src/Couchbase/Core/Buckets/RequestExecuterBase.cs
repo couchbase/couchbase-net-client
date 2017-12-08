@@ -95,7 +95,7 @@ namespace Couchbase.Core.Buckets
 
         /// <summary>
         /// Executes an operation until it either succeeds, reaches a non-retriable state, or times out.
-        /// </summary
+        /// </summary>
         /// <param name="execute">A delegate that contains the send logic.</param>
         /// <param name="operation">The <see cref="IOperation"/> to execiute.</param>
         /// <param name="configInfo">The <see cref="IConfigInfo"/> that represents the logical topology of the cluster.</param>
@@ -305,6 +305,7 @@ namespace Couchbase.Core.Buckets
         /// Sends a <see cref="IOperation" /> to the Couchbase Server using the Memcached protocol using async/await.
         /// </summary>
         /// <param name="operation">The <see cref="IOperation" /> to send.</param>
+        /// <param name="tcs"></param>
         /// <returns>
         /// An <see cref="Task{IOperationResult}" /> with the status of the request to be awaited on.
         /// </returns>
@@ -529,6 +530,136 @@ namespace Couchbase.Core.Buckets
         {
             throw new NotImplementedException();
         }
+
+        #region utility methods
+
+        protected static void EnsureServiceAvailable(bool serviceEnabled, string serviceName)
+        {
+            if (!serviceEnabled)
+            {
+                throw new ServiceNotSupportedException(ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, serviceName));
+            }
+        }
+
+        protected static void EnsureNotEphemeral(string bucketType)
+        {
+            if (string.Equals("ephemeral", bucketType, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NotSupportedException(ExceptionUtil.EphemeralBucketViewQueries);
+            }
+        }
+
+        protected static IServer GetServerWithRetry(Func<IServer> getServer)
+        {
+            const int maxAttempts = 10;
+            var attempts = 0;
+            do
+            {
+                var server = getServer();
+                if (server != null)
+                {
+                    return server;
+                }
+
+                Thread.Sleep((int)Math.Pow(2, attempts));
+            } while (attempts++ <= maxAttempts);
+
+            throw new TimeoutException("Could not acquire a server.");
+        }
+
+        protected static async Task<IServer> GetServerWithRetryAsync(Func<IServer> getServer, CancellationToken cancellationToken)
+        {
+            const int maxAttempts = 10;
+            var attempts = 0;
+            do
+            {
+                var server = getServer();
+                if (server != null)
+                {
+                    return server;
+                }
+
+                try
+                {
+                    await Task.Delay((int)Math.Pow(2, attempts), cancellationToken).ContinueOnAnyContext();
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            } while (attempts++ <= maxAttempts);
+
+            throw new TimeoutException("Could not acquire a server.");
+        }
+
+        protected static TResult RetryRequest<TRequest, TResult>(
+            Func<IServer> getServer,
+            Func<IServer, TRequest, TResult> sendRequest,
+            Func<TRequest, TResult, bool> canRetry,
+            TRequest request)
+        {
+            const int maxAttempts = 10;
+            TResult result;
+            var attempts = 0;
+
+            do
+            {
+                var server = GetServerWithRetry(getServer);
+                result = sendRequest(server, request);
+                if (!canRetry(request, result))
+                {
+                    break;
+                }
+
+                Thread.Sleep((int)Math.Pow(2, attempts));
+            } while (attempts++ <= maxAttempts);
+
+            return result;
+        }
+
+        protected static async Task<TResult> RetryRequestAsync<TRequest, TResult>(
+            Func<IServer> getServer,
+            Func<IServer, TRequest, CancellationToken, Task<TResult>> sendRequest,
+            Func<TRequest, TResult, bool> canRetry,
+            TRequest request,
+            CancellationToken cancellationToken,
+            int requestTimeout)
+        {
+            const int maxAttempts = 10;
+            TResult result;
+            var attempts = 1;
+
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            {
+                if (!cancellationToken.CanBeCanceled)
+                {
+                    cts.CancelAfter(TimeSpan.FromMilliseconds(requestTimeout));
+                }
+
+                do
+                {
+                    var server = await GetServerWithRetryAsync(getServer, cts.Token).ContinueOnAnyContext();
+                    result = await sendRequest(server, request, cts.Token).ContinueOnAnyContext();
+                    if (!canRetry(request, result))
+                    {
+                        break;
+                    }
+
+                    try
+                    {
+                        await Task.Delay((int)Math.Pow(2, attempts), cts.Token).ContinueOnAnyContext();
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+                } while (attempts++ <= maxAttempts);
+            }
+
+            return result;
+        }
+
+        #endregion
     }
 }
 
