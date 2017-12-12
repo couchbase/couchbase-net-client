@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 
@@ -59,82 +60,55 @@ namespace Couchbase.Views
         /// <summary>
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
-        public System.Exception Exception { get; set; }
+        public Exception Exception { get; set; }
 
         /// <summary>
         /// Checks to see if the operation is eligible for a retry.
         /// </summary>
         /// <returns>True if the operation should not be retried.</returns>
+        [Obsolete("Please use IResult.ShouldRetry() instead.")]
         public bool CannotRetry()
         {
-            var cannotRetry = true;
-            if (!Success)
-            {
-                switch (StatusCode)
-                {
-                    case HttpStatusCode.OK:
-                        break;
-                    //300's
-                    case HttpStatusCode.MultipleChoices:
-                    case HttpStatusCode.MovedPermanently:
-                    case HttpStatusCode.Found:
-                    case HttpStatusCode.SeeOther:
-                    case HttpStatusCode.NotModified:
-                    case HttpStatusCode.TemporaryRedirect:
-                        cannotRetry = false;
-                        break;
-                    //400's
-                    case HttpStatusCode.NotFound:
-                        cannotRetry = Check404ForRetry();
-                        break;
-
-                    case HttpStatusCode.RequestTimeout:
-                    case HttpStatusCode.Conflict:
-                    case HttpStatusCode.PreconditionFailed:
-                    case HttpStatusCode.RequestedRangeNotSatisfiable:
-                    case HttpStatusCode.ExpectationFailed:
-                        cannotRetry = false;
-                        break;
-                    //500's
-                    case HttpStatusCode.InternalServerError:
-                        cannotRetry = Check500ForRetry();
-                        break;
-
-                    case HttpStatusCode.NotImplemented:
-                    case HttpStatusCode.BadGateway:
-                    case HttpStatusCode.ServiceUnavailable:
-                    case HttpStatusCode.GatewayTimeout:
-                        cannotRetry = false;
-                        break;
-                }
-            }
-            return cannotRetry;
+            return !ShouldRetry();
         }
 
         /// <summary>
-        /// Checks to see if a HTTP 500 can result in a retry operation
+        /// If the response indicates the request is retryable, returns true.
         /// </summary>
-        /// <remarks>Derived rules: https://docs.google.com/document/d/1GhRxvPb7xakLL4g00FUi6fhZjiDaP33DTJZW7wfSxrI/edit</remarks>
-        /// <returns>True if the operation should not be retried</returns>
-        private bool Check500ForRetry()
-        {
-            return Error.Contains("error") && Error.Contains("{not_found, missing_named_view}");
-        }
-
-        /// <summary>
-        /// Checks to see if a HTTP 400 can result in a retry operation
-        /// </summary>
-        /// <remarks>Derived rules: https://docs.google.com/document/d/1GhRxvPb7xakLL4g00FUi6fhZjiDaP33DTJZW7wfSxrI/edit</remarks>
-        /// <returns>True if the operation should not be retried</returns>
-        private bool Check404ForRetry()
-        {
-            return (Error.Contains("not_found") && Error.Contains("missing")) || Error.Contains("deleted");
-        }
-
-
+        /// <returns></returns>
+        /// <remarks>Intended for internal use only.</remarks>
         public bool ShouldRetry()
         {
-            throw new System.NotImplementedException();
+            if (Success)
+            {
+                return false;
+            }
+
+            // View status code retry strategy
+            // https://docs.google.com/document/d/1GhRxvPb7xakLL4g00FUi6fhZjiDaP33DTJZW7wfSxrI/edit
+            switch (StatusCode)
+            {
+                case HttpStatusCode.MultipleChoices: // 300
+                case HttpStatusCode.MovedPermanently: // 301
+                case HttpStatusCode.Found: // 302
+                case HttpStatusCode.SeeOther: // 303
+                case HttpStatusCode.TemporaryRedirect: //307
+                case HttpStatusCode.RequestTimeout: // 408
+                case HttpStatusCode.Conflict: // 409
+                case HttpStatusCode.PreconditionFailed: // 412
+                case HttpStatusCode.RequestedRangeNotSatisfiable: // 416
+                case HttpStatusCode.ExpectationFailed: // 417
+                case HttpStatusCode.BadGateway: // 502
+                case HttpStatusCode.ServiceUnavailable: // 503
+                case HttpStatusCode.GatewayTimeout: // 504
+                    return true;
+                case HttpStatusCode.NotFound: // 404
+                    return !(Error.Contains("not_found") && (Error.Contains("missing") || Error.Contains("deleted")));
+                case HttpStatusCode.InternalServerError: // 500
+                    return !(Error.Contains("error") && Error.Contains("{not_found, missing_named_view}"));
+                default:
+                    return false;
+            }
         }
     }
 

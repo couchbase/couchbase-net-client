@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace Couchbase.Views
@@ -39,6 +40,7 @@ namespace Couchbase.Views
         /// Returns false if the error that caused the View request to fail can result in a retry request.
         /// </summary>
         /// <returns></returns>
+        [Obsolete("Please use IResult.ShouldRetry() instead.")]
         bool CannotRetry();
     }
 }

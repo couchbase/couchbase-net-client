@@ -349,6 +349,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
 
             var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.BucketConfig.BucketType).Returns("couchbase");
             configInfo.Setup(x => x.IsViewCapable).Returns(true);
             configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
             configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
@@ -363,6 +364,72 @@ namespace Couchbase.UnitTests.Core.Buckets
             var result = await executor.SendWithRetryAsync<dynamic>(query);
             Assert.AreEqual(3, query.RetryAttempts);
             Assert.AreEqual(false, result.CannotRetry());
+        }
+
+        [Test]
+        public void SendWithRetry_Does_Not_Retry_When_CannotRetry_Is_True()
+        {
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(new ClientConfiguration { MaxViewRetries = 3 });
+
+            var viewResult = new Mock<IViewResult<dynamic>>();
+            viewResult.Setup(x => x.Success).Returns(false);
+            viewResult.Setup(x => x.CannotRetry()).Returns(true);
+
+            var server = new Mock<IServer>();
+            server.Setup(x => x.Send<dynamic>(It.IsAny<IViewQueryable>())).Returns(viewResult.Object);
+            server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
+
+            var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.IsViewCapable).Returns(true);
+            configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
+            configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
+
+            //arrange
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
+
+            var result = executor.SendWithRetry<dynamic>(query);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(0, query.RetryAttempts);
+            Assert.IsTrue(result.CannotRetry());
+            Assert.IsFalse(result.ShouldRetry());
+        }
+
+        [Test]
+        public async Task SendWithRetryAsync_Does_Not_Retry_When_CannotRetry_Is_True()
+        {
+            var controller = new Mock<IClusterController>();
+            controller.Setup(x => x.Configuration).Returns(new ClientConfiguration { MaxViewRetries = 3 });
+
+            var viewResult = new Mock<IViewResult<dynamic>>();
+            viewResult.Setup(x => x.Success).Returns(false);
+            viewResult.Setup(x => x.CannotRetry()).Returns(true);
+
+            var server = new Mock<IServer>();
+            server.Setup(x => x.SendAsync<dynamic>(It.IsAny<IViewQueryable>())).Returns(Task.FromResult(viewResult.Object));
+            server.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Loopback, 8091));
+
+            var configInfo = new Mock<IConfigInfo>();
+            configInfo.Setup(x => x.IsViewCapable).Returns(true);
+            configInfo.Setup(x => x.GetViewNode()).Returns(server.Object);
+            configInfo.Setup(x => x.ClientConfig).Returns(controller.Object.Configuration);
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
+
+            //arrange
+            var query = new ViewQuery().
+                From("beer", "brewery_beers").
+                Bucket("beer-sample");
+
+            var result = await executor.SendWithRetryAsync<dynamic>(query);
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(0, query.RetryAttempts);
+            Assert.IsTrue(result.CannotRetry());
+            Assert.IsFalse(result.ShouldRetry());
         }
     }
 }

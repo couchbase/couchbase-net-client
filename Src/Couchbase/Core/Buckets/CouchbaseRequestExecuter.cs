@@ -113,7 +113,7 @@ namespace Couchbase.Core.Buckets
                 var result = await execute(query, configInfo).ContinueOnAnyContext();
                 if (query.RetryAttempts >= configInfo.ClientConfig.MaxViewRetries ||
                     result.Success ||
-                    result.CannotRetry())
+                    !result.ShouldRetry())
                 {
                     return result;
                 }
@@ -565,18 +565,7 @@ namespace Couchbase.Core.Buckets
             IViewResult<T> viewResult;
             try
             {
-                // Is this an ephemeral bucket?
-                if (string.Equals("ephemeral", ConfigInfo.BucketConfig.BucketType, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new NotSupportedException(ExceptionUtil.EphemeralBucketViewQueries);
-                }
-
-                //Is the cluster configured for View services?
-                if (!ConfigInfo.IsViewCapable)
-                {
-                    throw new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "View"));
-                }
+                EnsureViewsAreAvailable();
 
                 while (true)
                 {
@@ -584,7 +573,7 @@ namespace Couchbase.Core.Buckets
                     viewResult = server.Send<T>(viewQuery);
 
                     if (viewResult.Success ||
-                        viewResult.CannotRetry() ||
+                        !viewResult.ShouldRetry() ||
                         viewQuery.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries)
                     {
                         break;
@@ -796,12 +785,7 @@ namespace Couchbase.Core.Buckets
             IViewResult<T> viewResult;
             try
             {
-                //Is the cluster configured for View services?
-                if (!ConfigInfo.IsViewCapable)
-                {
-                    throw new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "View"));
-                }
+                EnsureViewsAreAvailable();
 
                 using (var cancellationTokenSource = new CancellationTokenSource(ConfigInfo.ClientConfig.ViewRequestTimeout))
                 {
@@ -1372,6 +1356,21 @@ namespace Couchbase.Core.Buckets
             }
 
             return result;
+        }
+
+        private void EnsureViewsAreAvailable()
+        {
+            // Is this an ephemeral bucket?
+            if (string.Equals("ephemeral", ConfigInfo.BucketConfig.BucketType, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NotSupportedException(ExceptionUtil.EphemeralBucketViewQueries);
+            }
+
+            // Is the cluster configured for View services?
+            if (!ConfigInfo.IsViewCapable)
+            {
+                throw new ServiceNotSupportedException(ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "View"));
+            }
         }
 
         #endregion
