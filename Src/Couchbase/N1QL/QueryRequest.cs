@@ -686,6 +686,11 @@ namespace Couchbase.N1QL
         /// (like ints, Lists, etc...) rather than only strings.</remarks>
         public IDictionary<string, object> GetFormValues()
         {
+            return GetFormValues(true);
+        }
+
+        private IDictionary<string, object> GetFormValues(bool generateNewId)
+        {
             if (string.IsNullOrWhiteSpace(_statement) ||
                 (_prepareEncoded && _preparedPayload == null))
             {
@@ -797,8 +802,11 @@ namespace Couchbase.N1QL
             {
                 formValues.Add(QueryParameters.PipelineCapacity, _pipelineCapacity.Value.ToString());
             }
+            if (generateNewId)
+            {
+                _requestContextId = QuerySequenceGenerator.GetNext();
+            }
 
-            _requestContextId = QuerySequenceGenerator.GetNext();
             formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
             return formValues;
         }
@@ -832,9 +840,13 @@ namespace Couchbase.N1QL
         /// <returns>The form values as a JSON object.</returns>
         public string GetFormValuesAsJson()
         {
-            var formValues = GetFormValues();
-            var json = JsonConvert.SerializeObject(formValues);
-            return json;
+            return GetFormValuesAsJson(true);
+        }
+
+        private string GetFormValuesAsJson(bool generateId)
+        {
+            var formValues = GetFormValues(generateId);
+            return JsonConvert.SerializeObject(formValues);
         }
 
         /// <summary>
@@ -878,7 +890,7 @@ namespace Couchbase.N1QL
             string request;
             try
             {
-                request = GetBaseUri() + "[" + GetFormValuesAsJson() + "]";
+                request = GetBaseUri() + "[" + GetFormValuesAsJson(false) + "]";
             }
             catch
             {
