@@ -99,7 +99,6 @@
     <Compile Include="GlobalSetup.cs" />
     <Compile Include="N1QL\QueryResponseTests.cs" />
     <Compile Include="ResourceHelper.cs" />
-    <Compile Include="N1QL\QueryTimerTests.cs" />
     <Compile Include="Utils\ClientConfigUtil.cs" />
     <Compile Include="CouchbaseBucket_View_Ssl_Tests.cs" />
     <Compile Include="Core\Buckets\KeyObserverTests.cs" />

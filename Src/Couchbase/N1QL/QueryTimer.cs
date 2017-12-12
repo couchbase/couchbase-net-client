@@ -6,21 +6,20 @@ namespace Couchbase.N1QL
 {
     public class QueryTimer : IQueryTimer
     {
-        private const string QueryTimingFormat = "Query Timing: {0,7:N6}ms | {1} | {2}";
+        private const string QueryTimingFormat = "Query Timing for context ID {0}: {1}ms | {2} | {3}";
         public const string NotRecorded = "NotRecorded";
         public const string QueryMustBeProvided = "Query must be provided.";
         public const string QueryStatementMustBeProvided = "Query statement must be provided.";
 
-        public ITimingStore Store { get; private set; }
+        public ITimingStore Store { get; }
         public string ClusterElapsedTime { get; set; }
 
         private Stopwatch _stopwatch;
+        private readonly string _contextId;
         private readonly string _statement;
-        private readonly bool _enableQueryTiming;
 
         public QueryTimer(IQueryRequest queryRequest, ITimingStore store, bool enableQueryTiming)
         {
-            Store = store;
             if (!store.Enabled || !enableQueryTiming) return;
 
             if (queryRequest == null)
@@ -33,17 +32,19 @@ namespace Couchbase.N1QL
                 throw new ArgumentException(QueryStatementMustBeProvided);
             }
 
+            Store = store;
+            _contextId = queryRequest.CurrentContextId;
             _statement = queryRequest.GetOriginalStatement();
-            _enableQueryTiming = enableQueryTiming;
             ClusterElapsedTime = NotRecorded;
             _stopwatch = Stopwatch.StartNew();
         }
 
         public void Dispose()
         {
-            if (!Store.Enabled || !_enableQueryTiming) return;
+            if (_stopwatch == null) return;
 
-            Store.Write(QueryTimingFormat, _stopwatch.Elapsed.TotalMilliseconds, ClusterElapsedTime, _statement);
+            _stopwatch.Stop();
+            Store.Write(QueryTimingFormat, _contextId, _stopwatch.ElapsedMilliseconds, ClusterElapsedTime, _statement);
             _stopwatch = null;
         }
     }
