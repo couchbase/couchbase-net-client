@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Text;
 
 namespace Couchbase.Search
@@ -12,20 +11,12 @@ namespace Couchbase.Search
     /// <seealso cref="Couchbase.Search.ISearchQueryResult" />
     public class SearchQueryResult : ISearchQueryResult, IDisposable
     {
-        private HttpClient _httpClient;
-
         internal SearchQueryResult()
         {
             Hits = new List<ISearchQueryRow>();
             Facets = new Dictionary<string, IFacetResult>();
             Errors = new List<string>();
             Metrics = new SearchMetrics();
-        }
-
-        internal SearchQueryResult(HttpClient httpClient)
-            : this()
-        {
-            _httpClient = httpClient;
         }
 
         public IEnumerator<ISearchQueryRow> GetEnumerator()
@@ -114,13 +105,7 @@ namespace Couchbase.Search
         public SearchMetrics Metrics { get; internal set; }
 
         public void Dispose()
-        {
-            if (_httpClient != null)
-            {
-                _httpClient.Dispose();
-                _httpClient = null;
-            }
-        }
+        { }
 
         public override string ToString()
         {
