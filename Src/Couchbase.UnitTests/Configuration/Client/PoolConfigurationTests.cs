@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using NUnit.Framework;
 
@@ -37,6 +38,90 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(poolConfig.MaxSize, clonedConfig.MaxSize);
             Assert.AreEqual(poolConfig.MinSize, clonedConfig.MinSize);
             Assert.AreEqual(poolConfig.BucketName, clonedConfig.BucketName);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Test_That_UseSsl_Reflects_When_EnableCertificateAuthentication_Is_Set(bool enabled)
+        {
+            var config = new ClientConfiguration
+            {
+                PoolConfiguration = new PoolConfiguration
+                {
+                    EnableCertificateAuthentication = enabled
+                }
+            };
+
+            Assert.AreEqual(enabled, config.PoolConfiguration.UseSsl);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Test_That_UseSsl_Reflects_When_EnableCertificateAuthentication_Is_Set_On_BucketConfiguration(
+            bool enabled)
+        {
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            EnableCertificateAuthentication = enabled
+                        }
+                    }
+                }
+            };
+            config.Initialize();
+
+            Assert.AreEqual(enabled, config.BucketConfigs["default"].PoolConfiguration.UseSsl);
+        }
+
+        [Test]
+        public void When_PoolConfiguration_UseSsl_Is_True_And_EnableCertificateAuthentication_Is_False_UseSsl_Is_Not_Overwritten()
+        {
+            var config = new ClientConfiguration
+            {
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            EnableCertificateAuthentication = false,
+                            PoolConfiguration = new PoolConfiguration
+                            {
+                                UseSsl = true
+                            }
+                        }
+                    }
+                }
+            };
+            config.Initialize();
+
+            Assert.IsTrue(config.BucketConfigs["default"].PoolConfiguration.UseSsl);
+        }
+
+        [Test]
+        public void When_ClientConfiguration_UseSsl_Is_True_And_EnableCertificateAuthentication_Is_False_UseSsl_Is_Not_Overwritten()
+        {
+            var config = new ClientConfiguration
+            {
+                UseSsl = true,
+                BucketConfigs = new Dictionary<string, BucketConfiguration>
+                {
+                    {
+                        "default", new BucketConfiguration
+                        {
+                            EnableCertificateAuthentication = false
+                        }
+                    }
+                }
+            };
+            config.Initialize();
+
+            Assert.IsTrue(config.BucketConfigs["default"].PoolConfiguration.UseSsl);
         }
     }
 }

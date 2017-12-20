@@ -9,6 +9,11 @@ namespace Couchbase.Configuration.Client
     public interface IConnectionPoolDefinition
     {
         /// <summary>
+        /// Enables X509 authentication with the Couchbase cluster.
+        /// </summary>
+        bool EnableCertificateAuthentication { get; set; }
+
+        /// <summary>
         /// The fully qualified type name of the type of the custom <see cref="IConnectionPool"/>.  If null, then
         /// the default connection pool type is used.
         /// </summary>

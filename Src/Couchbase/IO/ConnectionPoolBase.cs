@@ -105,6 +105,12 @@ namespace Couchbase.IO
 
         protected void Authenticate(IConnection connection)
         {
+            if (Configuration.EnableCertificateAuthentication)
+            {
+                Log.Trace("Ignoring authentication using x509 cert.");
+                //ignore auth if cert auth is being used
+                return;
+            }
             Log.Trace("1. Checking authentication [{0}|{1}]: {2} - {3}", connection.IsAuthenticated,
                 connection.IsDead, EndPoint, connection.Identity);
 

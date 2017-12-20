@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography.X509Certificates;
+using Couchbase.Authentication;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -33,6 +35,7 @@ namespace Couchbase.Configuration.Client
         private int _maxSize;
         private int _minSize;
         public const int DefaultSendTimeout = 15000;
+        private bool _enableCertificateAuthentication;
 
         public static class Defaults
         {
@@ -111,6 +114,27 @@ namespace Couchbase.Configuration.Client
             CloseAttemptInterval = 100u;
             MaxCloseAttempts = 5;
             BucketName = bucketName;
+        }
+
+        /// <summary>
+        /// Factory for retrieving X509 certificates from a store or off of the file system.
+        /// </summary>
+        public Func<X509Certificate2Collection> CertificateFactory { get; set; }
+
+        /// <summary>
+        /// Enables X509 authentication with the Couchbase cluster.
+        /// </summary>
+        internal bool EnableCertificateAuthentication
+        {
+            get => _enableCertificateAuthentication;
+            set
+            {
+                _enableCertificateAuthentication = value;
+                if (_enableCertificateAuthentication)
+                {
+                    UseSsl = _enableCertificateAuthentication;
+                }
+            }
         }
 
         /// <summary>
@@ -313,7 +337,9 @@ namespace Couchbase.Configuration.Client
                 EnableTcpKeepAlives = EnableTcpKeepAlives,
                 TcpKeepAliveInterval = TcpKeepAliveInterval,
                 ClientConfiguration = ClientConfiguration,
-                BucketName = BucketName
+                BucketName = BucketName,
+                EnableCertificateAuthentication = EnableCertificateAuthentication,
+                CertificateFactory = CertificateFactory
             };
         }
 

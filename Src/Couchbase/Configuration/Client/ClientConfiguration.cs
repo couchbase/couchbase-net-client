@@ -1177,6 +1177,11 @@ namespace Couchbase.Configuration.Client
                         }
                     }
                 }
+
+                //make sure the pool config gets updated with the cert auth flag
+                bucketConfiguration.PoolConfiguration.EnableCertificateAuthentication =
+                    bucketConfiguration.EnableCertificateAuthentication;
+
                 bucketConfiguration.PoolConfiguration.Validate();
                 //operation lifespan: if it has changed at bucket level, use bucket level, else use global level
                 if (_operationLifespanChanged)

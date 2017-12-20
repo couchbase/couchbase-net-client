@@ -1,7 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
@@ -58,7 +55,19 @@ namespace Couchbase.IO
 
                 using (new SynchronizationContextExclusion())
                 {
-                    _sslStream.AuthenticateAsClientAsync(targetHost).Wait();
+                    if (ConnectionPool.Configuration.EnableCertificateAuthentication)
+                    {
+                        if (ConnectionPool.Configuration.CertificateFactory == null)
+                        {
+                            throw new NullConfigException("If BucketConfiguration.EnableCertificateAuthentication is true, CertificateFactory cannot be null.");
+                        }
+                        var certs = ConnectionPool.Configuration.CertificateFactory();
+                        _sslStream.AuthenticateAsClientAsync(targetHost, certs, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, true).Wait();
+                    }
+                    else
+                    {
+                        _sslStream.AuthenticateAsClientAsync(targetHost).Wait();
+                    }
                 }
 
                 IsSecure = true;

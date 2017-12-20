@@ -16,6 +16,16 @@ namespace Couchbase.Configuration.Client.Providers
            "Couchbase.IO.ConnectionPool`1[Couchbase.IO.SslConnection], Couchbase.NetClient";
 
         /// <summary>
+        /// Enables X509 authentication with the Couchbase cluster.
+        /// </summary>
+        [ConfigurationProperty("enableCertificateAuthentication", DefaultValue = false, IsRequired = false)]
+        public bool EnableCertificateAuthentication
+        {
+            get => (bool)this["enableCertificateAuthentication"];
+            set => this["enableCertificateAuthentication"] = value;
+        }
+
+        /// <summary>
         /// Gets or sets the <see cref="Type"/> of the custom <see cref="IConnectionPool"/>
         /// </summary>
         /// <value>
