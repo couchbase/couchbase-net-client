@@ -766,12 +766,21 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Test, Ignore("https://issues.couchbase.com/browse/NCBC-1593")]
+        [Test]
+        public void Test_Remove_With_Durability_Requirements_And_Custom_Timeout()
+        {
+            const string key = "Test_Remove_With_Durability_Requirements_And_Custom_Timeout";
+            _bucket.Upsert(key, new { });
+
+            var result = _bucket.Remove(key, ReplicateTo.Zero, PersistTo.Zero, TimeSpan.FromSeconds(5));
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test]
         public async Task Test_RemoveAsync_With_Durability_Requirements_And_Custom_Timeout()
         {
             const string key = "Test_RemoveAsync_With_Durability_Requirements_And_Custom_Timeout";
-
-            var upsertResult = _bucket.Upsert(key, new { });
+            _bucket.Upsert(key, new { });
 
             var result = await _bucket.RemoveAsync(key, ReplicateTo.Zero, PersistTo.Zero, TimeSpan.FromSeconds(5));
             Assert.IsTrue(result.Success);

@@ -314,6 +314,14 @@ namespace Couchbase.IO.Operations
                 result.Id = Key;
                 result.OpCode = OperationCode;
 
+                // make sure we read any extras
+                if (Success && Data != null && Data.Length > 0)
+                {
+                    var buffer = Data.ToArray();
+                    ReadExtras(buffer);
+                    result.Token = MutationToken ?? DefaultMutationToken;
+                }
+
                 //clean up and set to null
                 if (!result.IsNmv())
                 {
