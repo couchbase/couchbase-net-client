@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Runtime.Serialization;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -40,17 +41,7 @@ namespace Couchbase.Configuration.Server.Serialization
         {
             get
             {
-                lock (_syncObj)
-                {
-                    if (_ipEndPoints == null || !_ipEndPoints.Any())
-                    {
-                        _ipEndPoints = new List<IPEndPoint>();
-                        foreach (var server in ServerList)
-                        {
-                            _ipEndPoints.Add(IPEndPointExtensions.GetEndPoint(server));
-                        }
-                    }
-                }
+                EnsureIPEndPointsAreLoaded();
                 return _ipEndPoints;
             }
         }
@@ -79,6 +70,30 @@ namespace Couchbase.Configuration.Server.Serialization
                 hash = hash * 23 + HashAlgorithm.GetHashCode();
                 return hash;
             }
+        }
+
+        // ReSharper disable once InconsistentNaming
+        private void EnsureIPEndPointsAreLoaded()
+        {
+            lock (_syncObj)
+            {
+                if (_ipEndPoints == null || !_ipEndPoints.Any())
+                {
+                    _ipEndPoints = new List<IPEndPoint>();
+                    foreach (var server in ServerList)
+                    {
+                        _ipEndPoints.Add(IPEndPointExtensions.GetEndPoint(server));
+                    }
+                }
+            }
+        }
+
+        [OnDeserialized]
+        internal void OnDeserializedMethod(StreamingContext context)
+        {
+            // If we're deserializing the configuration, go ahead and load the endpoints in advance
+            // https://issues.couchbase.com/browse/NCBC-1614
+            EnsureIPEndPointsAreLoaded();
         }
     }
 }
