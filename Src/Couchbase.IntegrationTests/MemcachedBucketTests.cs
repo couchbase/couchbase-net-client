@@ -740,7 +740,7 @@ namespace Couchbase.IntegrationTests
         public void Upsert_When_Expiration_And_Timeout_Is_Passed_It_Is_Honored()
         {
             var timeout = new TimeSpan(0, 0, 15);
-            var expiration = 1000u;
+            var expiration = 1u;
             var key = "Upsert_When_Expiration_And_Timeout_Is_Passed_It_Is_Honored";
 
             //start clean

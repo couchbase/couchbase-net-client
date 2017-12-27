@@ -517,7 +517,7 @@ namespace Couchbase
         {
             var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
-                Expires = expiration.ToTtl()
+                Expires = expiration
             };
             return _requestExecuter.SendWithRetry(operation);
         }
