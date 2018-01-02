@@ -14,11 +14,10 @@
     <PackageIconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</PackageIconUrl>
     <PackageReleaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</PackageReleaseNotes>
 
-    <TargetFrameworks>net45;netstandard1.5</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.5;netstandard2.0</TargetFrameworks>
     <RootNamespace>Couchbase</RootNamespace>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
-    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
-    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+    <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
     <VersionPrefix>2.4.5</VersionPrefix>
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
@@ -27,7 +26,11 @@
     <DefineConstants>$(DefineConstants);NET45</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
-    <DefineConstants>$(DefineConstants);NETSTANDARD</DefineConstants>
+    <DefineConstants>$(DefineConstants);NETSTANDARD;NETSTANDARD15</DefineConstants>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <DefineConstants>$(DefineConstants);NETSTANDARD;NETSTANDARD20</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net45|AnyCPU'">
     <DocumentationFile>bin\Debug\net45\comments.xml</DocumentationFile>
@@ -41,13 +44,12 @@
     <PackageReference Include="Common.Logging" Version="3.3.1" />
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' Or '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="Microsoft.Extensions.Logging" Version="1.1.0" />
     <PackageReference Include="System.Globalization.Extensions" Version="4.3.0" />
-    <PackageReference Include="System.Net.Http" Version="4.3.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
     <PackageReference Include="System.Net.Primitives" Version="4.3.0" />
-    <PackageReference Include="System.Net.Security" Version="4.3.0" />
+    <PackageReference Include="System.Net.Security" Version="4.3.2" />
     <PackageReference Include="System.Net.Sockets" Version="4.3.0" />
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.3.0" />
     <PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" />

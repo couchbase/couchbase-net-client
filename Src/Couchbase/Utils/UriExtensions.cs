@@ -23,16 +23,19 @@ namespace Couchbase.Utils
         /// <remarks>Only returns IPV4 Addresses unless <see cref="useInterNetworkV6Addresses"/> is true!</remarks>
         public static IPAddress GetIpAddress(this Uri uri, bool useInterNetworkV6Addresses)
         {
-            IPAddress ipAddress = null;
-            if (!IPAddress.TryParse(uri.Host, out ipAddress))
+            if (!IPAddress.TryParse(uri.Host, out var ipAddress))
             {
                 try
                 {
+#if NETSTANDARD15
                     IPHostEntry hostEntry;
                     using (new SynchronizationContextExclusion())
                     {
                         hostEntry = Dns.GetHostEntryAsync(uri.DnsSafeHost).Result;
                     }
+#else
+                    var hostEntry = Dns.GetHostEntry(uri.DnsSafeHost);
+#endif
 
                     //use ip6 addresses only if configured
                     var hosts = useInterNetworkV6Addresses
