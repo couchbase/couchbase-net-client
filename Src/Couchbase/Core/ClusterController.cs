@@ -115,8 +115,15 @@ namespace Couchbase.Core
         /// <param name="config">The cluster map to check.</param>
         public void EnqueueConfigForProcessing(IBucketConfig config)
         {
-            Log.Debug("Queueing config rev#{0} for [{1}].", config.Rev, config.Name);
-            _configQueue.Add(config);
+            try
+            {
+                Log.Debug("Queueing config rev#{0} for [{1}].", config.Rev, config.Name);
+                _configQueue.Add(config);
+            }
+            catch (Exception e)
+            {
+                Log.Debug(e);
+            }
         }
 
         public DateTime LastConfigCheckedTime { get; set; }
@@ -480,14 +487,24 @@ namespace Couchbase.Core
                     {
                         GC.SuppressFinalize(this);
                     }
-                    if (_clusterMonitor != null)
+                    if (_configQueue != null)
                     {
-                        _clusterMonitor.Dispose();
+                        try
+                        {
+                            _configQueue.CompleteAdding();
+                            while (_configQueue.Any())
+                            {
+                                _configQueue.TryTake(out IBucketConfig config);
+                            }
+                            _configQueue.Dispose();
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Debug(e);
+                        }
                     }
-                    if (_configMonitor != null)
-                    {
-                        _configMonitor.Dispose();
-                    }
+                    _configMonitor?.Dispose();
+                    _configQueue?.Dispose();
                     foreach (var pair in _buckets)
                     {
                         DestroyBucket(pair.Value);
