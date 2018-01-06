@@ -99,13 +99,22 @@ namespace Couchbase.Core
         /// </summary>
         internal void ProcessConfig()
         {
-            foreach (var config in _configQueue.GetConsumingEnumerable())
+            try
             {
-                foreach (var provider in _configProviders.OfType<CarrierPublicationProvider>())
+                foreach (var config in _configQueue.GetConsumingEnumerable())
                 {
-                    Log.Debug("Processing config rev#{0}", config.Rev);
-                    provider.UpdateConfig(config);
+                    foreach (var provider in _configProviders.OfType<CarrierPublicationProvider>())
+                    {
+                        Log.Debug("Processing config rev#{0}", config.Rev);
+                        provider.UpdateConfig(config);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                //when this disposes another thread may have previously written
+                //to the queue - in this case just log and ignore the error.
+                Log.Debug(e);
             }
         }
 
