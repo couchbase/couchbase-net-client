@@ -61,11 +61,11 @@ namespace Couchbase.Core
                     new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration)),
+                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
                     new StreamingViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration)),
+                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
                     new QueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
@@ -77,7 +77,7 @@ namespace Couchbase.Core
                     new SearchClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.SearchRequestTimeout)
-                    }, new SearchDataMapper()),
+                    }, new SearchDataMapper(), clientConfiguration),
                     new AnalyticsClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
                     {
                         Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)

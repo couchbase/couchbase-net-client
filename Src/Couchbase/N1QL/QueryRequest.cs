@@ -8,6 +8,7 @@ using Couchbase.Authentication;
 using Couchbase.Core;
 using Couchbase.Utils;
 using Couchbase.Views;
+using OpenTracing;
 
 namespace Couchbase.N1QL
 {
@@ -224,6 +225,12 @@ namespace Couchbase.N1QL
             _useStreaming = streaming;
             return this;
         }
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        public ISpan ActiveSpan { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether use the <see cref="StreamingQueryClient" />.

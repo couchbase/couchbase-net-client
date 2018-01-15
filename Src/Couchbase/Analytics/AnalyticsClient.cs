@@ -8,6 +8,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Logging;
 using Couchbase.N1QL;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Couchbase.Views;
 
@@ -54,18 +55,33 @@ namespace Couchbase.Analytics
 
             ApplyCredentials(queryRequest, ClientConfiguration);
 
-            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
+            string body;
+            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).Start())
+            {
+                body = queryRequest.GetFormValuesAsJson();
+            }
+
+            using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
                 {
                     Log.Trace("Sending analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                    var request = await HttpClient.PostAsync(baseUri, content, token).ContinueOnAnyContext();
-                    using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+
+                    HttpResponseMessage response;
+                    using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
                     {
-                        result = DataMapper.Map<AnalyticsResultData<T>>(response).ToQueryResult();
+                        response = await HttpClient.PostAsync(baseUri, content, token).ContinueOnAnyContext();
+                    }
+
+                    using (var span = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).Start())
+                    using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                    {
+                        result = DataMapper.Map<AnalyticsResultData<T>>(stream).ToQueryResult();
                         result.Success = result.Status == QueryStatus.Success;
-                        result.HttpStatusCode = request.StatusCode;
+                        result.HttpStatusCode = response.StatusCode;
                         Log.Trace("Received analytics query cid{0}: {1}", result.ClientContextId, result.ToString());
+
+                        span.SetPeerLatencyTag(result.Metrics.ElaspedTime);
                     }
                     baseUri.ClearFailed();
                 }

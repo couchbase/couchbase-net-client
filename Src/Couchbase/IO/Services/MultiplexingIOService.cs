@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 
 namespace Couchbase.IO.Services
@@ -56,14 +58,23 @@ namespace Couchbase.IO.Services
         /// <exception cref="TransportFailureException"></exception>
         public override IOperationResult<T> Execute<T>(IOperation<T> operation)
         {
-            var request = operation.Write();
-            byte[] response = null;
-
             try
             {
                 if (_connection.IsConnected)
                 {
-                    response = _connection.Send(request);
+                    var request = operation.Write(Tracer, ConnectionPool.Configuration.BucketName);
+                    byte[] response;
+                    OperationHeader header;
+                    ErrorCode errorCode;
+
+                    using (var span = Tracer.BuildSpan(operation, _connection, ConnectionPool.Configuration.BucketName).Start())
+                    {
+                        response = _connection.Send(request);
+                        header = response.CreateHeader(ErrorMap, out errorCode);
+                        span.SetPeerLatencyTag(header.GetServerDuration(response));
+                    }
+
+                    operation.Read(response, header, errorCode);
                 }
                 else
                 {
@@ -83,8 +94,7 @@ namespace Couchbase.IO.Services
                 }
             }
 
-            operation.Read(response, ErrorMap);
-            return operation.GetResultWithValue();//might have to handle a special null case her
+            return operation.GetResultWithValue(Tracer, ConnectionPool.Configuration.BucketName);
         }
 
         /// <summary>
@@ -95,14 +105,23 @@ namespace Couchbase.IO.Services
         /// <exception cref="TransportFailureException"></exception>
         public override IOperationResult Execute(IOperation operation)
         {
-            var request = operation.Write();
-            byte[] response = null;
-
             try
             {
                 if (_connection.IsConnected)
                 {
-                    response = _connection.Send(request);
+                    var request = operation.Write(Tracer, ConnectionPool.Configuration.BucketName);
+                    byte[] response;
+                    OperationHeader header;
+                    ErrorCode errorCode;
+
+                    using (var span = Tracer.BuildSpan(operation, _connection, ConnectionPool.Configuration.BucketName).Start())
+                    {
+                        response = _connection.Send(request);
+                        header = response.CreateHeader(ErrorMap, out errorCode);
+                        span.SetPeerLatencyTag(header.GetServerDuration(response));
+                    }
+
+                    operation.Read(response, header, errorCode);
                 }
                 else
                 {
@@ -122,8 +141,7 @@ namespace Couchbase.IO.Services
                 }
             }
 
-            operation.Read(response, ErrorMap);
-            return operation.GetResult();
+            return operation.GetResult(Tracer, ConnectionPool.Configuration.BucketName);
         }
 
         /// <summary>
@@ -141,8 +159,9 @@ namespace Couchbase.IO.Services
             {
                 if (connection.IsConnected)
                 {
-                    var request = await operation.WriteAsync().ContinueOnAnyContext();
-                    connection.SendAsync(request, operation.Completed);
+                    var request = await operation.WriteAsync(Tracer, ConnectionPool.Configuration.BucketName).ContinueOnAnyContext();
+                    var span = Tracer.BuildSpan(operation, connection, ConnectionPool.Configuration.BucketName).Start();
+                    connection.SendAsync(request, operation.Completed, span, ErrorMap);
                 }
                 else
                 {
@@ -164,7 +183,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation, EndPoint);
+                await HandleException(capturedException, operation, EndPoint).ConfigureAwait(false);
             }
         }
 
@@ -193,8 +212,9 @@ namespace Couchbase.IO.Services
             {
                 if (connection.IsConnected)
                 {
-                    var request = await operation.WriteAsync().ContinueOnAnyContext();
-                    connection.SendAsync(request, operation.Completed);
+                    var request = await operation.WriteAsync(Tracer, ConnectionPool.Configuration.BucketName).ContinueOnAnyContext();
+                    var span = Tracer.BuildSpan(operation, connection, ConnectionPool.Configuration.BucketName).Start();
+                    connection.SendAsync(request, operation.Completed, span, ErrorMap);
                 }
                 else
                 {
@@ -216,7 +236,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation, EndPoint);
+                await HandleException(capturedException, operation, EndPoint).ConfigureAwait(false);
             }
         }
 

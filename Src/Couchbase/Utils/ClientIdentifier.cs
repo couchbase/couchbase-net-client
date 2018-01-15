@@ -1,4 +1,6 @@
-﻿#if NET45
+﻿using Couchbase.IO.Operations;
+
+#if NET45
 using System;
 #else
 using System.Runtime.InteropServices;
@@ -18,6 +20,8 @@ namespace Couchbase.Utils
             return string.Format(DescriptionFormat, CurrentAssembly.Version, RuntimeInformation.FrameworkDescription, RuntimeInformation.OSDescription);
 #endif
         }
+
+        internal static ulong InstanceId = SequenceGenerator.GetRandomLong();
     }
 }
 

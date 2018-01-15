@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Couchbase.Views;
 
@@ -42,14 +43,26 @@ namespace Couchbase.N1QL
 
             ApplyCredentials(queryRequest);
 
-            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
+            string body;
+            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).Start())
+            {
+                body = queryRequest.GetFormValuesAsJson();
+            }
+
+            using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
                 {
                     var requestMessage = new HttpRequestMessage(HttpMethod.Post, baseUri) {Content = content};
 
                     Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                    var response = await HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ContinueOnAnyContext();
+
+                    HttpResponseMessage response;
+                    using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
+                    {
+                        response = await HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ContinueOnAnyContext();
+                    }
+
                     var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext();
                     {
                         queryResult = new StreamingQueryResult<T>
@@ -57,7 +70,8 @@ namespace Couchbase.N1QL
                             ResponseStream = stream,
                             HttpStatusCode = response.StatusCode,
                             Success = response.StatusCode == HttpStatusCode.OK,
-                            QueryTimer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfiguration.EnableQueryTiming)
+                            QueryTimer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfiguration.EnableQueryTiming),
+                            DecodeSpan = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).Start()
                         };
                         Log.Trace("Received query cid{0}: {1}", queryRequest.CurrentContextId, queryResult.HttpStatusCode);
                     }

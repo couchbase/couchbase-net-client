@@ -9,6 +9,7 @@ using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.Tracing;
 
 namespace Couchbase.Configuration.Client
 {
@@ -409,6 +410,22 @@ namespace Couchbase.Configuration.Client
         /// By default all configuration providers are enabled.
         /// </remarks>
         ServerConfigurationProviders ConfigurationProviders { get; set; }
+
+        /// <summary>
+        /// Controls whether the <see cref="ThresholdLoggingTracer"/> is used when configuring the client.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the <see cref="ThresholdLoggingTracer"/> is to be used; otherwise, <c>false</c>.
+        /// </value>
+        bool OperationTracingEnabled { get; set; }
+
+        /// <summary>
+        /// Controls whether orphaned server responses are recorded and logged.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.
+        /// </value>
+        bool OrphanedResponseLoggingEnabled { get; set; }
     }
 }
 

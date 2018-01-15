@@ -45,11 +45,6 @@ namespace Couchbase.IO.Operations
             return buffer;
         }
 
-        public override int BodyOffset
-        {
-            get { return 28; }
-        }
-
         public override IOperation Clone()
         {
             var cloned = new ReplicaRead<T>(Key, Transcoder, VBucket, Opaque, Timeout)

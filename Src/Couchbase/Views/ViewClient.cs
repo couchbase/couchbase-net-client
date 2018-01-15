@@ -2,8 +2,11 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Logging;
+using Couchbase.Tracing;
 using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -11,8 +14,8 @@ namespace Couchbase.Views
     {
         private static readonly ILog Log = LogManager.GetLogger<ViewClient>();
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper)
-            : base(httpClient, mapper)
+        public ViewClient(HttpClient httpClient, IDataMapper mapper, ClientConfiguration configuration)
+            : base(httpClient, mapper, configuration)
         { }
 
         /// <summary>
@@ -25,16 +28,28 @@ namespace Couchbase.Views
         {
             var uri = query.RawUri();
             var viewResult = new ViewResult<T>();
-            var body = query.CreateRequestBody();
+
+            string body;
+            using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).Start())
+            {
+                body = query.CreateRequestBody();
+            }
 
             try
             {
                 Log.Debug("Sending view request to: {0}", uri.ToString());
 
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
-                var response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
+
+                HttpResponseMessage response;
+                using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.DispatchToServer).Start())
+                {
+                    response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
+                }
+
                 if (response.IsSuccessStatusCode)
                 {
+                    using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.ResponseDecoding).Start())
                     using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
                         viewResult = DataMapper.Map<ViewResultData<T>>(stream).ToViewResult();

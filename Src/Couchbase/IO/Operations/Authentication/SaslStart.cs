@@ -101,11 +101,6 @@ namespace Couchbase.IO.Operations.Authentication
             return buffer;
         }
 
-        public override int BodyOffset
-        {
-            get { return 24; }
-        }
-
         public override bool RequiresKey
         {
             get { return false; }

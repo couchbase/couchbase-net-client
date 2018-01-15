@@ -15,6 +15,7 @@ using Couchbase.IO.Utils;
 using Couchbase.Logging;
 using Couchbase.Utils;
 using Newtonsoft.Json;
+using OpenTracing;
 
 namespace Couchbase.IO.Operations
 {
@@ -26,11 +27,10 @@ namespace Couchbase.IO.Operations
         protected IByteConverter Converter;
         protected Flags Flags;
         private Dictionary<TimingLevel, IOperationTimer> _timers;
-        private const int DefaultOffset = 24;
-        public const int HeaderLength = 24;
+        protected int HeaderLength => HeaderIndexFor.HeaderLength;
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
-        protected ErrorCode ErrorCode;
+        internal ErrorCode ErrorCode;
 
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
         {
@@ -64,14 +64,14 @@ namespace Couchbase.IO.Operations
         public Compression Compression { get; set; }
         public string Key { get; protected set; }
         public Exception Exception { get; set; }
-        public virtual int BodyOffset { get { return DefaultOffset; } }
+        public virtual int BodyOffset { get { return Header.BodyOffset; } }
         public ulong Cas { get; set; }
         public MemoryStream Data { get; set; }
         public byte[] Buffer { get; set; }
         public uint Opaque { get; protected set; }
         public IVBucket VBucket { get; set; }
         public int LengthReceived { get; protected set; }
-        public int TotalLength { get { return Header.TotalLength; }}
+        public int TotalLength { get { return Header.TotalLength; } }
         public virtual bool Success { get { return GetSuccess(); } }
         public uint Expires { get; set; }
         public int Attempts { get; set; }
@@ -153,81 +153,51 @@ namespace Couchbase.IO.Operations
         [Obsolete]
         public virtual void Read(byte[] buffer, int offset, int length)
         {
-            Read(buffer);
+            var header = buffer.CreateHeader();
+            Read(buffer, header);
         }
 
         public void Read(byte[] buffer, ErrorMap errorMap = null)
         {
-            if (buffer == null || buffer.Length == 0)
-            {
-                return;
-            }
+            var header = buffer.CreateHeader(errorMap, out var errorCode);
+            Read(buffer, header, errorCode);
+        }
 
-            ReadContent(buffer, errorMap);
-            Data.Write(buffer, 0, buffer.Length);
+        public void Read(byte[] buffer, OperationHeader header, ErrorCode errorCode = null)
+        {
+            Header = header;
+            ErrorCode = errorCode;
+
+            if (buffer?.Length > 0)
+            {
+                Data.Write(buffer, 0, buffer.Length);
+                LengthReceived += buffer.Length;
+            }
         }
 
         [Obsolete]
-        public async Task ReadAsync(byte[] buffer, int offset, int length)
+        public Task ReadAsync(byte[] buffer, int offset, int length)
         {
-            await ReadAsync(buffer).ContinueOnAnyContext();
+            var header = buffer.CreateHeader();
+            return ReadAsync(buffer, header);
         }
 
-        public async Task ReadAsync(byte[] buffer, ErrorMap errorMap = null)
+        public Task ReadAsync(byte[] buffer, ErrorMap errorMap = null)
         {
-            if (buffer == null || buffer.Length == 0)
-            {
-                return;
-            }
-
-            ReadContent(buffer, errorMap);
-            await Data.WriteAsync(buffer, 0, buffer.Length).ContinueOnAnyContext();
+            var header = buffer.CreateHeader(errorMap, out var errorCode);
+            return ReadAsync(buffer, header, errorCode);
         }
 
-        private void ReadContent(byte[] buffer, ErrorMap errorMap)
+        public async Task ReadAsync(byte[] buffer, OperationHeader header, ErrorCode errorCode = null)
         {
-            if (Header.BodyLength == 0 && buffer.Length >= HeaderIndexFor.HeaderLength)
+            Header = header;
+            ErrorCode = errorCode;
+
+            if (buffer?.Length > 0)
             {
-                var status = GetResponseStatus(Converter.ToInt16(buffer, HeaderIndexFor.Status), errorMap);
-                Header = new OperationHeader
-                {
-                    Magic = Converter.ToByte(buffer, HeaderIndexFor.Magic),
-                    OperationCode = Converter.ToByte(buffer, HeaderIndexFor.Opcode).ToOpCode(),
-                    KeyLength = Converter.ToInt16(buffer, HeaderIndexFor.KeyLength),
-                    ExtrasLength = Converter.ToByte(buffer, HeaderIndexFor.ExtrasLength),
-                    DataType = (DataType) Converter.ToByte(buffer, HeaderIndexFor.Datatype),
-                    Status = status,
-                    BodyLength = Converter.ToInt32(buffer, HeaderIndexFor.Body),
-                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
-                    Cas = Converter.ToUInt64(buffer, HeaderIndexFor.Cas)
-                };
-
-                if (Opaque != Header.Opaque)
-                {
-                    var msg = string.Format("Expected opaque {0} but got {1}", Opaque, Header.Opaque);
-                    HandleClientError(msg, ResponseStatus.ClientFailure);
-                }
+                await Data.WriteAsync(buffer, 0, buffer.Length);
+                LengthReceived += buffer.Length;
             }
-            LengthReceived += buffer.Length;
-        }
-
-        private ResponseStatus GetResponseStatus(short code, ErrorMap errorMap)
-        {
-            var status = (ResponseStatus) code;
-
-            // Is it a known response status?
-            if (Enum.IsDefined(typeof(ResponseStatus), status))
-            {
-                return status;
-            }
-
-            // If available, try and use the error map to get more details
-            if (errorMap != null && errorMap.TryGetGetErrorCode(code, out ErrorCode))
-            {
-                return ResponseStatus.Failure;
-            }
-
-            return ResponseStatus.UnknownError;
         }
 
         public virtual Task<byte[]> WriteAsync()
@@ -268,10 +238,10 @@ namespace Couchbase.IO.Operations
 
         public virtual void ReadExtras(byte[] buffer)
         {
-            if (buffer.Length > 24)
+            if (buffer.Length > Header.ExtrasOffset)
             {
                 var format = new byte();
-                var flags = Converter.ToByte(buffer, 24);
+                var flags = Converter.ToByte(buffer, Header.ExtrasOffset);
                 Converter.SetBit(ref format, 0, Converter.GetBit(flags, 0));
                 Converter.SetBit(ref format, 1, Converter.GetBit(flags, 1));
                 Converter.SetBit(ref format, 2, Converter.GetBit(flags, 2));
@@ -477,8 +447,8 @@ namespace Couchbase.IO.Operations
             IBucketConfig config = null;
             if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data != null)
             {
-                var offset = HeaderLength + Header.ExtrasLength;
-                var length = Header.BodyLength - Header.ExtrasLength;
+                var offset = Header.BodyOffset;
+                var length = Header.TotalLength - Header.BodyOffset;
 
                 //Override any flags settings since the body of the response has changed to a config
                 config = transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, new Flags
@@ -565,7 +535,23 @@ namespace Couchbase.IO.Operations
             return ErrorCode.GetNextInterval(Attempts, defaultTimeout);
         }
 
-#region "New" Write API Methods - override and implement these methods for new operations
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        public ISpan ActiveSpan { get; set; }
+
+        protected void TryReadMutationToken(byte[] buffer)
+        {
+            if (buffer.Length >= 40 && VBucket != null)
+            {
+                var uuid = Converter.ToInt64(buffer, Header.ExtrasOffset);
+                var seqno = Converter.ToInt64(buffer, Header.ExtrasOffset + 8);
+                MutationToken = new MutationToken(VBucket.BucketName, (short)VBucket.Index, uuid, seqno);
+            }
+        }
+
+        #region "New" Write API Methods - override and implement these methods for new operations
 
         public virtual byte[] AllocateBuffer(int length)
         {

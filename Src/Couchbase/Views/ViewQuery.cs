@@ -5,6 +5,7 @@ using Couchbase.Core;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -584,6 +585,12 @@ namespace Couchbase.Views
 
             return json.ToString(Formatting.None);
         }
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        public ISpan ActiveSpan { get; set; }
     }
 }
 

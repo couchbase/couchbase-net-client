@@ -58,6 +58,7 @@ namespace Couchbase.Configuration.Client
             public const bool UseKvErrorMap = false;
             public const int MinConnectionValue = 1;
             public const int MaxConnectionValue = 500;
+            public const bool ServerDurationTracingEnabled = true;
         }
 
         public PoolConfiguration(ClientConfiguration clientConfiguration = null)
@@ -83,6 +84,7 @@ namespace Couchbase.Configuration.Client
             MaxCloseAttempts = Defaults.MaxCloseAttempts;
             UseEnhancedDurability = Defaults.UseEnhancedDurability;
             UseKvErrorMap = Defaults.UseKvErrorMap;
+            ServerDurationTracingEnabled = Defaults.ServerDurationTracingEnabled;
 
             //in some cases this is needed all the way down the stack
             ClientConfiguration = clientConfiguration;
@@ -339,7 +341,8 @@ namespace Couchbase.Configuration.Client
                 ClientConfiguration = ClientConfiguration,
                 BucketName = BucketName,
                 EnableCertificateAuthentication = EnableCertificateAuthentication,
-                CertificateFactory = CertificateFactory
+                CertificateFactory = CertificateFactory,
+                ServerDurationTracingEnabled = ServerDurationTracingEnabled
             };
         }
 
@@ -379,6 +382,14 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
         /// </value>
         public bool ForceSaslPlain => ClientConfiguration?.ForceSaslPlain ?? ClientConfiguration.Defaults.ForceSaslPlain;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
+        /// </value>
+        public bool ServerDurationTracingEnabled { get; set; }
     }
 }
 

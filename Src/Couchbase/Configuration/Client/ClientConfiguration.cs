@@ -15,10 +15,12 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Services;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
-
+using OpenTracing;
+using OpenTracing.NullTracer;
 #if NET45
 using Couchbase.Configuration.Client.Providers;
 #endif
@@ -109,6 +111,11 @@ namespace Couchbase.Configuration.Client
             public static bool EnableDeadServiceUriPing = true;
 
             public static bool ForceSaslPlain = false;
+
+            public static bool OperationTracingEnabled = true;
+            public static bool OrphanedResponseLoggingEnabled = true;
+
+            public static bool ServerDurationTracingEnabled = true;
         }
 
         public ClientConfiguration()
@@ -205,6 +212,15 @@ namespace Couchbase.Configuration.Client
                 }}
             };
             Servers = new List<Uri> { Defaults.Server };
+
+            // create default tracer & orphaned operation reporter
+            Tracer = Defaults.OperationTracingEnabled
+                ? new ThresholdLoggingTracer()
+                : (ITracer) NullTracer.Instance;
+
+            OrphanedOperationReporter = Defaults.OrphanedResponseLoggingEnabled
+                ? new OrphanedResponseReporter()
+                : NullOrphanedOperationReporter.Instance;
 
             //Set back to default
             _operationLifespanChanged = false;
@@ -357,7 +373,8 @@ namespace Couchbase.Configuration.Client
                     TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : definition.ConnectionPool.TcpKeepAliveTime,
                     CloseAttemptInterval = definition.ConnectionPool.CloseAttemptInterval,
                     MaxCloseAttempts = definition.ConnectionPool.MaxCloseAttempts,
-                    ClientConfiguration = this
+                    ClientConfiguration = this,
+                    ServerDurationTracingEnabled = definition.ConnectionPool.ServerDurationTracingEnabled
                 };
                 PoolConfiguration.Validate();
             }
@@ -432,6 +449,14 @@ namespace Couchbase.Configuration.Client
                     : new PasswordAuthenticator(definition.Username, definition.Password);
                 SetAuthenticator(authenticator);
             }
+
+            Tracer = definition.OperationTracingEnabled
+                ? new ThresholdLoggingTracer()
+                : (ITracer) NullTracer.Instance;
+
+            OrphanedOperationReporter = definition.OrphanedResponseLoggingEnabled
+                ? new OrphanedResponseReporter()
+                : NullOrphanedOperationReporter.Instance;
 
             //Set back to default
             _operationLifespanChanged = false;
@@ -1258,6 +1283,16 @@ namespace Couchbase.Configuration.Client
         /// <c>true</c> if the client must use Plain SASL authentication; otherwise, <c>false</c>.
         /// </value>
         public bool ForceSaslPlain { get; set; }
+
+        /// <summary>
+        /// The OpenTracing <see cref="ITracer"/> used to collect generated <see cref="ISpan"/>s.
+        /// </summary>
+        public ITracer Tracer { get; set; }
+
+        /// <summary>
+        /// The Orphaned Response Reporter collects server responses for operationst that have timed out.
+        /// </summary>
+        public IOrphanedOperationReporter OrphanedOperationReporter { get; set; }
     }
 }
 

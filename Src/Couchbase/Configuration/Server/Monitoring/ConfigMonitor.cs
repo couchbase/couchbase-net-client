@@ -5,10 +5,12 @@ using System.Threading.Tasks;
 using Couchbase.Annotations;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers.CarrierPublication;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Logging;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Server.Monitoring
@@ -79,10 +81,16 @@ namespace Couchbase.Configuration.Server.Monitoring
 
                                 _log.Info("Using index {0} - server {1}", index, server);
 
-                                var configResult = server.Send(new Config(
+                                var operation = new Config(
                                     ClusterController.Transcoder,
                                     Configuration.DefaultOperationLifespan,
-                                    server.EndPoint));
+                                    server.EndPoint);
+
+                                IOperationResult<BucketConfig> configResult;
+                                using (Configuration.Tracer.StartParentSpan(operation, addIgnoreTag: true))
+                                {
+                                    configResult = server.Send(operation);
+                                }
 
                                 if (configResult.Success && configResult.Status == ResponseStatus.Success)
                                 {

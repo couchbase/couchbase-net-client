@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Couchbase.Configuration.Client;
+using OpenTracing;
 
 namespace Couchbase.Analytics
 {
@@ -84,6 +85,12 @@ namespace Couchbase.Analytics
         /// Optional.
         /// </remarks>
         IAnalyticsRequest IncludeMetrics(bool includeMetrics);
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        ISpan ActiveSpan { get; set; }
     }
 }
 

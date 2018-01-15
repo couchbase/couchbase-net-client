@@ -5,6 +5,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Utils;
 using Newtonsoft.Json;
+using OpenTracing;
 
 namespace Couchbase.Analytics
 {
@@ -213,6 +214,12 @@ namespace Couchbase.Analytics
             _includeMetrics = includeMetrics;
             return this;
         }
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        public ISpan ActiveSpan { get; set; }
     }
 }
 #region [ License information          ]

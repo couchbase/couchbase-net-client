@@ -1,12 +1,10 @@
 ﻿using System;
 using Couchbase.Core.Transcoders;
-using Couchbase.Utils;
 
 namespace Couchbase.IO.Operations
 {
     internal class Hello : OperationBase<short[]>
     {
-
         public override OperationCode OperationCode
         {
             get { return OperationCode.Hello; }
@@ -14,11 +12,6 @@ namespace Couchbase.IO.Operations
 
         public Hello(string key, short[] value, ITypeTranscoder transcoder, uint opaque, uint timeout)
             : base(key, value, null, transcoder, opaque, timeout)
-        {
-        }
-
-        public Hello(short[] value, ITypeTranscoder transcoder, uint opaque, uint timeout)
-            : base(ClientIdentifier.GetClientDescription(), value, null, transcoder, opaque, timeout)
         {
         }
 
@@ -47,7 +40,7 @@ namespace Couchbase.IO.Operations
                 try
                 {
                     var buffer = Data.ToArray();
-                    var offset = 24 + Header.KeyLength;
+                    var offset = Header.BodyOffset;
                     result = new short[Header.BodyLength/2];
 
                     for (int i = 0; i < result.Length; i++)

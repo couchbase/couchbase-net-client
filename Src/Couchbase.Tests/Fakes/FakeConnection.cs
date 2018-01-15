@@ -6,7 +6,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
+using OpenTracing;
 
 namespace Couchbase.Tests.Fakes
 {
@@ -39,6 +41,8 @@ namespace Couchbase.Tests.Fakes
 
         public Guid Identity { get; private set; }
 
+        public ulong ConnectionId { get; private set; }
+
         public bool IsSecure { get; protected set; }
 
         public EndPoint EndPoint { get; private set; }
@@ -65,6 +69,11 @@ namespace Couchbase.Tests.Fakes
         }
 
         public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+        {
+            SendAsync(buffer, callback, null, null);
+        }
+
+        public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
         {
             var state = new SocketAsyncState
             {

@@ -27,11 +27,6 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.Increment; }
         }
 
-        public override int BodyOffset
-        {
-            get { return 24; }
-        }
-
         public override byte[] CreateExtras()
         {
             var extras = new byte[20];

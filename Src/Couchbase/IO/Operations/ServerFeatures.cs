@@ -40,7 +40,13 @@
         /// Indicates if the cluster supports RBAC and if a Select_Bucket operation should
         /// be executed when opening a bucket.
         /// </summary>
-        SelectBucket = 0x08
+        SelectBucket = 0x08,
+
+        /// <summary>
+        /// Retrieve the Server Duration of the operation. This enables the server to return respondes
+        /// with magic <see cref="Magic.AltResponse"/>.
+        /// </summary>
+        ServerDuration = 0x0f
     }
 }
 

@@ -6,8 +6,11 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.IO
 {
@@ -47,28 +50,25 @@ namespace Couchbase.IO
             _receiveThread.Start();
         }
 
-        /// <summary>
-        /// Sends a memcached packet asyncronously and handles the response be calling the passed in <see cref="callback" /> delegate.
-        /// </summary>
-        /// <param name="request">The memcached request packet.</param>
-        /// <param name="callback">The callback handled when the response has been been received.</param>
-        /// <exception cref="SendTimeoutExpiredException"></exception>
-        public override void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
+        public override void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ISpan span, ErrorMap errorMap)
         {
+            var opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque);
             var state = new AsyncState
             {
-                Id = Converter.ToUInt32(request, HeaderIndexFor.Opaque),
+                Opaque = opaque,
                 Callback = callback,
                 Converter = Converter,
-                EndPoint = (IPEndPoint)EndPoint
+                EndPoint = (IPEndPoint)EndPoint,
+                DispatchSpan = span,
+                CorrelationId = CreateCorrelationId(opaque)
             };
 
-            _statesInFlight.TryAdd(state.Id, state);
+            _statesInFlight.TryAdd(state.Opaque, state);
 
             state.Timer = new Timer(o =>
             {
                 AsyncState a = (AsyncState)o;
-                _statesInFlight.TryRemove(a.Id, out _);
+                _statesInFlight.TryRemove(a.Opaque, out _);
                 a.Cancel(ResponseStatus.OperationTimeout, new SendTimeoutExpiredException());
             }, state, Configuration.SendTimeout, Timeout.Infinite);
 
@@ -231,12 +231,17 @@ namespace Couchbase.IO
 
                 parsedOffset += responseSize;
 
-                _statesInFlight.TryRemove(opaque, out var state);
-
-                //must be inside the lock to prevent race condition between read and timeout
-                if (state != null)
+                if (_statesInFlight.TryRemove(opaque, out var state))
                 {
                     state.Complete(response);
+                }
+                else
+                {
+                    // orphaned response
+                    var correlationId = CreateCorrelationId(opaque);
+                    var header = response.CreateHeader();
+                    var serverDuration = header.GetServerDuration(response);
+                    Configuration.ClientConfiguration.OrphanedOperationReporter.Add(EndPoint.ToString(), correlationId, serverDuration);
                 }
 
                 UpdateLastActivity();

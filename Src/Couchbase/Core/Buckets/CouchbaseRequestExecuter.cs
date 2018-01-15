@@ -7,12 +7,12 @@ using Couchbase.Analytics;
 using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Services;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Search;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
@@ -106,6 +106,8 @@ namespace Couchbase.Core.Buckets
         public override IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             IOperationResult<T> result;
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
+
             try
             {
                 //Is the cluster configured for Data services?
@@ -169,6 +171,11 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return result;
         }
 
@@ -184,6 +191,8 @@ namespace Couchbase.Core.Buckets
         public override IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             IOperationResult result;
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
+
             try
             {
                 //Is the cluster configured for Data services?
@@ -250,6 +259,11 @@ namespace Couchbase.Core.Buckets
                     OpCode = operation.OperationCode
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return result;
         }
 
@@ -266,6 +280,8 @@ namespace Couchbase.Core.Buckets
         public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             IOperationResult<T> result;
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
+
             try
             {
                 //Is the cluster configured for Data services?
@@ -366,6 +382,11 @@ namespace Couchbase.Core.Buckets
                     Success = false
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return result;
         }
 
@@ -381,6 +402,8 @@ namespace Couchbase.Core.Buckets
         public override async Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
             IOperationResult result;
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
+
             try
             {
                 //Is the cluster configured for Data services?
@@ -481,6 +504,11 @@ namespace Couchbase.Core.Buckets
                     Success = false
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return result;
         }
 
@@ -494,12 +522,6 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
-            if (Log.IsDebugEnabled && TimingEnabled)
-            {
-                operation.Timer = Timer;
-                operation.BeginTimer(TimingLevel.Three);
-            }
-
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
             {
@@ -514,56 +536,60 @@ namespace Couchbase.Core.Buckets
                 };
             }
             IOperationResult operationResult = new OperationResult { Success = false, OpCode = operation.OperationCode};
-            do
-            {
-                IVBucket vBucket;
-                var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
-                if (server == null)
-                {
-                    continue;
-                }
-                operation.VBucket = vBucket;
-                operation.LastConfigRevisionTried = vBucket.Rev;
-                operationResult = server.Send(operation);
-                operation.Attempts++;
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
-                if (operationResult.Success)
+            try
+            {
+                do
                 {
-                    Log.Debug(
-                        "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, User(operation.Key), User(operationResult));
-                    break;
-                }
-                if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
+                    IVBucket vBucket;
+                    var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
+                    if (server == null)
+                    {
+                        continue;
+                    }
+                    operation.VBucket = vBucket;
+                    operation.LastConfigRevisionTried = vBucket.Rev;
+                    operationResult = server.Send(operation);
+                    operation.Attempts++;
+
+                    if (operationResult.Success)
+                    {
+                        Log.Debug(
+                            "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
+                            operation.Attempts, operation.Key, operationResult);
+                        break;
+                    }
+                    if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
+                    {
+                        LogFailure(operation, operationResult);
+                        operation = operation.Clone();
+
+                        // Get retry timeout, uses default timeout if no retry stratergy available
+                        Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
+                    }
+                    else
+                    {
+                        ((OperationResult) operationResult).SetException();
+                        Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                        break;
+                    }
+                } while (!operationResult.Success && !operation.TimedOut());
+
+                if (!operationResult.Success)
                 {
+                    if (operation.TimedOut())
+                    {
+                        const string msg = "The operation has timed out.";
+                        ((OperationResult)operationResult).Message = msg;
+                        ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
+                    }
                     LogFailure(operation, operationResult);
-                    operation = operation.Clone();
-
-                    // Get retry timeout, uses default timeout if no retry stratergy available
-                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
                 }
-                else
-                {
-                    ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
-                    break;
-                }
-            } while (!operationResult.Success && !operation.TimedOut());
-
-            if (!operationResult.Success)
-            {
-                if (operation.TimedOut())
-                {
-                    const string msg = "The operation has timed out.";
-                    ((OperationResult)operationResult).Message = msg;
-                    ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
-                }
-                LogFailure(operation, operationResult);
             }
-
-            if (Log.IsDebugEnabled && TimingEnabled)
+            finally
             {
-                operation.EndTimer(TimingLevel.Three);
+                parentSpan.Finish();
             }
 
             return operationResult;
@@ -580,12 +606,6 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
-            if (Log.IsDebugEnabled && TimingEnabled)
-            {
-                operation.Timer = Timer;
-                operation.BeginTimer(TimingLevel.Three);
-            }
-
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
             {
@@ -600,56 +620,61 @@ namespace Couchbase.Core.Buckets
             }
 
             IOperationResult<T> operationResult = new OperationResult<T> { Success = false, OpCode = operation.OperationCode };
-            do
-            {
-                IVBucket vBucket;
-                var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
-                if (server == null)
-                {
-                    continue;
-                }
-                operation.VBucket = vBucket;
-                operation.LastConfigRevisionTried = vBucket.Rev;
-                operationResult = server.Send(operation);
-                operation.Attempts++;
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
-                if (operationResult.Success)
+            try
+            {
+                do
                 {
-                    Log.Debug(
-                        "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, User(operation.Key), User(operationResult.Value));
-                    break;
-                }
-                if(CanRetryOperation(operationResult, operation) && !operation.TimedOut())
+                    IVBucket vBucket;
+                    var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
+                    if (server == null)
+                    {
+                        continue;
+                    }
+
+                    operation.VBucket = vBucket;
+                    operation.LastConfigRevisionTried = vBucket.Rev;
+                    operationResult = server.Send(operation);
+                    operation.Attempts++;
+
+                    if (operationResult.Success)
+                    {
+                        Log.Debug(
+                            "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
+                            operation.Attempts, operation.Key, operationResult.Value);
+                        break;
+                    }
+                    if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
+                    {
+                        LogFailure(operation, operationResult);
+                        operation = (IOperation<T>) operation.Clone();
+
+                        // Get retry timeout, uses default timeout if no retry stratergy available
+                        Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
+                    }
+                    else
+                    {
+                        ((OperationResult) operationResult).SetException();
+                        Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                        break;
+                    }
+                } while (!operationResult.Success && !operation.TimedOut());
+
+                if (!operationResult.Success)
                 {
+                    if (operation.TimedOut())
+                    {
+                        const string msg = "The operation has timed out.";
+                        ((OperationResult) operationResult).Message = msg;
+                        ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
+                    }
                     LogFailure(operation, operationResult);
-                    operation = (IOperation<T>)operation.Clone();
-
-                    // Get retry timeout, uses default timeout if no retry stratergy available
-                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
                 }
-                else
-                {
-                    ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
-                    break;
-                }
-            } while (!operationResult.Success && !operation.TimedOut());
-
-            if (!operationResult.Success)
-            {
-                if (operation.TimedOut())
-                {
-                    const string msg = "The operation has timed out.";
-                    ((OperationResult)operationResult).Message = msg;
-                    ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
-                }
-                LogFailure(operation, operationResult);
             }
-
-            if (Log.IsDebugEnabled && TimingEnabled)
+            finally
             {
-                operation.EndTimer(TimingLevel.Three);
+                parentSpan.Finish();
             }
 
             return operationResult;
@@ -671,6 +696,8 @@ namespace Couchbase.Core.Buckets
         {
             tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
             try
             {
@@ -709,9 +736,13 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return await tcs.Task.ContinueOnAnyContext();
         }
-
 
         /// <summary>
         /// Sends a <see cref="IOperation" /> to the Couchbase Server using the Memcached protocol using async/await.
@@ -728,6 +759,8 @@ namespace Couchbase.Core.Buckets
         {
             tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
             try
             {
@@ -767,6 +800,11 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return await tcs.Task.ContinueOnAnyContext();
         }
 
@@ -780,6 +818,8 @@ namespace Couchbase.Core.Buckets
         public override IViewResult<T> SendWithRetry<T>(IViewQueryable viewQuery)
         {
             IViewResult<T> viewResult;
+            var parentSpan = Tracer.StartParentSpan(viewQuery);
+
             try
             {
                 EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
@@ -813,6 +853,11 @@ namespace Couchbase.Core.Buckets
                     Exception = e
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return viewResult;
         }
 
@@ -828,6 +873,8 @@ namespace Couchbase.Core.Buckets
         public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
         {
             IViewResult<T> viewResult;
+            var parentSpan = Tracer.StartParentSpan(query);
+
             try
             {
                 EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
@@ -859,12 +906,19 @@ namespace Couchbase.Core.Buckets
                     Exception = e
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return viewResult;
         }
 
         public override ISearchQueryResult SendWithRetry(SearchQuery searchQuery)
         {
             ISearchQueryResult searchResult;
+            var parentSpan = Tracer.StartParentSpan(searchQuery);
+
             try
             {
                 EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
@@ -886,12 +940,19 @@ namespace Couchbase.Core.Buckets
                     Exception = e
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return searchResult;
         }
 
         public override async Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery)
         {
             ISearchQueryResult searchResult;
+            var parentSpan = Tracer.StartParentSpan(searchQuery);
+
             try
             {
                 EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
@@ -915,6 +976,11 @@ namespace Couchbase.Core.Buckets
                     Exception = e
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return searchResult;
         }
 
@@ -930,6 +996,8 @@ namespace Couchbase.Core.Buckets
         public override IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
         {
             IQueryResult<T> queryResult;
+            var parentSpan = Tracer.StartParentSpan(queryRequest);
+
             try
             {
                 EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
@@ -959,6 +1027,11 @@ namespace Couchbase.Core.Buckets
                     Exception = e
                 };
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return queryResult;
         }
 
@@ -973,6 +1046,8 @@ namespace Couchbase.Core.Buckets
         public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             IQueryResult<T> queryResult;
+            var parentSpan = Tracer.StartParentSpan(queryRequest);
+
             try
             {
                 EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
@@ -1004,6 +1079,8 @@ namespace Couchbase.Core.Buckets
                     Exception = e
                 };
             }
+
+            parentSpan.Finish();
             return queryResult;
         }
 
@@ -1019,6 +1096,8 @@ namespace Couchbase.Core.Buckets
         public override IAnalyticsResult<T> SendWithRetry<T>(IAnalyticsRequest request)
         {
             IAnalyticsResult<T> result;
+            var parentSpan = Tracer.StartParentSpan(request);
+
             try
             {
                 EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
@@ -1037,6 +1116,10 @@ namespace Couchbase.Core.Buckets
                 Log.Info(exception);
                 result = CreateFailedAnalyticsResult<T>(exception);
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
 
             return result;
         }
@@ -1052,6 +1135,8 @@ namespace Couchbase.Core.Buckets
         public override async Task<IAnalyticsResult<T>> SendWithRetryAsync<T>(IAnalyticsRequest request, CancellationToken cancellationToken)
         {
             IAnalyticsResult<T> result;
+            var parentSpan = Tracer.StartParentSpan(request);
+
             try
             {
                 EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
@@ -1073,6 +1158,11 @@ namespace Couchbase.Core.Buckets
                 Log.Info(exception);
                 result = CreateFailedAnalyticsResult<T>(exception);
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return result;
         }
 

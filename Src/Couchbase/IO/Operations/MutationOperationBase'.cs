@@ -1,6 +1,4 @@
-﻿
-using Couchbase.Core;
-using Couchbase.Core.Buckets;
+﻿using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 
 namespace Couchbase.IO.Operations
@@ -29,17 +27,7 @@ namespace Couchbase.IO.Operations
         /// <param name="buffer">The memcached response buffer.</param>
         public override void ReadExtras(byte[] buffer)
         {
-            if (buffer.Length >= 40 && VBucket != null)
-            {
-                var uuid = Converter.ToInt64(buffer, 24);
-                var seqno = Converter.ToInt64(buffer, 32);
-                MutationToken = new MutationToken(VBucket.BucketName, (short)VBucket.Index, uuid, seqno);
-            }
-        }
-
-        public override int BodyOffset
-        {
-            get { return HeaderLength + Header.ExtrasLength; }
+            TryReadMutationToken(buffer);
         }
 
         public override bool RequiresKey

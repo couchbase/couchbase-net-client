@@ -2,10 +2,11 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Transcoders;
 using Couchbase.Logging;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.Buckets
@@ -14,12 +15,24 @@ namespace Couchbase.Core.Buckets
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(CouchbaseRequestExecuter));
 
+        private static OperationHeader CreateHeader(SocketAsyncState state, out ErrorCode errorCode, out long? serverDuration)
+        {
+            var header = state.CreateHeader(out errorCode);
+            serverDuration = header.GetServerDuration(state.Data);
+            state.DispatchSpan?.SetPeerLatencyTag(serverDuration);
+            state.DispatchSpan?.Finish();
+
+            return header;
+        }
+
         public static Func<SocketAsyncState, Task> CompletedFuncWithRetryForMemcached<T>(IRequestExecuter executer,
             ConcurrentDictionary<uint, IOperation> pending, IClusterController controller,
             TaskCompletionSource<IOperationResult<T>> tcs, CancellationToken cancellationToken)
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
+                var header = CreateHeader(s, out var errorCode, out var serverDuration);
+
                 IOperation op;
                 if (pending.TryRemove(s.Opaque, out op))
                 {
@@ -36,9 +49,9 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response).ContinueOnAnyContext();
+                        await op.ReadAsync(response, header, errorCode).ContinueOnAnyContext();
 
-                        var result = actual.GetResultWithValue();
+                        var result = actual.GetResultWithValue(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
                             tcs.SetResult(result);
@@ -105,6 +118,8 @@ namespace Couchbase.Core.Buckets
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+
+                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
                 }
             };
             return func;
@@ -116,6 +131,8 @@ namespace Couchbase.Core.Buckets
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
+                var header = CreateHeader(s, out var errorCode, out var serverDuration);
+
                 IOperation op;
                 if (pending.TryRemove(s.Opaque, out op))
                 {
@@ -131,9 +148,9 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response).ContinueOnAnyContext();
+                        await op.ReadAsync(response, header, errorCode).ContinueOnAnyContext();
 
-                        var result = op.GetResult();
+                        var result = op.GetResult(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
                             tcs.SetResult(result);
@@ -198,6 +215,8 @@ namespace Couchbase.Core.Buckets
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+
+                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
                 }
             };
             return func;
@@ -212,6 +231,8 @@ namespace Couchbase.Core.Buckets
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
+                var header = CreateHeader(s, out var errorCode, out var serverDuration);
+
                 IOperation op;
                 if (pending.TryRemove(s.Opaque, out op))
                 {
@@ -233,9 +254,9 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response).ContinueOnAnyContext();
+                        await op.ReadAsync(response, header, errorCode).ContinueOnAnyContext();
 
-                        var result = actual.GetResultWithValue();
+                        var result = actual.GetResultWithValue(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
                             tcs.SetResult(result);
@@ -302,6 +323,8 @@ namespace Couchbase.Core.Buckets
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+
+                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
                 }
             };
             return func;
@@ -313,6 +336,8 @@ namespace Couchbase.Core.Buckets
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
+                var header = CreateHeader(s, out var errorCode, out var serverDuration);
+
                 IOperation op;
                 if (pending.TryRemove(s.Opaque, out op))
                 {
@@ -333,9 +358,9 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response).ContinueOnAnyContext();
+                        await op.ReadAsync(response, header, errorCode).ContinueOnAnyContext();
 
-                        var result = op.GetResult();
+                        var result = op.GetResult(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
                             tcs.SetResult(result);
@@ -402,6 +427,8 @@ namespace Couchbase.Core.Buckets
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+
+                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
                 }
             };
             return func;
@@ -414,6 +441,8 @@ namespace Couchbase.Core.Buckets
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
+                var header = CreateHeader(s, out var errorCode, out var serverDuration);
+
                 IOperation op;
                 if (pending.TryRemove(s.Opaque, out op))
                 {
@@ -435,9 +464,9 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response).ContinueOnAnyContext();
+                        await op.ReadAsync(response, header, errorCode).ContinueOnAnyContext();
 
-                        var result = actual.GetResultWithValue();
+                        var result = actual.GetResultWithValue(controller.Configuration.Tracer, null);
                         if (result.IsNmv())
                         {
                             var config = actual.GetConfig(controller.ServerConfigTranscoder);
@@ -465,6 +494,8 @@ namespace Couchbase.Core.Buckets
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+
+                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
                 }
             };
             return func;
@@ -477,6 +508,8 @@ namespace Couchbase.Core.Buckets
         {
             Func<SocketAsyncState, Task> func = async s =>
             {
+                var header = CreateHeader(s, out var errorCode, out var serverDuration);
+
                 IOperation op;
                 if (pending.TryRemove(s.Opaque, out op))
                 {
@@ -497,9 +530,9 @@ namespace Couchbase.Core.Buckets
                         }
 
                         var response = s.Data.ToArray();
-                        await op.ReadAsync(response).ContinueOnAnyContext();
+                        await op.ReadAsync(response, header, errorCode).ContinueOnAnyContext();
 
-                        var result = op.GetResult();
+                        var result = op.GetResult(controller.Configuration.Tracer, null);
                         if (result.IsNmv())
                         {
                             var config = op.GetConfig(controller.ServerConfigTranscoder);
@@ -527,6 +560,8 @@ namespace Couchbase.Core.Buckets
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+
+                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
                 }
             };
             return func;

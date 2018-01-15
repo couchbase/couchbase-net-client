@@ -1,4 +1,5 @@
-﻿using Couchbase.Configuration.Server.Serialization;
+﻿using System;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -88,6 +89,14 @@ namespace Couchbase.UnitTests.IO.Operations
             Assert.True(op.ErrorMapRequestsRetry());
         }
 
+        [TestCase((ushort) 0, 0.0)]
+        [TestCase((ushort) 1234, 119635.03533802561)]
+        [TestCase((ushort) 65535, 120125042.10125735)]
+        public void Can_Decode_Server_Duration(ushort encoded, double expected)
+        {
+            var decoded = Math.Pow(encoded, 1.74) / 2;
+            Assert.AreEqual(expected, decoded);
+        }
 
         private class FakeOperation : OperationBase
         {

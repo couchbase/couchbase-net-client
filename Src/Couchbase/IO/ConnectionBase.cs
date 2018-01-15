@@ -7,6 +7,9 @@ using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
+using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.IO
 {
@@ -26,6 +29,7 @@ namespace Couchbase.IO
         private volatile bool _inUse = false;
         private Timer _timer;
         private int _closeAttempts;
+        public ulong ConnectionId { get; } = SequenceGenerator.GetRandomLong();
 
         public ConnectionBase(Socket socket, IByteConverter converter, BufferAllocator bufferAllocator)
             : this(socket, new OperationAsyncState(), converter, bufferAllocator)
@@ -172,17 +176,17 @@ namespace Couchbase.IO
             }
         }
 
-        public virtual void Send<T>(IOperation<T> operation)
-        {
-            throw new NotImplementedException();
-        }
-
         public virtual byte[] Send(byte[] request)
         {
             throw new NotImplementedException();
         }
 
         public virtual void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
+        {
+            SendAsync(request, callback, null, null);
+        }
+
+        public virtual void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
         {
             throw new NotImplementedException();
         }
@@ -284,6 +288,11 @@ namespace Couchbase.IO
         protected void UpdateLastActivity()
         {
             LastActivity = DateTime.UtcNow;
+        }
+
+        protected string CreateCorrelationId(uint opaque)
+        {
+            return string.Join("/", ClientIdentifier.InstanceId, ConnectionId, opaque);
         }
     }
 }

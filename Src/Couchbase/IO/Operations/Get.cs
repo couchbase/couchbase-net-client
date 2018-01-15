@@ -38,10 +38,10 @@ namespace Couchbase.IO.Operations
 
         public override void ReadExtras(byte[] buffer)
         {
-            if (buffer.Length > 24)
+            if (buffer.Length > Header.ExtrasOffset)
             {
                 var format = new byte();
-                var flags = Converter.ToByte(buffer, 24);
+                var flags = Converter.ToByte(buffer, Header.ExtrasOffset);
                 Converter.SetBit(ref format, 0, Converter.GetBit(flags, 0));
                 Converter.SetBit(ref format, 1, Converter.GetBit(flags, 1));
                 Converter.SetBit(ref format, 2, Converter.GetBit(flags, 2));
@@ -59,11 +59,6 @@ namespace Couchbase.IO.Operations
                 Flags.Compression = Compression;
                 Flags.TypeCode = typeCode;
             }
-        }
-
-        public override int BodyOffset
-        {
-            get { return 28; }
         }
 
         public override IOperation Clone()

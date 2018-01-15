@@ -86,8 +86,9 @@ namespace Couchbase.IO.Operations
                 {
                     var buffer = Data.ToArray();
                     ReadExtras(buffer);
-                    var offset = 24 + Header.KeyLength + Header.ExtrasLength;
-                    result = Transcoder.Decode<T>(buffer, offset, TotalLength - offset, Flags, OperationCode);
+                    var offset = Header.BodyOffset;
+                    var length = Header.TotalLength - Header.BodyOffset;
+                    result = Transcoder.Decode<T>(buffer, offset, length, Flags, OperationCode);
                 }
                 catch (Exception e)
                 {

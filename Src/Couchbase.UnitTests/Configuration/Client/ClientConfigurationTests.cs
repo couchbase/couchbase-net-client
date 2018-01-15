@@ -9,11 +9,13 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.IO;
 using Couchbase.IO.Services;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Moq;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-
+using OpenTracing;
+using OpenTracing.NullTracer;
 #if NET45
 using System.Configuration;
 using Couchbase.Configuration.Client.Providers;
@@ -631,5 +633,173 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(configurationProviders, config.ConfigurationProviders);
         }
 #endif
+
+        #region
+
+        [Test]
+        public void CouchbaseConfiguration_Tracer_CorrectDefault()
+        {
+            var configuration = new ClientConfiguration();
+            Assert.IsInstanceOf<ThresholdLoggingTracer>(configuration.Tracer);
+        }
+
+        [TestCase(true, typeof(ThresholdLoggingTracer))]
+        [TestCase(false, typeof(NullTracer))]
+        public void CouchbaseConfiguration_ThresholdLoggingTracer_Using_Definition(bool value, Type expectedType)
+        {
+            var configuration = new ClientConfiguration(new CouchbaseClientDefinition
+            {
+                OperationTracingEnabled = value
+            });
+
+            Assert.IsInstanceOf(expectedType, configuration.Tracer);
+        }
+
+        [Test]
+        public void CouchbaseConfiguration_Can_Set_Custom_Tracer()
+        {
+            var mockTracer = new Mock<ITracer>();
+            var configurtion = new ClientConfiguration
+            {
+                Tracer = mockTracer.Object
+            };
+
+            Assert.AreSame(mockTracer.Object, configurtion.Tracer);
+        }
+
+        [Test]
+        public void ThresholdLoggingTracer_has_correct_default_values()
+        {
+            var tracer = new ThresholdLoggingTracer();
+
+            Assert.AreEqual(10000, tracer.Interval);
+            Assert.AreEqual(10, tracer.SampleSize);
+
+            var serviceFloors = new Dictionary<string, int>
+            {
+                {"kv", 500000}, // 500 milliseconds
+                {"view", 1000000}, // 1 second
+                {"n1ql", 1000000}, // 1 second
+                {"search", 1000000}, // 1 second
+                {"analytics", 1000000} // 1 second
+            };
+            Assert.AreEqual(serviceFloors, tracer.ServiceFloors);
+        }
+
+        [Test]
+        public void ThresholdLoggingTracer_can_override_defaults()
+        {
+            const int interval = 5000;
+            const int sampleSize = 20;
+            var serviceFloors = new Dictionary<string, int>
+            {
+                {"kv", 250000}, // 250 ms
+                {"view", 250000}, // 250 ms
+                {"n1ql", 250000}, // 250 ms
+                {"search", 250000}, // 250 ms
+                {"analytics", 250000} // 250 ms
+            };
+
+            var tracer = new ThresholdLoggingTracer(interval, sampleSize, serviceFloors);
+
+            Assert.AreEqual(interval, tracer.Interval);
+            Assert.AreEqual(sampleSize, tracer.SampleSize);
+            Assert.AreEqual(serviceFloors, tracer.ServiceFloors);
+        }
+
+#if NET45
+        [Test]
+        public void OperationTracing_ClientSection_Default_Values()
+        {
+            var section = new CouchbaseClientSection();
+
+            var config = new ClientConfiguration(section);
+
+            Assert.IsInstanceOf<ThresholdLoggingTracer>(config.Tracer);
+
+            var tracer = (ThresholdLoggingTracer) config.Tracer;
+            Assert.AreEqual(10000, tracer.Interval);
+            Assert.AreEqual(10, tracer.SampleSize);
+
+            var serviceFloors = new Dictionary<string, int>
+            {
+                {"kv", 500000}, // 500 milliseconds
+                {"view", 1000000}, // 1 second
+                {"n1ql", 1000000}, // 1 second
+                {"search", 1000000}, // 1 second
+                {"analytics", 1000000} // 1 second
+            };
+            Assert.AreEqual(serviceFloors, tracer.ServiceFloors);
+        }
+
+        [Test]
+        public void OperationTracing_ClientSection_Can_Disable()
+        {
+            var section = new CouchbaseClientSection
+            {
+                OperationTracingEnabled = false
+            };
+
+            var config = new ClientConfiguration(section);
+            Assert.IsInstanceOf<NullTracer>(config.Tracer);
+        }
+#endif
+
+        #endregion
+
+        #region Orphaned Response Reporter
+
+        [Test]
+        public void CouchbaseConfiguration_OrphanedResponseReporter_CorrectDefault()
+        {
+            var configuration = new ClientConfiguration();
+            Assert.IsInstanceOf<OrphanedResponseReporter>(configuration.OrphanedOperationReporter);
+        }
+
+        [TestCase(true, typeof(OrphanedResponseReporter))]
+        [TestCase(false, typeof(NullOrphanedOperationReporter))]
+        public void CouchbaseConfiguration_OrphanedResponseReporter_Using_Definition(bool value, Type expectedType)
+        {
+            var configuration = new ClientConfiguration(new CouchbaseClientDefinition
+            {
+                OrphanedResponseLoggingEnabled = value
+            });
+
+            Assert.IsInstanceOf(expectedType, configuration.OrphanedOperationReporter);
+        }
+
+        [Test]
+        public void CouchbaseConfiguration_Can_Set_Custom_OrphanedResponseReporter()
+        {
+            var mockReporter = new Mock<IOrphanedOperationReporter>();
+            var configurtion = new ClientConfiguration
+            {
+                OrphanedOperationReporter = mockReporter.Object
+            };
+
+            Assert.AreSame(mockReporter.Object, configurtion.OrphanedOperationReporter);
+        }
+
+        [Test]
+        public void OrphanedResponseResporter_has_correct_default_values()
+        {
+            var reporter = new OrphanedResponseReporter();
+
+            Assert.AreEqual(10000, reporter.Interval);
+            Assert.AreEqual(10, reporter.SampleSize);
+        }
+
+        [Test]
+        public void OrphanedResponseResporter_can_override_defaults()
+        {
+            const int interval = 5000;
+            const int sampleSize = 20;
+            var reporter = new OrphanedResponseReporter(interval, sampleSize);
+
+            Assert.AreEqual(interval, reporter.Interval);
+            Assert.AreEqual(sampleSize, reporter.SampleSize);
+        }
+
+        #endregion
     }
 }

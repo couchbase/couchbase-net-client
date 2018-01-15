@@ -12,6 +12,8 @@
 
         public int ExtrasLength { get; set; }
 
+        public int FramingExtrasLength { get; set; }
+
         public DataType DataType { get; set; }
 
         public ResponseStatus Status { get; set; }
@@ -29,7 +31,9 @@
             return BodyLength > 0;
         }
 
-        public int TotalLength { get { return BodyLength + HeaderLength; } }
+        public int TotalLength => BodyLength + HeaderLength;
+        public int ExtrasOffset => HeaderLength + FramingExtrasLength;
+        public int BodyOffset => HeaderLength + KeyLength + ExtrasLength + FramingExtrasLength;
     }
 }
 

@@ -201,7 +201,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 {
                     var buffer = Data.ToArray();
                     ReadExtras(buffer);
-                    var offset = 24 + Header.KeyLength + Header.ExtrasLength;
+                    var offset = Header.BodyOffset;
                     CurrentSpec.ValueIsJson = buffer.IsJson(offset, TotalLength-1);
                     CurrentSpec.Bytes = new byte[TotalLength-offset];
                     System.Buffer.BlockCopy(buffer, offset, CurrentSpec.Bytes, 0, TotalLength-offset);

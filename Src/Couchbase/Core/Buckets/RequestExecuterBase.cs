@@ -10,9 +10,12 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Services;
 using Couchbase.Search;
+using Couchbase.Tracing;
 using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.Core.Buckets
 {
@@ -46,6 +49,8 @@ namespace Couchbase.Core.Buckets
         }
 
         public IConfigInfo ConfigInfo { get; private set; }
+
+        protected ITracer Tracer => ConfigInfo.ClientConfig.Tracer;
 
         /// <summary>
         /// Executes an operation until it either succeeds, reaches a non-retriable state, or times out.
@@ -513,9 +518,16 @@ namespace Couchbase.Core.Buckets
             if (node != null && !node.IsDown)
             {
                 Log.Info("Updating config on {0} using rev#{1}", node.EndPoint, node.Revision);
-                var result = node.Send(new Config(ClusterController.Transcoder,
+
+                var operation = new Config(ClusterController.Transcoder,
                     ConfigInfo.ClientConfig.DefaultOperationLifespan,
-                    node.EndPoint));
+                    node.EndPoint);
+
+                IOperationResult<BucketConfig> result;
+                using (Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true))
+                {
+                    result = node.Send(operation);
+                }
 
                 if (result.Success)
                 {

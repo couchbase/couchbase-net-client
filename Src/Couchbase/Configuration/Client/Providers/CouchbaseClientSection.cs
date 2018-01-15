@@ -645,6 +645,32 @@ namespace Couchbase.Configuration.Client.Providers
             set => this["forceSaslPlain"] = value;
         }
 
+        /// <summary>
+        /// Controls whether the <see cref="T:Couchbase.Tracing.ThresholdLoggingTracer" /> is used when configuring the client.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the <see cref="T:Couchbase.Tracing.ThresholdLoggingTracer" /> is to be used; otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("operationTracingEnabled", IsRequired = false, DefaultValue = true)]
+        public bool OperationTracingEnabled
+        {
+            get => (bool)this["operationTracingEnabled"];
+            set => this["operationTracingEnabled"] = value;
+        }
+
+        /// <summary>
+        /// Controls whether orphaned server responses are recorded and logged.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("orphanedResponseLoggingEnabled", IsRequired = false, DefaultValue = true)]
+        public bool OrphanedResponseLoggingEnabled
+        {
+            get => (bool)this["orphanedResponseLoggingEnabled"];
+            set => this["orphanedResponseLoggingEnabled"] = value;
+        }
+
         #region Additional ICouchbaseClientDefinition implementations
 
         IEnumerable<Uri> ICouchbaseClientDefinition.Servers

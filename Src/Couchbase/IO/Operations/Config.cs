@@ -57,11 +57,6 @@ namespace Couchbase.IO.Operations
             get { return OperationCode.GetClusterConfig; }
         }
 
-        public override int BodyOffset
-        {
-            get { return 24; }
-        }
-
         public override BucketConfig GetValue()
         {
             BucketConfig bucketConfig = null;
@@ -71,8 +66,9 @@ namespace Couchbase.IO.Operations
                 {
                     var buffer = Data.ToArray();
                     ReadExtras(buffer);
-                    var length = TotalLength - BodyOffset;
-                    var json = Transcoder.Decode<string>(buffer, BodyOffset, length, Flags, OperationCode);
+                    var offset = Header.BodyOffset;
+                    var length = TotalLength - Header.BodyOffset;
+                    var json = Transcoder.Decode<string>(buffer, offset, length, Flags, OperationCode);
                     if (_endpoint != null)
                     {
                         json = json.Replace("$HOST", _endpoint.Address.ToString());

@@ -1,0 +1,153 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Couchbase.Logging;
+using Newtonsoft.Json;
+using OpenTracing;
+using OpenTracing.Propagation;
+
+namespace Couchbase.Tracing
+{
+    internal class ThresholdLoggingTracer : ITracer, IDisposable
+    {
+        private static readonly ILog Log = LogManager.GetLogger<ThresholdLoggingTracer>();
+
+        private readonly CancellationTokenSource _source = new CancellationTokenSource();
+        private readonly ConcurrentQueue<Span> _queuedSpans = new ConcurrentQueue<Span>();
+
+        internal int Interval { get; }
+        internal int SampleSize { get; }
+        internal Dictionary<string, int> ServiceFloors { get; }
+        internal int QueuedSpansCount => _queuedSpans.Count;
+
+        public ThresholdLoggingTracer(int interval, int sampleSize, Dictionary<string, int> serviceFloors)
+        {
+            Interval = interval;
+            SampleSize = sampleSize;
+            ServiceFloors = serviceFloors;
+
+            Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
+        }
+
+        internal ThresholdLoggingTracer()
+        {
+            Interval = 10000; // 10 seconds
+            SampleSize = 10;
+            ServiceFloors = new Dictionary<string, int>
+            {
+                {"kv", 500000}, // 500 milliseconds
+                {"view", 1000000}, // 1 second
+                {"n1ql", 1000000}, // 1 second
+                {"search", 1000000}, // 1 second
+                {"analytics", 1000000} // 1 second
+            };
+
+            Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
+        }
+
+        public ISpanBuilder BuildSpan(string operationName)
+        {
+            return new SpanBuilder(this, operationName);
+        }
+
+        public void Inject<TCarrier>(ISpanContext spanContext, Format<TCarrier> format, TCarrier carrier)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ISpanContext Extract<TCarrier>(Format<TCarrier> format, TCarrier carrier)
+        {
+            throw new NotSupportedException();
+        }
+
+        internal void ReportSpan(Span span)
+        {
+            if (ShouldQueueSpan(span))
+            {
+                //TODO: create summary here to reduce memory consumption?
+                _queuedSpans.Enqueue(span);
+            }
+        }
+
+        private static bool ShouldQueueSpan(Span span)
+        {
+            return span.IsRootSpan &&
+                   !span.ContainsIgnore &&
+                   span.ContainsService;
+        }
+
+        private async Task DoWork()
+        {
+            while (!_source.Token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(Interval), _source.Token);
+                if (_queuedSpans.IsEmpty)
+                {
+                    Log.Trace("No spans to process.");
+                    continue;
+                }
+
+                Log.Trace("Processing {0} spans.", _queuedSpans.Count);
+
+                // dequeue spans into local collection
+                var spans = new List<Span>();
+                while (_queuedSpans.TryDequeue(out var span))
+                {
+                    spans.Add(span);
+                }
+
+                // group by service name
+                // get floor and filter
+                // order by duration
+                // take sample size
+                // convert span into summary
+                var serviceSummaries = spans
+                    .GroupBy(GetServiceName)
+                    .Select(group =>
+                    {
+                        var floor = GetFloor(group.Key);
+                        return new
+                        {
+                            service = group.Key,
+                            spans = group.Where(span => span.Duration >= floor)
+                        };
+                    })
+                    .Where(group => group.spans.Any())
+                    .Select(group =>
+                    {
+                        return new
+                        {
+                            group.service,
+                            count = group.spans.Count(),
+                            top = group.spans.OrderByDescending(span => span.Duration)
+                                .Take(SampleSize)
+                                .Select(span => new SpanSummary(span))
+                        };
+                    });
+
+                if (serviceSummaries.Any())
+                {
+                    Log.Info("Operations that exceeded service threshold: {0}", JsonConvert.SerializeObject(serviceSummaries, Formatting.None));
+                }
+            }
+        }
+
+        private static string GetServiceName(Span span)
+        {
+            return span.Tags.TryGetValue(CouchbaseTags.Service, out var serviceName) ? (string) serviceName : "unknown";
+        }
+
+        private int GetFloor(string serviceName)
+        {
+            return ServiceFloors.TryGetValue(serviceName, out var floor) ? floor : 0;
+        }
+
+        public void Dispose()
+        {
+            _source?.Cancel();
+        }
+    }
+}

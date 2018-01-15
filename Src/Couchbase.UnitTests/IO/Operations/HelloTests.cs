@@ -2,6 +2,7 @@
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Services;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -35,13 +36,6 @@ namespace Couchbase.UnitTests.IO.Operations
             var helloKey = transcoder.Converter.ToString(bytes, 24, 8);
 
             Assert.AreEqual(key, helloKey);
-        }
-
-        [Test]
-        public void Key_Contains_ClientIdentifier()
-        {
-            var hello = new Hello(new short[] {}, new DefaultTranscoder(), 0, 0);
-            Assert.AreEqual(ClientIdentifier.GetClientDescription(), hello.Key);
         }
     }
 }

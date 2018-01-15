@@ -221,6 +221,19 @@ namespace Couchbase.Configuration.Client.Providers
             set { this["closeAttemptInterval"] = value; }
         }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("serverDurationTracingEnabled", IsRequired = false, DefaultValue = false)]
+        public bool ServerDurationTracingEnabled
+        {
+            get => (bool)this["serverDurationTracingEnabled"];
+            set => this["serverDurationTracingEnabled"] = value;
+        }
+
         public override bool IsReadOnly()
         {
             return false;

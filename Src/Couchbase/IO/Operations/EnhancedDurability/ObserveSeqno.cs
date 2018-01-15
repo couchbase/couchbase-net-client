@@ -59,7 +59,7 @@ namespace Couchbase.IO.Operations.EnhancedDurability
                 try
                 {
                     var buffer = Data.ToArray();
-                    const int offset = HeaderLength;
+                    var offset = Header.BodyOffset;
 
                     var isHardFailover = Converter.ToByte(buffer, offset) == 1;
                     if (isHardFailover)

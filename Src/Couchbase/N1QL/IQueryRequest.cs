@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using OpenTracing;
 
 namespace Couchbase.N1QL
 {
@@ -296,6 +297,12 @@ namespace Couchbase.N1QL
         /// <param name="streaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
         /// <returns></returns>
         IQueryRequest UseStreaming(bool streaming);
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        ISpan ActiveSpan { get; set; }
     }
 }
 

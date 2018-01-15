@@ -33,15 +33,10 @@ namespace Couchbase
         public DateTime? LastActivity { get; private set; }
 
         protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration configuration)
-            : this(httpClient, dataMapper)
-        {
-            ClientConfiguration = configuration;
-        }
-
-        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
+            ClientConfiguration = configuration;
         }
 
         public void Dispose()

@@ -20,6 +20,7 @@ using Couchbase.Authentication;
 using Couchbase.Core.Monitoring;
 using Couchbase.Configuration.Server.Monitoring;
 using Couchbase.IO.Operations;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 
 namespace Couchbase.Core
@@ -460,12 +461,17 @@ namespace Couchbase.Core
                         var server = servers.First();
 
                         Log.Info("Checking for new config {0}", server.EndPoint);
-                        var config = server.Send(
-                            new Config(Transcoder, _clientConfig.DefaultOperationLifespan, server.EndPoint));
 
-                        if (config.Success)
+                        var operation = new Config(Transcoder, _clientConfig.DefaultOperationLifespan, server.EndPoint);
+                        IOperationResult<BucketConfig> result;
+                        using (configInfo.ClientConfig.Tracer.StartParentSpan(operation, addIgnoreTag: true))
                         {
-                            EnqueueConfigForProcessing(config.Value);
+                            result = server.Send(operation);
+                        }
+
+                        if (result.Success)
+                        {
+                            EnqueueConfigForProcessing(result.Value);
                         }
                     }
                 }

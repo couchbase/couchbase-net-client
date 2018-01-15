@@ -2,6 +2,8 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Couchbase.IO.Operations.Errors;
+using OpenTracing;
 
 namespace Couchbase.IO
 {
@@ -19,6 +21,11 @@ namespace Couchbase.IO
         /// Unique identifier for this connection.
         /// </summary>
         Guid Identity { get; }
+
+        /// <summary>
+        /// Internal randomly generated connectio ID.
+        /// </summary>
+        ulong ConnectionId { get; }
 
         /// <summary>
         /// True if the connection has been SASL authenticated.
@@ -66,12 +73,14 @@ namespace Couchbase.IO
         /// <param name="callback">The callback that will be fired after the operation is completed.</param>
         void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback);
 
+        void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap);
+
         /// <summary>
         /// Sends a request packet as an asynchronous operation; waiting for the reponse.
         /// </summary>
         /// <param name="request">A memcached request buffer.</param>
         /// <returns>A memcached response packet.</returns>
-         byte[] Send(byte[] request);
+        byte[] Send(byte[] request);
 
         /// <summary>
         ///  Checks whether this <see cref="Connection"/> is currently being used to execute a request.

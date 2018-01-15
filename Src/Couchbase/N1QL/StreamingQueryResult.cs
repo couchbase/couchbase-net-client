@@ -5,9 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OpenTracing;
 
 namespace Couchbase.N1QL
 {
@@ -47,6 +49,8 @@ namespace Couchbase.N1QL
                 ReadToRows();
             }
         }
+
+        internal ISpan DecodeSpan { get; set; }
 
         /// <summary>
         /// Gets or sets the query timer.
@@ -316,6 +320,11 @@ namespace Couchbase.N1QL
             if (QueryTimer != null)
             {
                 QueryTimer.ClusterElapsedTime = Metrics.ElaspedTime;
+            }
+            if (DecodeSpan != null)
+            {
+                DecodeSpan.SetPeerLatencyTag(Metrics.ElaspedTime);
+                DecodeSpan.Finish();
             }
 
             _hasReadResults = true;

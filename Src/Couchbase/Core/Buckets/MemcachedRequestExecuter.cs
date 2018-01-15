@@ -7,6 +7,7 @@ using Couchbase.Configuration;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
+using Couchbase.Tracing;
 
 namespace Couchbase.Core.Buckets
 {
@@ -53,46 +54,56 @@ namespace Couchbase.Core.Buckets
             {
                 Success = false, OpCode = operation.OperationCode
             };
-            do
-            {
-                var server = GetServer(operation.Key);
-                if (server == null)
-                {
-                    continue;
-                }
-                operationResult = server.Send(operation);
-                if (operationResult.Success)
-                {
-                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, User(operation.Key));
-                    break;
-                }
-                if (operation.CanRetry() && operationResult.ShouldRetry())
-                {
-                    var result = operationResult;
-                    Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                        User(operation.Key), result.Message);
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
-                    // Get retry timeout, uses default timeout if no retry stratergy available
-                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
-                }
-                else
-                {
-                    ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
-                    break;
-                }
-            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
-
-            if (!operationResult.Success)
+            try
             {
-                if (operation.TimedOut())
+                do
                 {
-                    const string msg = "The operation has timed out.";
-                    ((OperationResult)operationResult).Message = msg;
-                    ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
+                    var server = GetServer(operation.Key);
+                    if (server == null)
+                    {
+                        continue;
+                    }
+                    operationResult = server.Send(operation);
+                    if (operationResult.Success)
+                    {
+                        Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key);
+                        break;
+                    }
+                    if (operation.CanRetry() && operationResult.ShouldRetry())
+                    {
+                        var result = operationResult;
+                        Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
+                            operation.Key, result.Message);
+
+                        // Get retry timeout, uses default timeout if no retry stratergy available
+                        Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
+                    }
+                    else
+                    {
+                        ((OperationResult) operationResult).SetException();
+                        Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                        break;
+                    }
+                } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
+
+                if (!operationResult.Success)
+                {
+                    if (operation.TimedOut())
+                    {
+                        const string msg = "The operation has timed out.";
+                        ((OperationResult) operationResult).Message = msg;
+                        ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
+                    }
+                    LogFailure(operation, operationResult);
                 }
-                LogFailure(operation, operationResult);
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return operationResult;
         }
 
@@ -108,46 +119,56 @@ namespace Couchbase.Core.Buckets
             {
                 Success = false, OpCode = operation.OperationCode
             };
-            do
-            {
-                var server = GetServer(operation.Key);
-                if (server == null)
-                {
-                    continue;
-                }
-                operationResult = server.Send(operation);
-                if (operationResult.Success)
-                {
-                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, User(operation.Key));
-                    break;
-                }
-                if (operation.CanRetry() && operationResult.ShouldRetry())
-                {
-                    var result = operationResult;
-                    Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    User(operation.Key), result.Message);
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
-                    // Get retry timeout, uses default timeout if no retry stratergy available
-                    Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
-                }
-                else
-                {
-                    ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
-                    break;
-                }
-            } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
-
-            if (!operationResult.Success)
+            try
             {
-                if (operation.TimedOut())
+                do
                 {
-                    const string msg = "The operation has timed out.";
-                    ((OperationResult)operationResult).Message = msg;
-                    ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
+                    var server = GetServer(operation.Key);
+                    if (server == null)
+                    {
+                        continue;
+                    }
+                    operationResult = server.Send(operation);
+                    if (operationResult.Success)
+                    {
+                        Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key);
+                        break;
+                    }
+                    if (operation.CanRetry() && operationResult.ShouldRetry())
+                    {
+                        var result = operationResult;
+                        Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
+                            operation.Key, result.Message);
+
+                        // Get retry timeout, uses default timeout if no retry stratergy available
+                        Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
+                    }
+                    else
+                    {
+                        ((OperationResult) operationResult).SetException();
+                        Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                        break;
+                    }
+                } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
+
+                if (!operationResult.Success)
+                {
+                    if (operation.TimedOut())
+                    {
+                        const string msg = "The operation has timed out.";
+                        ((OperationResult) operationResult).Message = msg;
+                        ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
+                    }
+                    LogFailure(operation, operationResult);
                 }
-                LogFailure(operation, operationResult);
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return operationResult;
         }
 
@@ -167,6 +188,8 @@ namespace Couchbase.Core.Buckets
         {
             tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
             try
             {
@@ -193,6 +216,11 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return await tcs.Task.ContinueOnAnyContext();
         }
 
@@ -211,6 +239,8 @@ namespace Couchbase.Core.Buckets
         {
             tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
             cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
+            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
 
             try
             {
@@ -237,6 +267,11 @@ namespace Couchbase.Core.Buckets
                     Status = ResponseStatus.ClientFailure
                 });
             }
+            finally
+            {
+                parentSpan.Finish();
+            }
+
             return await tcs.Task.ContinueOnAnyContext();
         }
     }

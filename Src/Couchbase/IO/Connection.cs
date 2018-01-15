@@ -1,11 +1,12 @@
 ﻿using System;
-using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.IO
 {
@@ -37,18 +38,21 @@ namespace Couchbase.IO
             }
         }
 
-        public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+        public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan span, ErrorMap errorMap)
         {
             SocketAsyncState state = null;
             try
             {
+                var opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque);
                 state = new SocketAsyncState
                 {
                     Data = MemoryStreamFactory.GetMemoryStream(),
-                    Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                    Opaque = opaque,
                     Buffer = buffer,
                     Completed = callback,
-                    SendOffset = _eventArgs.Offset
+                    SendOffset = _eventArgs.Offset,
+                    DispatchSpan = span,
+                    CorrelationId = CreateCorrelationId(opaque)
                 };
 
                 _eventArgs.UserToken = state;
@@ -97,12 +101,14 @@ namespace Couchbase.IO
         public override byte[] Send(byte[] buffer)
         {
             //create the state object and set it
+            var opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque);
             var state = new SocketAsyncState
             {
                 Data = MemoryStreamFactory.GetMemoryStream(),
-                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque),
+                Opaque = opaque,
                 Buffer = buffer,
-                SendOffset = _eventArgs.Offset
+                SendOffset = _eventArgs.Offset,
+                CorrelationId = CreateCorrelationId(opaque)
             };
 
             Log.Debug("Sending opaque{0} on {1}", state.Opaque, Identity);

@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Couchbase.IO.Operations
 {
     public static class SequenceGenerator
     {
+        private static readonly Random Random = new Random();
         private static int _sequenceId;
 
         public static uint GetNext()
@@ -20,6 +17,14 @@ namespace Couchbase.IO.Operations
         public static void Reset()
         {
             Interlocked.Exchange(ref _sequenceId, 0);
+        }
+
+        public static ulong GetRandomLong()
+        {
+            var bytes = new byte[8];
+            Random.NextBytes(bytes);
+
+            return BitConverter.ToUInt64(bytes, 0);
         }
     }
 }

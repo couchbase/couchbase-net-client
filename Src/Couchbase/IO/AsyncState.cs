@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Utils;
-using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.IO
 {
@@ -17,8 +17,10 @@ namespace Couchbase.IO
         public IPEndPoint EndPoint { get; set; }
         public Func<SocketAsyncState, Task> Callback { get; set; }
         public IByteConverter Converter { get; set; }
-        public uint Id { get; set; }
+        public uint Opaque { get; set; }
         public Timer Timer;
+        public ISpan DispatchSpan { get; set; }
+        public string CorrelationId { get; set; }
 
         /// <summary>
         /// Cancels the current Memcached request that is in-flight.
@@ -31,16 +33,18 @@ namespace Couchbase.IO
             }
 
             var response = new byte[24];
-            Converter.FromUInt32(Id, response, HeaderIndexFor.Opaque);
+            Converter.FromUInt32(Opaque, response, HeaderIndexFor.Opaque);
 
             Callback(new SocketAsyncState
             {
                 Data = new MemoryStream(response),
-                Opaque = Id,
+                Opaque = Opaque,
                 // ReSharper disable once MergeConditionalExpression
                 Exception = e,
                 Status = status,
-                EndPoint = EndPoint
+                EndPoint = EndPoint,
+                DispatchSpan = DispatchSpan,
+                CorrelationId = CorrelationId
             });
         }
 
@@ -63,7 +67,7 @@ namespace Couchbase.IO
             if (response == null)
             {
                 response = new byte[24];
-                Converter.FromUInt32(Id, response, HeaderIndexFor.Opaque);
+                Converter.FromUInt32(Opaque, response, HeaderIndexFor.Opaque);
                 e = new SendTimeoutExpiredException();
                 status = ResponseStatus.TransportFailure;
             }
@@ -72,10 +76,12 @@ namespace Couchbase.IO
             Task.Run(() => Callback(new SocketAsyncState
             {
                 Data = new MemoryStream(response),
-                Opaque = Id,
+                Opaque = Opaque,
                 Exception = e,
                 Status = status,
-                EndPoint = EndPoint
+                EndPoint = EndPoint,
+                DispatchSpan = DispatchSpan,
+                CorrelationId = CorrelationId
             }));
         }
     }

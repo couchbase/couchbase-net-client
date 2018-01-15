@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -385,6 +386,12 @@ namespace Couchbase.Views
             const string emptyValue = "{}";
             return emptyValue;
         }
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        public ISpan ActiveSpan { get; set; }
     }
 }
 

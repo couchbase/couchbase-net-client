@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -27,14 +28,14 @@ namespace Couchbase.Views
         public StreamingViewResult()
         { }
 
-        public StreamingViewResult(bool success, HttpStatusCode statusCode, string message, Stream responseStream)
+        public StreamingViewResult(bool success, HttpStatusCode statusCode, string message, Stream responseStream, ISpan decodeSpan = null)
         {
             Success = success;
             StatusCode = statusCode;
             Message = message;
 
             _jsonSerializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-            _result = new Result(responseStream);
+            _result = new Result(responseStream, decodeSpan);
         }
 
         /// <summary>
@@ -64,13 +65,15 @@ namespace Couchbase.Views
         private class Result : IEnumerable<ViewRow<T>>, IDisposable
         {
             private readonly Stream _responseStream;
+            private readonly ISpan _decodeSpan;
             private JsonTextReader _reader;
             private volatile bool _hasFinishedReading;
             private uint _totalRows;
 
-            public Result(Stream responseStream)
+            public Result(Stream responseStream, ISpan decodeSpan)
             {
                 _responseStream = responseStream;
+                _decodeSpan = decodeSpan;
             }
 
             public uint TotalRows
@@ -103,6 +106,9 @@ namespace Couchbase.Views
 
                 // we've reached the end of the stream, so mark it as finished reading
                 _hasFinishedReading = true;
+
+                // if we have a decode span, finish it
+                _decodeSpan?.Finish();
             }
 
             private bool ReadToRows()

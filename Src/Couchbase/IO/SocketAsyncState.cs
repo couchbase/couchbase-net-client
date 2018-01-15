@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using OpenTracing;
 
 namespace Couchbase.IO
 {
@@ -20,6 +21,10 @@ namespace Couchbase.IO
         public int BodyLength { get; set; }
 
         public uint Opaque { get; set; }
+
+        public ISpan DispatchSpan { get; set; }
+
+        public string CorrelationId { get; set; }
 
         private byte[] _buffer;
         public byte[] Buffer

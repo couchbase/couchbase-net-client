@@ -7,6 +7,7 @@ using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.Tracing;
 using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Client
@@ -408,6 +409,22 @@ namespace Couchbase.Configuration.Client
         /// <inheritdoc />
         public ServerConfigurationProviders ConfigurationProviders { get; set; }
 
+        /// <summary>
+        /// Controls whether the <see cref="ThresholdLoggingTracer"/> is used when configuring the client.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the <see cref="ThresholdLoggingTracer"/> is to be used; otherwise, <c>false</c>.
+        /// </value>
+        public bool OperationTracingEnabled { get; set; }
+
+        /// <summary>
+        /// Controls whether orphaned server responses are recorded and logged.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.
+        /// </value>
+        public bool OrphanedResponseLoggingEnabled { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -448,6 +465,8 @@ namespace Couchbase.Configuration.Client
             ConfigPollInterval = ClientConfiguration.Defaults.ConfigPollInterval;
             ForceSaslPlain = ClientConfiguration.Defaults.ForceSaslPlain;
             ConfigurationProviders = ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming;
+            OperationTracingEnabled = ClientConfiguration.Defaults.OperationTracingEnabled;
+            OrphanedResponseLoggingEnabled = ClientConfiguration.Defaults.OrphanedResponseLoggingEnabled;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations

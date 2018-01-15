@@ -9,8 +9,10 @@ using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.Errors;
 using Moq;
 using NUnit.Framework;
+using OpenTracing;
 
 namespace Couchbase.UnitTests.IO
 {
@@ -96,12 +98,19 @@ namespace Couchbase.UnitTests.IO
 
             public Socket Socket { get; private set; }
             public Guid Identity { get; private set; }
+            public ulong ConnectionId { get; }
             public bool IsAuthenticated { get; set; }
             public bool IsSecure { get; private set; }
             public bool IsConnected { get; private set; }
             public EndPoint EndPoint { get; private set; }
             public bool IsDead { get; set; }
+
             public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
             {
                 throw new NotImplementedException();
             }

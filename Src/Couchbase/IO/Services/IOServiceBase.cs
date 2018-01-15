@@ -12,6 +12,8 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using Couchbase.Utils;
 using Couchbase.Logging;
+using Newtonsoft.Json;
+using OpenTracing;
 
 namespace Couchbase.IO.Services
 {
@@ -99,6 +101,9 @@ namespace Couchbase.IO.Services
         /// </summary>
         public ErrorMap ErrorMap { get; internal set; }
 
+        protected ITracer Tracer => ConnectionPool.Configuration.ClientConfiguration.Tracer;
+        public bool SupportsServerDuration { get; internal set; }
+
         /// <summary>
         /// Send request to server to try and enable server features.
         /// </summary>
@@ -117,8 +122,14 @@ namespace Couchbase.IO.Services
                 features.Add((short)ServerFeatures.MutationSeqno);
             }
 
+            if (ConnectionPool.Configuration.ServerDurationTracingEnabled)
+            {
+                features.Add((short) ServerFeatures.ServerDuration);
+            }
+
+            var key = BuildHelloKey(connection.ConnectionId);
             var transcoder = new DefaultTranscoder();
-            var result = Execute(new Hello(features.ToArray(), transcoder, 0, 0), connection);
+            var result = Execute(new Hello(key, features.ToArray(), transcoder, 0, 0), connection);
             if (result.Success)
             {
                 SupportsEnhancedDurability = result.Value.Contains((short)ServerFeatures.MutationSeqno);
@@ -126,11 +137,13 @@ namespace Couchbase.IO.Services
                 SupportsEnhancedAuthentication = result.Value.Contains((short)ServerFeatures.SelectBucket);
                 SupportsKvErrorMap = result.Value.Contains((short)ServerFeatures.XError);
                 ConnectionPool.SupportsEnhancedAuthentication = SupportsEnhancedAuthentication;
+                SupportsServerDuration = result.Value.Contains((short) ServerFeatures.ServerDuration);
 
                 Log.Info("SupportsEnhancedDurability={0}", SupportsEnhancedDurability);
                 Log.Info("SupportsSubdocXAttributes={0}", SupportsSubdocXAttributes);
                 Log.Info("SupportsEnhancedAuthentication={0}", SupportsEnhancedAuthentication);
                 Log.Info("SupportsKvErrorMap={0}", SupportsKvErrorMap);
+                Log.Info("SupportsServerDuration={0}", SupportsServerDuration);
 
                 if (SupportsKvErrorMap)
                 {
@@ -147,6 +160,21 @@ namespace Couchbase.IO.Services
             {
                 LogFailedHelloOperation(result);
             }
+        }
+
+        internal static string BuildHelloKey(ulong connectionId)
+        {
+            var agent = ClientIdentifier.GetClientDescription();
+            if (agent.Length > 200)
+            {
+                agent = agent.Substring(0, 200);
+            }
+
+            return JsonConvert.SerializeObject(new
+            {
+                i = string.Join("/", ClientIdentifier.InstanceId.ToString("x16"), connectionId.ToString("x16")),
+                a = agent
+            }, Formatting.None);
         }
 
         protected static void HandleException(Exception capturedException, IOperation operation)

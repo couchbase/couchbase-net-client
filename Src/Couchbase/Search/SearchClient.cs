@@ -8,6 +8,8 @@ using Couchbase.Configuration;
 using Couchbase.Utils;
 using Couchbase.Views;
 using System.Text;
+using Couchbase.Configuration.Client;
+using Couchbase.Tracing;
 
 namespace Couchbase.Search
 {
@@ -22,8 +24,8 @@ namespace Couchbase.Search
         //for log redaction
         private Func<object, string> User = RedactableArgument.UserAction;
 
-        public SearchClient(HttpClient httpClient, IDataMapper dataMapper)
-            : base(httpClient, dataMapper)
+        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration configuration)
+            : base(httpClient, dataMapper, configuration)
         { }
 
         /// <summary>
@@ -48,31 +50,44 @@ namespace Couchbase.Search
             var searchResult = new SearchQueryResult();
             var baseUri = ConfigContextBase.GetSearchUri();
             var requestUri = new Uri(baseUri, searchQuery.RelativeUri());
-            var searchBody = searchQuery.ToJson();
+
+            string searchBody;
+            using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.RequestEncoding).Start())
+            {
+                searchBody = searchQuery.ToJson();
+            }
 
             try
             {
                 using (var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json))
-                using (var response = await HttpClient.PostAsync(requestUri, content).ContinueOnAnyContext())
-                using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                 {
-                    if (response.IsSuccessStatusCode)
+                    HttpResponseMessage response;
+                    using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.DispatchToServer).Start())
                     {
-                        searchResult = DataMapper.Map<SearchQueryResult>(stream);
+                        response = await HttpClient.PostAsync(requestUri, content).ContinueOnAnyContext();
                     }
-                    else
-                    {
-                        // ReSharper disable once UseStringInterpolation
-                        var message = string.Format("{0}: {1}", (int)response.StatusCode, response.ReasonPhrase);
-                        ProcessError(new HttpRequestException(message), searchResult);
 
-                        using (var reader = new StreamReader(stream))
+                    using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.ResponseDecoding).Start())
+                    using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                    {
+                        if (response.IsSuccessStatusCode)
                         {
-                            searchResult.Errors.Add(await reader.ReadToEndAsync().ContinueOnAnyContext());
+                            searchResult = DataMapper.Map<SearchQueryResult>(stream);
                         }
-                        if (response.StatusCode == HttpStatusCode.NotFound)
+                        else
                         {
-                            baseUri.IncrementFailed();
+                            // ReSharper disable once UseStringInterpolation
+                            var message = string.Format("{0}: {1}", (int)response.StatusCode, response.ReasonPhrase);
+                            ProcessError(new HttpRequestException(message), searchResult);
+
+                            using (var reader = new StreamReader(stream))
+                            {
+                                searchResult.Errors.Add(await reader.ReadToEndAsync().ContinueOnAnyContext());
+                            }
+                            if (response.StatusCode == HttpStatusCode.NotFound)
+                            {
+                                baseUri.IncrementFailed();
+                            }
                         }
                     }
                 }

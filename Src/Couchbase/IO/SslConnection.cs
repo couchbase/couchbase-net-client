@@ -8,9 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
+using OpenTracing;
 
 namespace Couchbase.IO
 {
@@ -86,18 +87,21 @@ namespace Couchbase.IO
             }
         }
 
-        public override async void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
+        public override async void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ISpan span, ErrorMap errorMap)
         {
             ExceptionDispatchInfo capturedException = null;
             SocketAsyncState state = null;
             try
             {
+                var opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque);
                 state = new SocketAsyncState
                 {
                     Data = MemoryStreamFactory.GetMemoryStream(),
-                    Opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque),
+                    Opaque = opaque,
                     Buffer = request,
-                    Completed = callback
+                    Completed = callback,
+                    DispatchSpan = span,
+                    CorrelationId = CreateCorrelationId(opaque)
                 };
 
                 await _sslStream.WriteAsync(request, 0, request.Length).ContinueOnAnyContext();
@@ -195,10 +199,12 @@ namespace Couchbase.IO
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            var opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque);
             var state = new SocketAsyncState
             {
                 Data = MemoryStreamFactory.GetMemoryStream(),
-                Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
+                Opaque = opaque,
+                CorrelationId = CreateCorrelationId(opaque)
             };
 
             await _sslStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ContinueOnAnyContext();
@@ -237,11 +243,6 @@ namespace Couchbase.IO
             }
 
             return state.Data.ToArray();
-        }
-
-        public override void Send<T>(IOperation<T> operation)
-        {
-            throw new NotImplementedException();
         }
 
         /// <summary>

@@ -3,7 +3,9 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Logging;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 
 namespace Couchbase.Views
@@ -12,8 +14,8 @@ namespace Couchbase.Views
     {
         private static readonly ILog Log = LogManager.GetLogger<StreamingViewClient>();
 
-        public StreamingViewClient(HttpClient httpClient, IDataMapper mapper)
-            : base(httpClient, mapper)
+        public StreamingViewClient(HttpClient httpClient, IDataMapper mapper, ClientConfiguration configuration)
+            : base(httpClient, mapper, configuration)
         {
             // set timeout to infinite so we can stream results without the connection
             // closing part way through
@@ -30,21 +32,33 @@ namespace Couchbase.Views
         {
             var uri = query.RawUri();
             var viewResult = new StreamingViewResult<T>();
-            var body = query.CreateRequestBody();
+
+            string body;
+            using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).Start())
+            {
+                body = query.CreateRequestBody();
+            }
 
             try
             {
                 Log.Debug("Sending view request to: {0}", uri.ToString());
 
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
-                var response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
+
+                HttpResponseMessage response;
+                using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.DispatchToServer).Start())
+                {
+                    response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
+                }
+
                 if (response.IsSuccessStatusCode)
                 {
                     viewResult = new StreamingViewResult<T>(
                         response.IsSuccessStatusCode,
                         response.StatusCode,
                         Success,
-                        await response.Content.ReadAsStreamAsync().ContinueOnAnyContext()
+                        await response.Content.ReadAsStreamAsync().ContinueOnAnyContext(),
+                        ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.ResponseDecoding).Start()
                     );
                 }
                 else

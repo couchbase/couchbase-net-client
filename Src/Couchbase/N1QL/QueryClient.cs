@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -12,6 +11,7 @@ using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Serialization;
+using Couchbase.Tracing;
 using Couchbase.Views;
 using Couchbase.Utils;
 
@@ -248,21 +248,36 @@ namespace Couchbase.N1QL
                 Log.Debug(req.Replace("{", "").Replace("}", ""));
             }
 
-            using (var content = new StringContent(queryRequest.GetFormValuesAsJson(), System.Text.Encoding.UTF8, MediaType.Json))
+            string body;
+            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).Start())
+            {
+                body = queryRequest.GetFormValuesAsJson();
+            }
+
+            using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
                 {
                     using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfiguration.EnableQueryTiming))
                     {
                         Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                        var request = await HttpClient.PostAsync(baseUri, content, cancellationToken).ContinueOnAnyContext();
-                        using (var response = await request.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+
+                        HttpResponseMessage response;
+                        using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
                         {
-                            queryResult = GetDataMapper(queryRequest).Map<QueryResultData<T>>(response).ToQueryResult();
+                            response = await HttpClient.PostAsync(baseUri, content, cancellationToken).ContinueOnAnyContext();
+                        }
+
+                        using (var span = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).Start())
+                        using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
+                        {
+                            queryResult = GetDataMapper(queryRequest).Map<QueryResultData<T>>(stream).ToQueryResult();
                             queryResult.Success = queryResult.Status == QueryStatus.Success;
-                            queryResult.HttpStatusCode = request.StatusCode;
+                            queryResult.HttpStatusCode = response.StatusCode;
                             Log.Trace("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
                             timer.ClusterElapsedTime = queryResult.Metrics.ElaspedTime;
+
+                            span.SetPeerLatencyTag(queryResult.Metrics.ElaspedTime);
                         }
                     }
                     baseUri.ClearFailed();

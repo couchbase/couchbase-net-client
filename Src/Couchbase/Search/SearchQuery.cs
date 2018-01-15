@@ -3,6 +3,7 @@ using Couchbase.Authentication;
 using Couchbase.N1QL;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OpenTracing;
 
 namespace Couchbase.Search
 {
@@ -192,6 +193,12 @@ namespace Couchbase.Search
 
             return json.ToString(Formatting.None);
         }
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        public ISpan ActiveSpan { get; set; }
     }
 }
 

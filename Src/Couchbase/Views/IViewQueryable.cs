@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core;
+using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -56,6 +57,12 @@ namespace Couchbase.Views
         /// Builds a JSON string of the <see cref="IViewQueryable"/> used for posting the query to a Couchbase Server.
         /// </summary>
         string CreateRequestBody();
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        ISpan ActiveSpan { get; set; }
     }
 }
 

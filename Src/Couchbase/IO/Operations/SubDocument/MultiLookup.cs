@@ -87,7 +87,7 @@ namespace Couchbase.IO.Operations.SubDocument
         public override T GetValue()
         {
             var response = Data.ToArray();
-            var statusOffset = 24;
+            var statusOffset = Header.BodyOffset;
             var valueLengthOffset = statusOffset + 2;
             var valueOffset = statusOffset + 6;
             var commandIndex = 0;

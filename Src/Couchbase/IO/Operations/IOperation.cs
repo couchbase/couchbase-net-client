@@ -7,6 +7,7 @@ using Couchbase.IO.Operations.Errors;
 using System;
 using System.IO;
 using System.Net;
+using OpenTracing;
 
 namespace Couchbase.IO.Operations
 {
@@ -28,6 +29,8 @@ namespace Couchbase.IO.Operations
         void Read(byte[] buffer, int offset, int length);
 
         void Read(byte[] buffer, ErrorMap errorMap = null);
+
+        void Read(byte[] buffer, OperationHeader header, ErrorCode errorCode);
 
         byte[] Write();
 
@@ -77,6 +80,8 @@ namespace Couchbase.IO.Operations
 
         Task ReadAsync(byte[] buffer, ErrorMap errorMap = null);
 
+        Task ReadAsync(byte[] buffer, OperationHeader header, ErrorCode errorCode);
+
         void BeginTimer(TimingLevel level);
 
         void EndTimer(TimingLevel level);
@@ -98,6 +103,12 @@ namespace Couchbase.IO.Operations
         string BucketName { get; set; }
 
         int GetRetryTimeout(int defaultTimeout);
+
+        /// <summary>
+        /// The current active <see cref="ISpan"/> used for tracing.
+        /// Intended for internal use only.
+        /// </summary>
+        ISpan ActiveSpan { get; set; }
     }
 }
 

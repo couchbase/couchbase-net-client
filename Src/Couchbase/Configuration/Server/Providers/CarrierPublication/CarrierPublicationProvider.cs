@@ -12,7 +12,7 @@ using Couchbase.IO.Operations;
 using System;
 using System.Net;
 using Couchbase.Core.Buckets;
-using Couchbase.IO.Operations.Authentication;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -67,7 +67,14 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     // finish initialising connection pool ready to be used
                     connectionPool.Initialize();
 
-                    var operationResult = ioService.Execute(new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint));
+                    var operation = new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint);
+
+                    IOperationResult<BucketConfig> operationResult;
+                    using (poolConfig.ClientConfiguration.Tracer.StartParentSpan(operation, addIgnoreTag: true))
+                    {
+                        operationResult = ioService.Execute(operation);
+                    }
+
                     if (operationResult.Success)
                     {
                         var bucketConfig = operationResult.Value;
