@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +15,7 @@ using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.Utils;
+using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests.IO
@@ -33,6 +38,48 @@ namespace Couchbase.IntegrationTests.IO
             var conn = connFactory((IConnectionPool<SslConnection>) pool, new DefaultConverter(), new BufferAllocator(1024 * 16, 1024 * 16));
 
             Assert.IsTrue(conn.IsConnected);
+        }
+
+        [Test]
+        [TestCase(false, false, false)]
+        [TestCase(false, false, true)]
+        [TestCase(false, true, true)]
+        [TestCase(true, false, false)]
+        [TestCase(true, false, true)]
+        [TestCase(true, true, false)]
+        [TestCase(true, true, true)]
+        public void Test_Authenticate(bool isAuthenticated, bool isEncrypted, bool isSigned)
+        {
+            var endpoint = IPEndPointExtensions.GetEndPoint(TestConfiguration.Settings.Hostname, 11207);
+            var bootstrapUri = new Uri($@"https://{endpoint.Address}:8091/pools");
+            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            socket.Connect(endpoint);
+
+            var poolConfig = new PoolConfiguration { UseSsl = true, Uri = bootstrapUri };
+            var sslStream = new Mock<SslStream>(new MemoryStream(), true, new RemoteCertificateValidationCallback(ServerCertificateValidationCallback));
+            sslStream.Setup(x => x.IsAuthenticated).Returns(isAuthenticated);
+            sslStream.Setup(x => x.IsEncrypted).Returns(isEncrypted);
+            sslStream.Setup(x => x.IsSigned).Returns(isSigned);
+
+            var connPool = new Mock<IConnectionPool<IConnection>>();
+            connPool.Setup(x => x.Configuration).Returns(poolConfig);
+            var conn = new SslConnection(connPool.Object, socket, sslStream.Object, new DefaultConverter(),
+                new BufferAllocator(1024, 1024));
+
+            if (isAuthenticated && isEncrypted && isSigned)
+            {
+                Assert.DoesNotThrow(conn.Authenticate);
+            }
+            else
+            {
+                Assert.Throws<AuthenticationException>(conn.Authenticate);
+            }
+        }
+
+        private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate,
+            X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            return true;
         }
 
         [Test]

@@ -92,6 +92,8 @@ namespace Couchbase.Utils
 
         public const string NoUsernameDefined = "The Username field must be non-null and contain a value.";
 
+        public const string SslAuthenticationFailed = "The SSL/TLS connection could not be authenticated.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

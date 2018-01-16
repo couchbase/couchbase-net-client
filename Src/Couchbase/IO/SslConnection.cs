@@ -70,7 +70,11 @@ namespace Couchbase.IO
                     }
                 }
 
-                IsSecure = true;
+                IsSecure = _sslStream.IsAuthenticated && _sslStream.IsSigned && _sslStream.IsEncrypted;
+                if (!IsSecure)
+                {
+                    throw new AuthenticationException(ExceptionUtil.SslAuthenticationFailed);
+                }
             }
             catch (AggregateException exception)
             {
