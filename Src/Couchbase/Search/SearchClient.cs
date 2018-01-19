@@ -19,6 +19,9 @@ namespace Couchbase.Search
     {
         private static readonly ILog Log = LogManager.GetLogger<SearchClient>();
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         public SearchClient(HttpClient httpClient, IDataMapper dataMapper)
             : base(httpClient, dataMapper)
         { }
@@ -77,7 +80,7 @@ namespace Couchbase.Search
             }
             catch (HttpRequestException e)
             {
-                Log.Info("Search failed {0}: {1}{2}",  baseUri, Environment.NewLine, searchBody);
+                Log.Info("Search failed {0}: {1}{2}",  baseUri, Environment.NewLine, User(searchBody));
                 baseUri.IncrementFailed();
                 ProcessError(e, searchResult);
                 Log.Error(e);
@@ -86,14 +89,14 @@ namespace Couchbase.Search
             {
                 ae.Flatten().Handle(e =>
                 {
-                    Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, searchBody);
+                    Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, User(searchBody));
                     ProcessError(e, searchResult);
                     return true;
                 });
             }
             catch (Exception e)
             {
-                Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, searchBody);
+                Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, User(searchBody));
                 Log.Info(e);
                 ProcessError(e, searchResult);
             }

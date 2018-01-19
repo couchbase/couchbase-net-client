@@ -46,6 +46,9 @@ namespace Couchbase.Core
         private readonly IViewClient _streamingViewClient;
         private readonly AutoResetEvent _resetEvent = new AutoResetEvent(true);
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
             IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
             this(ioService, null, null, null, null, null, null, nodeAdapter, clientConfiguration, transcoder, bucketConfig)
@@ -573,7 +576,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    Log.Debug("Sending {0} with key {1} using server {2}", operation.GetType().Name, operation.Key, EndPoint);
+                    Log.Debug("Sending {0} with key {1} using server {2}", operation.GetType().Name, User(operation.Key), EndPoint);
                     result = _ioService.Execute(operation);
                 }
                 catch (Exception e)

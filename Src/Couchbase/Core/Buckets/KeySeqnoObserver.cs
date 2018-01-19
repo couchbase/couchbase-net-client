@@ -22,6 +22,9 @@ namespace Couchbase.Core.Buckets
         private readonly ConcurrentDictionary<uint, IOperation> _pending;
         private readonly string _key;
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         /// <summary>
         /// Ctor for <see cref="KeyObserver"/>.
         /// </summary>
@@ -222,12 +225,12 @@ namespace Couchbase.Core.Buckets
             var replicated = await CheckReplicasAsync(obParams).ContinueOnAnyContext();
             if (persisted && replicated)
             {
-                Log.Debug("Persisted and replicated on first try: {0}", _key);
+                Log.Debug("Persisted and replicated on first try: {0}", User(_key));
                 return true;
             }
             return await ObserveEveryAsync(async p =>
             {
-                Log.Debug("trying again: {0}", _key);
+                Log.Debug("trying again: {0}", User(_key));
                 persisted = await CheckPersistToAsync(obParams).ContinueOnAnyContext();
                 replicated = await CheckReplicasAsync(obParams).ContinueOnAnyContext();
                 return persisted & replicated;

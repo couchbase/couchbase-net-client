@@ -23,6 +23,9 @@ namespace Couchbase.Core.Buckets
         private readonly IClusterController _clusterController;
         private readonly ConcurrentDictionary<uint, IOperation> _pending;
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         /// <summary>
         /// Ctor for <see cref="KeyObserver"/>.
         /// </summary>
@@ -223,7 +226,7 @@ namespace Couchbase.Core.Buckets
             }
             return await ObserveEveryAsync(async p =>
             {
-                Log.Debug("trying again: {0}", key);
+                Log.Debug("trying again: {0}", User(key));
                 persisted = await CheckPersistToAsync(observeParams).ContinueOnAnyContext();
                 replicated = await CheckReplicasAsync(observeParams).ContinueOnAnyContext();
                 return persisted & replicated;
@@ -256,7 +259,7 @@ namespace Couchbase.Core.Buckets
             await server.SendAsync(operation).ContinueOnAnyContext();
             var result = await tcs.Task.ContinueOnAnyContext();
 
-            Log.Debug("Master {0} - {1} key:{2}", server.EndPoint, result.Value, observeParams.Key);
+            Log.Debug("Master {0} - {1} key:{2}", server.EndPoint, result.Value, User(observeParams.Key));
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {
@@ -273,7 +276,7 @@ namespace Couchbase.Core.Buckets
             //Check if durability requirements have been met
             if (observeParams.IsDurabilityMet())
             {
-                Log.Debug("Durability met {0} - {1} - opaque: {2} key:{3}", server.EndPoint, result.Value, operation.Opaque, observeParams.Key);
+                Log.Debug("Durability met {0} - {1} - opaque: {2} key:{3}", server.EndPoint, result.Value, operation.Opaque, User(observeParams.Key));
                 return true;
             }
             return false;
@@ -423,7 +426,7 @@ namespace Couchbase.Core.Buckets
             await replica.SendAsync(operation).ContinueOnAnyContext();
             var result = await tcs.Task.ContinueOnAnyContext();
 
-            Log.Debug("Replica {0} - {1} {2} - opaque: {3} key:{4}", replica.EndPoint, result.Value.KeyState, replicaIndex, operation.Opaque, observeParams.Key);
+            Log.Debug("Replica {0} - {1} {2} - opaque: {3} key:{4}", replica.EndPoint, result.Value.KeyState, replicaIndex, operation.Opaque, User(observeParams.Key));
             var state = result.Value;
             if (state.KeyState == observeParams.Criteria.PersistState)
             {

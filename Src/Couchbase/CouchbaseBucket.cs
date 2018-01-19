@@ -56,6 +56,9 @@ namespace Couchbase
         private readonly ConcurrentDictionary<uint, IOperation> _pending = new ConcurrentDictionary<uint, IOperation>();
         private readonly IAuthenticator _authenticator;
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         /// <summary>
         /// Used for reference counting instances so that <see cref="IDisposable.Dispose"/> is only called by the last instance.
         /// </summary>
@@ -196,7 +199,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info("Requires retry {0}", key);
+                Log.Info("Requires retry {0}", User(key));
             }
             return operationResult;
         }
@@ -374,7 +377,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info("Requires retry {0}", key);
+                Log.Info("Requires retry {0}", User(key));
             }
             return operationResult;
         }
@@ -1697,7 +1700,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info("Requires retry {0}", key);
+                Log.Info("Requires retry {0}", User(key));
             }
             return operationResult;
         }
@@ -2787,7 +2790,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info("Requires retry {0}", key);
+                Log.Info("Requires retry {0}", User(key));
             }
             return operationResult;
         }
@@ -2945,7 +2948,7 @@ namespace Couchbase
 
             if (CheckForConfigUpdates(operationResult, operation))
             {
-                Log.Info("Requires retry {0}", key);
+                Log.Info("Requires retry {0}", User(key));
             }
             return operationResult;
         }

@@ -20,6 +20,9 @@ namespace Couchbase.Core.Buckets
     {
         protected static readonly new ILog Log = LogManager.GetLogger<MemcachedRequestExecuter>();
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         public MemcachedRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
             string bucketName, ConcurrentDictionary<uint, IOperation> pending)
             : base(clusterController, configInfo, bucketName, pending)
@@ -60,14 +63,14 @@ namespace Couchbase.Core.Buckets
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key);
+                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, User(operation.Key));
                     break;
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
                     var result = operationResult;
                     Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                        operation.Key, result.Message);
+                        User(operation.Key), result.Message);
 
                     // Get retry timeout, uses default timeout if no retry stratergy available
                     Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
@@ -75,7 +78,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
                     break;
                 }
             } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);
@@ -115,14 +118,14 @@ namespace Couchbase.Core.Buckets
                 operationResult = server.Send(operation);
                 if (operationResult.Success)
                 {
-                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, operation.Key);
+                    Log.Debug("Operation succeeded {0} for key {1}", operation.Attempts, User(operation.Key));
                     break;
                 }
                 if (operation.CanRetry() && operationResult.ShouldRetry())
                 {
                     var result = operationResult;
                     Log.Debug("Operation retry {0} for key {1}. Reason: {2}", operation.Attempts,
-                    operation.Key, result.Message);
+                    User(operation.Key), result.Message);
 
                     // Get retry timeout, uses default timeout if no retry stratergy available
                     Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
@@ -130,7 +133,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
                     break;
                 }
             } while (operation.Attempts++ < operation.MaxRetries && !operationResult.Success);

@@ -7,6 +7,8 @@ namespace Couchbase.Logging
 {
     public static class LogManager
     {
+        public static RedactionLevel RedactionLevel = RedactionLevel.None;
+
         public static ILog GetLogger<T>()
         {
             return GetLogger(typeof(T));

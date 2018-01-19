@@ -30,6 +30,9 @@ namespace Couchbase.Core.Buckets
         protected readonly ConcurrentDictionary<uint, IOperation> Pending;
         protected readonly int VBucketRetrySleepTime;
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         protected RequestExecuterBase(IClusterController clusterController, IConfigInfo configInfo, string bucketName, ConcurrentDictionary<uint, IOperation> pending)
         {
             ClusterController = clusterController;
@@ -495,12 +498,12 @@ namespace Couchbase.Core.Buckets
             if (vBucket != null)
             {
                 const string msg1 = "Operation for key {0} failed after {1} retries using vb{2} from rev{3} and opaque{4}. Reason: {5}";
-                Log.Debug(msg1, operation.Key, operation.Attempts, vBucket.Index, vBucket.Rev, operation.Opaque, operationResult.Message);
+                Log.Debug(msg1, User(operation.Key), operation.Attempts, vBucket.Index, vBucket.Rev, operation.Opaque, operationResult.Message);
             }
             else
             {
                 const string msg1 = "Operation for key {0} failed after {1} retries and opaque{2}. Reason: {3}";
-                Log.Debug(msg1, operation.Key, operation.Attempts, operation.Opaque, operationResult.Message);
+                Log.Debug(msg1, User(operation.Key), operation.Attempts, operation.Opaque, operationResult.Message);
             }
         }
 

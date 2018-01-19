@@ -22,6 +22,9 @@ namespace Couchbase.IO
         protected BufferAllocator BufferAllocator;
         protected internal Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> Factory;
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SharedConnectionPool{T}"/> class.
         /// </summary>
@@ -127,7 +130,7 @@ namespace Couchbase.IO
                 if (result)
                 {
                     Log.Info(
-                        "4. Authenticated {0} using {1} - {2} - {3} [{4}].", SaslMechanism.Username,
+                        "4. Authenticated {0} using {1} - {2} - {3} [{4}].", User(SaslMechanism.Username),
                         SaslMechanism.GetType(),
                         Identity, connection.Identity, EndPoint);
                     connection.IsAuthenticated = true;
@@ -135,11 +138,11 @@ namespace Couchbase.IO
                 else
                 {
                     Log.Info(
-                        "4. Could not authenticate {0} using {1} - {2} [{3}].", SaslMechanism.Username,
+                        "4. Could not authenticate {0} using {1} - {2} [{3}].", User(SaslMechanism.Username),
                         SaslMechanism.GetType(), Identity, EndPoint);
 
                     var message = SupportsEnhancedAuthentication
-                        ? ExceptionUtil.FailedUserAuthenticationMsg.WithParams(SaslMechanism.Username)
+                        ? ExceptionUtil.FailedUserAuthenticationMsg.WithParams(User(SaslMechanism.Username))
                         : ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(Configuration.BucketName);
 
                     throw new AuthenticationException(message);

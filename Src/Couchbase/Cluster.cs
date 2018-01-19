@@ -456,7 +456,7 @@ namespace Couchbase
                 {
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 });
-                Log.Info("Configuration: {0}", config);
+                Log.Info("Configuration: {0}", RedactableArgument.User(config));
             }
             catch (Exception e)
             {

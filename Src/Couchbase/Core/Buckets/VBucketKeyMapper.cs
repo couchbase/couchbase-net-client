@@ -22,6 +22,9 @@ namespace Couchbase.Core.Buckets
         private readonly IDictionary<IPEndPoint, IServer> _servers;
         private readonly string _bucketName;
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         public VBucketKeyMapper(IDictionary<IPEndPoint, IServer> servers, VBucketServerMap vBucketServerMap, uint revision, string bucketName)
         {
             Rev = revision;
@@ -54,7 +57,7 @@ namespace Couchbase.Core.Buckets
         public IMappedNode MapKey(string key)
         {
             var index = GetIndex(key);
-            Log.Trace("Using index {0} for key {1} - rev{2}", index, key, Rev);
+            Log.Trace("Using index {0} for key {1} - rev{2}", index, User(key), Rev);
 
             return _vBuckets[index];
         }

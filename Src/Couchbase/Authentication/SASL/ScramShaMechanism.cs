@@ -23,6 +23,8 @@ namespace Couchbase.Authentication.SASL
         private static readonly int ShaByteLength = 20;
         private ErrorMap _errorMap;
 
+        private Func<string, object> User = RedactableArgument.UserAction;
+
         //leaving for later patchset to support SHA256 and SHA512
         private static readonly Dictionary<string, string> _hmacs = new Dictionary<string, string>
         {
@@ -125,7 +127,7 @@ namespace Couchbase.Authentication.SASL
             ClientFirstMessage = "n,,n=" + username + ",r=" + ClientNonce;
             ClientFirstMessageBare = ClientFirstMessage.Substring(3);
 
-            Log.Debug("Client First Message {0} - {1}: {2} [U:{3}|P:{4}", connection.EndPoint, connection.Identity, ClientFirstMessage, username, password);
+            Log.Debug("Client First Message {0} - {1}: {2} [U:{3}|P:{4}", connection.EndPoint, connection.Identity, ClientFirstMessage, User(username), User(password));
             var authOp = new SaslStart(MechanismType, ClientFirstMessage, _transcoder, SaslFactory.DefaultTimeout);
             var serverFirstResult = Execute(authOp, connection);
             if (serverFirstResult.Status == ResponseStatus.AuthenticationContinue)

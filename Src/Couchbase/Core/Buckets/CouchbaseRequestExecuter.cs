@@ -27,6 +27,9 @@ namespace Couchbase.Core.Buckets
     {
         private new static readonly ILog Log = LogManager.GetLogger<CouchbaseRequestExecuter>();
 
+        //for log redaction
+        private Func<object, string> User = RedactableArgument.UserAction;
+
         public CouchbaseRequestExecuter(IClusterController clusterController, IConfigInfo configInfo,
             string bucketName, ConcurrentDictionary<uint, IOperation> pending)
             : base(clusterController, configInfo, bucketName, pending)
@@ -528,7 +531,7 @@ namespace Couchbase.Core.Buckets
                 {
                     Log.Debug(
                         "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, operation.Key, operationResult);
+                                operation.Attempts, User(operation.Key), User(operationResult));
                     break;
                 }
                 if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
@@ -542,7 +545,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
                     break;
                 }
             } while (!operationResult.Success && !operation.TimedOut());
@@ -614,7 +617,7 @@ namespace Couchbase.Core.Buckets
                 {
                     Log.Debug(
                         "Operation {0} succeeded {1} for key {2} : {3}", operation.GetType().Name,
-                                operation.Attempts, operation.Key, operationResult.Value);
+                                operation.Attempts, User(operation.Key), User(operationResult.Value));
                     break;
                 }
                 if(CanRetryOperation(operationResult, operation) && !operation.TimedOut())
@@ -628,7 +631,7 @@ namespace Couchbase.Core.Buckets
                 else
                 {
                     ((OperationResult)operationResult).SetException();
-                    Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
+                    Log.Debug("Operation doesn't support retries for key {0}", User(operation.Key));
                     break;
                 }
             } while (!operationResult.Success && !operation.TimedOut());
