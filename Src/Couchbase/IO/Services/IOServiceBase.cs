@@ -172,7 +172,7 @@ namespace Couchbase.IO.Services
 
             return JsonConvert.SerializeObject(new
             {
-                i = string.Join("/", ClientIdentifier.InstanceId.ToString("x16"), connectionId.ToString("x16")),
+                i = ClientIdentifier.FormatConnectionString(connectionId),
                 a = agent
             }, Formatting.None);
         }

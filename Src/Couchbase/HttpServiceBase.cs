@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Net.Http;
 using Couchbase.Configuration.Client;
+using Couchbase.IO.Operations;
+using Couchbase.Utils;
 using Couchbase.Views;
 
 namespace Couchbase
@@ -12,6 +14,8 @@ namespace Couchbase
     /// <seealso cref="System.IDisposable" />
     internal abstract class HttpServiceBase : IDisposable
     {
+        private const string ConnectionIdHeaderName = "cb-client-id";
+
         /// <summary>
         /// Gets the client configuration.
         /// </summary>
@@ -32,11 +36,19 @@ namespace Couchbase
         /// </summary>
         public DateTime? LastActivity { get; private set; }
 
+        /// <summary>
+        /// Gets the connection identifier for this HTTP service instance.
+        /// </summary>
+        public ulong ConnectionId { get; } = SequenceGenerator.GetRandomLong();
+
         protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration configuration)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
             ClientConfiguration = configuration;
+
+            // set custom header for client / connection ID
+            httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));
         }
 
         public void Dispose()
