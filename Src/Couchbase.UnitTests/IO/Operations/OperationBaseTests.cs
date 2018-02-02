@@ -2,6 +2,7 @@
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Moq;
 using NUnit.Framework;
 
@@ -55,11 +56,50 @@ namespace Couchbase.UnitTests.IO.Operations
                     It.IsAny<OperationCode>()), Times.Never);
         }
 
+        [Test]
+        public void When_ErrorMap_Is_Null_ErrorMapRequestsRetry_Is_False()
+        {
+            var op = new FakeOperation(new DefaultTranscoder());
+            Assert.False(op.ErrorMapRequestsRetry());
+        }
+
+        [Test]
+        public void When_ErrorMap_Is_Not_Null_And_RetryStrategy_Is_None_ErrorMapRequestsRetry_Is_False()
+        {
+            var op = new FakeOperation(new ErrorCode{ Retry = new RetrySpec{ Strategy = RetryStrategy.None}});
+
+            Assert.False(op.ErrorMapRequestsRetry());
+        }
+
+        [Test]
+        public void When_()
+        {
+            var op = new FakeOperation(new ErrorCode { Retry = new RetrySpec { Strategy = RetryStrategy.None } });
+        }
+
+        [Test]
+        [TestCase(RetryStrategy.Linear)]
+        [TestCase(RetryStrategy.Constant)]
+        [TestCase(RetryStrategy.Exponential)]
+        public void When_ErrorMap_Is_Not_Null_And_RetryStrategy_Is_Not_None_ErrorMapRequestsRetry_Is_True(RetryStrategy strategy)
+        {
+            var op = new FakeOperation(new ErrorCode { Retry = new RetrySpec { Strategy = strategy} });
+
+            Assert.True(op.ErrorMapRequestsRetry());
+        }
+
+
         private class FakeOperation : OperationBase
         {
             public FakeOperation(ITypeTranscoder transcoder)
                 : base("hello", null, transcoder, 0)
             {
+            }
+
+            public FakeOperation(ErrorCode errorCode)
+                : this(new DefaultTranscoder())
+            {
+                ErrorCode = errorCode;
             }
 
             public override OperationCode OperationCode

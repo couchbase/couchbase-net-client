@@ -493,7 +493,12 @@ namespace Couchbase.IO.Operations
 
         public virtual bool CanRetry()
         {
-            return Cas > 0;
+            return Cas > 0 || ErrorMapRequestsRetry();
+        }
+
+        internal bool ErrorMapRequestsRetry()
+        {
+            return ErrorCode?.Retry != null && ErrorCode.Retry.Strategy != RetryStrategy.None;
         }
 
         public bool TimedOut()

@@ -24,7 +24,7 @@ namespace Couchbase.IO.Operations.Errors
         /// Gets or sets the maximum retry interval.
         /// </summary>
         [JsonProperty("ceil")]
-        public int? Ceililing { get; set; }
+        public int? Ceiling { get; set; }
 
         /// <summary>
         /// Gets or sets the value to be added to the first interval.
@@ -71,9 +71,9 @@ namespace Couchbase.IO.Operations.Errors
                     break;
             }
 
-            if (Ceililing.HasValue && nextInterval > Ceililing)
+            if (Ceiling.HasValue && nextInterval > Ceiling)
             {
-                nextInterval = Ceililing.Value;
+                nextInterval = Ceiling.Value;
             }
 
             return nextInterval;

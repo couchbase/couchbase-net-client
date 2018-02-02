@@ -44,7 +44,7 @@ namespace Couchbase.IO.Operations
 
         public override bool CanRetry()
         {
-            return true;
+            return ErrorCode == null || ErrorMapRequestsRetry();
         }
     }
 }

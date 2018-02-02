@@ -265,7 +265,7 @@ namespace Couchbase.IntegrationTests
 
             var res2 = _bucket.GetAndLock<string>("roikatz", 30);
             Assert.IsFalse(res2.Success);
-            Assert.AreEqual(ResponseStatus.TemporaryFailure, res2.Status);
+            Assert.True(ResponseStatus.TemporaryFailure == res2.Status || ResponseStatus.Failure == res2.Status);
         }
 
         #region Batch Async Operations

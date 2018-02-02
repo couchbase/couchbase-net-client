@@ -172,7 +172,7 @@ namespace Couchbase.IO.Operations.SubDocument
         /// <returns></returns>
         public override bool CanRetry()
         {
-            return true;
+            return ErrorCode == null || ErrorMapRequestsRetry();
         }
 
         /// <summary>

@@ -9,6 +9,11 @@ namespace Couchbase.IO.Operations.Errors
     /// </summary>
     public class ErrorCode
     {
+        public ErrorCode()
+        {
+            Retry = new RetrySpec();
+        }
+
         /// <summary>
         /// Gets or sets the name of the error.
         /// </summary>
