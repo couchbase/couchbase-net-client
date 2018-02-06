@@ -237,6 +237,15 @@ namespace Couchbase.N1QL
         IQueryRequest BaseUri(Uri uri);
 
         /// <summary>
+        /// Adds a raw query parameter and value to the query.
+        /// NOTE: This is uncommited and may change in the future.
+        /// </summary>
+        /// <param name="name">The paramter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>A reference to the current <see cref="IQueryRequest" /> for method chaining.</returns>
+        IQueryRequest RawParameter(string name, object value);
+
+        /// <summary>
         /// Gets the <see cref="Uri"/> for the Query service
         /// </summary>
         /// <returns>The <see cref="Uri"/> for the Query service</returns>

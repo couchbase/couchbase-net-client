@@ -464,5 +464,21 @@ namespace Couchbase.UnitTests.N1Ql
 
             Assert.AreEqual(contextId, json[0].client_context_id.ToString());
         }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        [TestCase(100)]
+        [TestCase("test")]
+        public void RawParameter_can_be_added(object parameterValue)
+        {
+            const string parameterName = "custom_param";
+
+            var request = new QueryRequest("SELECT * FROM default;");
+            request.RawParameter(parameterName, parameterValue);
+
+            var fields = request.GetFormValues();
+            Assert.IsTrue(fields.TryGetValue(parameterName, out var value));
+            Assert.AreEqual(parameterValue, value);
+        }
     }
 }

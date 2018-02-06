@@ -43,6 +43,7 @@ namespace Couchbase.N1QL
         private int? _scanCapacity;
         private int? _pipelineBatch;
         private int? _pipelineCapacity;
+        private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -614,6 +615,24 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
+        /// Adds a raw query parameter and value to the query.
+        /// NOTE: This is uncommited and may change in the future.
+        /// </summary>
+        /// <param name="name">The paramter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>A reference to the current <see cref="IQueryRequest" /> for method chaining.</returns>
+        public IQueryRequest RawParameter(string name, object value)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Parameter name cannot be null or empty.");
+            }
+
+            _rawParameters.Add(name, value);
+            return this;
+        }
+
+        /// <summary>
         /// Sets maximum buffered channel size between the indexer client
         /// and the query service for index scans.
         ///
@@ -812,6 +831,10 @@ namespace Couchbase.N1QL
             if (generateNewId)
             {
                 _requestContextId = QuerySequenceGenerator.GetNext();
+            }
+            foreach (var parameter in _rawParameters)
+            {
+                formValues.Add(parameter.Key, parameter.Value);
             }
 
             formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
