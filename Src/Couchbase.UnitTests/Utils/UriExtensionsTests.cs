@@ -5,11 +5,12 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Utils;
 using Moq;
 using NUnit.Framework;
 
-namespace Couchbase.IntegrationTests.Utils
+namespace Couchbase.UnitTests.Utils
 {
     [TestFixture]
     public class UriExtensionsTests
@@ -60,6 +61,54 @@ namespace Couchbase.IntegrationTests.Utils
             {
                 SynchronizationContext.SetSynchronizationContext(null);
             }
+        }
+
+        #endregion
+
+        #region ReplaceCouchbaseSchemeWithHttp
+
+        [Test]
+        [TestCase(true, "https")]
+        [TestCase(false, "http")]
+        public void ReplaceCouchbaseSchemeWithHttp_Root_Configuration(bool useSsl, string expectedScheme)
+        {
+            //arrange
+            var config = new ClientConfiguration
+            {
+                UseSsl = useSsl
+            };
+            var uri = new UriBuilder("couchbase", "localhost", 8091).Uri;
+
+            //act
+            var actualSceheme = uri.ReplaceCouchbaseSchemeWithHttp(config, "travel-sample").Scheme;
+
+            //assert
+            Assert.AreEqual(expectedScheme, actualSceheme);
+        }
+
+        [Test]
+        [TestCase(true, "https")]
+        [TestCase(false, "http")]
+        public void ReplaceCouchbaseSchemeWithHttp_Bucket_Configuration(bool useSsl, string expectedScheme)
+        {
+            //arrange
+            var config = new ClientConfiguration
+            {
+               BucketConfigs = new Dictionary<string, BucketConfiguration>
+               {
+                   {"travel-sample", new BucketConfiguration
+                   {
+                       UseSsl = useSsl
+                   } }
+               }
+            };
+            var uri = new UriBuilder("couchbase", "localhost", 8091).Uri;
+
+            //act
+            var actualScheme = uri.ReplaceCouchbaseSchemeWithHttp(config, "travel-sample").Scheme;
+
+            //assert
+            Assert.AreEqual(expectedScheme, actualScheme);
         }
 
         #endregion

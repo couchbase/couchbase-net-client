@@ -56,7 +56,11 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
         public void Initialize()
         {
-            var servers = _clientConfig.Servers.Shuffle().ToList();
+            //remove "couchbase:" from uri not supported by HttpClient
+            var servers = _clientConfig.Servers.Shuffle().
+                Select(x=>x.ReplaceCouchbaseSchemeWithHttp(_clientConfig, BucketName)).
+                ToList();
+
             var hasBootStrapped = servers.Any(DownloadConfigs);
             if (!hasBootStrapped)
             {

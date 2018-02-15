@@ -14,6 +14,17 @@ namespace Couchbase.Utils
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(UriExtensions));
 
+        public static Uri ReplaceCouchbaseSchemeWithHttp(this Uri uri, ClientConfiguration config, string bucketName)
+        {
+            if (uri.Scheme == "couchbase")
+            {
+                var useSsl = config.BucketConfigs.TryGetValue(bucketName, out var bucketConfig) ? bucketConfig.UseSsl : config.UseSsl;
+                var newUri = new UriBuilder(uri) { Scheme = useSsl ? "https" : "http" };
+                return newUri.Uri;
+            }
+            return uri;
+        }
+
         /// <summary>
         /// Resolves a given <see cref="Uri"/> to an <see cref="IPAddress"/> using DNS if necessary.
         /// </summary>

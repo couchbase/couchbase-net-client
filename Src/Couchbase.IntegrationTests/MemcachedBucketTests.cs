@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Version;
@@ -28,6 +29,22 @@ namespace Couchbase.IntegrationTests
             _cluster = new Cluster(config);
             _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket("memcached");
+        }
+
+        [Test]
+        public void Test_Couchbase_Protocol_Uri()
+        {
+            var uri = string.Concat("couchbase://", 
+                TestConfiguration.Settings.Hostname, ":", 
+                TestConfiguration.Settings.BootPort);
+
+            var config = new ClientConfiguration
+            {
+                Servers = new List<Uri>{new Uri(uri)}
+            };
+
+            var cluster = new Cluster(config);
+            Assert.DoesNotThrow(() => cluster.OpenBucket("memcached"));
         }
 
         [Test]
