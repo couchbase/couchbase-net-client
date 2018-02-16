@@ -24,7 +24,7 @@ namespace Couchbase.IO.Operations
             state.Data.Read(buffer, 0, buffer.Length);
             state.Data.Position = 0;
 
-            return CreateHeader(buffer, null, out errorCode);
+            return CreateHeader(buffer, state.ErrorMap, out errorCode);
         }
 
         internal static OperationHeader CreateHeader(this byte[] buffer)

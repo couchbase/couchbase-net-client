@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
 using OpenTracing;
 
@@ -21,6 +22,7 @@ namespace Couchbase.IO
         public Timer Timer;
         public ISpan DispatchSpan { get; set; }
         public string CorrelationId { get; set; }
+        public ErrorMap ErrorMap { get; set; }
 
         /// <summary>
         /// Cancels the current Memcached request that is in-flight.
@@ -44,7 +46,8 @@ namespace Couchbase.IO
                 Status = status,
                 EndPoint = EndPoint,
                 DispatchSpan = DispatchSpan,
-                CorrelationId = CorrelationId
+                CorrelationId = CorrelationId,
+                ErrorMap = ErrorMap
             });
         }
 
@@ -81,7 +84,8 @@ namespace Couchbase.IO
                 Status = status,
                 EndPoint = EndPoint,
                 DispatchSpan = DispatchSpan,
-                CorrelationId = CorrelationId
+                CorrelationId = CorrelationId,
+                ErrorMap = ErrorMap
             }));
         }
     }

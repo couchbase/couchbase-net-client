@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using Couchbase.IO.Operations.Errors;
 using OpenTracing;
 
 namespace Couchbase.IO
@@ -25,6 +26,8 @@ namespace Couchbase.IO
         public ISpan DispatchSpan { get; set; }
 
         public string CorrelationId { get; set; }
+
+        public ErrorMap ErrorMap { get; set; }
 
         private byte[] _buffer;
         public byte[] Buffer

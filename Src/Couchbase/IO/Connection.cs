@@ -52,7 +52,8 @@ namespace Couchbase.IO
                     Completed = callback,
                     SendOffset = _eventArgs.Offset,
                     DispatchSpan = span,
-                    CorrelationId = CreateCorrelationId(opaque)
+                    CorrelationId = CreateCorrelationId(opaque),
+                    ErrorMap = errorMap
                 };
 
                 _eventArgs.UserToken = state;

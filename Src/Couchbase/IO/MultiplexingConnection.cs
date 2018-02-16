@@ -60,7 +60,8 @@ namespace Couchbase.IO
                 Converter = Converter,
                 EndPoint = (IPEndPoint)EndPoint,
                 DispatchSpan = span,
-                CorrelationId = CreateCorrelationId(opaque)
+                CorrelationId = CreateCorrelationId(opaque),
+                ErrorMap = errorMap
             };
 
             _statesInFlight.TryAdd(state.Opaque, state);

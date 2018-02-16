@@ -101,7 +101,8 @@ namespace Couchbase.IO
                     Buffer = request,
                     Completed = callback,
                     DispatchSpan = span,
-                    CorrelationId = CreateCorrelationId(opaque)
+                    CorrelationId = CreateCorrelationId(opaque),
+                    ErrorMap = errorMap
                 };
 
                 await _sslStream.WriteAsync(request, 0, request.Length).ContinueOnAnyContext();
