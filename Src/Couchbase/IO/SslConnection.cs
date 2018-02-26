@@ -184,8 +184,8 @@ namespace Couchbase.IO
                     if (ex.InnerException is TaskCanceledException)
                     {
                         // Timeout expired and cancellation token source was triggered
-                        var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
-                        throw new RemoteHostTimeoutException(msg);
+                        var opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque);
+                        throw CreateTimeoutException(opaque);
                     }
                     else
                     {

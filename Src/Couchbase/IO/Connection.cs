@@ -133,8 +133,7 @@ namespace Couchbase.IO
             if (!_requestCompleted.WaitOne(Configuration.SendTimeout))
             {
                 IsDead = true;
-                var msg = ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostTimeoutMsg, Configuration.SendTimeout);
-                throw new RemoteHostTimeoutException(msg);
+                throw CreateTimeoutException(opaque);
             }
 
             //Check if an IO error occurred

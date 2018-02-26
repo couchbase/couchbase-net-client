@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Logging;
@@ -292,7 +293,31 @@ namespace Couchbase.IO
 
         protected string CreateCorrelationId(uint opaque)
         {
-            return string.Join("/", ClientIdentifier.InstanceId, ConnectionId, opaque);
+            return string.Join("/", ClientIdentifier.FormatConnectionString(ConnectionId), opaque.ToString("x"));
+        }
+
+        protected Exception CreateTimeoutException(uint opaque)
+        {
+            const string format = ", {0}", kv = "kv";
+            var correlationId = CreateCorrelationId(opaque);
+
+            var builder = new StringBuilder(ExceptionUtil.OperationTimeout);
+            builder.AppendFormat(format, kv);
+            builder.AppendFormat(format, correlationId);
+            builder.AppendFormat(format, Socket.LocalEndPoint);
+            builder.AppendFormat(format, Configuration.SendTimeout);
+            builder.AppendFormat(format, Socket.RemoteEndPoint);
+
+            var message = builder.ToString();
+            Log.Info(message);
+
+            var exception = new SendTimeoutExpiredException(message);
+            exception.Data.Add("ServiceType", kv);
+            exception.Data.Add("CorrelationId", correlationId);
+            exception.Data.Add("LocalEndpoint", Socket.LocalEndPoint.ToString());
+            exception.Data.Add("Timeout", Configuration.SendTimeout);
+            exception.Data.Add("RemoteEndpoint", Socket.RemoteEndPoint.ToString());
+            return exception;
         }
     }
 }

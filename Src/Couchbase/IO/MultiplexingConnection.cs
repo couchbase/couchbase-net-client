@@ -70,7 +70,7 @@ namespace Couchbase.IO
             {
                 AsyncState a = (AsyncState)o;
                 _statesInFlight.TryRemove(a.Opaque, out _);
-                a.Cancel(ResponseStatus.OperationTimeout, new SendTimeoutExpiredException());
+                a.Cancel(ResponseStatus.OperationTimeout, CreateTimeoutException(opaque));
             }, state, Configuration.SendTimeout, Timeout.Infinite);
 
             var sentBytesCount = 0;
@@ -132,7 +132,7 @@ namespace Couchbase.IO
 
             if (!didComplete)
             {
-                throw new SendTimeoutExpiredException();
+                throw CreateTimeoutException(opaque);
             }
 
             return response;
