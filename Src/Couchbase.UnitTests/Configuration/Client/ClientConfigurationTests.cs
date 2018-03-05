@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -798,6 +799,215 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             Assert.AreEqual(interval, reporter.Interval);
             Assert.AreEqual(sampleSize, reporter.SampleSize);
+        }
+
+        #endregion
+
+        #region Connection String
+
+        public static IEnumerable ConnectionStringReplacesServersCases
+        {
+            get
+            {
+                yield return new TestCaseData(new object[] {"couchbase://localhost", new[]
+                {
+                    new Uri("http://localhost:8091/")
+                }});
+
+                yield return new TestCaseData(new object[] {"couchbase://host1,host2:11215", new[]
+                {
+                    new Uri("http://host1:8091/"),
+                    new Uri("http://host2:8091/")
+                }});
+
+                yield return new TestCaseData(new object[] {"couchbases://localhost", new[]
+                {
+                    new Uri("http://localhost:8091/")
+                }});
+
+                yield return new TestCaseData(new object[] {"http://localhost", new[]
+                {
+                    new Uri("http://localhost:8091/")
+                }});
+
+                yield return new TestCaseData(new object[] {"http://localhost:9091", new[]
+                {
+                    new Uri("http://localhost:9091/")
+                }});
+            }
+        }
+
+        [Test]
+        [TestCaseSource(nameof(ConnectionStringReplacesServersCases))]
+        public void ConnectionString_ReplacesServers(string connectionString, Uri[] expected)
+        {
+            // Arrange
+
+            var definition = new CouchbaseClientDefinition
+            {
+                ConnectionString = connectionString,
+                Servers = new List<Uri>
+                {
+                    new Uri("http://old1"),
+                    new Uri("http://old2")
+                }
+            };
+
+            // Act
+
+            var configuration = new ClientConfiguration(definition);
+
+            // Assert
+
+            Assert.AreEqual(expected.Length, configuration.Servers.Count);
+
+            for (var i = 0; i < expected.Length; i++)
+            {
+                Assert.AreEqual(expected[i], configuration.Servers[i]);
+            }
+        }
+
+        [Test]
+        public void ConnectionString_CouchbaseWithoutPort_SetsDirectPortToDefault()
+        {
+            // Arrange
+
+            var definition = new CouchbaseClientDefinition
+            {
+                ConnectionString = "couchbase://localhost",
+                DirectPort = 10000
+            };
+
+            // Act
+
+            var configuration = new ClientConfiguration(definition);
+
+            // Assert
+
+            Assert.AreEqual(11210, configuration.DirectPort);
+        }
+
+        [Test]
+        public void ConnectionString_CouchbaseWithPort_SetsDirectPort()
+        {
+            // Arrange
+
+            var definition = new CouchbaseClientDefinition
+            {
+                ConnectionString = "couchbase://localhost:11500",
+                DirectPort = 10000
+            };
+
+            // Act
+
+            var configuration = new ClientConfiguration(definition);
+
+            // Assert
+
+            Assert.AreEqual(11500, configuration.DirectPort);
+        }
+
+        [Test]
+        public void ConnectionString_CouchbasesWithoutPort_SetsSslPortToDefault()
+        {
+            // Arrange
+
+            var definition = new CouchbaseClientDefinition
+            {
+                ConnectionString = "couchbases://localhost",
+                SslPort = 10000
+            };
+
+            // Act
+
+            var configuration = new ClientConfiguration(definition);
+
+            // Assert
+
+            Assert.AreEqual(11207, configuration.SslPort);
+        }
+
+        [Test]
+        public void ConnectionString_CouchbasesWithPort_SetsSslPort()
+        {
+            // Arrange
+
+            var definition = new CouchbaseClientDefinition
+            {
+                ConnectionString = "couchbases://localhost:11500",
+                SslPort = 10000
+            };
+
+            // Act
+
+            var configuration = new ClientConfiguration(definition);
+
+            // Assert
+
+            Assert.AreEqual(11500, configuration.SslPort);
+        }
+
+        public static IEnumerable ConnectionStringSetsSslCases
+        {
+            get
+            {
+                yield return new TestCaseData(new object[] {"couchbase://localhost", false});
+                yield return new TestCaseData(new object[] {"couchbases://localhost", true});
+                yield return new TestCaseData(new object[] {"http://localhost", false});
+            }
+        }
+
+        [Test]
+        [TestCaseSource(nameof(ConnectionStringSetsSslCases))]
+        public void ConnectionString_SetsSsl(string connectionString, bool expected)
+        {
+            // Arrange
+
+            var definition = new CouchbaseClientDefinition
+            {
+                ConnectionString = connectionString,
+                UseSsl = !expected
+            };
+
+            // Act
+
+            var configuration = new ClientConfiguration(definition);
+
+            // Assert
+
+            Assert.AreEqual(expected, configuration.UseSsl);
+            Assert.AreEqual(expected, configuration.PoolConfiguration.UseSsl);
+        }
+
+        public static IEnumerable ConnectionStringSetsConfigurationProvidersCases
+        {
+            get
+            {
+                yield return new TestCaseData(new object[] {"couchbase://localhost", ServerConfigurationProviders.CarrierPublication});
+                yield return new TestCaseData(new object[] {"couchbases://localhost", ServerConfigurationProviders.CarrierPublication});
+                yield return new TestCaseData(new object[] {"http://localhost", ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming});
+            }
+        }
+
+        [Test]
+        [TestCaseSource(nameof(ConnectionStringSetsConfigurationProvidersCases))]
+        public void ConnectionString_SetsConfigurationProviders(string connectionString, ServerConfigurationProviders expected)
+        {
+            // Arrange
+
+            var definition = new CouchbaseClientDefinition
+            {
+                ConnectionString = connectionString,
+                ConfigurationProviders = ServerConfigurationProviders.None
+            };
+
+            // Act
+
+            var configuration = new ClientConfiguration(definition);
+
+            // Assert
+
+            Assert.AreEqual(expected, configuration.ConfigurationProviders);
         }
 
         #endregion

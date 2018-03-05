@@ -15,6 +15,19 @@ namespace Couchbase.Configuration.Client.Providers
     public sealed class CouchbaseClientSection : ConfigurationSection, ICouchbaseClientDefinition
     {
         /// <summary>
+        /// A "couchbase://" or "couchbases://" connection string for the cluster.
+        /// </summary>
+        /// <remarks>
+        /// Overrides settings for <see cref="Servers"/>, <see cref="UseSsl"/>, <see cref="SslPort"/>,
+        /// <see cref="DirectPort"/>, and <see cref="ConfigurationProviders"/>.
+        /// </remarks>
+        [ConfigurationProperty("connectionString", DefaultValue = "", IsRequired = false)]
+        public string ConnectionString{
+            get { return (string) this["connectionString"]; }
+            set { this["connectionString"] = value; }
+        }
+
+        /// <summary>
         /// Set to true to use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
         /// </summary>
         /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>

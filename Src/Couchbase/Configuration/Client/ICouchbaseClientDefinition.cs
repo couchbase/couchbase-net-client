@@ -19,6 +19,15 @@ namespace Couchbase.Configuration.Client
     public interface ICouchbaseClientDefinition
     {
         /// <summary>
+        /// A "couchbase://" or "couchbases://" connection string for the cluster.
+        /// </summary>
+        /// <remarks>
+        /// Overrides settings for <see cref="Servers"/>, <see cref="UseSsl"/>, <see cref="SslPort"/>,
+        /// <see cref="DirectPort"/>, and <see cref="ConfigurationProviders"/>.
+        /// </remarks>
+        string ConnectionString { get; set; }
+
+        /// <summary>
         /// If true, use Secure Socket Layers (SSL) to encrypt traffic between the client and Couchbase server.
         /// </summary>
         /// <remarks>Requires the SSL certificate to be stored in the local Certificate Authority to enable SSL.</remarks>

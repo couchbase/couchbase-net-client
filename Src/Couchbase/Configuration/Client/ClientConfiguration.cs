@@ -385,6 +385,13 @@ namespace Couchbase.Configuration.Client
                 PoolConfiguration.Validate();
             }
 
+            // Apply connection string after other properties so it can override them
+            // But before bucket configurations so they can override the connection string
+            if (!string.IsNullOrWhiteSpace(definition.ConnectionString))
+            {
+                ApplyConnectionString(ConnectionString.Parse(definition.ConnectionString));
+            }
+
             BucketConfigs = new Dictionary<string, BucketConfiguration>();
             if (definition.Buckets != null)
             {
@@ -1293,6 +1300,44 @@ namespace Couchbase.Configuration.Client
         /// The Orphaned Response Reporter collects server responses for operationst that have timed out.
         /// </summary>
         public IOrphanedOperationReporter OrphanedOperationReporter { get; set; }
+
+        internal void ApplyConnectionString(ConnectionString connectionString)
+        {
+            if (connectionString.Scheme == ConnectionScheme.Couchbase)
+            {
+                Servers = connectionString.Hosts.Select(p => new Uri($"http://{p}:{Defaults.MgmtPort}/")).ToList();
+                DirectPort = connectionString.Port ?? (int) Defaults.DirectPort;
+                UseSsl = false;
+                PoolConfiguration.UseSsl = false;
+
+                // Disable HTTP configuration for couchbase://, per spec
+                ConfigurationProviders = ServerConfigurationProviders.CarrierPublication;
+            }
+            else if (connectionString.Scheme == ConnectionScheme.Couchbases)
+            {
+                Servers = connectionString.Hosts.Select(p => new Uri($"http://{p}:{Defaults.MgmtPort}/")).ToList();
+                SslPort = connectionString.Port ?? (int) Defaults.SslPort;
+                UseSsl = true;
+                PoolConfiguration.UseSsl = true;
+
+                // Disable HTTP configuration for couchbases://, per spec
+                ConfigurationProviders = ServerConfigurationProviders.CarrierPublication;
+            }
+            else if (connectionString.Scheme == ConnectionScheme.Http)
+            {
+                // Legacy HTTP connection string
+
+                Servers = connectionString.Hosts.Select(p => new Uri($"http://{p}:{connectionString.Port ?? Defaults.MgmtPort}/")).ToList();
+                UseSsl = false;
+                PoolConfiguration.UseSsl = false;
+
+                // Always use HTTP scheme heuristics, per spec
+                ConfigurationProviders = ServerConfigurationProviders.HttpStreaming |
+                                         ServerConfigurationProviders.CarrierPublication;
+            }
+
+            _serversChanged = true;
+        }
     }
 }
 
