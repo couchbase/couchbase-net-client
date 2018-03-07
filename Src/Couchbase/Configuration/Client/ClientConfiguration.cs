@@ -112,10 +112,10 @@ namespace Couchbase.Configuration.Client
 
             public static bool ForceSaslPlain = false;
 
-            public static bool OperationTracingEnabled = true;
-            public static bool OrphanedResponseLoggingEnabled = true;
+            public static bool OperationTracingEnabled = false;
+            public static bool OrphanedResponseLoggingEnabled = false;
 
-            public static bool ServerDurationTracingEnabled = true;
+            public static bool ServerDurationTracingEnabled = false;
         }
 
         public ClientConfiguration()
