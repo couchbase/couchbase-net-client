@@ -92,7 +92,7 @@ namespace Couchbase.Tracing
         {
             return BuildSpan(tracer, operation, CouchbaseOperationNames.DispatchToServer, bucketName)
                 .WithTag(Tags.PeerAddress, connection.EndPoint?.ToString() ?? Unknown)
-                .WithTag(CouchbaseTags.LocalAddress, connection.Socket?.LocalEndPoint.ToString() ?? Unknown)
+                .WithTag(CouchbaseTags.LocalAddress, connection.LocalEndPoint?.ToString() ?? Unknown)
                 .AsChildOf(operation.ActiveSpan);
         }
 

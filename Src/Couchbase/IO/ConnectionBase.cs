@@ -44,6 +44,7 @@ namespace Couchbase.IO
             Converter = converter;
             BufferAllocator = bufferAllocator;
             EndPoint = socket.RemoteEndPoint;
+            LocalEndPoint = socket.LocalEndPoint;
             MustEnableServerFeatures = true;
         }
 
@@ -104,6 +105,8 @@ namespace Couchbase.IO
         /// The end point.
         /// </value>
         public EndPoint EndPoint { get; private set; }
+
+        public EndPoint LocalEndPoint { get; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is dead.
@@ -304,9 +307,9 @@ namespace Couchbase.IO
             var builder = new StringBuilder(ExceptionUtil.OperationTimeout);
             builder.AppendFormat(format, kv);
             builder.AppendFormat(format, correlationId);
-            builder.AppendFormat(format, Socket.LocalEndPoint);
+            builder.AppendFormat(format, LocalEndPoint);
             builder.AppendFormat(format, Configuration.SendTimeout);
-            builder.AppendFormat(format, Socket.RemoteEndPoint);
+            builder.AppendFormat(format, EndPoint);
 
             var message = builder.ToString();
             Log.Info(message);
@@ -314,9 +317,9 @@ namespace Couchbase.IO
             var exception = new SendTimeoutExpiredException(message);
             exception.Data.Add("ServiceType", kv);
             exception.Data.Add("CorrelationId", correlationId);
-            exception.Data.Add("LocalEndpoint", Socket.LocalEndPoint.ToString());
+            exception.Data.Add("LocalEndpoint", LocalEndPoint.ToString());
             exception.Data.Add("Timeout", Configuration.SendTimeout);
-            exception.Data.Add("RemoteEndpoint", Socket.RemoteEndPoint.ToString());
+            exception.Data.Add("RemoteEndpoint", EndPoint.ToString());
             return exception;
         }
     }

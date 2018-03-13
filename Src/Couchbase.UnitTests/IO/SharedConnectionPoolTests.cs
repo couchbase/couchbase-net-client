@@ -103,6 +103,7 @@ namespace Couchbase.UnitTests.IO
             public bool IsSecure { get; private set; }
             public bool IsConnected { get; private set; }
             public EndPoint EndPoint { get; private set; }
+            public EndPoint LocalEndPoint { get; }
             public bool IsDead { get; set; }
 
             public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)

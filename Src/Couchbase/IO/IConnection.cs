@@ -54,6 +54,11 @@ namespace Couchbase.IO
         EndPoint EndPoint { get; }
 
         /// <summary>
+        /// Gets the local endpoint for the connected socket.
+        /// </summary>
+        EndPoint LocalEndPoint { get; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this instance is dead.
         /// </summary>
         /// <value>

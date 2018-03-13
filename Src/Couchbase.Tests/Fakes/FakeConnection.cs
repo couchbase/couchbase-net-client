@@ -46,6 +46,7 @@ namespace Couchbase.Tests.Fakes
         public bool IsSecure { get; protected set; }
 
         public EndPoint EndPoint { get; private set; }
+        public EndPoint LocalEndPoint { get; private set; }
 
         public bool IsDead { get; set; }
 
