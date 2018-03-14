@@ -5,7 +5,7 @@
     <Title>Couchbase SDK 2.5</Title>
     <Authors>Couchbase, Inc.</Authors>
     <Owners>Couchbase, Inc.</Owners>
-    <Copyright>Copyright 2017</Copyright>
+    <Copyright>Copyright 2018</Copyright>
     <Description>The Couchbase authored new and improved client for .NET based languages! Package supports both .NET Core and Full Frameworks 4.5 and greater.</Description>
     <PackageTags>Couchbase;nosql;JSON;database</PackageTags>
 
@@ -18,7 +18,7 @@
     <RootNamespace>Couchbase</RootNamespace>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
     <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
-    <VersionPrefix>2.4.5</VersionPrefix>
+    <VersionPrefix>2.5.5</VersionPrefix>
     <NoWarn>1591</NoWarn>
   </PropertyGroup>
 
@@ -37,12 +37,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-    <PackageReference Include="OpenTracing" Version="0.10.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.1" />
+    <PackageReference Include="OpenTracing" Version="0.11.0" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-    <PackageReference Include="Common.Logging" Version="3.3.1" />
+    <PackageReference Include="Common.Logging" Version="3.4.1" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' Or '$(TargetFramework)' == 'netstandard2.0' ">
