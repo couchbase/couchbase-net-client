@@ -20,6 +20,8 @@
     <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
     <VersionPrefix>2.5.7-alpha1</VersionPrefix>
     <NoWarn>1591</NoWarn>
+
+    <SourceLinkOriginUrl>https://github.com/couchbase/couchbase-net-client.git</SourceLinkOriginUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
@@ -39,6 +41,7 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <PackageReference Include="OpenTracing.Signed" Version="0.10.4" />
+    <PackageReference Include="SourceLink.Create.CommandLine" Version="2.8.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
