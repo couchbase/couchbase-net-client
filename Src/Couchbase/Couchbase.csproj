@@ -18,8 +18,9 @@
     <RootNamespace>Couchbase</RootNamespace>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
     <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
-    <VersionPrefix>2.4.5</VersionPrefix>
+    <VersionPrefix>2.5.7-alpha1</VersionPrefix>
     <NoWarn>1591</NoWarn>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
@@ -38,7 +39,7 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-    <PackageReference Include="OpenTracing" Version="0.10.0" />
+    <PackageReference Include="OpenTracing.Signed" Version="0.10.2" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
