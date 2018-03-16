@@ -61,8 +61,8 @@
       <HintPath>..\packages\NUnit.3.4.1\lib\net45\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="OpenTracing.Signed, Version=0.10.2.0, Culture=neutral, PublicKeyToken=05e9c6b5a9ec94c2, processorArchitecture=MSIL">
-      <HintPath>..\packages\OpenTracing.Signed.0.10.2\lib\net45\OpenTracing.Signed.dll</HintPath>
+    <Reference Include="OpenTracing.Signed, Version=0.10.4.0, Culture=neutral, PublicKeyToken=05e9c6b5a9ec94c2, processorArchitecture=MSIL">
+      <HintPath>..\packages\OpenTracing.Signed.0.10.4\lib\net45\OpenTracing.Signed.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
