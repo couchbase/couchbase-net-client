@@ -7,6 +7,7 @@ using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Views;
 using OpenTracing;
+using OpenTracing.NullTracer;
 
 namespace Couchbase.Tracing
 {
@@ -90,15 +91,25 @@ namespace Couchbase.Tracing
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IOperation operation, IConnection connection, string bucketName = null)
         {
-            return BuildSpan(tracer, operation, CouchbaseOperationNames.DispatchToServer, bucketName)
+            var span = BuildSpan(tracer, operation, CouchbaseOperationNames.DispatchToServer, bucketName);
+            if (span is NullSpan)
+            {
+                return span;
+            }
+
+            return span
                 .WithTag(Tags.PeerAddress, connection.EndPoint?.ToString() ?? Unknown)
-                .WithTag(CouchbaseTags.LocalAddress, connection.LocalEndPoint?.ToString() ?? Unknown)
-                .AsChildOf(operation.ActiveSpan);
+                .WithTag(CouchbaseTags.LocalAddress, connection.LocalEndPoint?.ToString() ?? Unknown);
         }
 
         private static ISpanBuilder BuildSpan(this ITracer tracer, IOperation operation, string operationName, string bucketName)
         {
-            return tracer.BuildSpan(operationName)
+            var span = tracer.BuildSpan(operationName);
+            if (span is NullSpan)
+            {
+                return span;
+            }
+            return span
                 .WithTag(CouchbaseTags.OperationId, $"0x{operation.Opaque:x}") // use opaque as hex value
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceKv)
                 .WithTag(Tags.DbInstance, string.IsNullOrWhiteSpace(bucketName) ? Unknown : bucketName)
@@ -131,7 +142,12 @@ namespace Couchbase.Tracing
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IViewQueryable query, string operationName)
         {
-            return tracer.BuildSpan(operationName)
+            var span = tracer.BuildSpan(operationName);
+            if (span is NullSpan)
+            {
+                return span;
+            }
+            return span
                 .WithTag(CouchbaseTags.OperationId, GetOrGenerateOperationId(query.ActiveSpan))
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceView)
                 .AsChildOf(query.ActiveSpan);
@@ -163,7 +179,12 @@ namespace Couchbase.Tracing
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IQueryRequest query, string operationName)
         {
-            return tracer.BuildSpan(operationName)
+            var span = tracer.BuildSpan(operationName);
+            if (span is NullSpan)
+            {
+                return span;
+            }
+            return span
                 .WithTag(CouchbaseTags.OperationId, query.CurrentContextId)
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceN1ql)
                 .WithTag(Tags.DbStatement, query.GetOriginalStatement())
@@ -196,7 +217,12 @@ namespace Couchbase.Tracing
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, SearchQuery query, string operationName)
         {
-            return tracer.BuildSpan(operationName)
+            var span = tracer.BuildSpan(operationName);
+            if (span is NullSpan)
+            {
+                return span;
+            }
+            return span
                 .WithTag(CouchbaseTags.OperationId, GetOrGenerateOperationId(query.ActiveSpan))
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceSearch)
                 .AsChildOf(query.ActiveSpan);
@@ -228,7 +254,12 @@ namespace Couchbase.Tracing
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IAnalyticsRequest request, string operationName)
         {
-            return tracer.BuildSpan(operationName)
+            var span = tracer.BuildSpan(operationName);
+            if (span is NullSpan)
+            {
+                return span;
+            }
+            return span
                 .WithTag(CouchbaseTags.OperationId, request.CurrentContextId)
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceAnalytics)
                 .WithTag(Tags.DbStatement, request.OriginalStatement)
