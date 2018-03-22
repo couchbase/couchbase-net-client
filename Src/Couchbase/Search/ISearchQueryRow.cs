@@ -47,7 +47,7 @@ namespace Couchbase.Search
         /// <value>
         /// The fields.
         /// </value>
-        IDictionary<string, string> Fields { get; }
+        IDictionary<string, dynamic> Fields { get; }
 
         /// <summary>
         /// The highlighted fragments of the search hits within the content.

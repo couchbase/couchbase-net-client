@@ -37,7 +37,7 @@ namespace Couchbase.Search
                     Explanation = ReadValue<dynamic>(hit, "explanation"),
                     Locations = ReadValue<dynamic>(hit, "locations"),
                     Fragments = ReadValue<Dictionary<string, List<string>>>(hit, "fragments"),
-                    Fields = ReadValue<Dictionary<string, string>>(hit, "fields")
+                    Fields = ReadValue<Dictionary<string, dynamic>>(hit, "fields")
                 });
             }
         }
