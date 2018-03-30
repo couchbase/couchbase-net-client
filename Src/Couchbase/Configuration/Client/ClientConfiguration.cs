@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Couchbase.Logging;
 using Couchbase.Authentication;
@@ -50,6 +51,7 @@ namespace Couchbase.Configuration.Client
         private int _viewRequestTimeout;
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
+        private bool _enableCertificateAuthentication;
 
         [Obsolete]
         private double _heartbeatConfigInterval;
@@ -1210,9 +1212,11 @@ namespace Couchbase.Configuration.Client
                     }
                 }
 
-                //make sure the pool config gets updated with the cert auth flag
-                bucketConfiguration.PoolConfiguration.EnableCertificateAuthentication =
-                    bucketConfiguration.EnableCertificateAuthentication;
+                //make sure the pool config gets updated with the cert auth flag and sets UseSsl based on its value
+                if (UseSsl || EnableCertificateAuthentication)
+                {
+                    bucketConfiguration.PoolConfiguration.UseSsl = true;
+                }
 
                 bucketConfiguration.PoolConfiguration.Validate();
                 //operation lifespan: if it has changed at bucket level, use bucket level, else use global level
@@ -1338,6 +1342,26 @@ namespace Couchbase.Configuration.Client
 
             _serversChanged = true;
         }
+
+        /// Enables X509 authentication with the Couchbase cluster.
+        /// </summary>
+        public bool EnableCertificateAuthentication
+        {
+            get => _enableCertificateAuthentication;
+            set
+            {
+                _enableCertificateAuthentication = value;
+                if (_enableCertificateAuthentication)
+                {
+                    UseSsl = _enableCertificateAuthentication;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Factory for retrieving X509 certificates from a store or off of the file system.
+        /// </summary>
+        public Func<X509Certificate2Collection> CertificateFactory { get; set; }
     }
 }
 

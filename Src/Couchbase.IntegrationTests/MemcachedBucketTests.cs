@@ -43,8 +43,11 @@ namespace Couchbase.IntegrationTests
                 Servers = new List<Uri>{new Uri(uri)}
             };
 
-            var cluster = new Cluster(config);
-            Assert.DoesNotThrow(() => cluster.OpenBucket("memcached"));
+            using (var cluster = new Cluster(config))
+            {
+                cluster.SetupEnhancedAuth();
+                Assert.DoesNotThrow(() => cluster.OpenBucket("memcached"));
+            }
         }
 
         [Test]

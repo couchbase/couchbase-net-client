@@ -55,6 +55,7 @@ namespace Couchbase.Core
                 N1QL = _nodeExt.Services.N1QL;
                 N1QLSsl = _nodeExt.Services.N1QLSsl;
                 Fts = _nodeExt.Services.Fts;
+                FtsSsl = _nodeExt.Services.FtsSSL;
                 Analytics = _nodeExt.Services.Analytics;
                 AnalyticsSsl = _nodeExt.Services.AnalyticsSsl;
             }

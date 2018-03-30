@@ -54,27 +54,6 @@ namespace Couchbase.Configuration.Client
         }
 
         /// <summary>
-        /// Enables X509 authentication with the Couchbase cluster.
-        /// </summary>
-        public bool EnableCertificateAuthentication
-        {
-            get => _enableCertificateAuthentication;
-            set
-            {
-                _enableCertificateAuthentication = value;
-                if (_enableCertificateAuthentication)
-                {
-                    UseSsl = _enableCertificateAuthentication;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Factory for retrieving X509 certificates from a store or off of the file system.
-        /// </summary>
-        public Func<X509Certificate2Collection> CertificateFactory { get; set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether to use enhanced durability if the
         /// Couchbase server version supports it; if it's not supported the client will use
         /// Observe for Endure operations.
@@ -232,8 +211,6 @@ namespace Couchbase.Configuration.Client
             poolConfig.UseKvErrorMap = UseKvErrorMap;
             poolConfig.UseSsl = UseSsl;
             poolConfig.BucketName = BucketName;
-            poolConfig.EnableCertificateAuthentication = EnableCertificateAuthentication;
-            poolConfig.CertificateFactory = CertificateFactory;
             return poolConfig;
         }
     }

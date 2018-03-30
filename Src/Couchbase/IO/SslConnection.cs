@@ -56,13 +56,13 @@ namespace Couchbase.IO
 
                 using (new SynchronizationContextExclusion())
                 {
-                    if (ConnectionPool.Configuration.EnableCertificateAuthentication)
+                    if (Configuration.ClientConfiguration.EnableCertificateAuthentication)
                     {
-                        if (ConnectionPool.Configuration.CertificateFactory == null)
+                        if (Configuration.ClientConfiguration.CertificateFactory == null)
                         {
                             throw new NullConfigException("If BucketConfiguration.EnableCertificateAuthentication is true, CertificateFactory cannot be null.");
                         }
-                        var certs = ConnectionPool.Configuration.CertificateFactory();
+                        var certs = Configuration.ClientConfiguration.CertificateFactory();
                         _sslStream.AuthenticateAsClientAsync(targetHost, certs, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, true).Wait();
                     }
                     else

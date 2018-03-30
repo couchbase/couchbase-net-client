@@ -12,6 +12,9 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("fts")]
         public int Fts { get; set; }
 
+        [JsonProperty("ftsSSL")]
+        public int FtsSSL { get; set; }
+
         [JsonProperty("mgmt")]
         public int Mgmt { get; set; }
 

@@ -1,20 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Authentication.X509;
 using Couchbase.Configuration.Client;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
+using Couchbase.N1QL;
+using Couchbase.Search;
+using Couchbase.Search.Queries.Simple;
 using Couchbase.Utils;
+using Couchbase.Views;
 using Moq;
 using NUnit.Framework;
 
@@ -32,7 +31,7 @@ namespace Couchbase.IntegrationTests.IO
             var poolFactory = ConnectionPoolFactory.GetFactory();
 
             ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;
-            var poolConfig = new PoolConfiguration {UseSsl = true, Uri = bootstrapUri  };
+            var poolConfig = new PoolConfiguration {UseSsl = true, Uri = bootstrapUri, ClientConfiguration  = new ClientConfiguration()};
 
             var pool = poolFactory(poolConfig, endpoint);
             var conn = connFactory((IConnectionPool<SslConnection>) pool, new DefaultConverter(), new BufferAllocator(1024 * 16, 1024 * 16));
@@ -55,7 +54,7 @@ namespace Couchbase.IntegrationTests.IO
             var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             socket.Connect(endpoint);
 
-            var poolConfig = new PoolConfiguration { UseSsl = true, Uri = bootstrapUri };
+            var poolConfig = new PoolConfiguration {UseSsl = true, Uri = bootstrapUri, ClientConfiguration = new ClientConfiguration()};
             var sslStream = new Mock<SslStream>(new MemoryStream(), true, new RemoteCertificateValidationCallback(ServerCertificateValidationCallback));
             sslStream.Setup(x => x.IsAuthenticated).Returns(isAuthenticated);
             sslStream.Setup(x => x.IsEncrypted).Returns(isEncrypted);
@@ -86,23 +85,121 @@ namespace Couchbase.IntegrationTests.IO
         [Ignore("Depends on a X509 cert being generated, configured on the server and installed. See: https://developer.couchbase.com/documentation/server/current/security/security-x509certsintro.html")]
         public void Test_KV_Certificate_Authentication()
         {
-            var config = TestConfiguration.GetConfiguration("ssl");
+            var config = TestConfiguration.GetConfiguration("basic");
             config.UseSsl = true;
 
             ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;//ignore for now
-            config.BucketConfigs["default"].EnableCertificateAuthentication = true;
-            config.BucketConfigs["default"].CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
+            config.EnableDeadServiceUriPing = true; //temp must fix
+            config.EnableCertificateAuthentication = true;
+            config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
                 new PathAndPasswordOptions
                 {
-                    Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
+                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
+                    Path = "C:\\Users\\jmorris\\client.pfx",
                     Password = "password"
                 });
+
             var cluster = new Cluster(config);
 
             var bucket = cluster.OpenBucket();
             var result = bucket.Upsert("mykey", "myvalue");
             Assert.AreEqual(ResponseStatus.Success, result.Status);
-            Assert.IsNotNull(bucket);
+
+            var query = new QueryRequest("SELECT * FROM `default`;");
+            var queryResult = bucket.Query<dynamic>(query);
+
+            Assert.True(queryResult.Success);
+            foreach (var r in queryResult)
+            {
+                Console.WriteLine(r);
+            }
+
+        }
+
+        [Test]
+        [Ignore("Depends on a X509 cert being generated, configured on the server and installed. See: https://developer.couchbase.com/documentation/server/current/security/security-x509certsintro.html")]
+        public void Test_Query_Certificate_Authentication()
+        {
+            var config = TestConfiguration.GetConfiguration("basic");
+            config.UseSsl = true;
+
+            ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;//ignore for now
+            config.EnableDeadServiceUriPing = true; //temp must fix
+            config.EnableCertificateAuthentication = true;
+            config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
+                new PathAndPasswordOptions
+                {
+                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
+                    Path = "C:\\Users\\jmorris\\client.pfx",
+                    Password = "password"
+                });
+
+            using (var cluster = new Cluster(config))
+            {
+                var bucket = cluster.OpenBucket();
+                var query = new QueryRequest("SELECT * FROM `default`;");
+                var queryResult = bucket.Query<dynamic>(query);
+
+                Assert.True(queryResult.Success);
+            }
+        }
+
+        [Test]
+        [Ignore("Depends on a X509 cert being generated, configured on the server and installed. See: https://developer.couchbase.com/documentation/server/current/security/security-x509certsintro.html")]
+        public void Test_View_Certificate_Authentication()
+        {
+            var config = TestConfiguration.GetConfiguration("basic");
+            config.UseSsl = true;
+
+            ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;//ignore for now
+            config.EnableDeadServiceUriPing = true; //temp must fix
+            config.EnableCertificateAuthentication = true;
+            config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
+                new PathAndPasswordOptions
+                {
+                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
+                    Path = "C:\\Users\\jmorris\\client.pfx",
+                    Password = "password"
+                });
+
+            using (var cluster = new Cluster(config))
+            {
+                var bucket = cluster.OpenBucket();
+                var viewQuery = new ViewQuery("default", "test", "test");
+                var viewResult = bucket.Query<dynamic>(viewQuery);
+                Assert.True(viewResult.Success);
+            }
+        }
+
+        [Test]
+        [Ignore("Depends on a X509 cert being generated, configured on the server and installed. See: https://developer.couchbase.com/documentation/server/current/security/security-x509certsintro.html")]
+        public void Test_Search_Certificate_Authentication()
+        {
+            var config = TestConfiguration.GetConfiguration("basic");
+            config.UseSsl = true;
+
+            ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;//ignore for now
+            config.EnableDeadServiceUriPing = true; //temp must fix
+            config.EnableCertificateAuthentication = true;
+            config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
+                new PathAndPasswordOptions
+                {
+                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
+                    Path = "C:\\Users\\jmorris\\client.pfx",
+                    Password = "password"
+                });
+
+            using (var cluster = new Cluster(config))
+            {
+                var bucket = cluster.OpenBucket();
+                var query = new MatchQuery("inn");
+                var searchResult = bucket.Query(new SearchQuery
+                {
+                    Index = "idx_test",
+                    Query = query
+                }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)));
+                Assert.True(searchResult.Success);
+            }
         }
     }
 }

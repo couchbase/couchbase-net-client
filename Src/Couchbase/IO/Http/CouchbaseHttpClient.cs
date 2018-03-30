@@ -16,12 +16,18 @@ namespace Couchbase.IO.Http
         private const string UserAgentHeaderName = "User-Agent";
         private static readonly ILog Log = LogManager.GetLogger<CouchbaseHttpClient>();
 
+        //used by all http services
         internal CouchbaseHttpClient(ClientConfiguration config, IBucketConfig bucketConfig)
             : this (CreateClientHandler(config, bucketConfig))
         {
             DefaultRequestHeaders.ExpectContinue = config.Expect100Continue;
         }
 
+        /// <summary>
+        /// used by BucketManager and ClientManager
+        /// </summary>
+        /// <param name="bucketName"></param>
+        /// <param name="password"></param>
         internal CouchbaseHttpClient(string bucketName, string password)
             : this(CreateClientHandler(bucketName, password, null))
         {
@@ -35,6 +41,7 @@ namespace Couchbase.IO.Http
 
         private static AuthenticatingHttpClientHandler CreateClientHandler(ClientConfiguration clientConfiguration, IBucketConfig bucketConfig)
         {
+            Log.Debug("Creating CouchbaseClientHandler.");
             if (clientConfiguration.HasCredentials && clientConfiguration.Authenticator.AuthenticatorType == AuthenticatorType.Password)
             {
                 var credentials = clientConfiguration.Authenticator.GetCredentials(AuthContext.BucketKv).First();
@@ -53,6 +60,13 @@ namespace Couchbase.IO.Http
         private static AuthenticatingHttpClientHandler CreateClientHandler(string username, string password, ClientConfiguration config)
         {
             var handler = new AuthenticatingHttpClientHandler(username, password);
+
+            //for x509 cert authentication
+            if (config != null && config.EnableCertificateAuthentication)
+            {
+                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                handler.ClientCertificates.AddRange(config.CertificateFactory());
+            }
 
 #if NET45
             handler.ServerCertificateValidationCallback = OnCertificateValidation;
@@ -96,6 +110,7 @@ namespace Couchbase.IO.Http
                     return true;
                 }
             }
+
             return sslPolicyErrors == SslPolicyErrors.None;
         }
     }

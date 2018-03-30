@@ -47,12 +47,9 @@ namespace Couchbase.UnitTests.Configuration.Client
         {
             var config = new ClientConfiguration
             {
-                PoolConfiguration = new PoolConfiguration
-                {
-                    EnableCertificateAuthentication = enabled
-                }
+                EnableCertificateAuthentication = enabled
             };
-
+            config.Initialize();
             Assert.AreEqual(enabled, config.PoolConfiguration.UseSsl);
         }
 
@@ -64,15 +61,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         {
             var config = new ClientConfiguration
             {
-                BucketConfigs = new Dictionary<string, BucketConfiguration>
-                {
-                    {
-                        "default", new BucketConfiguration
-                        {
-                            EnableCertificateAuthentication = enabled
-                        }
-                    }
-                }
+                EnableCertificateAuthentication = enabled
             };
             config.Initialize();
 
@@ -84,12 +73,12 @@ namespace Couchbase.UnitTests.Configuration.Client
         {
             var config = new ClientConfiguration
             {
+                EnableCertificateAuthentication = false,
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
                     {
                         "default", new BucketConfiguration
                         {
-                            EnableCertificateAuthentication = false,
                             PoolConfiguration = new PoolConfiguration
                             {
                                 UseSsl = true
@@ -108,13 +97,13 @@ namespace Couchbase.UnitTests.Configuration.Client
         {
             var config = new ClientConfiguration
             {
+                EnableCertificateAuthentication = false,
                 UseSsl = true,
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
                     {
                         "default", new BucketConfiguration
                         {
-                            EnableCertificateAuthentication = false
                         }
                     }
                 }
