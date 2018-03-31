@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -44,6 +44,7 @@ namespace Couchbase.N1QL
         private int? _pipelineBatch;
         private int? _pipelineCapacity;
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
+        private QueryProfile _profile = QueryProfile.Off;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -109,6 +110,7 @@ namespace Couchbase.N1QL
             public const string ScanCapacity = "scan_cap";
             public const string PipelineBatch = "pipeline_batch";
             public const string PipelineCapacity = "pipeline_cap";
+            public const string Profile = "profile";
         }
 
         /// <summary>
@@ -677,6 +679,12 @@ namespace Couchbase.N1QL
             return this;
         }
 
+        public IQueryRequest Profile(QueryProfile profile)
+        {
+            _profile = profile;
+            return this;
+        }
+
         public Uri GetBaseUri()
         {
             return _baseUri;
@@ -831,6 +839,10 @@ namespace Couchbase.N1QL
             if (generateNewId)
             {
                 _requestContextId = QuerySequenceGenerator.GetNext();
+            }
+            if (_profile != QueryProfile.Off)
+            {
+                formValues.Add(QueryParameters.Profile, _profile.ToString().ToLowerInvariant());
             }
             foreach (var parameter in _rawParameters)
             {

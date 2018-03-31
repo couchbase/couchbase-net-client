@@ -19,10 +19,10 @@ namespace Couchbase.N1QL
     {
         public QueryResult()
         {
-           Rows = new List<T>();
-           Errors = new List<Error>();
-           Warnings = new List<Warning>();
-           Metrics = new Metrics();
+            Rows = new List<T>();
+            Errors = new List<Error>();
+            Warnings = new List<Warning>();
+            Metrics = new Metrics();
         }
 
         /// <summary>
@@ -103,6 +103,14 @@ namespace Couchbase.N1QL
         /// The metrics.
         /// </value>
         public Metrics Metrics { get; internal set; }
+
+        /// <summary>
+        /// Gets the requet N1QL query profile.
+        /// </summary>
+        /// <value>
+        /// The profile.
+        /// </value>
+        public dynamic Profile { get; internal set; }
 
         /// <summary>
         /// Gets the HTTP status code.
@@ -189,6 +197,7 @@ namespace Couchbase.N1QL
         public IEnumerable<ErrorData> errors { get; set; }
         public IEnumerable<WarningData> warnings { get; set; }
         public MetricsData metrics { get; set; }
+        public dynamic profile { get; set; }
 
         public QueryResultData()
         {
@@ -210,6 +219,7 @@ namespace Couchbase.N1QL
                 Errors = errors != null ? errors.Select(e => e.ToError()).ToList() : null,
                 Warnings = warnings != null ? warnings.Select(w => w.ToWarning()).ToList() : null,
                 Metrics = metrics != null ? metrics.ToMetrics() : null,
+                Profile = profile
             };
         }
     }

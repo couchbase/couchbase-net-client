@@ -72,6 +72,14 @@ namespace Couchbase.N1QL
         /// The metrics.
         /// </value>
         Metrics Metrics { get; }
+
+        /// <summary>
+        /// Gets the requet N1QL query profile.
+        /// </summary>
+        /// <value>
+        /// The profile.
+        /// </value>
+        dynamic Profile { get; }
     }
 }
 #region [ License information ]

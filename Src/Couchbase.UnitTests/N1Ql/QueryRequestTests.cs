@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.N1QL;
@@ -479,6 +479,26 @@ namespace Couchbase.UnitTests.N1Ql
             var fields = request.GetFormValues();
             Assert.IsTrue(fields.TryGetValue(parameterName, out var value));
             Assert.AreEqual(parameterValue, value);
+        }
+
+        [TestCase(QueryProfile.Off, null)]
+        [TestCase(QueryProfile.Phases, "phases")]
+        [TestCase(QueryProfile.Timings, "timings")]
+        public void Profile_can_be_set(QueryProfile profile, string expected)
+        {
+            var request = new QueryRequest("SELECT * FROM default;");
+            request.Profile(profile);
+
+            var fields = request.GetFormValues();
+
+            if (string.IsNullOrWhiteSpace(expected))
+            {
+                Assert.IsFalse(fields.ContainsKey("profile"));
+            }
+            else
+            {
+                Assert.AreEqual(expected, fields["profile"]);
+            }
         }
     }
 }

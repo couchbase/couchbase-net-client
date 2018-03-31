@@ -32,6 +32,7 @@ namespace Couchbase.N1QL
         private List<Error> _errors = new List<Error>();
         private List<Warning> _warnings = new List<Warning>();
         private Metrics _metrics = new Metrics();
+        private dynamic _profile;
         private volatile bool _isHeaderRead;
         private volatile bool _hasReadResults;
         private volatile bool _hasFinishedReading;
@@ -242,6 +243,22 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
+        /// Gets the requet N1QL query profile.
+        /// </summary>
+        /// <value>
+        /// The profile.
+        /// </value>
+        public dynamic Profile
+        {
+            get
+            {
+                CheckRead();
+                return _profile;
+            }
+            private set { _profile = value; }
+        }
+
+        /// <summary>
         /// Gets the HTTP status code.
         /// </summary>
         /// <value>
@@ -382,6 +399,10 @@ namespace Couchbase.N1QL
                 else if (_reader.Path == "signature")
                 {
                     Signature = JToken.ReadFrom(_reader);
+                }
+                else if (_reader.Path == "profile")
+                {
+                    Profile = JToken.ReadFrom(_reader);
                 }
                 else if (_reader.Path == "metrics.elapsedTime" && _reader.TokenType == JsonToken.String)
                 {

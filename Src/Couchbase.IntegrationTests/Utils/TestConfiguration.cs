@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
-using System.Linq;
 using Couchbase.Core;
+using Couchbase.Core.Version;
 
 namespace Couchbase.IntegrationTests.Utils
 {
@@ -99,6 +99,14 @@ namespace Couchbase.IntegrationTests.Utils
             if (!Settings.EnhancedAuth)
             {
                 Assert.Ignore("RBAC only test.");
+            }
+        }
+
+        public static void IgnoreIfNotAtLeastServer50(ICluster cluster, string message)
+        {
+            if (ClusterVersionProvider.Instance.GetVersion(cluster) < new ClusterVersion(new Version(5, 0)))
+            {
+                Assert.Ignore(message);
             }
         }
     }
