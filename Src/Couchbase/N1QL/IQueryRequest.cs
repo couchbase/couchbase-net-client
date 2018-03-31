@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
@@ -312,6 +312,13 @@ namespace Couchbase.N1QL
         /// Intended for internal use only.
         /// </summary>
         ISpan ActiveSpan { get; set; }
+
+        /// <summary>
+        /// Indicates if a profile section should be requested in the result. Default is <see cref="QueryProfile.Off"/>.
+        /// </summary>
+        /// <param name="profile">The profile.</param>
+        /// <returns></returns>
+        IQueryRequest Profile(QueryProfile profile);
     }
 }
 

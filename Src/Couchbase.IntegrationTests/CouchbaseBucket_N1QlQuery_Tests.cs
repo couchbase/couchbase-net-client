@@ -348,6 +348,42 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(pretty, Regex.IsMatch(content, @"^ ", RegexOptions.Multiline));
         }
 
+        [TestCase(QueryProfile.Off)]
+        [TestCase(QueryProfile.Phases)]
+        [TestCase(QueryProfile.Timings)]
+        public async Task Can_Request_Profile(QueryProfile profile)
+        {
+            TestConfiguration.IgnoreIfNotAtLeastServer50(_cluster, "N1QL profile parameter requires Server 5.0+");
+
+            var request = new QueryRequest("SELECT * FROM `travel-sample` LIMIT 10;")
+                .Profile(profile);
+
+            using (var result = await _bucket.QueryAsync<dynamic>(request))
+            {
+                Assert.IsTrue(result.Success);
+                Assert.IsTrue(profile == QueryProfile.Off ? result.Profile == null : result.Profile != null);
+            }
+        }
+
+        [TestCase(QueryProfile.Off)]
+        [TestCase(QueryProfile.Phases)]
+        [TestCase(QueryProfile.Timings)]
+        public async Task Can_Request_Profile_With_Streaming(QueryProfile profile)
+        {
+            TestConfiguration.IgnoreIfNotAtLeastServer50(_cluster, "N1QL profile parameter requires Server 5.0+");
+
+            var request = new QueryRequest("SELECT * FROM `travel-sample` LIMIT 10;")
+                .UseStreaming(true)
+                .Profile(profile);
+
+            using (var result = await _bucket.QueryAsync<dynamic>(request))
+            {
+                Assert.IsTrue(result.Success);
+                result.ToArray(); // read rows and remainder of payload
+                Assert.IsTrue(profile == QueryProfile.Off ? result.Profile == null : result.Profile != null);
+            }
+        }
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
