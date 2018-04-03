@@ -1,7 +1,10 @@
+using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Version;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using NUnit.Framework;
@@ -296,6 +299,209 @@ namespace Couchbase.IntegrationTests.Management
             Assert.IsTrue(removeResult.Success);
         }
 
+        #region FTS Index Management
+
+        [Test]
+        public async Task Can_List_All_FTS_Indexes()
+        {
+            var result = await _clusterManager.GetAllSearchIndexDefinitionsAsync(CancellationToken.None);
+            Assert.IsTrue(result.Success);
+        }
+
+        [Test]
+        public async Task Can_Create_Get_and_Delete_FTS_Index()
+        {
+            var definition = new SearchIndexDefinition("test-index", "default");
+
+            try
+            {
+                var createResult = await _clusterManager.CreateSearchIndexAsync(definition);
+                Assert.IsTrue(createResult.Success);
+                Assert.IsNull(createResult.Value);
+
+                var getResult = await _clusterManager.GetSearchIndexDefinitionAsync(definition.IndexName);
+                Assert.IsTrue(getResult.Success);
+                Assert.IsNotEmpty(getResult.Value);
+
+                // wait a second to give the index to register
+                await Task.Delay(TimeSpan.FromSeconds(1));
+
+                var countResult = await _clusterManager.GetSearchIndexDocumentCountAsync(definition.IndexName);
+                Assert.IsTrue(countResult.Success);
+                Assert.IsTrue(countResult.Value > 0);
+            }
+            finally
+            {
+                var deleteResult = await _clusterManager.DeleteSearchIndexAsync(definition.IndexName);
+                Assert.IsTrue(deleteResult.Success);
+            }
+        }
+
+        [TestCase(SearchIndexIngestionMode.Pause)]
+        [TestCase(SearchIndexIngestionMode.Resume)]
+        public async Task Can_Set_SearchIndex_IngestionMode(SearchIndexIngestionMode mode)
+        {
+            if (ClusterVersionProvider.Instance.GetVersion(_cluster) < new ClusterVersion(new Version(5, 0)))
+            {
+                Assert.Ignore("Requires Couchbase Server 5 or greater");
+            }
+
+            var definition = new SearchIndexDefinition("ingestion-index", "default");
+
+            try
+            {
+                var createResult = await _clusterManager.CreateSearchIndexAsync(definition);
+                Assert.IsTrue(createResult.Success);
+                Assert.IsNull(createResult.Value);
+
+                var pauseIngestionResult = await _clusterManager.SetSearchIndexIngestionModeAsync(definition.IndexName, mode);
+                Assert.IsTrue(pauseIngestionResult.Success);
+            }
+            finally
+            {
+                var deleteResult = await _clusterManager.DeleteSearchIndexAsync(definition.IndexName);
+                Assert.IsTrue(deleteResult.Success);
+            }
+        }
+
+        [TestCase(SearchIndexQueryMode.Allow)]
+        [TestCase(SearchIndexQueryMode.Disallow)]
+        public async Task Can_Set_SearchIndex_QueryMode(SearchIndexQueryMode mode)
+        {
+            if (ClusterVersionProvider.Instance.GetVersion(_cluster) < new ClusterVersion(new Version(5, 0)))
+            {
+                Assert.Ignore("Requires Couchbase Server 5 or greater");
+            }
+
+            var definition = new SearchIndexDefinition("index-index", "default");
+
+            try
+            {
+                var createResult = await _clusterManager.CreateSearchIndexAsync(definition);
+                Assert.IsTrue(createResult.Success);
+                Assert.IsNull(createResult.Value);
+
+                var pauseIngestionResult = await _clusterManager.SetSearchIndexQueryModeAsync(definition.IndexName, mode);
+                Assert.IsTrue(pauseIngestionResult.Success);
+            }
+            finally
+            {
+                var deleteResult = await _clusterManager.DeleteSearchIndexAsync(definition.IndexName);
+                Assert.IsTrue(deleteResult.Success);
+            }
+        }
+
+        [TestCase(SearchIndexPlanFreezeMode.Freeze)]
+        [TestCase(SearchIndexPlanFreezeMode.Unfreeze)]
+        public async Task Can_Set_SearchIndex_PlanFreezeMode(SearchIndexPlanFreezeMode mode)
+        {
+            if (ClusterVersionProvider.Instance.GetVersion(_cluster) < new ClusterVersion(new Version(5, 0)))
+            {
+                Assert.Ignore("Requires Couchbase Server 5 or greater");
+            }
+
+            var definition = new SearchIndexDefinition("plan-index", "default");
+
+            try
+            {
+                var createResult = await _clusterManager.CreateSearchIndexAsync(definition);
+                Assert.IsTrue(createResult.Success);
+                Assert.IsNull(createResult.Value);
+
+                var pauseIngestionResult = await _clusterManager.SetSearchIndexPlanModeAsync(definition.IndexName, mode);
+                Assert.IsTrue(pauseIngestionResult.Success);
+            }
+            finally
+            {
+                var deleteResult = await _clusterManager.DeleteSearchIndexAsync(definition.IndexName);
+                Assert.IsTrue(deleteResult.Success);
+            }
+        }
+
+        [Test]
+        public async Task Can_Get_All_SearchIndex_Statistics()
+        {
+            var getResult = await _clusterManager.GetSearchIndexStatisticsAsync();
+            Assert.IsTrue(getResult.Success);
+            Assert.IsNotEmpty(getResult.Value);
+        }
+
+        [Test]
+        public async Task Can_Get_SearchIndex_Statistics()
+        {
+            var definition = new SearchIndexDefinition("statistics-index", "default");
+
+            try
+            {
+                var createResult = await _clusterManager.CreateSearchIndexAsync(definition);
+                Assert.IsTrue(createResult.Success);
+                Assert.IsNull(createResult.Value);
+
+                var getResult = await _clusterManager.GetSearchIndexStatisticsAsync(definition.IndexName);
+                Assert.IsTrue(getResult.Success);
+                Assert.IsNotEmpty(getResult.Value);
+            }
+            finally
+            {
+                var deleteResult = await _clusterManager.DeleteSearchIndexAsync(definition.IndexName);
+                Assert.IsTrue(deleteResult.Success);
+            }
+        }
+
+        [Test]
+        public async Task Can_Get_All_SearchIndex_Partition_Information()
+        {
+            var getResult = await _clusterManager.GetAllSearchIndexPartitionInfoAsync();
+            Assert.IsTrue(getResult.Success);
+            Assert.IsNotEmpty(getResult.Value);
+        }
+
+        [Test, Ignore("Requires partitions in search index")]
+        public async Task Can_Get_SearchIndex_Partition_Information()
+        {
+            var definition = new SearchIndexDefinition("partition-index", "default");
+
+            try
+            {
+                var createResult = await _clusterManager.CreateSearchIndexAsync(definition);
+                Assert.IsTrue(createResult.Success);
+                Assert.IsNull(createResult.Value);
+
+                var getResult = await _clusterManager.GetSearchIndexPartitionInfoAsync(definition.IndexName);
+                Assert.IsTrue(getResult.Success);
+                Assert.IsNotEmpty(getResult.Value);
+            }
+            finally
+            {
+                var deleteResult = await _clusterManager.DeleteSearchIndexAsync(definition.IndexName);
+                Assert.IsTrue(deleteResult.Success);
+            }
+        }
+
+        [Test, Ignore("Requires partitions in search index")]
+        public async Task Can_Get_SearchIndex_Partition_Count()
+        {
+            var definition = new SearchIndexDefinition("partition-index", "default");
+
+            try
+            {
+                var createResult = await _clusterManager.CreateSearchIndexAsync(definition);
+                Assert.IsTrue(createResult.Success);
+                Assert.IsNull(createResult.Value);
+
+                var getResult = await _clusterManager.GetSearchIndexPartitionDocumentCountAsync(definition.IndexName);
+                Assert.IsTrue(getResult.Success);
+                Assert.IsInstanceOf<int>(getResult.Value);
+            }
+            finally
+            {
+                var deleteResult = await _clusterManager.DeleteSearchIndexAsync(definition.IndexName);
+                Assert.IsTrue(deleteResult.Success);
+            }
+        }
+
+        #endregion
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
@@ -327,4 +533,3 @@ namespace Couchbase.IntegrationTests.Management
  * ************************************************************/
 
 #endregion
-

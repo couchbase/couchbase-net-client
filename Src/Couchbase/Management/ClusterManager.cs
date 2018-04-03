@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
@@ -17,7 +18,7 @@ using Couchbase.Views;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Server;
 using Couchbase.Utils;
-
+using Newtonsoft.Json;
 
 namespace Couchbase.Management
 {
@@ -1013,6 +1014,17 @@ namespace Couchbase.Management
             return builder.Uri;
         }
 
+        private Uri BuildFtsManagementUri(string path)
+        {
+            var scheme = _clientConfig.UseSsl ? "https" : "http";
+            var host = _clientConfig.Servers.Shuffle().First().Host;
+
+            // TODO: read parts from config
+            var port = _clientConfig.UseSsl ? 18094 : 8094;
+
+            return new UriBuilder(scheme, host, port, path).Uri;
+        }
+
         private static IEnumerable<KeyValuePair<string, string>> GetUserFormValues(string password, string name, IEnumerable<Role> roles)
         {
             var rolesValue = string.Join(",",
@@ -1033,6 +1045,405 @@ namespace Couchbase.Management
             }
 
             return values;
+        }
+
+        #endregion
+
+        #region FTS Index Management
+
+        internal const string SearchApiIndexPath = "/api/index";
+        internal const string SearchApiStatsPath = "/api/stats";
+        internal const string SearchApiPartitionPath = "/api/pindex";
+
+        /// <summary>
+        /// Gets all search index definitions asynchronously.
+        /// </summary>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        public async Task<IResult<string>> GetAllSearchIndexDefinitionsAsync(CancellationToken token = default (CancellationToken))
+        {
+            var uri = BuildFtsManagementUri(SearchApiIndexPath);
+            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<string>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var json = JsonConvert.DeserializeObject<dynamic>(value);
+                    result.Value = json.indexDefs.ToString(Formatting.None);
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets the search index definition asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        public async Task<IResult<string>> GetSearchIndexDefinitionAsync(string indexName, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            var path = Path.Combine(SearchApiIndexPath, indexName);
+            var uri = BuildFtsManagementUri(path);
+            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<string>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var json = JsonConvert.DeserializeObject<dynamic>(value);
+                    result.Value = json.indexDef.ToString(Formatting.None);
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Creates a search index asynchronously.
+        /// </summary>
+        /// <param name="definition">The definition.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        public async Task<IResult<string>> CreateSearchIndexAsync(SearchIndexDefinition definition, CancellationToken token = default(CancellationToken))
+        {
+            if (definition == null)
+            {
+                throw new ArgumentNullException(nameof(definition));
+            }
+
+            var path = Path.Combine(SearchApiIndexPath, definition.IndexName);
+            var uri = BuildFtsManagementUri(path);
+            using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
+            {
+                var data = definition.ToJson();
+                request.Content = new StringContent(data, Encoding.UTF8, MediaType.Json);
+                using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+                {
+                    // TODO: Should return new index UUID but server doesn't return it yet - leave it null for now
+                    return new DefaultResult<string>
+                    {
+                        Success = response.IsSuccessStatusCode,
+                        Message = response.ReasonPhrase,
+                        Value = null
+                    };
+                }
+            }
+        }
+
+        /// <summary>
+        /// Deletes the search index asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        public async Task<IResult> DeleteSearchIndexAsync(string indexName, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            var path = Path.Combine(SearchApiIndexPath, indexName);
+            var uri = BuildFtsManagementUri(path);
+            using (var response = await _httpClient.DeleteAsync(uri, token).ConfigureAwait(false))
+            {
+                return new DefaultResult
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets the search index document count asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        public async Task<IResult<int>> GetSearchIndexDocumentCountAsync(string indexName, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            var path = Path.Combine(SearchApiIndexPath, indexName, "count");
+            var uri = BuildFtsManagementUri(path);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<int>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var json = JsonConvert.DeserializeObject<dynamic>(value);
+                    if (int.TryParse((string) json.count, out var count))
+                    {
+                        result.Value = count;
+                    }
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Sets the search index ingestion mode asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="ingestionMode">The ingestion mode.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental </remarks>
+        public async Task<IResult> SetSearchIndexIngestionModeAsync(string indexName, SearchIndexIngestionMode ingestionMode, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            const string ingestionControlPath = "ingestControl";
+            var path = Path.Combine(SearchApiIndexPath, indexName, ingestionControlPath, ingestionMode.GetDescription());
+            var uri = BuildFtsManagementUri(path);
+            using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
+            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            {
+                return new DefaultResult
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+            }
+        }
+
+        /// <summary>
+        /// Sets the search index query mode asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="queryMode">The query mode.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental</remarks>
+        public async Task<IResult> SetSearchIndexQueryModeAsync(string indexName, SearchIndexQueryMode queryMode, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            const string queryControlPath = "queryControl";
+            var path = Path.Combine(SearchApiIndexPath, indexName, queryControlPath, queryMode.ToString().ToLowerInvariant());
+            var uri = BuildFtsManagementUri(path);
+            using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
+            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            {
+                return new DefaultResult
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+            }
+        }
+
+        /// <summary>
+        /// Sets the search index plan mode asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="planFreezeMode">The plan freeze mode.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental</remarks>
+        public async Task<IResult> SetSearchIndexPlanModeAsync(string indexName, SearchIndexPlanFreezeMode planFreezeMode, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            const string freezeControlPath = "planFreezeControl";
+            var path = Path.Combine(SearchApiIndexPath, indexName, freezeControlPath, planFreezeMode.ToString().ToLowerInvariant());
+            var uri = BuildFtsManagementUri(path);
+            using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
+            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            {
+                return new DefaultResult
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+            }
+        }
+
+        /// <summary>
+        /// Gets the search index statistics asynchronously.
+        /// </summary>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental</remarks>
+        public async Task<IResult<string>> GetSearchIndexStatisticsAsync(CancellationToken token = default(CancellationToken))
+        {
+            var path = Path.Combine(SearchApiStatsPath);
+            var uri = BuildFtsManagementUri(path);
+            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<string>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    result.Value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets the search index statistics asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental</remarks>
+        public async Task<IResult<string>> GetSearchIndexStatisticsAsync(string indexName, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            var path = Path.Combine(SearchApiStatsPath, "index", indexName);
+            var uri = BuildFtsManagementUri(path);
+            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<string>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    result.Value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets all search index partition information asynchronously.
+        /// </summary>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental</remarks>
+        public async Task<IResult<string>> GetAllSearchIndexPartitionInfoAsync(CancellationToken token = default(CancellationToken))
+        {
+            var path = Path.Combine(SearchApiPartitionPath);
+            var uri = BuildFtsManagementUri(path);
+            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<string>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var json = JsonConvert.DeserializeObject<dynamic>(value);
+                    result.Value = json.pindexes.ToString(Formatting.None);
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets the search index partition information asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental</remarks>
+        public async Task<IResult<string>> GetSearchIndexPartitionInfoAsync(string indexName, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            var path = Path.Combine(SearchApiPartitionPath, indexName);
+            var uri = BuildFtsManagementUri(path);
+            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<string>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    result.Value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Gets the search index partition document count asynchronously.
+        /// </summary>
+        /// <param name="indexName">Name of the index.</param>
+        /// <param name="token">A <see cref="T:System.Threading.CancellationToken" /> token.</param>
+        /// <remarks>Uncommitted / Experimental</remarks>
+        public async Task<IResult<int>> GetSearchIndexPartitionDocumentCountAsync(string indexName, CancellationToken token = default(CancellationToken))
+        {
+            if (string.IsNullOrWhiteSpace(indexName))
+            {
+                throw new ArgumentException("Index name cannot be empty.", nameof(indexName));
+            }
+
+            var path = Path.Combine(SearchApiPartitionPath, indexName, "count");
+            var uri = BuildFtsManagementUri(path);
+            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            {
+                var result = new DefaultResult<int>
+                {
+                    Success = response.IsSuccessStatusCode,
+                    Message = response.ReasonPhrase
+                };
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var json = JsonConvert.DeserializeObject<dynamic>(value);
+                    if (int.TryParse((string) json.count, out var count))
+                    {
+                        result.Value = count;
+                    }
+                }
+
+                return result;
+            }
         }
 
         #endregion
