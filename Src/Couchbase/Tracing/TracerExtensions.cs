@@ -99,7 +99,8 @@ namespace Couchbase.Tracing
 
             return span
                 .WithTag(Tags.PeerAddress, connection.EndPoint?.ToString() ?? Unknown)
-                .WithTag(CouchbaseTags.LocalAddress, connection.LocalEndPoint?.ToString() ?? Unknown);
+                .WithTag(CouchbaseTags.LocalAddress, connection.LocalEndPoint?.ToString() ?? Unknown)
+                .WithTag(CouchbaseTags.LocalId, connection.ContextId);
         }
 
         private static ISpanBuilder BuildSpan(this ITracer tracer, IOperation operation, string operationName, string bucketName)

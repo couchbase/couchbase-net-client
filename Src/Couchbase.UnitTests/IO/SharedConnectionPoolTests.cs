@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -99,6 +99,7 @@ namespace Couchbase.UnitTests.IO
             public Socket Socket { get; private set; }
             public Guid Identity { get; private set; }
             public ulong ConnectionId { get; }
+            public string ContextId { get; }
             public bool IsAuthenticated { get; set; }
             public bool IsSecure { get; private set; }
             public bool IsConnected { get; private set; }

@@ -1,50 +1,48 @@
-﻿using System;
-using System.Collections.Concurrent;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Logging;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using OpenTracing;
 using OpenTracing.Propagation;
 
 namespace Couchbase.Tracing
 {
-    internal class ThresholdLoggingTracer : ITracer, IDisposable
+    public class ThresholdLoggingTracer : ITracer, IDisposable
     {
         private static readonly ILog Log = LogManager.GetLogger<ThresholdLoggingTracer>();
+        internal const int MaxQueueCapacity = 1024;
 
         private readonly CancellationTokenSource _source = new CancellationTokenSource();
-        private readonly ConcurrentQueue<Span> _queuedSpans = new ConcurrentQueue<Span>();
+        private readonly LimitedConcurrentQueue<Span> _queuedSpans = new LimitedConcurrentQueue<Span>(MaxQueueCapacity);
 
-        internal int Interval { get; }
-        internal int SampleSize { get; }
-        internal Dictionary<string, int> ServiceFloors { get; }
+        internal int Interval { get; } = 10000;
+        internal int SampleSize { get; } = 10;
+
+        internal Dictionary<string, int> ServiceFloors { get; } = new Dictionary<string, int>
+        {
+            {CouchbaseTags.ServiceKv, 500000}, // 500 milliseconds
+            {CouchbaseTags.ServiceView, 1000000}, // 1 second
+            {CouchbaseTags.ServiceN1ql, 1000000}, // 1 second
+            {CouchbaseTags.ServiceSearch, 1000000}, // 1 second
+            {CouchbaseTags.ServiceAnalytics, 1000000} // 1 second
+        };
+
         internal int QueuedSpansCount => _queuedSpans.Count;
 
         public ThresholdLoggingTracer(int interval, int sampleSize, Dictionary<string, int> serviceFloors)
+            : this()
         {
             Interval = interval;
             SampleSize = sampleSize;
             ServiceFloors = serviceFloors;
-
-            Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
         }
 
         internal ThresholdLoggingTracer()
         {
-            Interval = 10000; // 10 seconds
-            SampleSize = 10;
-            ServiceFloors = new Dictionary<string, int>
-            {
-                {"kv", 500000}, // 500 milliseconds
-                {"view", 1000000}, // 1 second
-                {"n1ql", 1000000}, // 1 second
-                {"search", 1000000}, // 1 second
-                {"analytics", 1000000} // 1 second
-            };
-
             Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
         }
 
@@ -61,6 +59,37 @@ namespace Couchbase.Tracing
         public ISpanContext Extract<TCarrier>(Format<TCarrier> format, TCarrier carrier)
         {
             throw new NotSupportedException();
+        }
+
+        public int KvThreshold
+        {
+            get => ServiceFloors[CouchbaseTags.ServiceKv];
+            set => ServiceFloors[CouchbaseTags.ServiceKv] = value;
+        }
+
+        public int ViewThreshold
+        {
+            get => ServiceFloors[CouchbaseTags.ServiceView];
+            set => ServiceFloors[CouchbaseTags.ServiceView] = value;
+        }
+
+        // ReSharper disable once InconsistentNaming
+        public int N1qlThreshold
+        {
+            get => ServiceFloors[CouchbaseTags.ServiceN1ql];
+            set => ServiceFloors[CouchbaseTags.ServiceN1ql] = value;
+        }
+
+        public int SearchThreshold
+        {
+            get => ServiceFloors[CouchbaseTags.ServiceSearch];
+            set => ServiceFloors[CouchbaseTags.ServiceSearch] = value;
+        }
+
+        public int AnalyticsThreshold
+        {
+            get => ServiceFloors[CouchbaseTags.ServiceAnalytics];
+            set => ServiceFloors[CouchbaseTags.ServiceAnalytics] = value;
         }
 
         internal void ReportSpan(Span span)
@@ -112,7 +141,7 @@ namespace Couchbase.Tracing
                         return new
                         {
                             service = group.Key,
-                            spans = group.Where(span => span.Duration >= floor)
+                            spans = group.Where(span => floor > 0 && span.Duration >= floor)
                         };
                     })
                     .Where(group => group.spans.Any())

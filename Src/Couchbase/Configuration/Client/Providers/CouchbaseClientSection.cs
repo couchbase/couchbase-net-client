@@ -664,11 +664,11 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// <c>true</c> if the <see cref="T:Couchbase.Tracing.ThresholdLoggingTracer" /> is to be used; otherwise, <c>false</c>.
         /// </value>
-        [ConfigurationProperty("operationTracingEnabled", IsRequired = false, DefaultValue = false)]
-        public bool OperationTracingEnabled
+        [ConfigurationProperty("responseTimeObservabilityEnabled", IsRequired = false, DefaultValue = true)]
+        public bool ResponseTimeObservabilityEnabled
         {
-            get => (bool)this["operationTracingEnabled"];
-            set => this["operationTracingEnabled"] = value;
+            get => (bool)this["responseTimeObservabilityEnabled"];
+            set => this["responseTimeObservabilityEnabled"] = value;
         }
 
         /// <summary>
@@ -677,7 +677,7 @@ namespace Couchbase.Configuration.Client.Providers
         /// <value>
         /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.
         /// </value>
-        [ConfigurationProperty("orphanedResponseLoggingEnabled", IsRequired = false, DefaultValue = false)]
+        [ConfigurationProperty("orphanedResponseLoggingEnabled", IsRequired = false, DefaultValue = true)]
         public bool OrphanedResponseLoggingEnabled
         {
             get => (bool)this["orphanedResponseLoggingEnabled"];

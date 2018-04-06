@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -26,6 +26,14 @@ namespace Couchbase.IO
         /// Internal randomly generated connectio ID.
         /// </summary>
         ulong ConnectionId { get; }
+
+        /// <summary>
+        /// Gets the connection context identifier.
+        /// </summary>
+        /// <value>
+        /// Connection context ID as a <see cref="string"/>.
+        /// </value>
+        string ContextId { get; }
 
         /// <summary>
         /// True if the connection has been SASL authenticated.

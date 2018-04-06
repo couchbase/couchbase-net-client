@@ -114,10 +114,10 @@ namespace Couchbase.Configuration.Client
 
             public static bool ForceSaslPlain = false;
 
-            public static bool OperationTracingEnabled = false;
-            public static bool OrphanedResponseLoggingEnabled = false;
+            public static bool ResponseTimeObservabiltyEnabled = true;
+            public static bool OrphanedResponseLoggingEnabled = true;
 
-            public static bool ServerDurationTracingEnabled = false;
+            public static bool ServerDurationTracingEnabled = true;
         }
 
         public ClientConfiguration()
@@ -216,7 +216,7 @@ namespace Couchbase.Configuration.Client
             Servers = new List<Uri> { Defaults.Server };
 
             // create default tracer & orphaned operation reporter
-            Tracer = Defaults.OperationTracingEnabled
+            Tracer = Defaults.ResponseTimeObservabiltyEnabled
                 ? new ThresholdLoggingTracer()
                 : (ITracer) NullTracer.Instance;
 
@@ -459,7 +459,7 @@ namespace Couchbase.Configuration.Client
                 SetAuthenticator(authenticator);
             }
 
-            Tracer = definition.OperationTracingEnabled
+            Tracer = definition.ResponseTimeObservabilityEnabled
                 ? new ThresholdLoggingTracer()
                 : (ITracer) NullTracer.Instance;
 

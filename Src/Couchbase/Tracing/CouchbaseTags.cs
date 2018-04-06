@@ -1,4 +1,4 @@
-﻿namespace Couchbase.Tracing
+namespace Couchbase.Tracing
 {
     internal static class CouchbaseTags
     {
@@ -12,6 +12,7 @@
         public const string ServiceAnalytics = "analytics";
 
         public const string OperationId = "couchbase.operation_id";
+        public const string LocalId = "couchbase.local_id";
         public const string Ignore = "couchbase.ignore";
 
         public const string LocalAddress = "local.address";

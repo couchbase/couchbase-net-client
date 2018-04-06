@@ -635,13 +635,13 @@ namespace Couchbase.UnitTests.Configuration.Client
         }
 #endif
 
-        #region
+        #region Response Time Observability
 
         [Test]
         public void CouchbaseConfiguration_Tracer_CorrectDefault()
         {
             var configuration = new ClientConfiguration();
-            Assert.IsInstanceOf<NullTracer>(configuration.Tracer);
+            Assert.IsInstanceOf<ThresholdLoggingTracer>(configuration.Tracer);
         }
 
         [TestCase(true, typeof(ThresholdLoggingTracer))]
@@ -650,7 +650,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         {
             var configuration = new ClientConfiguration(new CouchbaseClientDefinition
             {
-                OperationTracingEnabled = value
+                ResponseTimeObservabilityEnabled = value
             });
 
             Assert.IsInstanceOf(expectedType, configuration.Tracer);
@@ -716,21 +716,21 @@ namespace Couchbase.UnitTests.Configuration.Client
 
             var config = new ClientConfiguration(section);
 
-            Assert.IsInstanceOf<NullTracer>(config.Tracer);
+            Assert.IsInstanceOf<ThresholdLoggingTracer>(config.Tracer);
 
-            //var tracer = (ThresholdLoggingTracer) config.Tracer;
-            //Assert.AreEqual(10000, tracer.Interval);
-            //Assert.AreEqual(10, tracer.SampleSize);
+            var tracer = (ThresholdLoggingTracer)config.Tracer;
+            Assert.AreEqual(10000, tracer.Interval);
+            Assert.AreEqual(10, tracer.SampleSize);
 
-            //var serviceFloors = new Dictionary<string, int>
-            //{
-            //    {"kv", 500000}, // 500 milliseconds
-            //    {"view", 1000000}, // 1 second
-            //    {"n1ql", 1000000}, // 1 second
-            //    {"search", 1000000}, // 1 second
-            //    {"analytics", 1000000} // 1 second
-            //};
-            //Assert.AreEqual(serviceFloors, tracer.ServiceFloors);
+            var serviceFloors = new Dictionary<string, int>
+            {
+                {"kv", 500000}, // 500 milliseconds
+                {"view", 1000000}, // 1 second
+                {"n1ql", 1000000}, // 1 second
+                {"search", 1000000}, // 1 second
+                {"analytics", 1000000} // 1 second
+            };
+            Assert.AreEqual(serviceFloors, tracer.ServiceFloors);
         }
 
         [Test]
@@ -738,7 +738,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         {
             var section = new CouchbaseClientSection
             {
-                OperationTracingEnabled = false
+                ResponseTimeObservabilityEnabled = false
             };
 
             var config = new ClientConfiguration(section);
@@ -754,7 +754,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         public void CouchbaseConfiguration_OrphanedResponseReporter_CorrectDefault()
         {
             var configuration = new ClientConfiguration();
-            Assert.IsInstanceOf<NullOrphanedOperationReporter>(configuration.OrphanedOperationReporter);
+            Assert.IsInstanceOf<OrphanedResponseReporter>(configuration.OrphanedOperationReporter);
         }
 
         [TestCase(true, typeof(OrphanedResponseReporter))]

@@ -424,7 +424,7 @@ namespace Couchbase.Configuration.Client
         /// <value>
         /// <c>true</c> if the <see cref="ThresholdLoggingTracer"/> is to be used; otherwise, <c>false</c>.
         /// </value>
-        public bool OperationTracingEnabled { get; set; }
+        public bool ResponseTimeObservabilityEnabled { get; set; }
 
         /// <summary>
         /// Controls whether orphaned server responses are recorded and logged.
@@ -474,7 +474,7 @@ namespace Couchbase.Configuration.Client
             ConfigPollInterval = ClientConfiguration.Defaults.ConfigPollInterval;
             ForceSaslPlain = ClientConfiguration.Defaults.ForceSaslPlain;
             ConfigurationProviders = ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming;
-            OperationTracingEnabled = ClientConfiguration.Defaults.OperationTracingEnabled;
+            ResponseTimeObservabilityEnabled = ClientConfiguration.Defaults.ResponseTimeObservabiltyEnabled;
             OrphanedResponseLoggingEnabled = ClientConfiguration.Defaults.OrphanedResponseLoggingEnabled;
         }
 

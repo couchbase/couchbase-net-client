@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -294,9 +294,11 @@ namespace Couchbase.IO
             LastActivity = DateTime.UtcNow;
         }
 
+        public string ContextId => ClientIdentifier.FormatConnectionString(ConnectionId);
+
         protected string CreateCorrelationId(uint opaque)
         {
-            return string.Join("/", ClientIdentifier.FormatConnectionString(ConnectionId), opaque.ToString("x"));
+            return string.Join("/", ContextId, opaque.ToString("x"));
         }
 
         protected Exception CreateTimeoutException(uint opaque)

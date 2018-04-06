@@ -42,6 +42,7 @@ namespace Couchbase.Tests.Fakes
         public Guid Identity { get; private set; }
 
         public ulong ConnectionId { get; private set; }
+        public string ContextId { get; private set; }
 
         public bool IsSecure { get; protected set; }
 

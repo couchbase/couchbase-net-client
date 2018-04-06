@@ -426,7 +426,7 @@ namespace Couchbase.Configuration.Client
         /// <value>
         /// <c>true</c> if the <see cref="ThresholdLoggingTracer"/> is to be used; otherwise, <c>false</c>.
         /// </value>
-        bool OperationTracingEnabled { get; set; }
+        bool ResponseTimeObservabilityEnabled { get; set; }
 
         /// <summary>
         /// Controls whether orphaned server responses are recorded and logged.

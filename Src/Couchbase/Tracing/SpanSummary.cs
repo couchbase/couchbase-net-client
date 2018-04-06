@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using OpenTracing;
 
@@ -6,25 +6,31 @@ namespace Couchbase.Tracing
 {
     internal class SpanSummary
     {
-        [JsonProperty("operaion_id")]
+        [JsonProperty("operation_name")]
+        public string OperationName { get; set; }
+
+        [JsonProperty("last_operaion_id", NullValueHandling = NullValueHandling.Ignore)]
         public string OperationId { get; set; }
 
-        [JsonProperty("local", NullValueHandling = NullValueHandling.Ignore)]
-        public string LocalEndpoint { get; set; }
+        [JsonProperty("last_local_address", NullValueHandling = NullValueHandling.Ignore)]
+        public string LastLocalAddress { get; set; }
 
-        [JsonProperty("remote", NullValueHandling = NullValueHandling.Ignore)]
-        public string RemoteEndpoint { get; set; }
+        [JsonProperty("last_remote_address", NullValueHandling = NullValueHandling.Ignore)]
+        public string LastRemoteAddress { get; set; }
+
+        [JsonProperty("last_local_id", NullValueHandling = NullValueHandling.Ignore)]
+        public string LastLocalId { get; set; }
 
         [JsonProperty("total_duration_us")]
         public long TotalDuration { get; set; }
 
-        [JsonProperty("encode_us")]
+        [JsonProperty("encode_us", NullValueHandling = NullValueHandling.Ignore)]
         public long EncodingDuration { get; set; }
 
-        [JsonProperty("dispatch_us")]
+        [JsonProperty("dispatch_us", NullValueHandling = NullValueHandling.Ignore)]
         public long DispatchDuration { get; set; }
 
-        [JsonProperty("decode_us")]
+        [JsonProperty("decode_us", NullValueHandling = NullValueHandling.Ignore)]
         public long DecodingDuration { get; set; }
 
         [JsonProperty("server_duration_us", NullValueHandling = NullValueHandling.Ignore)]
@@ -32,10 +38,7 @@ namespace Couchbase.Tracing
 
         public SpanSummary(Span span)
         {
-            OperationId = string.Join(":",
-                span.OperationName,
-                span.Tags.TryGetValue(CouchbaseTags.OperationId, out var id) ? id : "unknown"
-            );
+            OperationName = span.OperationName;
             TotalDuration = span.Duration;
             PopulateSummary(span.Spans);
         }
@@ -44,6 +47,11 @@ namespace Couchbase.Tracing
         {
             foreach (var span in spans)
             {
+                if (span.Tags.TryGetValue(CouchbaseTags.OperationId, out var id))
+                {
+                    OperationId = id.ToString();
+                }
+
                 switch (span.OperationName)
                 {
                     case CouchbaseOperationNames.RequestEncoding:
@@ -51,12 +59,21 @@ namespace Couchbase.Tracing
                         break;
                     case CouchbaseOperationNames.DispatchToServer:
                         DispatchDuration += span.Duration;
-                        LocalEndpoint = span.Tags.TryGetValue(CouchbaseTags.LocalAddress, out var local)
-                            ? (string) local
-                            : null;
-                        RemoteEndpoint = span.Tags.TryGetValue(Tags.PeerAddress, out var remote)
-                            ? (string) remote
-                            : null;
+
+                        if (span.Tags.TryGetValue(CouchbaseTags.LocalAddress, out var local))
+                        {
+                            LastLocalAddress = local.ToString();
+                        }
+
+                        if (span.Tags.TryGetValue(Tags.PeerAddress, out var remote))
+                        {
+                            LastRemoteAddress = remote.ToString();
+                        }
+
+                        if (span.Tags.TryGetValue(CouchbaseTags.LocalId, out var localId))
+                        {
+                            LastLocalId = localId.ToString();
+                        }
 
                         if (span.Tags.TryGetValue(CouchbaseTags.PeerLatency, out var duration))
                         {
