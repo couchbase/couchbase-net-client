@@ -14,10 +14,10 @@ namespace Couchbase.Tracing
     public class ThresholdLoggingTracer : ITracer, IDisposable
     {
         private static readonly ILog Log = LogManager.GetLogger<ThresholdLoggingTracer>();
-        internal const int MaxQueueCapacity = 1024;
 
         private readonly CancellationTokenSource _source = new CancellationTokenSource();
-        private readonly LimitedConcurrentQueue<Span> _queuedSpans = new LimitedConcurrentQueue<Span>(MaxQueueCapacity);
+        private readonly Queue<Span> _queuedSpans = new Queue<Span>();
+        private readonly SemaphoreSlim _slim = new SemaphoreSlim(1, 1);
 
         internal int Interval { get; } = 10000;
         internal int SampleSize { get; } = 10;
@@ -96,8 +96,20 @@ namespace Couchbase.Tracing
         {
             if (ShouldQueueSpan(span))
             {
-                //TODO: create summary here to reduce memory consumption?
-                _queuedSpans.Enqueue(span);
+                // Queue span using threadpool to not block app threads
+                Task.Run(async () =>
+                {
+                    await _slim.WaitAsync().ContinueOnAnyContext();
+                    try
+                    {
+                        //TODO: create summary here to reduce memory consumption?
+                        _queuedSpans.Enqueue(span);
+                    }
+                    finally
+                    {
+                        _slim.Release();
+                    }
+                });
             }
         }
 
@@ -112,8 +124,8 @@ namespace Couchbase.Tracing
         {
             while (!_source.Token.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(Interval), _source.Token);
-                if (_queuedSpans.IsEmpty)
+                await Task.Delay(TimeSpan.FromMilliseconds(Interval), _source.Token).ContinueOnAnyContext();
+                if (!_queuedSpans.Any())
                 {
                     Log.Trace("No spans to process.");
                     continue;
@@ -122,10 +134,20 @@ namespace Couchbase.Tracing
                 Log.Trace("Processing {0} spans.", _queuedSpans.Count);
 
                 // dequeue spans into local collection
+                // block new spans being added during dequeing
                 var spans = new List<Span>();
-                while (_queuedSpans.TryDequeue(out var span))
+                await _slim.WaitAsync().ContinueOnAnyContext();
+
+                try
                 {
-                    spans.Add(span);
+                    while (_queuedSpans.Any())
+                    {
+                        spans.Add(_queuedSpans.Dequeue());
+                    }
+                }
+                finally
+                {
+                    _slim.Release();
                 }
 
                 // group by service name
@@ -177,6 +199,8 @@ namespace Couchbase.Tracing
         public void Dispose()
         {
             _source?.Cancel();
+            _source?.Dispose();
+            _slim?.Dispose();
         }
     }
 }

@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Tracing;
 using NUnit.Framework;
 
@@ -11,7 +12,7 @@ namespace Couchbase.UnitTests.Tracing
     public class ThresholdLoggingTracerTests
     {
         [Test]
-        public void Can_Add_Span()
+        public async Task Can_Add_Span()
         {
             var tracer = new ThresholdLoggingTracer();
             var span = new Span(tracer, "operation", null, Stopwatch.GetTimestamp(), null, null);
@@ -20,6 +21,8 @@ namespace Couchbase.UnitTests.Tracing
             Assert.AreEqual(0, tracer.QueuedSpansCount);
 
             tracer.ReportSpan(span);
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+
             Assert.AreEqual(1, tracer.QueuedSpansCount);
         }
 
@@ -49,7 +52,7 @@ namespace Couchbase.UnitTests.Tracing
         }
 
         [Test]
-        public void Spans_Are_Processed_After_Some_Time()
+        public async Task Spans_Are_Processed_After_Some_Time()
         {
             var tracer = new ThresholdLoggingTracer(500, 10, new Dictionary<string, int>
             {
@@ -58,6 +61,8 @@ namespace Couchbase.UnitTests.Tracing
             var span = new Span(tracer, "operation", null, Stopwatch.GetTimestamp(), null, null);
             span.Tags.Add(CouchbaseTags.Service, CouchbaseTags.ServiceKv);
             tracer.ReportSpan(span);
+
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
             Assert.AreEqual(1, tracer.QueuedSpansCount);
 
             Thread.Sleep(TimeSpan.FromSeconds(2));
