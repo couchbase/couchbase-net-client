@@ -14,7 +14,7 @@
     <PackageIconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</PackageIconUrl>
     <PackageReleaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</PackageReleaseNotes>
 
-    <TargetFrameworks>net45;netstandard1.5;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>netstandard1.5;netstandard2.0</TargetFrameworks>
     <RootNamespace>Couchbase</RootNamespace>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
     <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
@@ -22,6 +22,10 @@
     <NoWarn>1591</NoWarn>
 
     <SourceLinkOriginUrl>https://github.com/couchbase/couchbase-net-client.git</SourceLinkOriginUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)'=='Windows_NT'">
+    <TargetFrameworks>$(TargetFrameworks);net45</TargetFrameworks>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net45' ">
