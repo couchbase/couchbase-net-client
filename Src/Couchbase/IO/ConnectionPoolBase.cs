@@ -141,6 +141,9 @@ namespace Couchbase.IO
                         "4. Could not authenticate {0} using {1} - {2} [{3}].", User(SaslMechanism.Username),
                         SaslMechanism.GetType(), Identity, EndPoint);
 
+                    connection.IsDead = true;
+                    connection.Dispose();
+
                     var message = SupportsEnhancedAuthentication
                         ? ExceptionUtil.FailedUserAuthenticationMsg.WithParams(User(SaslMechanism.Username))
                         : ExceptionUtil.FailedBucketAuthenticationMsg.WithParams(Configuration.BucketName);
