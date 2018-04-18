@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
@@ -20,7 +20,7 @@ namespace Couchbase.IO
     public class MultiplexingConnection : ConnectionBase
     {
         private readonly ConcurrentDictionary<uint, IState> _statesInFlight;
-        private readonly Queue<SyncState> _statePool;
+        private readonly ConcurrentQueue<SyncState> _statePool;
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly Thread _receiveThread;
         private byte[] _receiveBuffer;
@@ -38,7 +38,7 @@ namespace Couchbase.IO
             MaxCloseAttempts = Configuration.MaxCloseAttempts;
 
             _statesInFlight = new ConcurrentDictionary<uint, IState>();
-            _statePool = new Queue<SyncState>();
+            _statePool = new ConcurrentQueue<SyncState>();
 
             //allocate a buffer
             _receiveBuffer = new byte[Configuration.BufferSize];
@@ -144,12 +144,9 @@ namespace Couchbase.IO
         /// <returns>An <see cref="SyncState"/> object representing the state of the request.</returns>
         private SyncState AcquireState()
         {
-            lock (_statePool)
+            if (_statePool.TryDequeue(out var state))
             {
-                if (_statePool.Count > 0)
-                {
-                    return _statePool.Dequeue();
-                }
+                return state;
             }
             return new SyncState();
         }
@@ -161,10 +158,7 @@ namespace Couchbase.IO
         private void ReleaseState(SyncState state)
         {
             state.CleanForReuse();
-            lock (_statePool)
-            {
-                _statePool.Enqueue(state);
-            }
+            _statePool.Enqueue(state);
         }
 
         /// <summary>
