@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -54,7 +54,7 @@ namespace Couchbase.Search
         internal static CouchbaseSearchResponseException FromResult(ISearchQueryResult result)
         {
             return new CouchbaseSearchResponseException(
-                ExceptionUtil.GetResponseExceptionMessage(result.Errors.FirstOrDefault(), result.Status),
+                ExceptionUtil.GetResponseExceptionMessage(result.Message, result.Status),
                 result.Status, result.Errors, result.Exception);
         }
     }
