@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -32,10 +32,10 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IList{IResult}" /> with the status for each index built.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IList<IResult> BuildN1qlDeferredIndexes()
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -44,10 +44,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult[]> BuildN1qlDeferredIndexesAsync()
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -59,10 +59,10 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IResult CreateN1qlIndex(string indexName, bool defer = false, params string[] fields)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -74,10 +74,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult> CreateN1qlIndexAsync(string indexName, bool defer = false, params string[] fields)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -85,10 +85,10 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="defer">If set to <c>true</c>, the N1QL query will use the "with defer" syntax and the index will simply be "pending" (prior to 4.5) or "deferred" (at and after 4.5, see MB-14679).</param>
         /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IResult CreateN1qlPrimaryIndex(bool defer = false)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -99,10 +99,10 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IResult CreateN1qlPrimaryIndex(string customName, bool defer = false)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -112,10 +112,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult> CreateN1qlPrimaryIndexAsync(bool defer = false)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -126,10 +126,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult> CreateN1qlPrimaryIndexAsync(string customName, bool defer = false)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -139,10 +139,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult> DropN1qlIndexAsync(string name)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -152,10 +152,10 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IResult DropN1qlPrimaryIndex(string customName)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -164,10 +164,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult> DropN1qlPrimaryIndexAsync()
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -177,10 +177,10 @@ namespace Couchbase.Management
         /// <returns>
         /// A <see cref="Task{IResult}" /> for awaiting on that contains the result of the method.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult> DropNamedPrimaryIndexAsync(string customName)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -291,20 +291,20 @@ namespace Couchbase.Management
         /// Lists the indexes for the current <see cref="IBucket" />.
         /// </summary>
         /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IndexResult ListN1qlIndexes()
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
         /// Lists the indexes for a the current <see cref="IBucket" /> asynchronously.
         /// </summary>
         /// <returns></returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IndexResult> ListN1qlIndexesAsync()
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -366,9 +366,10 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="indexNames">The list of indexes to watch for.</param>
         /// <param name="watchTimeout">The timeout for the watch.</param>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IResult<List<IndexInfo>> WatchN1qlIndexes(List<string> indexNames, TimeSpan watchTimeout)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types."); ;
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types."); ;
         }
 
         /// <summary>
@@ -376,9 +377,10 @@ namespace Couchbase.Management
         /// </summary>
         /// <param name="indexNames">The list of indexes to watch for.</param>
         /// <param name="watchTimeout">The timeout for the watch.</param>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override Task<IResult<List<IndexInfo>>> WatchN1qlIndexesAsync(List<string> indexNames, TimeSpan watchTimeout)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -388,10 +390,10 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IResult DropN1qlIndex(string name)
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
 
         /// <summary>
@@ -400,10 +402,10 @@ namespace Couchbase.Management
         /// <returns>
         /// An <see cref="IResult" /> with the status of the request.
         /// </returns>
-        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        /// <exception cref="System.NotSupportedException">This method is only supported on Couchbase Bucket (persistent & ephemeral) types.</exception>
         public override IResult DropN1qlPrimaryIndex()
         {
-            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent & ephemeral) types.");
         }
     }
 }
