@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using OpenTracing;
 
@@ -77,14 +78,16 @@ namespace Couchbase.Tracing
 
                         if (span.Tags.TryGetValue(CouchbaseTags.PeerLatency, out var duration))
                         {
-                            var value = long.Parse(duration.ToString());
-                            if (ServerDuration.HasValue)
+                            if (TimeSpanExtensions.TryConvertToMicros(duration, out var value))
                             {
-                                ServerDuration += value;
-                            }
-                            else
-                            {
-                                ServerDuration = value;
+                                if (ServerDuration.HasValue)
+                                {
+                                    ServerDuration += value;
+                                }
+                                else
+                                {
+                                    ServerDuration = value;
+                                }
                             }
                         }
                         break;

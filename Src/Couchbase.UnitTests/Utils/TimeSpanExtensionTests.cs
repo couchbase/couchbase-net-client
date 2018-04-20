@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -22,6 +18,27 @@ namespace Couchbase.UnitTests.Utils
 
             Assert.Positive(result1);
             Assert.Positive(result2);
+        }
+
+        [TestCase("100", (long) 100)]
+        [TestCase("100us", (long) 100)]
+        [TestCase("100ms", (long) 100000)]
+        [TestCase("100s", (long) 100000000)]
+        [TestCase(null, null)]
+        [TestCase("", null)]
+        [TestCase("jndlnfls", null)]
+        public void Test_TryConverToMicros(string duration, long? expected)
+        {
+            var result = TimeSpanExtensions.TryConvertToMicros(duration, out var value);
+            if (expected.HasValue)
+            {
+                Assert.IsTrue(result);
+                Assert.AreEqual(expected, value);
+            }
+            else
+            {
+                Assert.IsFalse(result);
+            }
         }
     }
 }
