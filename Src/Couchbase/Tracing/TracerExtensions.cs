@@ -5,6 +5,7 @@ using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
 using Couchbase.Search;
+using Couchbase.Utils;
 using Couchbase.Views;
 using OpenTracing;
 using OpenTracing.NullTracer;
@@ -85,7 +86,7 @@ namespace Couchbase.Tracing
                 .BuildSpan(operation, CouchbaseOperationNames.RequestEncoding, bucketName)
                 .Start())
             {
-                return await operation.WriteAsync();
+                return await operation.WriteAsync().ContinueOnAnyContext();
             }
         }
 

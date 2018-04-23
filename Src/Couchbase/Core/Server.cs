@@ -821,7 +821,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    searchResult = await SearchClient.QueryAsync(searchQuery);
+                    searchResult = await SearchClient.QueryAsync(searchQuery).ContinueOnAnyContext();
                 }
                 catch (Exception e)
                 {

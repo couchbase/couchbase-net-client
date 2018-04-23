@@ -1213,7 +1213,7 @@ namespace Couchbase
         /// <returns>An <see cref="IDocumentResult{T}"/> object containing the document if it's found and any other operation specific info.</returns>
         public async Task<IDocumentResult<T>> GetDocumentAsync<T>(string id)
         {
-            return await GetDocumentAsync<T>(id, GlobalTimeout);
+            return await GetDocumentAsync<T>(id, GlobalTimeout).ContinueOnAnyContext();;
         }
 
         /// <summary>
@@ -2683,7 +2683,7 @@ namespace Couchbase
             var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, (int)timeout.GetSeconds());
             using (var cts = new CancellationTokenSource(config.ObserveTimeout))
             {
-                var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo, cts);
+                var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
                 return result ? ObserveResponse.DurabilitySatisfied : ObserveResponse.DurabilityNotSatisfied;
             }
         }
@@ -2751,7 +2751,7 @@ namespace Couchbase
             var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, config.ObserveTimeout);
             using (var cts = new CancellationTokenSource(config.ObserveTimeout))
             {
-                var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo, cts);
+                var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
                 return result ? ObserveResponse.DurabilitySatisfied : ObserveResponse.DurabilityNotSatisfied;
             }
         }
@@ -6259,7 +6259,7 @@ namespace Couchbase
         /// <returns>The cluster version, or null if unavailable.</returns>
         public async Task<ClusterVersion?> GetClusterVersionAsync()
         {
-            return await ClusterVersionProvider.Instance.GetVersionAsync(this);
+            return await ClusterVersionProvider.Instance.GetVersionAsync(this).ContinueOnAnyContext();
         }
 
         void CheckDisposed()
@@ -7446,7 +7446,7 @@ namespace Couchbase
         public async Task<IResult> ListPrependAsync(string key, object value, bool createList, TimeSpan timeout)
         {
             var result = await MutateIn<object>(key).ArrayPrepend(value, createList)
-                .WithTimeout(timeout).ExecuteAsync();
+                .WithTimeout(timeout).ExecuteAsync().ContinueOnAnyContext();
 
             return new DefaultResult
             {
@@ -7723,7 +7723,7 @@ namespace Couchbase
                         Message = result.Message
                     };
                 }
-                await Task.Delay(100); //could be made a configurable in a later commit
+                await Task.Delay(100).ContinueOnAnyContext(); //could be made a configurable in a later commit
             } while (attempted++ < maxAttempts);
 
             return new DefaultResult
