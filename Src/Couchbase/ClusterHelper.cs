@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
+using Couchbase.Utils;
 
 #if NET45
 using System.Configuration;
@@ -140,7 +141,7 @@ namespace Couchbase
                 throw new InitializationException("Call Cluster.Initialize() before calling this method.");
             }
 
-            await SemaphoreSlim.WaitAsync().ConfigureAwait(false);
+            await SemaphoreSlim.WaitAsync().ContinueOnAnyContext();
             try
             {
                 if (Buckets.TryGetValue(bucketName, out bucket))
