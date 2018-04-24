@@ -1,4 +1,3 @@
-﻿
 using System;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
@@ -34,7 +33,7 @@ namespace Couchbase.IO.Operations.EnhancedDurability
             var body = new byte[8];
             Converter.FromInt64(MutationToken.VBucketUUID, body, 0);
 
-            var header = new byte[24];
+            var header = new byte[OperationHeader.Length];
             Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
             Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);
             Converter.FromInt16(MutationToken.VBucketId, header, HeaderIndexFor.VBucket);

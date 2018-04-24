@@ -217,7 +217,7 @@ namespace Couchbase.IO
             var parsedOffset = 0;
             while (parsedOffset + HeaderIndexFor.BodyLength < _receiveBufferLength)
             {
-                var responseSize = Converter.ToInt32(_receiveBuffer, parsedOffset + HeaderIndexFor.BodyLength) + 24;
+                var responseSize = Converter.ToInt32(_receiveBuffer, parsedOffset + HeaderIndexFor.BodyLength) + OperationHeader.Length;
                 if (parsedOffset + responseSize > _receiveBufferLength) break;
 
                 var opaque = Converter.ToUInt32(_receiveBuffer, parsedOffset + HeaderIndexFor.Opaque);

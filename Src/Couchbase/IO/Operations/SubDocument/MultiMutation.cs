@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core;
@@ -23,12 +23,12 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override byte[] Write()
         {
-            var totalLength = HeaderLength + KeyLength + BodyLength;
+            var totalLength = OperationHeader.Length + KeyLength + BodyLength;
             var buffer = AllocateBuffer(totalLength);
 
             WriteHeader(buffer);
-            WriteKey(buffer, HeaderLength);
-            WriteBody(buffer, HeaderLength + KeyLength);
+            WriteKey(buffer, OperationHeader.Length);
+            WriteBody(buffer, OperationHeader.Length + KeyLength);
             return buffer;
         }
 
@@ -131,7 +131,7 @@ namespace Couchbase.IO.Operations.SubDocument
             ReadExtras(response);
 
             //all mutations successful
-            if (response.Length == HeaderLength + Header.FramingExtrasLength)
+            if (response.Length == OperationHeader.Length + Header.FramingExtrasLength)
             {
                 return _lookupCommands;
             }

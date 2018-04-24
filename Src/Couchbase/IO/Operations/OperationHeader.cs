@@ -1,8 +1,8 @@
-﻿namespace Couchbase.IO.Operations
+namespace Couchbase.IO.Operations
 {
     public struct OperationHeader
     {
-        private const int HeaderLength = 24;
+        public const int Length = 24;
 
         public int Magic { get; set; }
 
@@ -31,9 +31,9 @@
             return BodyLength > 0;
         }
 
-        public int TotalLength => BodyLength + HeaderLength;
-        public int ExtrasOffset => HeaderLength + FramingExtrasLength;
-        public int BodyOffset => HeaderLength + KeyLength + ExtrasLength + FramingExtrasLength;
+        public int TotalLength => BodyLength + Length;
+        public int ExtrasOffset => Length + FramingExtrasLength;
+        public int BodyOffset => Length + KeyLength + ExtrasLength + FramingExtrasLength;
     }
 }
 

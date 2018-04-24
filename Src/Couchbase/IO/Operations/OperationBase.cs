@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -27,7 +27,6 @@ namespace Couchbase.IO.Operations
         protected IByteConverter Converter;
         protected Flags Flags;
         private Dictionary<TimingLevel, IOperationTimer> _timers;
-        protected int HeaderLength => HeaderIndexFor.HeaderLength;
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
         internal ErrorCode ErrorCode;
@@ -216,7 +215,7 @@ namespace Couchbase.IO.Operations
 
         public virtual byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
-            var header = new byte[24];
+            var header = new byte[OperationHeader.Length];
             var totalLength = extras.GetLengthSafe() + key.GetLengthSafe() + body.GetLengthSafe();
 
             Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
@@ -423,13 +422,13 @@ namespace Couchbase.IO.Operations
             if (GetResponseStatus() != ResponseStatus.Success && Data != null && Data.Length > 0)
             {
                 var buffer = Data.ToArray();
-                if (buffer.Length > 0 && TotalLength == 24)
+                if (buffer.Length > 0 && TotalLength == OperationHeader.Length)
                 {
                     body = Converter.ToString(buffer, 0, buffer.Length);
                 }
                 else
                 {
-                    body = Converter.ToString(buffer, 24, Math.Min(buffer.Length - 24, TotalLength - 24));
+                    body = Converter.ToString(buffer, OperationHeader.Length, Math.Min(buffer.Length - OperationHeader.Length, TotalLength - OperationHeader.Length));
                 }
             }
 

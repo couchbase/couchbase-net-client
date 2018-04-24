@@ -1,4 +1,4 @@
-﻿
+
 namespace Couchbase.IO.Utils
 {
     /// <summary>
@@ -8,7 +8,6 @@ namespace Couchbase.IO.Utils
     public struct HeaderIndexFor
     {
         public const byte MagicValue = 0x81;
-        public const int HeaderLength = 24;
 
         public const int Magic = 0;
         public const int Opcode = 1;
