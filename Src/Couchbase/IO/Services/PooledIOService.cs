@@ -216,7 +216,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation).ConfigureAwait(false);
+                await HandleException(capturedException, operation).ContinueOnAnyContext();
             }
         }
 
@@ -250,7 +250,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation).ConfigureAwait(false);
+                await HandleException(capturedException, operation).ContinueOnAnyContext();
             }
         }
 
@@ -277,7 +277,7 @@ namespace Couchbase.IO.Services
                 //A new connection will have to check for server features
                 CheckEnabledServerFeatures(connection);
 
-                await ExecuteAsync(operation, connection).ConfigureAwait(false);
+                await ExecuteAsync(operation, connection).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -291,7 +291,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation).ConfigureAwait(false);
+                await HandleException(capturedException, operation).ContinueOnAnyContext();
             }
         }
 

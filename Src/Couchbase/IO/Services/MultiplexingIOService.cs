@@ -183,7 +183,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation, EndPoint).ConfigureAwait(false);
+                await HandleException(capturedException, operation, EndPoint).ContinueOnAnyContext();
             }
         }
 
@@ -236,7 +236,7 @@ namespace Couchbase.IO.Services
 
             if (capturedException != null)
             {
-                await HandleException(capturedException, operation, EndPoint).ConfigureAwait(false);
+                await HandleException(capturedException, operation, EndPoint).ContinueOnAnyContext();
             }
         }
 

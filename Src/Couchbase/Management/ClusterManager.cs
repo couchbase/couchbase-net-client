@@ -1062,7 +1062,7 @@ namespace Couchbase.Management
         public async Task<IResult<string>> GetAllSearchIndexDefinitionsAsync(CancellationToken token = default (CancellationToken))
         {
             var uri = BuildFtsManagementUri(SearchApiIndexPath);
-            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(uri, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<string>
                 {
@@ -1072,7 +1072,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                     var json = JsonConvert.DeserializeObject<dynamic>(value);
                     result.Value = json.indexDefs.ToString(Formatting.None);
                 }
@@ -1095,7 +1095,7 @@ namespace Couchbase.Management
 
             var path = Path.Combine(SearchApiIndexPath, indexName);
             var uri = BuildFtsManagementUri(path);
-            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(uri, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<string>
                 {
@@ -1105,7 +1105,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                     var json = JsonConvert.DeserializeObject<dynamic>(value);
                     result.Value = json.indexDef.ToString(Formatting.None);
                 }
@@ -1132,7 +1132,7 @@ namespace Couchbase.Management
             {
                 var data = definition.ToJson();
                 request.Content = new StringContent(data, Encoding.UTF8, MediaType.Json);
-                using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+                using (var response = await _httpClient.SendAsync(request, token).ContinueOnAnyContext())
                 {
                     // TODO: Should return new index UUID but server doesn't return it yet - leave it null for now
                     return new DefaultResult<string>
@@ -1159,7 +1159,7 @@ namespace Couchbase.Management
 
             var path = Path.Combine(SearchApiIndexPath, indexName);
             var uri = BuildFtsManagementUri(path);
-            using (var response = await _httpClient.DeleteAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.DeleteAsync(uri, token).ContinueOnAnyContext())
             {
                 return new DefaultResult
                 {
@@ -1185,7 +1185,7 @@ namespace Couchbase.Management
             var uri = BuildFtsManagementUri(path);
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            using (var response = await _httpClient.SendAsync(request, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<int>
                 {
@@ -1195,7 +1195,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                     var json = JsonConvert.DeserializeObject<dynamic>(value);
                     if (int.TryParse((string) json.count, out var count))
                     {
@@ -1225,7 +1225,7 @@ namespace Couchbase.Management
             var path = Path.Combine(SearchApiIndexPath, indexName, ingestionControlPath, ingestionMode.GetDescription());
             var uri = BuildFtsManagementUri(path);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
-            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            using (var response = await _httpClient.SendAsync(request, token).ContinueOnAnyContext())
             {
                 return new DefaultResult
                 {
@@ -1253,7 +1253,7 @@ namespace Couchbase.Management
             var path = Path.Combine(SearchApiIndexPath, indexName, queryControlPath, queryMode.ToString().ToLowerInvariant());
             var uri = BuildFtsManagementUri(path);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
-            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            using (var response = await _httpClient.SendAsync(request, token).ContinueOnAnyContext())
             {
                 return new DefaultResult
                 {
@@ -1281,7 +1281,7 @@ namespace Couchbase.Management
             var path = Path.Combine(SearchApiIndexPath, indexName, freezeControlPath, planFreezeMode.ToString().ToLowerInvariant());
             var uri = BuildFtsManagementUri(path);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
-            using (var response = await _httpClient.SendAsync(request, token).ConfigureAwait(false))
+            using (var response = await _httpClient.SendAsync(request, token).ContinueOnAnyContext())
             {
                 return new DefaultResult
                 {
@@ -1300,7 +1300,7 @@ namespace Couchbase.Management
         {
             var path = Path.Combine(SearchApiStatsPath);
             var uri = BuildFtsManagementUri(path);
-            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(uri, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<string>
                 {
@@ -1310,7 +1310,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    result.Value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    result.Value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                 }
 
                 return result;
@@ -1332,7 +1332,7 @@ namespace Couchbase.Management
 
             var path = Path.Combine(SearchApiStatsPath, "index", indexName);
             var uri = BuildFtsManagementUri(path);
-            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(uri, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<string>
                 {
@@ -1342,7 +1342,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    result.Value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    result.Value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                 }
 
                 return result;
@@ -1358,7 +1358,7 @@ namespace Couchbase.Management
         {
             var path = Path.Combine(SearchApiPartitionPath);
             var uri = BuildFtsManagementUri(path);
-            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(uri, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<string>
                 {
@@ -1368,7 +1368,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                     var json = JsonConvert.DeserializeObject<dynamic>(value);
                     result.Value = json.pindexes.ToString(Formatting.None);
                 }
@@ -1392,7 +1392,7 @@ namespace Couchbase.Management
 
             var path = Path.Combine(SearchApiPartitionPath, indexName);
             var uri = BuildFtsManagementUri(path);
-            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(uri, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<string>
                 {
@@ -1402,7 +1402,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    result.Value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    result.Value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                 }
 
                 return result;
@@ -1424,7 +1424,7 @@ namespace Couchbase.Management
 
             var path = Path.Combine(SearchApiPartitionPath, indexName, "count");
             var uri = BuildFtsManagementUri(path);
-            using (var response = await _httpClient.GetAsync(uri, token).ConfigureAwait(false))
+            using (var response = await _httpClient.GetAsync(uri, token).ContinueOnAnyContext())
             {
                 var result = new DefaultResult<int>
                 {
@@ -1434,7 +1434,7 @@ namespace Couchbase.Management
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var value = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var value = await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
                     var json = JsonConvert.DeserializeObject<dynamic>(value);
                     if (int.TryParse((string) json.count, out var count))
                     {

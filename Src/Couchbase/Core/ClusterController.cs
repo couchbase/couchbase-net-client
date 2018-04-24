@@ -1,4 +1,4 @@
-﻿using Couchbase.Logging;
+using Couchbase.Logging;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Providers;
@@ -254,7 +254,7 @@ namespace Couchbase.Core
 
         public async Task<IBucket> CreateBucketAsync(string bucketName, string password, IAuthenticator authenticator = null)
         {
-            await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
+            await _semaphoreSlim.WaitAsync().ContinueOnAnyContext();
             try
             {
                 return CreateBucketImpl(bucketName, password, authenticator);
