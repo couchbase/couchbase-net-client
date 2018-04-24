@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
@@ -279,7 +280,7 @@ namespace Couchbase.IO
                     {
                         state.BodyLength = Converter.ToInt32(state.Data.ToArray(), HeaderIndexFor.Body);
                     }
-                    if (state.BytesReceived < state.BodyLength + 24)
+                    if (state.BytesReceived < state.BodyLength + OperationHeader.Length)
                     {
                         var bufferSize = state.BodyLength < Configuration.BufferSize
                             ? state.BodyLength

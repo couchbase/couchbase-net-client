@@ -1,4 +1,4 @@
-﻿using Couchbase.Core;
+using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
 
@@ -13,14 +13,14 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override byte[] Write()
         {
-            var totalLength = HeaderLength + KeyLength + ExtrasLength + PathLength + BodyLength;
+            var totalLength = OperationHeader.Length + KeyLength + ExtrasLength + PathLength + BodyLength;
             var buffer = AllocateBuffer(totalLength);
 
             WriteHeader(buffer);
-            WriteExtras(buffer, HeaderLength);
-            WriteKey(buffer, HeaderLength + ExtrasLength);
-            WritePath(buffer, HeaderLength + ExtrasLength + KeyLength);
-            WriteBody(buffer, HeaderLength + ExtrasLength + KeyLength + BodyLength);
+            WriteExtras(buffer, OperationHeader.Length);
+            WriteKey(buffer, OperationHeader.Length + ExtrasLength);
+            WritePath(buffer, OperationHeader.Length + ExtrasLength + KeyLength);
+            WriteBody(buffer, OperationHeader.Length + ExtrasLength + KeyLength + BodyLength);
 
             return buffer;
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
@@ -56,7 +56,7 @@ namespace Couchbase.IO.Operations.Authentication
 
         public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key)
         {
-            var header = new byte[24];
+            var header = new byte[OperationHeader.Length];
 
             Converter.FromByte((byte)Magic.Request, header, HeaderIndexFor.Magic);
             Converter.FromByte((byte)OperationCode, header, HeaderIndexFor.Opcode);

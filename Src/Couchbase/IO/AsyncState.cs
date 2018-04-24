@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
 using OpenTracing;
@@ -34,7 +35,7 @@ namespace Couchbase.IO
                 Timer.Dispose();
             }
 
-            var response = new byte[24];
+            var response = new byte[OperationHeader.Length];
             Converter.FromUInt32(Opaque, response, HeaderIndexFor.Opaque);
 
             Callback(new SocketAsyncState
@@ -69,7 +70,7 @@ namespace Couchbase.IO
             //this means the request never completed - assume a transport failure
             if (response == null)
             {
-                response = new byte[24];
+                response = new byte[OperationHeader.Length];
                 Converter.FromUInt32(Opaque, response, HeaderIndexFor.Opaque);
                 e = new SendTimeoutExpiredException();
                 status = ResponseStatus.TransportFailure;

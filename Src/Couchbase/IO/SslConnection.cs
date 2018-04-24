@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
+using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
@@ -114,7 +115,7 @@ namespace Couchbase.IO
                 await state.Data.WriteAsync(state.Buffer, state.BufferOffset, state.BytesReceived).ContinueOnAnyContext();
 
                 state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.BodyLength);
-                while (state.BytesReceived < state.BodyLength + 24)
+                while (state.BytesReceived < state.BodyLength + OperationHeader.Length)
                 {
                     var bufferLength = state.BufferLength - state.BytesSent < state.BufferLength
                         ? state.BufferLength - state.BytesSent
@@ -214,7 +215,7 @@ namespace Couchbase.IO
             {
                 state.SetIOBuffer(BufferAllocator.GetBuffer());
 
-                while (state.BytesReceived < state.BodyLength + 24)
+                while (state.BytesReceived < state.BodyLength + OperationHeader.Length)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
