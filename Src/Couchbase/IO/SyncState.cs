@@ -1,6 +1,4 @@
-﻿using System;
 using System.Threading;
-
 
 namespace Couchbase.IO
 {
@@ -27,6 +25,7 @@ namespace Couchbase.IO
         public void CleanForReuse()
         {
             Response = null;
+            SyncWait.Reset();
         }
     }
 }
