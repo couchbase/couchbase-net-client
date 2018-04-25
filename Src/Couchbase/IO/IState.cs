@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 
 namespace Couchbase.IO
 {
     /// <summary>
     /// Represents a Memcached request in flight.
     /// </summary>
-    internal interface IState
+    internal interface IState : IDisposable
     {
         /// <summary>
         /// Completes the specified Memcached response.

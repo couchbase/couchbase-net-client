@@ -27,6 +27,11 @@ namespace Couchbase.IO
             Response = null;
             SyncWait.Reset();
         }
+
+        public void Dispose()
+        {
+            SyncWait?.Dispose();
+        }
     }
 }
 

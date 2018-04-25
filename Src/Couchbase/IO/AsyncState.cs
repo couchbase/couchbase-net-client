@@ -89,6 +89,12 @@ namespace Couchbase.IO
                 ErrorMap = ErrorMap
             }));
         }
+
+        public void Dispose()
+        {
+            Timer?.Dispose();
+            DispatchSpan?.Dispose();
+        }
     }
 }
 
