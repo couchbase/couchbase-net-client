@@ -21,9 +21,12 @@ namespace Couchbase.IO
         private readonly SslStream _sslStream;
 
         public SslConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter, BufferAllocator allocator)
-            : this(connectionPool, socket, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback), converter, allocator)
+            : this(connectionPool,
+                socket,
+                new SslStream(new NetworkStream(socket), true, GetCertificateCallback(connectionPool.Configuration.ClientConfiguration)),
+                converter,
+                allocator)
         {
-
         }
 
         public SslConnection(IConnectionPool connectionPool, Socket socket, SslStream sslStream, IByteConverter converter, BufferAllocator allocator)
@@ -34,6 +37,14 @@ namespace Couchbase.IO
             Configuration = ConnectionPool.Configuration;
         }
 
+        private static RemoteCertificateValidationCallback GetCertificateCallback(ClientConfiguration config)
+        {
+            if(config.KvServerCertificateValidationCallback == null)
+            {
+                return ServerCertificateValidationCallback;
+            }
+            return config.KvServerCertificateValidationCallback;
+        }
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             Log.Info("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors);

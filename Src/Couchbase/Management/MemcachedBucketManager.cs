@@ -20,7 +20,7 @@ namespace Couchbase.Management
             : base(bucket,
                   clientConfig,
                   mapper,
-                  new CouchbaseHttpClient(username, password),
+                  new CouchbaseHttpClient(username, password, clientConfig),
                   username,
                   password)
         {

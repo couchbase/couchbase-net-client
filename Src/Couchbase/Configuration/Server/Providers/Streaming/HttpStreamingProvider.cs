@@ -77,7 +77,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                         IBucketConfig newConfig;
                         using (new SynchronizationContextExclusion())
                         {
-                            using (var httpClient = new CouchbaseHttpClient(username, password))
+                            using (var httpClient = new CouchbaseHttpClient(username, password, ClientConfig))
                             {
                                 // try to get config using terse uri
                                 var uri = bucketConfig.GetTerseUri(node, bucketConfiguration.UseSsl);
@@ -164,7 +164,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 _cancellationTokens[observer.Name] = cancellationTokenSource;
 
                 var configThreadState = new ConfigThreadState(bucketConfig, ConfigChangedHandler, ErrorOccurredHandler,
-                    cancellationTokenSource.Token);
+                    cancellationTokenSource.Token, ClientConfig);
                 var thread = new Thread(configThreadState.ListenForConfigChanges)
                 {
                     IsBackground = true,

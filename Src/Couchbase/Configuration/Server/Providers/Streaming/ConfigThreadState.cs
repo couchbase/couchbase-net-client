@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
+using Couchbase.Configuration.Client;
 using Couchbase.Logging;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.IO.Http;
@@ -27,14 +28,16 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         private readonly ConfigChanged _configChangedDelegate;
         private readonly ErrorOccurred _errorOccurredDelegate;
         private CancellationToken _cancellationToken;
+        private ClientConfiguration _clientConfiguration;
 
         public ConfigThreadState(BucketConfig bucketConfig, ConfigChanged configChangedDelegate,
-            ErrorOccurred errorOccurredDelegate, CancellationToken cancellationToken)
+            ErrorOccurred errorOccurredDelegate, CancellationToken cancellationToken, ClientConfiguration clientConfiguration)
         {
             _bucketConfig = bucketConfig;
             _configChangedDelegate += configChangedDelegate;
             _errorOccurredDelegate += errorOccurredDelegate;
             _cancellationToken = cancellationToken;
+            _clientConfiguration = clientConfiguration;
         }
 
         /// <summary>
@@ -69,7 +72,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 ? _bucketConfig.Name
                 : _bucketConfig.Username;
 
-            using (var httpClient = new CouchbaseHttpClient(bucketNameOrUserName, _bucketConfig.Password))
+            using (var httpClient = new CouchbaseHttpClient(bucketNameOrUserName, _bucketConfig.Password, _clientConfiguration))
             {
                 httpClient.Timeout = Timeout.InfiniteTimeSpan;
 

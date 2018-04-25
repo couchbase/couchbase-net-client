@@ -37,7 +37,7 @@ namespace Couchbase.Core.Monitoring
 
             // Use Couchbase HTTP client even though we don't need authentication
             // So that we get our custom server certificate validation if SSL is being used
-            _httpClient = new CouchbaseHttpClient("any-bucket", "")
+            _httpClient = new CouchbaseHttpClient("any-bucket", "", clusterController.Configuration)
             {
                 Timeout = PingTimeout
             };

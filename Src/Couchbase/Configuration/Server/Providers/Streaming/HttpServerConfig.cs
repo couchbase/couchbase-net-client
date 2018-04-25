@@ -36,7 +36,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             _clientConfig = clientConfig;
             _bucketName = bucketName;
 
-            _httpClient = new CouchbaseHttpClient(userName, password);
+            _httpClient = new CouchbaseHttpClient(userName, password, clientConfig);
         }
 
         public string BucketName

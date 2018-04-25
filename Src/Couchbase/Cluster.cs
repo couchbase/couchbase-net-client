@@ -220,7 +220,7 @@ namespace Couchbase
             return new ClusterManager(Configuration,
                 serverConfig,
                 new JsonDataMapper(Configuration),
-                new CouchbaseHttpClient(username, password),
+                new CouchbaseHttpClient(username, password, Configuration),
                 username,
                 password);
         }

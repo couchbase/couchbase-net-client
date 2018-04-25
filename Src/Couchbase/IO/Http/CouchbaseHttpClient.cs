@@ -28,8 +28,9 @@ namespace Couchbase.IO.Http
         /// </summary>
         /// <param name="bucketName"></param>
         /// <param name="password"></param>
-        internal CouchbaseHttpClient(string bucketName, string password)
-            : this(CreateClientHandler(bucketName, password, null))
+        /// <param name="config"></param>
+        internal CouchbaseHttpClient(string bucketName, string password, ClientConfiguration config)
+            : this(CreateClientHandler(bucketName, password, config))
         {
         }
 
@@ -69,11 +70,14 @@ namespace Couchbase.IO.Http
             }
 
 #if NET45
-            handler.ServerCertificateValidationCallback = OnCertificateValidation;
+            // ReSharper disable once PossibleNullReferenceException
+            handler.ServerCertificateValidationCallback = config.HttpServerCertificateValidationCallback ??
+                                                          OnCertificateValidation;
 #else
             try
             {
-                handler.ServerCertificateCustomValidationCallback = OnCertificateValidation;
+                handler.ServerCertificateCustomValidationCallback = config?.HttpServerCertificateValidationCallback ??
+                                                                    OnCertificateValidation;
             }
             catch (NotImplementedException)
             {

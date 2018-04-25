@@ -441,7 +441,7 @@ namespace Couchbase
             return new BucketManager(this,
                 _configInfo.ClientConfig,
                 new JsonDataMapper(_configInfo.ClientConfig),
-                new CouchbaseHttpClient(username, password),
+                new CouchbaseHttpClient(username, password, _clusterController.Configuration),
                 username,
                 password);
         }

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Couchbase.Logging;
@@ -1362,6 +1364,14 @@ namespace Couchbase.Configuration.Client
         /// Factory for retrieving X509 certificates from a store or off of the file system.
         /// </summary>
         public Func<X509Certificate2Collection> CertificateFactory { get; set; }
+
+#if NET45
+        public RemoteCertificateValidationCallback HttpServerCertificateValidationCallback { get; set; }
+#else
+        public Func<HttpRequestMessage, X509Certificate2, X509Chain, SslPolicyErrors, bool> HttpServerCertificateValidationCallback { get; set;}
+#endif
+
+        public RemoteCertificateValidationCallback KvServerCertificateValidationCallback { get; set; }
     }
 }
 
