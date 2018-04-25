@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -291,16 +290,24 @@ namespace Couchbase.IO
                     {
                         Socket.Dispose();
                     }
+                }
 
-                    //free up all states in flight
-                    lock (_statesInFlight)
+                // free up all states in flight
+                lock (_statesInFlight)
+                {
+                    foreach (var state in _statesInFlight.Values)
                     {
-                        foreach (IState state in _statesInFlight.Values)
-                        {
-                            //this hould have a correct handling where some kind of exception is thrown in the unblocked method
-                            var state1 = state;
-                            state1.Complete(null);
-                        }
+                        state.Complete(null);
+                        state.Dispose();
+                    }
+                }
+
+                // clean up SyncState pool
+                lock (_statePool)
+                {
+                    while (_statePool.TryDequeue(out var state))
+                    {
+                        state.Dispose();
                     }
                 }
             }
