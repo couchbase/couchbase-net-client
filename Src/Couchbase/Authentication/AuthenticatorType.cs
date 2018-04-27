@@ -13,7 +13,12 @@
         /// <summary>
         /// Role Based Access Control (RBAC) with a username and password.
         /// </summary>
-        Password
+        Password,
+
+        /// <summary>
+        /// For X509 certificate authentication.
+        /// </summary>
+        Certificate
     }
 }
 

@@ -82,7 +82,7 @@ namespace Couchbase.IO
                         _sslStream.AuthenticateAsClientAsync(targetHost,
                             certs,
                             SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
-                            Configuration.ClientConfiguration.EnableCertificateAuthentication).Wait();
+                            Configuration.ClientConfiguration.EnableCertificateRevocation).Wait();
                     }
                     else
                     {

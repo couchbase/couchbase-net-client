@@ -5,7 +5,7 @@ using Couchbase.Configuration.Client;
 namespace Couchbase.Authentication.X509
 {
     /// <summary>
-    /// Factory class for creating Func{X509Certificate2Collection} instances that can be assigned to the <see cref="BucketConfiguration.CertificateFactory"></see> property.
+    /// Factory class for creating Func{X509Certificate2Collection} instances that can be assigned to the <see cref="CertificateFactory"></see> property.
     /// </summary>
     public static class CertificateFactory
     {

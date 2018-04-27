@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using Couchbase.Authentication;
 using Couchbase.Authentication.X509;
 using Couchbase.Configuration.Client;
 using Couchbase.IntegrationTests.Utils;
@@ -92,16 +93,15 @@ namespace Couchbase.IntegrationTests.IO
 
             ClientConfiguration.IgnoreRemoteCertificateNameMismatch = true;//ignore for now
             config.EnableDeadServiceUriPing = true; //temp must fix
-            config.EnableCertificateAuthentication = true;
             config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
                 new PathAndPasswordOptions
                 {
-                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
-                    Path = "C:\\Users\\jmorris\\client.pfx",
+                    Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
                     Password = "password"
                 });
 
             var cluster = new Cluster(config);
+            cluster.Authenticate(new CertAuthenticator());
 
             var bucket = cluster.OpenBucket();
             var result = bucket.Upsert("mykey", "myvalue");
@@ -131,13 +131,13 @@ namespace Couchbase.IntegrationTests.IO
             config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
                 new PathAndPasswordOptions
                 {
-                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
-                    Path = "C:\\Users\\jmorris\\client.pfx",
+                    Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
                     Password = "password"
                 });
 
             using (var cluster = new Cluster(config))
             {
+                cluster.Authenticate(new CertAuthenticator());
                 var bucket = cluster.OpenBucket();
                 var query = new QueryRequest("SELECT * FROM `default`;");
                 var queryResult = bucket.Query<dynamic>(query);
@@ -159,13 +159,13 @@ namespace Couchbase.IntegrationTests.IO
             config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
                 new PathAndPasswordOptions
                 {
-                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
-                    Path = "C:\\Users\\jmorris\\client.pfx",
+                    Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
                     Password = "password"
                 });
 
             using (var cluster = new Cluster(config))
             {
+                cluster.Authenticate(new CertAuthenticator());
                 var bucket = cluster.OpenBucket();
                 var viewQuery = new ViewQuery("default", "test", "test");
                 var viewResult = bucket.Query<dynamic>(viewQuery);
@@ -186,13 +186,13 @@ namespace Couchbase.IntegrationTests.IO
             config.CertificateFactory = CertificateFactory.GetCertificatesByPathAndPassword(
                 new PathAndPasswordOptions
                 {
-                    // Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
-                    Path = "C:\\Users\\jmorris\\client.pfx",
+                    Path = TestContext.CurrentContext.TestDirectory + "\\client.pfx",
                     Password = "password"
                 });
 
             using (var cluster = new Cluster(config))
             {
+                cluster.Authenticate(new CertAuthenticator());
                 var bucket = cluster.OpenBucket();
                 var query = new MatchQuery("inn");
                 var searchResult = bucket.Query(new SearchQuery

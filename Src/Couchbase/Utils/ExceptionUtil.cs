@@ -94,6 +94,11 @@ namespace Couchbase.Utils
 
         public const string SslAuthenticationFailed = "The SSL/TLS connection could not be authenticated.";
 
+        public const string NoCertificateFactoryDefined =
+            "The ClientConfiguration.CertificateFactory cannot be null if x509 certificate authenication is used. " +
+            "Please assign a Func<X509Certificate2Collection> instance to this property. You can also use one defined in " +
+            "Couchbase.Authentication.X509.CertificateFactory.cs.";
+
         public static string GetNodeUnavailableMsg(IPEndPoint ipEndPoint, uint interval)
         {
             return string.Format(NodeUnavailableMsg, ipEndPoint, interval);

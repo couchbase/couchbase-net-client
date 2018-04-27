@@ -9,6 +9,7 @@ using System.Threading;
 using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Authentication.SASL;
+using Couchbase.Authentication.X509;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Serialization;
@@ -1095,7 +1096,6 @@ namespace Couchbase.Configuration.Client
 
         internal void Initialize()
         {
-            //
             ResolveObsoletePollSettings();
 
             if (ConfigPollInterval <= ConfigPollCheckFloor)
@@ -1249,6 +1249,15 @@ namespace Couchbase.Configuration.Client
                             passwordAuthenticator.Username = username;
                         }
                         break;
+                }
+            }
+            else
+            {
+                //configured for x509 authentication
+                if (authenticator is CertAuthenticator certificateAuthenticator)
+                {
+                    EnableCertificateAuthentication = true;
+                    certificateAuthenticator.Configuration = this;
                 }
             }
 

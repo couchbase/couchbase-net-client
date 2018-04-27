@@ -17,6 +17,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Authentication;
+using Couchbase.Authentication.X509;
 using Couchbase.Core.Monitoring;
 using Couchbase.Configuration.Server.Monitoring;
 using Couchbase.IO.Operations;
@@ -203,6 +204,10 @@ namespace Couchbase.Core
             }
             else
             {
+                if (authenticator is CertAuthenticator)
+                {
+                    return new KeyValuePair<string, string>(username ?? bucketName, null);
+                }
                 var bucketCredentials = authenticator.GetCredentials(AuthContext.BucketKv, bucketName);
                 switch (authenticator.AuthenticatorType)
                 {
