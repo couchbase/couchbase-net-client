@@ -43,7 +43,8 @@ namespace Couchbase
     /// <seealso cref="Couchbase.IRefCountable" />
     /// <seealso cref="Couchbase.IQueryCacheInvalidator" />
     /// <seealso cref="Couchbase.Core.IO.SubDocument.ISubdocInvoker" />
-    public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator, ISubdocInvoker
+    public sealed class CouchbaseBucket : IBucket, IConfigObserver, IRefCountable, IQueryCacheInvalidator, ISubdocInvoker,
+        ITypeSerializerProvider
     {
         private static readonly ILog Log = LogManager.GetLogger<CouchbaseBucket>();
         private readonly IClusterController _clusterController;
@@ -133,6 +134,9 @@ namespace Couchbase
         {
             get { return _clusterController != null ? _clusterController.Cluster : null; }
         }
+
+        /// <inheritdoc/>
+        ITypeSerializer ITypeSerializerProvider.Serializer => _transcoder.Serializer;
 
         /// <summary>
         /// Gets the key mapper used to map document keys to servers.
