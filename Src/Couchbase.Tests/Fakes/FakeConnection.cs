@@ -70,12 +70,12 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+        public Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
         {
-            SendAsync(buffer, callback, null, null);
+            return SendAsync(buffer, callback, null, null);
         }
 
-        public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
+        public Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
         {
             var state = new SocketAsyncState
             {
@@ -83,6 +83,7 @@ namespace Couchbase.Tests.Fakes
                 Opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque)
             };
             callback(state);
+            return Task.FromResult(0);
         }
 
         public void Dispose()

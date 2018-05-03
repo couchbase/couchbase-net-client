@@ -84,9 +84,9 @@ namespace Couchbase.IO
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>
         /// <param name="callback">The callback that will be fired after the operation is completed.</param>
-        void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback);
+        Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback);
 
-        void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap);
+        Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap);
 
         /// <summary>
         /// Sends a request packet as an asynchronous operation; waiting for the reponse.

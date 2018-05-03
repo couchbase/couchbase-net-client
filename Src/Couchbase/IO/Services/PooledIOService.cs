@@ -206,7 +206,8 @@ namespace Couchbase.IO.Services
 
                 var request = await operation.WriteAsync(Tracer, ConnectionPool.Configuration.BucketName).ContinueOnAnyContext();
                 var span = Tracer.BuildSpan(operation, connection, ConnectionPool.Configuration.BucketName).Start();
-                connection.SendAsync(request, operation.Completed, span, ErrorMap);
+
+                await connection.SendAsync(request, operation.Completed, span, ErrorMap).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
@@ -240,7 +241,8 @@ namespace Couchbase.IO.Services
 
                 var request = await operation.WriteAsync(Tracer, ConnectionPool.Configuration.BucketName).ContinueOnAnyContext();
                 var span = Tracer.BuildSpan(operation, connection, ConnectionPool.Configuration.BucketName).Start();
-                connection.SendAsync(request, operation.Completed, span, ErrorMap);
+
+                await connection.SendAsync(request, operation.Completed, span, ErrorMap).ContinueOnAnyContext();
             }
             catch (Exception e)
             {
