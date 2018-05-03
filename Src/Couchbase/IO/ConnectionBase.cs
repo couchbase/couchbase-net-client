@@ -185,12 +185,12 @@ namespace Couchbase.IO
             throw new NotImplementedException();
         }
 
-        public virtual void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
+        public virtual Task SendAsync(byte[] request, Func<SocketAsyncState, Task> callback)
         {
-            SendAsync(request, callback, null, null);
+            return SendAsync(request, callback, null, null);
         }
 
-        public virtual void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
+        public virtual Task SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
         {
             throw new NotImplementedException();
         }

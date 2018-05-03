@@ -49,7 +49,7 @@ namespace Couchbase.IO
             _receiveThread.Start();
         }
 
-        public override void SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ISpan span, ErrorMap errorMap)
+        public override Task SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ISpan span, ErrorMap errorMap)
         {
             var opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque);
             var state = new AsyncState
@@ -89,6 +89,8 @@ namespace Couchbase.IO
                     HandleDisconnect(e);
                 }
             }
+
+            return Task.FromResult(0);
         }
 
         /// <summary>

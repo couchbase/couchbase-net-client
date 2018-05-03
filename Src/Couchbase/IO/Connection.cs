@@ -39,7 +39,7 @@ namespace Couchbase.IO
             }
         }
 
-        public override void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan span, ErrorMap errorMap)
+        public override Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan span, ErrorMap errorMap)
         {
             SocketAsyncState state = null;
             try
@@ -93,6 +93,8 @@ namespace Couchbase.IO
                     Log.Debug(e);
                 }
             }
+
+            return Task.FromResult(0);
         }
 
         /// <summary>

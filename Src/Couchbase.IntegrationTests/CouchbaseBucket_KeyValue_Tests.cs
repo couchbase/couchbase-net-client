@@ -32,7 +32,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task Test_GetAsync()
         {
-            var key = "thekey";
+            var key = "Test_GetAsync";
             var value = "thevalue";
 
             await _bucket.RemoveAsync(key);
@@ -44,7 +44,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task Test_UpsertAsync()
         {
-            var key = "thekey";
+            var key = "Test_UpsertAsync";
             var value = "thevalue";
 
             await _bucket.RemoveAsync(key);
@@ -55,7 +55,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task Test_UpsertAsync_WithTimeout()
         {
-            var key = "thekey";
+            var key = "Test_UpsertAsync_WithTimeout";
             var value = "thevalue";
 
             await _bucket.RemoveAsync(key);
@@ -67,7 +67,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task Test_InsertAsync()
         {
-            var key = "thekey";
+            var key = "Test_InsertAsync";
             var value = "thevalue";
 
             await _bucket.RemoveAsync(key);
@@ -78,7 +78,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task Test_RemoveAsync()
         {
-            var key = "thekey";
+            var key = "Test_RemoveAsync";
 
             await _bucket.RemoveAsync(key);
             var result = await _bucket.GetAsync<string>(key);
@@ -88,7 +88,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Get()
         {
-            var key = "thekey";
+            var key = "Test_Get";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -100,7 +100,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Get_IdIsInOperationResult()
         {
-            var key = "thekey";
+            var key = "Get_IdIsInOperationResult";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -112,7 +112,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void GetDocument_IdIsInOperationResult()
         {
-            var key = "thekey";
+            var key = "GetDocument_IdIsInOperationResult";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -124,7 +124,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task GetDocumentAsync_IdIsInOperationResult()
         {
-            var key = "thekey";
+            var key = "GetDocumentAsync_IdIsInOperationResult";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -138,7 +138,7 @@ namespace Couchbase.IntegrationTests
         {
             IgnoreIfNoReplicas();
 
-            var key = "thekey";
+            var key = "GetDocumentFromReplica_Success";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -152,7 +152,7 @@ namespace Couchbase.IntegrationTests
         {
             IgnoreIfNoReplicas();
 
-            var key = "thekey";
+            var key = "GetDocumentFromReplica_Success_WithTimeout";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -166,7 +166,7 @@ namespace Couchbase.IntegrationTests
         {
             IgnoreIfNoReplicas();
 
-            var key = "thekey";
+            var key = "GetDocumentFromReplicaAsync_Success";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -178,7 +178,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Upsert()
         {
-            var key = "thekey";
+            var key = "Test_Upsert";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -189,7 +189,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Upsert_WithTimeout()
         {
-            var key = "thekey";
+            var key = "Test_Upsert_WithTimeout";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -202,7 +202,7 @@ namespace Couchbase.IntegrationTests
         {
             // https://issues.couchbase.com/browse/NCBC-1119
 
-            var key = "thekey";
+            var key = "Test_Upsert_GetsMutationTokenWithBucketRef";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -217,7 +217,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Insert()
         {
-            var key = "thekey";
+            var key = "Test_Insert";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -228,7 +228,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Insert_WithTimeout()
         {
-            var key = "thekey";
+            var key = "Test_Insert_WithTimeout";
             var value = "thevalue";
 
             _bucket.Remove(key);
@@ -239,7 +239,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Remove()
         {
-            var key = "thekey";
+            var key = "Test_Remove";
 
             _bucket.Remove(key);
             var result = _bucket.Get<string>(key);
@@ -249,7 +249,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Remove_WithTimeout()
         {
-            var key = "thekey";
+            var key = "Test_Remove_WithTimeout";
 
             _bucket.Remove(key, new TimeSpan(0, 0, 0, 1));
             var result = _bucket.Get<string>(key);
@@ -296,11 +296,11 @@ namespace Couchbase.IntegrationTests
             {
                 new Document<object>
                 {
-                    Id = "UpsertAsync_Batch_doc1",
+                    Id = "UpsertAsync_Batch_WithTimeout_doc1",
                     Content = new {Name = "bob", Species = "Cat", Age = 5}
                 },
-                new Document<object> {Id = "UpsertAsync_Batch_doc2", Content = 10},
-                new Document<object> {Id = "UpsertAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+                new Document<object> {Id = "UpsertAsync_Batch_WithTimeout_doc2", Content = 10},
+                new Document<object> {Id = "UpsertAsync_Batch_WithTimeout_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
             };
             var results = await _bucket.UpsertAsync(documents, new TimeSpan(0,0,0,1)).ConfigureAwait(false);
             Assert.AreEqual(3, results.Length);
@@ -393,11 +393,11 @@ namespace Couchbase.IntegrationTests
             {
                 new Document<object>
                 {
-                    Id = "RemoveAsync_Batch_doc1",
+                    Id = "RemoveAsync_Batch_WithTimeout_doc1",
                     Content = new {Name = "bob", Species = "Cat", Age = 5}
                 },
-                new Document<object> {Id = "RemoveAsync_Batch_doc2", Content = 10},
-                new Document<object> {Id = "RemoveAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+                new Document<object> {Id = "RemoveAsync_Batch_WithTimeout_doc2", Content = 10},
+                new Document<object> {Id = "RemoveAsync_Batch_WithTimeout_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
             };
             var results = await _bucket.UpsertAsync(documents).ConfigureAwait(false);
             var resultsRemoved = await _bucket.RemoveAsync(documents, new TimeSpan(0,0,0,1)).ConfigureAwait(false);
@@ -433,11 +433,11 @@ namespace Couchbase.IntegrationTests
             {
                 new Document<object>
                 {
-                    Id = "InsertAsync_Batch_doc1",
+                    Id = "InsertAsync_Batch_WithTimeout_doc1",
                     Content = new {Name = "bob", Species = "Cat", Age = 5}
                 },
-                new Document<object> {Id = "InsertAsync_Batch_doc2", Content = 10},
-                new Document<object> {Id = "InsertAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+                new Document<object> {Id = "InsertAsync_Batch_WithTimeout_doc2", Content = 10},
+                new Document<object> {Id = "InsertAsync_Batch_WithTimeout_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
             };
             var results = await _bucket.RemoveAsync(documents).ConfigureAwait(false);
             var resultsInsert = await _bucket.InsertAsync(documents, new TimeSpan(0,0,0,1)).ConfigureAwait(false);
@@ -474,11 +474,11 @@ namespace Couchbase.IntegrationTests
             {
                 new Document<object>
                 {
-                    Id = "GetAsync_Batch_doc1",
+                    Id = "GetAsync_Batch_WithTimeout_doc1",
                     Content = new {Name = "bob", Species = "Cat", Age = 5}
                 },
-                new Document<object> {Id = "GetAsync_Batch_doc2", Content = 10},
-                new Document<object> {Id = "GetAsync_Batch_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
+                new Document<object> {Id = "GetAsync_Batch_WithTimeout_doc2", Content = 10},
+                new Document<object> {Id = "GetAsync_Batch_WithTimeout_doc3", Content = new Cat {Name = "Cleo", Age = 10}}
             };
             await _bucket.UpsertAsync(documents).ConfigureAwait(false);
             var resultsGet = await _bucket.GetDocumentsAsync<object>(documents.Select(x => x.Id), new TimeSpan(0,0,0,1)).ConfigureAwait(false);
@@ -582,7 +582,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task InsertAsync_ReturnsId()
         {
-            var key = "InsertAsync_ReturnsDocument";
+            var key = "InsertAsync_ReturnsId";
             var doc = new Document<dynamic>
             {
                 Id = key,
@@ -678,7 +678,7 @@ namespace Couchbase.IntegrationTests
         public void Replace_WithCasAndMutated_CasMismatchException()
         {
             //setup
-            var key = "ReplaceWithCas_CasMismatchException";
+            var key = "Replace_WithCasAndMutated_CasMismatchException";
             _bucket.Remove(new Document<dynamic> { Id = key });
 
             var docWithCas = _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });
@@ -696,7 +696,7 @@ namespace Couchbase.IntegrationTests
         public async Task ReplaceAsync_WithCasAndMutated_CasMismatchException()
         {
             //setup
-            var key = "ReplaceWithCas_CasMismatchException";
+            var key = "ReplaceAsync_WithCasAndMutated_CasMismatchException";
             _bucket.Remove(new Document<dynamic> { Id = key });
 
             var docWithCas = _bucket.Insert(new Document<dynamic> { Id = key, Content = new { name = "foo" } });

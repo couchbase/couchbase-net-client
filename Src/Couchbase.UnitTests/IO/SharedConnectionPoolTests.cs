@@ -106,12 +106,12 @@ namespace Couchbase.UnitTests.IO
             public EndPoint LocalEndPoint { get; }
             public bool IsDead { get; set; }
 
-            public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+            public Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
             {
                 throw new NotImplementedException();
             }
 
-            public void SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
+            public Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback, ISpan dispatchSpan, ErrorMap errorMap)
             {
                 throw new NotImplementedException();
             }
