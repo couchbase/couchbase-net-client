@@ -139,7 +139,11 @@ namespace Couchbase.UnitTests.Management
         [TestCase(HttpStatusCode.InternalServerError)]
         public void UpsertUser_Returns_True_When_Response_Is_Success(HttpStatusCode responseHttpCode)
         {
-            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(responseHttpCode));
+            const string responseBody = "respose body";
+            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(responseHttpCode)
+            {
+                Content = new StringContent(responseBody)
+            });
             var client = new HttpClient(handler);
             var clientConfig = new ClientConfiguration();
             var serverConfigMock = new Mock<IServerConfig>();
@@ -149,6 +153,7 @@ namespace Couchbase.UnitTests.Management
             var result = manager.UpsertUser(AuthenticationDomain.Local, "alice", "secure123", "Alice Liddell", new Role {Name = "Admin"});
 
             Assert.AreEqual(responseHttpCode == HttpStatusCode.OK, result.Success);
+            Assert.AreEqual(responseBody, result.Message);
         }
 
         [TestCase(null, "password=secure123&roles=Admin%2CBucketManager%5Bdefault%5D")]
@@ -195,7 +200,11 @@ namespace Couchbase.UnitTests.Management
         [TestCase(HttpStatusCode.InternalServerError, false)]
         public void RemoveUser_Returns_True_When_Response_Is_Success(HttpStatusCode responseHttpCode, bool expectedResult)
         {
-            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(responseHttpCode));
+            const string responseBody = "respose body";
+            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(responseHttpCode)
+            {
+                Content = new StringContent(responseBody)
+            });
             var client = new HttpClient(handler);
             var clientConfig = new ClientConfiguration();
             var serverConfigMock = new Mock<IServerConfig>();
@@ -205,6 +214,7 @@ namespace Couchbase.UnitTests.Management
             var result = manager.RemoveUser(AuthenticationDomain.Local, "alice");
 
             Assert.AreEqual(expectedResult, result.Success);
+            Assert.AreEqual(responseBody, result.Message);
         }
 
         [Test]
