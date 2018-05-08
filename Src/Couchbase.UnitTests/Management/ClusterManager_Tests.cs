@@ -195,6 +195,19 @@ namespace Couchbase.UnitTests.Management
             manager.UpsertUser(AuthenticationDomain.Local, "alice", "secure123", "Alice Liddell", new Role { Name = "Admin" }, new Role { Name = "BucketManager", BucketName = "default" });
         }
 
+        [TestCase(null)]
+        [TestCase("")]
+        public void UpsertUser_Throws_Exception_When_Password_Is_Empty_For_Local_User(string password)
+        {
+            var manager = new ClusterManager(null, null, null, null, "username", "password");
+
+            // Throws AggregateException because work is done async
+            Assert.Throws<AggregateException>(() =>
+            {
+                manager.UpsertUser(AuthenticationDomain.Local, "username", password, null, new Role());
+            });
+        }
+
         [TestCase(HttpStatusCode.OK, true)]
         [TestCase(HttpStatusCode.BadRequest, false)]
         [TestCase(HttpStatusCode.InternalServerError, false)]

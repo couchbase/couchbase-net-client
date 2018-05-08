@@ -851,17 +851,25 @@ namespace Couchbase.Management
             {
                 throw new ArgumentException("username cannot be null or empty");
             }
-            if (string.IsNullOrWhiteSpace(password))
-            {
-                throw new ArgumentException("password cannot be null or empty");
-            }
             if (roles == null || !roles.Any())
             {
                 throw new ArgumentException("roles cannot be null or empty");
             }
-            if (domain == AuthenticationDomain.External && !string.IsNullOrWhiteSpace(password))
+
+            switch (domain)
             {
-                Log.Warn("Unable to update external user's password");
+                case AuthenticationDomain.Local:
+                    if (string.IsNullOrWhiteSpace(password))
+                    {
+                        throw new ArgumentException("password cannot be null or empty");
+                    }
+                    break;
+                case AuthenticationDomain.External:
+                    if (!string.IsNullOrWhiteSpace(password))
+                    {
+                        Log.Warn("Unable to update external user's password");
+                    }
+                    break;
             }
 
             var uri = GetUserManagementUri(domain, username);
