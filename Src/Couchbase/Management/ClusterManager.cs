@@ -811,6 +811,16 @@ namespace Couchbase.Management
 
         #region UserManager
 
+        private static async Task<string> GetResponseBody(HttpResponseMessage response)
+        {
+            if (response.Content != null)
+            {
+                return await response.Content.ReadAsStringAsync().ContinueOnAnyContext();
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Adds or replaces an existing Couchbase user with the provided <see cref="username" />, <see cref="password" />, <see cref="name" /> and <see cref="roles" />.
         /// </summary>
@@ -864,7 +874,8 @@ namespace Couchbase.Management
                 {
                     return new DefaultResult<bool>
                     {
-                        Success = response.IsSuccessStatusCode
+                        Success = response.IsSuccessStatusCode,
+                        Message = await GetResponseBody(response)
                     };
                 }
             }
@@ -903,7 +914,8 @@ namespace Couchbase.Management
                 {
                     return new DefaultResult<bool>
                     {
-                        Success = response.IsSuccessStatusCode
+                        Success = response.IsSuccessStatusCode,
+                        Message = await GetResponseBody(response)
                     };
                 }
             }
