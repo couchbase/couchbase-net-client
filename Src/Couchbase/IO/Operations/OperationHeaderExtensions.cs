@@ -76,20 +76,22 @@ namespace Couchbase.IO.Operations
             var status = (ResponseStatus) code;
 
             // Is it a known response status?
-            if (Enum.IsDefined(typeof(ResponseStatus), status))
+            if (!Enum.IsDefined(typeof(ResponseStatus), status))
             {
-                errorCode = null;
-                return status;
+                status = ResponseStatus.UnknownError;
             }
 
             // If available, try and use the error map to get more details
-            if (errorMap != null && errorMap.TryGetGetErrorCode(code, out errorCode))
+            if (errorMap != null)
             {
-                return ResponseStatus.Failure;
+                errorMap.TryGetGetErrorCode(code, out errorCode);
+            }
+            else
+            {
+                errorCode = null;//make the compiler happy
             }
 
-            errorCode = null;
-            return ResponseStatus.UnknownError;
+            return status;
         }
 
         internal static long? GetServerDuration(this OperationHeader header, MemoryStream stream)

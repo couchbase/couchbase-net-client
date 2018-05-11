@@ -68,6 +68,16 @@
         BucketNotConnected = 0x0008,
 
         /// <summary>
+        /// The requested resource is locked.
+        /// </summary>
+        Locked = 0x09,
+
+        /// <summary>
+        /// The authentication context is stale. You should reauthenticate
+        /// </summary>
+        AuthStale = 0x1f,
+
+        /// <summary>
         /// The connection to Couchbase could not be authenticated.
         /// </summary>
         /// <remarks>Check the bucket name and/or password being used.</remarks>
@@ -83,6 +93,21 @@
         /// The value was outside of supported range.
         /// </summary>
         InvalidRange = 0x0022,
+
+        /// <summary>
+        ///  Roll back to an earlier version of the vbucket UUID (_currently_ only used by DCP for agreeing on selecting a starting point)
+        /// </summary>
+        Rollback = 0x23,
+
+        /// <summary>
+        ///  No access (could be opcode, value, bucket etc)
+        /// </summary>
+        Eaccess = 0x24,
+
+        /// <summary>
+        /// The Couchbase cluster is currently initializing this node, and the Cluster manager has not yet granted all users access to the cluster.
+        /// </summary>
+        NotInitialized = 0x25,
 
         /// <summary>
         /// The server received an unknown command from a client.
@@ -238,7 +263,34 @@
         /// <summary>
         /// Subdocument error indicating the key combination for an XATTR opeation was invalid.
         /// </summary>
-        SubDocXattrInvalidKeyCombo = 0xcf
+        SubDocXattrInvalidKeyCombo = 0xcf,
+
+        /// <summary>
+        // The server has no knowledge of the requested macro
+        /// </summary>
+        SubdocXattrUnknownMacro = 0xd0,
+
+        /// <summary>
+        /// The server has no knowledge of the requested virtual xattr
+        /// </summary>
+        SubdocXattrUnknownVattr = 0xd1,
+
+        /// <summary>
+        /// Virtual xattrs can't be modified
+        /// </summary>
+        SubdocXattrCantModifyVattr = 0xd2,
+
+        /// <summary>
+        /// [For multi-path commands only] Specified key was found as a Deleted document, but one or more path operations
+        /// failed. Examine the individual lookup_result (MULTI_LOOKUP) mutation_result (MULTI_MUTATION) structures for details.
+        /// </summary>
+        SubdocMultiPathFailureDeleted = 0xd3,
+
+        /// <summary>
+        /// According to the spec all xattr commands should come first,
+        /// followed by the commands for the document body
+        /// </summary>
+        SubdocInvalidXattrOrder = 0xd4
     }
 }
 

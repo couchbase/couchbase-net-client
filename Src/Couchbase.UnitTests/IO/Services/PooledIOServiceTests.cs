@@ -91,7 +91,7 @@ namespace Couchbase.UnitTests.IO.Services
         }
 
         [Test]
-        public void Result_Has_Failure_Status_If_ErrorMap_Available()
+        public void Result_Has_KVError_In_Message_If_ErrorMap_Available_And_Failure()
         {
             const string codeString = "2c"; // 44
             var code = short.Parse(codeString, NumberStyles.HexNumber);
@@ -130,8 +130,7 @@ namespace Couchbase.UnitTests.IO.Services
 
             var result = service.Execute(new FakeOperationWithRequiredKey("key", null, new DefaultTranscoder(), 0, 0));
 
-            Assert.AreEqual(ResponseStatus.Failure, result.Status);
-            Assert.AreEqual(errorCode.ToString(), result.Message);
+            Assert.True(result.Message.Contains("KV Error"));
         }
 
         [Test]

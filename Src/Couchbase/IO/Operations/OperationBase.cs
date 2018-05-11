@@ -326,6 +326,27 @@ namespace Couchbase.IO.Operations
             {
                 status = ResponseStatus.ClientFailure;
             }
+
+            //For CB 5.X "LOCKED" is now returned when a key is locked with GetL (surprise, surprise)
+            //However, the 2.X SDKs cannot return locked becuase it will not be backwards compatible,
+            //so will break the bug that was fixed on the server and set the status back to TEMP_FAIL.
+            //This will enable applications that rely on TEMP_FAIL and the special exception to work
+            //as they did with pre-5.X servers.
+            if (status == ResponseStatus.Locked)
+            {
+                switch (OperationCode)
+                {
+                    case OperationCode.Set:
+                    case OperationCode.Replace:
+                    case OperationCode.Delete:
+                        status = ResponseStatus.KeyExists;
+                        break;
+                    default:
+                        status = ResponseStatus.TemporaryFailure;
+                        break;
+                }
+            }
+
             return status;
         }
 

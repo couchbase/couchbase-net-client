@@ -182,7 +182,7 @@ namespace Couchbase
                 case ResponseStatus.InternalError:
                 case ResponseStatus.Busy:
                 case ResponseStatus.TemporaryFailure:
-                    if (Message != null && Message.Contains("LOCK_ERROR"))
+                    if (Message != null && (Message.Contains("LOCK_ERROR") || Message.Contains("LOCKED")))
                     {
                         Exception = new TemporaryLockFailureException(ExceptionUtil.TemporaryLockErrorMsg.WithParams(Id));
                     }
