@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using Couchbase.Views;
 using System.Text;
 using Couchbase.Configuration.Client;
 using Couchbase.Tracing;
+using Newtonsoft.Json;
 
 namespace Couchbase.Search
 {
@@ -76,14 +78,29 @@ namespace Couchbase.Search
                         }
                         else
                         {
-                            // ReSharper disable once UseStringInterpolation
-                            var message = string.Format("{0}: {1}", (int)response.StatusCode, response.ReasonPhrase);
-                            ProcessError(new HttpRequestException(message), searchResult);
-
+                            string responseContent;
                             using (var reader = new StreamReader(stream))
                             {
-                                searchResult.Errors.Add(await reader.ReadToEndAsync().ContinueOnAnyContext());
+                                responseContent = await reader.ReadToEndAsync().ContinueOnAnyContext();
                             }
+
+                            if (response.Content.Headers.TryGetValues("Content-Type", out var values) &&
+                                values.Any(value => value.Contains(MediaType.Json)))
+                            {
+                                // server 5.5+ responds with JSON content
+                                var result = JsonConvert.DeserializeObject<FailedSearchQueryResult>(responseContent);
+                                ProcessError(new HttpRequestException(result.Message), searchResult);
+                                searchResult.Errors.Add(result.Message);
+                            }
+                            else
+                            {
+                                // use response content as raw string
+                                // ReSharper disable once UseStringInterpolation
+                                var message = string.Format("{0}: {1}", (int)response.StatusCode, response.ReasonPhrase);
+                                ProcessError(new HttpRequestException(message), searchResult);
+                                searchResult.Errors.Add(responseContent);
+                            }
+
                             if (response.StatusCode == HttpStatusCode.NotFound)
                             {
                                 baseUri.IncrementFailed();

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -9,6 +9,7 @@ using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.UnitTests.Utils;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Search
@@ -379,6 +380,39 @@ namespace Couchbase.UnitTests.Search
                 Query = new MatchQuery("foo")
             });
             Assert.IsNotNull(client.LastActivity);
+        }
+
+        [Test]
+        public async Task Failed_Query_With_Json_ContentType_Populates_ErrorResult()
+        {
+            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+
+            var content = new
+            {
+                error = "rest_index: Query, indexName: beer, err: bleve: QueryBleve parsing searchRequest, err: unknown query type",
+                request = new
+                {
+                    query = new {what = "ever"}
+                },
+                status = "fail"
+            };
+            var json = JsonConvert.SerializeObject(content);
+
+            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                StatusCode = HttpStatusCode.BadRequest,
+                Content = new StringContent(json, System.Text.Encoding.UTF8, MediaType.Json) // sets Content-Type to application/json
+            });
+
+            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), new ClientConfiguration());
+            var result = await client.QueryAsync(new SearchQuery
+            {
+                Index = "beer",
+                Query = new MatchQuery("foo")
+            });
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(content.error, result.Errors.First());
         }
 
         class FakeMessageHandler : HttpMessageHandler
