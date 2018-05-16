@@ -79,8 +79,13 @@ namespace Couchbase.Views
             }
             catch (TaskCanceledException e)
             {
-                const string error = "The request has timed out.";
-                ProcessError(e, error, viewResult);
+                var operationContext = new OperationContext("view", string.Empty)
+                {
+                    BucketName = query.BucketName,
+                    RemoteEndpoint = uri.Authority
+                };
+
+                ProcessError(e, operationContext.ToString(), viewResult);
                 Log.Error(uri.ToString(), e);
             }
             catch (HttpRequestException e)

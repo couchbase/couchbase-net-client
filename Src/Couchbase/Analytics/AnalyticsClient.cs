@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -84,6 +84,15 @@ namespace Couchbase.Analytics
                         span.SetPeerLatencyTag(result.Metrics.ElaspedTime);
                     }
                     baseUri.ClearFailed();
+                }
+                catch (TaskCanceledException)
+                {
+                    var operationContext = new OperationContext("analytics", queryRequest.CurrentContextId)
+                    {
+                        RemoteEndpoint = baseUri.Authority
+                    };
+
+                    Log.Info(operationContext.ToString());
                 }
                 catch (HttpRequestException e)
                 {

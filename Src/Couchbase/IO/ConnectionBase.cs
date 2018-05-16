@@ -1,7 +1,6 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Logging;
@@ -9,6 +8,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Errors;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using OpenTracing;
 
@@ -303,17 +303,18 @@ namespace Couchbase.IO
 
         protected Exception CreateTimeoutException(uint opaque)
         {
-            const string format = ", {0}", kv = "kv";
+            const string kv = "kv";
             var correlationId = CreateCorrelationId(opaque);
 
-            var builder = new StringBuilder(ExceptionUtil.OperationTimeout);
-            builder.AppendFormat(format, kv);
-            builder.AppendFormat(format, correlationId);
-            builder.AppendFormat(format, LocalEndPoint);
-            builder.AppendFormat(format, Configuration.SendTimeout);
-            builder.AppendFormat(format, EndPoint);
+            var context = new OperationContext(kv, correlationId)
+            {
+                BucketName = Configuration.BucketName,
+                LocalEndpoint = LocalEndPoint.ToString(),
+                RemoteEndpoint = EndPoint.ToString(),
+                TimeoutMicroseconds = Configuration.SendTimeout
+            };
 
-            var message = builder.ToString();
+            var message = context.ToString();
             Log.Info(message);
 
             var exception = new SendTimeoutExpiredException(message);

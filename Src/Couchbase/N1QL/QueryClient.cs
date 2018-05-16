@@ -282,6 +282,15 @@ namespace Couchbase.N1QL
                     }
                     baseUri.ClearFailed();
                 }
+                catch (TaskCanceledException)
+                {
+                    var operationContext = new OperationContext("n1ql", queryRequest.CurrentContextId)
+                    {
+                        RemoteEndpoint = baseUri.Authority
+                    };
+
+                    Log.Info(operationContext.ToString());
+                }
                 catch (HttpRequestException e)
                 {
                     Log.Info("Failed query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);

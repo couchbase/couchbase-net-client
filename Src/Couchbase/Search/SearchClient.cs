@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -109,6 +109,15 @@ namespace Couchbase.Search
                     }
                 }
                 baseUri.ClearFailed();
+            }
+            catch (TaskCanceledException)
+            {
+                var operationContext = new OperationContext("fts", string.Empty)
+                {
+                    RemoteEndpoint = baseUri.Authority
+                };
+
+                Log.Info(operationContext.ToString());
             }
             catch (HttpRequestException e)
             {
