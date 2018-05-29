@@ -65,7 +65,16 @@ namespace Couchbase.Collections
         /// <exception cref="System.NotImplementedException"></exception>
         public bool Remove(T item)
         {
-            return GetItems().Remove(item);            
+            var index = GetItems().IndexOf(item);
+            var removed = false;
+            
+            if(index >= 0)
+            {
+                RemoveAt(index, false);
+                removed = true;
+            }
+
+            return removed;
         }
 
         /// <summary>
@@ -117,21 +126,7 @@ namespace Couchbase.Collections
         /// <exception cref="System.IndexOutOfRangeException"></exception>
         public void RemoveAt(int index)
         {
-            if (index < 0) throw new IndexOutOfRangeException();
-            if (index > Count) throw new IndexOutOfRangeException();
-
-            var remove = Bucket.MutateIn<List<T>>(Key).
-                Remove("[" + index + "]").
-                Execute();
-
-            if (!remove.Success)
-            {
-                if (remove.Exception != null)
-                {
-                    throw remove.Exception;
-                }
-                throw new InvalidOperationException(remove.Status.ToString());
-            }
+            RemoveAt(index, true);
         }
 
         /// <summary>
@@ -178,6 +173,28 @@ namespace Couchbase.Collections
             }
 
             return get.Value;
+        }
+
+        private void RemoveAt(int index, bool validate)
+        {
+            if(validate)
+            {
+                if(index < 0) throw new IndexOutOfRangeException();
+                if(index > Count) throw new IndexOutOfRangeException();
+            }
+
+            var remove = Bucket.MutateIn<List<T>>(Key).
+                Remove("[" + index + "]").
+                Execute();
+
+            if(!remove.Success)
+            {
+                if(remove.Exception != null)
+                {
+                    throw remove.Exception;
+                }
+                throw new InvalidOperationException(remove.Status.ToString());
+            }
         }
     }
 }

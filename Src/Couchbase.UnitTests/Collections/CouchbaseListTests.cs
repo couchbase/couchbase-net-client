@@ -81,6 +81,28 @@ namespace Couchbase.UnitTests.Collections
         }
 
         [Test]
+        public void Test_Remove()
+        {
+            //arrange
+            var poco = new Poco() { Key = "Poco", Name = "Poco #1" };
+
+            var builder = new Mock<IMutateInBuilder<List<Poco>>>();
+            builder.Setup(x => x.Remove("[0]")).Returns(builder.Object);
+            builder.Setup(x => x.Execute()).Returns(new DocumentFragment<List<Poco>>(builder.Object) { Success = true });
+
+            var bucket = MockHelper.CreateBucket(poco);
+            bucket.Setup(x => x.MutateIn<List<Poco>>(BucketKey)).Returns(builder.Object);
+
+            var collection = new CouchbaseList<Poco>(bucket.Object, BucketKey);
+
+            //act/assert
+            Assert.DoesNotThrow(() => collection.Remove(poco));
+
+            builder.Verify(x => x.Remove("[0]"), Times.Once());
+            builder.Verify(x => x.Execute(), Times.Once());
+        }
+
+        [Test]
         public void Test_RemoveAt()
         {
             //arrange
