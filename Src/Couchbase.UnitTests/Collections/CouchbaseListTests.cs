@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using Couchbase.Collections;
 using Couchbase.Core;
@@ -10,6 +9,8 @@ namespace Couchbase.UnitTests.Collections
     [TestFixture]
     public class CouchbaseListTests
     {
+        private const string BucketKey = "TestCollection";
+
         public class Poco
         {
             public string Key { get; set; }
@@ -25,18 +26,131 @@ namespace Couchbase.UnitTests.Collections
             builder.Setup(x => x.ArrayAppend(It.IsAny<Poco>(), It.IsAny<bool>())).Returns(builder.Object);
             builder.Setup(x => x.Execute()).Returns(new DocumentFragment<List<Poco>>(builder.Object) {Success = true});
 
-            var bucket = new Mock<IBucket>();
-            bucket.Setup(x => x.Insert(It.IsAny<Document<List<Poco>>>())).
-                Returns(new DocumentResult<List<Poco>>(new OperationResult<List<Poco>>
-            {
-                Success = true
-            }));
-            bucket.Setup(x => x.MutateIn<List<Poco>>(It.IsAny<string>())).Returns(builder.Object);
+            var bucket = MockHelper.CreateBucket<Poco>(BucketKey);
+            bucket.Setup(x => x.MutateIn<List<Poco>>(BucketKey)).Returns(builder.Object);
 
-            var collection = new CouchbaseList<Poco>(bucket.Object, "Thecollection");
+            var collection = new CouchbaseList<Poco>(bucket.Object, BucketKey);
+
+            var poco = new Poco {Key = "Poco", Name = "Poco #1"};
 
             //act/assert
-            Assert.DoesNotThrow(()=> collection.Add(new Poco { Key = "poco1", Name = "Poco-pica" }));
+            Assert.DoesNotThrow(() => collection.Add(poco));
+
+            builder.Verify(x => x.ArrayAppend(poco, true), Times.Once());
+            builder.Verify(x => x.Execute(), Times.Once());
+        }
+
+        [Test]
+        public void Test_Insert()
+        {
+            //arrange
+            var builder = new Mock<IMutateInBuilder<List<Poco>>>();
+            builder.Setup(x => x.ArrayInsert("[0]", It.IsAny<Poco>(), It.IsAny<bool>())).Returns(builder.Object);
+            builder.Setup(x => x.Execute()).Returns(new DocumentFragment<List<Poco>>(builder.Object) {Success = true});
+
+            var bucket = MockHelper.CreateBucket(BucketKey, new Poco {Key = "Poco-1", Name = "Poco #1"});
+            bucket.Setup(x => x.MutateIn<List<Poco>>(BucketKey)).Returns(builder.Object);
+
+            var collection = new CouchbaseList<Poco>(bucket.Object, BucketKey);
+
+            var poco = new Poco {Key = "Poco-2", Name = "Poco #2"};
+
+            //act/assert
+            Assert.DoesNotThrow(() => collection.Insert(0, poco));
+
+            builder.Verify(x => x.ArrayInsert("[0]", poco, true), Times.Once());
+            builder.Verify(x => x.Execute(), Times.Once());
+        }
+
+        [Test]
+        public void Test_Remove()
+        {
+            //arrange
+            var poco = new Poco {Key = "Poco", Name = "Poco #1"};
+
+            var builder = new Mock<IMutateInBuilder<List<Poco>>>();
+            builder.Setup(x => x.Remove("[0]")).Returns(builder.Object);
+            builder.Setup(x => x.Execute()).Returns(new DocumentFragment<List<Poco>>(builder.Object) {Success = true});
+
+            var bucket = MockHelper.CreateBucket(BucketKey, poco);
+            bucket.Setup(x => x.MutateIn<List<Poco>>(BucketKey)).Returns(builder.Object);
+
+            var collection = new CouchbaseList<Poco>(bucket.Object, BucketKey);
+
+            //act/assert
+            Assert.DoesNotThrow(() => collection.Remove(poco));
+
+            builder.Verify(x => x.Remove("[0]"), Times.Once());
+            builder.Verify(x => x.Execute(), Times.Once());
+        }
+
+        [Test]
+        public void Test_RemoveAt()
+        {
+            //arrange
+            var builder = new Mock<IMutateInBuilder<List<Poco>>>();
+            builder.Setup(x => x.Remove("[0]")).Returns(builder.Object);
+            builder.Setup(x => x.Execute()).Returns(new DocumentFragment<List<Poco>>(builder.Object) {Success = true});
+
+            var bucket = MockHelper.CreateBucket(BucketKey, new Poco());
+            bucket.Setup(x => x.MutateIn<List<Poco>>(BucketKey)).Returns(builder.Object);
+
+            var collection = new CouchbaseList<Poco>(bucket.Object, BucketKey);
+
+            //act/assert
+            Assert.DoesNotThrow(() => collection.RemoveAt(0));
+
+            builder.Verify(x => x.Remove("[0]"), Times.Once());
+            builder.Verify(x => x.Execute(), Times.Once());
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Test_Contains(bool expected)
+        {
+            //arrange
+            var item = new Poco();
+            var items = new List<Poco>();
+
+            if (expected)
+            {
+                items.Add(item);
+            }
+
+            var bucket = MockHelper.CreateBucket(BucketKey, items.ToArray());
+
+            var collection = new CouchbaseList<Poco>(bucket.Object, BucketKey);
+
+            //act
+            var actual = collection.Contains(item);
+
+            //assert
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Test_IndexOf(bool contains)
+        {
+            //arrange
+            var item = new Poco();
+            var items = new List<Poco>();
+
+            if (contains)
+            {
+                items.Add(item);
+            }
+
+            var bucket = MockHelper.CreateBucket(BucketKey, items.ToArray());
+
+            var collection = new CouchbaseList<Poco>(bucket.Object, BucketKey);
+
+            //act
+            var expected = contains ? 0 : -1;
+            var actual = collection.IndexOf(item);
+
+            //assert
+            Assert.AreEqual(expected, actual);
         }
     }
 }
