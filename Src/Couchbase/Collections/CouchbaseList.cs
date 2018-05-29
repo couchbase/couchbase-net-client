@@ -52,20 +52,7 @@ namespace Couchbase.Collections
         /// <exception cref="System.NotImplementedException"></exception>
         public bool Contains(T item)
         {
-            var get = Bucket.Get<List<T>>(Key);
-
-            if (!get.Success)
-            {
-                if (get.Exception != null)
-                {
-                    throw get.Exception;
-                }
-                throw new InvalidOperationException(get.Status.ToString());
-            }
-
-            var items = get.Value;
-
-            return items.Contains(item);
+            return GetItems().Contains(item);
         }
 
         /// <summary>
@@ -78,20 +65,7 @@ namespace Couchbase.Collections
         /// <exception cref="System.NotImplementedException"></exception>
         public bool Remove(T item)
         {
-            var get = Bucket.Get<List<T>>(Key);
-
-            if (!get.Success)
-            {
-                if (get.Exception != null)
-                {
-                    throw get.Exception;
-                }
-                throw new InvalidOperationException(get.Status.ToString());
-            }
-
-            var items = get.Value;
-
-            return items.Remove(item);
+            return GetItems().Remove(item);            
         }
 
         /// <summary>
@@ -109,20 +83,7 @@ namespace Couchbase.Collections
         /// <exception cref="System.NotImplementedException"></exception>
         public int IndexOf(T item)
         {
-            var get = Bucket.Get<List<T>>(Key);
-
-            if (!get.Success)
-            {
-                if (get.Exception != null)
-                {
-                    throw get.Exception;
-                }
-                throw new InvalidOperationException(get.Status.ToString());
-            }
-
-            var items = get.Value;
-
-            return items.IndexOf(item);
+            return GetItems().IndexOf(item);
         }
 
         /// <summary>
@@ -197,21 +158,26 @@ namespace Couchbase.Collections
             if (index < 0) throw new IndexOutOfRangeException();
             if (index > Count) throw new IndexOutOfRangeException();
 
+            var items = GetItems();
+
+            return items[index];
+        }
+
+        private List<T> GetItems() 
+        {
             // ReSharper disable once InconsistentlySynchronizedField
             var get = Bucket.Get<List<T>>(Key);
 
-            if (!get.Success)
+            if(!get.Success) 
             {
-                if (get.Exception != null)
+                if(get.Exception != null) 
                 {
                     throw get.Exception;
                 }
                 throw new InvalidOperationException(get.Status.ToString());
             }
 
-            var items = get.Value;
-
-            return items[index];
+            return get.Value;
         }
     }
 }
