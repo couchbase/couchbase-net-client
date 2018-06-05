@@ -786,6 +786,74 @@ namespace Couchbase.IntegrationTests
             Assert.IsTrue(result.Success);
         }
 
+        [Test]
+        public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert()
+        {
+            var document = new Document<dynamic>
+            {
+                Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert",
+                Expiry = 1000,
+                Content = new { name = "I expire in 2000 milliseconds." }
+            };
+
+            var upsert = _bucket.Upsert(document);
+            Assert.IsTrue(upsert.Success);
+
+            var get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+            Thread.Sleep(2000);
+            get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+        }
+
+        [Test]
+        public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert()
+        {
+            var document = new Document<dynamic>
+            {
+                Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert",
+                Expiry = 1000,
+                Content = new { name = "I expire in 2000 milliseconds." }
+            };
+
+            _bucket.Remove(document);
+            var upsert = _bucket.Insert(document);
+            Assert.IsTrue(upsert.Success);
+
+            var get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+            Thread.Sleep(2000);
+            get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+        }
+
+        [Test]
+        public void When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace()
+        {
+            var document = new Document<dynamic>
+            {
+                Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace",
+                Expiry = 1000,
+                Content = new { name = "I expire in 2000 milliseconds." }
+            };
+
+            _bucket.Remove(document);
+            var upsert = _bucket.Insert(document);
+            Assert.IsTrue(upsert.Success);
+
+            var replace = _bucket.Replace(document);
+            Assert.IsTrue(replace.Success);
+
+            var get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.Success, get.Status);
+
+            Thread.Sleep(2000);
+            get = _bucket.GetDocument<dynamic>(document.Id);
+            Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
+        }
+
         #region Helpers
 
         private void IgnoreIfNoReplicas()

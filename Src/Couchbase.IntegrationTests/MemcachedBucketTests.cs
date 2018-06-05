@@ -691,9 +691,8 @@ namespace Couchbase.IntegrationTests
             var document = new Document<dynamic>
             {
                 Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Upsert",
-                Expiry = 2000,
+                Expiry = 1000,
                 Content = new {name = "I expire in 2000 milliseconds."}
-
             };
 
             var upsert = _bucket.Upsert(document);
@@ -702,7 +701,7 @@ namespace Couchbase.IntegrationTests
             var get = _bucket.GetDocument<dynamic>(document.Id);
             Assert.AreEqual(ResponseStatus.Success, get.Status);
 
-            Thread.Sleep(3000);
+            Thread.Sleep(2000);
             get = _bucket.GetDocument<dynamic>(document.Id);
             Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
@@ -713,9 +712,8 @@ namespace Couchbase.IntegrationTests
             var document = new Document<dynamic>
             {
                 Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Insert",
-                Expiry = 2000,
+                Expiry = 1000,
                 Content = new {name = "I expire in 2000 milliseconds."}
-
             };
 
             _bucket.Remove(document);
@@ -725,7 +723,7 @@ namespace Couchbase.IntegrationTests
             var get = _bucket.GetDocument<dynamic>(document.Id);
             Assert.AreEqual(ResponseStatus.Success, get.Status);
 
-            Thread.Sleep(3000);
+            Thread.Sleep(2000);
             get = _bucket.GetDocument<dynamic>(document.Id);
             Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
@@ -736,9 +734,8 @@ namespace Couchbase.IntegrationTests
             var document = new Document<dynamic>
             {
                 Id = "When_Document_Has_Expiry_It_Is_Evicted_After_It_Expires_Replace",
-                Expiry = 2000,
+                Expiry = 1000,
                 Content = new {name = "I expire in 2000 milliseconds."}
-
             };
 
             _bucket.Remove(document);
@@ -751,7 +748,7 @@ namespace Couchbase.IntegrationTests
             var get = _bucket.GetDocument<dynamic>(document.Id);
             Assert.AreEqual(ResponseStatus.Success, get.Status);
 
-            Thread.Sleep(3000);
+            Thread.Sleep(2000);
             get = _bucket.GetDocument<dynamic>(document.Id);
             Assert.AreEqual(ResponseStatus.KeyNotFound, get.Status);
         }
