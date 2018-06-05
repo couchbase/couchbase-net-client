@@ -116,8 +116,11 @@ namespace Couchbase.Configuration.Client
 
             public static bool ResponseTimeObservabiltyEnabled = true;
             public static bool OrphanedResponseLoggingEnabled = true;
-
             public static bool ServerDurationTracingEnabled = true;
+
+            //x509 certificate settings
+            public static bool EnableCertificateRevocation = false;
+            public static bool EnableCertificateAuthentication = false;
         }
 
         public ClientConfiguration()
@@ -246,6 +249,8 @@ namespace Couchbase.Configuration.Client
         /// <param name="definition"></param>
         public ClientConfiguration(ICouchbaseClientDefinition definition)
         {
+            EnableCertificateAuthentication = definition.EnableCertificateAuthentication;
+            EnableCertificateRevocation = definition.EnableCertificateRevocation;
             UseConnectionPooling = definition.UseConnectionPooling;
             EnableDeadServiceUriPing = definition.EnableDeadServiceUriPing;
             NodeAvailableCheckInterval = definition.NodeAvailableCheckInterval;
@@ -1334,6 +1339,7 @@ namespace Couchbase.Configuration.Client
             _serversChanged = true;
         }
 
+        /// <summary>
         /// Enables X509 authentication with the Couchbase cluster.
         /// </summary>
         public bool EnableCertificateAuthentication
@@ -1348,6 +1354,13 @@ namespace Couchbase.Configuration.Client
                 }
             }
         }
+
+        /// <summary>
+        /// If <see cref="EnableCertificateAuthentication"/> is true, certificate revocation list
+        /// will be checked during authentication. The default is disabled (false).
+        /// </summary>
+        /// <remarks>Only applies to .NET 4.6 and higher (and core).</remarks>
+        public bool EnableCertificateRevocation { get; set; }
 
         /// <summary>
         /// Factory for retrieving X509 certificates from a store or off of the file system.

@@ -48,6 +48,7 @@ namespace Couchbase.IO
             }
             return config.KvServerCertificateValidationCallback;
         }
+
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             Log.Info("Validating certificate [IgnoreRemoteCertificateNameMismatch={0}]: {1}", ClientConfiguration.IgnoreRemoteCertificateNameMismatch, sslPolicyErrors);
@@ -78,7 +79,10 @@ namespace Couchbase.IO
                             throw new NullConfigException("If BucketConfiguration.EnableCertificateAuthentication is true, CertificateFactory cannot be null.");
                         }
                         var certs = Configuration.ClientConfiguration.CertificateFactory();
-                        _sslStream.AuthenticateAsClientAsync(targetHost, certs, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, true).Wait();
+                        _sslStream.AuthenticateAsClientAsync(targetHost,
+                            certs,
+                            SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+                            Configuration.ClientConfiguration.EnableCertificateAuthentication).Wait();
                     }
                     else
                     {

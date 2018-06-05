@@ -86,6 +86,7 @@ namespace Couchbase.IO.Http
 #else
             try
             {
+                handler.CheckCertificateRevocationList = config.EnableCertificateRevocation;
                 handler.ServerCertificateCustomValidationCallback = config?.HttpServerCertificateValidationCallback ??
                                                                     OnCertificateValidation;
             }

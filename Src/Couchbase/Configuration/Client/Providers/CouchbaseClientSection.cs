@@ -684,6 +684,28 @@ namespace Couchbase.Configuration.Client.Providers
             set => this["orphanedResponseLoggingEnabled"] = value;
         }
 
+        /// <summary>
+        /// If <see cref="EnableCertificateAuthentication"/> is true, certificate revocation list
+        /// will be checked during authentication. The default is disabled (false).
+        /// </summary>
+        /// <remarks>Only applies to .NET 4.6 and higher (and core).</remarks>
+        [ConfigurationProperty("enableCertificateRevocation", IsRequired = false, DefaultValue = false)]
+        public bool EnableCertificateRevocation
+        {
+            get => (bool)this["enableCertificateRevocation"];
+            set => this["enableCertificateRevocation"] = value;
+        }
+
+        /// <summary>
+        /// Enables X509 authentication with the Couchbase cluster.
+        /// </summary>
+        [ConfigurationProperty("enableCertificateAuthentication", IsRequired = false, DefaultValue = false)]
+        public bool EnableCertificateAuthentication
+        {
+            get => (bool)this["enableCertificateAuthentication"];
+            set => this["enableCertificateAuthentication"] = value;
+        }
+
         #region Additional ICouchbaseClientDefinition implementations
 
         IEnumerable<Uri> ICouchbaseClientDefinition.Servers
