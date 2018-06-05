@@ -163,7 +163,7 @@ namespace Couchbase.Collections
             // ReSharper disable once InconsistentlySynchronizedField
             var get = Bucket.Get<List<T>>(Key);
 
-            if(!get.Success) 
+            if (!get.Success) 
             {
                 if(get.Exception != null) 
                 {
