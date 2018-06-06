@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.IO.Operations;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
@@ -33,6 +34,22 @@ namespace Couchbase.Configuration.Server.Serialization
             }
 
             return nodeAdapters;
+        }
+
+        public static VBucketServerMap GetBucketServerMap(this IBucketConfig bucketConfig, bool useSsl)
+        {
+            var node = bucketConfig.GetNodes().First();
+            var port = useSsl ? node.KeyValueSsl : node.KeyValue;
+
+            return new VBucketServerMap()
+            {
+                VBucketMap = (int[][])bucketConfig.VBucketServerMap.VBucketMap.Clone(),
+                HashAlgorithm = bucketConfig.VBucketServerMap.HashAlgorithm,
+                ServerList =  bucketConfig.VBucketServerMap.ServerList.Select(x =>
+                    x.Replace(node.KeyValue.ToString(), port.ToString())).ToArray(),
+                NumReplicas = bucketConfig.VBucketServerMap.NumReplicas,
+                VBucketMapForward =(int[][]) bucketConfig.VBucketServerMap.VBucketMapForward.Clone()
+            };
         }
     }
 }
