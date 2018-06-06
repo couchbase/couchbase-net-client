@@ -112,7 +112,11 @@ namespace Couchbase.Configuration
 
                     var old = Interlocked.Exchange(ref Servers, servers);
                     Log.Info("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev);
-                    var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
+                    var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+                        BucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
+                        bucketConfig.Rev,
+                        bucketConfig.Name);
+
                     Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                     Interlocked.Exchange(ref _bucketConfig, bucketConfig);
 
@@ -131,8 +135,11 @@ namespace Couchbase.Configuration
                     if (BucketConfig == null || !BucketConfig.IsVBucketServerMapEqual(bucketConfig) || force)
                     {
                         Log.Info("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev);
-                        var vBucketKeyMapper = new VBucketKeyMapper(Servers, bucketConfig.VBucketServerMap,
-                            bucketConfig.Rev, bucketConfig.Name);
+                        var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+                            BucketConfig.GetBucketServerMap(ClientConfig.BucketConfigs[bucketConfig.Name].UseSsl),
+                            bucketConfig.Rev,
+                            bucketConfig.Name);
+
                         Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                         Interlocked.Exchange(ref _bucketConfig, bucketConfig);
                     }
@@ -254,7 +261,11 @@ namespace Couchbase.Configuration
 
                 Log.Info("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev);
                 var old = Interlocked.Exchange(ref Servers, servers);
-                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev, BucketConfig.Name);
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+                    BucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
+                    BucketConfig.Rev,
+                    BucketConfig.Name);
+
                 Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                 if (old != null)
                 {
@@ -339,7 +350,11 @@ namespace Couchbase.Configuration
                 Interlocked.Exchange(ref AnalyticsUris, analyticsUris);
 
                 var old = Interlocked.Exchange(ref Servers, servers);
-                var vBucketKeyMapper = new VBucketKeyMapper(Servers, BucketConfig.VBucketServerMap, BucketConfig.Rev, BucketConfig.Name);
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+                    BucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
+                    BucketConfig.Rev,
+                    BucketConfig.Name);
+
                 Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                 if (old != null)
                 {
