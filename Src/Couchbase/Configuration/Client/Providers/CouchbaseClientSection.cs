@@ -1,4 +1,4 @@
-﻿#if NET452
+#if NET452
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -659,20 +659,33 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
-        /// Controls whether the <see cref="T:Couchbase.Tracing.ThresholdLoggingTracer" /> is used when configuring the client.
+        /// Controls whether the operation tracing is enabled within the client.
         /// </summary>
         /// <value>
-        /// <c>true</c> if the <see cref="T:Couchbase.Tracing.ThresholdLoggingTracer" /> is to be used; otherwise, <c>false</c>.
+        /// <c>true</c> if operation tracing is enabled; otherwise, <c>false</c>.
         /// </value>
-        [ConfigurationProperty("responseTimeObservabilityEnabled", IsRequired = false, DefaultValue = true)]
-        public bool ResponseTimeObservabilityEnabled
+        [ConfigurationProperty("operationTracingEnabled", IsRequired = false, DefaultValue = true)]
+        public bool OperationTracingEnabled
         {
-            get => (bool)this["responseTimeObservabilityEnabled"];
-            set => this["responseTimeObservabilityEnabled"] = value;
+            get => (bool)this["operationTracingEnabled"];
+            set => this["operationTracingEnabled"] = value;
         }
 
         /// <summary>
-        /// Controls whether orphaned server responses are recorded and logged.
+        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
+        /// </value>
+        [ConfigurationProperty("operationTracingServerDurationEnabled", IsRequired = false, DefaultValue = true)]
+        public bool OperationTracingServerDurationEnabled
+        {
+            get => (bool)this["operationTracingServerDurationEnabled"];
+            set => this["operationTracingServerDurationEnabled"] = value;
+        }
+
+        /// <summary>
+        /// Controls whether orphaned server responses are collected and logged.
         /// </summary>
         /// <value>
         /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.

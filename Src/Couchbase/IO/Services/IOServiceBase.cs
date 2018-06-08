@@ -122,7 +122,9 @@ namespace Couchbase.IO.Services
                 features.Add((short)ServerFeatures.MutationSeqno);
             }
 
-            if (ConnectionPool.Configuration.ServerDurationTracingEnabled)
+            if (ConnectionPool.Configuration.ClientConfiguration != null &&
+                ConnectionPool.Configuration.ClientConfiguration.OperationTracingEnabled &&
+                ConnectionPool.Configuration.ClientConfiguration.OperationTracingServerDurationEnabled)
             {
                 features.Add((short) ServerFeatures.ServerDuration);
             }

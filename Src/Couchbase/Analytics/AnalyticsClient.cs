@@ -86,14 +86,12 @@ namespace Couchbase.Analytics
                     }
                     baseUri.ClearFailed();
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException e)
                 {
-                    var operationContext = new OperationContext("analytics", queryRequest.CurrentContextId)
-                    {
-                        RemoteEndpoint = baseUri.Authority
-                    };
-
+                    var operationContext = OperationContext.CreateAnalyticsContext(queryRequest.CurrentContextId, baseUri?.Authority);
                     Log.Info(operationContext.ToString());
+
+                    ProcessError(e, result);
                 }
                 catch (HttpRequestException e)
                 {

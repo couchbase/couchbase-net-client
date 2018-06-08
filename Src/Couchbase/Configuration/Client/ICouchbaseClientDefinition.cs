@@ -421,18 +421,27 @@ namespace Couchbase.Configuration.Client
         ServerConfigurationProviders ConfigurationProviders { get; set; }
 
         /// <summary>
-        /// Controls whether the <see cref="ThresholdLoggingTracer"/> is used when configuring the client.
+        /// Controls whether the operation tracing is enabled within the client.
         /// </summary>
         /// <value>
-        /// <c>true</c> if the <see cref="ThresholdLoggingTracer"/> is to be used; otherwise, <c>false</c>.
+        /// <c>true</c> if operation tracing is enabled; otherwise, <c>false</c>.
         /// </value>
-        bool ResponseTimeObservabilityEnabled { get; set; }
+        bool OperationTracingEnabled { get; set; }
 
         /// <summary>
-        /// Controls whether orphaned server responses are recorded and logged.
+        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
         /// </summary>
         /// <value>
+        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
+        /// </value>
+        bool OperationTracingServerDurationEnabled { get; set; }
+
+        /// <summary>
+        /// Controls whether orphaned server responses are collected and logged.
         /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.///
         /// </value>
         bool OrphanedResponseLoggingEnabled { get; set; }
 

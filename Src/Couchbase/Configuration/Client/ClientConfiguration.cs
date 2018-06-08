@@ -115,9 +115,9 @@ namespace Couchbase.Configuration.Client
 
             public static bool ForceSaslPlain = true;
 
-            public static bool ResponseTimeObservabiltyEnabled = true;
+            public static bool OperationTracingEnabled = true;
+            public static bool OperationTracingServerDurationEnabled = true;
             public static bool OrphanedResponseLoggingEnabled = true;
-            public static bool ServerDurationTracingEnabled = true;
 
             //x509 certificate settings
             public static bool EnableCertificateRevocation = false;
@@ -217,14 +217,9 @@ namespace Couchbase.Configuration.Client
             };
             Servers = new List<Uri> { Defaults.Server };
 
-            // create default tracer & orphaned operation reporter
-            Tracer = Defaults.ResponseTimeObservabiltyEnabled
-                ? new ThresholdLoggingTracer()
-                : (ITracer) NullTracer.Instance;
-
-            OrphanedOperationReporter = Defaults.OrphanedResponseLoggingEnabled
-                ? new OrphanedResponseReporter()
-                : NullOrphanedOperationReporter.Instance;
+            OperationTracingEnabled = Defaults.OperationTracingEnabled;
+            OperationTracingServerDurationEnabled = Defaults.OperationTracingServerDurationEnabled;
+            OrphanedResponseLoggingEnabled = Defaults.OrphanedResponseLoggingEnabled;
 
             //Set back to default
             _operationLifespanChanged = false;
@@ -378,8 +373,7 @@ namespace Couchbase.Configuration.Client
                     TcpKeepAliveTime = keepAlivesChanged ? TcpKeepAliveTime : definition.ConnectionPool.TcpKeepAliveTime,
                     CloseAttemptInterval = definition.ConnectionPool.CloseAttemptInterval,
                     MaxCloseAttempts = definition.ConnectionPool.MaxCloseAttempts,
-                    ClientConfiguration = this,
-                    ServerDurationTracingEnabled = definition.ConnectionPool.ServerDurationTracingEnabled
+                    ClientConfiguration = this
                 };
                 PoolConfiguration.Validate();
             }
@@ -462,13 +456,9 @@ namespace Couchbase.Configuration.Client
                 SetAuthenticator(authenticator);
             }
 
-            Tracer = definition.ResponseTimeObservabilityEnabled
-                ? new ThresholdLoggingTracer()
-                : (ITracer) NullTracer.Instance;
-
-            OrphanedOperationReporter = definition.OrphanedResponseLoggingEnabled
-                ? new OrphanedResponseReporter()
-                : NullOrphanedOperationReporter.Instance;
+            OperationTracingEnabled = definition.OperationTracingEnabled;
+            OperationTracingServerDurationEnabled = definition.OperationTracingServerDurationEnabled;
+            OrphanedResponseLoggingEnabled = definition.OrphanedResponseLoggingEnabled;
 
             //Set back to default
             _operationLifespanChanged = false;
@@ -1300,15 +1290,67 @@ namespace Couchbase.Configuration.Client
         /// </value>
         public bool ForceSaslPlain { get; set; }
 
-        /// <summary>
-        /// The OpenTracing <see cref="ITracer"/> used to collect generated <see cref="ISpan"/>s.
-        /// </summary>
-        public ITracer Tracer { get; set; }
+        private Lazy<ITracer> _tracer;
 
         /// <summary>
-        /// The Orphaned Response Reporter collects server responses for operationst that have timed out.
+        /// Controls whether the operation tracing is enabled within the client.
         /// </summary>
-        public IOrphanedOperationReporter OrphanedOperationReporter { get; set; }
+        /// <value>
+        /// <c>true</c> if operation tracing is enabled; otherwise, <c>false</c>.
+        /// </value>
+        public bool OperationTracingEnabled { get; set; }
+
+        /// <summary>
+        /// The OpenTracing <see cref="ITracer"/> used to collect and generated <see cref="ISpan"/>s.
+        /// </summary>
+        [JsonIgnore]
+        public ITracer Tracer
+        {
+            get
+            {
+                if (_tracer == null)
+                {
+                    _tracer = new Lazy<ITracer>(TracerFactory.GetFactory(this));
+                }
+                return _tracer.Value;
+            }
+            set => _tracer = new Lazy<ITracer>(() => value);
+        }
+
+        private Lazy<IOrphanedResponseLogger> _orphanedResponseLogger;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
+        /// </value>
+        public bool OperationTracingServerDurationEnabled { get; set; }
+
+        /// <summary>
+        /// The Orphaned Response Logger collects and logs server responses operations that have timed out.
+        /// </summary>
+        [JsonIgnore]
+        public IOrphanedResponseLogger OrphanedResponseLogger
+        {
+            get
+            {
+                if (_orphanedResponseLogger == null)
+                {
+                    _orphanedResponseLogger = new Lazy<IOrphanedResponseLogger>(OrphanedResponseLoggerFactory.GetFactory(this));
+                }
+                return _orphanedResponseLogger.Value;
+            }
+            set => _orphanedResponseLogger = new Lazy<IOrphanedResponseLogger>(() => value);
+        }
+
+        /// <summary>
+        /// Controls whether operation response reporting is enabled within the client.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if orphaned response reporting is enabled; otherwise, <c>false</c>.
+        /// </value>
+        public bool OrphanedResponseLoggingEnabled { get; set; }
 
         internal void ApplyConnectionString(ConnectionString connectionString)
         {

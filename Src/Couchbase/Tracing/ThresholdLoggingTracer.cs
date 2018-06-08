@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Utils;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using OpenTracing;
 using OpenTracing.Propagation;
 
@@ -13,35 +15,68 @@ namespace Couchbase.Tracing
 {
     public class ThresholdLoggingTracer : ITracer, IDisposable
     {
+        private const int WorkerSleep = 100;
         private static readonly ILog Log = LogManager.GetLogger<ThresholdLoggingTracer>();
 
         private readonly CancellationTokenSource _source = new CancellationTokenSource();
-        private readonly Queue<Span> _queuedSpans = new Queue<Span>();
-        private readonly SemaphoreSlim _slim = new SemaphoreSlim(1, 1);
+        private readonly BlockingCollection<SpanSummary> _queue = new BlockingCollection<SpanSummary>(1000);
+        private readonly SortedSet<SpanSummary> _kvSummaries = new SortedSet<SpanSummary>();
+        private readonly SortedSet<SpanSummary> _viewSummaries = new SortedSet<SpanSummary>();
+        private readonly SortedSet<SpanSummary> _querySummaries = new SortedSet<SpanSummary>();
+        private readonly SortedSet<SpanSummary> _searchSummaries = new SortedSet<SpanSummary>();
+        private readonly SortedSet<SpanSummary> _analyticsSummaries = new SortedSet<SpanSummary>();
 
-        internal int Interval { get; } = 10000;
-        internal int SampleSize { get; } = 10;
+        private DateTime _lastrun = DateTime.UtcNow;
+        private int _kvSummaryCount;
+        private int _viewSummaryCount;
+        private int _querySummaryCount;
+        private int _searchSummaryCount;
+        private int _analyticsSummaryCount;
+        private bool _hasSummariesToLog;
 
-        internal Dictionary<string, int> ServiceFloors { get; } = new Dictionary<string, int>
-        {
-            {CouchbaseTags.ServiceKv, 500000}, // 500 milliseconds
-            {CouchbaseTags.ServiceView, 1000000}, // 1 second
-            {CouchbaseTags.ServiceN1ql, 1000000}, // 1 second
-            {CouchbaseTags.ServiceSearch, 1000000}, // 1 second
-            {CouchbaseTags.ServiceAnalytics, 1000000} // 1 second
-        };
+        /// <summary>
+        /// Gets or sets the interval at which the <see cref="ThresholdLoggingTracer"/> writes to the log.
+        /// Expressed as milliseconds.
+        /// </summary>
+        public int Interval { get; set; } = 10000; // 10 seconds
 
-        internal int QueuedSpansCount => _queuedSpans.Count;
+        /// <summary>
+        /// Gets or sets the size of the sample used in the output written to the log.
+        /// </summary>
+        public int SampleSize { get; set; } = 10;
 
-        public ThresholdLoggingTracer(int interval, int sampleSize, Dictionary<string, int> serviceFloors)
-            : this()
-        {
-            Interval = interval;
-            SampleSize = sampleSize;
-            ServiceFloors = serviceFloors;
-        }
+        /// <summary>
+        /// Gets or sets the key-value operation threshold, expressed in microseconds.
+        /// </summary>
+        public int KvThreshold { get; set; } = 500000;
 
-        internal ThresholdLoggingTracer()
+        /// <summary>
+        /// Gets or sets the view operation threshold, expressed in microseconds.
+        /// </summary>
+        public int ViewThreshold { get; set; } = 1000000;
+
+        /// <summary>
+        /// Gets or sets the n1ql operation threshold, expressed in microseconds.
+        /// </summary>
+        // ReSharper disable once InconsistentNaming
+        public int N1qlThreshold { get; set; } = 1000000;
+
+        /// <summary>
+        /// Gets or sets the search operation threshold, expressed in microseconds.
+        /// </summary>
+        public int SearchThreshold { get; set; } = 1000000;
+
+        /// <summary>
+        /// Gets or sets the analytics operation threshold, expressed in microseconds.
+        /// </summary>
+        public int AnalyticsThreshold { get; set; } = 1000000;
+
+        /// <summary>
+        /// Internal total count of all pending spans that have exceed the given service thresholds.
+        /// </summary>
+        internal int TotalSummaryCount => _kvSummaryCount + _viewSummaryCount + _querySummaryCount + _searchSummaryCount + _analyticsSummaryCount;
+
+        public ThresholdLoggingTracer()
         {
             Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
         }
@@ -61,146 +96,150 @@ namespace Couchbase.Tracing
             throw new NotSupportedException();
         }
 
-        public int KvThreshold
-        {
-            get => ServiceFloors[CouchbaseTags.ServiceKv];
-            set => ServiceFloors[CouchbaseTags.ServiceKv] = value;
-        }
-
-        public int ViewThreshold
-        {
-            get => ServiceFloors[CouchbaseTags.ServiceView];
-            set => ServiceFloors[CouchbaseTags.ServiceView] = value;
-        }
-
-        // ReSharper disable once InconsistentNaming
-        public int N1qlThreshold
-        {
-            get => ServiceFloors[CouchbaseTags.ServiceN1ql];
-            set => ServiceFloors[CouchbaseTags.ServiceN1ql] = value;
-        }
-
-        public int SearchThreshold
-        {
-            get => ServiceFloors[CouchbaseTags.ServiceSearch];
-            set => ServiceFloors[CouchbaseTags.ServiceSearch] = value;
-        }
-
-        public int AnalyticsThreshold
-        {
-            get => ServiceFloors[CouchbaseTags.ServiceAnalytics];
-            set => ServiceFloors[CouchbaseTags.ServiceAnalytics] = value;
-        }
-
         internal void ReportSpan(Span span)
         {
-            if (ShouldQueueSpan(span))
+            if (span.IsRootSpan && !span.ContainsIgnore)
             {
-                // Queue span using threadpool to not block app threads
-                Task.Run(async () =>
+                var summary = new SpanSummary(span);
+                if (IsOverThreshold(summary))
                 {
-                    await _slim.WaitAsync().ContinueOnAnyContext();
-                    try
-                    {
-                        //TODO: create summary here to reduce memory consumption?
-                        _queuedSpans.Enqueue(span);
-                    }
-                    finally
-                    {
-                        _slim.Release();
-                    }
-                });
+                    _queue.Add(summary);
+                }
             }
         }
 
-        private static bool ShouldQueueSpan(Span span)
+        private bool IsOverThreshold(SpanSummary summary)
         {
-            return span.IsRootSpan &&
-                   !span.ContainsIgnore &&
-                   span.ContainsService;
+            switch (summary.ServiceType)
+            {
+                case CouchbaseTags.ServiceKv:
+                    return summary.TotalDuration > KvThreshold;
+                case CouchbaseTags.ServiceView:
+                    return summary.TotalDuration > ViewThreshold;
+                case CouchbaseTags.ServiceQuery:
+                    return summary.TotalDuration > N1qlThreshold;
+                case CouchbaseTags.ServiceSearch:
+                    return summary.TotalDuration > SearchThreshold;
+                case CouchbaseTags.ServiceAnalytics:
+                    return summary.TotalDuration > AnalyticsThreshold;
+                default:
+                    return false;
+            }
         }
 
         private async Task DoWork()
         {
             while (!_source.Token.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(Interval), _source.Token).ContinueOnAnyContext();
-                if (!_queuedSpans.Any())
-                {
-                    Log.Trace("No spans to process.");
-                    continue;
-                }
-
-                Log.Trace("Processing {0} spans.", _queuedSpans.Count);
-
-                // dequeue spans into local collection
-                // block new spans being added during dequeing
-                var spans = new List<Span>();
-                await _slim.WaitAsync().ContinueOnAnyContext();
-
                 try
                 {
-                    while (_queuedSpans.Any())
+                    // determine if we need to write to log yet
+                    if (DateTime.UtcNow.Subtract(_lastrun) > TimeSpan.FromMilliseconds(Interval))
                     {
-                        spans.Add(_queuedSpans.Dequeue());
+                        if (_hasSummariesToLog)
+                        {
+                            var result = new JArray();
+                            AddSummariesToResult(result, CouchbaseTags.ServiceKv, _kvSummaries, ref _kvSummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceView, _viewSummaries, ref _viewSummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceQuery, _querySummaries, ref _querySummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceSearch, _searchSummaries, ref _searchSummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceAnalytics, _analyticsSummaries, ref _analyticsSummaryCount);
+
+                            Log.Info("Operations that exceeded service threshold: {0}", result.ToString(Formatting.None));
+
+                            _hasSummariesToLog = false;
+                        }
+
+                        _lastrun = DateTime.UtcNow;
                     }
+
+                    while (_queue.TryTake(out var summary, WorkerSleep, _source.Token))
+                    {
+                        if (_source.IsCancellationRequested)
+                        {
+                            break;
+                        }
+
+                        switch (summary.ServiceType)
+                        {
+                            case CouchbaseTags.ServiceKv:
+                                AddSummryToSet(_kvSummaries, summary, ref _kvSummaryCount, SampleSize);
+                                break;
+                            case CouchbaseTags.ServiceView:
+                                AddSummryToSet(_viewSummaries, summary, ref _viewSummaryCount, SampleSize);
+                                break;
+                            case CouchbaseTags.ServiceQuery:
+                                AddSummryToSet(_querySummaries, summary, ref _querySummaryCount, SampleSize);
+                                break;
+                            case CouchbaseTags.ServiceSearch:
+                                AddSummryToSet(_searchSummaries, summary, ref _searchSummaryCount, SampleSize);
+                                break;
+                            case CouchbaseTags.ServiceAnalytics:
+                                AddSummryToSet(_analyticsSummaries, summary, ref _analyticsSummaryCount, SampleSize);
+                                break;
+                            default:
+                                Log.Info($"Unknown service type {summary.ServiceType}");
+                                break;
+                        }
+
+                        _hasSummariesToLog = true; // indicates we have something to process
+                    }
+
+                    // sleep for a little while
+                    await Task.Delay(TimeSpan.FromMilliseconds(WorkerSleep), _source.Token).ContinueOnAnyContext();
                 }
-                finally
+                catch (ObjectDisposedException) { } // ignore
+                catch (OperationCanceledException) { } // ignore
+                catch (Exception exception)
                 {
-                    _slim.Release();
+                    Log.Error("Error when procesing spans for spans over serivce thresholds", exception);
                 }
 
-                // group by service name
-                // get floor and filter
-                // order by duration
-                // take sample size
-                // convert span into summary
-                var serviceSummaries = spans
-                    .GroupBy(GetServiceName)
-                    .Select(group =>
-                    {
-                        var floor = GetFloor(group.Key);
-                        return new
-                        {
-                            service = group.Key,
-                            spans = group.Where(span => floor > 0 && span.Duration >= floor)
-                        };
-                    })
-                    .Where(group => group.spans.Any())
-                    .Select(group =>
-                    {
-                        return new
-                        {
-                            group.service,
-                            count = group.spans.Count(),
-                            top = group.spans.OrderByDescending(span => span.Duration)
-                                .Take(SampleSize)
-                                .Select(span => new SpanSummary(span))
-                        };
-                    });
-
-                if (serviceSummaries.Any())
-                {
-                    Log.Info("Operations that exceeded service threshold: {0}", JsonConvert.SerializeObject(serviceSummaries, Formatting.None));
-                }
+                await Task.Delay(TimeSpan.FromMilliseconds(WorkerSleep), _source.Token).ContinueOnAnyContext();
             }
         }
 
-        private static string GetServiceName(Span span)
+        private static void AddSummariesToResult(JArray result, string serviceName, ICollection<SpanSummary> summaries, ref int summaryCount)
         {
-            return span.Tags.TryGetValue(CouchbaseTags.Service, out var serviceName) ? (string) serviceName : "unknown";
+            if (summaries.Any())
+            {
+                result.Add(new JObject
+                {
+                    {"service", serviceName},
+                    {"count", summaryCount},
+                    {"top", JArray.FromObject(summaries)}
+                });
+            }
+
+            summaries.Clear();
+            summaryCount = 0;
         }
 
-        private int GetFloor(string serviceName)
+        private static void AddSummryToSet(ICollection<SpanSummary> summaries, SpanSummary summary, ref int summaryCount, int maxSampleSize)
         {
-            return ServiceFloors.TryGetValue(serviceName, out var floor) ? floor : 0;
+            summaries.Add(summary);
+            summaryCount += 1;
+
+            while (summaries.Count > maxSampleSize)
+            {
+                summaries.Remove(summaries.First());
+            }
         }
 
         public void Dispose()
         {
             _source?.Cancel();
-            _source?.Dispose();
-            _slim?.Dispose();
+
+            if (_queue != null)
+            {
+                _queue.CompleteAdding();
+                while (_queue.Any())
+                {
+                    _queue.TryTake(out _);
+                }
+
+                _queue.Dispose();
+            }
         }
     }
 }

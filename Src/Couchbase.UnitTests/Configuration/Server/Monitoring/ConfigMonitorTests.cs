@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Monitoring;
 using Couchbase.Configuration.Server.Providers;
@@ -14,7 +15,7 @@ namespace Couchbase.UnitTests.Configuration.Server.Monitoring
     public class ConfigMonitorTests
     {
         [Test]
-        public void Test_StartMonitoring()
+        public async Task Test_StartMonitoring()
         {
             var clientConfig = new ClientConfiguration
             {
@@ -43,7 +44,9 @@ namespace Couchbase.UnitTests.Configuration.Server.Monitoring
                         }
                     },
                 },
-                HeartbeatConfigInterval = 500
+                HeartbeatConfigInterval = 500,
+                OperationTracingEnabled = false,
+                OrphanedResponseLoggingEnabled = false
             };
             clientConfig.Initialize();
             var configProvider = new Mock<IConfigProvider>();
@@ -55,7 +58,7 @@ namespace Couchbase.UnitTests.Configuration.Server.Monitoring
             var monitor = new ConfigMonitor(controller.Object, cts);
             monitor.StartMonitoring();
 
-            Thread.Sleep(1500);
+            await Task.Delay(3000);
             controller.Verify(x => x.LastConfigCheckedTime, Times.AtLeast(1));
             monitor.Dispose();
         }

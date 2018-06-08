@@ -296,33 +296,44 @@ namespace Couchbase.IO
 
         public string ContextId => ClientIdentifier.FormatConnectionString(ConnectionId);
 
-        protected string CreateCorrelationId(uint opaque)
+        protected OperationContext CreateOperationContext(uint opaque)
         {
-            return string.Join("/", ContextId, opaque.ToString("x"));
+            var context = OperationContext.CreateKvContext(opaque);
+            context.ConnectionId = ContextId;
+
+            if (Configuration != null)
+            {
+                context.BucketName = Configuration.BucketName;
+                context.TimeoutMicroseconds = (uint) Configuration.SendTimeout * 1000; // convert millis to micros
+            }
+
+            if (LocalEndPoint != null)
+            {
+                context.LocalEndpoint = LocalEndPoint.ToString();
+            }
+
+            if (EndPoint != null)
+            {
+                context.RemoteEndpoint = EndPoint.ToString();
+            }
+
+            return context;
         }
 
         protected Exception CreateTimeoutException(uint opaque)
         {
-            const string kv = "kv";
-            var correlationId = CreateCorrelationId(opaque);
-
-            var context = new OperationContext(kv, correlationId)
-            {
-                BucketName = Configuration.BucketName,
-                LocalEndpoint = LocalEndPoint.ToString(),
-                RemoteEndpoint = EndPoint.ToString(),
-                TimeoutMicroseconds = Configuration.SendTimeout
-            };
-
+            var context = CreateOperationContext(opaque);
             var message = context.ToString();
             Log.Info(message);
 
             var exception = new SendTimeoutExpiredException(message);
-            exception.Data.Add("ServiceType", kv);
-            exception.Data.Add("CorrelationId", correlationId);
-            exception.Data.Add("LocalEndpoint", LocalEndPoint.ToString());
-            exception.Data.Add("Timeout", Configuration.SendTimeout);
-            exception.Data.Add("RemoteEndpoint", EndPoint.ToString());
+            exception.Data.Add("ServiceType", CouchbaseTags.ServiceKv);
+            exception.Data.Add("OperationId", context.OperationId);
+            exception.Data.Add("Bucket", context.BucketName);
+            exception.Data.Add("ConnectionId", context.ConnectionId);
+            exception.Data.Add("LocalEndpoint", context.LocalEndpoint);
+            exception.Data.Add("RemoteEndpoint", context.RemoteEndpoint);
+            exception.Data.Add("Timeout", context.TimeoutMicroseconds);
             return exception;
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -129,9 +129,17 @@ namespace Couchbase.Tracing
 
         public void Finish(DateTimeOffset finishTimestamp)
         {
-            if (!_endTimestamp.HasValue)
+            if (_endTimestamp.HasValue)
             {
-                _endTimestamp = finishTimestamp.Ticks;
+                // span has already been stopped ..
+                return;
+            }
+
+            _endTimestamp = finishTimestamp.Ticks;
+
+            if (Tracer is ThresholdLoggingTracer tracer)
+            {
+                tracer.ReportSpan(this);
             }
         }
 

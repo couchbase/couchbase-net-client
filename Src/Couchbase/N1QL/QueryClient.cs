@@ -290,14 +290,12 @@ namespace Couchbase.N1QL
                     }
                     baseUri.ClearFailed();
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException e)
                 {
-                    var operationContext = new OperationContext("n1ql", queryRequest.CurrentContextId)
-                    {
-                        RemoteEndpoint = baseUri.Authority
-                    };
-
+                    var operationContext = OperationContext.CreateQueryContext(queryRequest.CurrentContextId, baseUri?.Authority);
                     Log.Info(operationContext.ToString());
+
+                    ProcessError(e, queryResult);
                 }
                 catch (HttpRequestException e)
                 {

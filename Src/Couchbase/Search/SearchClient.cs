@@ -121,14 +121,12 @@ namespace Couchbase.Search
                 }
                 baseUri.ClearFailed();
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException e)
             {
-                var operationContext = new OperationContext("fts", string.Empty)
-                {
-                    RemoteEndpoint = baseUri.Authority
-                };
-
+                var operationContext = OperationContext.CreateSearchContext(baseUri?.Authority);
                 Log.Info(operationContext.ToString());
+
+                ProcessError(e, searchResult);
             }
             catch (HttpRequestException e)
             {

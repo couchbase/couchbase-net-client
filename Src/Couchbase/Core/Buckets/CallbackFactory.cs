@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +23,27 @@ namespace Couchbase.Core.Buckets
             state.DispatchSpan?.Finish();
 
             return header;
+        }
+
+        private static OperationContext CreateOperationContext(SocketAsyncState state, long? serverDuration, string bucketName = null)
+        {
+            var context = OperationContext.CreateKvContext(state.Opaque);
+            context.ConnectionId = state.ConnectionId;
+            context.LocalEndpoint = state.LocalEndpoint;
+            context.RemoteEndpoint = state.EndPoint.ToString();
+            context.TimeoutMicroseconds = (uint) state.Timeout * 1000; // convert millis to micros
+
+            if (serverDuration.HasValue)
+            {
+                context.ServerDuration = serverDuration;
+            }
+
+            if (!string.IsNullOrWhiteSpace(bucketName))
+            {
+                context.BucketName = bucketName;
+            }
+
+            return context;
         }
 
         public static Func<SocketAsyncState, Task> CompletedFuncWithRetryForMemcached<T>(IRequestExecuter executer,
@@ -119,7 +140,8 @@ namespace Couchbase.Core.Buckets
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
-                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
+                    var context = CreateOperationContext(s, serverDuration, executer.ConfigInfo.BucketName);
+                    controller.Configuration.OrphanedResponseLogger.Add(context);
                 }
             };
             return func;
@@ -216,7 +238,8 @@ namespace Couchbase.Core.Buckets
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
-                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
+                    var context = CreateOperationContext(s, serverDuration, executer.ConfigInfo.BucketName);
+                    controller.Configuration.OrphanedResponseLogger.Add(context);
                 }
             };
             return func;
@@ -324,7 +347,8 @@ namespace Couchbase.Core.Buckets
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
-                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
+                    var context = CreateOperationContext(s, serverDuration, executer.ConfigInfo.BucketName);
+                    controller.Configuration.OrphanedResponseLogger.Add(context);
                 }
             };
             return func;
@@ -428,7 +452,8 @@ namespace Couchbase.Core.Buckets
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
-                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
+                    var context = CreateOperationContext(s, serverDuration, executer.ConfigInfo.BucketName);
+                    controller.Configuration.OrphanedResponseLogger.Add(context);
                 }
             };
             return func;
@@ -495,7 +520,8 @@ namespace Couchbase.Core.Buckets
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
-                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
+                    var context = CreateOperationContext(s, serverDuration);
+                    controller.Configuration.OrphanedResponseLogger.Add(context);
                 }
             };
             return func;
@@ -561,7 +587,8 @@ namespace Couchbase.Core.Buckets
                     const string msg = "Cannot find callback object for operation: {0}";
                     tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
-                    controller.Configuration.OrphanedOperationReporter.Add(s.EndPoint.ToString(), s.CorrelationId, serverDuration);
+                    var context = CreateOperationContext(s, serverDuration);
+                    controller.Configuration.OrphanedResponseLogger.Add(context);
                 }
             };
             return func;

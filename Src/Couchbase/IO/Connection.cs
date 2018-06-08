@@ -53,8 +53,10 @@ namespace Couchbase.IO
                     Completed = callback,
                     SendOffset = _eventArgs.Offset,
                     DispatchSpan = span,
-                    CorrelationId = CreateCorrelationId(opaque),
-                    ErrorMap = errorMap
+                    ConnectionId = ContextId,
+                    LocalEndpoint = LocalEndPoint.ToString(),
+                    ErrorMap = errorMap,
+                    Timeout = Configuration.SendTimeout
                 };
 
                 _eventArgs.UserToken = state;
@@ -112,7 +114,9 @@ namespace Couchbase.IO
                 Opaque = opaque,
                 Buffer = buffer,
                 SendOffset = _eventArgs.Offset,
-                CorrelationId = CreateCorrelationId(opaque)
+                ConnectionId = ContextId,
+                LocalEndpoint = LocalEndPoint.ToString(),
+                Timeout = Configuration.SendTimeout
             };
 
             Log.Debug("Sending opaque{0} on {1}", state.Opaque, Identity);

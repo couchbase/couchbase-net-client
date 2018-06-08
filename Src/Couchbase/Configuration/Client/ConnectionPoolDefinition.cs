@@ -1,4 +1,4 @@
-﻿using Couchbase.IO;
+using Couchbase.IO;
 
 namespace Couchbase.Configuration.Client
 {
@@ -120,14 +120,6 @@ namespace Couchbase.Configuration.Client
         /// </value>
         public uint CloseAttemptInterval { get; set; }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
-        /// </value>
-        public bool ServerDurationTracingEnabled { get; set; }
-
         public ConnectionPoolDefinition()
         {
             MaxSize = PoolConfiguration.Defaults.MaxSize;
@@ -143,7 +135,6 @@ namespace Couchbase.Configuration.Client
             TcpKeepAliveInterval = PoolConfiguration.Defaults.TcpKeepAliveInterval;
             MaxCloseAttempts = PoolConfiguration.Defaults.MaxCloseAttempts;
             CloseAttemptInterval = PoolConfiguration.Defaults.CloseAttemptInterval;
-            ServerDurationTracingEnabled = PoolConfiguration.Defaults.ServerDurationTracingEnabled;
         }
     }
 }

@@ -1,14 +1,16 @@
-﻿namespace Couchbase.Tracing
+namespace Couchbase.Tracing
 {
-    internal class NullOrphanedOperationReporter : IOrphanedOperationReporter
+    /// <summary>
+    /// Collects and logs orphaned server responses.
+    /// Typically this is because the operation timed out before the response
+    /// was received.
+    /// </summary>
+    public interface IOrphanedResponseLogger
     {
-        public static IOrphanedOperationReporter Instance = new NullOrphanedOperationReporter();
-
-        private NullOrphanedOperationReporter()
-        { }
-
-        public void Add(string endpoint, string operationId, long? serverDuration)
-        { }
+        /// <summary>
+        /// Adds the specified operation context to the logger.
+        /// </summary>
+        void Add(OperationContext context);
     }
 }
 

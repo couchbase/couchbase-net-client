@@ -4,10 +4,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Monitoring;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.Errors;
 using Couchbase.IO.Utils;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using OpenTracing;
 
@@ -59,8 +61,10 @@ namespace Couchbase.IO
                 Converter = Converter,
                 EndPoint = (IPEndPoint)EndPoint,
                 DispatchSpan = span,
-                CorrelationId = CreateCorrelationId(opaque),
-                ErrorMap = errorMap
+                ConnectionId = ContextId,
+                ErrorMap = errorMap,
+                Timeout = Configuration.SendTimeout,
+                LocalEndpoint = LocalEndPoint.ToString()
             };
 
             _statesInFlight.TryAdd(state.Opaque, state);
@@ -233,11 +237,11 @@ namespace Couchbase.IO
                 }
                 else
                 {
-                    // orphaned response
-                    var correlationId = CreateCorrelationId(opaque);
-                    var header = response.CreateHeader();
-                    var serverDuration = header.GetServerDuration(response);
-                    Configuration.ClientConfiguration.OrphanedOperationReporter.Add(EndPoint.ToString(), correlationId, serverDuration);
+                    // create orphaned response context
+                    var context = CreateOperationContext(opaque);
+
+                    // send to orphaned response reporter
+                    Configuration.ClientConfiguration.OrphanedResponseLogger.Add(context);
                 }
 
                 UpdateLastActivity();

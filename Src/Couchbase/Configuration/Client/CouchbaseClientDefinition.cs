@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Couchbase.Authentication;
 using Couchbase.Configuration.Server.Providers;
@@ -419,18 +419,27 @@ namespace Couchbase.Configuration.Client
         public ServerConfigurationProviders ConfigurationProviders { get; set; }
 
         /// <summary>
-        /// Controls whether the <see cref="ThresholdLoggingTracer"/> is used when configuring the client.
+        /// Controls whether the operation tracing is enabled within the client.
         /// </summary>
         /// <value>
-        /// <c>true</c> if the <see cref="ThresholdLoggingTracer"/> is to be used; otherwise, <c>false</c>.
+        /// <c>true</c> if operation tracing is enabled; otherwise, <c>false</c>.
         /// </value>
-        public bool ResponseTimeObservabilityEnabled { get; set; }
+        public bool OperationTracingEnabled { get; set; }
 
         /// <summary>
-        /// Controls whether orphaned server responses are recorded and logged.
+        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
         /// </summary>
         /// <value>
+        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
+        /// </value>
+        public bool OperationTracingServerDurationEnabled { get; set; }
+
+        /// <summary>
+        /// Controls whether orphaned server responses are collected and logged.
         /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if orphaned server responses are logged; otherwise, <c>false</c>.///
         /// </value>
         public bool OrphanedResponseLoggingEnabled { get; set; }
 
@@ -486,7 +495,8 @@ namespace Couchbase.Configuration.Client
             ConfigPollInterval = ClientConfiguration.Defaults.ConfigPollInterval;
             ForceSaslPlain = ClientConfiguration.Defaults.ForceSaslPlain;
             ConfigurationProviders = ServerConfigurationProviders.CarrierPublication | ServerConfigurationProviders.HttpStreaming;
-            ResponseTimeObservabilityEnabled = ClientConfiguration.Defaults.ResponseTimeObservabiltyEnabled;
+            OperationTracingEnabled = ClientConfiguration.Defaults.OperationTracingEnabled;
+            OperationTracingServerDurationEnabled = ClientConfiguration.Defaults.OperationTracingServerDurationEnabled;
             OrphanedResponseLoggingEnabled = ClientConfiguration.Defaults.OrphanedResponseLoggingEnabled;
             EnableCertificateAuthentication = ClientConfiguration.Defaults.EnableCertificateAuthentication;
             EnableCertificateRevocation = ClientConfiguration.Defaults.EnableCertificateRevocation;

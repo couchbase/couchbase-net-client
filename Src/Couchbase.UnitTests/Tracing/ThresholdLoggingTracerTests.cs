@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Tracing;
 using NUnit.Framework;
@@ -12,62 +10,51 @@ namespace Couchbase.UnitTests.Tracing
     public class ThresholdLoggingTracerTests
     {
         [Test]
-        public async Task Can_Add_Span()
+        public void Can_override_default_configuration_values()
         {
-            var tracer = new ThresholdLoggingTracer();
-            var span = new Span(tracer, "operation", null, Stopwatch.GetTimestamp(), null, null);
-            span.Tags.Add(CouchbaseTags.Service, CouchbaseTags.ServiceKv);
-
-            Assert.AreEqual(0, tracer.QueuedSpansCount);
-
-            tracer.ReportSpan(span);
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-
-            Assert.AreEqual(1, tracer.QueuedSpansCount);
-        }
-
-        [Test]
-        public void Spans_Without_Service_Tag_Are_Not_Queued()
-        {
-            var tracer = new ThresholdLoggingTracer();
-            var span = new Span(tracer, "operation", null, Stopwatch.GetTimestamp(), null, null);
-
-            Assert.AreEqual(0, tracer.QueuedSpansCount);
-
-            tracer.ReportSpan(span);
-            Assert.AreEqual(0, tracer.QueuedSpansCount);
-        }
-
-        [Test]
-        public void Spans_With_Ignore_Tag_Are_Not_Queued()
-        {
-            var tracer = new ThresholdLoggingTracer();
-            var span = new Span(tracer, "operation", null, Stopwatch.GetTimestamp(), null, null);
-            span.Tags.Add(CouchbaseTags.Ignore, true);
-
-            Assert.AreEqual(0, tracer.QueuedSpansCount);
-
-            tracer.ReportSpan(span);
-            Assert.AreEqual(0, tracer.QueuedSpansCount);
-        }
-
-        [Test]
-        public async Task Spans_Are_Processed_After_Some_Time()
-        {
-            var tracer = new ThresholdLoggingTracer(500, 10, new Dictionary<string, int>
+            var tracer = new ThresholdLoggingTracer
             {
-                {"kv", 100}
+                KvThreshold = 100,
+                ViewThreshold = 110,
+                N1qlThreshold = 120,
+                SearchThreshold = 130,
+                AnalyticsThreshold = 140,
+                SampleSize = 150,
+                Interval = 160
+            };
+
+            Assert.AreEqual(100, tracer.KvThreshold);
+            Assert.AreEqual(110, tracer.ViewThreshold);
+            Assert.AreEqual(120, tracer.N1qlThreshold);
+            Assert.AreEqual(130, tracer.SearchThreshold);
+            Assert.AreEqual(140, tracer.AnalyticsThreshold);
+            Assert.AreEqual(150, tracer.SampleSize);
+            Assert.AreEqual(160, tracer.Interval);
+        }
+
+        [Test]
+        public async Task Can_add_lots_of_spans_concurrently()
+        {
+            var tracer = new ThresholdLoggingTracer
+            {
+                KvThreshold = 1 // really low threshold so all spans are logged
+            };
+
+            var tasks = Enumerable.Range(1, 1000).Select(x =>
+            {
+                var span = tracer.BuildSpan(x.ToString()).WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceKv).Start();
+                span.Finish(DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(1));
+                return Task.FromResult(true);
             });
-            var span = new Span(tracer, "operation", null, Stopwatch.GetTimestamp(), null, null);
-            span.Tags.Add(CouchbaseTags.Service, CouchbaseTags.ServiceKv);
-            tracer.ReportSpan(span);
 
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-            Assert.AreEqual(1, tracer.QueuedSpansCount);
+            // schedule all the tasks using threadpool
+            await Task.WhenAll(tasks);
 
-            Thread.Sleep(TimeSpan.FromSeconds(2));
+            // wait for queue to flush
+            await Task.Delay(1000);
 
-            Assert.AreEqual(0, tracer.QueuedSpansCount);
+            // check all items made it into sample
+            Assert.AreEqual(1000, tracer.TotalSummaryCount);
         }
     }
 }

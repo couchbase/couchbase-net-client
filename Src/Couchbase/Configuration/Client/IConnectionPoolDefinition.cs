@@ -118,14 +118,6 @@ namespace Couchbase.Configuration.Client
         /// The close attempt interval.
         /// </value>
         uint CloseAttemptInterval { get; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether KV operation server duration times are collected during processing.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if server durations are collected otherwise, <c>false</c>.
-        /// </value>
-        bool ServerDurationTracingEnabled { get; set; }
     }
 }
 

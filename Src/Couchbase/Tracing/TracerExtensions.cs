@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.IO;
@@ -188,7 +188,7 @@ namespace Couchbase.Tracing
             }
             return span
                 .WithTag(CouchbaseTags.OperationId, query.CurrentContextId)
-                .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceN1ql)
+                .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceQuery)
                 .WithTag(Tags.DbStatement, query.GetOriginalStatement())
                 .AsChildOf(query.ActiveSpan);
         }

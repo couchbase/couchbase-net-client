@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -25,7 +25,11 @@ namespace Couchbase.IO
 
         public ISpan DispatchSpan { get; set; }
 
-        public string CorrelationId { get; set; }
+        public string ConnectionId { get; set; }
+
+        public string LocalEndpoint { get; set; }
+
+        public int Timeout { get; set; }
 
         public ErrorMap ErrorMap { get; set; }
 

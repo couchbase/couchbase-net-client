@@ -120,8 +120,10 @@ namespace Couchbase.IO
                     Buffer = request,
                     Completed = callback,
                     DispatchSpan = span,
-                    CorrelationId = CreateCorrelationId(opaque),
-                    ErrorMap = errorMap
+                    ConnectionId = ContextId,
+                    LocalEndpoint = LocalEndPoint.ToString(),
+                    ErrorMap = errorMap,
+                    Timeout = Configuration.SendTimeout
                 };
 
                 await _sslStream.WriteAsync(request, 0, request.Length).ContinueOnAnyContext();
@@ -220,7 +222,9 @@ namespace Couchbase.IO
             {
                 Data = MemoryStreamFactory.GetMemoryStream(),
                 Opaque = opaque,
-                CorrelationId = CreateCorrelationId(opaque)
+                ConnectionId = ContextId,
+                LocalEndpoint = LocalEndPoint.ToString(),
+                Timeout = Configuration.SendTimeout
             };
 
             await _sslStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ContinueOnAnyContext();

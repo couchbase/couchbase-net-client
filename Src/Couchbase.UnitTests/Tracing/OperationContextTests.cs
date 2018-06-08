@@ -22,7 +22,7 @@ namespace Couchbase.UnitTests.Tracing
             var json = JsonConvert.SerializeObject(new
             {
                 s = context.ServiceType,
-                i = context.CorrelationId,
+                i = context.OperationId,
                 b = context.BucketName,
                 l = context.LocalEndpoint,
                 r = context.RemoteEndpoint,

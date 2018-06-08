@@ -15,6 +15,7 @@ using Couchbase.Core.Version;
 using Couchbase.IO.Http;
 using Couchbase.Management;
 using Couchbase.N1QL;
+using Couchbase.Tracing;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
@@ -480,6 +481,14 @@ namespace Couchbase
                 if (_clusterController != null)
                 {
                     _clusterController.Dispose();
+                }
+                if (_configuration.Tracer is ThresholdLoggingTracer tracer)
+                {
+                    tracer.Dispose();
+                }
+                if (_configuration.OrphanedResponseLogger is OrphanedResponseLogger logger)
+                {
+                    logger.Dispose();
                 }
                 _disposed = true;
             }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
@@ -78,6 +78,13 @@ namespace Couchbase.N1QL
                         Log.Trace("Received query cid{0}: {1}", queryRequest.CurrentContextId, queryResult.HttpStatusCode);
                     }
                     baseUri.ClearFailed();
+                }
+                catch (OperationCanceledException e)
+                {
+                    var operationContext = OperationContext.CreateQueryContext(queryRequest.CurrentContextId, baseUri?.Authority);
+                    Log.Info(operationContext.ToString());
+
+                    ProcessError(e, queryResult);
                 }
                 catch (HttpRequestException e)
                 {

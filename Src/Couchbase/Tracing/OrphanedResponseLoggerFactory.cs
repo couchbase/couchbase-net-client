@@ -1,22 +1,20 @@
+using System;
+using Couchbase.Configuration.Client;
+
 namespace Couchbase.Tracing
 {
-    internal static class CouchbaseTags
+    internal static class OrphanedResponseLoggerFactory
     {
-        public const string DbTypeCouchbase = "couchbase";
+        public static Func<IOrphanedResponseLogger> GetFactory(ClientConfiguration config)
+        {
+            if (config.OrphanedResponseLoggingEnabled)
+            {
+                // TODO: extend to allow type building from config
+                return () => new OrphanedResponseLogger();
+            }
 
-        public const string Service = "couchbase.service";
-        public const string ServiceKv = "kv";
-        public const string ServiceView = "view";
-        public const string ServiceQuery = "n1ql";
-        public const string ServiceSearch = "fts";
-        public const string ServiceAnalytics = "cbas";
-
-        public const string OperationId = "couchbase.operation_id";
-        public const string LocalId = "couchbase.local_id";
-        public const string Ignore = "couchbase.ignore";
-
-        public const string LocalAddress = "local.address";
-        public const string PeerLatency = "peer.latency";
+            return () => NullOrphanedResponseLogger.Instance;
+        }
     }
 }
 

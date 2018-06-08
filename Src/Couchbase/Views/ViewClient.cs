@@ -76,13 +76,9 @@ namespace Couchbase.Views
                     return true;
                 });
             }
-            catch (TaskCanceledException e)
+            catch (OperationCanceledException e)
             {
-                var operationContext = new OperationContext("view", string.Empty)
-                {
-                    BucketName = query.BucketName,
-                    RemoteEndpoint = uri.Authority
-                };
+                var operationContext = OperationContext.CreateViewContext(query.BucketName, uri?.Authority);
 
                 ProcessError(e, operationContext.ToString(), viewResult);
                 Log.Error(uri.ToString(), e);

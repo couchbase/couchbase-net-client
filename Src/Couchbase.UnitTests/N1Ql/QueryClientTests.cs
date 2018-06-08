@@ -111,6 +111,7 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public async Task Test_QueryAsync_CanCancel()
         {
+            var cancellationTokenSource = new CancellationTokenSource();
             var context = ContextFactory.GetCouchbaseContext();
 
             context.QueryUris.Add(new FailureCountingUri("http://localhost"));
@@ -118,7 +119,7 @@ namespace Couchbase.UnitTests.N1Ql
             // create hander that takes some time to return
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => {
-                    Thread.Sleep(TimeSpan.FromMilliseconds(200));
+                    cancellationTokenSource.Cancel(true);
                     return new HttpResponseMessage(HttpStatusCode.OK);
                 }
             ));
@@ -132,7 +133,6 @@ namespace Couchbase.UnitTests.N1Ql
             );
 
             var queryRequest = new QueryRequest("SELECT * FROM `default`;");
-            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             var result = await queryClient.QueryAsync<dynamic>(queryRequest, cancellationTokenSource.Token);
 
             Assert.False(result.Success);
@@ -143,13 +143,14 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public async Task Test_PrepareQueryAsync_CanCancel()
         {
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             var context = ContextFactory.GetCouchbaseContext();
             context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             // create hander that takes some time to return
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => {
-                    Thread.Sleep(TimeSpan.FromMilliseconds(200));
+                    cancellationTokenSource.Cancel(true);
                     return new HttpResponseMessage(HttpStatusCode.OK);
                 }
             ));
@@ -163,7 +164,6 @@ namespace Couchbase.UnitTests.N1Ql
             );
 
             var queryRequest = new QueryRequest("SELECT * FROM `default`;");
-            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
             var result = await queryClient.PrepareAsync(queryRequest, cancellationTokenSource.Token);
 
             Assert.False(result.Success);

@@ -81,10 +81,11 @@ namespace Couchbase.Views
                     return true;
                 });
             }
-            catch (TaskCanceledException e)
+            catch (OperationCanceledException e)
             {
-                const string error = "The request has timed out.";
-                ProcessError(e, error, viewResult);
+                var operationContext = OperationContext.CreateViewContext(query.BucketName, uri?.Authority);
+
+                ProcessError(e, operationContext.ToString(), viewResult);
                 Log.Error(uri.ToString(), e);
             }
             catch (HttpRequestException e)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -5,13 +6,16 @@ using OpenTracing;
 
 namespace Couchbase.Tracing
 {
-    internal class SpanSummary
+    internal class SpanSummary : IComparable<SpanSummary>
     {
+        [JsonIgnore]
+        public string ServiceType { get; set; }
+
         [JsonProperty("operation_name")]
         public string OperationName { get; set; }
 
         [JsonProperty("last_operaion_id", NullValueHandling = NullValueHandling.Ignore)]
-        public string OperationId { get; set; }
+        public string LastOperationId { get; set; }
 
         [JsonProperty("last_local_address", NullValueHandling = NullValueHandling.Ignore)]
         public string LastLocalAddress { get; set; }
@@ -22,7 +26,10 @@ namespace Couchbase.Tracing
         [JsonProperty("last_local_id", NullValueHandling = NullValueHandling.Ignore)]
         public string LastLocalId { get; set; }
 
-        [JsonProperty("total_duration_us")]
+        [JsonProperty("last_dispatch_us", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public long LastDispatchDuration { get; set; }
+
+        [JsonProperty("total_us")]
         public long TotalDuration { get; set; }
 
         [JsonProperty("encode_us", NullValueHandling = NullValueHandling.Ignore)]
@@ -31,16 +38,25 @@ namespace Couchbase.Tracing
         [JsonProperty("dispatch_us", NullValueHandling = NullValueHandling.Ignore)]
         public long DispatchDuration { get; set; }
 
+        [JsonProperty("server_us", NullValueHandling = NullValueHandling.Ignore)]
+        public long? ServerDuration { get; set; }
+
         [JsonProperty("decode_us", NullValueHandling = NullValueHandling.Ignore)]
         public long DecodingDuration { get; set; }
 
-        [JsonProperty("server_duration_us", NullValueHandling = NullValueHandling.Ignore)]
-        public long? ServerDuration { get; set; }
-
-        public SpanSummary(Span span)
+        internal SpanSummary()
         {
+
+        }
+
+        internal SpanSummary(Span span)
+        {
+            ServiceType = span.Tags.TryGetValue(CouchbaseTags.Service, out var serviceName)
+                ? (string) serviceName
+                : string.Empty;
             OperationName = span.OperationName;
             TotalDuration = span.Duration;
+            TrySetOpeationId(span);
             PopulateSummary(span.Spans);
         }
 
@@ -48,10 +64,7 @@ namespace Couchbase.Tracing
         {
             foreach (var span in spans)
             {
-                if (span.Tags.TryGetValue(CouchbaseTags.OperationId, out var id))
-                {
-                    OperationId = id.ToString();
-                }
+                TrySetOpeationId(span);
 
                 switch (span.OperationName)
                 {
@@ -60,6 +73,7 @@ namespace Couchbase.Tracing
                         break;
                     case CouchbaseOperationNames.DispatchToServer:
                         DispatchDuration += span.Duration;
+                        LastDispatchDuration = span.Duration;
 
                         if (span.Tags.TryGetValue(CouchbaseTags.LocalAddress, out var local))
                         {
@@ -98,6 +112,26 @@ namespace Couchbase.Tracing
 
                 PopulateSummary(span.Spans);
             }
+        }
+
+        private void TrySetOpeationId(Span span)
+        {
+            if (span.Tags.TryGetValue(CouchbaseTags.OperationId, out var id))
+            {
+                LastOperationId = id.ToString();
+            }
+        }
+
+        public int CompareTo(SpanSummary other)
+        {
+            if (ReferenceEquals(this, other)) return 0;
+            if (ReferenceEquals(null, other)) return 1;
+            return Nullable.Compare(other.ServerDuration, ServerDuration);
+        }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this, Formatting.None);
         }
     }
 }

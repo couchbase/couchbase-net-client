@@ -22,8 +22,10 @@ namespace Couchbase.IO
         public uint Opaque { get; set; }
         public Timer Timer;
         public ISpan DispatchSpan { get; set; }
-        public string CorrelationId { get; set; }
+        public string ConnectionId { get; set; }
         public ErrorMap ErrorMap { get; set; }
+        public int Timeout { get; set; }
+        public string LocalEndpoint { get; set; }
 
         /// <summary>
         /// Cancels the current Memcached request that is in-flight.
@@ -47,8 +49,10 @@ namespace Couchbase.IO
                 Status = status,
                 EndPoint = EndPoint,
                 DispatchSpan = DispatchSpan,
-                CorrelationId = CorrelationId,
-                ErrorMap = ErrorMap
+                ConnectionId = ConnectionId,
+                ErrorMap = ErrorMap,
+                Timeout = Timeout,
+                LocalEndpoint = LocalEndpoint
             });
         }
 
@@ -85,8 +89,10 @@ namespace Couchbase.IO
                 Status = status,
                 EndPoint = EndPoint,
                 DispatchSpan = DispatchSpan,
-                CorrelationId = CorrelationId,
-                ErrorMap = ErrorMap
+                ConnectionId = ConnectionId,
+                ErrorMap = ErrorMap,
+                Timeout = Timeout,
+                LocalEndpoint = LocalEndpoint
             }));
         }
 
