@@ -6528,7 +6528,12 @@ namespace Couchbase
 
         public Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery)
         {
-            return _requestExecuter.SendWithRetryAsync(searchQuery);
+            return QueryAsync(searchQuery, CancellationToken.None);
+        }
+
+        public Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
+        {
+            return _requestExecuter.SendWithRetryAsync(searchQuery, cancellationToken);
         }
 
         #endregion

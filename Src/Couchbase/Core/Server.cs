@@ -810,7 +810,12 @@ namespace Couchbase.Core
             return result;
         }
 
-        public async Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery)
+        public Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery)
+        {
+            return SendAsync(searchQuery, CancellationToken.None);
+        }
+
+        public async Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
         {
             ISearchQueryResult searchResult;
             if (_isDown)
@@ -821,7 +826,7 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    searchResult = await SearchClient.QueryAsync(searchQuery).ContinueOnAnyContext();
+                    searchResult = await SearchClient.QueryAsync(searchQuery, cancellationToken).ContinueOnAnyContext();
                 }
                 catch (Exception e)
                 {

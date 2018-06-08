@@ -948,7 +948,7 @@ namespace Couchbase.Core.Buckets
             return searchResult;
         }
 
-        public override async Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery)
+        public override async Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
         {
             ISearchQueryResult searchResult;
             var parentSpan = Tracer.StartParentSpan(searchQuery);
@@ -962,7 +962,7 @@ namespace Couchbase.Core.Buckets
                     (server, request, token) => server.SendAsync(request),
                     (request, result) => !result.Success,
                     searchQuery,
-                    CancellationToken.None,
+                    cancellationToken,
                     (int) ConfigInfo.ClientConfig.SearchRequestTimeout
                 ).ContinueOnAnyContext();
             }

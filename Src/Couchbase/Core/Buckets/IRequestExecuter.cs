@@ -118,8 +118,9 @@ namespace Couchbase.Core.Buckets
         /// Sends a <see cref="IFtsQuery"/> request to an FTS enabled node and returns the <see cref="ISearchQueryResult"/>response.
         /// </summary>
         /// <param name="searchQuery">The <see cref="SearchQuery"/> object representing the search request with an index, a query and parameters.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>A <see cref="Task{ISearchQueryResult}"/> representing the response from the FTS service.</returns>
-        Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery);
+        Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery, CancellationToken cancellationToken);
 
         /// <summary>
         /// Sends an operation to the server while observing it's durability requirements

@@ -253,11 +253,12 @@ namespace Couchbase.Core.Buckets
         /// Sends a <see cref="IFtsQuery" /> request to an FTS enabled node and returns the <see cref="ISearchQueryResult" />response.
         /// </summary>
         /// <param name="searchQuery"></param>
+        /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns>
         /// A <see cref="Task{ISearchQueryResult}" /> representing the response from the FTS service.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery)
+        public virtual Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Couchbase.Search
@@ -24,6 +25,12 @@ namespace Couchbase.Search
         /// </summary>
         /// <returns></returns>
         Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery);
+
+        /// <summary>
+        /// Executes a <see cref="IFtsQuery"/> request including any <see cref="ISearchParams"/> parameters asynchronously.
+        /// </summary>
+        /// <returns></returns>
+        Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken);
     }
 }
 

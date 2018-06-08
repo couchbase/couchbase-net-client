@@ -9,6 +9,7 @@ using Couchbase.Configuration;
 using Couchbase.Utils;
 using Couchbase.Views;
 using System.Text;
+using System.Threading;
 using Couchbase.Configuration.Client;
 using Couchbase.Tracing;
 using Newtonsoft.Json;
@@ -47,7 +48,16 @@ namespace Couchbase.Search
         /// Executes a <see cref="IFtsQuery" /> request including any <see cref="ISearchParams" /> parameters asynchronously.
         /// </summary>
         /// <returns>A <see cref="ISearchQueryResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
-        public async Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery)
+        public Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery)
+        {
+            return QueryAsync(searchQuery, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Executes a <see cref="IFtsQuery" /> request including any <see cref="ISearchParams" /> parameters asynchronously.
+        /// </summary>
+        /// <returns>A <see cref="ISearchQueryResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
+        public async Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
         {
             var searchResult = new SearchQueryResult();
             var baseUri = ConfigContextBase.GetSearchUri();
@@ -66,7 +76,7 @@ namespace Couchbase.Search
                     HttpResponseMessage response;
                     using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.DispatchToServer).Start())
                     {
-                        response = await HttpClient.PostAsync(requestUri, content).ContinueOnAnyContext();
+                        response = await HttpClient.PostAsync(requestUri, content, cancellationToken).ContinueOnAnyContext();
                     }
 
                     using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.ResponseDecoding).Start())

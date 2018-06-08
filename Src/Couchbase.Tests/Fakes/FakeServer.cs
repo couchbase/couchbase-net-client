@@ -107,6 +107,11 @@ namespace Couchbase.Tests.Fakes
             throw new NotImplementedException();
         }
 
+        public Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             throw new NotImplementedException();

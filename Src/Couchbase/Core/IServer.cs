@@ -93,10 +93,16 @@ namespace Couchbase.Core
         void CheckOnline(bool isDead);
 
         /// <summary>
-        /// Sends a <see cref="IFtsQuery"/>  request to a Couchbase node that has FTS service configured asynchronously.
+        /// Sends a <see cref="IFtsQuery"/> request to a Couchbase node that has FTS service configured asynchronously.
         /// </summary>
         /// <returns>A <see cref="Task{ISearchQueryResult}"/> representing the response from the FTS service.</returns>
         Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery);
+
+        /// <summary>
+        /// Sends a <see cref="IFtsQuery"/> request to a Couchbase node that has FTS service configured asynchronously.
+        /// </summary>
+        /// <returns>A <see cref="Task{ISearchQueryResult}"/> representing the response from the FTS service.</returns>
+        Task<ISearchQueryResult> SendAsync(SearchQuery searchQuery, CancellationToken cancellationToken);
 
         /// <summary>
         /// Sends a <see cref="IFtsQuery"/>  request to a Couchbase node that has FTS service configured asynchronously.

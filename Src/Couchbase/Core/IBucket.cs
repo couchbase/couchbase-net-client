@@ -3704,9 +3704,27 @@ namespace Couchbase.Core
 
         ILookupInBuilder<TDocument> LookupIn<TDocument>(string key, TimeSpan timeout);
 
+        /// <summary>
+        /// Executes a full text search query.
+        /// </summary>
+        /// <param name="searchQuery">The full text search query.</param>
+        /// <returns>The query result.</returns>
         ISearchQueryResult Query(SearchQuery searchQuery);
 
+        /// <summary>
+        /// Executes a full text search query asynchronously.
+        /// </summary>
+        /// <param name="searchQuery">The full text search query.</param>
+        /// <returns>The query result.</returns>
         Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery);
+
+        /// <summary>
+        /// Executes a full text search query asynchronously.
+        /// </summary>
+        /// <param name="searchQuery">The full text search query.</param>
+        /// <param name="cancellationToken">Optional cancellation token.</param>
+        /// <returns>The query result.</returns>
+        Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the value for a given key from a hashmap within a JSON document.

@@ -5900,6 +5900,13 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <inheritdoc />
+        /// <exception cref="NotSupportedException">This method is only supported on Couchbase Bucket (persistent) types.</exception>
+        public Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
         #endregion
 
         #region  Data Structures (Not Supported)
