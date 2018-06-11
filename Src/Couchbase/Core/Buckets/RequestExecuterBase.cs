@@ -633,7 +633,7 @@ namespace Couchbase.Core.Buckets
             return result;
         }
 
-        protected static async Task<TResult> RetryRequestAsync<TRequest, TResult>(
+        protected internal static async Task<TResult> RetryRequestAsync<TRequest, TResult>(
             Func<IServer> getServer,
             Func<IServer, TRequest, CancellationToken, Task<TResult>> sendRequest,
             Func<TRequest, TResult, bool> canRetry,
@@ -647,10 +647,7 @@ namespace Couchbase.Core.Buckets
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
-                if (!cancellationToken.CanBeCanceled)
-                {
-                    cts.CancelAfter(TimeSpan.FromMilliseconds(requestTimeout));
-                }
+                cts.CancelAfter(TimeSpan.FromMilliseconds(requestTimeout));
 
                 do
                 {
