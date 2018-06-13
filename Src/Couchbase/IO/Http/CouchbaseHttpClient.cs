@@ -5,6 +5,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Logging;
 using Couchbase.Authentication;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
@@ -21,6 +22,12 @@ namespace Couchbase.IO.Http
             : this (CreateClientHandler(config, bucketConfig))
         {
             DefaultRequestHeaders.ExpectContinue = config.Expect100Continue;
+        }
+
+        internal CouchbaseHttpClient(ConfigContextBase context)
+            : this (CreateClientHandler(context.ClientConfig, context.BucketConfig))
+        {
+            DefaultRequestHeaders.ExpectContinue = context.ClientConfig.Expect100Continue;
         }
 
         /// <summary>

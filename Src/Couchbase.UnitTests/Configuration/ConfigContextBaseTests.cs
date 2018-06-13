@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Configuration;
+﻿using Couchbase.Configuration;
 using Couchbase.N1QL;
-using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Configuration
@@ -20,11 +14,7 @@ namespace Couchbase.UnitTests.Configuration
         {
             // Arrange
 
-            FailureCountingUri item;
-            while (ConfigContextBase.QueryUris.TryTake(out item))
-            {
-                // Clear the list
-            }
+            var context = ContextFactory.GetCouchbaseContext();
 
             var uri1 = new FailureCountingUri("http://uri1/");
             uri1.IncrementFailed();
@@ -34,12 +24,12 @@ namespace Couchbase.UnitTests.Configuration
             uri2.IncrementFailed();
             uri2.IncrementFailed();
 
-            ConfigContextBase.QueryUris.Add(uri1);
-            ConfigContextBase.QueryUris.Add(uri2);
+            context.QueryUris.Add(uri1);
+            context.QueryUris.Add(uri2);
 
             // Act
 
-            var uri = ConfigContextBase.GetQueryUri(2);
+            var uri = context.GetQueryUri(2);
 
             // Assert
 
@@ -53,24 +43,19 @@ namespace Couchbase.UnitTests.Configuration
         {
             // Arrange
 
-            FailureCountingUri item;
-            while (ConfigContextBase.QueryUris.TryTake(out item))
-            {
-                // Clear the list
-            }
-
+            var context = ContextFactory.GetCouchbaseContext();
             var uri1 = new FailureCountingUri("http://uri1/");
             uri1.IncrementFailed();
             uri1.IncrementFailed();
 
             var uri2 = new FailureCountingUri("http://uri2/");
 
-            ConfigContextBase.QueryUris.Add(uri1);
-            ConfigContextBase.QueryUris.Add(uri2);
+            context.QueryUris.Add(uri1);
+            context.QueryUris.Add(uri2);
 
             // Act
 
-            var uri = ConfigContextBase.GetQueryUri(2);
+            var uri = context.GetQueryUri(2);
 
             // Assert
 
@@ -88,11 +73,7 @@ namespace Couchbase.UnitTests.Configuration
         {
             // Arrange
 
-            FailureCountingUri item;
-            while (ConfigContextBase.SearchUris.TryTake(out item))
-            {
-                // Clear the list
-            }
+            var context = ContextFactory.GetCouchbaseContext();
 
             var uri1 = new FailureCountingUri("http://uri1/");
             var uri2 = new FailureCountingUri("http://uri2/");
@@ -102,12 +83,12 @@ namespace Couchbase.UnitTests.Configuration
                 uri2.IncrementFailed();
             }
 
-            ConfigContextBase.SearchUris.Add(uri1);
-            ConfigContextBase.SearchUris.Add(uri2);
+            context.SearchUris.Add(uri1);
+            context.SearchUris.Add(uri2);
 
             // Act
 
-            var uri = ConfigContextBase.GetSearchUri();
+            var uri = context.GetSearchUri();
 
             // Assert
 
@@ -121,11 +102,7 @@ namespace Couchbase.UnitTests.Configuration
         {
             // Arrange
 
-            FailureCountingUri item;
-            while (ConfigContextBase.SearchUris.TryTake(out item))
-            {
-                // Clear the list
-            }
+            var context = ContextFactory.GetCouchbaseContext();
 
             var uri1 = new FailureCountingUri("http://uri1/");
             for (var i = 0; i < ConfigContextBase.SearchNodeFailureThreshold; i++)
@@ -135,12 +112,12 @@ namespace Couchbase.UnitTests.Configuration
 
             var uri2 = new FailureCountingUri("http://uri2/");
 
-            ConfigContextBase.SearchUris.Add(uri1);
-            ConfigContextBase.SearchUris.Add(uri2);
+            context.SearchUris.Add(uri1);
+            context.SearchUris.Add(uri2);
 
             // Act
 
-            var uri = ConfigContextBase.GetSearchUri();
+            var uri = context.GetSearchUri();
 
             // Assert
 
@@ -150,20 +127,5 @@ namespace Couchbase.UnitTests.Configuration
         }
 
         #endregion
-
-        [OneTimeTearDown]
-        public void OneTimeTearDown()
-        {
-            FailureCountingUri item;
-            while (ConfigContextBase.QueryUris.TryTake(out item))
-            {
-                // Clear the list
-            }
-
-            while (ConfigContextBase.SearchUris.TryTake(out item))
-            {
-                // Clear the list
-            }
-        }
     }
 }

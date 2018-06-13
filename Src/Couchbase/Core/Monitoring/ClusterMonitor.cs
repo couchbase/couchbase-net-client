@@ -7,8 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Annotations;
 using Couchbase.Configuration;
+using Couchbase.Configuration.Server.Providers.CarrierPublication;
 using Couchbase.IO.Http;
 using Couchbase.Logging;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Monitoring
 {
@@ -32,7 +34,7 @@ namespace Couchbase.Core.Monitoring
         {
             if (clusterController == null)
             {
-                throw new ArgumentNullException("clusterController");
+                throw new ArgumentNullException(nameof(clusterController));
             }
 
             // Use Couchbase HTTP client even though we don't need authentication
@@ -58,25 +60,31 @@ namespace Couchbase.Core.Monitoring
                         // Test at every interval.  Wait before first test.
                         await Task.Delay(
                             TimeSpan.FromMilliseconds(_clusterController.Configuration.NodeAvailableCheckInterval),
-                            _cancellationTokenSource.Token);
+                            _cancellationTokenSource.Token).ContinueOnAnyContext();
 
-                        // Create async tasks to test each down query node
-                        var tests = ConfigContextBase.QueryUris
-                            .Where(p => !p.IsHealthy(_clusterController.Configuration.QueryFailedThreshold))
-                            .Select(p => _queryUriTester.TestUri(p, _cancellationTokenSource.Token));
-
-                        // Create async tasks to test each down search node
-                        tests = tests.Concat(
-                            ConfigContextBase.SearchUris
-                                .Where(p => !p.IsHealthy(ConfigContextBase.SearchNodeFailureThreshold))
-                                .Select(p => _searchUriTester.TestUri(p, _cancellationTokenSource.Token)));
-
-                        // Enumerate the collection to start the tests
-                        // Wait for all tests to succeed or fail before looping again
-                        var testList = tests.ToList();
-                        if (testList.Any())
+                        foreach (var provider in _clusterController.ConfigProviders.OfType<CarrierPublicationProvider>())
                         {
-                            await Task.WhenAll(testList);
+                            foreach (var context in provider.ConfigContexts.OfType<CouchbaseConfigContext>())
+                            {
+                                // Create async tasks to test each down query node
+                                var tests = context.QueryUris
+                                    .Where(p => !p.IsHealthy(_clusterController.Configuration.QueryFailedThreshold))
+                                    .Select(p => _queryUriTester.TestUri(p, _cancellationTokenSource.Token));
+
+                                // Create async tasks to test each down search node
+                                tests = tests.Concat(
+                                    context.SearchUris
+                                        .Where(p => !p.IsHealthy(ConfigContextBase.SearchNodeFailureThreshold))
+                                        .Select(p => _searchUriTester.TestUri(p, _cancellationTokenSource.Token)));
+
+                                // Enumerate the collection to start the tests
+                                // Wait for all tests to succeed or fail before looping again
+                                var testList = tests.ToList();
+                                if (testList.Any())
+                                {
+                                    await Task.WhenAll(testList).ContinueOnAnyContext();
+                                }
+                            }
                         }
                     }
                     catch (OperationCanceledException)

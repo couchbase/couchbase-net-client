@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Logging;
 using Couchbase.Tracing;
@@ -14,8 +15,8 @@ namespace Couchbase.Views
     {
         private static readonly ILog Log = LogManager.GetLogger<StreamingViewClient>();
 
-        public StreamingViewClient(HttpClient httpClient, IDataMapper mapper, ClientConfiguration configuration)
-            : base(httpClient, mapper, configuration)
+        public StreamingViewClient(HttpClient httpClient, IDataMapper mapper, ConfigContextBase context)
+            : base(httpClient, mapper, context)
         {
             // set timeout to infinite so we can stream results without the connection
             // closing part way through

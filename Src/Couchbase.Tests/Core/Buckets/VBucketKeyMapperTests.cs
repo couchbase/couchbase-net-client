@@ -1,19 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Cryptography;
 using Couchbase.Tests.Fakes;
-using Couchbase.Tests.Helpers;
-using Couchbase.Tests.Utils;
-using Couchbase.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.Core.Buckets
@@ -38,8 +29,8 @@ namespace Couchbase.Tests.Core.Buckets
                 _servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
-                        new ClientConfiguration(), _bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext(_bucketConfig)));
             }
         }
 

@@ -11,7 +11,6 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration
@@ -56,10 +55,10 @@ namespace Couchbase.Configuration
         /// <exception cref="CouchbaseBootstrapException">Condition.</exception>
         public override void LoadConfig(IBucketConfig bucketConfig, bool force = false)
         {
-            if (bucketConfig == null) throw new ArgumentNullException("bucketConfig");
+            if (bucketConfig == null) throw new ArgumentNullException(nameof(bucketConfig));
 
             var nodes = bucketConfig.GetNodes();
-            if (BucketConfig == null || !nodes.AreEqual(_bucketConfig.GetNodes()) || force)
+            if (BucketConfig == null || !nodes.AreEqual(BucketConfig.GetNodes()) || force)
             {
                 var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
                 var servers = new Dictionary<IPEndPoint, IServer>();
@@ -74,7 +73,7 @@ namespace Couchbase.Configuration
                         {
                             var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                             var ioService = CreateIOService(clientBucketConfig.ClonePoolConfiguration(uri), endpoint);
-                            var server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder);
+                            var server = new Core.Server(ioService, adapter, Transcoder, this);
                             servers.Add(endpoint, server);
                         }
                     }
@@ -128,7 +127,7 @@ namespace Couchbase.Configuration
                     {
                         var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
                         var ioService = CreateIOService(clientBucketConfig.ClonePoolConfiguration(uri), endpoint);
-                        var server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder);
+                        var server = new Core.Server(ioService, adapter, Transcoder, this);
                         servers.Add(endpoint, server);
                     }
                 }

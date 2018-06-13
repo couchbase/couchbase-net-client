@@ -28,13 +28,13 @@ namespace Couchbase.N1QL
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache;
         private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper,  ClientConfiguration clientConfig)
-            : this(httpClient,dataMapper, clientConfig, new ConcurrentDictionary<string, QueryPlan>())
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, CouchbaseConfigContext context)
+            : this(httpClient,dataMapper, new ConcurrentDictionary<string, QueryPlan>(), context)
         {
         }
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig, ConcurrentDictionary<string, QueryPlan> queryCache)
-            : base(httpClient, dataMapper, clientConfig)
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, ConcurrentDictionary<string, QueryPlan> queryCache, ConfigContextBase context)
+            : base(httpClient, dataMapper, context)
         {
             _queryCache = queryCache;
         }
@@ -212,11 +212,13 @@ namespace Couchbase.N1QL
         /// <returns><see cref="IDataMapper"/> to use for the request</returns>
         internal IDataMapper GetDataMapper(IQueryRequest queryRequest)
         {
+            Log.Debug("In GetDatamapper cid{0}", queryRequest.CurrentContextId);
             if (queryRequest is IQueryRequestWithDataMapper requestWithMapper)
             {
+                Log.Debug("It is IQueryRequestWithDataMapper cid{0}", queryRequest.CurrentContextId);
                 return requestWithMapper.DataMapper ?? DataMapper;
             }
-
+            Log.Debug("It is not IQueryRequestWithDataMapper cid{0}", queryRequest.CurrentContextId);
             return DataMapper;
         }
 
@@ -231,7 +233,7 @@ namespace Couchbase.N1QL
         protected virtual async Task<IQueryResult<T>> ExecuteQueryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
             var queryResult = new QueryResult<T>();
-
+            Log.Debug("Gettting Query Uri cid{0}", queryRequest.CurrentContextId);
             if (!TryGetQueryUri(out var baseUri))
             {
                 Log.Error(ExceptionUtil.EmptyUriTryingSubmitN1qlQuery);
@@ -239,8 +241,10 @@ namespace Couchbase.N1QL
                 return queryResult;
             }
 
+            Log.Debug("Applying creds cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
             ApplyCredentials(queryRequest);
 
+            Log.Debug("Removing brackets cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
             if (Log.IsDebugEnabled)
             {
                 //need to remove the brackets or else string.format will fail in Log.Debug
@@ -248,19 +252,21 @@ namespace Couchbase.N1QL
                 Log.Debug(req.Replace("{", "").Replace("}", ""));
             }
 
+            Log.Debug("Buildspan cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
             string body;
             using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).Start())
             {
                 body = queryRequest.GetFormValuesAsJson();
             }
 
+            Log.Debug("Getting content cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
             using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
                 {
                     using (var timer = new QueryTimer(queryRequest, new CommonLogStore(Log), ClientConfiguration.EnableQueryTiming))
                     {
-                        Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                        Log.Debug("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
 
                         HttpResponseMessage response;
                         using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
@@ -268,9 +274,11 @@ namespace Couchbase.N1QL
                             response = await HttpClient.PostAsync(baseUri, content, cancellationToken).ContinueOnAnyContext();
                         }
 
+                        Log.Debug("Handling response cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                         using (var span = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).Start())
                         using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                         {
+                            Log.Debug("Mapping cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
                             queryResult = GetDataMapper(queryRequest).Map<QueryResultData<T>>(stream).ToQueryResult();
                             queryResult.Success = queryResult.Status == QueryStatus.Success;
                             queryResult.HttpStatusCode = response.StatusCode;
@@ -371,7 +379,7 @@ namespace Couchbase.N1QL
 
         protected bool TryGetQueryUri(out FailureCountingUri baseUri)
         {
-            baseUri = ConfigContextBase.GetQueryUri(ClientConfiguration.QueryFailedThreshold);
+            baseUri = Context.GetQueryUri(ClientConfiguration.QueryFailedThreshold);
             if (baseUri != null && !string.IsNullOrEmpty(baseUri.AbsoluteUri))
             {
                 return true;

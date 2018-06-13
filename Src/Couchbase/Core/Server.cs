@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Logging;
-using Couchbase.Authentication.SASL;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Diagnostics;
@@ -49,46 +49,43 @@ namespace Couchbase.Core
         //for log redaction
         private Func<object, string> User = RedactableArgument.UserAction;
 
-        public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
-            IBucketConfig bucketConfig, ITypeTranscoder transcoder) :
-            this(ioService, null, null, null, null, null, null, nodeAdapter, clientConfiguration, transcoder, bucketConfig)
+        public Server(IIOService ioService, INodeAdapter nodeAdapter, ITypeTranscoder transcoder, ConfigContextBase context) :
+            this(ioService, null, null, null, null, null, null, nodeAdapter, transcoder, context)
         {
         }
 
-        public Server(IIOService ioService, INodeAdapter nodeAdapter, ClientConfiguration clientConfiguration,
-            IBucketConfig bucketConfig, ITypeTranscoder transcoder, ConcurrentDictionary<string, QueryPlan> queryCache) :
+        public Server(IIOService ioService, INodeAdapter nodeAdapter, ITypeTranscoder transcoder, ConcurrentDictionary<string, QueryPlan> queryCache, ConfigContextBase context) :
                 this(ioService,
-                    new ViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                    new ViewClient(new CouchbaseHttpClient(context)
                     {
-                        Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
-                    new StreamingViewClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                        Timeout = new TimeSpan(0, 0, 0, 0, context.ClientConfig.ViewRequestTimeout)
+                    }, new JsonDataMapper(context), context),
+                    new StreamingViewClient(new CouchbaseHttpClient(context)
                     {
-                        Timeout = new TimeSpan(0, 0, 0, 0, clientConfiguration.ViewRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
-                    new QueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                        Timeout = new TimeSpan(0, 0, 0, 0, context.ClientConfig.ViewRequestTimeout)
+                    }, new JsonDataMapper(context), context),
+                    new QueryClient(new CouchbaseHttpClient(context)
                     {
-                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
-                    new StreamingQueryClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)context.ClientConfig.QueryRequestTimeout)
+                    }, new JsonDataMapper(context), queryCache, context),
+                    new StreamingQueryClient(new CouchbaseHttpClient(context)
                     {
-                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration), clientConfiguration, queryCache),
-                    new SearchClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)context.ClientConfig.QueryRequestTimeout)
+                    }, new JsonDataMapper(context), queryCache, context),
+                    new SearchClient(new CouchbaseHttpClient(context)
                     {
-                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.SearchRequestTimeout)
-                    }, new SearchDataMapper(), clientConfiguration),
-                    new AnalyticsClient(new CouchbaseHttpClient(clientConfiguration, bucketConfig)
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)context.ClientConfig.SearchRequestTimeout)
+                    }, new SearchDataMapper(), context),
+                    new AnalyticsClient(new CouchbaseHttpClient(context)
                     {
-                        Timeout = new TimeSpan(0, 0, 0, 0, (int)clientConfiguration.QueryRequestTimeout)
-                    }, new JsonDataMapper(clientConfiguration), clientConfiguration),
-                    nodeAdapter, clientConfiguration, transcoder, bucketConfig)
+                        Timeout = new TimeSpan(0, 0, 0, 0, (int)context.ClientConfig.QueryRequestTimeout)
+                    }, new JsonDataMapper(context), context),
+                    nodeAdapter, transcoder, context)
         {
         }
 
         public Server(IIOService ioService, IViewClient viewClient, IViewClient streamingViewClient, IQueryClient queryClient, IQueryClient streamingQueryClient, ISearchClient searchClient,
-            IAnalyticsClient analyticsClient, INodeAdapter nodeAdapter,
-            ClientConfiguration clientConfiguration, ITypeTranscoder transcoder, IBucketConfig bucketConfig)
+            IAnalyticsClient analyticsClient, INodeAdapter nodeAdapter, ITypeTranscoder transcoder, ConfigContextBase context)
         {
             if (ioService != null)
             {
@@ -96,11 +93,11 @@ namespace Couchbase.Core
                 _ioService.ConnectionPool.Owner = this;
             }
             _nodeAdapter = nodeAdapter;
-            _clientConfiguration = clientConfiguration;
-            _bucketConfiguration = clientConfiguration.BucketConfigs[bucketConfig.Name];
+            _clientConfiguration = context.ClientConfig;
+            _bucketConfiguration = context.ClientConfig.BucketConfigs[context.BucketConfig.Name];
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
             _typeTranscoder = transcoder;
-            _bucketConfig = bucketConfig;
+            _bucketConfig = context.BucketConfig;
 
             //services that this node is responsible for
             IsMgmtNode = _nodeAdapter.MgmtApi > 0;
@@ -147,12 +144,12 @@ namespace Couchbase.Core
         /// <summary>
         /// The base <see cref="Uri"/> for building a View query request.
         /// </summary>
-        public Uri CachedViewBaseUri { get; private set; }
+        public Uri CachedViewBaseUri { get; }
 
         /// <summary>
         /// The base <see cref="Uri"/> for building a N1QL query request.
         /// </summary>
-        public Uri CachedQueryBaseUri { get; private set; }
+        public Uri CachedQueryBaseUri { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is MGMT node.
@@ -160,7 +157,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is MGMT node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsMgmtNode { get; private set; }
+        public bool IsMgmtNode { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is query node.
@@ -168,7 +165,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is query node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsQueryNode { get; private set; }
+        public bool IsQueryNode { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is an analytics node.
@@ -176,7 +173,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsAnalyticsNode { get; private set; }
+        public bool IsAnalyticsNode { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is data node.
@@ -184,7 +181,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is data node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsDataNode { get; private set; }
+        public bool IsDataNode { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is index node.
@@ -192,7 +189,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is index node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsIndexNode { get; private set; }
+        public bool IsIndexNode { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is view node.
@@ -200,7 +197,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is view node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsViewNode { get; private set; }
+        public bool IsViewNode { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is an FTS node.
@@ -208,7 +205,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSearchNode { get; private set; }
+        public bool IsSearchNode { get; }
 
         /// <summary>
         /// Gets the remote <see cref="IPEndPoint"/> of this node.
@@ -216,10 +213,7 @@ namespace Couchbase.Core
         /// <value>
         /// The end point.
         /// </value>
-        public IPEndPoint EndPoint
-        {
-            get { return IsDataNode ? _ioService.EndPoint : _nodeAdapter.GetIPEndPoint(); }
-        }
+        public IPEndPoint EndPoint => IsDataNode ? _ioService.EndPoint : _nodeAdapter.GetIPEndPoint();
 
         /// <summary>
         /// Gets a reference to the connection pool thar this node is using.
@@ -227,10 +221,7 @@ namespace Couchbase.Core
         /// <value>
         /// The connection pool.
         /// </value>
-        public IConnectionPool ConnectionPool
-        {
-            get { return IsDataNode ? _ioService.ConnectionPool : null; }
-        }
+        public IConnectionPool ConnectionPool => IsDataNode ? _ioService.ConnectionPool : null;
 
         /// <summary>
         /// Gets a value indicating whether this instance node is sending
@@ -239,10 +230,7 @@ namespace Couchbase.Core
         /// <value>
         ///   <c>true</c> if this instance is secure; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSecure
-        {
-            get { return IsDataNode ? _ioService.IsSecure : _clientConfiguration.UseSsl; }
-        }
+        public bool IsSecure => IsDataNode ? _ioService.IsSecure : _clientConfiguration.UseSsl;
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is down.
@@ -252,8 +240,8 @@ namespace Couchbase.Core
         /// </value>
         public bool IsDown
         {
-            get { return _isDown; }
-            set { _isDown = value; }
+            get => _isDown;
+            set => _isDown = value;
         }
 
         /// <summary>
@@ -262,7 +250,7 @@ namespace Couchbase.Core
         /// <value>
         /// The query client.
         /// </value>
-        public IQueryClient QueryClient { get; private set; }
+        public IQueryClient QueryClient { get; }
 
         /// <summary>
         /// Gets the view client for sending View requests to the data service.
@@ -270,7 +258,7 @@ namespace Couchbase.Core
         /// <value>
         /// The view client.
         /// </value>
-        public IViewClient ViewClient { get; private set; }
+        public IViewClient ViewClient { get; }
 
         /// <summary>
         /// Gets the analytics client for sending Anlytics requests to the Analytics service.
@@ -278,7 +266,7 @@ namespace Couchbase.Core
         /// <value>
         /// The analytics client.
         /// </value>
-        public IAnalyticsClient AnalyticsClient { get; private set; }
+        public IAnalyticsClient AnalyticsClient { get; }
 
         /// <summary>
         /// Gets the <see cref="ISearchClient" /> for this node if <see cref="IsSearchNode" /> is <c>true</c>.
@@ -286,13 +274,10 @@ namespace Couchbase.Core
         /// <value>
         /// The search client.
         /// </value>
-        public ISearchClient SearchClient { get; private set; }
+        public ISearchClient SearchClient { get; }
 
         // ReSharper disable once InconsistentNaming
-        public int IOErrorCount
-        {
-            get { return _ioErrorCount; }
-        }
+        public int IOErrorCount => _ioErrorCount;
 
         /// <summary>
         /// Gets the clustermap rev# of the <see cref="Server" />.
@@ -300,10 +285,7 @@ namespace Couchbase.Core
         /// <value>
         /// The revision.
         /// </value>
-        public uint Revision
-        {
-            get { return _bucketConfig.Rev; }
-        }
+        public uint Revision => _bucketConfig.Rev;
 
         /// <summary>
         /// Handles the Elapsed event of the _heartBeatTimer control which is enabled
@@ -992,14 +974,8 @@ namespace Couchbase.Core
                         GC.SuppressFinalize(this);
                     }
 
-                    if (_heartBeatTimer != null)
-                    {
-                        _heartBeatTimer.Dispose();
-                    }
-                    if (_ioService != null)
-                    {
-                        _ioService.Dispose();
-                    }
+                    _heartBeatTimer?.Dispose();
+                    _ioService?.Dispose();
                 }
             }
         }

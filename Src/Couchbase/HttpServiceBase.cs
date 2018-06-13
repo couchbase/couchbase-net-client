@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.Http;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Operations;
 using Couchbase.Utils;
@@ -41,11 +42,17 @@ namespace Couchbase
         /// </summary>
         public ulong ConnectionId { get; } = SequenceGenerator.GetRandomLong();
 
-        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration configuration)
+        /// <summary>
+        /// The configuration context for this instance.
+        /// </summary>
+        protected ConfigContextBase Context { get; set; }
+
+        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ConfigContextBase context)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
-            ClientConfiguration = configuration;
+            Context = context;
+            ClientConfiguration = context.ClientConfig;
 
             // set custom header for client / connection ID
             httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));

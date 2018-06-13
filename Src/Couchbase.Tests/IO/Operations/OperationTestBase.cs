@@ -7,10 +7,8 @@ using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
-using Couchbase.IO.Converters;
 using Couchbase.IO.Services;
 using Couchbase.Tests.Fakes;
-using Couchbase.Tests.Helpers;
 using Couchbase.Utils;
 using NUnit.Framework;
 
@@ -18,7 +16,6 @@ namespace Couchbase.Tests.IO.Operations
 {
     public abstract class OperationTestBase
     {
-        private IIOService _ioService;
         private IConnectionPool _connectionPool;
         protected ITypeTranscoder Transcoder = new DefaultTranscoder();
         private static readonly string Address = ConfigurationManager.AppSettings["OperationTestAddress"];
@@ -31,7 +28,7 @@ namespace Couchbase.Tests.IO.Operations
             EndPoint = UriExtensions.GetEndPoint(Address);
             var connectionPoolConfig = new PoolConfiguration();
             _connectionPool = new ConnectionPool<Connection>(connectionPoolConfig, EndPoint);
-            _ioService = new PooledIOService(_connectionPool);
+            IOService = new PooledIOService(_connectionPool);
             Transcoder = new DefaultTranscoder();
         }
 
@@ -44,19 +41,19 @@ namespace Couchbase.Tests.IO.Operations
             foreach (var node in bucketConfig.GetNodes())
             {
                 servers.Add(IPEndPointExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
-                    new Server(_ioService,
+                    new Server(IOService,
                         node,
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext(bucketConfig)));
             }
 
             var vBucketMap = vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
-            var replicas = new int[]{vBucketMap[1]};
+            var replicas = new []{vBucketMap[1]};
             return new VBucket(servers, 0, primary, replicas, bucketConfig.Rev, vBucketServerMap, "default");
         }
 
-        internal IIOService IOService { get { return _ioService; } }
+        internal IIOService IOService { get; private set; }
 
         [TearDown]
         public virtual void TearDown()

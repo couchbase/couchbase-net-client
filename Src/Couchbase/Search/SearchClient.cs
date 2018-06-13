@@ -27,9 +27,10 @@ namespace Couchbase.Search
         //for log redaction
         private Func<object, string> User = RedactableArgument.UserAction;
 
-        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration configuration)
-            : base(httpClient, dataMapper, configuration)
-        { }
+        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, ConfigContextBase context)
+            : base(httpClient, dataMapper, context)
+        {
+        }
 
         /// <summary>
         /// Executes a <see cref="IFtsQuery" /> request including any <see cref="ISearchParams" /> parameters.
@@ -60,7 +61,7 @@ namespace Couchbase.Search
         public async Task<ISearchQueryResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
         {
             var searchResult = new SearchQueryResult();
-            var baseUri = ConfigContextBase.GetSearchUri();
+            var baseUri = Context.GetSearchUri();
             var requestUri = new Uri(baseUri, searchQuery.RelativeUri());
 
             string searchBody;

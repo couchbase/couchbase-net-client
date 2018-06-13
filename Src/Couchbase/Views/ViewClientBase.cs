@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Utils;
 
@@ -16,8 +17,8 @@ namespace Couchbase.Views
     {
         protected const string Success = "Success";
 
-        protected ViewClientBase(HttpClient httpClient, IDataMapper mapper, ClientConfiguration configuration)
-            : base(httpClient, mapper, configuration)
+        protected ViewClientBase(HttpClient httpClient, IDataMapper mapper, ConfigContextBase context)
+            : base(httpClient, mapper, context)
         { }
 
         /// <summary>

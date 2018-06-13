@@ -1,4 +1,5 @@
 using System.IO;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Serialization;
 
@@ -13,6 +14,10 @@ namespace Couchbase.Views
 
         public JsonDataMapper(ClientConfiguration configuration)
             : this(configuration.Serializer())
+        { }
+
+        public JsonDataMapper(ConfigContextBase context)
+            : this(context.ClientConfig)
         { }
 
         public JsonDataMapper(ITypeSerializer serializer)

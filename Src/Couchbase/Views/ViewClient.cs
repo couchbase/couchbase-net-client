@@ -2,11 +2,10 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Couchbase.Configuration.Client;
+using Couchbase.Configuration;
 using Couchbase.Logging;
 using Couchbase.Tracing;
 using Couchbase.Utils;
-using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -14,8 +13,8 @@ namespace Couchbase.Views
     {
         private static readonly ILog Log = LogManager.GetLogger<ViewClient>();
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper, ClientConfiguration configuration)
-            : base(httpClient, mapper, configuration)
+        public ViewClient(HttpClient httpClient, IDataMapper mapper, ConfigContextBase context)
+            : base(httpClient, mapper, context)
         { }
 
         /// <summary>

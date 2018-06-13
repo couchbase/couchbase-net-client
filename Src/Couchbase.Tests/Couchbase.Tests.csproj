@@ -99,6 +99,7 @@
     <Compile Include="Configuration\Server\Serialization\NodeArrayExtensionsTests.cs" />
     <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
     <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
+    <Compile Include="ContextFactory.cs" />
     <Compile Include="Core\LifespanTests.cs" />
     <Compile Include="CouchbaseBucket_SpatialViewTests.cs" />
     <Compile Include="GlobalSetup.cs" />

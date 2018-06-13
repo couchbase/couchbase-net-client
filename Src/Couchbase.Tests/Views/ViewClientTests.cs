@@ -263,7 +263,7 @@ namespace Couchbase.Tests.Views
             {
                 Timeout = new TimeSpan(0, 0, 0, 0, clientConfig.ViewRequestTimeout)
             },
-                new JsonDataMapper(clientConfig), clientConfig);
+            new JsonDataMapper(clientConfig), ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig));
         }
     }
 }

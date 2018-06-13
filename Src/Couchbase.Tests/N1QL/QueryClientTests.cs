@@ -5,14 +5,11 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.N1QL;
 using Couchbase.Tests.Documents;
 using Couchbase.Views;
-using Newtonsoft.Json.Bson;
 using NUnit.Framework;
 using Couchbase.Utils;
-using Couchbase.IO.Operations;
 
 namespace Couchbase.Tests.N1QL
 {
@@ -360,8 +357,6 @@ namespace Couchbase.Tests.N1QL
         [Test]
         public void When_AdHoc_Is_Default_Or_True_CheckRetry_Should_Return_False()
         {
-            var requestExplicit = new QueryRequest().AdHoc(true);
-            var requestDefault = new QueryRequest();
             var response = new QueryResult<string>()
             {
                 Success = true
@@ -386,7 +381,7 @@ namespace Couchbase.Tests.N1QL
         public static IQueryClient GetQueryClient()
         {
             var config = new ClientConfiguration();
-            return new QueryClient(new HttpClient(), new JsonDataMapper(config), config);
+            return new QueryClient(new HttpClient(), new JsonDataMapper(config), ContextFactory.GetCouchbaseContext());
         }
     }
 }

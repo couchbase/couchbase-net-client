@@ -18,9 +18,10 @@ namespace Couchbase.Analytics
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(AnalyticsClient));
 
-        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ClientConfiguration configuration)
-            : base(client, dataMapper, configuration)
-        { }
+        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ConfigContextBase context)
+            : base(client, dataMapper, context)
+        {
+        }
 
         /// <summary>
         /// Queries the specified request.
@@ -133,9 +134,9 @@ namespace Couchbase.Analytics
             queryResult.Exception = exception;
         }
 
-        private static bool TryGetUri<T>(AnalyticsResult<T> result, out FailureCountingUri uri)
+        private bool TryGetUri<T>(AnalyticsResult<T> result, out FailureCountingUri uri)
         {
-            uri = ConfigContextBase.GetAnalyticsUri();
+            uri = Context.GetAnalyticsUri();
             if (uri != null && !string.IsNullOrEmpty(uri.AbsoluteUri))
             {
                 return true;

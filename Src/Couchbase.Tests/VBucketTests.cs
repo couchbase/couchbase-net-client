@@ -1,20 +1,10 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.IO;
 using Couchbase.Tests.Fakes;
-using Couchbase.Tests.Helpers;
-using Couchbase.Tests.Utils;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -40,13 +30,13 @@ namespace Couchbase.Tests
                 _servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext()));
             }
 
             var vBucketMap = _vBucketServerMap.VBucketMap.First();
             var primary = vBucketMap[0];
-            var replicas = new int[]{vBucketMap[1]};
+            var replicas = new []{vBucketMap[1]};
             _vBucket = new VBucket(_servers, 0, primary, replicas, bucketConfig.Rev, _vBucketServerMap, "default");
         }
 
@@ -84,8 +74,8 @@ namespace Couchbase.Tests
                 servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
@@ -107,8 +97,8 @@ namespace Couchbase.Tests
                 servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
@@ -134,8 +124,8 @@ namespace Couchbase.Tests
                 servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
@@ -163,8 +153,8 @@ namespace Couchbase.Tests
                 servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext()));
             }
 
             var mapper = new VBucketKeyMapper(servers, bucketConfig.VBucketServerMap, bucketConfig.Rev, bucketConfig.Name);
@@ -190,8 +180,8 @@ namespace Couchbase.Tests
                 servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                         node,
-                        new ClientConfiguration(), bucketConfig,
-                        new FakeTranscoder()));
+                        new FakeTranscoder(),
+                        ContextFactory.GetCouchbaseContext()));
             }
 
             //remove one server
@@ -215,9 +205,8 @@ namespace Couchbase.Tests
                new FakeConnectionPool(), false),
                new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                new NodeExt()),
-               new ClientConfiguration(),
-               new BucketConfig { Name = "default" },
-               new FakeTranscoder());
+               new FakeTranscoder(),
+               ContextFactory.GetCouchbaseContext());
 
             var vbucket =
                 new VBucket(new Dictionary<IPEndPoint, IServer>
@@ -246,9 +235,8 @@ namespace Couchbase.Tests
                 new FakeConnectionPool(), false),
                 new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                 new NodeExt()),
-                new ClientConfiguration(),
-                new BucketConfig { Name = "default" },
-                new FakeTranscoder());
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext());
 
             var vbucket =
                 new VBucket(new Dictionary<IPEndPoint, IServer>
@@ -269,9 +257,8 @@ namespace Couchbase.Tests
                 new FakeConnectionPool(), false),
                 new NodeAdapter(new Node { Hostname = "127.0.0.1" },
                 new NodeExt()),
-                new ClientConfiguration(),
-                new BucketConfig { Name = "default" },
-                new FakeTranscoder());
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext());
 
             var vbucket =
                 new VBucket(new Dictionary<IPEndPoint, IServer>

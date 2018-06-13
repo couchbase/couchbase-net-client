@@ -1,19 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.IO;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.IO;
 using Couchbase.Tests.Fakes;
-using Couchbase.Tests.Helpers;
-using Couchbase.Utils;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -37,8 +27,8 @@ namespace Couchbase.Tests.Core.Buckets
                 _servers.Add(new IPEndPoint(node.GetIPAddress(), 8091),
                     new Server(new FakeIOService(node.GetIPEndPoint(), new FakeConnectionPool(), false),
                        node,
-                       new ClientConfiguration(), bucketConfig,
-                       new FakeTranscoder()));
+                       new FakeTranscoder(),
+                        ContextFactory.GetMemcachedContext(bucketConfig)));
             }
 
             _keyMapper = new KetamaKeyMapper(_servers);

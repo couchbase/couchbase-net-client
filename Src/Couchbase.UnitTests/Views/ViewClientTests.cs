@@ -2,7 +2,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Serialization;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
@@ -40,7 +42,9 @@ namespace Couchbase.UnitTests.Views
             });
 
             var httpClient = new HttpClient(handler);
-            var queryClient = new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), new ClientConfiguration());
+            var queryClient = new ViewClient(httpClient,
+                new JsonDataMapper(new DefaultSerializer()),
+                ContextFactory.GetCouchbaseContext());
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
@@ -75,7 +79,9 @@ namespace Couchbase.UnitTests.Views
             });
 
             var httpClient = new HttpClient(handler);
-            var queryClient = new StreamingViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), new ClientConfiguration());
+            var queryClient = new StreamingViewClient(httpClient,
+                new JsonDataMapper(new DefaultSerializer()),
+                ContextFactory.GetCouchbaseContext());
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
@@ -94,7 +100,9 @@ namespace Couchbase.UnitTests.Views
             });
 
             var httpClient = new HttpClient(handler);
-            var queryClient = new StreamingViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), new ClientConfiguration());
+            var queryClient = new StreamingViewClient(httpClient,
+                new JsonDataMapper(new DefaultSerializer()),
+                ContextFactory.GetCouchbaseContext());
             Assert.IsNull(queryClient.LastActivity);
 
             var query = new ViewQuery("bucket-name", "http://localhost");
@@ -115,7 +123,10 @@ namespace Couchbase.UnitTests.Views
             });
 
             var httpClient = new HttpClient(handler);
-            var queryClient = new StreamingViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), new ClientConfiguration());
+            var queryClient = new StreamingViewClient(httpClient,
+                new JsonDataMapper(new DefaultSerializer()),
+                ContextFactory.GetCouchbaseContext());
+
             Assert.IsNull(queryClient.LastActivity);
 
             var query = new ViewQuery("bucket-name", "http://localhost");

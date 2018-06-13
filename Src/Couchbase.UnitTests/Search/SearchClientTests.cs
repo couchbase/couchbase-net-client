@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Serialization;
+using Couchbase.IO;
 using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
@@ -20,14 +22,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_ReturnsErrorMessage()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.102:8091/"));//assume invalid uri
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.102:8091/"));//assume invalid uri
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexist",
@@ -39,14 +42,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_Returns403()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -58,14 +62,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_Returns404()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -77,14 +82,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task QueryAsync_WhenInvalidIndexName_Returns403()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -96,14 +102,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_ReturnsErrorCountOfOne()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -115,14 +122,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_ReturnsErrorCountOfOne()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotist",
@@ -134,14 +142,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_ReturnsTotalCountOfZero()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -153,14 +162,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_ReturnsSuccessCountOfZero()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -172,14 +182,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_ReturnsSuccessCountOfZero()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -191,14 +202,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_ReturnsSuccessFalse()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -210,14 +222,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_ReturnsSuccessFalse()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -229,14 +242,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_ReturnsHitsEqualToZero()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -248,14 +262,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_ReturnsHitsEqualToZero()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -268,14 +283,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_MaxScoreIsZero()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -287,14 +303,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_MaxScoreIsZero()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -307,14 +324,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidIndexName_FacetsIsEmpty()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.Forbidden,
                 Content = new StringContent("rest_auth: preparePerm, err: index not found ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -326,14 +344,15 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Query_WhenInvalidUri_FacetsIsEmpty()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var fakeMessageHandler = new FakeMessageHandler
             {
                 StatusCode = HttpStatusCode.NotFound,
                 Content = new StringContent("Requested resource not found. ")
             };
 
-            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(fakeMessageHandler), new SearchDataMapper(), context);
             var response = await client.QueryAsync(new SearchQuery
             {
                 Index = "indexdoesnotexist",
@@ -345,13 +364,14 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public void Query_Sets_LastActivity()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{ }")
             });
 
-            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), context);
             Assert.IsNull(client.LastActivity);
 
             client.Query(new SearchQuery
@@ -365,13 +385,14 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task QueryAsync_Sets_LastActivity()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
             var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{ }")
             });
 
-            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), context);
             Assert.IsNull(client.LastActivity);
 
             await client.QueryAsync(new SearchQuery
@@ -385,7 +406,8 @@ namespace Couchbase.UnitTests.Search
         [Test]
         public async Task Failed_Query_With_Json_ContentType_Populates_ErrorResult()
         {
-            ConfigContextBase.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.SearchUris.Add(new FailureCountingUri("http://10.141.151.101:8091/"));
 
             var content = new
             {
@@ -404,7 +426,7 @@ namespace Couchbase.UnitTests.Search
                 Content = new StringContent(json, System.Text.Encoding.UTF8, MediaType.Json) // sets Content-Type to application/json
             });
 
-            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), new ClientConfiguration());
+            var client = new SearchClient(new HttpClient(handler), new SearchDataMapper(), context);
             var result = await client.QueryAsync(new SearchQuery
             {
                 Index = "beer",

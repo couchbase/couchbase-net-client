@@ -10,7 +10,6 @@ using Moq;
 using NUnit.Framework;
 using Couchbase.UnitTests.Utils;
 using System.Net;
-using Couchbase.Configuration;
 
 namespace Couchbase.UnitTests.N1Ql
 {
@@ -23,13 +22,14 @@ namespace Couchbase.UnitTests.N1Ql
         public void GetDataMapper_IQueryRequest_ReturnsClientDataMapper()
         {
             // Arrange
+            var context = ContextFactory.GetCouchbaseContext();
 
             var dataMapper = new Mock<IDataMapper>();
 
             var queryRequest = new Mock<IQueryRequest>();
 
-            var queryClient = new QueryClient(new HttpClient(), dataMapper.Object, new ClientConfiguration(),
-                new ConcurrentDictionary<string, QueryPlan>());
+            var queryClient = new QueryClient(new HttpClient(), dataMapper.Object,
+                new ConcurrentDictionary<string, QueryPlan>(), context);
 
             // Act
 
@@ -44,14 +44,15 @@ namespace Couchbase.UnitTests.N1Ql
         public void GetDataMapper_IQueryRequestWithDataMapper_NoDataMapper_ReturnsClientDataMapper()
         {
             // Arrange
+            var context = ContextFactory.GetCouchbaseContext();
 
             var clientDataMapper = new Mock<IDataMapper>();
 
             var queryRequest = new Mock<IQueryRequestWithDataMapper>();
             queryRequest.SetupProperty(p => p.DataMapper, null);
 
-            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object, new ClientConfiguration(),
-                new ConcurrentDictionary<string, QueryPlan>());
+            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object,
+                new ConcurrentDictionary<string, QueryPlan>(), context);
 
             // Act
 
@@ -66,15 +67,15 @@ namespace Couchbase.UnitTests.N1Ql
         public void GetDataMapper_IQueryRequestWithDataMapper_HasDataMapper_ReturnsRequestDataMapper()
         {
             // Arrange
-
+            var context = ContextFactory.GetCouchbaseContext();
             var clientDataMapper = new Mock<IDataMapper>();
             var requestDataMapper = new Mock<IDataMapper>();
 
             var queryRequest = new Mock<IQueryRequestWithDataMapper>();
             queryRequest.SetupProperty(p => p.DataMapper, requestDataMapper.Object);
 
-            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object, new ClientConfiguration(),
-                new ConcurrentDictionary<string, QueryPlan>());
+            var queryClient = new QueryClient(new HttpClient(), clientDataMapper.Object,
+                new ConcurrentDictionary<string, QueryPlan>(), context);
 
             // Act
 
@@ -110,7 +111,9 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public async Task Test_QueryAsync_CanCancel()
         {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+            var context = ContextFactory.GetCouchbaseContext();
+
+            context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             // create hander that takes some time to return
             var httpClient = new HttpClient(
@@ -124,8 +127,8 @@ namespace Couchbase.UnitTests.N1Ql
             var queryClient = new QueryClient(
                 httpClient,
                 new JsonDataMapper(config),
-                config,
-                new ConcurrentDictionary<string, QueryPlan>()
+                new ConcurrentDictionary<string, QueryPlan>(),
+                context
             );
 
             var queryRequest = new QueryRequest("SELECT * FROM `default`;");
@@ -140,7 +143,8 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public async Task Test_PrepareQueryAsync_CanCancel()
         {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             // create hander that takes some time to return
             var httpClient = new HttpClient(
@@ -154,8 +158,8 @@ namespace Couchbase.UnitTests.N1Ql
             var queryClient = new QueryClient(
                 httpClient,
                 new JsonDataMapper(config),
-                config,
-                new ConcurrentDictionary<string, QueryPlan>()
+                new ConcurrentDictionary<string, QueryPlan>(),
+                context
             );
 
             var queryRequest = new QueryRequest("SELECT * FROM `default`;");
@@ -170,7 +174,8 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public void Query_Sets_LastActivity()
         {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -180,8 +185,8 @@ namespace Couchbase.UnitTests.N1Ql
             var client = new QueryClient(
                 httpClient,
                 new JsonDataMapper(config),
-                config,
-                new ConcurrentDictionary<string, QueryPlan>()
+                new ConcurrentDictionary<string, QueryPlan>(),
+                context
             );
             Assert.IsNull(client.LastActivity);
 
@@ -194,7 +199,8 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public async Task QueryAsync_Sets_LastActivity()
         {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -204,8 +210,8 @@ namespace Couchbase.UnitTests.N1Ql
             var client = new QueryClient(
                 httpClient,
                 new JsonDataMapper(config),
-                config,
-                new ConcurrentDictionary<string, QueryPlan>()
+                new ConcurrentDictionary<string, QueryPlan>(),
+                context
             );
             Assert.IsNull(client.LastActivity);
 
@@ -218,7 +224,8 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public async Task QueryAsync_With_CancellationToken_Sets_LastActivity()
         {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -228,8 +235,8 @@ namespace Couchbase.UnitTests.N1Ql
             var client = new QueryClient(
                 httpClient,
                 new JsonDataMapper(config),
-                config,
-                new ConcurrentDictionary<string, QueryPlan>()
+                new ConcurrentDictionary<string, QueryPlan>(),
+                context
             );
             Assert.IsNull(client.LastActivity);
 
@@ -242,7 +249,8 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public void Prepare_Sets_LastActivity()
         {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -252,8 +260,8 @@ namespace Couchbase.UnitTests.N1Ql
             var client = new QueryClient(
                 httpClient,
                 new JsonDataMapper(config),
-                config,
-                new ConcurrentDictionary<string, QueryPlan>()
+                new ConcurrentDictionary<string, QueryPlan>(),
+                context
             );
             Assert.IsNull(client.LastActivity);
 
@@ -266,7 +274,8 @@ namespace Couchbase.UnitTests.N1Ql
         [Test]
         public async Task PrepareAsync_Sets_LastActivity()
         {
-            ConfigContextBase.QueryUris.Add(new FailureCountingUri("http://localhost"));
+            var context = ContextFactory.GetCouchbaseContext();
+            context.QueryUris.Add(new FailureCountingUri("http://localhost"));
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -276,8 +285,8 @@ namespace Couchbase.UnitTests.N1Ql
             var client = new QueryClient(
                 httpClient,
                 new JsonDataMapper(config),
-                config,
-                new ConcurrentDictionary<string, QueryPlan>()
+                new ConcurrentDictionary<string, QueryPlan>(),
+                context
             );
             Assert.IsNull(client.LastActivity);
 

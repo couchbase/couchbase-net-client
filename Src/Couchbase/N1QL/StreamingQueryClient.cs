@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Configuration;
 using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
@@ -17,14 +18,15 @@ namespace Couchbase.N1QL
     {
         private static readonly ILog Log = LogManager.GetLogger<QueryClient>();
 
-        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig)
-            : base(httpClient, dataMapper, clientConfig)
+        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, CouchbaseConfigContext context)
+            : base(httpClient, dataMapper, context)
         {
             HttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
-        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, ClientConfiguration clientConfig,
-            ConcurrentDictionary<string, QueryPlan> queryCache) : base(httpClient, dataMapper, clientConfig, queryCache)
+        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper,
+            ConcurrentDictionary<string, QueryPlan> queryCache, ConfigContextBase context)
+            : base(httpClient, dataMapper,  queryCache, context)
         {
             HttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }

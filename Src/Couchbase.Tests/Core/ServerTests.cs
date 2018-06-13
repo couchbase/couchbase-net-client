@@ -29,18 +29,16 @@ namespace Couchbase.Tests.Core
         public void OneTimeSetUp()
         {
             var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var node = config.GetNodes().First();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = bucketConfig.GetNodes().First();
 
             _endPoint = UriExtensions.GetEndPoint(_address);
-            var configuration = new ClientConfiguration();
             var connectionPool = new FakeConnectionPool();
             var ioService = new FakeIOService(_endPoint, connectionPool, false);
             _server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder());
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(bucketConfig));
         }
 
         [Test]
@@ -62,15 +60,15 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_GetBaseViewUri_Is_Called_With_EncryptTraffic_True_Uri_Is_SSL_URI()
         {
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 UseSsl = true
             };
-            configuration.Initialize();
+            clientConfig.Initialize();
 
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var nodes = config.GetNodes();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = bucketConfig.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
@@ -79,9 +77,8 @@ namespace Couchbase.Tests.Core
 
             using (var server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder()))
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig)))
             {
                 var uri = server.CachedViewBaseUri;
                 Assert.AreEqual("https://192.168.109.104:18092/default/", uri.ToString());
@@ -91,7 +88,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_UseSsl_Is_True_Use_HTTP_Protocol()
         {
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
@@ -100,8 +97,8 @@ namespace Couchbase.Tests.Core
             };
 
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var nodes = config.GetNodes();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = bucketConfig.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
@@ -110,9 +107,8 @@ namespace Couchbase.Tests.Core
 
             using (var server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder()))
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig)))
             {
                 var uri = server.CachedViewBaseUri;
                 Assert.AreEqual("https://192.168.109.104:18092/default/", uri.ToString());
@@ -122,7 +118,7 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_UseSsl_Is_False_Use_HTTP_Protocol()
         {
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 BucketConfigs = new Dictionary<string, BucketConfiguration>
                 {
@@ -131,8 +127,8 @@ namespace Couchbase.Tests.Core
             };
 
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var nodes = config.GetNodes();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = bucketConfig.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
@@ -141,9 +137,8 @@ namespace Couchbase.Tests.Core
 
             using (var server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder()))
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig)))
             {
                 var uri = server.CachedViewBaseUri;
                 Assert.AreEqual("http://192.168.109.104:8092/default/", uri.ToString());
@@ -153,15 +148,15 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_GetBaseViewUri_Is_Called_With_EncryptTraffic_False_Uri_Is_Not_SSL_URI()
         {
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 UseSsl = false
             };
-            configuration.Initialize();
+            clientConfig.Initialize();
 
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var nodes = config.GetNodes();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = bucketConfig.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.104"));
 
@@ -170,9 +165,8 @@ namespace Couchbase.Tests.Core
 
             using (var server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder()))
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig)))
             {
                 var uri = server.CachedViewBaseUri;
                 Assert.AreEqual(uri, "http://192.168.109.104:8092/default/");
@@ -182,21 +176,25 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_Node_Supports_N1QL_Queries_IsQueryNode_Is_True()
         {
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 UseSsl = false
             };
-            configuration.Initialize();
+            clientConfig.Initialize();
 
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var nodes = config.GetNodes();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = bucketConfig.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.103"));
             var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            var server = new Server(ioService, node, configuration, config, new FakeTranscoder());
+            var server = new Server(ioService,
+                node,
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig));
+
             Assert.IsTrue(server.IsQueryNode);
             Assert.IsTrue(server.IsMgmtNode);
             Assert.IsFalse(server.IsIndexNode);
@@ -207,21 +205,25 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_Node_Supports_KV_Queries_IsDataNode_Is_True()
         {
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 UseSsl = false
             };
-            configuration.Initialize();
+            clientConfig.Initialize();
 
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var nodes = config.GetNodes();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = bucketConfig.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.101"));
             var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            var server = new Server(ioService, node, configuration, config, new FakeTranscoder());
+            var server = new Server(ioService,
+                node,
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig));
+
             Assert.IsFalse(server.IsQueryNode);
             Assert.IsTrue(server.IsMgmtNode);
             Assert.IsFalse(server.IsIndexNode);
@@ -232,21 +234,24 @@ namespace Couchbase.Tests.Core
         [Test]
         public void When_Node_Supports_Index_Queries_IsIndexNode_Is_True()
         {
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 UseSsl = false
             };
-            configuration.Initialize();
+            clientConfig.Initialize();
 
             var json = ResourceHelper.ReadResource(@"Data\Configuration\cb4-config-4-nodes.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var nodes = config.GetNodes();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var nodes = bucketConfig.GetNodes();
 
             var node = nodes.Find(x => x.Hostname.Equals("192.168.109.102"));
             var ioService = new FakeIOService(UriExtensions.GetEndPoint(node.Hostname + ":" + node.KeyValue),
                 new FakeConnectionPool(), false);
 
-            var server = new Server(ioService, node, configuration, config, new FakeTranscoder());
+            var server = new Server(ioService,
+                node, new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig));
+
             Assert.IsFalse(server.IsQueryNode);
             Assert.IsTrue(server.IsMgmtNode);
             Assert.IsTrue(server.IsIndexNode);
@@ -258,11 +263,11 @@ namespace Couchbase.Tests.Core
         public void When_IOErrorThreshold_Is_Met_By_IOErrorInterval_IsDead_Returns_True()
         {
             var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var node = config.GetNodes().First();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = bucketConfig.GetNodes().First();
 
             var endPoint = UriExtensions.GetEndPoint(_address);
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 IOErrorThreshold = 10,
                 IOErrorCheckInterval = 100
@@ -271,9 +276,8 @@ namespace Couchbase.Tests.Core
             var ioService = new FakeIOService(endPoint, connectionPool, false);
             var server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder());
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig));
 
             Assert.IsFalse(server.IsDown);
 
@@ -294,11 +298,11 @@ namespace Couchbase.Tests.Core
         public void When_IOErrorThreshold_IsNot_Met_Within_IOErrorInterval_IsDead_Returns_False()
         {
             var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var node = config.GetNodes().First();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = bucketConfig.GetNodes().First();
 
             var endPoint = UriExtensions.GetEndPoint(_address);
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 IOErrorThreshold = 10,
                 IOErrorCheckInterval = 10
@@ -307,9 +311,8 @@ namespace Couchbase.Tests.Core
             var ioService = new FakeIOService(endPoint, connectionPool, false);
             var server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder());
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig));
 
             Assert.IsFalse(server.IsDown);
 
@@ -331,11 +334,11 @@ namespace Couchbase.Tests.Core
         public void When_IOErrorThreshold_IsNot_Met_By_IOErrorInterval_NodeUnavailableException_Is_Thrown()
         {
             var json = ResourceHelper.ReadResource(@"Data\Configuration\nodesext-cb-beta-4.json");
-            var config = JsonConvert.DeserializeObject<BucketConfig>(json);
-            var node = config.GetNodes().First();
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var node = bucketConfig.GetNodes().First();
 
             var endPoint = UriExtensions.GetEndPoint(_address);
-            var configuration = new ClientConfiguration
+            var clientConfig = new ClientConfiguration
             {
                 IOErrorThreshold = 10,
                 IOErrorCheckInterval = 100
@@ -344,9 +347,8 @@ namespace Couchbase.Tests.Core
             var ioService = new FakeIOService(endPoint, connectionPool, false);
             var server = new Server(ioService,
                 node,
-                configuration,
-                config,
-                new FakeTranscoder());
+                new FakeTranscoder(),
+                ContextFactory.GetCouchbaseContext(clientConfig, bucketConfig));
 
             Assert.IsFalse(server.IsDown);
 

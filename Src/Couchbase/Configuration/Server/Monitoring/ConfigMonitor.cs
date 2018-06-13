@@ -48,7 +48,8 @@ namespace Couchbase.Configuration.Server.Monitoring
                         _log.Debug("Waiting to check configs...");
 
                         // Test at every interval.  Wait before first test.
-                        await Task.Delay(TimeSpan.FromMilliseconds(Configuration.ConfigPollInterval), _cts.Token);
+                        await Task.Delay(TimeSpan.FromMilliseconds(Configuration.ConfigPollInterval), _cts.Token).
+                            ContinueOnAnyContext();
 
                         _log.Debug("Checking configs...");
 

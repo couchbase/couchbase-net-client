@@ -28,13 +28,10 @@ namespace Couchbase.Configuration
         protected static readonly ILog Log = LogManager.GetLogger<ConfigContextBase>();
         private static int _roundRobinPosition = 0;
         protected IKeyMapper KeyMapper;
-        private readonly DateTime _creationTime;
-        private readonly ClientConfiguration _clientConfig;
         protected IDictionary<IPEndPoint, IServer> Servers = new Dictionary<IPEndPoint, IServer>();
         protected Func<IConnectionPool, IIOService> IOServiceFactory;
         protected Func<PoolConfiguration, IPEndPoint, IConnectionPool> ConnectionPoolFactory;
         protected readonly Func<string, string, IConnectionPool, ITypeTranscoder, ISaslMechanism> SaslFactory;
-        protected IBucketConfig _bucketConfig;
         private bool _disposed;
         protected ReaderWriterLockSlim Lock = new ReaderWriterLockSlim();
 
@@ -52,14 +49,12 @@ namespace Couchbase.Configuration
         public bool IsIndexCapable { get; set; }
         public bool IsSearchCapable { get; set; }
 
-        public bool IsAnalyticsCapable
-        {
-            get { return AnalyticsNodes.Any(); }
-        }
+        public bool IsAnalyticsCapable => AnalyticsNodes.Any();
 
-        public static ConcurrentBag<FailureCountingUri> QueryUris = new ConcurrentBag<FailureCountingUri>();
-        public static ConcurrentBag<FailureCountingUri> SearchUris = new ConcurrentBag<FailureCountingUri>();
-        public static ConcurrentBag<FailureCountingUri> AnalyticsUris = new ConcurrentBag<FailureCountingUri>();
+        public ConcurrentBag<FailureCountingUri> QueryUris = new ConcurrentBag<FailureCountingUri>();
+        public ConcurrentBag<FailureCountingUri> SearchUris = new ConcurrentBag<FailureCountingUri>();
+        public ConcurrentBag<FailureCountingUri> AnalyticsUris = new ConcurrentBag<FailureCountingUri>();
+        protected IBucketConfig _bucketConfig;
 
         protected string UserName { get; }
         protected string Password { get; }
@@ -73,10 +68,10 @@ namespace Couchbase.Configuration
             string password)
         {
             _bucketConfig = bucketConfig;
-            _clientConfig = clientConfig;
+            ClientConfig = clientConfig;
             IOServiceFactory = ioServiceFactory;
             ConnectionPoolFactory = connectionPoolFactory;
-            _creationTime = DateTime.Now;
+            CreationTime = DateTime.Now;
             SaslFactory = saslFactory;
             Transcoder = transcoder;
 
@@ -84,7 +79,7 @@ namespace Couchbase.Configuration
             Password = password;
         }
 
-        public static FailureCountingUri GetQueryUri(int queryFailedThreshold)
+        public FailureCountingUri GetQueryUri(int queryFailedThreshold)
         {
             var queryUris = QueryUris.Where(x => x.IsHealthy(queryFailedThreshold)).ToList();
             if (queryUris.Count == 0)
@@ -120,7 +115,7 @@ namespace Couchbase.Configuration
             return uris[mod];
         }
 
-        public static FailureCountingUri GetSearchUri()
+        public FailureCountingUri GetSearchUri()
         {
             var searchUris = SearchUris.Where(x => x.IsHealthy(SearchNodeFailureThreshold)).ToList();
             if (searchUris.Count == 0)
@@ -138,7 +133,7 @@ namespace Couchbase.Configuration
             return searchUris.GetRandom();
         }
 
-        public static FailureCountingUri GetAnalyticsUri()
+        public FailureCountingUri GetAnalyticsUri()
         {
             return AnalyticsUris.Where(x => x.IsHealthy(2)).GetRandom();
         }
@@ -181,36 +176,23 @@ namespace Couchbase.Configuration
         /// <summary>
         /// The time at which this configuration context has been created.
         /// </summary>
-        public DateTime CreationTime
-        {
-            get { return _creationTime; }
-        }
+        public DateTime CreationTime { get; }
 
         /// <summary>
         /// The client configuration for a bucket.
         /// <remarks> See <see cref="IBucketConfig"/> for details.</remarks>
         /// </summary>
-        public IBucketConfig BucketConfig
-        {
-            get { return _bucketConfig; }
-            private set { _bucketConfig = value; }
-        }
+        public IBucketConfig BucketConfig => _bucketConfig;
 
         /// <summary>
         /// The name of the Bucket that this configuration represents.
         /// </summary>
-        public string BucketName
-        {
-            get { return BucketConfig.Name; }
-        }
+        public string BucketName => BucketConfig.Name;
 
         /// <summary>
         /// The client configuration.
         /// </summary>
-        public ClientConfiguration ClientConfig
-        {
-            get { return _clientConfig; }
-        }
+        public ClientConfiguration ClientConfig { get; }
 
         /// <summary>
         /// The <see cref="BucketTypeEnum"/> that this configuration context is for.
@@ -219,8 +201,7 @@ namespace Couchbase.Configuration
         {
             get
             {
-                BucketTypeEnum bucketType;
-                if (!Enum.TryParse(BucketConfig.BucketType, true, out bucketType))
+                if (!Enum.TryParse(BucketConfig.BucketType, true, out BucketTypeEnum bucketType))
                 {
                     throw new NullConfigException("BucketType is not defined");
                 }
@@ -388,10 +369,7 @@ namespace Couchbase.Configuration
         }
 #endif
 
-        public bool SslConfigured
-        {
-            get { return _bucketConfig.UseSsl || _clientConfig.UseSsl; }
-        }
+        public bool SslConfigured => BucketConfig.UseSsl || ClientConfig.UseSsl;
 
         /// <summary>
         /// Gets a data node from the Servers collection.

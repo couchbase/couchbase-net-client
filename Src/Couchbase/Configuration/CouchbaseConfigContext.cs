@@ -46,7 +46,7 @@ namespace Couchbase.Configuration
             {
                 Lock.EnterWriteLock();
                 var nodes = bucketConfig.GetNodes();
-                if (BucketConfig == null || !nodes.AreEqual(_bucketConfig.GetNodes()) || !Servers.Any() || force)
+                if (BucketConfig == null || !nodes.AreEqual(BucketConfig.GetNodes()) || !Servers.Any() || force)
                 {
                     Log.Info("o1-Creating the Servers {0} list using rev#{1}", nodes.Count, bucketConfig.Rev);
 
@@ -84,7 +84,7 @@ namespace Couchbase.Configuration
 
                                 var ioService = CreateIOService(poolConfiguration, endpoint);
 
-                                server = new Core.Server(ioService, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache);
+                                server = new Core.Server(ioService, adapter, Transcoder, QueryCache, this);
 
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
@@ -93,7 +93,7 @@ namespace Couchbase.Configuration
                             }
                             else
                             {
-                                server = new Core.Server(null, adapter, ClientConfig, bucketConfig, Transcoder, QueryCache);
+                                server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
                             }
                             servers.Add(endpoint, server);
                         }
@@ -183,7 +183,7 @@ namespace Couchbase.Configuration
                         IServer server = null;
                         if (Equals(ioService.EndPoint, endpoint) || nodes.Count() == 1)
                         {
-                            server = new Core.Server(ioService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                            server = new Core.Server(ioService, adapter, Transcoder, QueryCache, this);
                             SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                             SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                             SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
@@ -229,7 +229,7 @@ namespace Couchbase.Configuration
 
                                 var newIoService = CreateIOService(poolConfiguration, endpoint);
 
-                                server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                                server = new Core.Server(newIoService, adapter, Transcoder, QueryCache, this);
 
                                 //Note: "ioService has" already made a HELO command to check what features
                                 //the cluster supports (eg enhanced durability) so we are reusing the flag
@@ -241,7 +241,7 @@ namespace Couchbase.Configuration
                             }
                             else
                             {
-                                server = new Core.Server(null, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                                server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
                             }
                         }
                         servers.Add(endpoint, server);
@@ -323,7 +323,7 @@ namespace Couchbase.Configuration
 
                             var newIoService = CreateIOService(poolConfiguration, endpoint);
 
-                            server = new Core.Server(newIoService, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                            server = new Core.Server(newIoService, adapter, Transcoder, QueryCache, this);
 
                             SupportsEnhancedDurability = newIoService.SupportsEnhancedDurability;
                             SupportsSubdocXAttributes = newIoService.SupportsSubdocXAttributes;
@@ -332,7 +332,7 @@ namespace Couchbase.Configuration
                         }
                         else
                         {
-                            server = new Core.Server(null, adapter, ClientConfig, BucketConfig, Transcoder, QueryCache);
+                            server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
                         }
                         servers.Add(endpoint, server);
                     }
