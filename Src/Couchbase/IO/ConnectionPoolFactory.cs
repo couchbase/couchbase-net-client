@@ -2,7 +2,7 @@
 using System.Net;
 using Couchbase.Configuration.Client;
 
-#if NET45
+#if NET452
 using Couchbase.Configuration.Client.Providers;
 #endif
 
@@ -34,7 +34,7 @@ namespace Couchbase.IO
             };
         }
 
-#if NET45
+#if NET452
 
         /// <summary>
         /// Gets the factory.

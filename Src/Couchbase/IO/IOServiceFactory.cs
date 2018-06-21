@@ -3,7 +3,7 @@ using System.Reflection;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Services;
 
-#if NET45
+#if NET452
 using Couchbase.Configuration.Client.Providers;
 #endif
 
@@ -33,7 +33,7 @@ namespace Couchbase.IO
             };
         }
 
-#if NET45
+#if NET452
 
         /// <exception cref="TypeLoadException">Condition.</exception>
         /// <exception cref="TargetInvocationException">A class initializer is invoked and throws an exception. </exception>

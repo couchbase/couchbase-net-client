@@ -191,7 +191,7 @@ namespace Couchbase.IO
                 HandleDisconnect(new RemoteHostClosedException(
                     ExceptionUtil.GetMessage(ExceptionUtil.RemoteHostClosedMsg, EndPoint)));
             }
-#if NET45
+#if NET452
             catch (ThreadAbortException) {}
 #endif
             catch (ObjectDisposedException) {}

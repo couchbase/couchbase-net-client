@@ -139,7 +139,7 @@ namespace Couchbase.UnitTests.Authentication
         [TearDown]
         public static void TearDown()
         {
-#if NET45
+#if NET452
             //resets Execute back to original func
             typeof(SaslFactory).TypeInitializer.Invoke(null, null);
 #endif

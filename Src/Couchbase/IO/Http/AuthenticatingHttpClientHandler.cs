@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Couchbase.IO.Http
 {
     internal class AuthenticatingHttpClientHandler
-#if NET45
+#if NET452
         : WebRequestHandler
 #else
         : HttpClientHandler
@@ -25,7 +25,7 @@ namespace Couchbase.IO.Http
         public AuthenticatingHttpClientHandler(string username, string password)
         {
             //disable HTTP pipelining for full .net framework
-#if NET45
+#if NET452
             AllowPipelining = false;
 #endif
 

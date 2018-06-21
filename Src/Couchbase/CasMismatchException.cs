@@ -21,7 +21,7 @@ namespace Couchbase
         {
         }
 
-#if NET45
+#if NET452
         protected CasMismatchException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }

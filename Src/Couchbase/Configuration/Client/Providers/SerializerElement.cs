@@ -1,4 +1,4 @@
-﻿#if NET45
+﻿#if NET452
 using System.Configuration;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;

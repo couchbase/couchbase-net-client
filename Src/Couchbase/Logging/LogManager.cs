@@ -14,7 +14,7 @@ namespace Couchbase.Logging
             return GetLogger(typeof(T));
         }
 
-#if NET45
+#if NET452
         public static ILog GetLogger(Type type)
         {
             return new CommonLoggingLogger(Common.Logging.LogManager.GetLogger(type));

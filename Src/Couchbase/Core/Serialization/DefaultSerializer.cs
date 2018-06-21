@@ -270,7 +270,7 @@ namespace Couchbase.Core.Serialization
                 StringEscapeHandling = baseSettings.StringEscapeHandling,
                 TraceWriter = baseSettings.TraceWriter,
                 TypeNameHandling = baseSettings.TypeNameHandling,
-#if NET45
+#if NET452
                 // There is an incompatibility between the .Net Desktop and .Net Standard assembilies of Newtonsoft.Json
                 // Which causes these settings to fail if the .Net Standard version of Couchbase is consumed by a .Net Desktop
                 // assembly.  As a workaround, don't try to copy them in the .Net Standard version.

@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests.IO.Http
             };
 
             var httpClient = new CouchbaseHttpClient(config, null);
-#if NET45
+#if NET452
             var handler = (AuthenticatingHttpClientHandler) typeof(HttpMessageInvoker)
                 .GetField("handler", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(httpClient);
 #else
@@ -43,14 +43,14 @@ namespace Couchbase.UnitTests.IO.Http
                 .GetField("_handler", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(httpClient);
 #endif
 
-#if NET45
+#if NET452
             Assert.AreEqual(success, handler.ServerCertificateValidationCallback(null, null, null, sslPolicyErrors));
 #else
             Assert.AreEqual(success, handler.ServerCertificateCustomValidationCallback(null, null, null, sslPolicyErrors));
 #endif
         }
 
-#if NET45
+#if NET452
         private static bool OnCertificateValidation(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
 #else
         private static bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)

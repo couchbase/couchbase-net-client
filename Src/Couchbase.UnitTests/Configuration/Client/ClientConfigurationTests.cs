@@ -17,7 +17,7 @@ using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using OpenTracing;
 using OpenTracing.NullTracer;
-#if NET45
+#if NET452
 using System.Configuration;
 using Couchbase.Configuration.Client.Providers;
 #endif
@@ -328,7 +328,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             }.Initialize());
         }
 
-#if NET45
+#if NET452
 
         [Test]
         public void BucketConfiguration_NoPoolConfigurationDefinedAndUseEnhancedDurability_UseEnhancedDurabilityIsTrue()
@@ -508,7 +508,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(2500, clientConfig.HeartbeatConfigInterval);
         }
 
-#if NET45
+#if NET452
         [Test]
         public void CouchbaseClientSection_HeartbeachConfigCheckInterval_Defaults_To_2500()
         {
@@ -604,7 +604,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             config.Initialize();
         }
 
-#if NET45
+#if NET452
         [Test]
         public void CouchbaseConfigurationSection_CorrectDefault()
         {
@@ -708,7 +708,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual(serviceFloors, tracer.ServiceFloors);
         }
 
-#if NET45
+#if NET452
         [Test]
         public void OperationTracing_ClientSection_Default_Values()
         {

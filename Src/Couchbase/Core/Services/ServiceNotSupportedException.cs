@@ -22,7 +22,7 @@ namespace Couchbase.Core.Services
         {
         }
 
-#if NET45
+#if NET452
         protected ServiceNotSupportedException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 
-#if NET45
+#if NET452
 using Couchbase.Configuration.Client.Providers;
 #endif
 
@@ -22,7 +22,7 @@ namespace Couchbase.Core.Serialization
             return () => new DefaultSerializer();
         }
 
-#if NET45
+#if NET452
 
         /// <summary>
         /// Gets the serializer.

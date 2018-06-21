@@ -1,7 +1,7 @@
 ﻿using System;
 using Couchbase.Configuration.Client;
 
-#if NET45
+#if NET452
 using Couchbase.Configuration.Client.Providers;
 #endif
 
@@ -22,7 +22,7 @@ namespace Couchbase.Core.Transcoders
             return () => new DefaultTranscoder(config.Converter(), config.Serializer());
         }
 
-#if NET45
+#if NET452
 
         /// <summary>
         /// Gets a Func for creating <see cref="ITypeTranscoder"/> transcoders.

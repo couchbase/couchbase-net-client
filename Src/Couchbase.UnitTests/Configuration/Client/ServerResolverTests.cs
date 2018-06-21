@@ -5,7 +5,7 @@ using Moq;
 using NUnit.Framework;
 using Couchbase.Configuration.Client;
 
-#if NET45
+#if NET452
 using System.Configuration;
 using Couchbase.Configuration.Client.Providers;
 #endif
@@ -106,7 +106,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             Assert.AreEqual("http://node2.example.com:8091", client.Servers[1].OriginalString);
         }
 
-#if NET45
+#if NET452
         [Test]
         public void Can_Load_ResolverType_From_Config()
         {

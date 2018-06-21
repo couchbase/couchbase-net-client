@@ -15,7 +15,7 @@ namespace Couchbase.Utils
 
         public static string GetClientDescription()
         {
-#if NET45
+#if NET452
             return string.Format(DescriptionFormat, CurrentAssembly.Version, Environment.Version, Environment.OSVersion);
 #else
             return string.Format(DescriptionFormat, CurrentAssembly.Version, RuntimeInformation.FrameworkDescription, RuntimeInformation.OSDescription);

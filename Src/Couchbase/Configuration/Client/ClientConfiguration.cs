@@ -24,7 +24,7 @@ using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 using OpenTracing;
 using OpenTracing.NullTracer;
-#if NET45
+#if NET452
 using Couchbase.Configuration.Client.Providers;
 #endif
 #if NETSTANDARD
@@ -232,7 +232,7 @@ namespace Couchbase.Configuration.Client
             _poolConfigurationChanged = false;
         }
 
-#if NET45
+#if NET452
 
         /// <summary>
         /// For synchronization with App.config or Web.configs.
@@ -1365,7 +1365,7 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public Func<X509Certificate2Collection> CertificateFactory { get; set; }
 
-#if NET45
+#if NET452
         public RemoteCertificateValidationCallback HttpServerCertificateValidationCallback { get; set; }
 #else
         public Func<HttpRequestMessage, X509Certificate2, X509Chain, SslPolicyErrors, bool> HttpServerCertificateValidationCallback { get; set;}

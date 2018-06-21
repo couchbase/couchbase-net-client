@@ -66,10 +66,13 @@ namespace Couchbase.IO.Http
             if (config != null && config.EnableCertificateAuthentication)
             {
                 handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+#if NETSTANDARD
                 handler.ClientCertificates.AddRange(config.CertificateFactory());
+
+#endif
             }
 
-#if NET45
+#if NET452
             // ReSharper disable once PossibleNullReferenceException
             handler.ServerCertificateValidationCallback = config.HttpServerCertificateValidationCallback ??
                                                           OnCertificateValidation;
@@ -99,7 +102,7 @@ namespace Couchbase.IO.Http
             return handler;
         }
 
-#if NET45
+#if NET452
         private static bool OnCertificateValidation(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
 #else
         private static bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)

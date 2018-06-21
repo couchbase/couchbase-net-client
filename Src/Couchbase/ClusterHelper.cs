@@ -7,7 +7,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.Utils;
 
-#if NET45
+#if NET452
 using System.Configuration;
 using Couchbase.Configuration.Client.Providers;
 #endif
@@ -320,7 +320,7 @@ namespace Couchbase
             Initialize(factory);
         }
 
-#if NET45
+#if NET452
 
         /// <summary>
         /// Ctor for creating Cluster instance.

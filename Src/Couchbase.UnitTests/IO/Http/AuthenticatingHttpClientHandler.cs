@@ -10,7 +10,7 @@ namespace Couchbase.UnitTests.IO.Http
         [Test]
         public void Test_AllowPipelining_Is_False()
         {
-#if NET45
+#if NET452
             var handler = new AuthenticatingHttpClientHandler();
             Assert.IsFalse(handler.AllowPipelining);
 #endif
@@ -20,7 +20,7 @@ namespace Couchbase.UnitTests.IO.Http
         [Test]
         public void Test_AllowPipelining_Is_False_When_Username_And_Password_Is_Set()
         {
-#if NET45
+#if NET452
             var handler = new AuthenticatingHttpClientHandler("username", "password");
             Assert.IsFalse(handler.AllowPipelining);
 #endif

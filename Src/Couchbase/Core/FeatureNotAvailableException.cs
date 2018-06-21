@@ -19,7 +19,7 @@ namespace Couchbase.Core
             : base(message, innerException)
         { }
 
-#if NET45
+#if NET452
         protected FeatureNotAvailableException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         { }

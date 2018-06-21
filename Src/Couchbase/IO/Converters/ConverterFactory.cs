@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 
-#if NET45
+#if NET452
 using Couchbase.Configuration.Client.Providers;
 #endif
 
@@ -21,7 +21,7 @@ namespace Couchbase.IO.Converters
             return () => new DefaultConverter();
         }
 
-#if NET45
+#if NET452
 
         /// <summary>
         /// Gets a <see cref="Func{IByteConverter}"/> factory for custom <see cref="IByteConverter"/>s conifgured in the App.Config.

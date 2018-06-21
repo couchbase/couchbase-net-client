@@ -136,7 +136,7 @@ namespace Couchbase.Core.Transcoders
             switch (typeCode)
             {
                 case TypeCode.Empty:
-#if NET45
+#if NET452
                 case TypeCode.DBNull:
 #endif
                 case TypeCode.String:
@@ -279,7 +279,7 @@ namespace Couchbase.Core.Transcoders
             switch (typeCode)
             {
                 case TypeCode.Empty:
-#if NET45
+#if NET452
                 case TypeCode.DBNull:
 #endif
                 case TypeCode.String:

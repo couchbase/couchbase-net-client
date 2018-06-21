@@ -20,7 +20,7 @@ namespace Couchbase.Core
         {
         }
 
-#if NET45
+#if NET452
         protected InitializationException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }

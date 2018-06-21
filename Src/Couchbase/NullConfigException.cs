@@ -17,7 +17,7 @@ namespace Couchbase
         {
         }
 
-#if NET45
+#if NET452
         protected NullConfigException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }

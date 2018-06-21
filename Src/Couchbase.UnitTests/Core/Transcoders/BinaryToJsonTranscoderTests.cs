@@ -1,5 +1,5 @@
 ﻿
-#if NET45
+#if NET452
 
 using System;
 using System.IO;
