@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.Errors;
@@ -26,7 +25,6 @@ namespace Couchbase.IO.Operations
         private bool _timedOut;
         protected IByteConverter Converter;
         protected Flags Flags;
-        private Dictionary<TimingLevel, IOperationTimer> _timers;
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
         internal ErrorCode ErrorCode;
@@ -55,7 +53,6 @@ namespace Couchbase.IO.Operations
         {
         }
 
-        public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
         public abstract OperationCode OperationCode { get; }
         public OperationHeader Header { get; set; }
         public OperationBody Body { get; set; }
@@ -83,38 +80,6 @@ namespace Couchbase.IO.Operations
         public virtual void Reset()
         {
             Reset(ResponseStatus.Success);
-        }
-
-        public void BeginTimer(TimingLevel level)
-        {
-            if (Timer != null)
-            {
-                var timer = Timer(level, this);
-                if (_timers == null)
-                {
-                    _timers = new Dictionary<TimingLevel, IOperationTimer>();
-                }
-                if (!_timers.ContainsKey(level))
-                {
-                    _timers.Add(level, timer);
-                }
-            }
-        }
-
-        public void EndTimer(TimingLevel level)
-        {
-            if (_timers != null && _timers.ContainsKey(level))
-            {
-                IOperationTimer timer;
-                if(_timers.TryGetValue(level, out timer))
-                {
-                    if (timer != null)
-                    {
-                        timer.Dispose();
-                        _timers.Remove(level);
-                    }
-                }
-            }
         }
 
         public virtual void Reset(ResponseStatus status)

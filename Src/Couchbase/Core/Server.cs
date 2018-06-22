@@ -9,7 +9,6 @@ using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Http;
@@ -501,11 +500,6 @@ namespace Couchbase.Core
         public IOperationResult Send(IOperation operation)
         {
             operation.CurrentHost = EndPoint;
-            if (Log.IsDebugEnabled && _timingEnabled)
-            {
-                operation.BeginTimer(TimingLevel.Two);
-            }
-
             IOperationResult result;
             if (_isDown)
             {
@@ -524,11 +518,6 @@ namespace Couchbase.Core
                     operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
                     result = operation.GetResult();
                 }
-
-                if (Log.IsDebugEnabled && _timingEnabled)
-                {
-                    operation.EndTimer(TimingLevel.Two);
-                }
             }
             return result;
         }
@@ -544,11 +533,6 @@ namespace Couchbase.Core
         public IOperationResult<T> Send<T>(IOperation<T> operation)
         {
             operation.CurrentHost = EndPoint;
-            if (Log.IsDebugEnabled && _timingEnabled)
-            {
-                operation.BeginTimer(TimingLevel.Two);
-            }
-
             IOperationResult<T> result;
             if (_isDown)
             {
@@ -566,11 +550,6 @@ namespace Couchbase.Core
                     operation.Exception = e;
                     operation.HandleClientError(e.Message, ResponseStatus.ClientFailure);
                     result = operation.GetResultWithValue();
-                }
-
-                if (Log.IsDebugEnabled && _timingEnabled)
-                {
-                    operation.EndTimer(TimingLevel.Two);
                 }
             }
             return result;

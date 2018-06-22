@@ -1,6 +1,5 @@
 using Couchbase.Logging;
 using Couchbase.Configuration;
-using Couchbase.Core.Diagnostics;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -28,8 +27,6 @@ namespace Couchbase.Core.Buckets
         protected static readonly ILog Log = LogManager.GetLogger<RequestExecuterBase>();
         protected readonly string BucketName;
         protected readonly IClusterController ClusterController;
-        protected readonly Func<TimingLevel, object, IOperationTimer> Timer;
-        protected volatile bool TimingEnabled;
         protected readonly ConcurrentDictionary<uint, IOperation> Pending;
         protected readonly int VBucketRetrySleepTime;
 
@@ -39,11 +36,9 @@ namespace Couchbase.Core.Buckets
         protected RequestExecuterBase(IClusterController clusterController, IConfigInfo configInfo, string bucketName, ConcurrentDictionary<uint, IOperation> pending)
         {
             ClusterController = clusterController;
-            TimingEnabled = ClusterController.Configuration.EnableOperationTiming;
             BucketName = bucketName;
             OperationLifeSpan = (int)ClusterController.Configuration.DefaultOperationLifespan;
             Pending = pending;
-            Timer = ClusterController.Configuration.Timer;
             VBucketRetrySleepTime = (int)configInfo.ClientConfig.VBucketRetrySleepTime;
             ConfigInfo = configInfo;
         }

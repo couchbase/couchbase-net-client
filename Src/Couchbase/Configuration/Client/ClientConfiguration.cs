@@ -11,8 +11,6 @@ using Couchbase.Authentication;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Serialization;
-using Couchbase.Core;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
@@ -124,8 +122,6 @@ namespace Couchbase.Configuration.Client
 
         public ClientConfiguration()
         {
-            //For operation timing
-            Timer = TimingFactory.GetTimer();
             QueryRequestTimeout = Defaults.QueryRequestTimeout;
             EnableQueryTiming = Defaults.EnableQueryTiming;
             UseSsl = Defaults.UseSsl;
@@ -250,7 +246,6 @@ namespace Couchbase.Configuration.Client
         /// <param name="definition"></param>
         public ClientConfiguration(ICouchbaseClientDefinition definition)
         {
-            Timer = TimingFactory.GetTimer();
             UseConnectionPooling = definition.UseConnectionPooling;
             EnableDeadServiceUriPing = definition.EnableDeadServiceUriPing;
             NodeAvailableCheckInterval = definition.NodeAvailableCheckInterval;
@@ -652,12 +647,6 @@ namespace Couchbase.Configuration.Client
         /// </value>
         [JsonIgnore]
         public Func<IIOService> Transporter { get; set; }
-
-        /// <summary>
-        /// A factory for creating <see cref="IOperationTimer"/>'s.
-        /// </summary>
-        [JsonIgnore]
-        public Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
 
         /// <summary>
         /// A factory for creating the <see cref="IIOService"/> for this instance.

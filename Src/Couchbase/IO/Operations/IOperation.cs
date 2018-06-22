@@ -1,7 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Operations.Errors;
 using System;
@@ -73,18 +72,12 @@ namespace Couchbase.IO.Operations
 
         DateTime CreationTime { get; set; }
 
-        Func<TimingLevel, object, IOperationTimer> Timer { get; set; }
-
         [Obsolete]
         Task ReadAsync(byte[] buffer, int offset, int length);
 
         Task ReadAsync(byte[] buffer, ErrorMap errorMap = null);
 
         Task ReadAsync(byte[] buffer, OperationHeader header, ErrorCode errorCode);
-
-        void BeginTimer(TimingLevel level);
-
-        void EndTimer(TimingLevel level);
 
         byte[] WriteBuffer { get; set; }
 
