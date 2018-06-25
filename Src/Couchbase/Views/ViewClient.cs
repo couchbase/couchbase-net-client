@@ -12,10 +12,13 @@ namespace Couchbase.Views
     internal class ViewClient : ViewClientBase
     {
         private static readonly ILog Log = LogManager.GetLogger<ViewClient>();
+        private readonly uint? _viewTimeout;
 
         public ViewClient(HttpClient httpClient, IDataMapper mapper, ConfigContextBase context)
             : base(httpClient, mapper, context)
-        { }
+        {
+            _viewTimeout = (uint) context.ClientConfig.ViewRequestTimeout * 1000; // convert millis to micros
+        }
 
         /// <summary>
         /// Executes a <see cref="IViewQuery"/> asynchronously against a View.
@@ -79,6 +82,10 @@ namespace Couchbase.Views
             catch (OperationCanceledException e)
             {
                 var operationContext = OperationContext.CreateViewContext(query.BucketName, uri?.Authority);
+                if (_viewTimeout.HasValue)
+                {
+                    operationContext.TimeoutMicroseconds = _viewTimeout.Value;
+                }
 
                 ProcessError(e, operationContext.ToString(), viewResult);
                 Log.Error(uri.ToString(), e);

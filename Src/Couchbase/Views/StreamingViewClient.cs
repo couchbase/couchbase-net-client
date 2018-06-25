@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration;
-using Couchbase.Configuration.Client;
 using Couchbase.Logging;
 using Couchbase.Tracing;
 using Couchbase.Utils;
@@ -14,10 +13,13 @@ namespace Couchbase.Views
     internal class StreamingViewClient : ViewClientBase
     {
         private static readonly ILog Log = LogManager.GetLogger<StreamingViewClient>();
+        private readonly int? _viewTimeout;
 
         public StreamingViewClient(HttpClient httpClient, IDataMapper mapper, ConfigContextBase context)
             : base(httpClient, mapper, context)
         {
+            _viewTimeout = context.ClientConfig?.ViewRequestTimeout * 1000; // convert millis to micros
+
             // set timeout to infinite so we can stream results without the connection
             // closing part way through
             httpClient.Timeout = Timeout.InfiniteTimeSpan;
@@ -84,6 +86,10 @@ namespace Couchbase.Views
             catch (OperationCanceledException e)
             {
                 var operationContext = OperationContext.CreateViewContext(query.BucketName, uri?.Authority);
+                if (_viewTimeout.HasValue)
+                {
+                    operationContext.TimeoutMicroseconds = (uint) _viewTimeout.Value;
+                }
 
                 ProcessError(e, operationContext.ToString(), viewResult);
                 Log.Error(uri.ToString(), e);
