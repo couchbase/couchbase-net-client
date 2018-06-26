@@ -81,10 +81,11 @@ namespace Couchbase.Tracing
             };
         }
 
-        public static OperationContext CreateAnalyticsContext(string contextId, string remoteEndpoint)
+        public static OperationContext CreateAnalyticsContext(string contextId, string bucknameName, string remoteEndpoint)
         {
             return new OperationContext(CouchbaseTags.ServiceAnalytics, contextId)
             {
+                BucketName = bucknameName,
                 RemoteEndpoint = remoteEndpoint
             };
         }

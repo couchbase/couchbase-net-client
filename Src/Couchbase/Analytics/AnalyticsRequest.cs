@@ -220,8 +220,14 @@ namespace Couchbase.Analytics
         /// Intended for internal use only.
         /// </summary>
         public ISpan ActiveSpan { get; set; }
+
+        /// <summary>
+        /// Gets or sets the timeout value of the <see cref="AnalyticsRequest"/>.
+        /// </summary>
+        internal uint Timeout => Lifespan.Duration * 1000;
     }
 }
+
 #region [ License information          ]
 
 /* ************************************************************

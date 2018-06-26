@@ -88,9 +88,13 @@ namespace Couchbase.Analytics
                 }
                 catch (OperationCanceledException e)
                 {
-                    var operationContext = OperationContext.CreateAnalyticsContext(queryRequest.CurrentContextId, baseUri?.Authority);
-                    Log.Info(operationContext.ToString());
+                    var operationContext = OperationContext.CreateAnalyticsContext(queryRequest.CurrentContextId, Context.BucketName, baseUri?.Authority);
+                    if (queryRequest is AnalyticsRequest request)
+                    {
+                        operationContext.TimeoutMicroseconds = request.Timeout;
+                    }
 
+                    Log.Info(operationContext.ToString());
                     ProcessError(e, result);
                 }
                 catch (HttpRequestException e)
