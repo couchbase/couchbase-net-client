@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Authentication;
 using Couchbase.N1QL;
 using Newtonsoft.Json;
@@ -153,6 +153,7 @@ namespace Couchbase.Search
         public SearchQuery Timeout(TimeSpan timeout)
         {
             SearchParams.Timeout(timeout);
+            TimeoutValue = (uint) timeout.TotalMilliseconds * 1000; // convert from millis to micros
             return this;
         }
 
@@ -199,6 +200,8 @@ namespace Couchbase.Search
         /// Intended for internal use only.
         /// </summary>
         public ISpan ActiveSpan { get; set; }
+
+        internal uint TimeoutValue { get; set; }
     }
 }
 

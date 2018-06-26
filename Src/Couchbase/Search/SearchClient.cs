@@ -123,9 +123,13 @@ namespace Couchbase.Search
             }
             catch (OperationCanceledException e)
             {
-                var operationContext = OperationContext.CreateSearchContext(baseUri?.Authority);
-                Log.Info(operationContext.ToString());
+                var operationContext = OperationContext.CreateSearchContext(Context.BucketName, baseUri?.Authority);
+                if (searchQuery is SearchQuery query)
+                {
+                    operationContext.TimeoutMicroseconds = query.TimeoutValue;
+                }
 
+                Log.Info(operationContext.ToString());
                 ProcessError(e, searchResult);
             }
             catch (HttpRequestException e)
