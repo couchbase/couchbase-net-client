@@ -1,4 +1,4 @@
-﻿using Couchbase.Search.Sort;
+using Couchbase.Search.Sort;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 by = "geo_distance",
-                decending = true,
+                desc = true,
                 location = new [] { 0.1, -0.2},
                 field = "foo",
                 unit = "mi"
@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 by = "geo_distance",
-                decending = true,
+                desc = true,
                 location = new[] { 0.1, -0.2 },
                 field = "foo"
             }, Formatting.None);

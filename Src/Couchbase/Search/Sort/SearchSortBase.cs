@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Sort
 {
@@ -20,7 +20,7 @@ namespace Couchbase.Search.Sort
 
             if (Decending)
             {
-                json.Add(new JProperty("decending", true));
+                json.Add(new JProperty("desc", true));
             }
 
             return json;

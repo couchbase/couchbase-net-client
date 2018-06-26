@@ -1,4 +1,4 @@
-﻿using Couchbase.Search.Sort;
+using Couchbase.Search.Sort;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 by = "id",
-                decending = true
+                desc = true
             }, Formatting.None);
 
             Assert.AreEqual(expected, result);

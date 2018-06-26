@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 by = "field",
-                decending = true,
+                desc = true,
                 field = "foo",
                 type = "string",
                 mode = "min",
@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 by = "field",
-                decending = true,
+                desc = true,
                 field = "foo",
                 mode = "min",
                 missing = "first"
@@ -71,7 +71,7 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 by = "field",
-                decending = true,
+                desc = true,
                 field = "foo",
                 type = "string",
                 missing = "first"
@@ -89,7 +89,7 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(new
             {
                 by = "field",
-                decending = true,
+                desc = true,
                 field = "foo",
                 type = "string",
                 mode = "min"
