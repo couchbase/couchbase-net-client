@@ -65,10 +65,11 @@ namespace Couchbase.Tracing
             };
         }
 
-        public static OperationContext CreateQueryContext(string contextId, string remoteEndpoint)
+        public static OperationContext CreateQueryContext(string contextId, string buckName, string remoteEndpoint)
         {
             return new OperationContext(CouchbaseTags.ServiceQuery, contextId)
             {
+                BucketName = buckName,
                 RemoteEndpoint = remoteEndpoint
             };
         }

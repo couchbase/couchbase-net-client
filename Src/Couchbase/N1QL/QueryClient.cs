@@ -292,9 +292,13 @@ namespace Couchbase.N1QL
                 }
                 catch (OperationCanceledException e)
                 {
-                    var operationContext = OperationContext.CreateQueryContext(queryRequest.CurrentContextId, baseUri?.Authority);
-                    Log.Info(operationContext.ToString());
+                    var operationContext = OperationContext.CreateQueryContext(queryRequest.CurrentContextId, Context.BucketName, baseUri?.Authority);
+                    if (queryRequest is QueryRequest request)
+                    {
+                        operationContext.TimeoutMicroseconds = request.TimeoutValue;
+                    }
 
+                    Log.Info(operationContext.ToString());
                     ProcessError(e, queryResult);
                 }
                 catch (HttpRequestException e)
