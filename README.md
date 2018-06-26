@@ -1,4 +1,5 @@
-The Official Couchbase .NET SDK [![Build Status](http://sdkbuilds.sc.couchbase.com/buildStatus/icon?job=netclient-build-test)](http://sdkbuilds.sc.couchbase.com/job/netclient-build-test/) [![Join the chat at https://gitter.im/couchbase/discuss](https://badges.gitter.im/couchbase/discuss.svg)](https://gitter.im/couchbase/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+The Official Couchbase .NET SDK [![Build status](https://ci.appveyor.com/api/projects/status/j3oy23e3vcnpneru/branch/master?svg=true)](https://ci.appveyor.com/project/Couchbase/couchbase-net-client/branch/master)
+[![Join the chat at https://gitter.im/couchbase/discuss](https://badges.gitter.im/couchbase/discuss.svg)](https://gitter.im/couchbase/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 * master is 2.0 development branch
 * release13 is 1.3.X development branch
