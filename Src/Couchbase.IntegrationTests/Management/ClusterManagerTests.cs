@@ -437,6 +437,9 @@ namespace Couchbase.IntegrationTests.Management
                 Assert.IsTrue(createResult.Success);
                 Assert.IsNull(createResult.Value);
 
+                // give the index a little time to build before trying to get statistics
+                await Task.Delay(500);
+
                 var getResult = await _clusterManager.GetSearchIndexStatisticsAsync(definition.IndexName);
                 Assert.IsTrue(getResult.Success);
                 Assert.IsNotEmpty(getResult.Value);
