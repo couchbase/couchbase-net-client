@@ -18,6 +18,10 @@ namespace Couchbase.Authentication
                 };
             }
 
+            if (authenticator.AuthenticatorType == AuthenticatorType.Certificate)
+            {
+                return new Dictionary<string, string>();//do not send credentials for x509!
+            }
             var classicAuthenticator = (ClassicAuthenticator) authenticator;
             switch (context)
             {
