@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Logging;
 using Couchbase.Authentication;
@@ -41,13 +43,22 @@ namespace Couchbase.IO.Http
         {
         }
 
-        internal CouchbaseHttpClient(AuthenticatingHttpClientHandler handler)
+#if NET452
+        internal CouchbaseHttpClient(WebRequestHandler handler)
+#else
+        internal CouchbaseHttpClient(HttpClientHandler handler)
+#endif
             : base(handler)
         {
             DefaultRequestHeaders.Add(UserAgentHeaderName, ClientIdentifier.GetClientDescription());
         }
 
-        private static AuthenticatingHttpClientHandler CreateClientHandler(ClientConfiguration clientConfiguration, IBucketConfig bucketConfig)
+
+#if NET452
+        private static WebRequestHandler CreateClientHandler(ClientConfiguration clientConfiguration, IBucketConfig bucketConfig)
+#else
+        private static HttpClientHandler CreateClientHandler(ClientConfiguration clientConfiguration, IBucketConfig bucketConfig)
+#endif
         {
             Log.Debug("Creating CouchbaseClientHandler.");
             if (clientConfiguration.HasCredentials && clientConfiguration.Authenticator.AuthenticatorType == AuthenticatorType.Password)
@@ -65,18 +76,33 @@ namespace Couchbase.IO.Http
             return CreateClientHandler(null, null, clientConfiguration);
         }
 
-        private static AuthenticatingHttpClientHandler CreateClientHandler(string username, string password, ClientConfiguration config)
+#if NET452
+        private static WebRequestHandler CreateClientHandler(string username, string password, ClientConfiguration config)
+#else
+        private static HttpClientHandler CreateClientHandler(string username, string password, ClientConfiguration config)
+#endif
         {
-            var handler = new AuthenticatingHttpClientHandler(username, password);
-
+#if NET452
+            WebRequestHandler handler;
+#else
+            HttpClientHandler handler;
+#endif
             //for x509 cert authentication
             if (config != null && config.EnableCertificateAuthentication)
             {
-                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                handler = new NonAuthenticatingHttpClientHandler
+                {
+                    ClientCertificateOptions = ClientCertificateOption.Manual
+                };
 #if NETSTANDARD
+                handler.SslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
                 handler.ClientCertificates.AddRange(config.CertificateFactory());
 
 #endif
+            }
+            else
+            {
+                handler = new AuthenticatingHttpClientHandler(username, password);
             }
 
 #if NET452

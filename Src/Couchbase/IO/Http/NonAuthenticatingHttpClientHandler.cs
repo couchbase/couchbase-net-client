@@ -2,7 +2,12 @@
 
 namespace Couchbase.IO.Http
 {
-    class NonAuthenticatingHttpClientHandler : HttpClientHandler
+    internal class NonAuthenticatingHttpClientHandler
+#if NET452
+        : WebRequestHandler
+#else
+        : HttpClientHandler
+#endif
     {
     }
 }
