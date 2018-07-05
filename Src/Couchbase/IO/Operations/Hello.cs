@@ -45,7 +45,11 @@ namespace Couchbase.IO.Operations
 
                     for (int i = 0; i < result.Length; i++)
                     {
-                        result[i] = Converter.ToInt16(buffer, offset + i*2);
+                        var temp = offset + i * 2;
+                        if (temp < buffer.Length)
+                        {
+                            result[i] = Converter.ToInt16(buffer, temp);
+                        }
                     }
                 }
                 catch (Exception e)
