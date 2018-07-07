@@ -71,10 +71,18 @@ namespace Couchbase.Configuration
                     {
                         if (adapter.IsDataNode) //a data node so create a connection pool
                         {
-                            var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
-                            var ioService = CreateIOService(clientBucketConfig.ClonePoolConfiguration(uri), endpoint);
-                            var server = new Core.Server(ioService, adapter, Transcoder, this);
-                            servers.Add(endpoint, server);
+                            if(Servers.TryGetValue(endpoint, out IServer cachedServer))
+                            {
+                                servers.Add(endpoint, cachedServer);
+                            }
+                            else
+                            {
+                                var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                var ioService = CreateIOService(clientBucketConfig.ClonePoolConfiguration(uri),
+                                    endpoint);
+                                var server = new Core.Server(ioService, adapter, Transcoder, this);
+                                servers.Add(endpoint, server);
+                            }
                         }
                     }
                     catch (Exception e)
@@ -101,9 +109,12 @@ namespace Couchbase.Configuration
                 var old = Interlocked.Exchange(ref Servers, servers);
                 if (old != null)
                 {
-                    foreach (var server in old.Values)
+                    foreach (var server in old)
                     {
-                        server.Dispose();
+                        if (!Servers.ContainsKey(server.Key))
+                        {
+                            server.Value.Dispose();
+                        }
                     }
                     old.Clear();
                 }
