@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <PackageId>CouchbaseNetClient</PackageId>
-    <Title>Couchbase SDK 2.5</Title>
+    <Title>Couchbase SDK</Title>
     <Authors>Couchbase, Inc.</Authors>
     <Owners>Couchbase, Inc.</Owners>
-    <Copyright>Copyright 2017</Copyright>
-    <Description>The Couchbase authored new and improved client for .NET based languages! Package supports both .NET Core and Full Frameworks 4.5 and greater.</Description>
+    <Copyright>Copyright 2018</Copyright>
+    <Description>The Couchbase authored new and improved client for .NET based languages! Package supports both .NET Core and Full Frameworks 4.5.2 and greater.</Description>
     <PackageTags>Couchbase;nosql;JSON;database</PackageTags>
 
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0.html</PackageLicenseUrl>
