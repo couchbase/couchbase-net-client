@@ -106,18 +106,7 @@ namespace Couchbase.Configuration
                 Interlocked.Exchange(ref DataNodes, newDataNodes);
                 IsDataCapable = newDataNodes.Count > 0;
 
-                var old = Interlocked.Exchange(ref Servers, servers);
-                if (old != null)
-                {
-                    foreach (var server in old)
-                    {
-                        if (!Servers.ContainsKey(server.Key))
-                        {
-                            server.Value.Dispose();
-                        }
-                    }
-                    old.Clear();
-                }
+                SwapServers(servers);
             }
             Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
             Interlocked.Exchange(ref _bucketConfig, bucketConfig);
@@ -163,17 +152,8 @@ namespace Couchbase.Configuration
 
             Interlocked.Exchange(ref DataNodes, newDataNodes);
             IsDataCapable = newDataNodes.Count > 0;
-
-            var old = Interlocked.Exchange(ref Servers, servers);
+            SwapServers(servers);
             Interlocked.Exchange(ref KeyMapper, new KetamaKeyMapper(Servers));
-            if (old != null)
-            {
-                foreach (var server in old.Values)
-                {
-                    server.Dispose();
-                }
-                old.Clear();
-            }
         }
     }
 }

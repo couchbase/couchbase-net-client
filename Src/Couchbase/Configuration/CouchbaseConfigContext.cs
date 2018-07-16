@@ -60,42 +60,55 @@ namespace Couchbase.Configuration
                         var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
                         try
                         {
-                            Log.Info("Creating node {0} for rev#{1}", endpoint, bucketConfig.Rev);
-                            IServer server;
-                            if (adapter.IsSearchNode)
+                            //The node does not have to be created or swapped out so reuse the existing mode
+                            if (Servers.TryGetValue(endpoint, out IServer cachedServer))
                             {
-                                var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                searchUris.Add(uri);
-                            }
-                            if (adapter.IsQueryNode)
-                            {
-                                var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                queryUris.Add(uri);
-                            }
-                            if (adapter.IsAnalyticsNode)
-                            {
-                                var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
-                                analyticsUris.Add(uri);
-                            }
-                            if (adapter.IsDataNode) //a data node so create a connection pool
-                            {
-                                var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
-                                var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
-
-                                var ioService = CreateIOService(poolConfiguration, endpoint);
-
-                                server = new Core.Server(ioService, adapter, Transcoder, QueryCache, this);
-
-                                SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
-                                SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
-                                SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
-                                SupportsKvErrorMap = ioService.SupportsKvErrorMap;
+                                Log.Info("Reusing node {0} for rev#{1}", endpoint, bucketConfig.Rev);
+                                servers.Add(endpoint, cachedServer);
                             }
                             else
                             {
-                                server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
+                                Log.Info("Creating node {0} for rev#{1}", endpoint, bucketConfig.Rev);
+                                //the node needs to be created
+                                if (adapter.IsSearchNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                                    searchUris.Add(uri);
+                                }
+                                if (adapter.IsQueryNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                                    queryUris.Add(uri);
+                                }
+                                if (adapter.IsAnalyticsNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                                    analyticsUris.Add(uri);
+                                }
+
+                                IServer server;
+                                if (adapter.IsDataNode) //a data node so create a connection pool
+                                {
+                                    var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                    var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name]
+                                        .ClonePoolConfiguration(uri);
+
+                                    var ioService = CreateIOService(poolConfiguration, endpoint);
+
+                                    server = new Core.Server(ioService, adapter, Transcoder, QueryCache, this);
+
+                                    SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
+                                    SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
+                                    SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
+                                    SupportsKvErrorMap = ioService.SupportsKvErrorMap;
+                                }
+                                else
+                                {
+                                    server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
+                                }
+
+                                servers.Add(endpoint, server);
                             }
-                            servers.Add(endpoint, server);
                         }
                         catch (Exception e)
                         {
@@ -110,7 +123,8 @@ namespace Couchbase.Configuration
                     Interlocked.Exchange(ref SearchUris, searchUris);
                     Interlocked.Exchange(ref AnalyticsUris, analyticsUris);
 
-                    var old = Interlocked.Exchange(ref Servers, servers);
+                    SwapServers(servers);
+
                     Log.Info("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev);
                     var vBucketKeyMapper = new VBucketKeyMapper(Servers,
                         bucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
@@ -119,16 +133,6 @@ namespace Couchbase.Configuration
 
                     Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
                     Interlocked.Exchange(ref _bucketConfig, bucketConfig);
-
-                    if (old != null)
-                    {
-                        foreach (var server in old.Values)
-                        {
-                            Log.Info("Disposing node {0} from rev#{1}", server.EndPoint, server.Revision);
-                            server.Dispose();
-                        }
-                        old.Clear();
-                    }
                 }
                 else
                 {
@@ -181,69 +185,82 @@ namespace Couchbase.Configuration
                     try
                     {
                         IServer server = null;
-                        if (Equals(ioService.EndPoint, endpoint) || nodes.Count() == 1)
-                        {
-                            server = new Core.Server(ioService, adapter, Transcoder, QueryCache, this);
-                            SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
-                            SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
-                            SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
-                            SupportsKvErrorMap = ioService.SupportsKvErrorMap;
 
-                            if (adapter.IsQueryNode)
-                            {
-                                var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                queryUris.Add(uri);
-                            }
-                            if (adapter.IsSearchNode)
-                            {
-                                var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                searchUris.Add(uri);
-                            }
-                            if (adapter.IsAnalyticsNode)
-                            {
-                                var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
-                                analyticsUris.Add(uri);
-                            }
+                        //The node does not have to be created or swapped out so reuse the existing mode
+                        if (Servers.TryGetValue(endpoint, out IServer cachedServer))
+                        {
+                            Log.Info("Reusing node {0} for rev#{1}", endpoint, BucketConfig.Rev);
+                            servers.Add(endpoint, cachedServer);
                         }
                         else
                         {
-                            if (adapter.IsSearchNode)
+                            Log.Info("Creating node {0} for rev#{1}", endpoint, BucketConfig.Rev);
+                            if (Equals(ioService.EndPoint, endpoint) || nodes.Count == 1)
                             {
-                                var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                searchUris.Add(uri);
-                            }
-                            if (adapter.IsQueryNode)
-                            {
-                                var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                queryUris.Add(uri);
-                            }
-                            if (adapter.IsAnalyticsNode)
-                            {
-                                var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
-                                analyticsUris.Add(uri);
-                            }
-                            if (adapter.IsDataNode) //a data node so create a connection pool
-                            {
-                                var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
-                                var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name].ClonePoolConfiguration(uri);
-
-                                var newIoService = CreateIOService(poolConfiguration, endpoint);
-
-                                server = new Core.Server(newIoService, adapter, Transcoder, QueryCache, this);
-
-                                //Note: "ioService has" already made a HELO command to check what features
-                                //the cluster supports (eg enhanced durability) so we are reusing the flag
-                                //instead of having "newIoService" do it again, later.
+                                server = new Core.Server(ioService, adapter, Transcoder, QueryCache, this);
                                 SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                                 SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
                                 SupportsKvErrorMap = ioService.SupportsKvErrorMap;
+
+                                if (adapter.IsQueryNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                                    queryUris.Add(uri);
+                                }
+                                if (adapter.IsSearchNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                                    searchUris.Add(uri);
+                                }
+                                if (adapter.IsAnalyticsNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                                    analyticsUris.Add(uri);
+                                }
                             }
                             else
                             {
-                                server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
+                                if (adapter.IsSearchNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                                    searchUris.Add(uri);
+                                }
+                                if (adapter.IsQueryNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                                    queryUris.Add(uri);
+                                }
+                                if (adapter.IsAnalyticsNode)
+                                {
+                                    var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                                    analyticsUris.Add(uri);
+                                }
+                                if (adapter.IsDataNode) //a data node so create a connection pool
+                                {
+                                    var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                    var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name]
+                                        .ClonePoolConfiguration(uri);
+
+                                    var newIoService = CreateIOService(poolConfiguration, endpoint);
+
+                                    server = new Core.Server(newIoService, adapter, Transcoder, QueryCache, this);
+
+                                    //Note: "ioService has" already made a HELO command to check what features
+                                    //the cluster supports (eg enhanced durability) so we are reusing the flag
+                                    //instead of having "newIoService" do it again, later.
+                                    SupportsEnhancedDurability = ioService.SupportsEnhancedDurability;
+                                    SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
+                                    SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
+                                    SupportsKvErrorMap = ioService.SupportsKvErrorMap;
+                                }
+                                else
+                                {
+                                    server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
+                                }
                             }
                         }
+
                         servers.Add(endpoint, server);
                     }
                     catch (Exception e)
@@ -259,22 +276,15 @@ namespace Couchbase.Configuration
                 Interlocked.Exchange(ref SearchUris, searchUris);
                 Interlocked.Exchange(ref AnalyticsUris, analyticsUris);
 
+                SwapServers(servers);
+
                 Log.Info("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev);
-                var old = Interlocked.Exchange(ref Servers, servers);
                 var vBucketKeyMapper = new VBucketKeyMapper(Servers,
                     BucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
                     BucketConfig.Rev,
                     BucketConfig.Name);
 
                 Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
-                if (old != null)
-                {
-                    foreach (var server in old.Values)
-                    {
-                        server.Dispose();
-                    }
-                    old.Clear();
-                }
             }
             finally
             {
@@ -298,6 +308,7 @@ namespace Couchbase.Configuration
                 foreach (var adapter in nodes)
                 {
                     var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
+
                     try
                     {
                         IServer server;
@@ -349,21 +360,14 @@ namespace Couchbase.Configuration
                 Interlocked.Exchange(ref SearchUris, searchUris);
                 Interlocked.Exchange(ref AnalyticsUris, analyticsUris);
 
-                var old = Interlocked.Exchange(ref Servers, servers);
+                SwapServers(servers);
+
                 var vBucketKeyMapper = new VBucketKeyMapper(Servers,
                     BucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
                     BucketConfig.Rev,
                     BucketConfig.Name);
 
                 Interlocked.Exchange(ref KeyMapper, vBucketKeyMapper);
-                if (old != null)
-                {
-                    foreach (var server in old.Values)
-                    {
-                        server.Dispose();
-                    }
-                    old.Clear();
-                }
             }
             finally
             {
@@ -448,7 +452,7 @@ namespace Couchbase.Configuration
         /// <value>
         /// The query cache.
         /// </value>
-        public ConcurrentDictionary<string, QueryPlan> QueryCache { get; private set; }
+        public ConcurrentDictionary<string, QueryPlan> QueryCache { get; }
     }
 }
 

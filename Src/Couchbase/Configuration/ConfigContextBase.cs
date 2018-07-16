@@ -449,6 +449,24 @@ namespace Couchbase.Configuration
 
             return ioService;
         }
+
+        protected void SwapServers(Dictionary<IPEndPoint, IServer> servers)
+        {
+            var old = Interlocked.Exchange(ref Servers, servers);
+            if (old != null)
+            {
+                foreach (var server in old)
+                {
+                    //only dispose of a node that has been removed from the cluster map
+                    if (!Servers.ContainsKey(server.Key))
+                    {
+                        Log.Info("Disposing node {0} from rev#{1}", server.Value.EndPoint, server.Value.Revision);
+                        server.Value.Dispose();
+                    }
+                }
+                old.Clear();
+            }
+        }
     }
 }
 
