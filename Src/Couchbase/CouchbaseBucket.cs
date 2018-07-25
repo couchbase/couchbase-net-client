@@ -1692,21 +1692,12 @@ namespace Couchbase
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Increment(key, initial, delta, vBucket, _transcoder, timeout.GetSeconds())
+            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name,
                 Expires = expiration
             };
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info("Requires retry {0}", User(key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
