@@ -111,6 +111,21 @@ namespace Couchbase.UnitTests.Utils
             Assert.AreEqual(expectedScheme, actualScheme);
         }
 
+        [TestCase(8091)]
+        [TestCase(12345)]
+        public void ReplaceCouchbaseSchemeWithHttp_sets_port_to_config_management_port(int expectedPort)
+        {
+            //arrange
+            var config = new ClientConfiguration {MgmtPort = expectedPort };
+            var uri = new UriBuilder("couchbase", "localhost").Uri;
+
+            //act
+            var actualPort = uri.ReplaceCouchbaseSchemeWithHttp(config, "travel-sample").Port;
+
+            //assert
+            Assert.AreEqual(expectedPort, actualPort);
+        }
+
         #endregion
     }
 }

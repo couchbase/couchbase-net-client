@@ -19,7 +19,7 @@ namespace Couchbase.Utils
             if (uri.Scheme == "couchbase")
             {
                 var useSsl = config.BucketConfigs.TryGetValue(bucketName, out var bucketConfig) ? bucketConfig.UseSsl : config.UseSsl;
-                var newUri = new UriBuilder(uri) { Scheme = useSsl ? "https" : "http" };
+                var newUri = new UriBuilder(uri) {Scheme = useSsl ? "https" : "http", Port = config.MgmtPort};
                 return newUri.Uri;
             }
             return uri;
