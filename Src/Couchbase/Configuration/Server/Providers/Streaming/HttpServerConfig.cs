@@ -87,6 +87,10 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
             {
                 Log.Error(e);
             }
+            catch (HttpRequestException e)
+            {
+                Log.Error(e);
+            }
             catch (Exception e)
             {
                 Log.Error("Bootstrapping failed from {0}: {1}", server, e);
