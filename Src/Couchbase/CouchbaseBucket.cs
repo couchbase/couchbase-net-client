@@ -192,20 +192,11 @@ namespace Couchbase
         public IOperationResult<string> Append(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Append<string>(key, value, vBucket, _transcoder, timeout.GetSeconds())
+            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info("Requires retry {0}", User(key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -370,20 +361,11 @@ namespace Couchbase
         public IOperationResult<byte[]> Append(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Append<byte[]>(key, value, vBucket, _transcoder, timeout.GetSeconds())
+            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info("Requires retry {0}", User(key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -2774,20 +2756,11 @@ namespace Couchbase
         public IOperationResult<string> Prepend(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Prepend<string>(key, value, vBucket, _transcoder, timeout.GetSeconds())
+            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info("Requires retry {0}", User(key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
@@ -2932,20 +2905,11 @@ namespace Couchbase
         public IOperationResult<byte[]> Prepend(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            IVBucket vBucket;
-            var server = GetServer(key, out vBucket);
-
-            var operation = new Prepend<byte[]>(key, value, vBucket, _transcoder, timeout.GetSeconds())
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 BucketName = Name
             };
-            var operationResult = server.Send(operation);
-
-            if (CheckForConfigUpdates(operationResult, operation))
-            {
-                Log.Info("Requires retry {0}", User(key));
-            }
-            return operationResult;
+            return _requestExecuter.SendWithRetry(operation);
         }
 
         /// <summary>
