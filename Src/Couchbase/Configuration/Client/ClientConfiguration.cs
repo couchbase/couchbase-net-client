@@ -1419,11 +1419,20 @@ namespace Couchbase.Configuration.Client
         public Func<X509Certificate2Collection> CertificateFactory { get; set; }
 
 #if NET452
+        /// <summary>
+        /// Gets or Sets the SSL validation callback for HTTP Services (N1QL, Analytics,Views, etc) to override the default callback.
+        /// </summary>
         public RemoteCertificateValidationCallback HttpServerCertificateValidationCallback { get; set; }
 #else
+        /// <summary>
+        /// Gets or Sets the SSL validation callback for HTTP Services (N1QL, Analytics,Views, etc) to override the default callback.
+        /// </summary>
         public Func<HttpRequestMessage, X509Certificate2, X509Chain, SslPolicyErrors, bool> HttpServerCertificateValidationCallback { get; set;}
 #endif
 
+        /// <summary>
+        /// Gets or Sets the SSL validation callback for K/V to override the default callback.
+        /// </summary>
         public RemoteCertificateValidationCallback KvServerCertificateValidationCallback { get; set; }
     }
 }
