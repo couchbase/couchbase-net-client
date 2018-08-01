@@ -9,6 +9,7 @@ using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
+using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -22,6 +23,20 @@ namespace Couchbase.UnitTests
     [TestFixture]
     public class CouchbaseBucketTests
     {
+        [Test]
+        public void GetAndLockAsync_Does_Not_Throw_StackOverFlowException()
+        {
+            var operationResult = new Mock<IOperationResult<dynamic>>();
+            operationResult.SetupGet(m => m.Success).Returns(true);
+            operationResult.SetupGet(m => m.Status).Returns(ResponseStatus.Success);
+
+            var mockRequestExecutor = new Mock<IRequestExecuter>();
+            mockRequestExecutor.Setup(x => x.SendWithRetryAsync(It.IsAny<IOperation<dynamic>>(), null, null))
+                .Returns(Task.FromResult(operationResult.Object));
+
+            var bucket = new CouchbaseBucket(mockRequestExecutor.Object, new DefaultConverter(), new DefaultTranscoder());
+            var result =  bucket.GetAndLockAsync<dynamic>("thekey", TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+        }
 
         #region Exists/ExistsAsync
 

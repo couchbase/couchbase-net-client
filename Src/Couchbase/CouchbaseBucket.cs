@@ -1502,7 +1502,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> GetAndLockAsync<T>(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            return GetAndLockAsync<T>(key, expiration, timeout);
+            return GetAndLockAsync<T>(key, (uint)expiration.TotalSeconds, timeout);
         }
 
         /// <summary>
