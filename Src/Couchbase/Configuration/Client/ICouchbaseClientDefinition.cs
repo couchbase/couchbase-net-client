@@ -456,6 +456,13 @@ namespace Couchbase.Configuration.Client
         /// Enables X509 authentication with the Couchbase cluster.
         /// </summary>
         bool EnableCertificateAuthentication { get; set; }
+
+        /// <summary>
+        /// The timeout for each HTTP Analytics query request.
+        /// </summary>
+        /// <remarks>The default is 75000ms.</remarks>
+        /// <remarks>The value must be greater than Zero.</remarks>
+        uint AnalyticsRequestTimeout { get; set; }
     }
 }
 

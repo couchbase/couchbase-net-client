@@ -274,6 +274,19 @@ namespace Couchbase.Configuration.Client.Providers
         }
 
         /// <summary>
+        /// Sets the timeout for each HTTP Analytics query request.
+        /// </summary>
+        /// <remarks>The default is 75000ms.</remarks>
+        /// <remarks>The value must be greater than Zero.</remarks>
+        [ConfigurationProperty("analyticsRequestTimeout", DefaultValue = "75000", IsRequired = false)]
+        public uint AnalyticsRequestTimeout
+        {
+            get => (uint)this["analyticsRequestTimeout"];
+            set => this["analyticsRequestTimeout"] = value;
+        }
+
+
+        /// <summary>
         /// Gets or sets whether the elasped client time, elasped cluster time and query statement for a N1QL query requst are written to the log appender.
         /// </summary>
         /// <remarks>When enabled will cause severe performance degradation.</remarks>

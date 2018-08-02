@@ -183,6 +183,13 @@ namespace Couchbase.Configuration.Client
         public uint QueryRequestTimeout { get; set; }
 
         /// <summary>
+        /// The timeout for each HTTP Analytics query request.
+        /// </summary>
+        /// <remarks>The default is 75000ms.</remarks>
+        /// <remarks>The value must be greater than Zero.</remarks>
+        public uint AnalyticsRequestTimeout { get; set; }
+
+        /// <summary>
         /// If true, writes the elasped client time, elasped cluster time and query strement for a N1QL query request to the log appender. Disabled by default.
         /// </summary>
         /// <remarks>When enabled will cause severe performance degradation.</remarks>
@@ -472,6 +479,7 @@ namespace Couchbase.Configuration.Client
             EnableConfigHeartBeat = ClientConfiguration.Defaults.EnableConfigHeartBeat;
             ViewRequestTimeout = (int)ClientConfiguration.Defaults.ViewRequestTimeout;
             QueryRequestTimeout = ClientConfiguration.Defaults.QueryRequestTimeout;
+            AnalyticsRequestTimeout = ClientConfiguration.Defaults.AnalyticsRequestTimeout;
             EnableQueryTiming = ClientConfiguration.Defaults.EnableQueryTiming;
             SearchRequestTimeout = ClientConfiguration.Defaults.SearchRequestTimeout;
             Expect100Continue = ClientConfiguration.Defaults.Expect100Continue;

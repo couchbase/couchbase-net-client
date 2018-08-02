@@ -1064,7 +1064,7 @@ namespace Couchbase.Core.Buckets
                     (request, result) => !(result.Success || request.TimedOut()) && result.ShouldRetry(),
                     queryRequest,
                     cancellationToken,
-                    (int)ConfigInfo.ClientConfig.AnalyticsRequestTimeout
+                    (int)ConfigInfo.ClientConfig.QueryRequestTimeout
                 ).ContinueOnAnyContext();
             }
             catch (Exception e)
@@ -1103,7 +1103,7 @@ namespace Couchbase.Core.Buckets
                 EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
 
                 // Ugly but prevents Lifespan being public on IAnalyticsRequest
-                ((AnalyticsRequest) request).ConfigureLifespan(ConfigInfo.ClientConfig.QueryRequestTimeout);
+                ((AnalyticsRequest) request).ConfigureLifespan(ConfigInfo.ClientConfig.AnalyticsRequestTimeout);
 
                 result = RetryRequest(
                     ConfigInfo.GetAnalyticsNode,

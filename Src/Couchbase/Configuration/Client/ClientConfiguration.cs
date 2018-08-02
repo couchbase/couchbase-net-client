@@ -61,6 +61,7 @@ namespace Couchbase.Configuration.Client
         {
             public static Uri Server = new Uri("http://localhost:8091/pools");
             public static uint QueryRequestTimeout = 75000;
+            public static uint AnalyticsRequestTimeout = 75000;
             public static bool EnableQueryTiming = false;
             public static bool UseSsl = false;
             public static uint SslPort = 11207;
@@ -127,6 +128,7 @@ namespace Couchbase.Configuration.Client
         public ClientConfiguration()
         {
             QueryRequestTimeout = Defaults.QueryRequestTimeout;
+            AnalyticsRequestTimeout = Defaults.AnalyticsRequestTimeout;
             EnableQueryTiming = Defaults.EnableQueryTiming;
             UseSsl = Defaults.UseSsl;
             SslPort = (int) Defaults.SslPort;
@@ -283,6 +285,7 @@ namespace Couchbase.Configuration.Client
             DefaultOperationLifespan = definition.OperationLifespan;
             QueryFailedThreshold = definition.QueryFailedThreshold;
             QueryRequestTimeout = definition.QueryRequestTimeout;
+            AnalyticsRequestTimeout = definition.AnalyticsRequestTimeout;
             EnableQueryTiming = definition.EnableQueryTiming;
             SearchRequestTimeout = definition.SearchRequestTimeout;
             VBucketRetrySleepTime = definition.VBucketRetrySleepTime;
@@ -1043,11 +1046,7 @@ namespace Couchbase.Configuration.Client
         /// <value>
         /// The analytics request timeout.
         /// </value>
-        /// <remarks>Hardcoded for now - will implement config at a later time</remarks>
-        public uint AnalyticsRequestTimeout
-        {
-            get { return 75000; }
-        }
+        public uint AnalyticsRequestTimeout { get; set; }
 
         /// <summary>
         /// Checks to see if each Heartbeat setting has changed from its defaults and whether
