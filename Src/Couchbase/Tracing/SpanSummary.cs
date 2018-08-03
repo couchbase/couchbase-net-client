@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using OpenTracing;
@@ -62,7 +63,7 @@ namespace Couchbase.Tracing
 
         private void PopulateSummary(IEnumerable<Span> spans)
         {
-            foreach (var span in spans)
+            foreach (var span in spans.ToList())
             {
                 TrySetOpeationId(span);
 
