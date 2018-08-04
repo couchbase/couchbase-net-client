@@ -34,8 +34,24 @@ namespace Couchbase.UnitTests
             mockRequestExecutor.Setup(x => x.SendWithRetryAsync(It.IsAny<IOperation<dynamic>>(), null, null))
                 .Returns(Task.FromResult(operationResult.Object));
 
+            var bucket = new CouchbaseBucket(mockRequestExecutor.Object, new DefaultConverter(),
+                new DefaultTranscoder());
+            var result = bucket.GetAndLockAsync<dynamic>("thekey", TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+        }
+
+        public void InsertAsync_Does_Not_Throw_StackOverFlowException()
+        {
+            var operationResult = new Mock<IOperationResult<dynamic>>();
+            operationResult.SetupGet(m => m.Success).Returns(true);
+            operationResult.SetupGet(m => m.Status).Returns(ResponseStatus.Success);
+
+            var mockRequestExecutor = new Mock<IRequestExecuter>();
+            mockRequestExecutor.Setup(x => x.SendWithRetryAsync(It.IsAny<IOperation<dynamic>>(), null, null))
+                .Returns(Task.FromResult(operationResult.Object));
+
             var bucket = new CouchbaseBucket(mockRequestExecutor.Object, new DefaultConverter(), new DefaultTranscoder());
-            var result =  bucket.GetAndLockAsync<dynamic>("thekey", TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
+
+            var result =  bucket.InsertAsync<dynamic>("itskey", TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
         }
 
         #region Exists/ExistsAsync

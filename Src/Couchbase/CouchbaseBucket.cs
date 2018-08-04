@@ -2150,7 +2150,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
         {
-            return InsertAsync(key, value, expiration, timeout);
+            return InsertAsync(key, value, (uint)expiration.TotalSeconds, timeout);
         }
 
         /// <summary>
