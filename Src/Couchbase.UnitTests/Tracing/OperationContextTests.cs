@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Tracing
                 t = context.TimeoutMicroseconds
             }, Formatting.None);
 
-            var expected = string.Join(" ", ExceptionUtil.OperationTimeout, json);
+            var expected = string.Join(" ", ExceptionUtil.OperationTimeout, json).Replace("{","[").Replace("}", "]");
             Assert.AreEqual(expected, context.ToString());
         }
     }

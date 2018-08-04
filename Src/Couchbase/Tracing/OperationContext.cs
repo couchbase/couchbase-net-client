@@ -40,7 +40,8 @@ namespace Couchbase.Tracing
         {
             return string.Join(" ",
                 ExceptionUtil.OperationTimeout,
-                JsonConvert.SerializeObject(this, Formatting.None)
+                JsonConvert.SerializeObject(this, Formatting.None).
+                    Replace("{", "[").Replace("}","]")
             );
         }
 
