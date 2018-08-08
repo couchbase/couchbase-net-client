@@ -29,7 +29,10 @@ namespace Couchbase.IntegrationTests
         [OneTimeTearDown]
         public void TearDown()
         {
-            _cluster.Dispose();
+            if (_cluster != null)
+            {
+                _cluster.Dispose();
+            }
         }
 
         [Test]
