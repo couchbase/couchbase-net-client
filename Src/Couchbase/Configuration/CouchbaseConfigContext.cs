@@ -69,22 +69,6 @@ namespace Couchbase.Configuration
                             else
                             {
                                 Log.Info("Creating node {0} for rev#{1}", endpoint, bucketConfig.Rev);
-                                //the node needs to be created
-                                if (adapter.IsSearchNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                    searchUris.Add(uri);
-                                }
-                                if (adapter.IsQueryNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                    queryUris.Add(uri);
-                                }
-                                if (adapter.IsAnalyticsNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
-                                    analyticsUris.Add(uri);
-                                }
 
                                 IServer server;
                                 if (adapter.IsDataNode) //a data node so create a connection pool
@@ -108,6 +92,22 @@ namespace Couchbase.Configuration
                                 }
 
                                 servers.Add(endpoint, server);
+                            }
+
+                            if (adapter.IsSearchNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                                searchUris.Add(uri);
+                            }
+                            if (adapter.IsQueryNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                                queryUris.Add(uri);
+                            }
+                            if (adapter.IsAnalyticsNode)
+                            {
+                                var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                                analyticsUris.Add(uri);
                             }
                         }
                         catch (Exception e)
@@ -202,40 +202,9 @@ namespace Couchbase.Configuration
                                 SupportsSubdocXAttributes = ioService.SupportsSubdocXAttributes;
                                 SupportsEnhancedAuthentication = ioService.SupportsEnhancedAuthentication;
                                 SupportsKvErrorMap = ioService.SupportsKvErrorMap;
-
-                                if (adapter.IsQueryNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                    queryUris.Add(uri);
-                                }
-                                if (adapter.IsSearchNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                    searchUris.Add(uri);
-                                }
-                                if (adapter.IsAnalyticsNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
-                                    analyticsUris.Add(uri);
-                                }
                             }
                             else
                             {
-                                if (adapter.IsSearchNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
-                                    searchUris.Add(uri);
-                                }
-                                if (adapter.IsQueryNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
-                                    queryUris.Add(uri);
-                                }
-                                if (adapter.IsAnalyticsNode)
-                                {
-                                    var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
-                                    analyticsUris.Add(uri);
-                                }
                                 if (adapter.IsDataNode) //a data node so create a connection pool
                                 {
                                     var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
@@ -259,6 +228,22 @@ namespace Couchbase.Configuration
                                     server = new Core.Server(null, adapter, Transcoder, QueryCache, this);
                                 }
                             }
+                        }
+
+                        if (adapter.IsQueryNode)
+                        {
+                            var uri = UrlUtil.GetFailureCountingBaseUri(adapter, clientBucketConfig);
+                            queryUris.Add(uri);
+                        }
+                        if (adapter.IsSearchNode)
+                        {
+                            var uri = UrlUtil.GetFailureCountinSearchBaseUri(adapter, clientBucketConfig);
+                            searchUris.Add(uri);
+                        }
+                        if (adapter.IsAnalyticsNode)
+                        {
+                            var uri = UrlUtil.GetFailureCountingAnalyticsUri(adapter, clientBucketConfig);
+                            analyticsUris.Add(uri);
                         }
 
                         servers.Add(endpoint, server);

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -307,6 +309,70 @@ namespace Couchbase.UnitTests.Configuration
             context.LoadConfig(serverConfig);
 
             Assert.IsTrue(context.IsDataCapable);
+        }
+
+        [Test]
+        public void LoadConfig_Resuses_Existing_Service_Uris()
+        {
+            var services = new Services { N1QL = 8093, Fts = 8094, Analytics = 8095 };
+            var nodes = new List<Node> {new Node {Hostname = "127.0.0.1"}};
+            var nodeExts = new List<NodeExt> {new NodeExt {Hostname = "127.0.0.1", Services = services}};
+
+            var mockBucketConfig = new Mock<IBucketConfig>();
+            mockBucketConfig.Setup(x => x.Name).Returns("default");
+            mockBucketConfig.Setup(x => x.Nodes).Returns(nodes.ToArray);
+            mockBucketConfig.Setup(x => x.NodesExt).Returns(nodeExts.ToArray);
+            mockBucketConfig.Setup(x => x.VBucketServerMap).Returns(new VBucketServerMap());
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            var mockIoService = new Mock<IIOService>();
+            mockIoService.Setup(x => x.ConnectionPool).Returns(mockConnectionPool.Object);
+            mockIoService.Setup(x => x.SupportsEnhancedDurability).Returns(true);
+            var mockSasl = new Mock<ISaslMechanism>();
+
+            var clientConfig = new ClientConfiguration();
+            var context = new CouchbaseConfigContext(
+                mockBucketConfig.Object,
+                clientConfig,
+                p => mockIoService.Object,
+                (a, b) => mockConnectionPool.Object,
+                (a, b, c, d) => mockSasl.Object,
+                new DefaultTranscoder(),
+                null, null);
+
+            // load first config with single node
+            context.LoadConfig(mockBucketConfig.Object);
+
+            Assert.AreEqual(1, context.QueryUris.Count);
+            Assert.IsTrue(context.QueryUris.Contains(new Uri("http://127.0.0.1:8093/query")));
+
+            Assert.AreEqual(1, context.SearchUris.Count);
+            Assert.IsTrue(context.SearchUris.Contains(new Uri("http://127.0.0.1:8094/pools")));
+
+            Assert.AreEqual(1, context.AnalyticsUris.Count);
+            Assert.IsTrue(context.AnalyticsUris.Contains(new Uri("http://127.0.0.1:8095/analytics/service")));
+
+            // add extra node to config, keeping existing
+            nodes.Add(new Node {Hostname = "127.0.0.2"});
+            nodeExts.Add(new NodeExt {Hostname = "127.0.0.2", Services = services});
+
+            // create new bucket config, with extra node
+            mockBucketConfig.Setup(x => x.Nodes).Returns(nodes.ToArray);
+
+            // need to force because internal bucketconfig ref will be pointing to mock
+            context.LoadConfig(mockBucketConfig.Object, true);
+
+            Assert.AreEqual(2, context.QueryUris.Count);
+            Assert.IsTrue(context.QueryUris.Contains(new Uri("http://127.0.0.1:8093/query")));
+            Assert.IsTrue(context.QueryUris.Contains(new Uri("http://127.0.0.2:8093/query")));
+
+            Assert.AreEqual(2, context.SearchUris.Count);
+            Assert.IsTrue(context.SearchUris.Contains(new Uri("http://127.0.0.1:8094/pools")));
+            Assert.IsTrue(context.SearchUris.Contains(new Uri("http://127.0.0.2:8094/pools")));
+
+            Assert.AreEqual(2, context.AnalyticsUris.Count);
+            Assert.IsTrue(context.AnalyticsUris.Contains(new Uri("http://127.0.0.1:8095/analytics/service")));
+            Assert.IsTrue(context.AnalyticsUris.Contains(new Uri("http://127.0.0.2:8095/analytics/service")));
         }
     }
 }
