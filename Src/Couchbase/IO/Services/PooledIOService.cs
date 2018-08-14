@@ -103,6 +103,12 @@ namespace Couchbase.IO.Services
                 //this almost always will be a server offline or service down
                 ConnectionPool.Owner.MarkDead();
             }
+            catch (SendTimeoutExpiredException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.OperationTimeout);
+            }
             catch (Exception e)
             {
                 Log.Debug(e);
@@ -170,6 +176,12 @@ namespace Couchbase.IO.Services
 
                 //this almost always will be a server offline or service down
                 ConnectionPool.Owner.MarkDead();
+            }
+            catch (SendTimeoutExpiredException e)
+            {
+                Log.Debug(e);
+                operation.Exception = e;
+                operation.HandleClientError(e.Message, ResponseStatus.OperationTimeout);
             }
             catch (Exception e)
             {
