@@ -9,7 +9,6 @@ using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Buckets;
-using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Converters;
@@ -21,8 +20,11 @@ using Moq;
 namespace Couchbase.UnitTests
 {
     [TestFixture]
-    public class CouchbaseBucketTests
+    public partial class CouchbaseBucketTests
     {
+        private readonly IByteConverter _converter = new DefaultConverter();
+        private readonly ITypeTranscoder _transcoder = new DefaultTranscoder();
+
         [Test]
         public void GetAndLockAsync_Does_Not_Throw_StackOverFlowException()
         {
