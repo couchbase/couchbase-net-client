@@ -104,6 +104,7 @@ namespace Couchbase
             _requestExecuter = requestExecuter;
             _converter = converter;
             _transcoder = transcoder;
+            GlobalTimeout = TimeSpan.FromSeconds(42);
         }
 
         /// <summary>
@@ -1598,8 +1599,9 @@ namespace Couchbase
         public IOperationResult<ulong> Increment(string key, ulong delta, TimeSpan timeout)
         {
             const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
 
-            return Increment(key, delta, initial, timeout);
+            return Increment(key, delta, initial, expiration, timeout);
         }
 
         /// <summary>
@@ -1618,8 +1620,9 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, TimeSpan timeout)
         {
             const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
 
-            return IncrementAsync(key, delta, initial, timeout);
+            return IncrementAsync(key, delta, initial, expiration, timeout);
         }
 
         /// <summary>
@@ -1632,8 +1635,7 @@ namespace Couchbase
         /// <returns>If the key doesn't exist, the server will respond with the initial value. If not the incremented value will be returned.</returns>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial)
         {
-            //infinite - there is also a 'special' value -1: 'don't create if missing'
-            const uint expiration = 0;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
 
             return Increment(key, delta, initial, expiration);
         }
@@ -1701,7 +1703,13 @@ namespace Couchbase
         /// &gt;
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
-            return IncrementAsync(key, delta, initial, new TimeSpan(expiration), timeout);
+            CheckDisposed();
+            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            {
+                BucketName = Name,
+                Expires = expiration
+            };
+            return _requestExecuter.SendWithRetryAsync(operation);
         }
 
         /// <summary>
@@ -1745,7 +1753,7 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>/// <returns></returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key)
         {
-            return IncrementAsync(key, 1);
+            return IncrementAsync(key, GlobalTimeout);
         }
 
         /// <summary>
@@ -1758,7 +1766,10 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta)
         {
-            return IncrementAsync(key, delta, 1, GlobalTimeout);
+            const ulong initial = 1;
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return IncrementAsync(key, delta, initial, expiration);
         }
 
         /// <summary>
@@ -1772,7 +1783,9 @@ namespace Couchbase
         /// <returns>The <see cref="Task{IOperationResult}"/> object representing the asynchronous operation.</returns>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial)
         {
-            return IncrementAsync(key, delta, initial, 0, GlobalTimeout);
+            const uint expiration = 0;//infinite - there is also a 'special' value -1: 'don't create if missing'
+
+            return IncrementAsync(key, delta, initial, expiration);
         }
 
         /// <summary>
@@ -1825,13 +1838,7 @@ namespace Couchbase
         /// </remarks>
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration, TimeSpan timeout)
         {
-            CheckDisposed();
-            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
-            {
-                BucketName = Name,
-                Expires = expiration.ToTtl()
-            };
-            return _requestExecuter.SendWithRetryAsync(operation);
+            return IncrementAsync(key, delta, initial, expiration.ToTtl(), timeout);
         }
 
         /// <summary>
