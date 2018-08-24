@@ -6,17 +6,15 @@ namespace Couchbase.Tracing
 {
     internal class SpanContext : ISpanContext
     {
-        public long TraceId { get; }
-        public long SpanId { get; }
-        public long ParentId { get; }
+        public string TraceId { get; }
+        public string SpanId { get; }
 
         private IEnumerable<KeyValuePair<string, string>> Baggage { get; }
 
-        public SpanContext(long traceId, long spanId, long parentId, IEnumerable<KeyValuePair<string, string>> baggage)
+        public SpanContext(string traceId, string spanId, IEnumerable<KeyValuePair<string, string>> baggage)
         {
             TraceId = traceId;
             SpanId = spanId;
-            ParentId = parentId;
             Baggage = baggage;
         }
 

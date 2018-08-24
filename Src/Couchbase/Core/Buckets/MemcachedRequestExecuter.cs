@@ -35,7 +35,7 @@ namespace Couchbase.Core.Buckets
         /// </summary>
         /// <param name="key">The key to map.</param>
         /// <returns>The <see cref="IServer"/> where the key lives.</returns>
-        IServer GetServer(string key)
+        private IServer GetServer(string key)
         {
             var keyMapper = ConfigInfo.GetKeyMapper();
             var bucket = keyMapper.MapKey(key);
@@ -50,14 +50,13 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
-            IOperationResult<T> operationResult = new OperationResult<T>
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
-                Success = false, OpCode = operation.OperationCode
-            };
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
+                IOperationResult<T> operationResult = new OperationResult<T>
+                {
+                    Success = false, OpCode = operation.OperationCode
+                };
 
-            try
-            {
                 do
                 {
                     var server = GetServer(operation.Key);
@@ -82,7 +81,7 @@ namespace Couchbase.Core.Buckets
                     }
                     else
                     {
-                        ((OperationResult) operationResult).SetException();
+                        ((OperationResult)operationResult).SetException();
                         Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
                         break;
                     }
@@ -96,33 +95,29 @@ namespace Couchbase.Core.Buckets
                         ((OperationResult) operationResult).Message = msg;
                         ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
                     }
+
                     LogFailure(operation, operationResult);
                 }
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
 
-            return operationResult;
+                return operationResult;
+            }
         }
 
         /// <summary>
         /// Sends a <see cref="IOperation{T}"/> to the Couchbase Server using the Memcached protocol.
         /// </summary>
-        /// <typeparam name="T">The Type of the body of the request.</typeparam>
         /// <param name="operation">The <see cref="IOperation{T}"/> to send.</param>
         /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
-            IOperationResult operationResult = new OperationResult
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
-                Success = false, OpCode = operation.OperationCode
-            };
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
+                IOperationResult operationResult = new OperationResult
+                {
+                    Success = false,
+                    OpCode = operation.OperationCode
+                };
 
-            try
-            {
                 do
                 {
                     var server = GetServer(operation.Key);
@@ -161,15 +156,12 @@ namespace Couchbase.Core.Buckets
                         ((OperationResult) operationResult).Message = msg;
                         ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
                     }
+
                     LogFailure(operation, operationResult);
                 }
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
 
-            return operationResult;
+                return operationResult;
+            }
         }
 
         /// <summary>
@@ -186,42 +178,39 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult<T>> tcs = null,
             CancellationTokenSource cts = null)
         {
-            tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
-
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
-                operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(
-                    this, Pending, ClusterController, tcs, cts.Token);
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
+                cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
 
-                Pending.TryAdd(operation.Opaque, operation);
-
-                IServer server;
-                var attempts = 0;
-                while ((server = GetServer(operation.Key)) == null)
+                try
                 {
-                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+                    operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(
+                        this, Pending, ClusterController, tcs, cts.Token);
+
+                    Pending.TryAdd(operation.Opaque, operation);
+
+                    IServer server;
+                    var attempts = 0;
+                    while ((server = GetServer(operation.Key)) == null)
+                    {
+                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                        await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+                    }
+                    await server.SendAsync(operation).ContinueOnAnyContext();
                 }
-                await server.SendAsync(operation).ContinueOnAnyContext();
-            }
-            catch (Exception e)
-            {
-                tcs.TrySetResult(new OperationResult<T>
+                catch (Exception e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure
-                });
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    tcs.TrySetResult(new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure
+                    });
+                }
 
-            return await tcs.Task.ContinueOnAnyContext();
+                return await tcs.Task.ContinueOnAnyContext();
+            }
         }
 
         /// <summary>
@@ -237,42 +226,39 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult> tcs = null,
             CancellationTokenSource cts = null)
         {
-            tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
-
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
-                operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(
-                    this, Pending, ClusterController, tcs, cts.Token);
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
+                cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
 
-                Pending.TryAdd(operation.Opaque, operation);
-
-                IServer server;
-                var attempts = 0;
-                while ((server = GetServer(operation.Key)) == null)
+                try
                 {
-                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+                    operation.Completed = CallbackFactory.CompletedFuncWithRetryForMemcached(
+                        this, Pending, ClusterController, tcs, cts.Token);
+
+                    Pending.TryAdd(operation.Opaque, operation);
+
+                    IServer server;
+                    var attempts = 0;
+                    while ((server = GetServer(operation.Key)) == null)
+                    {
+                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                        await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+                    }
+                    await server.SendAsync(operation).ContinueOnAnyContext();
                 }
-                await server.SendAsync(operation).ContinueOnAnyContext();
-            }
-            catch (Exception e)
-            {
-                tcs.TrySetResult(new OperationResult
+                catch (Exception e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure
-                });
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    tcs.TrySetResult(new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure
+                    });
+                }
 
-            return await tcs.Task.ContinueOnAnyContext();
+                return await tcs.Task.ContinueOnAnyContext();
+            }
         }
     }
 }

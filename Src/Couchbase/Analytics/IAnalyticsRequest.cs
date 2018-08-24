@@ -140,12 +140,6 @@ namespace Couchbase.Analytics
         /// <param name="priority">The priority.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
         IAnalyticsRequest Priority(int priority);
-
-        /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        ISpan ActiveSpan { get; set; }
     }
 }
 

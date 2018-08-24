@@ -335,12 +335,6 @@ namespace Couchbase.Analytics
         internal int PriorityValue { get; private set; }
 
         /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        public ISpan ActiveSpan { get; set; }
-
-        /// <summary>
         /// Gets or sets the timeout value of the <see cref="AnalyticsRequest"/>.
         /// </summary>
         internal uint TimeoutValue => Lifespan.Duration * 1000;

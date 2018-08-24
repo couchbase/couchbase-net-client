@@ -520,12 +520,6 @@ namespace Couchbase.IO.Operations
             return ErrorCode.GetNextInterval(Attempts, defaultTimeout);
         }
 
-        /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        public ISpan ActiveSpan { get; set; }
-
         protected void TryReadMutationToken(byte[] buffer)
         {
             if (buffer.Length >= 40 && VBucket != null)

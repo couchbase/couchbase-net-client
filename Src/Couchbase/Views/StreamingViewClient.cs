@@ -37,7 +37,7 @@ namespace Couchbase.Views
             var viewResult = new StreamingViewResult<T>();
 
             string body;
-            using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).Start())
+            using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).StartActive())
             {
                 body = query.CreateRequestBody();
             }
@@ -49,7 +49,7 @@ namespace Couchbase.Views
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
 
                 HttpResponseMessage response;
-                using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.DispatchToServer).Start())
+                using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.DispatchToServer).StartActive())
                 {
                     response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
                 }
@@ -61,7 +61,7 @@ namespace Couchbase.Views
                         response.StatusCode,
                         Success,
                         await response.Content.ReadAsStreamAsync().ContinueOnAnyContext(),
-                        ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.ResponseDecoding).Start()
+                        ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.ResponseDecoding).StartActive().Span
                     );
                 }
                 else

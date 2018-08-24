@@ -46,7 +46,7 @@ namespace Couchbase.N1QL
             ApplyCredentials(queryRequest);
 
             string body;
-            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).Start())
+            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).StartActive())
             {
                 body = queryRequest.GetFormValuesAsJson();
             }
@@ -60,7 +60,7 @@ namespace Couchbase.N1QL
                     Log.Trace("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
 
                     HttpResponseMessage response;
-                    using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
+                    using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).StartActive())
                     {
                         response = await HttpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ContinueOnAnyContext();
                     }

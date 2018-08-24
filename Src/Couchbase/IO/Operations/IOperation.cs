@@ -96,12 +96,6 @@ namespace Couchbase.IO.Operations
         string BucketName { get; set; }
 
         int GetRetryTimeout(int defaultTimeout);
-
-        /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        ISpan ActiveSpan { get; set; }
     }
 }
 

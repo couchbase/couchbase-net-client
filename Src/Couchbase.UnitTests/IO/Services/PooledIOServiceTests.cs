@@ -12,7 +12,7 @@ using Couchbase.IO.Utils;
 using Couchbase.UnitTests.IO.Operations;
 using Moq;
 using NUnit.Framework;
-using OpenTracing.NullTracer;
+using OpenTracing.Noop;
 
 namespace Couchbase.UnitTests.IO.Services
 {
@@ -32,7 +32,7 @@ namespace Couchbase.UnitTests.IO.Services
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration
             {
                 UseEnhancedDurability = true,
-                ClientConfiguration = new ClientConfiguration {Tracer = NullTracer.Instance}
+                ClientConfiguration = new ClientConfiguration {Tracer = NoopTracerFactory.Create() }
             });
             mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
 
@@ -68,7 +68,7 @@ namespace Couchbase.UnitTests.IO.Services
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration
             {
                 UseEnhancedDurability = false,
-                ClientConfiguration = new ClientConfiguration {Tracer = NullTracer.Instance}
+                ClientConfiguration = new ClientConfiguration {Tracer = NoopTracerFactory.Create() }
             });
             mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
 
@@ -119,7 +119,7 @@ namespace Couchbase.UnitTests.IO.Services
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration
             {
-                ClientConfiguration = new ClientConfiguration {Tracer = NullTracer.Instance}
+                ClientConfiguration = new ClientConfiguration {Tracer = NoopTracerFactory.Create() }
             });
             mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> { mockConnection.Object });
 
@@ -159,7 +159,7 @@ namespace Couchbase.UnitTests.IO.Services
             mockConnectionPool.Setup(x => x.Acquire()).Returns(mockConnection.Object);
             mockConnectionPool.SetupGet(x => x.Configuration).Returns(new PoolConfiguration
             {
-                ClientConfiguration = new ClientConfiguration {Tracer = NullTracer.Instance}
+                ClientConfiguration = new ClientConfiguration {Tracer = NoopTracerFactory.Create() }
             });
             mockConnectionPool.Setup(x => x.Connections).Returns(new List<IConnection> {mockConnection.Object});
 

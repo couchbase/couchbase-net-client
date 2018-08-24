@@ -8,7 +8,8 @@ using Couchbase.Search;
 using Couchbase.Utils;
 using Couchbase.Views;
 using OpenTracing;
-using OpenTracing.NullTracer;
+using OpenTracing.Noop;
+using OpenTracing.Tag;
 
 namespace Couchbase.Tracing
 {
@@ -36,7 +37,7 @@ namespace Couchbase.Tracing
                 : type.Name;
         }
 
-        internal static ISpan StartParentSpan(this ITracer tracer, IOperation operation, string bucketName = null, bool addIgnoreTag = false)
+        internal static IScope StartParentScope(this ITracer tracer, IOperation operation, string bucketName = null, bool addIgnoreTag = false)
         {
             var operationName = SanitizeTypeName(operation.GetType());
             var builder = tracer.BuildSpan(operation, operationName, bucketName);
@@ -45,16 +46,12 @@ namespace Couchbase.Tracing
                 builder.WithIgnoreTag();
             }
 
-            var span = builder.Start();
-            operation.ActiveSpan = span;
-            return span;
+            return builder.StartActive();
         }
 
         internal static IOperationResult GetResult(this IOperation operation, ITracer tracer, string bucketName)
         {
-            using (tracer
-                .BuildSpan(operation, CouchbaseOperationNames.ResponseDecoding, bucketName)
-                .Start())
+            using (tracer.BuildSpan(operation, CouchbaseOperationNames.ResponseDecoding, bucketName).StartActive())
             {
                 return operation.GetResult();
             }
@@ -62,9 +59,7 @@ namespace Couchbase.Tracing
 
         internal static IOperationResult<T> GetResultWithValue<T>(this IOperation<T> operation, ITracer tracer, string bucketName)
         {
-            using (tracer
-                .BuildSpan(operation, CouchbaseOperationNames.ResponseDecoding, bucketName)
-                .Start())
+            using (tracer.BuildSpan(operation, CouchbaseOperationNames.ResponseDecoding, bucketName).StartActive())
             {
                 return operation.GetResultWithValue();
             }
@@ -72,9 +67,7 @@ namespace Couchbase.Tracing
 
         internal static byte[] Write(this IOperation operation, ITracer tracer, string bucketName)
         {
-            using (tracer
-                .BuildSpan(operation, CouchbaseOperationNames.RequestEncoding, bucketName)
-                .Start())
+            using (tracer.BuildSpan(operation, CouchbaseOperationNames.RequestEncoding, bucketName).StartActive())
             {
                 return operation.Write();
             }
@@ -82,9 +75,7 @@ namespace Couchbase.Tracing
 
         internal static async Task<byte[]> WriteAsync(this IOperation operation, ITracer tracer, string bucketName)
         {
-            using (tracer
-                .BuildSpan(operation, CouchbaseOperationNames.RequestEncoding, bucketName)
-                .Start())
+            using (tracer.BuildSpan(operation, CouchbaseOperationNames.RequestEncoding, bucketName).StartActive())
             {
                 return await operation.WriteAsync().ContinueOnAnyContext();
             }
@@ -93,13 +84,13 @@ namespace Couchbase.Tracing
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IOperation operation, IConnection connection, string bucketName = null)
         {
             var span = BuildSpan(tracer, operation, CouchbaseOperationNames.DispatchToServer, bucketName);
-            if (span is NullSpan)
+            if (span is NoopSpan)
             {
                 return span;
             }
 
             return span
-                .WithTag(Tags.PeerAddress, connection.EndPoint?.ToString() ?? Unknown)
+                .WithTag(Tags.PeerHostIpv4, connection.EndPoint?.ToString() ?? Unknown)
                 .WithTag(CouchbaseTags.LocalAddress, connection.LocalEndPoint?.ToString() ?? Unknown)
                 .WithTag(CouchbaseTags.LocalId, connection.ContextId);
         }
@@ -107,22 +98,23 @@ namespace Couchbase.Tracing
         private static ISpanBuilder BuildSpan(this ITracer tracer, IOperation operation, string operationName, string bucketName)
         {
             var span = tracer.BuildSpan(operationName);
-            if (span is NullSpan)
+            if (span is NoopSpan)
             {
                 return span;
             }
+
             return span
                 .WithTag(CouchbaseTags.OperationId, $"0x{operation.Opaque:x}") // use opaque as hex value
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceKv)
                 .WithTag(Tags.DbInstance, string.IsNullOrWhiteSpace(bucketName) ? Unknown : bucketName)
-                .AsChildOf(operation.ActiveSpan);
+                .AsChildOf(tracer.ActiveSpan);
         }
 
         #endregion
 
         #region View
 
-        internal static ISpan StartParentSpan(this ITracer tracer, IViewQueryable query, bool addIgnoreTag = false)
+        internal static IScope StartParentScope(this ITracer tracer, IViewQueryable query, bool addIgnoreTag = false)
         {
             var builder = tracer.BuildSpan(query);
             if (addIgnoreTag)
@@ -130,10 +122,7 @@ namespace Couchbase.Tracing
                 builder.WithIgnoreTag();
             }
 
-            var span = builder.Start();
-            query.ActiveSpan = span;
-
-            return span;
+            return builder.StartActive();
         }
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IViewQueryable query)
@@ -145,21 +134,22 @@ namespace Couchbase.Tracing
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IViewQueryable query, string operationName)
         {
             var span = tracer.BuildSpan(operationName);
-            if (span is NullSpan)
+            if (span is NoopSpan)
             {
                 return span;
             }
+
             return span
-                .WithTag(CouchbaseTags.OperationId, GetOrGenerateOperationId(query.ActiveSpan))
+                .WithTag(CouchbaseTags.OperationId, GetOrGenerateOperationId(tracer.ActiveSpan))
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceView)
-                .AsChildOf(query.ActiveSpan);
+                .AsChildOf(tracer.ActiveSpan);
         }
 
         #endregion
 
         #region N1QL
 
-        internal static ISpan StartParentSpan(this ITracer tracer, IQueryRequest request, bool addIgnoreTag = false)
+        internal static IScope StartParentScope(this ITracer tracer, IQueryRequest request, bool addIgnoreTag = false)
         {
             var builder = tracer.BuildSpan(request);
             if (addIgnoreTag)
@@ -167,10 +157,7 @@ namespace Couchbase.Tracing
                 builder.WithIgnoreTag();
             }
 
-            var span = builder.Start();
-            request.ActiveSpan = span;
-
-            return span;
+            return builder.StartActive();
         }
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IQueryRequest query)
@@ -182,22 +169,23 @@ namespace Couchbase.Tracing
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IQueryRequest query, string operationName)
         {
             var span = tracer.BuildSpan(operationName);
-            if (span is NullSpan)
+            if (span is NoopSpan)
             {
                 return span;
             }
+
             return span
                 .WithTag(CouchbaseTags.OperationId, query.CurrentContextId)
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceQuery)
                 .WithTag(Tags.DbStatement, query.GetOriginalStatement())
-                .AsChildOf(query.ActiveSpan);
+                .AsChildOf(tracer.ActiveSpan);
         }
 
         #endregion
 
         #region FTS
 
-        internal static ISpan StartParentSpan(this ITracer tracer, SearchQuery query, bool addIgnoreTag = false)
+        internal static IScope StartParentScope(this ITracer tracer, SearchQuery query, bool addIgnoreTag = false)
         {
             var builder = tracer.BuildSpan(query);
             if (addIgnoreTag)
@@ -205,10 +193,7 @@ namespace Couchbase.Tracing
                 builder.WithIgnoreTag();
             }
 
-            var span = builder.Start();
-            query.ActiveSpan = span;
-
-            return span;
+            return builder.StartActive();
         }
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, SearchQuery query)
@@ -220,21 +205,22 @@ namespace Couchbase.Tracing
         internal static ISpanBuilder BuildSpan(this ITracer tracer, SearchQuery query, string operationName)
         {
             var span = tracer.BuildSpan(operationName);
-            if (span is NullSpan)
+            if (span is NoopSpan)
             {
                 return span;
             }
+
             return span
-                .WithTag(CouchbaseTags.OperationId, GetOrGenerateOperationId(query.ActiveSpan))
+                .WithTag(CouchbaseTags.OperationId, GetOrGenerateOperationId(tracer.ActiveSpan))
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceSearch)
-                .AsChildOf(query.ActiveSpan);
+                .AsChildOf(tracer.ActiveSpan);
         }
 
         #endregion
 
         #region CBAS
 
-        internal static ISpan StartParentSpan(this ITracer tracer, IAnalyticsRequest request, bool addIgnoreTag = false)
+        internal static IScope StartParentScope(this ITracer tracer, IAnalyticsRequest request, bool addIgnoreTag = false)
         {
             var builder = tracer.BuildSpan(request);
             if (addIgnoreTag)
@@ -242,10 +228,7 @@ namespace Couchbase.Tracing
                 builder.WithIgnoreTag();
             }
 
-            var span = builder.Start();
-            request.ActiveSpan = span;
-
-            return span;
+            return builder.StartActive();
         }
 
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IAnalyticsRequest request)
@@ -257,15 +240,16 @@ namespace Couchbase.Tracing
         internal static ISpanBuilder BuildSpan(this ITracer tracer, IAnalyticsRequest request, string operationName)
         {
             var span = tracer.BuildSpan(operationName);
-            if (span is NullSpan)
+            if (span is NoopSpan)
             {
                 return span;
             }
+
             return span
                 .WithTag(CouchbaseTags.OperationId, request.CurrentContextId)
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceAnalytics)
                 .WithTag(Tags.DbStatement, request.OriginalStatement)
-                .AsChildOf(request.ActiveSpan);
+                .AsChildOf(tracer.ActiveSpan);
         }
 
         #endregion

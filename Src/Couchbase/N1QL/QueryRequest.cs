@@ -230,12 +230,6 @@ namespace Couchbase.N1QL
         }
 
         /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        public ISpan ActiveSpan { get; set; }
-
-        /// <summary>
         /// Gets a value indicating whether use the <see cref="StreamingQueryClient" />.
         /// </summary>
         /// <value>

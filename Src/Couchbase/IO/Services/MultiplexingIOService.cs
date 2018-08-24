@@ -67,11 +67,11 @@ namespace Couchbase.IO.Services
                     OperationHeader header;
                     ErrorCode errorCode;
 
-                    using (var span = Tracer.BuildSpan(operation, _connection, ConnectionPool.Configuration.BucketName).Start())
+                    using (var scope = Tracer.BuildSpan(operation, _connection, ConnectionPool.Configuration.BucketName).StartActive())
                     {
                         response = _connection.Send(request);
                         header = response.CreateHeader(ErrorMap, out errorCode);
-                        span.SetPeerLatencyTag(header.GetServerDuration(response));
+                        scope.Span.SetPeerLatencyTag(header.GetServerDuration(response));
                     }
 
                     operation.Read(response, header, errorCode);
@@ -114,11 +114,11 @@ namespace Couchbase.IO.Services
                     OperationHeader header;
                     ErrorCode errorCode;
 
-                    using (var span = Tracer.BuildSpan(operation, _connection, ConnectionPool.Configuration.BucketName).Start())
+                    using (var scope = Tracer.BuildSpan(operation, _connection, ConnectionPool.Configuration.BucketName).StartActive())
                     {
                         response = _connection.Send(request);
                         header = response.CreateHeader(ErrorMap, out errorCode);
-                        span.SetPeerLatencyTag(header.GetServerDuration(response));
+                        scope.Span.SetPeerLatencyTag(header.GetServerDuration(response));
                     }
 
                     operation.Read(response, header, errorCode);

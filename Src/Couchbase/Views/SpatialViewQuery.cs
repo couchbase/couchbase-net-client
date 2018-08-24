@@ -386,12 +386,6 @@ namespace Couchbase.Views
             const string emptyValue = "{}";
             return emptyValue;
         }
-
-        /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        public ISpan ActiveSpan { get; set; }
     }
 }
 

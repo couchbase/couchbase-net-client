@@ -22,7 +22,6 @@ using Couchbase.Utils;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 using OpenTracing;
-using OpenTracing.NullTracer;
 #if NET452
 using Couchbase.Configuration.Client.Providers;
 #endif

@@ -520,7 +520,7 @@ namespace Couchbase.Core.Buckets
                     node.EndPoint);
 
                 IOperationResult<BucketConfig> result;
-                using (Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true))
+                using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
                 {
                     result = node.Send(operation);
                 }

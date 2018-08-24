@@ -195,12 +195,6 @@ namespace Couchbase.Search
             return json.ToString(Formatting.None);
         }
 
-        /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        public ISpan ActiveSpan { get; set; }
-
         internal uint TimeoutValue { get; set; }
     }
 }

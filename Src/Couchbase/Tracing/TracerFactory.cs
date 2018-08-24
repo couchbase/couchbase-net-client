@@ -1,7 +1,7 @@
 using System;
 using Couchbase.Configuration.Client;
 using OpenTracing;
-using OpenTracing.NullTracer;
+using OpenTracing.Noop;
 
 namespace Couchbase.Tracing
 {
@@ -15,7 +15,7 @@ namespace Couchbase.Tracing
                 return () => new ThresholdLoggingTracer();
             }
 
-            return () => NullTracer.Instance;
+            return NoopTracerFactory.Create;
         }
     }
 }

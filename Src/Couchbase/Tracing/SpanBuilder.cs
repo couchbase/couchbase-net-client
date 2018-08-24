@@ -1,18 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using Couchbase.Utils;
 using OpenTracing;
+using OpenTracing.Tag;
 
 namespace Couchbase.Tracing
 {
     internal class SpanBuilder : ISpanBuilder
     {
-        private static long _traceId;
-        private static long _spanId;
-
         private readonly ThresholdLoggingTracer _tracer;
         private readonly string _operationName;
         private long? _startTimestamp;
@@ -21,10 +18,12 @@ namespace Couchbase.Tracing
 
         private readonly Dictionary<string, object> _tags = new Dictionary<string, object>
         {
-            {Tags.Component, ClientIdentifier.GetClientDescription()},
-            {Tags.DbType, CouchbaseTags.DbTypeCouchbase},
-            {Tags.SpanKind, Tags.SpanKindClient}
+            {Tags.Component.Key, ClientIdentifier.GetClientDescription()},
+            {Tags.DbType.Key, CouchbaseTags.DbTypeCouchbase},
+            {Tags.SpanKind.Key, Tags.SpanKindClient}
         };
+
+        private bool _ignoreActiveSpan;
 
         public SpanBuilder(ThresholdLoggingTracer tracer, string operationName)
         {
@@ -37,10 +36,7 @@ namespace Couchbase.Tracing
             if (parent != null)
             {
                 _references.Add(new Reference(References.ChildOf, parent.Context));
-                if (parent is Span span)
-                {
-                    _parentSpan = span;
-                }
+                _parentSpan = (Span) parent;
             }
 
             return this;
@@ -70,6 +66,12 @@ namespace Couchbase.Tracing
             return this;
         }
 
+        public ISpanBuilder IgnoreActiveSpan()
+        {
+            _ignoreActiveSpan = true;
+            return this;
+        }
+
         public ISpanBuilder WithTag(string key, bool value)
         {
             _tags.Add(key, value);
@@ -94,60 +96,59 @@ namespace Couchbase.Tracing
             return this;
         }
 
+        public ISpanBuilder WithTag(BooleanTag tag, bool value)
+        {
+            _tags.Add(tag.Key, value);
+            return this;
+        }
+
+        public ISpanBuilder WithTag(IntOrStringTag tag, string value)
+        {
+            _tags.Add(tag.Key, value);
+            return this;
+        }
+
+        public ISpanBuilder WithTag(IntTag tag, int value)
+        {
+            _tags.Add(tag.Key, value);
+            return this;
+        }
+
+        public ISpanBuilder WithTag(StringTag tag, string value)
+        {
+            _tags.Add(tag.Key, value);
+            return this;
+        }
+
         public ISpanBuilder WithStartTimestamp(DateTimeOffset startTimestamp)
         {
             _startTimestamp = startTimestamp.Ticks;
             return this;
         }
 
+        public IScope StartActive()
+        {
+            return StartActive(true);
+        }
+
+        public IScope StartActive(bool finishSpanOnDispose)
+        {
+            var span = Start();
+            return _tracer.ScopeManager.Activate(span, finishSpanOnDispose);
+        }
+
         public ISpan Start()
         {
-            var context = _references.Any() ? CreateChildContext() : CreateNewContext();
-            var span = new Span(_tracer, _operationName, context, _startTimestamp ?? Stopwatch.GetTimestamp(), _tags, _references);
+            var activeSpanContext = _tracer.ActiveSpan?.Context;
+            if (!_references.Any() && !_ignoreActiveSpan && activeSpanContext != null)
+            {
+                _references.Add(new Reference(References.ChildOf, activeSpanContext));
+            }
+
+            var span = new Span(_tracer, _operationName, activeSpanContext, _startTimestamp ?? Stopwatch.GetTimestamp(), _tags, _references);
             _parentSpan?.Spans.Add(span);
 
             return span;
-        }
-
-        private ISpanContext CreateNewContext()
-        {
-            var traceId = Interlocked.Increment(ref _traceId);
-            var spanId = Interlocked.Increment(ref _spanId);
-            return new SpanContext(traceId, spanId, 0, null);
-        }
-
-        private ISpanContext CreateChildContext()
-        {
-            var preferredContext = PrefferedContext();
-
-            long traceId = 0, spanId = 0;
-            if (preferredContext is SpanContext context)
-            {
-                traceId = context.TraceId;
-                spanId = context.SpanId;
-            }
-
-            return new SpanContext(
-                traceId,
-                Interlocked.Increment(ref _spanId),
-                spanId,
-                _references.SelectMany(x => x.Context.GetBaggageItems())
-            );
-        }
-
-        private ISpanContext PrefferedContext()
-        {
-            var preferredReference = _references.First();
-            foreach (var reference in _references)
-            {
-                if (reference.Type == References.ChildOf && preferredReference.Type != References.ChildOf)
-                {
-                    preferredReference = reference;
-                    break;
-                }
-            }
-
-            return preferredReference.Context;
         }
     }
 }

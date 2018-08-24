@@ -65,7 +65,7 @@ namespace Couchbase.Search
             var requestUri = new Uri(baseUri, searchQuery.RelativeUri());
 
             string searchBody;
-            using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.RequestEncoding).Start())
+            using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.RequestEncoding).StartActive())
             {
                 searchBody = searchQuery.ToJson();
             }
@@ -75,12 +75,12 @@ namespace Couchbase.Search
                 using (var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json))
                 {
                     HttpResponseMessage response;
-                    using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.DispatchToServer).Start())
+                    using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.DispatchToServer).StartActive())
                     {
                         response = await HttpClient.PostAsync(requestUri, content, cancellationToken).ContinueOnAnyContext();
                     }
 
-                    using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.ResponseDecoding).Start())
+                    using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.ResponseDecoding).StartActive())
                     using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
                         if (response.IsSuccessStatusCode)

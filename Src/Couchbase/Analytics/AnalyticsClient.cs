@@ -58,7 +58,7 @@ namespace Couchbase.Analytics
             ApplyCredentials(queryRequest, ClientConfiguration);
 
             string body;
-            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).Start())
+            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).StartActive())
             {
                 body = queryRequest.GetFormValuesAsJson();
             }
@@ -70,7 +70,7 @@ namespace Couchbase.Analytics
                     Log.Trace("Sending analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
 
                     HttpResponseMessage response;
-                    using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
+                    using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).StartActive())
                     {
                         var request = new HttpRequestMessage(HttpMethod.Post, baseUri)
                         {
@@ -85,7 +85,7 @@ namespace Couchbase.Analytics
                         response = await HttpClient.SendAsync(request, token).ContinueOnAnyContext();
                     }
 
-                    using (var span = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).Start())
+                    using (var scope = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).StartActive())
                     using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
                         result = DataMapper.Map<AnalyticsResultData<T>>(stream).ToQueryResult();
@@ -93,7 +93,7 @@ namespace Couchbase.Analytics
                         result.HttpStatusCode = response.StatusCode;
                         Log.Trace("Received analytics query cid{0}: {1}", result.ClientContextId, result.ToString());
 
-                        span.SetPeerLatencyTag(result.Metrics.ElaspedTime);
+                        scope.Span.SetPeerLatencyTag(result.Metrics.ElaspedTime);
                     }
                     baseUri.ClearFailed();
                 }

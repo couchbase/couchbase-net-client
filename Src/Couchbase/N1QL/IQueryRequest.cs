@@ -308,12 +308,6 @@ namespace Couchbase.N1QL
         IQueryRequest UseStreaming(bool streaming);
 
         /// <summary>
-        /// The current active <see cref="ISpan"/> used for tracing.
-        /// Intended for internal use only.
-        /// </summary>
-        ISpan ActiveSpan { get; set; }
-
-        /// <summary>
         /// Indicates if a profile section should be requested in the result. Default is <see cref="QueryProfile.Off"/>.
         /// </summary>
         /// <param name="profile">The profile.</param>

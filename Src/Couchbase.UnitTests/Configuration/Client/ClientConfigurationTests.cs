@@ -16,7 +16,7 @@ using Moq;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using OpenTracing;
-using OpenTracing.NullTracer;
+using OpenTracing.Noop;
 #if NET452
 using System.Configuration;
 using Couchbase.Configuration.Client.Providers;
@@ -652,7 +652,7 @@ namespace Couchbase.UnitTests.Configuration.Client
         }
 
         [TestCase(true, typeof(ThresholdLoggingTracer))]
-        [TestCase(false, typeof(NullTracer))]
+        [TestCase(false, typeof(NoopTracer))]
         public void CouchbaseConfiguration_ThresholdLoggingTracer_Using_Definition(bool value, Type expectedType)
         {
             var configuration = new ClientConfiguration
@@ -746,7 +746,7 @@ namespace Couchbase.UnitTests.Configuration.Client
             };
 
             var config = new ClientConfiguration(section);
-            Assert.IsInstanceOf<NullTracer>(config.Tracer);
+            Assert.IsInstanceOf<NoopTracer>(config.Tracer);
         }
 #endif
 

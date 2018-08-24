@@ -70,7 +70,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                     var operation = new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint);
 
                     IOperationResult<BucketConfig> operationResult;
-                    using (poolConfig.ClientConfiguration.Tracer.StartParentSpan(operation, addIgnoreTag: true))
+                    using (poolConfig.ClientConfiguration.Tracer.StartParentScope(operation, addIgnoreTag: true))
                     {
                         operationResult = ioService.Execute(operation);
                     }

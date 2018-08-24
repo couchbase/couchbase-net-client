@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
@@ -105,78 +105,75 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            IOperationResult<T> result;
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
-                //Is the cluster configured for Data services?
-                if (!ConfigInfo.IsDataCapable)
+                IOperationResult<T> result;
+                try
                 {
-                    throw new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
-                }
-
-                result = SendWithRetry(operation);
-                if (result.Success)
-                {
-                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-
-                    if (ConfigInfo.SupportsEnhancedDurability)
+                    //Is the cluster configured for Data services?
+                    if (!ConfigInfo.IsDataCapable)
                     {
-                        var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo, ClusterController,
-                            config.ObserveInterval, (uint) config.ObserveTimeout);
+                        throw new ServiceNotSupportedException(
+                            ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                    }
 
-                        var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
-                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    result = SendWithRetry(operation);
+                    if (result.Success)
+                    {
+                        var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+
+                        if (ConfigInfo.SupportsEnhancedDurability)
+                        {
+                            var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo, ClusterController,
+                                config.ObserveInterval, (uint)config.ObserveTimeout);
+
+                            var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        }
+                        else
+                        {
+                            var observer = new KeyObserver(Pending, ConfigInfo, ClusterController, config.ObserveInterval, config.ObserveTimeout);
+                            var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        }
                     }
                     else
                     {
-                        var observer = new KeyObserver(Pending, ConfigInfo, ClusterController, config.ObserveInterval, config.ObserveTimeout);
-                        var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
-                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        result.Durability = Durability.NotSatisfied;
                     }
                 }
-                else
+                catch (ReplicaNotConfiguredException e)
                 {
-                    result.Durability = Durability.NotSatisfied;
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.NoReplicasFound,
+                        Durability = Durability.NotSatisfied
+                    };
                 }
-            }
-            catch (ReplicaNotConfiguredException e)
-            {
-                result = new OperationResult<T>
+                catch (DocumentMutationLostException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.NoReplicasFound,
-                    Durability = Durability.NotSatisfied
-                };
-            }
-            catch (DocumentMutationLostException e)
-            {
-                result = new OperationResult<T>
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.DocumentMutationLost,
+                        Durability = Durability.NotSatisfied
+                    };
+                }
+                catch (Exception e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.DocumentMutationLost,
-                    Durability = Durability.NotSatisfied
-                };
-            }
-            catch (Exception e)
-            {
-                result = new OperationResult<T>
-                {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure
+                    };
+                }
 
-            return result;
+                return result;
+            }
         }
 
         /// <summary>
@@ -190,81 +187,78 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            IOperationResult result;
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
-                //Is the cluster configured for Data services?
-                if (!ConfigInfo.IsDataCapable)
+                IOperationResult result;
+                try
                 {
-                    throw new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
-                }
-
-                result = SendWithRetry(operation);
-                if (result.Success)
-                {
-                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-
-                    if (ConfigInfo.SupportsEnhancedDurability)
+                    //Is the cluster configured for Data services?
+                    if (!ConfigInfo.IsDataCapable)
                     {
-                        var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo, ClusterController,
-                            config.ObserveInterval, (uint) config.ObserveTimeout);
+                        throw new ServiceNotSupportedException(
+                            ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                    }
 
-                        var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
-                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                    result = SendWithRetry(operation);
+                    if (result.Success)
+                    {
+                        var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+
+                        if (ConfigInfo.SupportsEnhancedDurability)
+                        {
+                            var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo, ClusterController,
+                                config.ObserveInterval, (uint)config.ObserveTimeout);
+
+                            var observed = seqnoObserver.Observe(result.Token, replicateTo, persistTo);
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        }
+                        else
+                        {
+                            var observer = new KeyObserver(Pending, ConfigInfo, ClusterController, config.ObserveInterval, config.ObserveTimeout);
+                            var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
+                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        }
                     }
                     else
                     {
-                        var observer = new KeyObserver(Pending, ConfigInfo, ClusterController, config.ObserveInterval, config.ObserveTimeout);
-                        var observed = observer.Observe(operation.Key, result.Cas, deletion, replicateTo, persistTo);
-                        result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                        result.Durability = Durability.NotSatisfied;
                     }
                 }
-                else
+                catch (ReplicaNotConfiguredException e)
                 {
-                    result.Durability = Durability.NotSatisfied;
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.NoReplicasFound,
+                        Durability = Durability.NotSatisfied,
+                        OpCode = operation.OperationCode
+                    };
                 }
-            }
-            catch (ReplicaNotConfiguredException e)
-            {
-                result = new OperationResult
+                catch (DocumentMutationLostException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.NoReplicasFound,
-                    Durability = Durability.NotSatisfied,
-                    OpCode = operation.OperationCode
-                };
-            }
-            catch (DocumentMutationLostException e)
-            {
-                result = new OperationResult
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.DocumentMutationLost,
+                        Durability = Durability.NotSatisfied,
+                        OpCode = operation.OperationCode
+                    };
+                }
+                catch (Exception e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.DocumentMutationLost,
-                    Durability = Durability.NotSatisfied,
-                    OpCode = operation.OperationCode
-                };
-            }
-            catch (Exception e)
-            {
-                result = new OperationResult
-                {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure,
-                    OpCode = operation.OperationCode
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure,
+                        OpCode = operation.OperationCode
+                    };
+                }
 
-            return result;
+                return result;
+            }
         }
 
         /// <summary>
@@ -279,115 +273,112 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            IOperationResult<T> result;
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
-                //Is the cluster configured for Data services?
-                if (!ConfigInfo.IsDataCapable)
+                IOperationResult<T> result;
+                try
                 {
-                    throw new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
-                }
-
-                result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
-                if (result.Success)
-                {
-                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                    using (var cts = new CancellationTokenSource(config.ObserveTimeout))
+                    //Is the cluster configured for Data services?
+                    if (!ConfigInfo.IsDataCapable)
                     {
-                        if (ConfigInfo.SupportsEnhancedDurability)
+                        throw new ServiceNotSupportedException(
+                            ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                    }
+
+                    result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
+                    if (result.Success)
+                    {
+                        var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                        using (var cts = new CancellationTokenSource(config.ObserveTimeout))
                         {
-                            var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo,
-                                ClusterController,
-                                config.ObserveInterval, (uint) config.ObserveTimeout);
+                            if (ConfigInfo.SupportsEnhancedDurability)
+                            {
+                                var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo,
+                                    ClusterController,
+                                    config.ObserveInterval, (uint)config.ObserveTimeout);
 
-                            var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo, cts)
-                                .ContinueOnAnyContext();
+                                var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo, cts)
+                                    .ContinueOnAnyContext();
 
-                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
-                            ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
-                        }
-                        else
-                        {
-                            var observer = new KeyObserver(Pending, ConfigInfo, ClusterController,
-                                config.ObserveInterval, config.ObserveTimeout);
+                                result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                                ((OperationResult<T>)result).Success = result.Durability == Durability.Satisfied;
+                            }
+                            else
+                            {
+                                var observer = new KeyObserver(Pending, ConfigInfo, ClusterController,
+                                    config.ObserveInterval, config.ObserveTimeout);
 
-                            var observed = await observer.ObserveAsync(operation.Key, result.Cas,
-                                deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
+                                var observed = await observer.ObserveAsync(operation.Key, result.Cas,
+                                    deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
 
-                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
-                            ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
+                                result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                                ((OperationResult<T>)result).Success = result.Durability == Durability.Satisfied;
+                            }
                         }
                     }
+                    else
+                    {
+                        result.Durability = Durability.NotSatisfied;
+                        ((OperationResult<T>)result).Success = result.Durability == Durability.Satisfied;
+                    }
                 }
-                else
+                catch (TaskCanceledException e)
                 {
-                    result.Durability = Durability.NotSatisfied;
-                    ((OperationResult<T>) result).Success = result.Durability == Durability.Satisfied;
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.OperationTimeout,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
                 }
-            }
-            catch (TaskCanceledException e)
-            {
-                result = new OperationResult<T>
+                catch (ReplicaNotConfiguredException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.OperationTimeout,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (ReplicaNotConfiguredException e)
-            {
-                result = new OperationResult<T>
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.NoReplicasFound,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
+                }
+                catch (DocumentMutationLostException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.NoReplicasFound,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (DocumentMutationLostException e)
-            {
-                result = new OperationResult<T>
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.DocumentMutationLost,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
+                }
+                catch (DocumentMutationException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.DocumentMutationLost,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (DocumentMutationException e)
-            {
-                result = new OperationResult<T>
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.DocumentMutationDetected,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
+                }
+                catch (Exception e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.DocumentMutationDetected,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (Exception e)
-            {
-                result = new OperationResult<T>
-                {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure,
-                    Success = false
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    result = new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure,
+                        Success = false
+                    };
+                }
 
-            return result;
+                return result;
+            }
         }
 
         /// <summary>
@@ -401,115 +392,112 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override async Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
-            IOperationResult result;
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName, true);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
-                //Is the cluster configured for Data services?
-                if (!ConfigInfo.IsDataCapable)
+                IOperationResult result;
+                try
                 {
-                    throw new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
-                }
-
-                result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
-                if (result.Success)
-                {
-                    var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                    using (var cts = new CancellationTokenSource(config.ObserveTimeout))
+                    //Is the cluster configured for Data services?
+                    if (!ConfigInfo.IsDataCapable)
                     {
-                        if (ConfigInfo.SupportsEnhancedDurability)
+                        throw new ServiceNotSupportedException(
+                            ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
+                    }
+
+                    result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
+                    if (result.Success)
+                    {
+                        var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                        using (var cts = new CancellationTokenSource(config.ObserveTimeout))
                         {
-                            var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo,
-                                ClusterController,
-                                config.ObserveInterval, (uint)config.ObserveTimeout);
+                            if (ConfigInfo.SupportsEnhancedDurability)
+                            {
+                                var seqnoObserver = new KeySeqnoObserver(operation.Key, Pending, ConfigInfo,
+                                    ClusterController,
+                                    config.ObserveInterval, (uint)config.ObserveTimeout);
 
-                            var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo, cts)
-                                .ContinueOnAnyContext();
+                                var observed = await seqnoObserver.ObserveAsync(result.Token, replicateTo, persistTo, cts)
+                                    .ContinueOnAnyContext();
 
-                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
-                            ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
-                        }
-                        else
-                        {
-                            var observer = new KeyObserver(Pending, ConfigInfo, ClusterController,
-                                config.ObserveInterval, config.ObserveTimeout);
+                                result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                                ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                            }
+                            else
+                            {
+                                var observer = new KeyObserver(Pending, ConfigInfo, ClusterController,
+                                    config.ObserveInterval, config.ObserveTimeout);
 
-                            var observed = await observer.ObserveAsync(operation.Key, result.Cas,
-                                deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
+                                var observed = await observer.ObserveAsync(operation.Key, result.Cas,
+                                    deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
 
-                            result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
-                            ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                                result.Durability = observed ? Durability.Satisfied : Durability.NotSatisfied;
+                                ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                            }
                         }
                     }
+                    else
+                    {
+                        result.Durability = Durability.NotSatisfied;
+                        ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                    }
                 }
-                else
+                catch (TaskCanceledException e)
                 {
-                    result.Durability = Durability.NotSatisfied;
-                    ((OperationResult)result).Success = result.Durability == Durability.Satisfied;
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.OperationTimeout,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
                 }
-            }
-            catch (TaskCanceledException e)
-            {
-                result = new OperationResult
+                catch (ReplicaNotConfiguredException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.OperationTimeout,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (ReplicaNotConfiguredException e)
-            {
-                result = new OperationResult
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.NoReplicasFound,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
+                }
+                catch (DocumentMutationLostException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.NoReplicasFound,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (DocumentMutationLostException e)
-            {
-                result = new OperationResult
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.DocumentMutationLost,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
+                }
+                catch (DocumentMutationException e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.DocumentMutationLost,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (DocumentMutationException e)
-            {
-                result = new OperationResult
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.DocumentMutationDetected,
+                        Durability = Durability.NotSatisfied,
+                        Success = false
+                    };
+                }
+                catch (Exception e)
                 {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.DocumentMutationDetected,
-                    Durability = Durability.NotSatisfied,
-                    Success = false
-                };
-            }
-            catch (Exception e)
-            {
-                result = new OperationResult
-                {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure,
-                    Success = false
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    result = new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure,
+                        Success = false
+                    };
+                }
 
-            return result;
+                return result;
+            }
         }
 
         /// <summary>
@@ -535,11 +523,9 @@ namespace Couchbase.Core.Buckets
                     OpCode = operation.OperationCode
                 };
             }
-            IOperationResult operationResult = new OperationResult { Success = false, OpCode = operation.OperationCode};
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
+                IOperationResult operationResult = new OperationResult { Success = false, OpCode = operation.OperationCode };
                 do
                 {
                     IVBucket vBucket;
@@ -570,7 +556,7 @@ namespace Couchbase.Core.Buckets
                     }
                     else
                     {
-                        ((OperationResult) operationResult).SetException();
+                        ((OperationResult)operationResult).SetException();
                         Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
                         break;
                     }
@@ -586,13 +572,9 @@ namespace Couchbase.Core.Buckets
                     }
                     LogFailure(operation, operationResult);
                 }
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
 
-            return operationResult;
+                return operationResult;
+            }
         }
 
         /// <summary>
@@ -619,11 +601,9 @@ namespace Couchbase.Core.Buckets
                 };
             }
 
-            IOperationResult<T> operationResult = new OperationResult<T> { Success = false, OpCode = operation.OperationCode };
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
+                IOperationResult<T> operationResult = new OperationResult<T> { Success = false, OpCode = operation.OperationCode };
                 do
                 {
                     IVBucket vBucket;
@@ -648,14 +628,14 @@ namespace Couchbase.Core.Buckets
                     if (CanRetryOperation(operationResult, operation) && !operation.TimedOut())
                     {
                         LogFailure(operation, operationResult);
-                        operation = (IOperation<T>) operation.Clone();
+                        operation = (IOperation<T>)operation.Clone();
 
                         // Get retry timeout, uses default timeout if no retry stratergy available
                         Thread.Sleep(operation.GetRetryTimeout(VBucketRetrySleepTime));
                     }
                     else
                     {
-                        ((OperationResult) operationResult).SetException();
+                        ((OperationResult)operationResult).SetException();
                         Log.Debug("Operation doesn't support retries for key {0}", operation.Key);
                         break;
                     }
@@ -666,18 +646,14 @@ namespace Couchbase.Core.Buckets
                     if (operation.TimedOut())
                     {
                         const string msg = "The operation has timed out.";
-                        ((OperationResult) operationResult).Message = msg;
-                        ((OperationResult) operationResult).Status = ResponseStatus.OperationTimeout;
+                        ((OperationResult)operationResult).Message = msg;
+                        ((OperationResult)operationResult).Status = ResponseStatus.OperationTimeout;
                     }
                     LogFailure(operation, operationResult);
                 }
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
 
-            return operationResult;
+                return operationResult;
+            }
         }
 
         /// <summary>
@@ -694,54 +670,51 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult<T>> tcs = null,
             CancellationTokenSource cts = null)
         {
-            tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
-
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
-                //Is the cluster configured for Data services?
-                if (!ConfigInfo.IsDataCapable)
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
+                cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
+                try
                 {
-                    tcs.SetException(new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")));
+                    //Is the cluster configured for Data services?
+                    if (!ConfigInfo.IsDataCapable)
+                    {
+                        tcs.SetException(new ServiceNotSupportedException(
+                            ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")));
+                    }
+
+                    var keyMapper = ConfigInfo.GetKeyMapper();
+                    var vBucket = (IVBucket)keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
+                    operation.VBucket = vBucket;
+                    operation.LastConfigRevisionTried = vBucket.Rev;
+
+                    operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
+                        this, Pending, ClusterController, tcs, cts.Token);
+
+                    Pending.TryAdd(operation.Opaque, operation);
+
+                    IServer server;
+                    var attempts = 0;
+                    while ((server = vBucket.LocatePrimary()) == null)
+                    {
+                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                        await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+                    }
+                    await server.SendAsync(operation).ContinueOnAnyContext();
+                }
+                catch (Exception e)
+                {
+                    tcs.TrySetResult(new OperationResult<T>
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure
+                    });
                 }
 
-                var keyMapper = ConfigInfo.GetKeyMapper();
-                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
-                operation.VBucket = vBucket;
-                operation.LastConfigRevisionTried = vBucket.Rev;
-
-                operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
-                    this, Pending, ClusterController, tcs, cts.Token);
-
-                Pending.TryAdd(operation.Opaque, operation);
-
-                IServer server;
-                var attempts = 0;
-                while ((server = vBucket.LocatePrimary()) == null)
-                {
-                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server.");}
-                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
-                }
-                await server.SendAsync(operation).ContinueOnAnyContext();
+                return await tcs.Task.ContinueOnAnyContext();
             }
-            catch (Exception e)
-            {
-                tcs.TrySetResult(new OperationResult<T>
-                {
-                   Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure
-                });
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
-
-            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -757,55 +730,52 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult> tcs = null,
             CancellationTokenSource cts = null)
         {
-            tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
-
-            var parentSpan = Tracer.StartParentSpan(operation, ConfigInfo.BucketName);
-
-            try
+            using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
-                //Is the cluster configured for Data services?
-                if (!ConfigInfo.IsDataCapable)
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
+                cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
+                try
                 {
-                    tcs.SetException(new ServiceNotSupportedException(
-                        ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")));
+                    //Is the cluster configured for Data services?
+                    if (!ConfigInfo.IsDataCapable)
+                    {
+                        tcs.SetException(new ServiceNotSupportedException(
+                            ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data")));
+                    }
+
+                    var keyMapper = ConfigInfo.GetKeyMapper();
+                    var vBucket = (IVBucket)keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
+                    operation.VBucket = vBucket;
+                    operation.LastConfigRevisionTried = vBucket.Rev;
+
+                    operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
+                        this, Pending, ClusterController, tcs, cts.Token);
+
+                    Pending.TryAdd(operation.Opaque, operation);
+
+                    IServer server;
+                    var attempts = 0;
+                    while ((server = vBucket.LocatePrimary()) == null)
+                    {
+                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
+                        await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
+                    }
+                    Log.Debug("Starting send for {0} with {1}", operation.Opaque, server.EndPoint);
+                    await server.SendAsync(operation).ContinueOnAnyContext();
+                }
+                catch (Exception e)
+                {
+                    tcs.TrySetResult(new OperationResult
+                    {
+                        Id = operation.Key,
+                        Exception = e,
+                        Status = ResponseStatus.ClientFailure
+                    });
                 }
 
-                var keyMapper = ConfigInfo.GetKeyMapper();
-                var vBucket = (IVBucket) keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
-                operation.VBucket = vBucket;
-                operation.LastConfigRevisionTried = vBucket.Rev;
-
-                operation.Completed = CallbackFactory.CompletedFuncWithRetryForCouchbase(
-                    this, Pending, ClusterController, tcs, cts.Token);
-
-                Pending.TryAdd(operation.Opaque, operation);
-
-                IServer server;
-                var attempts = 0;
-                while ((server = vBucket.LocatePrimary()) == null)
-                {
-                    if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                    await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
-                }
-                Log.Debug("Starting send for {0} with {1}", operation.Opaque, server.EndPoint);
-                await server.SendAsync(operation).ContinueOnAnyContext();
+                return await tcs.Task.ContinueOnAnyContext();
             }
-            catch (Exception e)
-            {
-                tcs.TrySetResult(new OperationResult
-                {
-                    Id = operation.Key,
-                    Exception = e,
-                    Status = ResponseStatus.ClientFailure
-                });
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
-
-            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -817,48 +787,45 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override IViewResult<T> SendWithRetry<T>(IViewQueryable viewQuery)
         {
-            IViewResult<T> viewResult;
-            var parentSpan = Tracer.StartParentSpan(viewQuery);
-
-            try
+            using (Tracer.StartParentScope(viewQuery))
             {
-                EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
-                EnsureServiceAvailable(ConfigInfo.IsViewCapable, "View");
-
-                viewResult = RetryRequest(
-                    ConfigInfo.GetViewNode,
-                    (server, request) => server.Send<T>(request),
-                    (request, result) =>
-                    {
-                        if(!(result.Success || !result.ShouldRetry() || request.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries))
-                        {
-                            request.RetryAttempts++;
-                            return true;
-                        }
-                        return false;
-                    },
-                    viewQuery
-                );
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                const string message = "View request failed, check Error and Exception fields for details.";
-                viewResult = new ViewResult<T>
+                IViewResult<T> viewResult;
+                try
                 {
-                    Message = message,
-                    Error = e.Message,
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
+                    EnsureServiceAvailable(ConfigInfo.IsViewCapable, "View");
 
-            return viewResult;
+                    viewResult = RetryRequest(
+                        ConfigInfo.GetViewNode,
+                        (server, request) => server.Send<T>(request),
+                        (request, result) =>
+                        {
+                            if (!(result.Success || !result.ShouldRetry() || request.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries))
+                            {
+                                request.RetryAttempts++;
+                                return true;
+                            }
+                            return false;
+                        },
+                        viewQuery
+                    );
+                }
+                catch (Exception e)
+                {
+                    Log.Info(e);
+                    const string message = "View request failed, check Error and Exception fields for details.";
+                    viewResult = new ViewResult<T>
+                    {
+                        Message = message,
+                        Error = e.Message,
+                        StatusCode = HttpStatusCode.BadRequest,
+                        Success = false,
+                        Exception = e
+                    };
+                }
+
+                return viewResult;
+            }
         }
 
         /// <summary>
@@ -872,116 +839,107 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support View services.</exception>
         public override async Task<IViewResult<T>> SendWithRetryAsync<T>(IViewQueryable query)
         {
-            IViewResult<T> viewResult;
-            var parentSpan = Tracer.StartParentSpan(query);
-
-            try
+            using (Tracer.StartParentScope(query))
             {
-                EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
-                EnsureServiceAvailable(ConfigInfo.IsViewCapable, "View");
-
-                viewResult = await RetryRequestAsync(
-                    ConfigInfo.GetViewNode,
-                    (server, request, token) =>
-                    {
-                        request.RetryAttempts++;
-                        return server.SendAsync<T>(request);
-                    },
-                    (request, result) => !(result.Success || !result.ShouldRetry() || request.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries),
-                    query,
-                    CancellationToken.None,
-                    ConfigInfo.ClientConfig.ViewRequestTimeout
-                ).ContinueOnAnyContext();
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                const string message = "View request failed, check Error and Exception fields for details.";
-                viewResult = new ViewResult<T>
+                IViewResult<T> viewResult;
+                try
                 {
-                    Message = message,
-                    Error = e.Message,
-                    StatusCode = HttpStatusCode.BadRequest,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    EnsureNotEphemeral(ConfigInfo.BucketConfig.BucketType);
+                    EnsureServiceAvailable(ConfigInfo.IsViewCapable, "View");
 
-            return viewResult;
+                    viewResult = await RetryRequestAsync(
+                        ConfigInfo.GetViewNode,
+                        (server, request, token) =>
+                        {
+                            request.RetryAttempts++;
+                            return server.SendAsync<T>(request);
+                        },
+                        (request, result) => !(result.Success || !result.ShouldRetry() || request.RetryAttempts >= ConfigInfo.ClientConfig.MaxViewRetries),
+                        query,
+                        CancellationToken.None,
+                        ConfigInfo.ClientConfig.ViewRequestTimeout
+                    ).ContinueOnAnyContext();
+                }
+                catch (Exception e)
+                {
+                    Log.Info(e);
+                    const string message = "View request failed, check Error and Exception fields for details.";
+                    viewResult = new ViewResult<T>
+                    {
+                        Message = message,
+                        Error = e.Message,
+                        StatusCode = HttpStatusCode.BadRequest,
+                        Success = false,
+                        Exception = e
+                    };
+                }
+
+                return viewResult;
+            }
         }
 
         public override ISearchQueryResult SendWithRetry(SearchQuery searchQuery)
         {
-            ISearchQueryResult searchResult;
-            var parentSpan = Tracer.StartParentSpan(searchQuery);
-
-            try
+            using (Tracer.StartParentScope(searchQuery))
             {
-                EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
-
-                searchResult = RetryRequest(
-                    ConfigInfo.GetSearchNode,
-                    (server, request) => server.Send(request),
-                    (request, result) => !result.Success,
-                    searchQuery
-                );
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                searchResult = new SearchQueryResult
+                ISearchQueryResult searchResult;
+                try
                 {
-                    Status = SearchStatus.Failed,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
 
-            return searchResult;
+                    searchResult = RetryRequest(
+                        ConfigInfo.GetSearchNode,
+                        (server, request) => server.Send(request),
+                        (request, result) => !result.Success,
+                        searchQuery
+                    );
+                }
+                catch (Exception e)
+                {
+                    Log.Info(e);
+                    searchResult = new SearchQueryResult
+                    {
+                        Status = SearchStatus.Failed,
+                        Success = false,
+                        Exception = e
+                    };
+                }
+
+                return searchResult;
+            }
         }
 
         public override async Task<ISearchQueryResult> SendWithRetryAsync(SearchQuery searchQuery, CancellationToken cancellationToken)
         {
-            ISearchQueryResult searchResult;
-            var parentSpan = Tracer.StartParentSpan(searchQuery);
-
-            try
+            using (Tracer.StartParentScope(searchQuery))
             {
-                EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
-
-                searchResult = await RetryRequestAsync(
-                    ConfigInfo.GetSearchNode,
-                    (server, request, token) => server.SendAsync(request),
-                    (request, result) => !result.Success,
-                    searchQuery,
-                    cancellationToken,
-                    (int) ConfigInfo.ClientConfig.SearchRequestTimeout
-                ).ContinueOnAnyContext();
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                searchResult = new SearchQueryResult
+                ISearchQueryResult searchResult;
+                try
                 {
-                    Status = SearchStatus.Failed,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    EnsureServiceAvailable(ConfigInfo.IsSearchCapable, "FTS");
 
-            return searchResult;
+                    searchResult = await RetryRequestAsync(
+                        ConfigInfo.GetSearchNode,
+                        (server, request, token) => server.SendAsync(request),
+                        (request, result) => !result.Success,
+                        searchQuery,
+                        cancellationToken,
+                        (int)ConfigInfo.ClientConfig.SearchRequestTimeout
+                    ).ContinueOnAnyContext();
+                }
+                catch (Exception e)
+                {
+                    Log.Info(e);
+                    searchResult = new SearchQueryResult
+                    {
+                        Status = SearchStatus.Failed,
+                        Success = false,
+                        Exception = e
+                    };
+                }
+
+                return searchResult;
+            }
         }
 
         /// <summary>
@@ -995,44 +953,41 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override IQueryResult<T> SendWithRetry<T>(IQueryRequest queryRequest)
         {
-            IQueryResult<T> queryResult;
-            var parentSpan = Tracer.StartParentSpan(queryRequest);
-
-            try
+            using (Tracer.StartParentScope(queryRequest))
             {
-                EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
-
-                queryRequest.Lifespan = new Lifespan
+                IQueryResult<T> queryResult;
+                try
                 {
-                    CreationTime = DateTime.UtcNow,
-                    Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
-                };
+                    EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
 
-                queryResult = RetryRequest(
-                    ConfigInfo.GetQueryNode,
-                    (server, req) => server.Send<T>(req),
-                    (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
-                    queryRequest
-                );
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                const string message = "The query request failed, check Error and Exception fields for details.";
-                queryResult = new QueryResult<T>
+                    queryRequest.Lifespan = new Lifespan
+                    {
+                        CreationTime = DateTime.UtcNow,
+                        Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
+                    };
+
+                    queryResult = RetryRequest(
+                        ConfigInfo.GetQueryNode,
+                        (server, req) => server.Send<T>(req),
+                        (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
+                        queryRequest
+                    );
+                }
+                catch (Exception e)
                 {
-                    Message = message,
-                    Status = QueryStatus.Fatal,
-                    Success = false,
-                    Exception = e
-                };
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    Log.Info(e);
+                    const string message = "The query request failed, check Error and Exception fields for details.";
+                    queryResult = new QueryResult<T>
+                    {
+                        Message = message,
+                        Status = QueryStatus.Fatal,
+                        Success = false,
+                        Exception = e
+                    };
+                }
 
-            return queryResult;
+                return queryResult;
+            }
         }
 
         /// <summary>
@@ -1045,43 +1000,43 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Query services.</exception>
         public override async Task<IQueryResult<T>> SendWithRetryAsync<T>(IQueryRequest queryRequest, CancellationToken cancellationToken)
         {
-            IQueryResult<T> queryResult;
-            var parentSpan = Tracer.StartParentSpan(queryRequest);
-
-            try
+            using (Tracer.StartParentScope(queryRequest))
             {
-                EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
-
-                queryRequest.Lifespan = new Lifespan
+                IQueryResult<T> queryResult;
+                try
                 {
-                    CreationTime = DateTime.UtcNow,
-                    Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
-                };
+                    EnsureServiceAvailable(ConfigInfo.IsQueryCapable, "Query");
 
-                queryResult = await RetryRequestAsync(
-                    ConfigInfo.GetQueryNode,
-                    (server, request, token) => server.SendAsync<T>(request, token),
-                    (request, result) => !(result.Success || request.TimedOut()) && result.ShouldRetry(),
-                    queryRequest,
-                    cancellationToken,
-                    (int)ConfigInfo.ClientConfig.QueryRequestTimeout
-                ).ContinueOnAnyContext();
-            }
-            catch (Exception e)
-            {
-                Log.Info(e);
-                const string message = "The Query request failed, check Error and Exception fields for details.";
-                queryResult = new QueryResult<T>
+                    queryRequest.Lifespan = new Lifespan
+                    {
+                        CreationTime = DateTime.UtcNow,
+                        Duration = ConfigInfo.ClientConfig.QueryRequestTimeout
+                    };
+
+                    queryResult = await RetryRequestAsync(
+                        ConfigInfo.GetQueryNode,
+                        (server, request, token) => server.SendAsync<T>(request, token),
+                        (request, result) => !(result.Success || request.TimedOut()) && result.ShouldRetry(),
+                        queryRequest,
+                        cancellationToken,
+                        (int) ConfigInfo.ClientConfig.QueryRequestTimeout
+                    ).ContinueOnAnyContext();
+                }
+                catch (Exception e)
                 {
-                    Message = message,
-                    Status = QueryStatus.Fatal,
-                    Success = false,
-                    Exception = e
-                };
-            }
+                    Log.Info(e);
+                    const string message = "The Query request failed, check Error and Exception fields for details.";
+                    queryResult = new QueryResult<T>
+                    {
+                        Message = message,
+                        Status = QueryStatus.Fatal,
+                        Success = false,
+                        Exception = e
+                    };
+                }
 
-            parentSpan.Finish();
-            return queryResult;
+                return queryResult;
+            }
         }
 
         #region CBAS
@@ -1095,33 +1050,30 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="System.TimeoutException">Could not acquire a server.</exception>
         public override IAnalyticsResult<T> SendWithRetry<T>(IAnalyticsRequest request)
         {
-            IAnalyticsResult<T> result;
-            var parentSpan = Tracer.StartParentSpan(request);
-
-            try
+            using (Tracer.StartParentScope(request))
             {
-                EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
+                IAnalyticsResult<T> result;
+                try
+                {
+                    EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
 
-                // Ugly but prevents Lifespan being public on IAnalyticsRequest
-                ((AnalyticsRequest) request).ConfigureLifespan(ConfigInfo.ClientConfig.AnalyticsRequestTimeout);
+                    // Ugly but prevents Lifespan being public on IAnalyticsRequest
+                    ((AnalyticsRequest)request).ConfigureLifespan(ConfigInfo.ClientConfig.AnalyticsRequestTimeout);
 
-                result = RetryRequest(
-                    ConfigInfo.GetAnalyticsNode,
-                    (server, req) => server.Send<T>(req),
-                    (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
-                    request);
-            }
-            catch (Exception exception)
-            {
-                Log.Info(exception);
-                result = CreateFailedAnalyticsResult<T>(exception);
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    result = RetryRequest(
+                        ConfigInfo.GetAnalyticsNode,
+                        (server, req) => server.Send<T>(req),
+                        (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
+                        request);
+                }
+                catch (Exception exception)
+                {
+                    Log.Info(exception);
+                    result = CreateFailedAnalyticsResult<T>(exception);
+                }
 
-            return result;
+                return result;
+            }
         }
 
         /// <summary>
@@ -1134,36 +1086,33 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support analytics services.</exception>
         public override async Task<IAnalyticsResult<T>> SendWithRetryAsync<T>(IAnalyticsRequest request, CancellationToken cancellationToken)
         {
-            IAnalyticsResult<T> result;
-            var parentSpan = Tracer.StartParentSpan(request);
-
-            try
+            using (Tracer.StartParentScope(request))
             {
-                EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
+                IAnalyticsResult<T> result;
+                try
+                {
+                    EnsureServiceAvailable(ConfigInfo.IsAnalyticsCapable, "Analytics");
 
-                // Ugly but prevents Lifespan being public
-                ((AnalyticsRequest) request).ConfigureLifespan(ConfigInfo.ClientConfig.QueryRequestTimeout);
+                    // Ugly but prevents Lifespan being public
+                    ((AnalyticsRequest)request).ConfigureLifespan(ConfigInfo.ClientConfig.QueryRequestTimeout);
 
-                result = await RetryRequestAsync(
-                    ConfigInfo.GetAnalyticsNode,
-                    (server, req, token) => server.SendAsync<T>(req, token),
-                    (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
-                    request,
-                    cancellationToken,
-                    (int) ConfigInfo.ClientConfig.AnalyticsRequestTimeout
-                ).ContinueOnAnyContext();
-            }
-            catch (Exception exception)
-            {
-                Log.Info(exception);
-                result = CreateFailedAnalyticsResult<T>(exception);
-            }
-            finally
-            {
-                parentSpan.Finish();
-            }
+                    result = await RetryRequestAsync(
+                        ConfigInfo.GetAnalyticsNode,
+                        (server, req, token) => server.SendAsync<T>(req, token),
+                        (req, res) => !(res.Success || req.TimedOut()) && res.ShouldRetry(),
+                        request,
+                        cancellationToken,
+                        (int)ConfigInfo.ClientConfig.AnalyticsRequestTimeout
+                    ).ContinueOnAnyContext();
+                }
+                catch (Exception exception)
+                {
+                    Log.Info(exception);
+                    result = CreateFailedAnalyticsResult<T>(exception);
+                }
 
-            return result;
+                return result;
+            }
         }
 
         private static IAnalyticsResult<T> CreateFailedAnalyticsResult<T>(Exception exception)

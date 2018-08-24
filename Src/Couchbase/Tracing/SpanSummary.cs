@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Utils;
 using Newtonsoft.Json;
-using OpenTracing;
+using OpenTracing.Tag;
 
 namespace Couchbase.Tracing
 {
@@ -81,7 +81,7 @@ namespace Couchbase.Tracing
                             LastLocalAddress = local.ToString();
                         }
 
-                        if (span.Tags.TryGetValue(Tags.PeerAddress, out var remote))
+                        if (span.Tags.TryGetValue(Tags.PeerHostIpv4.Key, out var remote))
                         {
                             LastRemoteAddress = remote.ToString();
                         }

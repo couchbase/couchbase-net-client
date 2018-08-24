@@ -28,20 +28,20 @@ namespace Couchbase.IntegrationTests.Tracing
 
                 using (tracer.BuildSpan(CouchbaseOperationNames.RequestEncoding)
                     .AsChildOf(parentSpan)
-                    .Start())
+                    .StartActive())
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(random.Next(1, 10)));
                 }
 
-                using (var dispatchSpan = tracer.BuildSpan(CouchbaseOperationNames.DispatchToServer)
+                using (var scope = tracer.BuildSpan(CouchbaseOperationNames.DispatchToServer)
                     .AsChildOf(parentSpan)
-                    .Start())
+                    .StartActive())
                 {
-                    dispatchSpan.SetPeerLatencyTag(random.Next(10, 100));
+                    scope.Span.SetPeerLatencyTag(random.Next(10, 100));
                     await Task.Delay(TimeSpan.FromMilliseconds(random.Next(1, 10)));
                 }
 
-                using (tracer.BuildSpan(CouchbaseOperationNames.ResponseDecoding).AsChildOf(parentSpan).Start())
+                using (tracer.BuildSpan(CouchbaseOperationNames.ResponseDecoding).AsChildOf(parentSpan).StartActive())
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(random.Next(1, 10)));
                 }

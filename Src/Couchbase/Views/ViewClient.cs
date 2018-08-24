@@ -32,7 +32,7 @@ namespace Couchbase.Views
             var viewResult = new ViewResult<T>();
 
             string body;
-            using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).Start())
+            using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).StartActive())
             {
                 body = query.CreateRequestBody();
             }
@@ -44,14 +44,14 @@ namespace Couchbase.Views
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
 
                 HttpResponseMessage response;
-                using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.DispatchToServer).Start())
+                using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.DispatchToServer).StartActive())
                 {
                     response = await HttpClient.PostAsync(uri, content).ContinueOnAnyContext();
                 }
 
                 if (response.IsSuccessStatusCode)
                 {
-                    using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.ResponseDecoding).Start())
+                    using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.ResponseDecoding).StartActive())
                     using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                     {
                         viewResult = DataMapper.Map<ViewResultData<T>>(stream).ToViewResult();

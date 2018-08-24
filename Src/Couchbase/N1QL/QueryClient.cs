@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Couchbase.Logging;
 using Couchbase.Authentication;
 using Couchbase.Configuration;
-using Couchbase.Configuration.Client;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Serialization;
 using Couchbase.Tracing;
@@ -254,7 +253,7 @@ namespace Couchbase.N1QL
 
             Log.Debug("Buildspan cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
             string body;
-            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).Start())
+            using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).StartActive())
             {
                 body = queryRequest.GetFormValuesAsJson();
             }
@@ -269,13 +268,13 @@ namespace Couchbase.N1QL
                         Log.Debug("Sending query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
 
                         HttpResponseMessage response;
-                        using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
+                        using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).StartActive())
                         {
                             response = await HttpClient.PostAsync(baseUri, content, cancellationToken).ContinueOnAnyContext();
                         }
 
                         Log.Debug("Handling response cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                        using (var span = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).Start())
+                        using (var scope = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).StartActive())
                         using (var stream = await response.Content.ReadAsStreamAsync().ContinueOnAnyContext())
                         {
                             Log.Debug("Mapping cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
@@ -285,7 +284,7 @@ namespace Couchbase.N1QL
                             Log.Trace("Received query cid{0}: {1}", queryResult.ClientContextId, queryResult.ToString());
                             timer.ClusterElapsedTime = queryResult.Metrics.ElaspedTime;
 
-                            span.SetPeerLatencyTag(queryResult.Metrics.ElaspedTime);
+                            scope.Span.SetPeerLatencyTag(queryResult.Metrics.ElaspedTime);
                         }
                     }
                     baseUri.ClearFailed();
