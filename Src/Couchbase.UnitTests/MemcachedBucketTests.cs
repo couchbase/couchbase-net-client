@@ -418,14 +418,14 @@ namespace Couchbase.UnitTests
         [Test]
         public void Query_With_AnalyticsQuery_Throws_NotSupportedException()
         {
-            Assert.Throws<NotSupportedException>(() => _bucket.Query<dynamic>(new AnalyticsRequest("")));
+            Assert.Throws<NotSupportedException>(() => _bucket.Query<dynamic>(new AnalyticsRequest("SELECT 1;")));
         }
 
         [Test]
         public void QueryAsync_With_AnalyticsQuery_Throws_NotSupportedException()
         {
-            Assert.Throws<NotSupportedException>(() => _bucket.QueryAsync<dynamic>(new AnalyticsRequest("")));
-            Assert.Throws<NotSupportedException>(() => _bucket.QueryAsync<dynamic>(new AnalyticsRequest(""), CancellationToken.None));
+            Assert.Throws<NotSupportedException>(() => _bucket.QueryAsync<dynamic>(new AnalyticsRequest("SELECT 1;")));
+            Assert.Throws<NotSupportedException>(() => _bucket.QueryAsync<dynamic>(new AnalyticsRequest("SELECT 1;"), CancellationToken.None));
         }
 
         #endregion

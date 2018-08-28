@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Configuration.Client;
@@ -16,10 +16,14 @@ namespace Couchbase.Analytics
         private bool _pretty;
         private bool _includeMetrics;
         private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
+        private readonly Dictionary<string, object> _namedParameters = new Dictionary<string, object>();
+        private readonly List<object> _positionalArguments = new List<object>();
+        private ExecutionMode _executionMode = Analytics.ExecutionMode.Immediate;
+        private TimeSpan? _timeout;
 
-        public AnalyticsRequest(string statement = null)
+        public AnalyticsRequest(string statement)
         {
-            OriginalStatement = statement;
+            Statement(statement);
             _clientContextId = Guid.NewGuid().ToString();
             _requestContextId = Guid.NewGuid().ToString();
         }
@@ -36,13 +40,7 @@ namespace Couchbase.Analytics
         /// <remarks>
         /// This value changes for every request.
         /// </remarks>
-        public string CurrentContextId
-        {
-            get
-            {
-                return string.Format("{0}::{1}", _clientContextId, _requestContextId);
-            }
-        }
+        public string CurrentContextId => string.Format("{0}::{1}", _clientContextId, _requestContextId);
 
         /// <summary>
         /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
@@ -69,6 +67,23 @@ namespace Couchbase.Analytics
                 formValues.Add("creds", creds);
             }
 
+            foreach (var parameter in _namedParameters)
+            {
+                formValues.Add(parameter.Key, parameter.Value);
+            }
+
+            if (_positionalArguments.Any())
+            {
+                formValues.Add("args", _positionalArguments.ToArray());
+            }
+
+            if (_executionMode != Analytics.ExecutionMode.Immediate)
+            {
+                formValues.Add("mode", _executionMode.GetDescription());
+            }
+
+            formValues.Add("timeout", $"{Lifespan.Duration * 1000}ms");
+
             _requestContextId = Guid.NewGuid().ToString();
             formValues.Add("client_context_id", CurrentContextId);
 
@@ -94,17 +109,18 @@ namespace Couchbase.Analytics
         /// </returns>
         public bool TimedOut()
         {
+            // BUG: will throw exception if called before Lifespan has been set
             return Lifespan.TimedOut();
         }
 
         internal Lifespan Lifespan { get; private set; }
 
-        internal void ConfigureLifespan(uint duration)
+        internal void ConfigureLifespan(uint defaultDuration)
         {
             Lifespan = new Lifespan
             {
                 CreationTime = DateTime.UtcNow,
-                Duration = duration
+                Duration = _timeout.HasValue ? (uint) _timeout.Value.TotalSeconds : defaultDuration
             };
         }
 
@@ -143,7 +159,26 @@ namespace Couchbase.Analytics
         /// <remarks>
         /// Optional.
         /// </remarks>
+        [Obsolete]
         public IAnalyticsRequest Credentials(string username, string password, bool isAdmin)
+        {
+            return AddCredentials(username, password, isAdmin);
+        }
+
+        /// <summary>
+        /// Adds a set of credentials to the list of credentials, in the form of username/password.
+        /// </summary>
+        /// <param name="username">The bucket or username.</param>
+        /// <param name="password">The password of the bucket.</param>
+        /// <param name="isAdmin">True if connecting as an admin.</param>
+        /// <returns>
+        /// A reference to the current <see cref="IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        /// <exception cref="System.ArgumentOutOfRangeException">username - cannot be null, empty or whitespace.</exception>
+        /// <remarks>
+        /// Optional.
+        /// </remarks>
+        public IAnalyticsRequest AddCredentials(string username, string password, bool isAdmin)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -151,9 +186,12 @@ namespace Couchbase.Analytics
                 throw new ArgumentOutOfRangeException(username, ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
             }
 
-            if (isAdmin && !username.StartsWith("admin:"))
+            if (isAdmin)
             {
-                username = "admin:" + username;
+                if (!username.StartsWith("admin:"))
+                {
+                    username = "admin:" + username;
+                }
             }
             else if (!username.StartsWith("local:"))
             {
@@ -216,6 +254,87 @@ namespace Couchbase.Analytics
         }
 
         /// <summary>
+        /// Adds a named parameter to be used with the statement.
+        /// </summary>
+        /// <param name="key">The paramemeter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>
+        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        public IAnalyticsRequest AddNamedParamter(string key, object value)
+        {
+            _namedParameters[key] = value;
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a positional parameter to be used with the statement.
+        /// </summary>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>
+        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        public IAnalyticsRequest AddPositionalParameter(object value)
+        {
+            _positionalArguments.Add(value);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the execution mode for the query on the server.
+        /// </summary>
+        /// <param name="mode">The execution mode mode.</param>
+        /// <returns>
+        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        public IAnalyticsRequest ExecutionMode(ExecutionMode mode)
+        {
+            _executionMode = mode;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the query timeout.
+        /// </summary>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns>
+        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        public IAnalyticsRequest Timeout(TimeSpan timeout)
+        {
+            _timeout = timeout;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the query priority. Default is <c>false</c>.
+        /// </summary>
+        /// <param name="priority"><c>true</c> is the query is to be prioritized.</param>
+        /// <returns>
+        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        public IAnalyticsRequest Priority(bool priority)
+        {
+            PriorityValue = priority ? -1 : 0;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the query priority. Default is <c>0</c>.
+        /// </summary>
+        /// <param name="priority">The priority.</param>
+        /// <returns>
+        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        public IAnalyticsRequest Priority(int priority)
+        {
+            PriorityValue = priority;
+            return this;
+        }
+
+        internal int PriorityValue { get; private set; }
+
+        /// <summary>
         /// The current active <see cref="ISpan"/> used for tracing.
         /// Intended for internal use only.
         /// </summary>
@@ -224,7 +343,7 @@ namespace Couchbase.Analytics
         /// <summary>
         /// Gets or sets the timeout value of the <see cref="AnalyticsRequest"/>.
         /// </summary>
-        internal uint Timeout => Lifespan.Duration * 1000;
+        internal uint TimeoutValue => Lifespan.Duration * 1000;
     }
 }
 

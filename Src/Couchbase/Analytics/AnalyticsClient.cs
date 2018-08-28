@@ -17,6 +17,7 @@ namespace Couchbase.Analytics
     internal class AnalyticsClient : HttpServiceBase, IAnalyticsClient
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(AnalyticsClient));
+        internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ConfigContextBase context)
             : base(client, dataMapper, context)
@@ -71,7 +72,17 @@ namespace Couchbase.Analytics
                     HttpResponseMessage response;
                     using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).Start())
                     {
-                        response = await HttpClient.PostAsync(baseUri, content, token).ContinueOnAnyContext();
+                        var request = new HttpRequestMessage(HttpMethod.Post, baseUri)
+                        {
+                            Content = content
+                        };
+
+                        if (queryRequest is AnalyticsRequest req && req.PriorityValue != 0)
+                        {
+                            request.Headers.Add(AnalyticsPriorityHeaderName, new[] {req.PriorityValue.ToString()});
+                        }
+
+                        response = await HttpClient.SendAsync(request, token).ContinueOnAnyContext();
                     }
 
                     using (var span = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).Start())
@@ -91,7 +102,7 @@ namespace Couchbase.Analytics
                     var operationContext = OperationContext.CreateAnalyticsContext(queryRequest.CurrentContextId, Context.BucketName, baseUri?.Authority);
                     if (queryRequest is AnalyticsRequest request)
                     {
-                        operationContext.TimeoutMicroseconds = request.Timeout;
+                        operationContext.TimeoutMicroseconds = request.TimeoutValue;
                     }
 
                     Log.Info(operationContext.ToString());

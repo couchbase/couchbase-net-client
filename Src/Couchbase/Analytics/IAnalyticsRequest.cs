@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using Couchbase.Configuration.Client;
 using OpenTracing;
 
@@ -54,7 +55,18 @@ namespace Couchbase.Analytics
         /// <param name="isAdmin">True if connecting as an admin.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
         /// <remarks>Optional.</remarks>
+        [Obsolete]
         IAnalyticsRequest Credentials(string username, string password, bool isAdmin);
+
+        /// <summary>
+        /// Adds a set of credentials to the list of credentials, in the form of username/password.
+        /// </summary>
+        /// <param name="username">The bucket or username.</param>
+        /// <param name="password">The password of the bucket.</param>
+        /// <param name="isAdmin">True if connecting as an admin.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        /// <remarks>Optional.</remarks>
+        IAnalyticsRequest AddCredentials(string username, string password, bool isAdmin);
 
         /// <summary>
         /// A user supplied piece of data supplied with the request to the sevice. Any result will also contain the same data.
@@ -85,6 +97,49 @@ namespace Couchbase.Analytics
         /// Optional.
         /// </remarks>
         IAnalyticsRequest IncludeMetrics(bool includeMetrics);
+
+        /// <summary>
+        /// Adds a named parameter to be used with the statement.
+        /// </summary>
+        /// <param name="key">The paramemeter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest AddNamedParamter(string key, object value);
+
+        /// <summary>
+        /// Adds a positional parameter to be used with the statement.
+        /// </summary>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest AddPositionalParameter(object value);
+
+        /// <summary>
+        /// Sets the execution mode for the query on the server.
+        /// </summary>
+        /// <param name="mode">The execution mode mode.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest ExecutionMode(ExecutionMode mode);
+
+        /// <summary>
+        /// Sets the query timeout.
+        /// </summary>
+        /// <param name="timeout">The timeout.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest Timeout(TimeSpan timeout);
+
+        /// <summary>
+        /// Sets the query priority. Default is <c>false</c>.
+        /// </summary>
+        /// <param name="priority"><c>true</c> is the query is to be prioritized.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest Priority(bool priority);
+
+        /// <summary>
+        /// Sets the query priority. Default is <c>0</c>.
+        /// </summary>
+        /// <param name="priority">The priority.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest Priority(int priority);
 
         /// <summary>
         /// The current active <see cref="ISpan"/> used for tracing.

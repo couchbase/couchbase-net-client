@@ -1,4 +1,5 @@
-﻿using System.Net;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,6 +56,38 @@ namespace Couchbase.UnitTests.Analytics
             await client.QueryAsync<dynamic>(queryRequest, CancellationToken.None);
 
             Assert.IsNotNull(client.LastActivity);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Client_sets_AnalyticsPriority_Header(bool priority)
+        {
+            var context = ContextFactory.GetCouchbaseContext();
+            context.AnalyticsUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request =>
+                {
+                    if (priority)
+                    {
+                        Assert.IsTrue(request.Headers.TryGetValues(AnalyticsClient.AnalyticsPriorityHeaderName, out var values));
+                        Assert.AreEqual("-1", values.First());
+                    }
+                    else
+                    {
+                        Assert.IsFalse(request.Headers.TryGetValues(AnalyticsClient.AnalyticsPriorityHeaderName, out _));
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.OK);
+                })
+            );
+
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(context.ClientConfig), context);
+
+            var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
+            queryRequest.Priority(priority);
+
+            client.Query<dynamic>(queryRequest);
         }
     }
 }
