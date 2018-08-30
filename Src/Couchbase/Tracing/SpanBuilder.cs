@@ -146,7 +146,7 @@ namespace Couchbase.Tracing
             }
 
             var span = new Span(_tracer, _operationName, activeSpanContext, _startTimestamp ?? Stopwatch.GetTimestamp(), _tags, _references);
-            _parentSpan?.Spans.Add(span);
+            _parentSpan?.AddSpan(span);
 
             return span;
         }

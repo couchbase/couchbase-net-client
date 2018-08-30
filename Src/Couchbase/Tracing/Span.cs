@@ -25,8 +25,10 @@ namespace Couchbase.Tracing
             return Interlocked.Increment(ref _spanId).ToString(CultureInfo.InvariantCulture);
         }
 
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
         private readonly long _startTimestamp;
         private long? _endTimestamp;
+        private readonly List<Span> _spans = new List<Span>();
 
         internal ThresholdLoggingTracer Tracer { get; }
         internal List<Reference> References { get; }
@@ -35,7 +37,24 @@ namespace Couchbase.Tracing
         public ISpanContext Context { get; }
         public Dictionary<string, object> Tags { get; }
         public Dictionary<string, string> Baggage { get; } = new Dictionary<string, string>();
-        public List<Span> Spans { get; } = new List<Span>();
+
+        public List<Span> Spans
+        {
+            get
+            {
+                // needs lock to prevent concurrent access
+                _lock.Wait();
+                try
+                {
+                    return _spans.ToList();
+                }
+                finally
+                {
+                    _lock.Release(1);
+                }
+            }
+        }
+
         public string ParentId { get; }
 
         internal Span(ThresholdLoggingTracer tracer, string operationName, ISpanContext parentContext, long startTimestamp, Dictionary<string, object> tags, List<Reference> references)
@@ -196,6 +215,25 @@ namespace Couchbase.Tracing
         public void Dispose()
         {
             Finish();
+        }
+
+        public void AddSpan(Span span)
+        {
+            _lock.Wait();
+            try
+            {
+                if (_endTimestamp.HasValue)
+                {
+                    // span has already finsihed, can't add more sub-spans
+                    return;
+                }
+
+                _spans.Add(span);
+            }
+            finally
+            {
+                _lock.Release(1);
+            }
         }
     }
 }
