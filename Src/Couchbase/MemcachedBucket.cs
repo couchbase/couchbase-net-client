@@ -3536,8 +3536,10 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
-            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder,
-                timeout.GetSeconds());
+            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration
+            };
 
             return _requestExecuter.SendWithRetry(operation);
         }
@@ -3561,7 +3563,11 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Decrement(key, initial, delta, expiration, null, _transcoder, timeout.GetSeconds());
+            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = expiration
+            };
+
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 

@@ -30,7 +30,7 @@ namespace Couchbase.Tests.IO.Operations
             Assert.AreEqual(result1.Value.ToString(CultureInfo.InvariantCulture), result3.Value);
 
             //decrement the key
-            var decrement = new Decrement(key, 1, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout);
+            var decrement = new Decrement(key, 1, 1, GetVBucket(), Transcoder, OperationLifespanTimeout);
             var result2 = IOService.Execute(decrement);
             Assert.IsTrue(result2.Success);
             Assert.AreEqual(result2.Value, 0);
@@ -39,21 +39,6 @@ namespace Couchbase.Tests.IO.Operations
             get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
             result3 = IOService.Execute(get);
             Assert.AreEqual(0.ToString(CultureInfo.InvariantCulture), result3.Value);
-        }
-
-        [Test]
-        public void Test_Clone()
-        {
-            var operation = new Decrement("key", 1, 1, 0, GetVBucket(), Transcoder, OperationLifespanTimeout)
-            {
-                Cas = 1123
-            };
-            var cloned = operation.Clone();
-            Assert.AreEqual(operation.CreationTime, cloned.CreationTime);
-            Assert.AreEqual(operation.Cas, cloned.Cas);
-            Assert.AreEqual(operation.VBucket.Index, cloned.VBucket.Index);
-            Assert.AreEqual(operation.Key, cloned.Key);
-            Assert.AreEqual(operation.Opaque, cloned.Opaque);
         }
     }
 }
