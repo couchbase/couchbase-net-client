@@ -2,7 +2,7 @@
 
 namespace Couchbase.Core
 {
-    internal interface INodeAdapter
+    public interface INodeAdapter
     {
         string Hostname { get; set; }
         string CouchbaseApiBase { get; set; }

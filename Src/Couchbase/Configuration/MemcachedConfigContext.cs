@@ -73,6 +73,10 @@ namespace Couchbase.Configuration
                         {
                             if(Servers.TryGetValue(endpoint, out IServer cachedServer))
                             {
+                                //The services list may have changed even though the
+                                //connections can be reused so use the latest settings
+                                cachedServer.LoadNodeAdapter(adapter);
+
                                 servers.Add(endpoint, cachedServer);
                             }
                             else

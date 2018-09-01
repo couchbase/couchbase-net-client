@@ -63,6 +63,10 @@ namespace Couchbase.Configuration
                             //The node does not have to be created or swapped out so reuse the existing mode
                             if (Servers.TryGetValue(endpoint, out IServer cachedServer))
                             {
+                                //The services list may have changed even though the
+                                //connections can be reused so use the latest settings
+                                cachedServer.LoadNodeAdapter(adapter);
+
                                 Log.Info("Reusing node {0} for rev#{1}", endpoint, bucketConfig.Rev);
                                 servers.Add(endpoint, cachedServer);
                             }
@@ -189,6 +193,10 @@ namespace Couchbase.Configuration
                         //The node does not have to be created or swapped out so reuse the existing mode
                         if (Servers.TryGetValue(endpoint, out IServer cachedServer))
                         {
+                            //The services list may have changed even though the
+                            //connections can be reused so use the latest settings
+                            cachedServer.LoadNodeAdapter(adapter);
+
                             Log.Info("Reusing node {0} for rev#{1}", endpoint, BucketConfig.Rev);
                             servers.Add(endpoint, cachedServer);
                         }

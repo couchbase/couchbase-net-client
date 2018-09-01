@@ -216,5 +216,10 @@ namespace Couchbase.Tests.Fakes
                 throw new NotImplementedException();
             }
         }
+
+        public void LoadNodeAdapter(INodeAdapter nodeAdapter)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

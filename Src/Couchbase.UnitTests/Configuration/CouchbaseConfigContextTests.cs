@@ -7,6 +7,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
+using Couchbase.Utils;
 using Moq;
 using Newtonsoft.Json;
 using NUnit.Framework;
@@ -373,6 +374,43 @@ namespace Couchbase.UnitTests.Configuration
             Assert.AreEqual(2, context.AnalyticsUris.Count);
             Assert.IsTrue(context.AnalyticsUris.Contains(new Uri("http://127.0.0.1:8095/analytics/service")));
             Assert.IsTrue(context.AnalyticsUris.Contains(new Uri("http://127.0.0.2:8095/analytics/service")));
+        }
+
+        [Test]
+        public void LoadConfig_When_Reused_Server_Use_Latest_NodeAdapter_Settings()
+        {
+            var initialConfig = JsonConvert.DeserializeObject<BucketConfig>(
+                ResourceHelper.ReadResource(@"Data\config-rev-46.json"));
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            var mockIoService = new Mock<IIOService>();
+            mockIoService.Setup(x => x.ConnectionPool).Returns(mockConnectionPool.Object);
+            mockIoService.Setup(x => x.SupportsEnhancedDurability).Returns(true);
+            var mockSasl = new Mock<ISaslMechanism>();
+
+            var clientConfig = new ClientConfiguration();
+            var context = new CouchbaseConfigContext(
+                initialConfig,
+                clientConfig,
+                p => mockIoService.Object,
+                (a, b) => mockConnectionPool.Object,
+                (a, b, c, d) => mockSasl.Object,
+                new DefaultTranscoder(),
+                null, null);
+
+            context.LoadConfig();
+            var server = context.GetServers().First(x => Equals(x.EndPoint, IPEndPointExtensions.GetEndPoint("172.23.120.212", 0)));
+            Assert.IsFalse(server.IsQueryNode);
+
+            var newConfig = JsonConvert.DeserializeObject<BucketConfig>(
+                ResourceHelper.ReadResource(@"Data\config-rev-60.json"));
+
+            // load first config with single node
+            context.LoadConfig(newConfig);
+
+            server = context.GetServers().First(x => Equals(x.EndPoint, IPEndPointExtensions.GetEndPoint("172.23.120.212", 0)));
+            Assert.IsTrue(server.IsQueryNode);
+
         }
     }
 }

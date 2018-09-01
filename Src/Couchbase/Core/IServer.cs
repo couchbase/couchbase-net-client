@@ -208,6 +208,12 @@ namespace Couchbase.Core
         uint Revision { get; }
 
         bool IsAnalyticsNode { get; }
+
+        /// <summary>
+        /// Updates the configured ports and URIs using the provided <see cref="T:Couchbase.Core.INodeAdapter" />.
+        /// </summary>
+        /// <param name="nodeAdapter">The node adapter.</param>
+        void LoadNodeAdapter(INodeAdapter nodeAdapter);
     }
 }
 

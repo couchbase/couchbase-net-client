@@ -30,7 +30,7 @@ namespace Couchbase.Core
         private readonly ClientConfiguration _clientConfiguration;
         private readonly BucketConfiguration _bucketConfiguration;
         private readonly IIOService _ioService;
-        private readonly INodeAdapter _nodeAdapter;
+        private INodeAdapter _nodeAdapter;
         private readonly ITypeTranscoder _typeTranscoder;
         private readonly IBucketConfig _bucketConfig;
         private volatile bool _disposed;
@@ -91,21 +91,15 @@ namespace Couchbase.Core
                 _ioService = ioService;
                 _ioService.ConnectionPool.Owner = this;
             }
-            _nodeAdapter = nodeAdapter;
+
             _clientConfiguration = context.ClientConfig;
             _bucketConfiguration = context.ClientConfig.BucketConfigs[context.BucketConfig.Name];
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
             _typeTranscoder = transcoder;
             _bucketConfig = context.BucketConfig;
 
-            //services that this node is responsible for
-            IsMgmtNode = _nodeAdapter.MgmtApi > 0;
-            IsDataNode = _nodeAdapter.KeyValue > 0;
-            IsQueryNode = _nodeAdapter.N1QL > 0;
-            IsIndexNode = _nodeAdapter.IndexAdmin > 0;
-            IsViewNode = _nodeAdapter.Views > 0;
-            IsSearchNode = _nodeAdapter.IsSearchNode;
-            IsAnalyticsNode = _nodeAdapter.IsAnalyticsNode;
+            //set all properties based off the nodes and nodeExt adapter
+            LoadNodeAdapter(nodeAdapter);
 
             //View and query clients
             ViewClient = viewClient;
@@ -114,9 +108,6 @@ namespace Couchbase.Core
             SearchClient = searchClient;
             _streamingQueryClient = streamingQueryClient;
             AnalyticsClient = analyticsClient;
-
-            CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
-            CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
 
             if (IsDataNode || IsQueryNode)
             {
@@ -141,14 +132,35 @@ namespace Couchbase.Core
         }
 
         /// <summary>
+        /// Updates the configured ports and URIs using the provided <see cref="T:Couchbase.Core.INodeAdapter" />.
+        /// </summary>
+        /// <param name="nodeAdapter">The node adapter.</param>
+        public void LoadNodeAdapter(INodeAdapter nodeAdapter)
+        {
+            _nodeAdapter = nodeAdapter;
+
+            //services that this node is responsible for
+            IsMgmtNode = _nodeAdapter.MgmtApi > 0;
+            IsDataNode = _nodeAdapter.KeyValue > 0;
+            IsQueryNode = _nodeAdapter.N1QL > 0;
+            IsIndexNode = _nodeAdapter.IndexAdmin > 0;
+            IsViewNode = _nodeAdapter.Views > 0;
+            IsSearchNode = _nodeAdapter.IsSearchNode;
+            IsAnalyticsNode = _nodeAdapter.IsAnalyticsNode;
+
+            CachedViewBaseUri = UrlUtil.GetViewBaseUri(_nodeAdapter, _bucketConfiguration);
+            CachedQueryBaseUri = UrlUtil.GetN1QLBaseUri(_nodeAdapter, _bucketConfiguration);
+        }
+
+        /// <summary>
         /// The base <see cref="Uri"/> for building a View query request.
         /// </summary>
-        public Uri CachedViewBaseUri { get; }
+        public Uri CachedViewBaseUri { get; private set; }
 
         /// <summary>
         /// The base <see cref="Uri"/> for building a N1QL query request.
         /// </summary>
-        public Uri CachedQueryBaseUri { get; }
+        public Uri CachedQueryBaseUri { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is MGMT node.
@@ -156,7 +168,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is MGMT node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsMgmtNode { get; }
+        public bool IsMgmtNode { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is query node.
@@ -164,7 +176,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is query node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsQueryNode { get; }
+        public bool IsQueryNode { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is an analytics node.
@@ -172,7 +184,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsAnalyticsNode { get; }
+        public bool IsAnalyticsNode { get; private set;}
 
         /// <summary>
         /// Gets a value indicating whether this instance is data node.
@@ -180,7 +192,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is data node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsDataNode { get; }
+        public bool IsDataNode { get; private set;}
 
         /// <summary>
         /// Gets a value indicating whether this instance is index node.
@@ -188,7 +200,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is index node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsIndexNode { get; }
+        public bool IsIndexNode { get; private set;}
 
         /// <summary>
         /// Gets a value indicating whether this instance is view node.
@@ -196,7 +208,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is view node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsViewNode { get; }
+        public bool IsViewNode { get; private set;}
 
         /// <summary>
         /// Gets a value indicating whether this instance is an FTS node.
@@ -204,7 +216,7 @@ namespace Couchbase.Core
         /// <value>
         /// <c>true</c> if this instance is search node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSearchNode { get; }
+        public bool IsSearchNode { get; private set;}
 
         /// <summary>
         /// Gets the remote <see cref="IPEndPoint"/> of this node.
