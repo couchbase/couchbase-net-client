@@ -5,37 +5,22 @@ namespace Couchbase.IO.Operations
 {
     internal sealed class Decrement : MutationOperationBase<ulong>
     {
-        private readonly ulong _delta;
-        private readonly ulong _initial;
-
-        public Decrement(string key,
-            ulong initial,
-            ulong delta,
-            uint expiration,
-            IVBucket vBucket,
-            ITypeTranscoder transcoder,
-            uint timeout)
-            : base(key, initial, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
+        public Decrement(string key, ulong initial, ulong delta, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
+            : base(key, vBucket, transcoder, timeout)
         {
-            _delta = delta;
-            _initial = initial;
-            Expires = expiration;
+            Delta = delta;
+            Initial = initial;
         }
 
-        private Decrement(string key,
-            ulong initial,
-            ulong delta,
-            uint expiration,
-            IVBucket vBucket,
-            ITypeTranscoder transcoder,
-            uint opaque,
-            uint timeout)
+        private Decrement(string key, ulong initial, ulong delta, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
             : base(key, initial, vBucket, transcoder, opaque, timeout)
         {
-            _delta = delta;
-            _initial = initial;
-            Expires = expiration;
+            Delta = delta;
+            Initial = initial;
         }
+        public ulong Delta { get; }
+
+        public ulong Initial { get; }
 
         public override OperationCode OperationCode
         {
@@ -45,8 +30,8 @@ namespace Couchbase.IO.Operations
         public override byte[] CreateExtras()
         {
             var extras = new byte[20];
-            Converter.FromUInt64(_delta, extras, 0);
-            Converter.FromUInt64(_initial, extras, 8);
+            Converter.FromUInt64(Delta, extras, 0);
+            Converter.FromUInt64(Initial, extras, 8);
             Converter.FromUInt32(Expires, extras, 16);
             return extras;
         }
@@ -58,15 +43,16 @@ namespace Couchbase.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Decrement(Key, _initial,_delta, Expires, VBucket, Transcoder, Opaque, Timeout)
+            var cloned = new Decrement(Key, Initial, Delta, VBucket, Transcoder, Opaque, Timeout)
             {
                 Attempts = Attempts,
                 Cas = Cas,
                 CreationTime = CreationTime,
-                MutationToken =  MutationToken,
+                MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
                 BucketName = BucketName,
-                ErrorCode = ErrorCode
+                ErrorCode = ErrorCode,
+                Expires = Expires
             };
             return cloned;
         }
