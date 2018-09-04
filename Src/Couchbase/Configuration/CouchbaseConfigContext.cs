@@ -65,7 +65,7 @@ namespace Couchbase.Configuration
                             {
                                 //The services list may have changed even though the
                                 //connections can be reused so use the latest settings
-                                cachedServer.LoadNodeAdapter(adapter);
+                                cachedServer.LoadNodeAdapter(adapter, bucketConfig.Rev);
 
                                 Log.Info("Reusing node {0} for rev#{1}", endpoint, bucketConfig.Rev);
                                 servers.Add(endpoint, cachedServer);
@@ -195,7 +195,7 @@ namespace Couchbase.Configuration
                         {
                             //The services list may have changed even though the
                             //connections can be reused so use the latest settings
-                            cachedServer.LoadNodeAdapter(adapter);
+                            cachedServer.LoadNodeAdapter(adapter, BucketConfig.Rev);
 
                             Log.Info("Reusing node {0} for rev#{1}", endpoint, BucketConfig.Rev);
                             servers.Add(endpoint, cachedServer);

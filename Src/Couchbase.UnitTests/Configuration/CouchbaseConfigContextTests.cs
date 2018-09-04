@@ -410,7 +410,39 @@ namespace Couchbase.UnitTests.Configuration
 
             server = context.GetServers().First(x => Equals(x.EndPoint, IPEndPointExtensions.GetEndPoint("172.23.120.212", 0)));
             Assert.IsTrue(server.IsQueryNode);
+        }
 
+        [Test]
+        public void LoadConfig_when_reused_updates_bucket_revision()
+        {
+            var initialConfig = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Data\config-rev-46.json"));
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            var mockIoService = new Mock<IIOService>();
+            mockIoService.Setup(x => x.ConnectionPool).Returns(mockConnectionPool.Object);
+            mockIoService.Setup(x => x.SupportsEnhancedDurability).Returns(true);
+            var mockSasl = new Mock<ISaslMechanism>();
+
+            var clientConfig = new ClientConfiguration();
+            var context = new CouchbaseConfigContext(
+                initialConfig,
+                clientConfig,
+                p => mockIoService.Object,
+                (a, b) => mockConnectionPool.Object,
+                (a, b, c, d) => mockSasl.Object,
+                new DefaultTranscoder(),
+                null, null);
+
+            // load using initial config
+            context.LoadConfig();
+            Assert.IsTrue(context.GetServers().All(s => s.Revision == initialConfig.Rev));
+
+            // load new config
+            var newConfig = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Data\config-rev-60.json"));
+            context.LoadConfig(newConfig);
+
+            //server = context.GetServers().First(x => Equals(x.EndPoint, IPEndPointExtensions.GetEndPoint("172.23.120.212", 0)));
+            Assert.IsTrue(context.GetServers().All(s => s.Revision == newConfig.Rev));
         }
     }
 }

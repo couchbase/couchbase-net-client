@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -217,7 +217,7 @@ namespace Couchbase.Tests.Fakes
             }
         }
 
-        public void LoadNodeAdapter(INodeAdapter nodeAdapter)
+        public void LoadNodeAdapter(INodeAdapter nodeAdapter, uint rev)
         {
             throw new NotImplementedException();
         }

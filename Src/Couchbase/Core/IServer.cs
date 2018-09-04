@@ -3,8 +3,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
-using Couchbase.Authentication.SASL;
-using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.N1QL;
@@ -213,7 +211,8 @@ namespace Couchbase.Core
         /// Updates the configured ports and URIs using the provided <see cref="T:Couchbase.Core.INodeAdapter" />.
         /// </summary>
         /// <param name="nodeAdapter">The node adapter.</param>
-        void LoadNodeAdapter(INodeAdapter nodeAdapter);
+        /// <param name="rev">The cluster revision number.</param>
+        void LoadNodeAdapter(INodeAdapter nodeAdapter, uint rev);
     }
 }
 

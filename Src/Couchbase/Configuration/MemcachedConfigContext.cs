@@ -75,7 +75,7 @@ namespace Couchbase.Configuration
                             {
                                 //The services list may have changed even though the
                                 //connections can be reused so use the latest settings
-                                cachedServer.LoadNodeAdapter(adapter);
+                                cachedServer.LoadNodeAdapter(adapter, bucketConfig.Rev);
 
                                 servers.Add(endpoint, cachedServer);
                             }

@@ -8,7 +8,6 @@ using Couchbase.Analytics;
 using Couchbase.Logging;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Http;
@@ -32,7 +31,6 @@ namespace Couchbase.Core
         private readonly IIOService _ioService;
         private INodeAdapter _nodeAdapter;
         private readonly ITypeTranscoder _typeTranscoder;
-        private readonly IBucketConfig _bucketConfig;
         private volatile bool _disposed;
         private volatile bool _timingEnabled;
         private volatile bool _isDown;
@@ -96,10 +94,9 @@ namespace Couchbase.Core
             _bucketConfiguration = context.ClientConfig.BucketConfigs[context.BucketConfig.Name];
             _timingEnabled = _clientConfiguration.EnableOperationTiming;
             _typeTranscoder = transcoder;
-            _bucketConfig = context.BucketConfig;
 
             //set all properties based off the nodes and nodeExt adapter
-            LoadNodeAdapter(nodeAdapter);
+            LoadNodeAdapter(nodeAdapter, context.BucketConfig.Rev);
 
             //View and query clients
             ViewClient = viewClient;
@@ -135,9 +132,11 @@ namespace Couchbase.Core
         /// Updates the configured ports and URIs using the provided <see cref="T:Couchbase.Core.INodeAdapter" />.
         /// </summary>
         /// <param name="nodeAdapter">The node adapter.</param>
-        public void LoadNodeAdapter(INodeAdapter nodeAdapter)
+        /// <param name="rev">The cluster revision number.</param>
+        public void LoadNodeAdapter(INodeAdapter nodeAdapter, uint rev)
         {
             _nodeAdapter = nodeAdapter;
+            Revision = rev;
 
             //services that this node is responsible for
             IsMgmtNode = _nodeAdapter.MgmtApi > 0;
@@ -296,7 +295,7 @@ namespace Couchbase.Core
         /// <value>
         /// The revision.
         /// </value>
-        public uint Revision => _bucketConfig.Rev;
+        public uint Revision { get; private set; }
 
         /// <summary>
         /// Handles the Elapsed event of the _heartBeatTimer control which is enabled
