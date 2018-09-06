@@ -694,13 +694,7 @@ namespace Couchbase.Core.Buckets
 
                     Pending.TryAdd(operation.Opaque, operation);
 
-                    IServer server;
-                    var attempts = 0;
-                    while ((server = vBucket.LocatePrimary()) == null)
-                    {
-                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                        await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
-                    }
+                    var server = await GetServerWithRetryAsync(vBucket.LocatePrimary, cts.Token).ContinueOnAnyContext();
                     await server.SendAsync(operation).ContinueOnAnyContext();
                 }
                 catch (Exception e)
@@ -712,9 +706,9 @@ namespace Couchbase.Core.Buckets
                         Status = ResponseStatus.ClientFailure
                     });
                 }
-
-                return await tcs.Task.ContinueOnAnyContext();
             }
+
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -754,13 +748,7 @@ namespace Couchbase.Core.Buckets
 
                     Pending.TryAdd(operation.Opaque, operation);
 
-                    IServer server;
-                    var attempts = 0;
-                    while ((server = vBucket.LocatePrimary()) == null)
-                    {
-                        if (attempts++ > 10) { throw new TimeoutException("Could not acquire a server."); }
-                        await Task.Delay((int)Math.Pow(2, attempts)).ContinueOnAnyContext();
-                    }
+                    var server = await GetServerWithRetryAsync(vBucket.LocatePrimary, cts.Token);
                     Log.Debug("Starting send for {0} with {1}", operation.Opaque, server.EndPoint);
                     await server.SendAsync(operation).ContinueOnAnyContext();
                 }
@@ -773,9 +761,9 @@ namespace Couchbase.Core.Buckets
                         Status = ResponseStatus.ClientFailure
                     });
                 }
-
-                return await tcs.Task.ContinueOnAnyContext();
             }
+
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>

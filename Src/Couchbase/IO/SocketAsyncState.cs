@@ -87,6 +87,7 @@ namespace Couchbase.IO
         public void Dispose()
         {
             if (Data != null) Data.Dispose();
+            DispatchSpan?.Finish();
         }
     }
 
