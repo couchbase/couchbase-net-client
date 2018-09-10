@@ -118,6 +118,8 @@ namespace Couchbase.Search
                             }
                         }
                     }
+
+                    searchResult.HttpStatusCode = response.StatusCode;
                 }
                 baseUri.ClearFailed();
             }

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 
 namespace Couchbase.Search
@@ -89,9 +90,14 @@ namespace Couchbase.Search
             Hits.Add(row);
         }
 
-        bool IResult.ShouldRetry()
+        public bool ShouldRetry()
         {
-            throw new NotImplementedException();
+            if ((int) HttpStatusCode == 429) // 429 - TooManyRequests
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -103,6 +109,8 @@ namespace Couchbase.Search
         /// The metrics for the search. Includes number of hits, time taken, etc.
         /// </summary>
         public SearchMetrics Metrics { get; internal set; }
+
+        internal HttpStatusCode HttpStatusCode { get; set; }
 
         public void Dispose()
         { }

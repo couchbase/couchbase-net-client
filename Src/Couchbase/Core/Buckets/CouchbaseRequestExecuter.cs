@@ -878,7 +878,7 @@ namespace Couchbase.Core.Buckets
                     searchResult = RetryRequest(
                         ConfigInfo.GetSearchNode,
                         (server, request) => server.Send(request),
-                        (request, result) => !result.Success,
+                        (request, result) => !result.Success && result.ShouldRetry(),
                         searchQuery
                     );
                 }
@@ -908,8 +908,8 @@ namespace Couchbase.Core.Buckets
 
                     searchResult = await RetryRequestAsync(
                         ConfigInfo.GetSearchNode,
-                        (server, request, token) => server.SendAsync(request),
-                        (request, result) => !result.Success,
+                        (server, request, token) => server.SendAsync(request, cancellationToken),
+                        (request, result) => !result.Success && result.ShouldRetry(),
                         searchQuery,
                         cancellationToken,
                         (int)ConfigInfo.ClientConfig.SearchRequestTimeout
