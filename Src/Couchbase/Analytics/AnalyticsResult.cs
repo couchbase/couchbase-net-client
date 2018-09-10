@@ -84,7 +84,20 @@ namespace Couchbase.Analytics
         /// </remarks>
         public bool ShouldRetry()
         {
-            return false;
+            switch (Status)
+            {
+                case QueryStatus.Errors:
+                case QueryStatus.Timeout:
+                case QueryStatus.Fatal:
+                    return Errors.Any(error =>
+                        error.Code == 21002 || // Request timed out and will be cancelled
+                        error.Code == 23000 || // Analytics Service is temporarily unavailable
+                        error.Code == 23003 || // Operation cannot be performed during rebalance
+                        error.Code == 23007    // Job queue is full with [string] jobs
+                    );
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
