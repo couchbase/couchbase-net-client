@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Couchbase.Search
 {
     public class Term
@@ -8,6 +10,7 @@ namespace Couchbase.Search
         /// <value>
         /// The name.
         /// </value>
+        [JsonProperty("term")]
         public string Name { get; set; }
 
         /// <summary>
