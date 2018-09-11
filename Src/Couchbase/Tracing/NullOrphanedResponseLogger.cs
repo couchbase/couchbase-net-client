@@ -9,6 +9,9 @@ namespace Couchbase.Tracing
 
         public void Add(OperationContext context)
         { }
+
+        public void Dispose()
+        { }
     }
 }
 

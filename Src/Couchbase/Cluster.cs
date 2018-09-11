@@ -486,10 +486,7 @@ namespace Couchbase
                 {
                     tracer.Dispose();
                 }
-                if (_configuration.OrphanedResponseLogger is OrphanedResponseLogger logger)
-                {
-                    logger.Dispose();
-                }
+                _configuration.OrphanedResponseLogger?.Dispose();
                 _disposed = true;
             }
         }

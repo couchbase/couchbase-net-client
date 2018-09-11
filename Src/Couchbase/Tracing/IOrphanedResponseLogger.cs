@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Tracing
 {
     /// <summary>
@@ -5,7 +7,7 @@ namespace Couchbase.Tracing
     /// Typically this is because the operation timed out before the response
     /// was received.
     /// </summary>
-    public interface IOrphanedResponseLogger
+    public interface IOrphanedResponseLogger : IDisposable
     {
         /// <summary>
         /// Adds the specified operation context to the logger.

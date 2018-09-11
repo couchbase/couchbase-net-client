@@ -74,7 +74,7 @@ namespace Couchbase.Tracing
                         _lastrun = DateTime.UtcNow;
                     }
 
-                    while (_queue.TryTake(out var context, WorkerSleep, _source.Token))
+                    while (!_source.IsCancellationRequested && !_queue.IsAddingCompleted && _queue.TryTake(out var context, WorkerSleep, _source.Token))
                     {
                         // protects against there being lots of orphans blocking the process from existing if cancelled
                         if (_source.IsCancellationRequested)
@@ -114,7 +114,7 @@ namespace Couchbase.Tracing
                 catch (OperationCanceledException) { } // ignore
                 catch (Exception exception)
                 {
-                    Log.Error("Error when procesing Orphaned Responses", exception);
+                    Log.Error("Error when processing Orphaned Responses", exception);
                 }
             }
         }
@@ -167,7 +167,10 @@ namespace Couchbase.Tracing
 
         public void Add(OperationContext context)
         {
-            _queue.Add(context);
+            if (!_source.IsCancellationRequested && !_queue.IsAddingCompleted)
+            {
+                _queue.Add(context, _source.Token);
+            }
         }
     }
 }
