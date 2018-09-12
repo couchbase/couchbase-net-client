@@ -6634,13 +6634,10 @@ namespace Couchbase
         /// </returns>
         public IResult MapAdd(string key, string mapkey, string value, bool createMap, TimeSpan timeout)
         {
-            var result = MutateIn<object>(key).Insert(mapkey, value, createMap).WithTimeout(timeout).Execute();
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return ExecuteAndCreateDocumentIfMissing(
+                () => MutateIn<object>(key).Insert(mapkey, value, createMap).WithTimeout(timeout).Execute(),
+                key, new Dictionary<string, string>{{mapkey, value}}, timeout, createMap
+            );
         }
 
         /// <summary>
@@ -6705,13 +6702,10 @@ namespace Couchbase
         /// </returns>
         public IResult ListAppend(string key, object value, bool createList, TimeSpan timeout)
         {
-            var result = MutateIn<object>(key).ArrayAppend(value, createList).WithTimeout(timeout).Execute();
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return ExecuteAndCreateDocumentIfMissing(
+                () => MutateIn<object>(key).ArrayAppend(value, createList).WithTimeout(timeout).Execute(),
+                key, new[] {value}, timeout, createList
+            );
         }
 
         /// <summary>
@@ -6740,13 +6734,10 @@ namespace Couchbase
         /// </returns>
         public IResult ListPrepend(string key, object value, bool createList, TimeSpan timeout)
         {
-            var result = MutateIn<object>(key).ArrayPrepend(value, createList).WithTimeout(timeout).Execute();
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return ExecuteAndCreateDocumentIfMissing(
+                () => MutateIn<object>(key).ArrayPrepend(value, createList).WithTimeout(timeout).Execute(),
+                key, new[] {value}, timeout, createList
+            );
         }
 
         /// <summary>
@@ -6875,13 +6866,10 @@ namespace Couchbase
         /// </returns>
         public IResult SetAdd(string key, string value, bool createSet, TimeSpan timeout)
         {
-            var result = MutateIn<object>(key).ArrayAddUnique(value, createSet).WithTimeout(timeout).Execute();
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return ExecuteAndCreateDocumentIfMissing(
+                () => MutateIn<object>(key).ArrayAddUnique(value, createSet).WithTimeout(timeout).Execute(),
+                key, new[] {value}, timeout, createSet
+            );
         }
 
         /// <summary>
@@ -7047,45 +7035,10 @@ namespace Couchbase
         /// <returns></returns>
         public IResult QueuePush<T>(string key, T value, bool createQueue, TimeSpan timeout)
         {
-            var appendResult = MutateIn<List<T>>(key).ArrayAppend(value).WithTimeout(timeout).Execute();
-            if (appendResult.Success)
-            {
-                return new DefaultResult
-                {
-                    Success = true
-                };
-            }
-
-            if (appendResult.Exception is DocumentDoesNotExistException && createQueue)
-            {
-                var insertResult = Insert(key, new List<T> { value }, timeout);
-                if (insertResult.Success)
-                {
-                    return new DefaultResult
-                    {
-                        Success = true
-                    };
-                }
-
-                if (insertResult.Exception is DocumentAlreadyExistsException)
-                {
-                    return QueuePush(key, value, true, timeout);
-                }
-
-                return new DefaultResult
-                {
-                    Success = false,
-                    Exception = insertResult.Exception,
-                    Message = insertResult.Message
-                };
-            }
-
-            return new DefaultResult
-            {
-                Success = false,
-                Exception = appendResult.Exception,
-                Message = appendResult.Message
-            };
+            return ExecuteAndCreateDocumentIfMissing(
+                () => MutateIn<List<T>>(key).ArrayAppend(value).WithTimeout(timeout).Execute(),
+                key, new[] { value }, timeout, createQueue
+            );
         }
 
         /// <summary>
@@ -7254,7 +7207,6 @@ namespace Couchbase
         /// </returns>
         public async Task<IResult> MapRemoveAsync(string key, string mapkey, TimeSpan timeout)
         {
-
             var result = await MutateIn<object>(key).Remove(mapkey).WithTimeout(timeout).
                 ExecuteAsync().ContinueOnAnyContext();
 
@@ -7278,6 +7230,14 @@ namespace Couchbase
             return MapSizeAsync(key, GlobalTimeout);
         }
 
+        /// <summary>
+        /// Gets the size of a hashmap within a JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult`1" /> with the operation result.
+        /// </returns>
         public async Task<IResult<int>> MapSizeAsync(string key, TimeSpan timeout)
         {
             var result = await GetAsync<Dictionary<string, object>>(key, timeout).ContinueOnAnyContext();
@@ -7305,17 +7265,23 @@ namespace Couchbase
             return MapAddAsync(key, mapkey, value, createMap, GlobalTimeout);
         }
 
+        /// <summary>
+        /// Adds a key/value pair to a JSON hashmap document asynchronously.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="mapkey">The mapkey.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="createMap">If set to <c>true</c> create document.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns>
+        /// A <see cref="T:Couchbase.IResult" /> with the operation result.
+        /// </returns>
         public async Task<IResult> MapAddAsync(string key, string mapkey, string value, bool createMap, TimeSpan timeout)
         {
-            var result = await MutateIn<object>(key).Insert(mapkey, value, createMap).WithTimeout(timeout)
-                .ExecuteAsync().ContinueOnAnyContext();
-
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return await ExecuteAndCreateDocumentIfMissingAsync(
+                () => MutateIn<object>(key).Insert(mapkey, value, createMap).WithTimeout(timeout).ExecuteAsync(),
+                key, new Dictionary<string, string> {{mapkey, value}}, timeout, createMap
+            ).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -7382,15 +7348,10 @@ namespace Couchbase
         /// </returns>
         public async Task<IResult> ListAppendAsync(string key, object value, bool createList, TimeSpan timeout)
         {
-            var result = await MutateIn<object>(key).ArrayAppend(value, createList).WithTimeout(timeout)
-                .ExecuteAsync().ContinueOnAnyContext();
-
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return await ExecuteAndCreateDocumentIfMissingAsync(
+                () => MutateIn<object>(key).ArrayAppend(value, createList).WithTimeout(timeout).ExecuteAsync(),
+                key, new[] {value}, timeout, createList
+            ).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -7419,15 +7380,10 @@ namespace Couchbase
         /// </returns>
         public async Task<IResult> ListPrependAsync(string key, object value, bool createList, TimeSpan timeout)
         {
-            var result = await MutateIn<object>(key).ArrayPrepend(value, createList)
-                .WithTimeout(timeout).ExecuteAsync().ContinueOnAnyContext();
-
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return await ExecuteAndCreateDocumentIfMissingAsync(
+                () => MutateIn<object>(key).ArrayPrepend(value, createList).WithTimeout(timeout).ExecuteAsync(),
+                key, new[] {value}, timeout, createList
+            ).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -7560,15 +7516,10 @@ namespace Couchbase
         /// </returns>
         public async Task<IResult> SetAddAsync(string key, string value, bool createSet, TimeSpan timeout)
         {
-            var result = await MutateIn<object>(key).ArrayAddUnique(value, createSet)
-                .WithTimeout(timeout).ExecuteAsync().ContinueOnAnyContext();
-
-            return new DefaultResult
-            {
-                Success = result.Success,
-                Exception = result.Exception,
-                Message = result.Status.ToString()
-            };
+            return await ExecuteAndCreateDocumentIfMissingAsync(
+                () => MutateIn<object>(key).ArrayAddUnique(value, createSet).WithTimeout(timeout).ExecuteAsync(),
+                key, new[] {value}, timeout, createSet
+            ).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -7721,49 +7672,21 @@ namespace Couchbase
             return QueuePushAsync(key, value, createQueue, GlobalTimeout);
         }
 
+        /// <summary>
+        /// Adds a value to the end of a queue stored in a JSON document asynchronously.
+        /// </summary>
+        /// <typeparam name="T">The Type of the value being added to the queue</typeparam>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="value">The value that is to be added to the queue.</param>
+        /// <param name="createQueue">If <c>true</c> then the document will be created if it doesn't exist</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns></returns>
         public async Task<IResult> QueuePushAsync<T>(string key, T value, bool createQueue, TimeSpan timeout)
         {
-            var appendResult = await MutateIn<List<T>>(key).ArrayAppend(value).WithTimeout(timeout).
-                ExecuteAsync().ContinueOnAnyContext();
-
-            if (appendResult.Success)
-            {
-                return new DefaultResult
-                {
-                    Success = true
-                };
-            }
-
-            if (appendResult.Exception is DocumentDoesNotExistException && createQueue)
-            {
-                var insertResult = await InsertAsync(key, new List<T> { value }, timeout).ContinueOnAnyContext();
-                if (insertResult.Success)
-                {
-                    return new DefaultResult
-                    {
-                        Success = true
-                    };
-                }
-
-                if (insertResult.Exception is DocumentAlreadyExistsException)
-                {
-                    return await QueuePushAsync(key, value, true, timeout).ContinueOnAnyContext();
-                }
-
-                return new DefaultResult
-                {
-                    Success = false,
-                    Exception = insertResult.Exception,
-                    Message = insertResult.Message
-                };
-            }
-
-            return new DefaultResult
-            {
-                Success = false,
-                Exception = appendResult.Exception,
-                Message = appendResult.Message
-            };
+            return await ExecuteAndCreateDocumentIfMissingAsync(
+                () => MutateIn<List<T>>(key).ArrayAppend(value).WithTimeout(timeout).ExecuteAsync(),
+                key, new [] {value}, timeout, createQueue
+            ).ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -7850,6 +7773,12 @@ namespace Couchbase
             return QueueSizeAsync(key, GlobalTimeout);
         }
 
+        /// <summary>
+        /// Returns the number of items in the queue stored in the JSON document asynchronously.
+        /// </summary>
+        /// <param name="key">The key for the document.</param>
+        /// <param name="timeout">The maximum time allowed for an operation to live before timing out.</param>
+        /// <returns></returns>
         public async Task<IResult<int>> QueueSizeAsync(string key, TimeSpan timeout)
         {
             var result = await GetAsync<List<object>>(key, timeout).ContinueOnAnyContext();
@@ -7861,6 +7790,101 @@ namespace Couchbase
                 Value = result.Success ? result.Value.Count : 0
             };
         }
+
+        private IResult ExecuteAndCreateDocumentIfMissing<T>(Func<IDocumentFragment<T>> subdocFunc, string key, object defaultValue, TimeSpan timeout, bool createDoc)
+        {
+            // try and execute subdoc operation
+            var result = subdocFunc();
+            if (result.Success)
+            {
+                return new DefaultResult
+                {
+                    Success = true
+                };
+            }
+
+            // if document doesn't exist and we can create it
+            if (result.Exception is DocumentDoesNotExistException && createDoc)
+            {
+                // try and insert the document
+                var insertResult = Insert(key, defaultValue, timeout);
+                if (insertResult.Success)
+                {
+                    return new DefaultResult
+                    {
+                        Success = true
+                    };
+                }
+
+                // we had a race and lost, try subdoc operation again
+                if (result.Exception is DocumentAlreadyExistsException)
+                {
+                    result = subdocFunc();
+                    if (result.Success)
+                    {
+                        return new DefaultResult
+                        {
+                            Success = true
+                        };
+                    }
+                }
+            }
+
+            return new DefaultResult
+            {
+                Success = false,
+                Exception = result.Exception,
+                Message = result.Message
+            };
+        }
+
+        private async Task<IResult> ExecuteAndCreateDocumentIfMissingAsync<T>(Func<Task<IDocumentFragment<T>>> subdocFunc, string key, object defaultValue, TimeSpan timeout, bool createDoc)
+        {
+            // try and execute subdoc operation
+            var result = await subdocFunc().ContinueOnAnyContext();
+            if (result.Success)
+            {
+                return new DefaultResult
+                {
+                    Success = true
+                };
+            }
+
+            // if document doesn't exist and we can create it
+            if (result.Exception is DocumentDoesNotExistException && createDoc)
+            {
+                // try and insert the document
+                var insertResult = await InsertAsync(key, defaultValue, timeout).ContinueOnAnyContext();
+                if (insertResult.Success)
+                {
+                    return new DefaultResult
+                    {
+                        Success = true
+                    };
+                }
+
+                // we had a race and lost, try subdoc operation again
+                if (result.Exception is DocumentAlreadyExistsException)
+                {
+                    result = await subdocFunc().ContinueOnAnyContext();
+                    if (result.Success)
+                    {
+                        return new DefaultResult
+                        {
+                            Success = true
+                        };
+                    }
+                }
+            }
+
+            return new DefaultResult
+            {
+                Success = false,
+                Exception = result.Exception,
+                Message = result.Message
+            };
+        }
+
 
         #endregion
 

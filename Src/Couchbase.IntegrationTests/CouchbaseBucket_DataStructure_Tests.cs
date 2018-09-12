@@ -751,6 +751,219 @@ namespace Couchbase.IntegrationTests
             Assert.IsFalse(result.Success);
         }
 
+        [Test]
+        public void MapAdd_creates_document_if_missing_and_createList_is_true()
+        {
+            Setup(true);
+
+            const string key = "MapAdd_creates_document_if_missing_and_createList_is_true";
+            const string expected = "{\"item\":\"value\"}";
+
+            // ensure document does not exist first
+            _bucket.Remove(key);
+
+            // try to prepend, should create doc
+            var result = _bucket.MapAdd(key, "item", "value", true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = _bucket.Get<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [Test]
+        public async Task MapAddAsync_creates_document_if_missing_and_createList_is_true()
+        {
+            Setup(true);
+
+            const string key = "MapAdd_creates_document_if_missing_and_createList_is_true";
+            const string expected = "{\"item\":\"value\"}";
+
+            // ensure document does not exist first
+            await _bucket.RemoveAsync(key);
+
+            // try to prepend, should create doc
+            var result = await _bucket.MapAddAsync(key, "item", "value", true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = await _bucket.GetAsync<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [Test]
+        public void SetAdd_creates_document_if_missing_and_createList_is_true()
+        {
+            Setup(true);
+
+            const string key = "SetAdd_creates_document_if_missing_and_createList_is_true";
+            const string expected = "[\"value\"]";
+
+            // ensure document does not exist first
+            _bucket.Remove(key);
+
+            // try to prepend, should create doc
+            var result = _bucket.SetAdd(key, "value", true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = _bucket.Get<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [Test]
+        public async Task SetAddAsync_creates_document_if_missing_and_createList_is_true()
+        {
+            Setup(true);
+
+            const string key = "SetAddAsync_creates_document_if_missing_and_createList_is_true";
+            const string expected = "[\"value\"]";
+
+            // ensure document does not exist first
+            await _bucket.RemoveAsync(key);
+
+            // try to prepend, should create doc
+            var result = await _bucket.SetAddAsync(key, "value", true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = await _bucket.GetAsync<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [Test]
+        public void QueuePush_creates_document_if_missing_and_createQueue_is_true()
+        {
+            Setup(true);
+
+            const string key = "QueuePush_creates_document_if_missing_and_createQueue_is_true";
+            const string expected = "[\"value\"]";
+
+            // ensure document does not exist first
+            _bucket.Remove(key);
+
+            // try to prepend, should create doc
+            var result = _bucket.QueuePush(key, "value", true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = _bucket.Get<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [Test]
+        public async Task QueuePushAsync_creates_document_if_missing_and_createQueue_is_true()
+        {
+            Setup(true);
+
+            const string key = "QueuePushAsync_creates_document_if_missing_and_createQueue_is_true";
+            const string expected = "[\"value\"]";
+
+            // ensure document does not exist first
+            await _bucket.RemoveAsync(key);
+
+            // try to prepend, should create doc
+            var result = await _bucket.QueuePushAsync(key, "value", true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = await _bucket.GetAsync<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [TestCase("value", "[\"value\"]")]
+        [TestCase(10, "[10]")]
+        [TestCase(true, "[true]")]
+        public void ListAppend_creates_document_if_missing_and_createList_is_true(object value, string expected)
+        {
+            Setup(true);
+
+            const string key = "ListAppend_creates_document_if_missing_and_createList_is_true";
+
+            // ensure document does not exist first
+            _bucket.Remove(key);
+
+            // try to prepend, should create doc
+            var result = _bucket.ListAppend(key, value, true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = _bucket.Get<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [TestCase("value", "[\"value\"]")]
+        [TestCase(10, "[10]")]
+        [TestCase(true, "[true]")]
+        public async Task ListAppendAsync_creates_document_if_missing_and_createList_is_true(object value, string expected)
+        {
+            Setup(true);
+
+            const string key = "ListAppendAsync_creates_document_if_missing_and_createList_is_true";
+
+            // ensure document does not exist first
+            await _bucket.RemoveAsync(key);
+
+            // try to prepend, should create doc
+            var result = await _bucket.ListAppendAsync(key, value, true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = await _bucket.GetAsync<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [TestCase("value", "[\"value\"]")]
+        [TestCase(10, "[10]")]
+        [TestCase(true, "[true]")]
+        public void ListPrepend_creates_document_if_missing_and_createList_is_true(object value, string expected)
+        {
+            Setup(true);
+
+            const string key = "ListPrepend_create_document_if_missing_and_createDoc_is_true";
+
+            // ensure document does not exist first
+            _bucket.Remove(key);
+
+            // try to prepend, should create doc
+            var result = _bucket.ListPrepend(key, value, true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = _bucket.Get<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
+
+        [TestCase("value", "[\"value\"]")]
+        [TestCase(10, "[10]")]
+        [TestCase(true, "[true]")]
+        public async Task ListPrependAsync_creates_document_if_missing_and_createList_is_true(object value, string expected)
+        {
+            Setup(true);
+
+            const string key = "ListPrependAsync_creates_document_if_missing_and_createList_is_true";
+
+            // ensure document does not exist first
+            await _bucket.RemoveAsync(key);
+
+            // try to prepend, should create doc
+            var result = await _bucket.ListPrependAsync(key, value, true);
+            Assert.IsTrue(result.Success);
+
+            // get doc and verify structure
+            var doc = await _bucket.GetAsync<string>(key);
+            Assert.IsTrue(doc.Success);
+            Assert.AreEqual(expected, doc.Value);
+        }
 
         [TearDown]
         public void OneTimeTearDown()
