@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.Logging;
 using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Utils;
@@ -90,12 +91,20 @@ namespace Couchbase.Tracing
 
         private static ISpanBuilder BuildSpan(this ITracer tracer, IOperation operation, string operationName, string bucketName)
         {
-            return tracer.BuildSpan(operationName)
+            var builder = tracer.BuildSpan(operationName)
                 .AddDefaultTags()
                 .WithTag(CouchbaseTags.OperationId, $"0x{operation.Opaque:x}") // use opaque as hex value
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceKv)
                 .WithTag(Tags.DbInstance, string.IsNullOrWhiteSpace(bucketName) ? Unknown : bucketName)
                 .AsChildOf(tracer.ActiveSpan);
+
+            // Only add document key if we're not redacting sensitive information
+            if (LogManager.RedactionLevel == RedactionLevel.None)
+            {
+                builder.WithTag(CouchbaseTags.DocumentKey, operation.Key);
+            }
+
+            return builder;
         }
 
         #endregion

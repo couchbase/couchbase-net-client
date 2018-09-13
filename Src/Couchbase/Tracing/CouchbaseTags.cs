@@ -12,6 +12,7 @@ namespace Couchbase.Tracing
         public const string ServiceAnalytics = "cbas";
 
         public const string OperationId = "couchbase.operation_id";
+        public const string DocumentKey = "couchbase.document_key";
         public const string LocalId = "couchbase.local_id";
         public const string Ignore = "couchbase.ignore";
 

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Analytics;
 using Couchbase.IO.Operations;
+using Couchbase.Logging;
 using Couchbase.N1QL;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
@@ -20,9 +21,16 @@ namespace Couchbase.UnitTests.Tracing
     {
         private const string DefaultStatement = "SELECT 1 from `default`;";
 
-        [Test]
-        public void KV_default_span_tags_are_added_when_not_using_threshold_logging_tracer()
+        [TestCase(RedactionLevel.None)]
+        [TestCase(RedactionLevel.Partial)]
+        [TestCase(RedactionLevel.Full)]
+        public void KV_default_span_tags_are_added_when_not_using_threshold_logging_tracer(RedactionLevel redactionLevel)
         {
+            const string bucketName = "the-bucket";
+            const string documentKey = "the-key";
+
+            LogManager.RedactionLevel = redactionLevel;
+
             var expectedTags = new Dictionary<string, string>
             {
                 {Tags.Component.Key, ClientIdentifier.GetClientDescription()},
@@ -30,13 +38,19 @@ namespace Couchbase.UnitTests.Tracing
                 {Tags.SpanKind.Key, Tags.SpanKindClient},
                 {CouchbaseTags.OperationId, "0x0"},
                 {CouchbaseTags.Service, CouchbaseTags.ServiceKv},
-                {Tags.DbInstance.Key, "Unknown"}
+                {Tags.DbInstance.Key, bucketName}
             };
+
+            if (redactionLevel == RedactionLevel.None)
+            {
+                expectedTags.Add(CouchbaseTags.DocumentKey, documentKey);
+            }
 
             var mockTracer = new MockTracer();
             var mockOperation = new Mock<IOperation>();
+            mockOperation.Setup(x => x.Key).Returns(documentKey);
 
-            using (mockTracer.StartParentScope(mockOperation.Object))
+            using (mockTracer.StartParentScope(mockOperation.Object, bucketName))
             {
                 // start and end scope
             }
