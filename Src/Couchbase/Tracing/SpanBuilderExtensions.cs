@@ -1,4 +1,6 @@
-﻿using OpenTracing;
+using Couchbase.Utils;
+using OpenTracing;
+using OpenTracing.Tag;
 
 namespace Couchbase.Tracing
 {
@@ -7,6 +9,14 @@ namespace Couchbase.Tracing
         internal static ISpanBuilder WithIgnoreTag(this ISpanBuilder builder)
         {
             return builder.WithTag(CouchbaseTags.Ignore, true);
+        }
+
+        internal static ISpanBuilder AddDefaultTags(this ISpanBuilder builder)
+        {
+            return builder
+                .WithTag(Tags.Component, ClientIdentifier.GetClientDescription())
+                .WithTag(Tags.DbType, CouchbaseTags.DbTypeCouchbase)
+                .WithTag(Tags.SpanKind, Tags.SpanKindClient);
         }
     }
 }

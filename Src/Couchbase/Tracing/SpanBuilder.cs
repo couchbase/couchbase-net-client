@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Couchbase.Utils;
 using OpenTracing;
 using OpenTracing.Tag;
 
@@ -15,13 +14,7 @@ namespace Couchbase.Tracing
         private long? _startTimestamp;
         private Span _parentSpan;
         private readonly List<Reference> _references = new List<Reference>();
-
-        private readonly Dictionary<string, object> _tags = new Dictionary<string, object>
-        {
-            {Tags.Component.Key, ClientIdentifier.GetClientDescription()},
-            {Tags.DbType.Key, CouchbaseTags.DbTypeCouchbase},
-            {Tags.SpanKind.Key, Tags.SpanKindClient}
-        };
+        private readonly Dictionary<string, object> _tags = new Dictionary<string, object>();
 
         private bool _ignoreActiveSpan;
 
