@@ -88,7 +88,7 @@ namespace Couchbase.Configuration.Server.Monitoring
                                     server.EndPoint);
 
                                 IOperationResult<BucketConfig> configResult;
-                                using (Configuration.Tracer.StartParentScope(operation, addIgnoreTag: true))
+                                using (Configuration.Tracer.StartParentScope(operation, addIgnoreTag: true, ignoreActiveSpan: true))
                                 {
                                     configResult = server.Send(operation);
                                 }

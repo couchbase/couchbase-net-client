@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.IO.Operations;
 using Couchbase.Tracing;
+using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Tracing
@@ -55,6 +57,22 @@ namespace Couchbase.UnitTests.Tracing
 
             // check all items made it into sample
             Assert.AreEqual(1000, tracer.TotalSummaryCount);
+        }
+
+        [Test]
+        public void Creating_span_with_ignore_flag_is_not_related_to_wrapping_span()
+        {
+            var tracer = new ThresholdLoggingTracer();
+            var mockOperation = new Mock<IOperation>();
+
+            using (var wrappingScope = tracer.BuildSpan("wrapping-span").StartActive())
+            {
+                using (var scope = tracer.StartParentScope(mockOperation.Object, "bucket", ignoreActiveSpan: true))
+                {
+                    // should not be the same trace ID as wrapping span
+                    Assert.AreNotEqual(wrappingScope.Span.Context.TraceId, scope.Span.Context.TraceId);
+                }
+            }
         }
     }
 }

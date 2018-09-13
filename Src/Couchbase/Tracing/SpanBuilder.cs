@@ -132,10 +132,11 @@ namespace Couchbase.Tracing
 
         public ISpan Start()
         {
-            var activeSpanContext = _tracer.ActiveSpan?.Context;
-            if (!_references.Any() && !_ignoreActiveSpan && activeSpanContext != null)
+            ISpanContext activeSpanContext = null;
+            if (!_references.Any() && !_ignoreActiveSpan && _tracer.ActiveSpan?.Context != null)
             {
-                _references.Add(new Reference(References.ChildOf, activeSpanContext));
+                activeSpanContext = _tracer.ActiveSpan?.Context;
+                _references.Add(new Reference(References.ChildOf, _tracer.ActiveSpan?.Context));
             }
 
             var span = new Span(_tracer, _operationName, activeSpanContext, _startTimestamp ?? Stopwatch.GetTimestamp(), _tags, _references);

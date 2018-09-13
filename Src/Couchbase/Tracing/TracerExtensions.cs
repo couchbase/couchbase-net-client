@@ -37,13 +37,19 @@ namespace Couchbase.Tracing
                 : type.Name;
         }
 
-        internal static IScope StartParentScope(this ITracer tracer, IOperation operation, string bucketName = null, bool addIgnoreTag = false)
+        internal static IScope StartParentScope(this ITracer tracer, IOperation operation, string bucketName = null,
+            bool addIgnoreTag = false, bool ignoreActiveSpan = false)
         {
             var operationName = SanitizeTypeName(operation.GetType());
             var builder = tracer.BuildSpan(operation, operationName, bucketName);
             if (addIgnoreTag)
             {
                 builder.WithIgnoreTag();
+            }
+
+            if (ignoreActiveSpan)
+            {
+                builder.IgnoreActiveSpan();
             }
 
             return builder.StartActive();

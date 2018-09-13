@@ -474,7 +474,7 @@ namespace Couchbase.Core
 
                         var operation = new Config(Transcoder, _clientConfig.DefaultOperationLifespan, server.EndPoint);
                         IOperationResult<BucketConfig> result;
-                        using (configInfo.ClientConfig.Tracer.StartParentScope(operation, addIgnoreTag: true))
+                        using (configInfo.ClientConfig.Tracer.StartParentScope(operation, addIgnoreTag: true, ignoreActiveSpan: true))
                         {
                             result = server.Send(operation);
                         }
