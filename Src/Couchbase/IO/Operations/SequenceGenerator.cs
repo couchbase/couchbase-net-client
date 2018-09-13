@@ -22,7 +22,10 @@ namespace Couchbase.IO.Operations
         public static ulong GetRandomLong()
         {
             var bytes = new byte[8];
-            Random.NextBytes(bytes);
+            lock (Random)
+            {
+                Random.NextBytes(bytes);
+            }
 
             return BitConverter.ToUInt64(bytes, 0);
         }
