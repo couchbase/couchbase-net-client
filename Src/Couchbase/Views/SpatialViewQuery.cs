@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Utils;
-using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -20,8 +19,6 @@ namespace Couchbase.Views
 
         //uri construction
         private Uri _baseUri;
-        private string _designDoc;
-        private string _viewName;
 
         //API parameters
         private StaleState? _stale;
@@ -40,6 +37,22 @@ namespace Couchbase.Views
         private const string Https = "https";
         private const string DefaultBucket = "default";
         private const string QueryArgPattern = "{0}={1}&";
+
+        /// <summary>
+        /// Gets the name of the design document.
+        /// </summary>
+        /// <value>
+        /// The name of the design document.
+        /// </value>
+        public string DesignDocName {get; private set; }
+
+        /// <summary>
+        /// Gets the name of the view.
+        /// </summary>
+        /// <value>
+        /// The name of the view.
+        /// </value>
+        public string ViewName { get; private set; }
 
         private struct QueryArguments
         {
@@ -194,7 +207,7 @@ namespace Couchbase.Views
         /// <returns></returns>
         public ISpatialViewQuery DesignDoc(string name)
         {
-            _designDoc = name;
+            DesignDocName = name;
             return this;
         }
 
@@ -205,7 +218,7 @@ namespace Couchbase.Views
         /// <returns></returns>
         public ISpatialViewQuery View(string name)
         {
-            _viewName = name;
+            ViewName = name;
             return this;
         }
 
@@ -331,16 +344,14 @@ namespace Couchbase.Views
 
         public string GetRelativeUri()
         {
-            var view = _viewName;
-            var designDoc = _designDoc;
             var bucket = string.IsNullOrWhiteSpace(BucketName) ? DefaultBucket : BucketName;
 
             if (!string.IsNullOrWhiteSpace(BucketName) &&
                 string.IsNullOrWhiteSpace(_baseUri.PathAndQuery) || _baseUri.PathAndQuery.Equals("/"))
             {
-                return string.Format(RelativeUriWithBucket, bucket, designDoc, view);
+                return string.Format(RelativeUriWithBucket, bucket, DesignDocName, ViewName);
             }
-            return string.Format(RelativeUri, designDoc, view);
+            return string.Format(RelativeUri, DesignDocName, ViewName);
         }
 
         public string GetQueryParams()

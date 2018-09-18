@@ -67,16 +67,23 @@ namespace Couchbase.UnitTests.Tracing
             // need to reset to ensure request IDs match
             SequenceGenerator.Reset();
 
+            const string designDocName = "design-doc";
+            const string viewName = "view";
+
             var expectedTags = new Dictionary<string, string>
             {
                 {Tags.Component.Key, ClientIdentifier.GetClientDescription()},
                 {Tags.DbType.Key, CouchbaseTags.DbTypeCouchbase},
                 {Tags.SpanKind.Key, Tags.SpanKindClient},
                 {CouchbaseTags.OperationId, "1"},
+                {CouchbaseTags.ViewDesignDoc, designDocName},
+                {CouchbaseTags.ViewName, viewName},
                 {CouchbaseTags.Service, CouchbaseTags.ServiceView}
             };
 
             var mockViewQuery = new Mock<IViewQuery>();
+            mockViewQuery.Setup(x => x.DesignDocName).Returns(designDocName);
+            mockViewQuery.Setup(x => x.ViewName).Returns(viewName);
 
             var mockTracer = new MockTracer();
             using (mockTracer.StartParentScope(mockViewQuery.Object))

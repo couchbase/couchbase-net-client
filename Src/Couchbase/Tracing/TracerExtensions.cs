@@ -133,6 +133,8 @@ namespace Couchbase.Tracing
             return tracer.BuildSpan(operationName)
                 .AddDefaultTags()
                 .WithTag(CouchbaseTags.OperationId, GetOrGenerateOperationId(tracer.ActiveSpan))
+                .WithTag(CouchbaseTags.ViewDesignDoc, query.DesignDocName)
+                .WithTag(CouchbaseTags.ViewName, query.ViewName)
                 .WithTag(CouchbaseTags.Service, CouchbaseTags.ServiceView)
                 .AsChildOf(tracer.ActiveSpan);
         }

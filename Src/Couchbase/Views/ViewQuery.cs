@@ -5,7 +5,6 @@ using Couchbase.Core;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -28,8 +27,6 @@ namespace Couchbase.Views
         private const string Https = "https";
 
         private Uri _baseUri;
-        private string _designDoc;
-        private string _viewName;
         private bool? _development;
         private int? _skipCount;
         private StaleState _staleState;
@@ -48,6 +45,22 @@ namespace Couchbase.Views
         private object _startKey;
         private object _startKeyDocId;
         private int? _connectionTimeout;
+
+        /// <summary>
+        /// Gets the name of the design document.
+        /// </summary>
+        /// <value>
+        /// The name of the design document.
+        /// </value>
+        public string DesignDocName { get; private set; }
+
+        /// <summary>
+        /// Gets the name of the view.
+        /// </summary>
+        /// <value>
+        /// The name of the view.
+        /// </value>
+        public string ViewName { get; private set; }
 
         private struct QueryArguments
         {
@@ -90,8 +103,8 @@ namespace Couchbase.Views
         {
             _baseUri = new Uri(DefaultHost);
             BucketName = bucketName;
-            _designDoc = designDoc;
-            _viewName = viewName;
+            DesignDocName = designDoc;
+            ViewName = viewName;
         }
 
         /// <summary>
@@ -128,7 +141,7 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery DesignDoc(string name)
         {
-            _designDoc = name;
+            DesignDocName = name;
             return this;
         }
 
@@ -139,7 +152,7 @@ namespace Couchbase.Views
         /// <returns>An IViewQuery object for chaining</returns>
         public IViewQuery View(string name)
         {
-            _viewName = name;
+            ViewName = name;
             return this;
         }
 
@@ -479,11 +492,11 @@ namespace Couchbase.Views
                 relativeUri.Append(DevelopmentViewPrefix);
             }
 
-            relativeUri.Append(_designDoc);
+            relativeUri.Append(DesignDocName);
             relativeUri.Append(ForwardSlash);
             relativeUri.Append(ViewMethod);
             relativeUri.Append(ForwardSlash);
-            relativeUri.Append(_viewName);
+            relativeUri.Append(ViewName);
 
             var queryParameters = GetQueryParams();
             if (!string.IsNullOrEmpty(queryParameters))

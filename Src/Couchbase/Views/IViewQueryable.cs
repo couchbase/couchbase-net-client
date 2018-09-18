@@ -1,6 +1,5 @@
 using System;
 using Couchbase.Core;
-using OpenTracing;
 
 namespace Couchbase.Views
 {
@@ -24,6 +23,22 @@ namespace Couchbase.Views
         /// </summary>
         /// <remarks>Used internally.</remarks>
         int RetryAttempts { get; set; }
+
+        /// <summary>
+        /// Gets the name of the design document.
+        /// </summary>
+        /// <value>
+        /// The name of the design document.
+        /// </value>
+        string DesignDocName { get; }
+
+        /// <summary>
+        /// Gets the name of the view.
+        /// </summary>
+        /// <value>
+        /// The name of the view.
+        /// </value>
+        string ViewName { get; }
 
         /// <summary>
         /// Returns the raw REST URI which can be executed in a browser or using curl.

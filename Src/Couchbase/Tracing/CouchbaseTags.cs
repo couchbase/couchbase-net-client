@@ -15,6 +15,8 @@ namespace Couchbase.Tracing
         public const string DocumentKey = "couchbase.document_key";
         public const string LocalId = "couchbase.local_id";
         public const string Ignore = "couchbase.ignore";
+        public const string ViewDesignDoc = "couchbase.design_doc";
+        public const string ViewName = "couchbase.view_name";
 
         public const string LocalAddress = "local.address";
         public const string PeerLatency = "peer.latency";
