@@ -65,7 +65,7 @@ namespace Couchbase.Core.Buckets
                         {
                             actual.Exception = s.Exception;
                             actual.HandleClientError(s.Exception.Message, s.Status);
-                            tcs.SetResult(actual.GetResultWithValue());
+                            tcs.TrySetResult(actual.GetResultWithValue());
                             return;
                         }
 
@@ -75,7 +75,7 @@ namespace Couchbase.Core.Buckets
                         var result = actual.GetResultWithValue(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
-                            tcs.SetResult(result);
+                            tcs.TrySetResult(result);
                         }
                         else
                         {
@@ -114,12 +114,12 @@ namespace Couchbase.Core.Buckets
 
                                     return retryTcs.Task;
                                 }, actual, executer.ConfigInfo, cancellationToken).ContinueOnAnyContext();
-                                tcs.SetResult(retryResult);
+                                tcs.TrySetResult(retryResult);
                             }
                             else
                             {
                                 ((OperationResult) result).SetException();
-                                tcs.SetResult(result);
+                                tcs.TrySetResult(result);
                             }
                         }
                     }
@@ -127,7 +127,7 @@ namespace Couchbase.Core.Buckets
                     {
                         op.Exception = e;
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                        tcs.SetResult(actual.GetResultWithValue());
+                        tcs.TrySetResult(actual.GetResultWithValue());
                     }
                     finally
                     {
@@ -138,7 +138,7 @@ namespace Couchbase.Core.Buckets
                 {
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
-                    tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+                    tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
                     var context = CreateOperationContext(s, serverDuration, executer.ConfigInfo.BucketName);
                     controller.Configuration.OrphanedResponseLogger.Add(context);
@@ -165,7 +165,7 @@ namespace Couchbase.Core.Buckets
                         {
                             op.Exception = s.Exception;
                             op.HandleClientError(s.Exception.Message, s.Status);
-                            tcs.SetResult(op.GetResult());
+                            tcs.TrySetResult(op.GetResult());
                             return;
                         }
 
@@ -175,7 +175,7 @@ namespace Couchbase.Core.Buckets
                         var result = op.GetResult(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
-                            tcs.SetResult(result);
+                            tcs.TrySetResult(result);
                         }
                         else
                         {
@@ -212,12 +212,12 @@ namespace Couchbase.Core.Buckets
 
                                     return retryTcs.Task;
                                 }, op, executer.ConfigInfo, cancellationToken).ContinueOnAnyContext();
-                                tcs.SetResult(retryResult);
+                                tcs.TrySetResult(retryResult);
                             }
                             else
                             {
                                 ((OperationResult)result).SetException();
-                                tcs.SetResult(result);
+                                tcs.TrySetResult(result);
                             }
                         }
                     }
@@ -225,7 +225,7 @@ namespace Couchbase.Core.Buckets
                     {
                         op.Exception = e;
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                        tcs.SetResult(op.GetResult());
+                        tcs.TrySetResult(op.GetResult());
                     }
                     finally
                     {
@@ -236,7 +236,7 @@ namespace Couchbase.Core.Buckets
                 {
                     s.Dispose();
                     const string msg = "Cannot find callback object for operation: {0}";
-                    tcs.SetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
+                    tcs.TrySetException(new InvalidOperationException(string.Format(msg, s.Opaque)));
 
                     var context = CreateOperationContext(s, serverDuration, executer.ConfigInfo.BucketName);
                     controller.Configuration.OrphanedResponseLogger.Add(context);
@@ -272,7 +272,7 @@ namespace Couchbase.Core.Buckets
                         {
                             actual.Exception = s.Exception;
                             actual.HandleClientError(s.Exception.Message, s.Status);
-                            tcs.SetResult(actual.GetResultWithValue());
+                            tcs.TrySetResult(actual.GetResultWithValue());
                             return;
                         }
 
@@ -282,7 +282,7 @@ namespace Couchbase.Core.Buckets
                         var result = actual.GetResultWithValue(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
-                            tcs.SetResult(result);
+                            tcs.TrySetResult(result);
                         }
                         else
                         {
@@ -321,12 +321,12 @@ namespace Couchbase.Core.Buckets
 
                                     return retryTcs.Task;
                                 }, actual, executer.ConfigInfo, cancellationToken).ContinueOnAnyContext();
-                                tcs.SetResult(retryResult);
+                                tcs.TrySetResult(retryResult);
                             }
                             else
                             {
                                 ((OperationResult)result).SetException();
-                                tcs.SetResult(result);
+                                tcs.TrySetResult(result);
                             }
                         }
                     }
@@ -334,7 +334,7 @@ namespace Couchbase.Core.Buckets
                     {
                         op.Exception = e;
                         op.HandleClientError(e.Message, s.Status);
-                        tcs.SetResult(actual.GetResultWithValue());
+                        tcs.TrySetResult(actual.GetResultWithValue());
                     }
                     finally
                     {
@@ -377,7 +377,7 @@ namespace Couchbase.Core.Buckets
                         {
                             op.Exception = s.Exception;
                             op.HandleClientError(s.Exception.Message, s.Status);
-                            tcs.SetResult(op.GetResult());
+                            tcs.TrySetResult(op.GetResult());
                             return;
                         }
 
@@ -387,7 +387,7 @@ namespace Couchbase.Core.Buckets
                         var result = op.GetResult(controller.Configuration.Tracer, executer.ConfigInfo.BucketName);
                         if (result.Success)
                         {
-                            tcs.SetResult(result);
+                            tcs.TrySetResult(result);
                         }
                         else
                         {
@@ -426,12 +426,12 @@ namespace Couchbase.Core.Buckets
 
                                     return retryTcs.Task;
                                 }, op, executer.ConfigInfo, cancellationToken).ContinueOnAnyContext();
-                                tcs.SetResult(retryResult);
+                                tcs.TrySetResult(retryResult);
                             }
                             else
                             {
                                 ((OperationResult)result).SetException();
-                                tcs.SetResult(result);
+                                tcs.TrySetResult(result);
                             }
                         }
                     }
@@ -439,7 +439,7 @@ namespace Couchbase.Core.Buckets
                     {
                         op.Exception = e;
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                        tcs.SetResult(op.GetResult());
+                        tcs.TrySetResult(op.GetResult());
                     }
                     finally
                     {
@@ -484,7 +484,7 @@ namespace Couchbase.Core.Buckets
                         {
                             actual.Exception = s.Exception;
                             actual.HandleClientError(s.Exception.Message, s.Status);
-                            tcs.SetResult(actual.GetResultWithValue());
+                            tcs.TrySetResult(actual.GetResultWithValue());
                             return;
                         }
 
@@ -501,13 +501,13 @@ namespace Couchbase.Core.Buckets
                             }
                         }
                         ((OperationResult)result).SetException();
-                        tcs.SetResult(result);
+                        tcs.TrySetResult(result);
                     }
                     catch (Exception e)
                     {
                         op.Exception = e;
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                        tcs.SetResult(actual.GetResultWithValue());
+                        tcs.TrySetResult(actual.GetResultWithValue());
                     }
                     finally
                     {
@@ -551,7 +551,7 @@ namespace Couchbase.Core.Buckets
                         {
                             op.Exception = s.Exception;
                             op.HandleClientError(s.Exception.Message, s.Status);
-                            tcs.SetResult(op.GetResult());
+                            tcs.TrySetResult(op.GetResult());
                             return;
                         }
 
@@ -568,13 +568,13 @@ namespace Couchbase.Core.Buckets
                             }
                         }
                         ((OperationResult)result).SetException();
-                        tcs.SetResult(result);
+                        tcs.TrySetResult(result);
                     }
                     catch (Exception e)
                     {
                         op.Exception = e;
                         op.HandleClientError(e.Message, ResponseStatus.ClientFailure);
-                        tcs.SetResult(op.GetResult());
+                        tcs.TrySetResult(op.GetResult());
                     }
                     finally
                     {
