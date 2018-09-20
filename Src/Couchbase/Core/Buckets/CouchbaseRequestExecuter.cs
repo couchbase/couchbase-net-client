@@ -703,7 +703,7 @@ namespace Couchbase.Core.Buckets
             CancellationTokenSource cts = null)
         {
             tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+            cts = cts ?? new CancellationTokenSource((int) operation.Timeout);
 
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             using (cts.Token.Register(() => SetTimeoutResult(operation, tcs), false))
@@ -773,7 +773,7 @@ namespace Couchbase.Core.Buckets
             CancellationTokenSource cts = null)
         {
             tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+            cts = cts ?? new CancellationTokenSource((int) operation.Timeout);
 
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             using (cts.Token.Register(() => SetTimeoutResult(operation, tcs), false))
