@@ -23,6 +23,7 @@ using Couchbase.Configuration.Server.Monitoring;
 using Couchbase.IO.Operations;
 using Couchbase.Tracing;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 
 namespace Couchbase.Core
 {
@@ -108,6 +109,10 @@ namespace Couchbase.Core
                     foreach (var provider in _configProviders.OfType<CarrierPublicationProvider>())
                     {
                         Log.Debug("Processing config rev#{0}", config.Rev);
+
+                        //will make logs verbose
+                        Log.Trace(JsonConvert.SerializeObject(config));
+
                         provider.UpdateConfig(config);
                     }
                 }

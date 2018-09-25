@@ -185,13 +185,13 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 {
                     try
                     {
-                        Log.Debug("1. Checking config with rev#{0} on thread {1}", bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
+                        Log.Debug("1. Checking config [{0}] with rev#{1} on thread {2}", bucketConfig.Name, bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
                         var oldBucketConfig = configInfo.BucketConfig;
                         if (bucketConfig.Rev > oldBucketConfig.Rev)
                         {
                             lock (SyncObj)
                             {
-                                Log.Debug("2. Checking config with rev#{0} on thread {1}", bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
+                                Log.Debug("2. Checking config [{0}] with rev#{1} on thread {2}", bucketConfig.Name,  bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
                                 if (bucketConfig.Rev > oldBucketConfig.Rev || !bucketConfig.Equals(oldBucketConfig) ||
                                     force)
                                 {
@@ -207,7 +207,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                                     configInfo.LoadConfig(bucketConfig, force);
                                     ClientConfig.UpdateBootstrapList(bucketConfig);
                                     configObserver.NotifyConfigChanged(configInfo);
-                                    Log.Debug("3. Completed checking config with rev#{0} on thread {1}", bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
+                                    Log.Debug("3. Completed checking config [{0}] with rev#{1} on thread {2}", bucketConfig.Name, bucketConfig.Rev, Thread.CurrentThread.ManagedThreadId);
                                 }
                             }
                         }

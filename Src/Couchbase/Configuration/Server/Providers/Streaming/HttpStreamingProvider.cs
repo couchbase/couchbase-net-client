@@ -231,8 +231,8 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                 {
                     var staleBucketConfig = configInfo.BucketConfig;
 
-                    Log.Info("Config changed new Rev#{0} | old Rev#{1} HTTP: {2}",
-                        bucketConfig.Rev, staleBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig));
+                    Log.Info("Config [{0}] changed new Rev#{1} | old Rev#{2} HTTP: {3}",
+                        bucketConfig.Name, bucketConfig.Rev, staleBucketConfig.Rev, JsonConvert.SerializeObject(bucketConfig));
 
                     if (bucketConfig.Rev > staleBucketConfig.Rev)
                     {
