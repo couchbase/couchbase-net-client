@@ -14,6 +14,7 @@ using Couchbase.Core.Services;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.EnhancedDurability;
 using Couchbase.UnitTests.IO.Operations.Subdocument;
 using Couchbase.Utils;
 using Couchbase.Views;
@@ -430,6 +431,78 @@ namespace Couchbase.UnitTests.Core.Buckets
             Assert.AreEqual(0, query.RetryAttempts);
             Assert.IsTrue(result.CannotRetry());
             Assert.IsFalse(result.ShouldRetry());
+        }
+
+        [Test]
+        public void SendWithDurability_does_not_dispatch_observe_when_replicate_and_persist_are_zero()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
+            var mockServer = new Mock<IServer>();
+            mockServer.Setup(x => x.Send(It.IsAny<IOperation>())).Returns(new OperationResult<string>
+            {
+                Success = true
+            });
+
+            var mockVBucket = new Mock<IVBucket>();
+            mockVBucket.Setup(x => x.LocatePrimary()).Returns(mockServer.Object);
+
+            var mockKeyMapper = new Mock<IKeyMapper>();
+            mockKeyMapper.Setup(x => x.MapKey(It.IsAny<string>(), It.IsAny<uint>())).Returns(mockVBucket.Object);
+
+            var mockConfigInfo = new Mock<IConfigInfo>();
+            mockConfigInfo.Setup(x => x.IsDataCapable).Returns(true);
+            mockConfigInfo.Setup(x => x.GetKeyMapper()).Returns(mockKeyMapper.Object);
+            mockConfigInfo.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+
+            var mockOperation = new Mock<IOperation>();
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfigInfo.Object, "default", pending);
+
+            var result = executor.SendWithDurability(mockOperation.Object, false, ReplicateTo.Zero, PersistTo.Zero);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(Durability.Satisfied, result.Durability);
+
+            mockServer.Verify(x => x.Send(It.IsAny<IOperation<ObserveSeqno>>()), Times.Never);
+        }
+
+        [Test]
+        public void SendWithDurability_T_does_not_dispatch_observe_when_replicate_and_persist_are_zero()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
+            var mockServer = new Mock<IServer>();
+            mockServer.Setup(x => x.Send(It.IsAny<IOperation<string>>())).Returns(new OperationResult<string>
+            {
+                Success = true
+            });
+
+            var mockVBucket = new Mock<IVBucket>();
+            mockVBucket.Setup(x => x.LocatePrimary()).Returns(mockServer.Object);
+
+            var mockKeyMapper = new Mock<IKeyMapper>();
+            mockKeyMapper.Setup(x => x.MapKey(It.IsAny<string>(), It.IsAny<uint>())).Returns(mockVBucket.Object);
+
+            var mockConfigInfo = new Mock<IConfigInfo>();
+            mockConfigInfo.Setup(x => x.IsDataCapable).Returns(true);
+            mockConfigInfo.Setup(x => x.GetKeyMapper()).Returns(mockKeyMapper.Object);
+            mockConfigInfo.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+
+            var mockOperation = new Mock<IOperation<string>>();
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfigInfo.Object, "default", pending);
+
+            var result = executor.SendWithDurability(mockOperation.Object, false, ReplicateTo.Zero, PersistTo.Zero);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(Durability.Satisfied, result.Durability);
+
+            mockServer.Verify(x => x.Send(It.IsAny<IOperation<ObserveSeqno>>()), Times.Never);
         }
     }
 }
