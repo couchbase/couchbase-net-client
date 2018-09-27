@@ -198,7 +198,7 @@ namespace Couchbase.IO
         {
             if (connection == null) return;
             Log.Debug("Releasing: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, Identity, _refs.Count);
-            connection.MarkUsed(false);
+
             if (connection.IsDead)
             {
                 connection.Dispose();
@@ -228,6 +228,7 @@ namespace Couchbase.IO
                     {
                         _store.Enqueue(connection);
                     }
+                    connection.MarkUsed(false);
                 }
             }
             Log.Debug("Released: {0} on {1} - {2} - Refs={3}", connection.Identity, EndPoint, Identity, _refs.Count);
