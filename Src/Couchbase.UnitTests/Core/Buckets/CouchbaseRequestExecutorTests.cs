@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -218,7 +218,7 @@ namespace Couchbase.UnitTests.Core.Buckets
         }
 
         [Test]
-        public void When_DataService_Is_Not_Available_SendWithReteyAsync_Throws_ServiceNotSupportedException()
+        public async Task When_DataService_Is_Not_Available_SendWithRetryAsync_Throws_ServiceNotSupportedException()
         {
             var mockController = new Mock<IClusterController>();
             mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
@@ -231,11 +231,31 @@ namespace Couchbase.UnitTests.Core.Buckets
             var mockBuilder = new Mock<ISubDocBuilder<dynamic>>();
             var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
 
-            Assert.ThrowsAsync<ServiceNotSupportedException>(
-                async () =>
-                    await executor.SendWithRetryAsync(new FakeSubDocumentOperation<dynamic>(mockBuilder.Object, "key", null,
-                        new DefaultTranscoder(), 0)),
-                ExceptionUtil.ServiceNotSupportedMsg, "Data");
+            var expectedMessage = ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data");
+            var fakeOperation = new FakeSubDocumentOperation<dynamic>(mockBuilder.Object, "key", null, new DefaultTranscoder(), 0);
+
+            try
+            {
+                await executor.SendWithRetryAsync(fakeOperation);
+            }
+            catch (ServiceNotSupportedException e)
+            {
+                Assert.AreEqual(expectedMessage, e.Message);
+            }
+            catch (AggregateException e)
+            {
+                var exception = e.InnerExceptions.FirstOrDefault(x => x is ServiceNotSupportedException);
+                if (exception == null)
+                {
+                    Assert.Fail();
+                }
+
+                Assert.AreEqual(expectedMessage, exception.Message);
+            }
+            catch (Exception)
+            {
+                Assert.Fail();
+            }
         }
 
         public async Task MaxViewRetries_IsOne_RequestIsNotRetried_Async()
