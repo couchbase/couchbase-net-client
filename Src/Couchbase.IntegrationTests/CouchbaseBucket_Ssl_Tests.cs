@@ -90,32 +90,11 @@ namespace Couchbase.IntegrationTests
 
             Parallel.ForEach(keys, key =>
             {
-                var upsertResult = _bucket.Upsert(key, value);
-                Assert.IsTrue(upsertResult.Success, upsertResult.Message);
+                _bucket.Upsert(key, value);
 
-                var getResult = _bucket.Get<string>(key);
-                Assert.IsTrue(getResult.Success, getResult.Message);
-                Assert.AreEqual(ResponseStatus.Success, getResult.Status);
-            });
-        }
+                var result = _bucket.Get<string>(key);
 
-        [Test]
-        public void Test_MultiGetAsync()
-        {
-            // This test helps to ensure that the SSL connections are performing well under load
-            // and there are no buffer overlap issues when multiple commands are issued via an SslConnection
-
-            var keys = Enumerable.Range(0, 100).Select(p => "thekey" + p);
-            var value = "thevalue";
-
-            Parallel.ForEach(keys, async key =>
-            {
-                var upsertResult = await _bucket.UpsertAsync(key, value);
-                Assert.IsTrue(upsertResult.Success, upsertResult.Message);
-
-                var getResult = await _bucket.GetAsync<string>(key);
-                Assert.IsTrue(getResult.Success, getResult.Message);
-                Assert.AreEqual(ResponseStatus.Success, getResult.Status);
+                Assert.AreEqual(ResponseStatus.Success, result.Status);
             });
         }
 
