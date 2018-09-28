@@ -362,7 +362,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
         public IOperationResult Touch(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var touch = new Touch(key, null, _transcoder, timeout.GetMilliseconds())
+            var touch = new Touch(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl()
             };
@@ -391,7 +391,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult> TouchAsync(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var touch = new Touch(key, null, _transcoder, timeout.GetMilliseconds())
+            var touch = new Touch(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl()
             };
@@ -515,7 +515,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Upsert<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -570,7 +570,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> Upsert<T>(string key, T value, TimeSpan expiration, TimeSpan timeout)
         {
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl()
             };
@@ -603,7 +603,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas)
         {
-            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds())
+            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
             {
                 Cas = cas
             };
@@ -642,7 +642,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas,
                 Expires = expiration
@@ -669,7 +669,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 Cas = cas
@@ -1265,7 +1265,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, GlobalTimeout.GetMilliseconds());
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, GlobalTimeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1295,7 +1295,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds());
+            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1329,7 +1329,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -1693,7 +1693,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 Cas = cas
@@ -1720,7 +1720,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration,
                 Cas = cas
@@ -1900,7 +1900,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Insert<T>(string key, T value)
         {
-            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds());
+            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -1934,7 +1934,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -1959,7 +1959,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -2296,7 +2296,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult Remove(string key, TimeSpan timeout)
         {
-            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -2311,7 +2311,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -2337,7 +2337,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult Remove(string key, ulong cas, TimeSpan timeout)
         {
-            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas
             };
@@ -2685,7 +2685,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> Get<T>(string key, TimeSpan timeout)
         {
-            var operation = new Get<T>(key, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Get<T>(key, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -2712,7 +2712,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var operation = new GetT<T>(key, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new GetT<T>(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl()
             };
@@ -2742,7 +2742,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var operation = new GetT<T>(key, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new GetT<T>(key, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration.ToTtl()
             };
@@ -2799,7 +2799,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> GetAsync<T>(string key, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Get<T>(key, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Get<T>(key, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -3293,7 +3293,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
-            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -3320,7 +3320,7 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -3536,7 +3536,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
-            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -3563,7 +3563,7 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetSeconds())
             {
                 Expires = expiration
             };
@@ -3646,7 +3646,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<string> Append(string key, string value, TimeSpan timeout)
         {
-            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -3662,7 +3662,7 @@ namespace Couchbase
         public Task<IOperationResult<string>> AppendAsync(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetSeconds());
             var result = _requestExecuter.SendWithRetryAsync(operation);
             return result;
         }
@@ -3689,7 +3689,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<byte[]> Append(string key, byte[] value, TimeSpan timeout)
         {
-            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -3705,7 +3705,7 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetSeconds());
             var result = _requestExecuter.SendWithRetryAsync(operation);
             return result;
         }
@@ -3732,7 +3732,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<string> Prepend(string key, string value, TimeSpan timeout)
         {
-            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -3748,7 +3748,7 @@ namespace Couchbase
         public Task<IOperationResult<string>> PrependAsync(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -3774,7 +3774,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<byte[]> Prepend(string key, byte[] value, TimeSpan timeout)
         {
-            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
@@ -3794,7 +3794,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds());
+            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -3815,7 +3815,7 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -4299,7 +4299,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, timeout.GetMilliseconds());
+            var operation = new Delete(document.Id, null, _transcoder, timeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -4346,7 +4346,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
             {
                 Cas = cas
             };
@@ -4548,7 +4548,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds());
+            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -4910,7 +4910,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds());
+            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 

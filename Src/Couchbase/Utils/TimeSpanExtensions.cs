@@ -40,13 +40,13 @@ namespace Couchbase.Utils
         }
 
         /// <summary>
-        /// Retrieves the number of milliseconds expressed in a <see cref="TimeSpan"/> as an <see cref="uint"/>.
+        /// Retrieves the number of seconds expressed in a <see cref="TimeSpan"/> as an <see cref="uint"/>.
         /// </summary>
         /// <param name="timeSpan">The timespan.</param>
-        /// <returns>An <see cref="uint"/> that is the total number of milliseconds in the <see cref="TimeSpan"/>.</returns>
-        public static uint GetMilliseconds(this TimeSpan timeSpan)
+        /// <returns>An <see cref="uint"/> that is the total number of seconds in the <see cref="TimeSpan"/>.</returns>
+        public static uint GetSeconds(this TimeSpan timeSpan)
         {
-            return (uint) timeSpan.TotalMilliseconds;
+            return (uint) timeSpan.TotalSeconds;
         }
 
         private static readonly Regex DurationValueSuffixRegex = new Regex(@"([\d]+)\s?([^\d]+)?", RegexOptions.Compiled | RegexOptions.IgnoreCase);

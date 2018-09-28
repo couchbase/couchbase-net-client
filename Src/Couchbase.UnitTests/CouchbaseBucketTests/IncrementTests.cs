@@ -43,7 +43,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(1, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(0, operation.Expires);
-            Assert.AreEqual(2500, operation.Timeout);
+            Assert.AreEqual(2, operation.Timeout);
         }
 
         [Test]
@@ -74,7 +74,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(1, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(0, operation.Expires);
-            Assert.AreEqual(10000, operation.Timeout);
+            Assert.AreEqual(10, operation.Timeout);
         }
 
         [Test]
@@ -105,7 +105,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(1, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(0, operation.Expires);
-            Assert.AreEqual(2500, operation.Timeout);
+            Assert.AreEqual(2, operation.Timeout);
         }
 
         [Test]
@@ -136,7 +136,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(1, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(0, operation.Expires);
-            Assert.AreEqual(10000, operation.Timeout);
+            Assert.AreEqual(10, operation.Timeout);
         }
 
         [Test]
@@ -167,7 +167,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(4, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(0, operation.Expires);
-            Assert.AreEqual(2500, operation.Timeout);
+            Assert.AreEqual(2, operation.Timeout);
         }
 
         [Test]
@@ -198,7 +198,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(4, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(10, operation.Expires);
-            Assert.AreEqual(2500, operation.Timeout);
+            Assert.AreEqual(2, operation.Timeout);
         }
 
         [Test]
@@ -229,7 +229,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(4, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(10, operation.Expires);
-            Assert.AreEqual(2500, operation.Timeout);
+            Assert.AreEqual(2, operation.Timeout);
         }
 
         [Test]
@@ -260,7 +260,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(4, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(10, operation.Expires);
-            Assert.AreEqual(20000, operation.Timeout);
+            Assert.AreEqual(20, operation.Timeout);
         }
 
         [Test]
@@ -291,7 +291,7 @@ namespace Couchbase.UnitTests
             Assert.AreEqual(4, operation.Initial);
             Assert.AreEqual("bucket", operation.BucketName);
             Assert.AreEqual(10, operation.Expires);
-            Assert.AreEqual(20000, operation.Timeout);
+            Assert.AreEqual(20, operation.Timeout);
         }
     }
 }

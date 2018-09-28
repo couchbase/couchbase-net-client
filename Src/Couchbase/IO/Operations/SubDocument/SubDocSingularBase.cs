@@ -41,7 +41,7 @@ namespace Couchbase.IO.Operations.SubDocument
         {
             if (builder.Timeout.HasValue)
             {
-                Timeout = builder.Timeout.Value.GetMilliseconds();
+                Timeout = builder.Timeout.Value.GetSeconds();
             }
         }
 
