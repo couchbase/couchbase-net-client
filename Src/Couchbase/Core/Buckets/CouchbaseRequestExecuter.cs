@@ -702,12 +702,11 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult<T>> tcs = null,
             CancellationTokenSource cts = null)
         {
-            tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
-
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
-            using (cts.Token.Register(() => SetTimeoutResult(operation, tcs), false))
             {
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
+                cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
                 try
                 {
                     //Is the cluster configured for Data services?
@@ -718,7 +717,7 @@ namespace Couchbase.Core.Buckets
                     }
 
                     var keyMapper = ConfigInfo.GetKeyMapper();
-                    var vBucket = (IVBucket) keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
+                    var vBucket = (IVBucket)keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
                     operation.VBucket = vBucket;
                     operation.LastConfigRevisionTried = vBucket.Rev;
 
@@ -729,8 +728,6 @@ namespace Couchbase.Core.Buckets
 
                     var server = await GetServerWithRetryAsync(vBucket.LocatePrimary, cts.Token).ContinueOnAnyContext();
                     await server.SendAsync(operation).ContinueOnAnyContext();
-
-                    await tcs.Task.ContinueOnAnyContext();
                 }
                 catch (Exception e)
                 {
@@ -743,20 +740,7 @@ namespace Couchbase.Core.Buckets
                 }
             }
 
-            return tcs.Task.Result;
-        }
-
-        private void SetTimeoutResult<T>(IOperation operation, TaskCompletionSource<IOperationResult<T>> tcs)
-        {
-            // remove pending operation and set result as timeout
-            Pending.TryRemove(operation.Opaque, out _);
-            tcs.TrySetResult(new OperationResult<T>
-            {
-                Id = operation.Key,
-                Success = false,
-                Exception = new SendTimeoutExpiredException(),
-                Status = ResponseStatus.OperationTimeout
-            });
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
@@ -772,12 +756,11 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult> tcs = null,
             CancellationTokenSource cts = null)
         {
-            tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
-            cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
-
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
-            using (cts.Token.Register(() => SetTimeoutResult(operation, tcs), false))
             {
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
+                cts = cts ?? new CancellationTokenSource(OperationLifeSpan);
+
                 try
                 {
                     //Is the cluster configured for Data services?
@@ -800,8 +783,6 @@ namespace Couchbase.Core.Buckets
                     var server = await GetServerWithRetryAsync(vBucket.LocatePrimary, cts.Token);
                     Log.Debug("Starting send for {0} with {1}", operation.Opaque, server.EndPoint);
                     await server.SendAsync(operation).ContinueOnAnyContext();
-
-                    await tcs.Task.ContinueOnAnyContext();
                 }
                 catch (Exception e)
                 {
@@ -814,20 +795,7 @@ namespace Couchbase.Core.Buckets
                 }
             }
 
-            return tcs.Task.Result;
-        }
-
-        private void SetTimeoutResult(IOperation operation, TaskCompletionSource<IOperationResult> tcs)
-        {
-            // remove pending operation and set result as timeout
-            Pending.TryRemove(operation.Opaque, out _);
-            tcs.TrySetResult(new OperationResult
-            {
-                Id = operation.Key,
-                Success = false,
-                Exception = new SendTimeoutExpiredException(),
-                Status = ResponseStatus.OperationTimeout
-            });
+            return await tcs.Task.ContinueOnAnyContext();
         }
 
         /// <summary>
