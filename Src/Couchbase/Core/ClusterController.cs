@@ -111,7 +111,7 @@ namespace Couchbase.Core
                         Log.Debug("Processing config rev#{0}", config.Rev);
 
                         //will make logs verbose
-                        Log.Trace(JsonConvert.SerializeObject(config));
+                        Log.Trace("{0}", JsonConvert.SerializeObject(config));
 
                         provider.UpdateConfig(config);
                     }
