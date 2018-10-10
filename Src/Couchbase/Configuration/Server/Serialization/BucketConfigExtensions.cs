@@ -28,6 +28,15 @@ namespace Couchbase.Configuration.Server.Serialization
             {
                 nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null)));
             }
+            else if (nodesExt.Length > nodes.Length)
+            {
+                for (var i = 0; i < nodesExt.Length; i++)
+                {
+                    var node = nodes.Length > i ? nodes[i] : null;
+                    var nodeExt = nodesExt[i];
+                    nodeAdapters.Add(new NodeAdapter(node, nodeExt));
+                }
+            }
             else
             {
                 nodeAdapters.AddRange(nodesExt.Select((t, i) => new NodeAdapter(null, nodesExt[i])));
@@ -48,7 +57,7 @@ namespace Couchbase.Configuration.Server.Serialization
                 ServerList =  bucketConfig.VBucketServerMap.ServerList.Select(x =>
                     x.Replace(node.KeyValue.ToString(), port.ToString())).ToArray(),
                 NumReplicas = bucketConfig.VBucketServerMap.NumReplicas,
-                VBucketMapForward =(int[][]) bucketConfig.VBucketServerMap.VBucketMapForward.Clone()
+                VBucketMapForward = (int[][]) bucketConfig.VBucketServerMap.VBucketMapForward.Clone()
             };
         }
     }
