@@ -109,9 +109,21 @@ namespace Couchbase.Core
                     foreach (var provider in _configProviders.OfType<CarrierPublicationProvider>())
                     {
                         Log.Debug("Processing config rev#{0}", config.Rev);
+                        string traceObj = null;
+                        try
+                        {
+                            //will make logs verbose
+                            traceObj = JsonConvert.SerializeObject(config);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error("Unable to serialize config", ex);
+                        }
 
-                        //will make logs verbose
-                        Log.Trace(JsonConvert.SerializeObject(config));
+                        if (traceObj != null)
+                        {
+                            Log.Trace(traceObj);
+                        }
 
                         provider.UpdateConfig(config);
                     }
