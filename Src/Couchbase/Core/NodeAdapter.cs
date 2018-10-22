@@ -43,6 +43,8 @@ namespace Couchbase.Core
                 Views = _nodeExt.Services.Capi;
                 ViewsSsl = _nodeExt.Services.CapiSSL;
                 Moxi = _nodeExt.Services.Moxi;
+                KeyValue = _nodeExt.Services.KV;
+                KeyValueSsl = _nodeExt.Services.KvSSL;
                 Projector = _nodeExt.Services.Projector;
                 IndexAdmin = _nodeExt.Services.IndexAdmin;
                 IndexScan = _nodeExt.Services.IndexScan;
@@ -56,13 +58,6 @@ namespace Couchbase.Core
                 FtsSsl = _nodeExt.Services.FtsSSL;
                 Analytics = _nodeExt.Services.Analytics;
                 AnalyticsSsl = _nodeExt.Services.AnalyticsSsl;
-            }
-
-            //override nodesExt id nodes exists for KV only
-            if (_node != null)
-            {
-                KeyValue = _node.Ports.Direct;
-                KeyValueSsl = _node.Ports.SslDirect;
             }
         }
 

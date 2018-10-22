@@ -58,7 +58,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Data\cbse-5827.json" />
     <None Remove="Data\cluster-map.json" />
     <None Remove="Data\config-rev-46.json" />
     <None Remove="Data\config-rev-60.json" />
