@@ -24,5 +24,18 @@ namespace Couchbase.UnitTests.Configuration
                 Assert.AreEqual(port, ipEndPoint.Port);
             }
         }
+
+        [Test]
+        public void Test_KV_Enabled_Only_When_In_Nodes()
+        {
+            var json = ResourceHelper.ReadResource(@"Data\cbse-5827.json");
+            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+
+            var nodes = bucketConfig.GetNodes();
+            Assert.AreEqual(3, nodes.Count);
+            Assert.IsTrue(nodes[0].IsDataNode);
+            Assert.IsTrue(nodes[1].IsDataNode);
+            Assert.IsFalse(nodes[2].IsDataNode);
+        }
     }
 }

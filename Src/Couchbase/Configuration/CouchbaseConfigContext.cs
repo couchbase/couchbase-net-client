@@ -130,7 +130,7 @@ namespace Couchbase.Configuration
                     SwapServers(servers);
 
                     Log.Info("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev);
-                    var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+                    var vBucketKeyMapper = new VBucketKeyMapper(Servers.Where(x=>x.Value.IsDataNode).ToDictionary(x=>x.Key, x=>x.Value),
                         bucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
                         bucketConfig.Rev,
                         bucketConfig.Name);
@@ -143,7 +143,29 @@ namespace Couchbase.Configuration
                     if (BucketConfig == null || !BucketConfig.IsVBucketServerMapEqual(bucketConfig) || force)
                     {
                         Log.Info("Creating the KeyMapper list using rev#{0}", bucketConfig.Rev);
-                        var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+
+                        var clientBucketConfig = ClientConfig.BucketConfigs[bucketConfig.Name];
+                        foreach (var adapter in nodes)
+                        {
+                            var endpoint = adapter.GetIPEndPoint(clientBucketConfig.UseSsl);
+                            var server = Servers[endpoint];
+                            if (adapter.IsDataNode && !server.IsDataNode)
+                            {
+                                var uri = UrlUtil.GetBaseUri(adapter, clientBucketConfig);
+                                var poolConfiguration = ClientConfig.BucketConfigs[BucketConfig.Name]
+                                    .ClonePoolConfiguration(uri);
+
+                                var ioService = CreateIOService(poolConfiguration, endpoint);
+
+                                var newServer = new Core.Server(ioService, adapter, Transcoder, QueryCache, this);
+                                server.Dispose();
+                                Servers[endpoint] = newServer;
+                            }
+                        }
+
+                        var dataNodes = Servers.Where(x => x.Value.IsDataNode).ToDictionary(x => x.Key, x => x.Value);
+
+                        var vBucketKeyMapper = new VBucketKeyMapper(dataNodes,
                             bucketConfig.GetBucketServerMap(ClientConfig.BucketConfigs[bucketConfig.Name].UseSsl),
                             bucketConfig.Rev,
                             bucketConfig.Name);
@@ -272,7 +294,7 @@ namespace Couchbase.Configuration
                 SwapServers(servers);
 
                 Log.Info("Creating the KeyMapper list using rev#{0}", BucketConfig.Rev);
-                var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers.Where(x=>x.Value.IsDataNode).ToDictionary(x=>x.Key, x=>x.Value),
                     BucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
                     BucketConfig.Rev,
                     BucketConfig.Name);
@@ -355,7 +377,7 @@ namespace Couchbase.Configuration
 
                 SwapServers(servers);
 
-                var vBucketKeyMapper = new VBucketKeyMapper(Servers,
+                var vBucketKeyMapper = new VBucketKeyMapper(Servers.Where(x=>x.Value.IsDataNode).ToDictionary(x=>x.Key, x=>x.Value),
                     BucketConfig.GetBucketServerMap(clientBucketConfig.UseSsl),
                     BucketConfig.Rev,
                     BucketConfig.Name);

@@ -140,7 +140,7 @@ namespace Couchbase.Core
 
             //services that this node is responsible for
             IsMgmtNode = _nodeAdapter.MgmtApi > 0;
-            IsDataNode = _nodeAdapter.KeyValue > 0;
+            IsDataNode = _nodeAdapter.IsDataNode;
             IsQueryNode = _nodeAdapter.N1QL > 0;
             IsIndexNode = _nodeAdapter.IndexAdmin > 0;
             IsViewNode = _nodeAdapter.Views > 0;

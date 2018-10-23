@@ -27,6 +27,29 @@ namespace Couchbase.UnitTests
             }
         }
 
+        public static List<string> ReadResourceAsArray(string resourcePath)
+        {
+            using (var stream = ReadResourceAsStream(resourcePath))
+            {
+                if (stream == null)
+                {
+                    return null;
+                }
+
+                var resources = new List<string>();
+                using (var reader = new StreamReader(stream))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        resources.Add(line);
+                    }
+                }
+
+                return resources;
+            }
+        }
+
         public static Stream ReadResourceAsStream(string resourcePath)
         {
             //NOTE: buildOptions.embed for .NET Core ignores the path structure so do a lookup by name
