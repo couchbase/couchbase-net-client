@@ -21,11 +21,15 @@ namespace Couchbase.Analytics
         private ExecutionMode _executionMode = Analytics.ExecutionMode.Immediate;
         private TimeSpan? _timeout;
 
-        public AnalyticsRequest(string statement)
+        public AnalyticsRequest()
         {
-            Statement(statement);
             _clientContextId = Guid.NewGuid().ToString();
             _requestContextId = Guid.NewGuid().ToString();
+        }
+
+        public AnalyticsRequest(string statement) : this()
+        {
+            Statement(statement);
         }
 
         /// <summary>
