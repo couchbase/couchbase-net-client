@@ -23,6 +23,7 @@ namespace Couchbase.Management
             SaslPassword = string.Empty;
             ThreadNumber = ThreadNumber.Three;
             Services = new List<CouchbaseService> {CouchbaseService.Index, CouchbaseService.KV, CouchbaseService.N1QL};
+            ConflictResolutionType = ConflictResolutionType.SequenceNumber;
         }
 
         /// <summary>
@@ -121,6 +122,14 @@ namespace Couchbase.Management
         /// The proxy port.
         /// </value>
         public int ProxyPort { get; set; }
+
+        /// <summary>
+        /// Gets or sets the conflict resolution type. Default is <see cref="ConflictResolutionType.SequenceNumber"/>.
+        /// </summary>
+        /// <value>
+        /// The type of the conflict resolution.
+        /// </value>
+        public ConflictResolutionType ConflictResolutionType {get; set; }
     }
 }
 

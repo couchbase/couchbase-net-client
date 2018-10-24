@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -8,6 +8,7 @@ using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server;
 using Couchbase.Management;
 using Couchbase.UnitTests.Utils;
+using Couchbase.Utils;
 using Couchbase.Views;
 using Moq;
 using Newtonsoft.Json;
@@ -127,6 +128,173 @@ namespace Couchbase.UnitTests.Management
 
             managerMock.Verify(
                 x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")),
+                Times.Once);
+        }
+
+        [Test]
+        public void ConflictResolutionType_descriptions_are_correct()
+        {
+            Assert.AreEqual("seqno", ConflictResolutionType.SequenceNumber.GetDescription());
+            Assert.AreEqual("lww", ConflictResolutionType.LastWriteWins.GetDescription());
+        }
+
+        [TestCase(ConflictResolutionType.SequenceNumber)]
+        [TestCase(ConflictResolutionType.LastWriteWins)]
+        public void CreateBucket_conflictResolutionType_is_sent_to_server(ConflictResolutionType conflictResolutionType)
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            managerMock.Object.CreateBucket("test", conflictResolutionType: conflictResolutionType);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["conflictResolutionType"] == conflictResolutionType.GetDescription())),
+                Times.Once);
+        }
+
+        [TestCase(ConflictResolutionType.SequenceNumber)]
+        [TestCase(ConflictResolutionType.LastWriteWins)]
+        public void CreateBucket_with_proxy_port_conflictResolutionType_is_sent_to_server(ConflictResolutionType conflictResolutionType)
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            managerMock.Object.CreateBucket("test", 1234, conflictResolutionType: conflictResolutionType);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["conflictResolutionType"] == conflictResolutionType.GetDescription())),
+                Times.Once);
+        }
+
+        [TestCase(ConflictResolutionType.SequenceNumber)]
+        [TestCase(ConflictResolutionType.LastWriteWins)]
+        public async Task CreateBucketAsync_conflictResolutionType_is_sent_to_server(ConflictResolutionType conflictResolutionType)
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            await managerMock.Object.CreateBucketAsync("test", conflictResolutionType: conflictResolutionType);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["conflictResolutionType"] == conflictResolutionType.GetDescription())),
+                Times.Once);
+        }
+
+        [TestCase(ConflictResolutionType.SequenceNumber)]
+        [TestCase(ConflictResolutionType.LastWriteWins)]
+        public async Task CreateBucketAsync_with_proxy_port_conflictResolutionType_is_sent_to_server(ConflictResolutionType conflictResolutionType)
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            await managerMock.Object.CreateBucketAsync("test", 1234, conflictResolutionType: conflictResolutionType);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["conflictResolutionType"] == conflictResolutionType.GetDescription())),
+                Times.Once);
+        }
+
+        [TestCase(ConflictResolutionType.SequenceNumber)]
+        [TestCase(ConflictResolutionType.LastWriteWins)]
+        public void CreateBucket_conflictResolutionType_using_bucket_settings_is_sent_to_server(ConflictResolutionType conflictResolutionType)
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            var settings = new BucketSettings
+            {
+                Name = "test",
+                ConflictResolutionType = conflictResolutionType
+            };
+            managerMock.Object.CreateBucket(settings);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["conflictResolutionType"] == conflictResolutionType.GetDescription())),
+                Times.Once);
+        }
+
+        [TestCase(ConflictResolutionType.SequenceNumber)]
+        [TestCase(ConflictResolutionType.LastWriteWins)]
+        public async Task CreateBucketAsync_conflictResolutionType_using_bucket_settings_is_sent_to_server(ConflictResolutionType conflictResolutionType)
+        {
+            // Arrange
+
+            var mockServerConfig = new Mock<IServerConfig>();
+
+            var managerMock = new Mock<ClusterManager>(_clientConfiguration, mockServerConfig.Object,
+                new JsonDataMapper(_clientConfiguration), new HttpClient(), "username", "password");
+            managerMock
+                .Setup(x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["replicaIndex"] == "0")))
+                .Returns(Task.FromResult((IResult)new DefaultResult(true, "success", null)));
+
+            // Act
+
+            var settings = new BucketSettings
+            {
+                Name = "test",
+                ConflictResolutionType = conflictResolutionType
+            };
+            await managerMock.Object.CreateBucketAsync(settings);
+
+            // Assert
+
+            managerMock.Verify(
+                x => x.PostFormDataAsync(It.IsAny<Uri>(), It.Is<Dictionary<string, string>>(p => p["conflictResolutionType"] == conflictResolutionType.GetDescription())),
                 Times.Once);
         }
 

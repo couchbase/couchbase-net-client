@@ -93,8 +93,9 @@ namespace Couchbase.Management
         /// <param name="parallelDbAndViewCompaction">Indicates whether database and view files on disk can be compacted simultaneously.</param>
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
+        /// <param name="conflictResolutionType">Optional Parameter. Sets the conflict resolution type for the bucket.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        IResult CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Three);
+        IResult CreateBucket(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Three, ConflictResolutionType conflictResolutionType = ConflictResolutionType.SequenceNumber);
 
         /// <summary>
         /// Creates a new bucket on the cluster
@@ -110,8 +111,9 @@ namespace Couchbase.Management
         /// <param name="parallelDbAndViewCompaction">Indicates whether database and view files on disk can be compacted simultaneously.</param>
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
+        /// <param name="conflictResolutionType">Optional Parameter. Sets the conflict resolution type for the bucket.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        IResult CreateBucket(string name, int proxyPort, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Three);
+        IResult CreateBucket(string name, int proxyPort, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Three, ConflictResolutionType conflictResolutionType = ConflictResolutionType.SequenceNumber);
 
         /// <summary>
         /// Creates a new bucket on the cluster
@@ -126,8 +128,9 @@ namespace Couchbase.Management
         /// <param name="parallelDbAndViewCompaction">Indicates whether database and view files on disk can be compacted simultaneously.</param>
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
+        /// <param name="conflictResolutionType">Optional Parameter. Sets the conflict resolution type for the bucket.</param>
         /// <returns>A boolean value indicating the result.</returns>
-        Task<IResult> CreateBucketAsync(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Three);
+        Task<IResult> CreateBucketAsync(string name, uint ramQuota = 100, BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two, AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false, bool parallelDbAndViewCompaction = false, string saslPassword = "", ThreadNumber threadNumber = ThreadNumber.Three, ConflictResolutionType conflictResolutionType = ConflictResolutionType.SequenceNumber);
 
         /// <summary>
         /// Creates a new bucket on the cluster
@@ -143,12 +146,21 @@ namespace Couchbase.Management
         /// <param name="parallelDbAndViewCompaction">Indicates whether database and view files on disk can be compacted simultaneously.</param>
         /// <param name="saslPassword">Optional Parameter. String. Password for SASL authentication. Required if SASL authentication has been enabled.</param>
         /// <param name="threadNumber">Optional Parameter. Integer from 2 to 8. Change the number of concurrent readers and writers for the data bucket. </param>
+        /// <param name="conflictResolutionType">Optional Parameter. Sets the conflict resolution type for the bucket.</param>
         /// <returns>A boolean value indicating the result.</returns>
         Task<IResult> CreateBucketAsync(string name, int proxyPort, uint ramQuota = 100,
             BucketTypeEnum bucketType = BucketTypeEnum.Couchbase, ReplicaNumber replicaNumber = ReplicaNumber.Two,
             AuthType authType = AuthType.Sasl, bool indexReplicas = false, bool flushEnabled = false,
             bool parallelDbAndViewCompaction = false, string saslPassword = "",
-            ThreadNumber threadNumber = ThreadNumber.Three);
+            ThreadNumber threadNumber = ThreadNumber.Three,
+            ConflictResolutionType conflictResolutionType = ConflictResolutionType.SequenceNumber);
+
+        /// <summary>
+        /// Creates a new bucket on the cluster.
+        /// </summary>
+        /// <param name="settings">The settings for the bucket.</param>
+        /// <returns></returns>
+        IResult CreateBucket(BucketSettings settings);
 
         /// <summary>
         /// Creates a new bucket on the cluster
@@ -156,6 +168,7 @@ namespace Couchbase.Management
         /// <param name="settings">The settings for the bucket.</param>
         /// <returns></returns>
         Task<IResult> CreateBucketAsync(BucketSettings settings);
+
         /// <summary>
         /// Removes a bucket from the cluster permamently.
         /// </summary>
