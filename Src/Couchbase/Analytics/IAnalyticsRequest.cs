@@ -104,6 +104,15 @@ namespace Couchbase.Analytics
         /// <param name="key">The paramemeter name.</param>
         /// <param name="value">The parameter value.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest AddNamedParameter(string key, object value);
+
+        /// <summary>
+        /// Adds a named parameter to be used with the statement.
+        /// </summary>
+        /// <param name="key">The paramemeter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        [Obsolete("Please use AddNamedParameter(key, value) instead. This method may be removed in a future version.")]
         IAnalyticsRequest AddNamedParamter(string key, object value);
 
         /// <summary>

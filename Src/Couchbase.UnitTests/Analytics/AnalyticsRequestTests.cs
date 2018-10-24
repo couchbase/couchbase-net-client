@@ -236,9 +236,9 @@ namespace Couchbase.UnitTests.Analytics
         public void Can_add_named_parameter()
         {
             var request = new AnalyticsRequest(_defaultstatement);
-            request.AddNamedParamter("my_string", "value");
-            request.AddNamedParamter("my_int", 10);
-            request.AddNamedParamter("my_bool", true);
+            request.AddNamedParameter("my_string", "value");
+            request.AddNamedParameter("my_int", 10);
+            request.AddNamedParameter("my_bool", true);
 
             var formValues = request.GetFormValues();
             Assert.AreEqual("value", formValues["my_string"]);
