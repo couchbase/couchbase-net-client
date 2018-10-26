@@ -6,6 +6,7 @@ using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using Couchbase.Analytics.Ingestion;
 
 namespace Couchbase.IntegrationTests
 {
@@ -18,10 +19,10 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
+            _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("beer-sample"));
             _cluster.SetupEnhancedAuth();
 
-            _bucket = _cluster.OpenBucket("beer-sample");
+            _bucket = _cluster.OpenBucket("default");
         }
 
         [OneTimeTearDown]
@@ -61,6 +62,18 @@ namespace Couchbase.IntegrationTests
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual("hello", result.Rows.First().Greeting);
+        }
+
+        [Test, Ignore("Analytics service is not currently discoverable. Until it is, we don't want to run these tests automatically.")]
+        public async Task Test_Ingest()
+        {
+            const string statement = "SELECT \"hello\" as greeting;";
+
+            var query = new AnalyticsRequest(statement);
+
+            var result = await _bucket.IngestAsync<dynamic>(query, new IngestOptions()).ConfigureAwait(false);
+
+            Assert.True(result.Count > 0);
         }
     }
 }
