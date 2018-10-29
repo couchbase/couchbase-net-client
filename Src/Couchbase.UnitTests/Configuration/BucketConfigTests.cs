@@ -1,4 +1,4 @@
-﻿using Couchbase.Configuration.Server.Serialization;
+using Couchbase.Configuration.Server.Serialization;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -31,6 +31,21 @@ namespace Couchbase.UnitTests.Configuration
             var json = JsonConvert.SerializeObject(config);
 
             Assert.IsFalse(json.Contains("Potatoe"));
+        }
+
+        [Test]
+        public void When_config_has_alternateAddresses_hostname_and_ports_are_populated()
+        {
+            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Data\bucket_config_with_external_addresses.json"));
+
+            Assert.AreEqual(3, config.Nodes.Length);
+            Assert.AreEqual(3, config.NodesExt.Length);
+
+            foreach (var nodeExt in config.NodesExt)
+            {
+                Assert.IsNotEmpty(nodeExt.AlternateAddresses.External.Hostname);
+                Assert.IsNotNull(nodeExt.AlternateAddresses.External.Ports);
+            }
         }
     }
 }

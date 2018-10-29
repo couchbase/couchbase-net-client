@@ -80,6 +80,10 @@
 
     "saslAuth": {
       "forceSaslPlain": false
+    },
+
+    "alternateNetwork": {
+      "directPort": "32823"
     }
   }
 }

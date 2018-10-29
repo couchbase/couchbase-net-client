@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Utils;
 
@@ -10,12 +11,16 @@ namespace Couchbase.Core
 {
     internal class NodeAdapter : INodeAdapter
     {
+        private readonly Node _node;
         private readonly ConcurrentDictionary<string, IPEndPoint> _cachedEndPoints = new ConcurrentDictionary<string, IPEndPoint>();
         private IPAddress _cachedIPAddress;
 
-        public NodeAdapter(Node node, NodeExt nodeExt)
+        public NodeAdapter(Node node, NodeExt nodeExt, IBucketConfig bucketConfig)
         {
-            Hostname = GetHostname(node, nodeExt);
+            _node = node;
+
+            // get hostname (uses alternate network hostname if configured)
+            Hostname = GetHostname(node, nodeExt, bucketConfig);
 
             if (node != null)
             {
@@ -23,7 +28,25 @@ namespace Couchbase.Core
                 CouchbaseApiBaseHttps = node.CouchApiBaseHttps;
             }
 
-            if (nodeExt == null)
+            if (nodeExt != null)
+            {
+                // get services, will use alternate network ports if configured
+                var services = GetServicePorts(nodeExt, bucketConfig);
+
+                // if not using alternate network and node is null
+                if (!UseAlternateNetwork(nodeExt, bucketConfig) && node == null)
+                {
+                    // if using nodeExt and node is null, the KV service may not be available yet and should be disabled (set to 0)
+                    // this prevents the server's data service being marked as active before it is ready
+                    // see https://issues.couchbase.com/browse/JVMCBC-564, https://issues.couchbase.com/browse/NCBC-1791 and
+                    // https://issues.couchbase.com/browse/NCBC-1808 for more details
+                    services.KV = 0;
+                    services.KvSSL = 0;
+                }
+
+                ConfigureServicePorts(services);
+            }
+            else
             {
                 MgmtApiSsl = node.Ports.HttpsMgmt;
                 Moxi = node.Ports.Proxy;
@@ -32,39 +55,19 @@ namespace Couchbase.Core
                 ViewsSsl = node.Ports.HttpsCapi;
                 Views = new Uri(CouchbaseApiBase).Port;
             }
-            else
-            {
-                MgmtApi = nodeExt.Services.Mgmt;
-                MgmtApiSsl = nodeExt.Services.MgmtSSL;
-                Views = nodeExt.Services.Capi;
-                ViewsSsl = nodeExt.Services.CapiSSL;
-                Moxi = nodeExt.Services.Moxi;
-                Projector = nodeExt.Services.Projector;
-                IndexAdmin = nodeExt.Services.IndexAdmin;
-                IndexScan = nodeExt.Services.IndexScan;
-                IndexHttp = nodeExt.Services.IndexHttp;
-                IndexStreamInit = nodeExt.Services.IndexStreamInit;
-                IndexStreamCatchup = nodeExt.Services.IndexStreamCatchup;
-                IndexStreamMaint = nodeExt.Services.IndexStreamMaint;
-                N1QL = nodeExt.Services.N1QL;
-                N1QLSsl = nodeExt.Services.N1QLSsl;
-                Fts = nodeExt.Services.Fts;
-                FtsSsl = nodeExt.Services.FtsSSL;
-                Analytics = nodeExt.Services.Analytics;
-                AnalyticsSsl = nodeExt.Services.AnalyticsSsl;
-
-                // if using nodeExt and node is null, the KV service may not be available yet and should be disabled (set to 0)
-                // this prevents the server's data service being marked as active before it is ready
-                // see https://issues.couchbase.com/browse/JVMCBC-564, https://issues.couchbase.com/browse/NCBC-1791 and
-                // https://issues.couchbase.com/browse/NCBC-1808 for more details
-                KeyValue = node != null ? nodeExt.Services.KV : 0;
-                KeyValueSsl = node != null ? nodeExt.Services.KvSSL : 0;
-            }
         }
 
-        private static string GetHostname(Node node, NodeExt nodeExt)
+        private string GetHostname(Node node, NodeExt nodeExt, IBucketConfig bucketConfig)
         {
-            var hostname = string.IsNullOrWhiteSpace(nodeExt?.Hostname) ? node.Hostname : nodeExt.Hostname;
+            // try to use NodeExt hostname (uses alternate network if configured)
+            var hostname = GetHostname(nodeExt, bucketConfig);
+
+            // if hostname is invalid, use node's hostname
+            if (string.IsNullOrWhiteSpace(hostname))
+            {
+                hostname = node.Hostname;
+            }
+
             if (hostname.Contains("$HOST"))
             {
                 return "localhost";
@@ -93,6 +96,72 @@ namespace Couchbase.Core
             }
 
             return hostname;
+        }
+
+        internal bool UseAlternateNetwork(NodeExt nodeExt, IBucketConfig bucketConfig)
+        {
+            // make sure we have at least an alternate network hostname (alternate ports are optional)
+            if (string.IsNullOrWhiteSpace(nodeExt?.AlternateAddresses?.External?.Hostname))
+            {
+                return false;
+            }
+
+            switch (bucketConfig.NetworkType)
+            {
+                case NetworkTypes.Auto:
+                    // use alternate network if bucket config and nodeExt's hostname don't match
+                    return string.Compare(nodeExt.Hostname, bucketConfig.SurrogateHost, StringComparison.Ordinal) != 0;
+                case NetworkTypes.External:
+                case NetworkTypes.Default:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        internal string GetHostname(NodeExt nodeExt, IBucketConfig bucketConfig)
+        {
+            if (UseAlternateNetwork(nodeExt, bucketConfig))
+            {
+                return nodeExt.AlternateAddresses.External.Hostname;
+            }
+
+            return nodeExt?.Hostname;
+        }
+
+        internal Configuration.Server.Serialization.Services GetServicePorts(NodeExt nodeExt, IBucketConfig bucketConfig)
+        {
+            if (UseAlternateNetwork(nodeExt, bucketConfig) &&
+                nodeExt.AlternateAddresses?.External?.Ports != null)
+            {
+                return nodeExt.AlternateAddresses.External.Ports;
+            }
+
+            return nodeExt?.Services;
+        }
+
+        private void ConfigureServicePorts(Configuration.Server.Serialization.Services services)
+        {
+            MgmtApi = services.Mgmt;
+            MgmtApiSsl = services.MgmtSSL;
+            KeyValue = services.KV;
+            KeyValueSsl = services.KvSSL;
+            Views = services.Capi;
+            ViewsSsl = services.CapiSSL;
+            Moxi = services.Moxi;
+            Projector = services.Projector;
+            IndexAdmin = services.IndexAdmin;
+            IndexScan = services.IndexScan;
+            IndexHttp = services.IndexHttp;
+            IndexStreamInit = services.IndexStreamInit;
+            IndexStreamCatchup = services.IndexStreamCatchup;
+            IndexStreamMaint = services.IndexStreamMaint;
+            N1QL = services.N1QL;
+            N1QLSsl = services.N1QLSsl;
+            Fts = services.Fts;
+            FtsSsl = services.FtsSSL;
+            Analytics = services.Analytics;
+            AnalyticsSsl = services.AnalyticsSsl;
         }
 
         public string Hostname { get; set; }

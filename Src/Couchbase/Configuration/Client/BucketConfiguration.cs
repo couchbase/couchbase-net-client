@@ -47,6 +47,7 @@ namespace Couchbase.Configuration.Client
             _operationLifespan = Defaults.OperationLifespan; //ms, work around property that flags as changed
             UseSsl = Defaults.UseSsl;
             PoolConfiguration = new PoolConfiguration();
+            NetworkType = NetworkTypes.Auto;
         }
 
         /// <summary>
@@ -152,6 +153,14 @@ namespace Couchbase.Configuration.Client
                 _operationLifespanChanged = true;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the network type used to resolve node hostnames and ports.
+        /// </summary>
+        /// <value>
+        /// The network type.
+        /// </value>
+        public string NetworkType { get; set; }
 
         /// <summary>
         /// Conditionally change the DefaultOperationLifespan property value, if and only if it wasn't already changed

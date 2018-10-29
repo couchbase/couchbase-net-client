@@ -1,10 +1,6 @@
-﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.IO.Operations;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
@@ -18,15 +14,15 @@ namespace Couchbase.Configuration.Server.Serialization
 
             if (nodesExt == null)
             {
-                nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null)));
+                nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null, bucketConfig)));
             }
             else if (nodes.Length == nodesExt.Length)
             {
-                nodeAdapters.AddRange(nodes.Select((t, i) => new NodeAdapter(t, nodesExt[i])));
+                nodeAdapters.AddRange(nodes.Select((t, i) => new NodeAdapter(t, nodesExt[i], bucketConfig)));
             }
             else if (nodesExt.Length < nodes.Length)
             {
-                nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null)));
+                nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null, bucketConfig)));
             }
             else if (nodesExt.Length > nodes.Length)
             {
@@ -34,12 +30,12 @@ namespace Couchbase.Configuration.Server.Serialization
                 {
                     var node = nodes.Length > i ? nodes[i] : null;
                     var nodeExt = nodesExt[i];
-                    nodeAdapters.Add(new NodeAdapter(node, nodeExt));
+                    nodeAdapters.Add(new NodeAdapter(node, nodeExt, bucketConfig));
                 }
             }
             else
             {
-                nodeAdapters.AddRange(nodesExt.Select((t, i) => new NodeAdapter(null, nodesExt[i])));
+                nodeAdapters.AddRange(nodesExt.Select((t, i) => new NodeAdapter(null, nodesExt[i], bucketConfig)));
             }
 
             return nodeAdapters;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -110,6 +110,8 @@ namespace Couchbase.Configuration.Server.Serialization
         public string Password { get; set; }
 
         public string Username { get; set; }
+
+        public string NetworkType { get; set; }
 
         public Node GetRandomNode()
         {

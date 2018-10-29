@@ -463,6 +463,11 @@ namespace Couchbase.Configuration.Client
         /// <remarks>The default is 75000ms.</remarks>
         /// <remarks>The value must be greater than Zero.</remarks>
         uint AnalyticsRequestTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets the network type used to resolve node hostnames and ports.
+        /// </summary>
+        string NetworkType { get; set; }
     }
 }
 

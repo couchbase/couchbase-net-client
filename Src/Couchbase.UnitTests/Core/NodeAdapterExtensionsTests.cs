@@ -75,7 +75,8 @@ namespace Couchbase.UnitTests.Core
                 new NodeAdapter
                 (
                     new Node {Hostname = hostname, Ports = new Ports {Direct = 11210}},
-                    new NodeExt {Hostname = hostname, Services = new Services {KV = 11210}}
+                    new NodeExt {Hostname = hostname, Services = new Services {KV = 11210}},
+                    null
                 )
             };
             var nodes2 = new NodeAdapter[]
@@ -83,7 +84,8 @@ namespace Couchbase.UnitTests.Core
                 new NodeAdapter
                 (
                     new Node {Hostname = hostname, Ports = new Ports {Direct = 11211}},
-                    new NodeExt {Hostname = hostname, Services = new Services {KV = 11211}}
+                    new NodeExt {Hostname = hostname, Services = new Services {KV = 11211}},
+                    null
                 )
             };
 

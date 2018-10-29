@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
@@ -84,6 +84,8 @@ namespace Couchbase.Configuration.Server.Providers
 
         public abstract void Dispose();
 
+        internal string NetworkType { get; set; }
+
         /// <summary>
         /// Gets an <see cref="BucketConfiguration"/> from the <see cref="ClientConfiguration"/>. If one doesn't exist
         /// for a given bucket, a new one will be created and added to the configuration.
@@ -95,26 +97,20 @@ namespace Couchbase.Configuration.Server.Providers
             try
             {
                 ConfigLock.EnterWriteLock();
-                BucketConfiguration bucketConfiguration = null;
-                if (ClientConfig.BucketConfigs.ContainsKey(bucketName))
+
+                // do we already have the bucket config cached?
+                if (ClientConfig.BucketConfigs.TryGetValue(bucketName, out var bucketConfiguration))
                 {
-                    bucketConfiguration = ClientConfig.BucketConfigs[bucketName];
+                    SetNetworkType(bucketConfiguration.NetworkType);
+                    return bucketConfiguration;
                 }
-                if (bucketConfiguration != null) return bucketConfiguration;
-                var defaultBucket = ClientConfig.BucketConfigs.FirstOrDefault();
-                if (defaultBucket.Value == null)
+
+                // need to create new config
+                // can we copy settings from another bucket's config?
+                if (ClientConfig.BucketConfigs.Any())
                 {
-                    bucketConfiguration = new BucketConfiguration
-                    {
-                        BucketName = bucketName,
-                        PoolConfiguration = ClientConfig.PoolConfiguration,
-                        Servers = ClientConfig.Servers,
-                        UseSsl = ClientConfig.UseSsl
-                    };
-                }
-                else
-                {
-                    var defaultConfig = defaultBucket.Value;
+                    // use settings from existing config
+                    var defaultConfig = ClientConfig.BucketConfigs.First().Value;
                     bucketConfiguration = new BucketConfiguration
                     {
                         BucketName = bucketName,
@@ -126,12 +122,43 @@ namespace Couchbase.Configuration.Server.Providers
                         UseSsl = defaultConfig.UseSsl
                     };
                 }
+                else
+                {
+                    // create new config using client configuration settings
+                    bucketConfiguration = new BucketConfiguration
+                    {
+                        BucketName = bucketName,
+                        PoolConfiguration = ClientConfig.PoolConfiguration,
+                        Servers = ClientConfig.Servers,
+                        UseSsl = ClientConfig.UseSsl,
+                        Port = ClientConfig.DirectPort
+                    };
+                }
+
+                SetNetworkType(bucketConfiguration.NetworkType);
+
+                // cache bucket config
                 ClientConfig.BucketConfigs.Add(bucketConfiguration.BucketName, bucketConfiguration);
+
                 return bucketConfiguration;
             }
             finally
             {
                 ConfigLock.ExitWriteLock();
+            }
+        }
+
+        private void SetNetworkType(string network)
+        {
+            // only set if Network has not being set before
+            if (string.IsNullOrWhiteSpace(NetworkType))
+            {
+                // default to 'auto' if network is empty
+                NetworkType = string.IsNullOrWhiteSpace(network)
+                    ? NetworkTypes.Auto
+                    : network;
+
+                Log.Info($"Using network type: '{NetworkType}'");
             }
         }
 
@@ -176,6 +203,12 @@ namespace Couchbase.Configuration.Server.Providers
         /// <param name="bucketConfig">The bucket configuration.</param>
         /// <param name="force">if set to <c>true</c> [force].</param>
         public abstract void UpdateConfig(IBucketConfig bucketConfig, bool force = false);
+
+        protected void LogServers(IConfigInfo config)
+        {
+            var servers = config.Servers.Select(x => x.EndPoint.ToString());
+            Log.Debug($"Current cluster nodes: {servers}");
+        }
     }
 }
 

@@ -462,6 +462,11 @@ namespace Couchbase.Configuration.Client
         /// </summary>
         public bool EnableCertificateAuthentication { get; set; }
 
+        /// <summary>
+        /// Gets or sets the network type used to resolve node hostnames and ports.
+        /// </summary>
+        public string NetworkType { get; set; }
+
         public CouchbaseClientDefinition()
         {
             UseSsl = ClientConfiguration.Defaults.UseSsl;
@@ -508,6 +513,7 @@ namespace Couchbase.Configuration.Client
             OrphanedResponseLoggingEnabled = ClientConfiguration.Defaults.OrphanedResponseLoggingEnabled;
             EnableCertificateAuthentication = ClientConfiguration.Defaults.EnableCertificateAuthentication;
             EnableCertificateRevocation = ClientConfiguration.Defaults.EnableCertificateRevocation;
+            NetworkType = ClientConfiguration.Defaults.NetworkType;
         }
 
         #region Additional ICouchbaseClientDefinition Implementations

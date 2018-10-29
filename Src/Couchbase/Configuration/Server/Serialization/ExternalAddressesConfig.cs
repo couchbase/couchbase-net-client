@@ -2,28 +2,10 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Configuration.Server.Serialization
 {
-    /// <summary>
-    /// Represents the nodesExt element of a server configuration; the
-    /// extended set of services that a node is configured to have (data, query, index, etc)
-    /// </summary>
-    public sealed class NodeExt
+    public sealed class ExternalAddressesConfig
     {
-        public NodeExt()
-        {
-            Services = new Services();
-        }
-
         /// <summary>
-        /// Gets or sets the services that this node has available.
-        /// </summary>
-        /// <value>
-        /// The services.
-        /// </value>
-        [JsonProperty("services")]
-        public Services Services { get; set; }
-
-        /// <summary>
-        /// Gets or sets the hostname or IP address of this node.
+        /// Gets or sets the hostname.
         /// </summary>
         /// <value>
         /// The hostname.
@@ -31,8 +13,14 @@ namespace Couchbase.Configuration.Server.Serialization
         [JsonProperty("hostname")]
         public string Hostname { get; set; }
 
-        [JsonProperty("alternateAddresses")]
-        public AlternateAddressesConfig AlternateAddresses { get; set; }
+        /// <summary>
+        /// Gets or sets the ports for each service.
+        /// </summary>
+        /// <value>
+        /// The ports.
+        /// </value>
+        [JsonProperty("ports")]
+        public Services Ports { get; set; }
     }
 }
 
@@ -41,7 +29,7 @@ namespace Couchbase.Configuration.Server.Serialization
 /* ************************************************************
  *
  *    @author Couchbase <info@couchbase.com>
- *    @copyright 2017 Couchbase, Inc.
+ *    @copyright 2018 Couchbase, Inc.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.

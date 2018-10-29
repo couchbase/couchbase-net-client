@@ -122,6 +122,8 @@ namespace Couchbase.Configuration.Client
             //x509 certificate settings
             public static bool EnableCertificateRevocation = false;
             public static bool EnableCertificateAuthentication = false;
+
+            public static string NetworkType = NetworkTypes.Auto;
         }
 
         public ClientConfiguration()
@@ -221,6 +223,8 @@ namespace Couchbase.Configuration.Client
             OperationTracingEnabled = Defaults.OperationTracingEnabled;
             OperationTracingServerDurationEnabled = Defaults.OperationTracingServerDurationEnabled;
             OrphanedResponseLoggingEnabled = Defaults.OrphanedResponseLoggingEnabled;
+
+            NetworkType = Defaults.NetworkType;
 
             //Set back to default
             _operationLifespanChanged = false;
@@ -461,6 +465,8 @@ namespace Couchbase.Configuration.Client
             OperationTracingEnabled = definition.OperationTracingEnabled;
             OperationTracingServerDurationEnabled = definition.OperationTracingServerDurationEnabled;
             OrphanedResponseLoggingEnabled = definition.OrphanedResponseLoggingEnabled;
+
+            NetworkType = definition.NetworkType;
 
             //Set back to default
             _operationLifespanChanged = false;
@@ -1432,6 +1438,11 @@ namespace Couchbase.Configuration.Client
         /// Gets or Sets the SSL validation callback for K/V to override the default callback.
         /// </summary>
         public RemoteCertificateValidationCallback KvServerCertificateValidationCallback { get; set; }
+
+        /// <summary>
+        /// Gets or sets the network type used to resolve node hostnames and ports.
+        /// </summary>
+        public string NetworkType { get; set; }
     }
 }
 

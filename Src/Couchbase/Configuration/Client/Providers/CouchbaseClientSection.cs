@@ -732,6 +732,13 @@ namespace Couchbase.Configuration.Client.Providers
             set => this["enableCertificateAuthentication"] = value;
         }
 
+        [ConfigurationProperty("network", DefaultValue = NetworkTypes.Auto, IsRequired = false)]
+        public string NetworkType
+        {
+            get => (string) this["network"];
+            set => this["network"] = value;
+        }
+
         #region Additional ICouchbaseClientDefinition implementations
 
         IEnumerable<Uri> ICouchbaseClientDefinition.Servers

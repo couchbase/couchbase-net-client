@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
@@ -45,6 +45,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
         /// Starts the HTTP streaming connection to the Couchbase Server and gets the latest configuration for a SASL authenticated Bucket.
         /// </summary>
         /// <param name="bucketName">The name of the Couchbase Bucket.</param>
+        /// <param name="username">The username used to connect to the Bucket.</param>
         /// <param name="password">The SASL password used to connect to the Bucket.</param>
         /// <returns>A <see cref="IConfigInfo"/> object representing the latest configuration.</returns>
         public override IConfigInfo GetConfig(string bucketName, string username, string password)
@@ -114,8 +115,12 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             }
                         }
 
+                        // Set network type for bucket configuration
+                        newConfig.NetworkType = bucketConfiguration.NetworkType;
+
                         configInfo = CreateConfigInfo(newConfig, username, password);
                         Configs[bucketName] = configInfo;
+                        LogServers(configInfo);
                         break;
 
                     }
@@ -244,6 +249,7 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                     configInfo = CreateConfigInfo(bucketConfig, null, null);
                     Configs.TryAdd(bucketConfig.Name, configInfo);
                 }
+                LogServers(configInfo);
 
                 try
                 {

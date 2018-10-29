@@ -1026,5 +1026,28 @@ namespace Couchbase.UnitTests.Configuration.Client
         }
 
         #endregion
+
+        [Test]
+        public void NetworkType_defaults_to_auto()
+        {
+            var config = new ClientConfiguration();
+            Assert.AreEqual(NetworkTypes.Auto, config.NetworkType);
+        }
+
+#if NET452
+        [TestCase(NetworkTypes.Auto)]
+        [TestCase(NetworkTypes.External)]
+        [TestCase(NetworkTypes.Default)]
+        public void NetworkType_can_override_using_client_section(string networkType)
+        {
+            var section = new CouchbaseClientSection
+            {
+                NetworkType = networkType
+            };
+
+            var config = new ClientConfiguration(section);
+            Assert.AreEqual(networkType, config.NetworkType);
+        }
+#endif
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Couchbase.Configuration.Server.Serialization;
@@ -6,6 +6,7 @@ using Couchbase.Core;
 using Couchbase.Core.Buckets;
 using Couchbase.Tests.Fakes;
 using Couchbase.Utils;
+using Moq;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -200,11 +201,12 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_OOR_LocatePrimary_Returns_Random_Server()
         {
+            var mockBucketConfig = new Mock<IBucketConfig>();
+
             var server = new Server(
                new FakeIOService(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
                new FakeConnectionPool(), false),
-               new NodeAdapter(new Node { Hostname = "127.0.0.1" },
-               new NodeExt()),
+               new NodeAdapter(new Node { Hostname = "127.0.0.1" }, new NodeExt(), mockBucketConfig.Object),
                new FakeTranscoder(),
                ContextFactory.GetCouchbaseContext());
 
@@ -230,11 +232,12 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_Negative_LocatePrimary_Returns_Random_Server()
         {
+            var mockBucketConfig = new Mock<IBucketConfig>();
+
             var server = new Server(
                 new FakeIOService(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
                 new FakeConnectionPool(), false),
-                new NodeAdapter(new Node { Hostname = "127.0.0.1" },
-                new NodeExt()),
+                new NodeAdapter(new Node { Hostname = "127.0.0.1" }, new NodeExt(), mockBucketConfig.Object),
                 new FakeTranscoder(),
                 ContextFactory.GetCouchbaseContext());
 
@@ -252,11 +255,12 @@ namespace Couchbase.Tests
         [Test]
         public void When_Replica_Index_Postive_LocatePrimary_Returns_It()
         {
+            var mockBucketConfig = new Mock<IBucketConfig>();
+
             var server = new Server(
                 new FakeIOService(IPEndPointExtensions.GetEndPoint("127.0.0.1:8091"),
                 new FakeConnectionPool(), false),
-                new NodeAdapter(new Node { Hostname = "127.0.0.1" },
-                new NodeExt()),
+                new NodeAdapter(new Node { Hostname = "127.0.0.1" }, new NodeExt(), mockBucketConfig.Object),
                 new FakeTranscoder(),
                 ContextFactory.GetCouchbaseContext());
 

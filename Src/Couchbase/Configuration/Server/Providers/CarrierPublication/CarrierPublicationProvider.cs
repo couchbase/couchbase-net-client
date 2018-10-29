@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
@@ -94,6 +94,9 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                             }
                         }
 
+                        // Set network type for bucket configuration
+                        bucketConfig.NetworkType = bucketConfiguration.NetworkType;
+
                         configInfo = new CouchbaseConfigContext(bucketConfig,
                             ClientConfig,
                             IOServiceFactory,
@@ -107,6 +110,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
                         configInfo.LoadConfig(ioService);
                         Configs[bucketName] = configInfo;
+                        LogServers(configInfo);
                         break;
                     }
 
@@ -226,6 +230,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                 {
                     throw new ConfigNotFoundException(bucketConfig.Name);
                 }
+                LogServers(configInfo);
             }
             else
             {

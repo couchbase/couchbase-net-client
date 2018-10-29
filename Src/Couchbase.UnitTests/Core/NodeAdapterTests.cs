@@ -1,6 +1,8 @@
 using System.Linq;
+using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
+using Moq;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
@@ -17,7 +19,8 @@ namespace Couchbase.UnitTests.Core
             nodeExt.Hostname = "localhost";
             nodeExt.Services.Analytics = 8095;
 
-            var adapater = new NodeAdapter(node, nodeExt);
+            var mockBucketConfig = new Mock<IBucketConfig>();
+            var adapater = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
 
             Assert.AreEqual(8095, adapater.Analytics);
             Assert.IsTrue(adapater.IsAnalyticsNode);
@@ -31,7 +34,8 @@ namespace Couchbase.UnitTests.Core
             nodeExt.Hostname = "localhost";
             nodeExt.Services.AnalyticsSsl = 18095;
 
-            var adapater = new NodeAdapter(node, nodeExt);
+            var mockBucketConfig = new Mock<IBucketConfig>();
+            var adapater = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
 
             Assert.AreEqual(18095, adapater.AnalyticsSsl);
             Assert.IsTrue(adapater.IsAnalyticsNode);
@@ -43,9 +47,10 @@ namespace Couchbase.UnitTests.Core
             //arrange
             var serverConfigJson = ResourceHelper.ReadResource("config_with_ipv6");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+            var mockBucketConfig = new Mock<IBucketConfig>();
 
             //act
-            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0]);
+            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0], mockBucketConfig.Object);
 
             //assert
             Assert.IsNotNull(adapter);
@@ -57,8 +62,9 @@ namespace Couchbase.UnitTests.Core
             //arrange
             var serverConfigJson = ResourceHelper.ReadResource("config_with_ipv6");
             var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+            var mockBucketConfig = new Mock<IBucketConfig>();
 
-            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0]);
+            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0], mockBucketConfig.Object);
 
             //act
             var endpoint = adapter.GetIPEndPoint(false);
@@ -89,8 +95,9 @@ namespace Couchbase.UnitTests.Core
                 Hostname = hostname
             };
             var nodeExt = new NodeExt();
+            var mockBucketConfig = new Mock<IBucketConfig>();
 
-            var adapter = new NodeAdapter(node, nodeExt);
+            var adapter = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
             Assert.AreEqual(expectedHostname, adapter.Hostname);
         }
 
@@ -107,9 +114,101 @@ namespace Couchbase.UnitTests.Core
                 }
             };
 
-            var adapter = new NodeAdapter(null, nodeExt);
+            var adapter = new NodeAdapter(null, nodeExt, null);
             Assert.AreEqual(adapter.Hostname, hostname);
             Assert.IsFalse(adapter.IsDataNode);
+        }
+
+        [TestCase(NetworkTypes.Auto, "external")]
+        [TestCase(NetworkTypes.External, "external")]
+        [TestCase(NetworkTypes.Default, "default")]
+        [TestCase("", "default")]
+        [TestCase(null, "default")]
+        public void When_NodeExt_Has_Alternate_Network_Configured_Use_External_Hostname(string networkType, string expected)
+        {
+            var node = new Node();
+            var nodeExt = new NodeExt
+            {
+                Hostname = "default",
+                AlternateAddresses = new AlternateAddressesConfig
+                {
+                    External = new ExternalAddressesConfig
+                    {
+                        Hostname = "external"
+                    }
+                }
+            };
+
+            var mockBucketConfig = new Mock<IBucketConfig>();
+            mockBucketConfig.Setup(x => x.NetworkType).Returns(NetworkTypes.Auto);
+            mockBucketConfig.Setup(x => x.SurrogateHost).Returns(expected);
+
+            var adapter = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
+
+            Assert.AreEqual(expected, adapter.Hostname);
+        }
+
+        [TestCase(NetworkTypes.Auto, "external")]
+        [TestCase(NetworkTypes.External, "external")]
+        [TestCase(NetworkTypes.Default, "default")]
+        [TestCase("", "default")]
+        [TestCase(null, "default")]
+        public void When_NodeExt_Has_Alternate_Network_With_Ports_Configured_Use_External_Ports(string networkType, string expected)
+        {
+            var defaultServices = new Services
+            {
+                Analytics = 1,
+                AnalyticsSsl = 2,
+                Capi = 3,
+                CapiSSL = 4,
+                Fts = 5,
+                FtsSSL = 6,
+                KV = 1,
+                KvSSL = 2,
+                N1QL = 9,
+                N1QLSsl = 10
+            };
+            var externalServices = new Services
+            {
+                Analytics = 10,
+                AnalyticsSsl = 20,
+                Capi = 30,
+                CapiSSL = 40,
+                Fts = 50,
+                FtsSSL = 60,
+                KV = 10,
+                KvSSL = 20,
+                N1QL = 90,
+                N1QLSsl = 100
+            };
+
+            var node = new Node();
+            var nodeExt = new NodeExt
+            {
+                Hostname = "default",
+                Services = defaultServices,
+                AlternateAddresses = new AlternateAddressesConfig
+                {
+                    External = new ExternalAddressesConfig
+                    {
+                        Hostname = "external",
+                        Ports = externalServices
+                    }
+                }
+            };
+
+            var mockBucketConfig = new Mock<IBucketConfig>();
+            mockBucketConfig.Setup(x => x.NetworkType).Returns(NetworkTypes.Auto);
+            mockBucketConfig.Setup(x => x.SurrogateHost).Returns(expected);
+
+            var adapter = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
+            VerifyServices(expected == "external" ? externalServices : defaultServices, adapter);
+        }
+
+        private void VerifyServices(Services services, NodeAdapter adapter)
+        {
+            Assert.AreEqual(services.KV, adapter.KeyValue);
+            Assert.AreEqual(services.KvSSL, adapter.KeyValueSsl);
         }
     }
 }
