@@ -117,6 +117,17 @@ namespace Couchbase.Core
                     }
                 }
             }
+            catch (ArgumentNullException e)
+            {
+                if (e.StackTrace.Contains("SemaphoreSlim"))
+                {
+                    //Ignore - the object has been disposed and the runtime has nulled out the semaphore (NCBC-1783)
+                }
+                else
+                {
+                    Log.Debug(e);
+                }
+            }
             catch (Exception e)
             {
                 //when this disposes another thread may have previously written
@@ -133,8 +144,11 @@ namespace Couchbase.Core
         {
             try
             {
-                Log.Debug("Queueing config rev#{0} for [{1}].", config.Rev, config.Name);
-                _configQueue.Add(config);
+                if (!_disposed)
+                {
+                    Log.Debug("Queueing config rev#{0} for [{1}].", config.Rev, config.Name);
+                    _configQueue.Add(config);
+                }
             }
             catch (Exception e)
             {
