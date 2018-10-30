@@ -262,9 +262,13 @@ namespace Couchbase.IO
         //side and attach handling here
         private void HandleDisconnect(Exception exception)
         {
-            //you might throw an event here to be handled by owner of this class, or can implement reconnect directly here etc...
-            Log.Warn("Handling disconnect for connection {0}: {1}", _identity, exception);
-
+            //ignore a disposed exception - it means we've already been reclaimed - NCBC-1785
+            if (!(exception is ObjectDisposedException))
+            {
+                //you might throw an event here to be handled by owner of this class, or can implement reconnect directly here etc...
+                // ReSharper disable once InconsistentlySynchronizedField
+                Log.Warn("Handling disconnect for connection {0}: {1}", _identity, exception);
+            }
             //in any case the current socket object should be closed, all states in flight released etc.
             Close();
         }
