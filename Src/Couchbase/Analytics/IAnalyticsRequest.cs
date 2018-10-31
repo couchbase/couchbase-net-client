@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Configuration.Client;
-using OpenTracing;
 
 namespace Couchbase.Analytics
 {
@@ -123,13 +122,6 @@ namespace Couchbase.Analytics
         IAnalyticsRequest AddPositionalParameter(object value);
 
         /// <summary>
-        /// Sets the execution mode for the query on the server.
-        /// </summary>
-        /// <param name="mode">The execution mode mode.</param>
-        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
-        IAnalyticsRequest ExecutionMode(ExecutionMode mode);
-
-        /// <summary>
         /// Sets the query timeout.
         /// </summary>
         /// <param name="timeout">The timeout.</param>
@@ -149,6 +141,23 @@ namespace Couchbase.Analytics
         /// <param name="priority">The priority.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
         IAnalyticsRequest Priority(int priority);
+
+        /// <summary>
+        /// Gets a value indicating whether the query is deferred.
+        /// NOTE: This is an experimental API and may change in the future.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the query was deferred; otherwise, <c>false</c>.
+        /// </value>
+        bool IsDeferred { get; }
+
+        /// <summary>
+        /// Sets the query as deferred.
+        /// NOTE: This is an experimental API and may change in the future.
+        /// </summary>
+        /// <param name="deferred">if set to <c>true</c> the query will be executed in a deferred method.</param>
+        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
+        IAnalyticsRequest Deferred(bool deferred);
     }
 }
 

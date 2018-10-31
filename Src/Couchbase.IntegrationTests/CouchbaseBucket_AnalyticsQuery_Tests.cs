@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
+using Couchbase.N1QL;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using Couchbase.Analytics.Ingestion;
@@ -72,8 +73,56 @@ namespace Couchbase.IntegrationTests
             var query = new AnalyticsRequest(statement);
 
             var result = await _bucket.IngestAsync<dynamic>(query, new IngestOptions()).ConfigureAwait(false);
-
             Assert.True(result.Count > 0);
+        }
+
+        [Test, Ignore("Analytics service is not currently discoverable. Until it is, we don't want to run these tests automatically.")]
+        public void Can_execute_deferred_query()
+        {
+            const string statement = "SELECT \"hello\" as greeting;";
+
+            var token = default(CancellationToken);
+            Assert.AreEqual(CancellationToken.None, token);
+
+            var query = new AnalyticsRequest(statement)
+                .Deferred(true);
+
+            var result = _bucket.Query<TestRequest>(query);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(QueryStatus.Running, result.Status);
+
+            Assert.IsNotNull(result.Handle);
+
+            var status = result.Handle.GetStatus();
+            Assert.AreEqual(QueryStatus.Success, status);
+
+            var rows = result.Handle.GetRows();
+            Assert.IsNotEmpty(rows);
+            Assert.AreEqual("hello", rows.First().Greeting);
+        }
+
+        [Test, Ignore("Analytics service is not currently discoverable. Until it is, we don't want to run these tests automatically.")]
+        public async Task Can_execute_deferred_query_async()
+        {
+            const string statement = "SELECT \"hello\" as greeting;";
+
+            var query = new AnalyticsRequest(statement)
+                .Deferred(true);
+
+            var result = await _bucket.QueryAsync<TestRequest>(query);
+
+            Assert.IsTrue(result.Success);
+            Assert.AreEqual(QueryStatus.Running, result.Status);
+
+            Assert.IsNotNull(result.Handle);
+
+            var status = await result.Handle.GetStatusAsync();
+            Assert.AreEqual(QueryStatus.Success, status);
+
+            var rows = await result.Handle.GetRowsAsync();
+            Assert.IsNotEmpty(rows);
+            Assert.AreEqual("hello", rows.First().Greeting);
         }
     }
 }

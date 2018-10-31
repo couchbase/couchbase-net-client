@@ -7,6 +7,7 @@ using Couchbase.Analytics;
 using Couchbase.N1QL;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Analytics
@@ -88,6 +89,39 @@ namespace Couchbase.UnitTests.Analytics
             queryRequest.Priority(priority);
 
             client.Query<dynamic>(queryRequest);
+        }
+
+        [Test]
+        public void When_deferred_is_true_query_result_is_DeferredAnalyticsResult()
+        {
+            var resultJson = JsonConvert.SerializeObject(new
+            {
+                status = "Success",
+                handle = "handle"
+            });
+
+            var context = ContextFactory.GetCouchbaseContext();
+            context.AnalyticsUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(resultJson)
+                })
+            );
+
+            var client = new AnalyticsClient(httpClient,
+                new JsonDataMapper(context.ClientConfig),
+                context);
+
+            var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
+            var result = client.Query<dynamic>(queryRequest);
+
+            Assert.IsInstanceOf<AnalyticsDeferredResultHandle<dynamic>>(result.Handle);
+            Assert.AreEqual(QueryStatus.Success, result.Status);
+
+            var deferredResult = (AnalyticsDeferredResultHandle<dynamic>) result.Handle;
+            Assert.AreEqual("handle", deferredResult.HandleUri);
         }
     }
 }

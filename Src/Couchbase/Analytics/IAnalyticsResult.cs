@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using Couchbase.N1QL;
 
 namespace Couchbase.Analytics
@@ -78,6 +79,15 @@ namespace Couchbase.Analytics
         /// The metrics.
         /// </value>
         Metrics Metrics { get; }
+
+        /// <summary>
+        /// A handle for retrieving the current status and results for a deferred query.
+        /// NOTE: This is an experimental API and may change in the future.
+        /// </summary>
+        /// <value>
+        /// The handle.
+        /// </value>
+        IAnalyticsDeferredResultHandle<T> Handle { get; }
     }
 }
 

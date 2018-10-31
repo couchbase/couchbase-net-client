@@ -276,28 +276,6 @@ namespace Couchbase.UnitTests.Analytics
             Assert.AreEqual(true, json.args[2].Value);
         }
 
-        [TestCase(ExecutionMode.Immediate, null)]
-        //[TestCase(ExecutionMode.Async, "async")]
-        public void Can_set_execution_mode(ExecutionMode mode, string expected)
-        {
-            var request = new AnalyticsRequest(_defaultstatement);
-
-            var formValues = request.GetFormValues();
-            Assert.IsFalse(formValues.ContainsKey("mode"));
-
-            request.ExecutionMode(mode);
-            formValues = request.GetFormValues();
-
-            if (mode == ExecutionMode.Immediate)
-            {
-                Assert.IsFalse(formValues.ContainsKey("mode"));
-            }
-            else
-            {
-                Assert.AreEqual(expected, formValues["mode"]);
-            }
-        }
-
         [Test]
         public void Can_set_priority()
         {
@@ -312,6 +290,33 @@ namespace Couchbase.UnitTests.Analytics
 
             request.Priority(5);
             Assert.AreEqual(5, request.PriorityValue);
+        }
+
+        [Test]
+        public void Deferred_default_is_false()
+        {
+            var request = new AnalyticsRequest(_defaultstatement);
+            Assert.IsFalse(request.IsDeferred);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Can_set_deferred(bool deferred)
+        {
+            var request = new AnalyticsRequest(_defaultstatement)
+                .Deferred(deferred);
+
+            Assert.AreEqual(deferred, request.IsDeferred);
+
+            var formValues = request.GetFormValues();
+            if (deferred)
+            {
+                Assert.AreEqual("async", formValues["mode"]);
+            }
+            else
+            {
+                Assert.IsFalse(formValues.ContainsKey("mode"));
+            }
         }
     }
 }

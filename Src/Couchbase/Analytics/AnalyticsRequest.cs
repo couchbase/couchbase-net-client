@@ -18,7 +18,6 @@ namespace Couchbase.Analytics
         private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
         private readonly Dictionary<string, object> _namedParameters = new Dictionary<string, object>();
         private readonly List<object> _positionalArguments = new List<object>();
-        private ExecutionMode _executionMode = Analytics.ExecutionMode.Immediate;
         private TimeSpan? _timeout;
 
         public AnalyticsRequest()
@@ -81,15 +80,15 @@ namespace Couchbase.Analytics
                 formValues.Add("args", _positionalArguments.ToArray());
             }
 
-            if (_executionMode != Analytics.ExecutionMode.Immediate)
-            {
-                formValues.Add("mode", _executionMode.GetDescription());
-            }
-
             formValues.Add("timeout", $"{Lifespan.Duration * 1000}ms");
 
             _requestContextId = Guid.NewGuid().ToString();
             formValues.Add("client_context_id", CurrentContextId);
+
+            if (IsDeferred)
+            {
+                formValues.Add("mode", "async");
+            }
 
             return formValues;
         }
@@ -300,19 +299,6 @@ namespace Couchbase.Analytics
         }
 
         /// <summary>
-        /// Sets the execution mode for the query on the server.
-        /// </summary>
-        /// <param name="mode">The execution mode mode.</param>
-        /// <returns>
-        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
-        /// </returns>
-        public IAnalyticsRequest ExecutionMode(ExecutionMode mode)
-        {
-            _executionMode = mode;
-            return this;
-        }
-
-        /// <summary>
         /// Sets the query timeout.
         /// </summary>
         /// <param name="timeout">The timeout.</param>
@@ -357,6 +343,27 @@ namespace Couchbase.Analytics
         /// Gets or sets the timeout value of the <see cref="AnalyticsRequest"/>.
         /// </summary>
         internal uint TimeoutValue => Lifespan.Duration * 1000;
+
+        /// <summary>
+        /// Gets a value indicating whether the query is deferred.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if the query was deferred; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsDeferred { get; private set;}
+
+        /// <summary>
+        /// Sets the query as deferred.
+        /// </summary>
+        /// <param name="deferred">if set to <c>true</c> the query will be executed in a deferred method.</param>
+        /// <returns>
+        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
+        /// </returns>
+        public IAnalyticsRequest Deferred(bool deferred)
+        {
+            IsDeferred = deferred;
+            return this;
+        }
     }
 }
 

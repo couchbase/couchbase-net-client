@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using Couchbase.N1QL;
+using Couchbase.Views;
 
 namespace Couchbase.Analytics
 {
@@ -145,6 +147,15 @@ namespace Couchbase.Analytics
         /// The metrics.
         /// </value>
         public Metrics Metrics { get; set; }
+
+        /// <summary>
+        /// A handle for retrieving the current status and results for a deferred query.
+        /// NOTE: This is an experimental API and may change in the future.
+        /// </summary>
+        /// <value>
+        /// The handle.
+        /// </value>
+        public IAnalyticsDeferredResultHandle<T> Handle { get; internal set; }
     }
 
     internal class AnalyticsResultData<T>
@@ -157,6 +168,7 @@ namespace Couchbase.Analytics
         public IEnumerable<ErrorData> errors { get; set; }
         public IEnumerable<WarningData> warnings { get; set; }
         public MetricsData metrics { get; set; }
+        public string handle { get; set; }
 
         public AnalyticsResultData()
         {
@@ -166,9 +178,9 @@ namespace Couchbase.Analytics
             metrics = new MetricsData();
         }
 
-        internal AnalyticsResult<T> ToQueryResult()
+        internal AnalyticsResult<T> ToQueryResult(HttpClient client, IDataMapper dataMapper)
         {
-            return new AnalyticsResult<T>
+            var result = new AnalyticsResult<T>
             {
                 RequestId = requestID,
                 ClientContextId = clientContextID,
@@ -177,8 +189,15 @@ namespace Couchbase.Analytics
                 Status = status,
                 Errors = errors != null ? errors.Select(e => e.ToError()).ToList() : null,
                 Warnings = warnings != null ? warnings.Select(w => w.ToWarning()).ToList() : null,
-                Metrics = metrics != null ? metrics.ToMetrics() : null,
+                Metrics = metrics != null ? metrics.ToMetrics() : null
             };
+
+            if (!string.IsNullOrWhiteSpace(handle))
+            {
+                result.Handle = new AnalyticsDeferredResultHandle<T>(result, client, dataMapper, handle);
+            }
+
+            return result;
         }
     }
 }
