@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Search;
 using NUnit.Framework;
 
@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests.Search
             };
 
             var expected = "\"myTermFacet\":{\"field\":\"fieldName\",\"size\":3}";
-            var actual = term.ToString().Replace("\r\n", "").Replace(" ", "");
+            var actual = term.ToString().Replace(Environment.NewLine, string.Empty).Replace(" ", string.Empty);
             Assert.AreEqual(expected, actual);
         }
 
@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests.Search
                 new Range<float> {Name = "range2", Start = 3.1F});
 
             var expected = "\"myNumericFacet\":{\"field\":\"fieldName\",\"size\":2,\"numeric_ranges\":[{\"name\":\"range1\",\"min\":0.1,\"max\":3.0},{\"name\":\"range2\",\"min\":3.1}]}";
-            var actual = term.ToString().Replace("\r\n", "").Replace(" ", "");
+            var actual = term.ToString().Replace(Environment.NewLine, string.Empty).Replace(" ", string.Empty);
             Assert.AreEqual(expected, actual);
         }
 
@@ -57,7 +57,7 @@ namespace Couchbase.UnitTests.Search
                 "{\"name\":\"thisYear\",\"start\":\"2016-01-01T00:00:01\"}," +
                 "{\"name\":\"theYear2011\",\"start\":\"2011-01-01T00:00:00\",\"end\":\"2011-12-31T23:59:59\"}]}";
 
-            var actual = term.ToString().Replace("\r\n", "").Replace(" ", "");
+            var actual = term.ToString().Replace(Environment.NewLine, string.Empty).Replace(" ", string.Empty);
             Assert.AreEqual(expected, actual);
         }
     }

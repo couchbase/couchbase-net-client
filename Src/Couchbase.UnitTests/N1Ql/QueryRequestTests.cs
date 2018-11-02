@@ -179,7 +179,7 @@ namespace Couchbase.UnitTests.N1Ql
                  Statement("SELECT * FROM authenticated").
                  AddCredentials(" ", "secret", false));
 
-            Assert.That(ex.Message, Is.EqualTo("username cannot be null, empty or whitespace.\r\nParameter name:  "));
+            Assert.That(ex.Message, Is.EqualTo($"username cannot be null, empty or whitespace.{Environment.NewLine}Parameter name:  "));
         }
 
         [Test]
