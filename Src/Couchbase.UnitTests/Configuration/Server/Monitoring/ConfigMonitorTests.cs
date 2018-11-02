@@ -44,23 +44,26 @@ namespace Couchbase.UnitTests.Configuration.Server.Monitoring
                         }
                     },
                 },
-                HeartbeatConfigInterval = 500,
+                ConfigPollInterval = 500,
+                ConfigPollCheckFloor = 0,
                 OperationTracingEnabled = false,
                 OrphanedResponseLoggingEnabled = false
             };
             clientConfig.Initialize();
-            var configProvider = new Mock<IConfigProvider>();
+
             var controller = new Mock<IClusterController>();
             controller.Setup(x => x.Configuration).Returns(clientConfig);
-            controller.Setup(x => x.ConfigProviders).Returns(new List<IConfigProvider> { configProvider.Object });
+            controller.Setup(x => x.ConfigProviders).Returns(new List<IConfigProvider>());
 
             var cts = new CancellationTokenSource();
-            var monitor = new ConfigMonitor(controller.Object, cts);
-            monitor.StartMonitoring();
 
-            await Task.Delay(3000);
-            controller.Verify(x => x.LastConfigCheckedTime, Times.AtLeast(1));
-            monitor.Dispose();
+            using (var monitor = new ConfigMonitor(controller.Object, cts))
+            {
+                monitor.StartMonitoring();
+
+                await Task.Delay(5000);
+                controller.VerifySet(x => controller.Object.LastConfigCheckedTime = It.IsAny<DateTime>(), Times.AtLeast(1));
+            }
         }
 
         [Test]
