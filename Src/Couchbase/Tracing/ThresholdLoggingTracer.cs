@@ -146,12 +146,17 @@ namespace Couchbase.Tracing
                         {
                             var result = new JArray();
                             AddSummariesToResult(result, CouchbaseTags.ServiceKv, _kvSummaries, ref _kvSummaryCount);
-                            AddSummariesToResult(result, CouchbaseTags.ServiceView, _viewSummaries, ref _viewSummaryCount);
-                            AddSummariesToResult(result, CouchbaseTags.ServiceQuery, _querySummaries, ref _querySummaryCount);
-                            AddSummariesToResult(result, CouchbaseTags.ServiceSearch, _searchSummaries, ref _searchSummaryCount);
-                            AddSummariesToResult(result, CouchbaseTags.ServiceAnalytics, _analyticsSummaries, ref _analyticsSummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceView, _viewSummaries,
+                                ref _viewSummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceQuery, _querySummaries,
+                                ref _querySummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceSearch, _searchSummaries,
+                                ref _searchSummaryCount);
+                            AddSummariesToResult(result, CouchbaseTags.ServiceAnalytics, _analyticsSummaries,
+                                ref _analyticsSummaryCount);
 
-                            Log.Info("Operations that exceeded service threshold: {0}", result.ToString(Formatting.None));
+                            Log.Info("Operations that exceeded service threshold: {0}",
+                                result.ToString(Formatting.None));
 
                             _hasSummariesToLog = false;
                         }
@@ -159,7 +164,7 @@ namespace Couchbase.Tracing
                         _lastrun = DateTime.UtcNow;
                     }
 
-                    while (_queue.TryTake(out var summary, WorkerSleep, _source.Token))
+                    while (!_queue.IsCompleted && _queue.TryTake(out var summary, WorkerSleep, _source.Token))
                     {
                         if (_source.IsCancellationRequested)
                         {
@@ -194,11 +199,18 @@ namespace Couchbase.Tracing
                     // sleep for a little while
                     await Task.Delay(TimeSpan.FromMilliseconds(WorkerSleep), _source.Token).ContinueOnAnyContext();
                 }
+                catch (ArgumentNullException exception)
+                {
+                    if (!exception.Message.Contains("SemaphoreSlim"))
+                    {
+                        Log.Error("Error when processing spans for spans over service thresholds", exception);
+                    }
+                }
                 catch (ObjectDisposedException) { } // ignore
                 catch (OperationCanceledException) { } // ignore
                 catch (Exception exception)
                 {
-                    Log.Error("Error when procesing spans for spans over serivce thresholds", exception);
+                    Log.Error("Error when processing spans for spans over service thresholds", exception);
                 }
 
                 await Task.Delay(TimeSpan.FromMilliseconds(WorkerSleep), _source.Token).ContinueOnAnyContext();
