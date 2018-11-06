@@ -2,17 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Reflection.Emit;
-using System.Security.Cryptography.X509Certificates;
-using Couchbase.Authentication;
 using Couchbase.IO;
-using Couchbase.IO.Operations;
+using Couchbase.IO.Operations.Errors;
 using Couchbase.Utils;
 
 namespace Couchbase.Configuration.Client
 {
     /// <summary>
-    /// The configuration setttings for a Bucket.
+    /// The configuration settings for a Bucket.
     /// </summary>
     /// <remarks>The default setting use 127.0.0.1 and port 11210.</remarks>
     public sealed class BucketConfiguration
@@ -22,7 +19,6 @@ namespace Couchbase.Configuration.Client
         public const int SslPort = 11207;
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
-        private bool _enableCertificateAuthentication;
 
         public static class Defaults
         {

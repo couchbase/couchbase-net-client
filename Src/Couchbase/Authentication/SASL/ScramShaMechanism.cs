@@ -21,7 +21,6 @@ namespace Couchbase.Authentication.SASL
         private static readonly ILog Log = LogManager.GetLogger<ScramShaMechanism>();
         private static readonly string ClientKey = "Client Key";
         private static readonly int ShaByteLength = 20;
-        private ErrorMap _errorMap;
 
         private Func<string, object> User = RedactableArgument.UserAction;
 
@@ -162,7 +161,7 @@ namespace Couchbase.Authentication.SASL
         {
             var request = operation.Write();
             var response = connection.Send(request);
-            operation.Read(response, _errorMap);
+            operation.Read(response);
             return operation.GetResultWithValue();
         }
 

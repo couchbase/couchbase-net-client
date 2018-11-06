@@ -19,7 +19,7 @@
     <AssemblyName>Couchbase.NetClient</AssemblyName>
     <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
     <VersionPrefix>2.5.7-alpha1</VersionPrefix>
-    <NoWarn>1591</NoWarn>
+    <NoWarn>1591,0618,0612</NoWarn>
 
     <SourceLinkOriginUrl>https://github.com/couchbase/couchbase-net-client.git</SourceLinkOriginUrl>
   </PropertyGroup>

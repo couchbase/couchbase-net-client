@@ -214,7 +214,9 @@ namespace Couchbase.IO.Services
                 {
                     var request = await operation.WriteAsync(Tracer, ConnectionPool.Configuration.BucketName).ContinueOnAnyContext();
                     var span = Tracer.BuildSpan(operation, connection, ConnectionPool.Configuration.BucketName).Start();
+#pragma warning disable CS4014 // We don't want to wait here - the dedicated read thread will get the result
                     connection.SendAsync(request, operation.Completed, span, ErrorMap);
+#pragma warning restore CS4014
                 }
                 else
                 {
