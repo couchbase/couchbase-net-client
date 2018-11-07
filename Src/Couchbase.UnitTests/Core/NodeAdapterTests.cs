@@ -93,6 +93,24 @@ namespace Couchbase.UnitTests.Core
             var adapter = new NodeAdapter(node, nodeExt);
             Assert.AreEqual(expectedHostname, adapter.Hostname);
         }
+
+        [Test]
+        public void When_Node_is_null_Kv_service_should_be_disabled()
+        {
+            const string hostname = "localhost";
+            var nodeExt = new NodeExt
+            {
+                Hostname = hostname,
+                Services = new Services
+                {
+                    KV = 11210 // nodeEXt has KV port, but node is null
+                }
+            };
+
+            var adapter = new NodeAdapter(null, nodeExt);
+            Assert.AreEqual(adapter.Hostname, hostname);
+            Assert.IsFalse(adapter.IsDataNode);
+        }
     }
 }
 

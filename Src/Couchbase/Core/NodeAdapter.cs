@@ -10,23 +10,19 @@ namespace Couchbase.Core
 {
     internal class NodeAdapter : INodeAdapter
     {
-        private Node _node;
-        private NodeExt _nodeExt;
         private readonly ConcurrentDictionary<string, IPEndPoint> _cachedEndPoints = new ConcurrentDictionary<string, IPEndPoint>();
         private IPAddress _cachedIPAddress;
 
         public NodeAdapter(Node node, NodeExt nodeExt)
         {
-            _node = node;
-            _nodeExt = nodeExt;
-
             Hostname = GetHostname(node, nodeExt);
 
-            if (_node != null)
+            if (node != null)
             {
-                CouchbaseApiBase = _node.CouchApiBase.Replace("$HOST", Hostname);
-                CouchbaseApiBaseHttps = _node.CouchApiBaseHttps;
+                CouchbaseApiBase = node.CouchApiBase.Replace("$HOST", Hostname);
+                CouchbaseApiBaseHttps = node.CouchApiBaseHttps;
             }
+
             if (nodeExt == null)
             {
                 MgmtApiSsl = node.Ports.HttpsMgmt;
@@ -38,33 +34,31 @@ namespace Couchbase.Core
             }
             else
             {
-                MgmtApi = _nodeExt.Services.Mgmt;
-                MgmtApiSsl = _nodeExt.Services.MgmtSSL;
-                Views = _nodeExt.Services.Capi;
-                ViewsSsl = _nodeExt.Services.CapiSSL;
-                Moxi = _nodeExt.Services.Moxi;
-                KeyValue = _nodeExt.Services.KV;
-                KeyValueSsl =  _nodeExt.Services.KvSSL;
-                Projector = _nodeExt.Services.Projector;
-                IndexAdmin = _nodeExt.Services.IndexAdmin;
-                IndexScan = _nodeExt.Services.IndexScan;
-                IndexHttp = _nodeExt.Services.IndexHttp;
-                IndexStreamInit = _nodeExt.Services.IndexStreamInit;
-                IndexStreamCatchup = _nodeExt.Services.IndexStreamCatchup;
-                IndexStreamMaint = _nodeExt.Services.IndexStreamMaint;
-                N1QL = _nodeExt.Services.N1QL;
-                N1QLSsl = _nodeExt.Services.N1QLSsl;
-                Fts = _nodeExt.Services.Fts;
-                FtsSsl = _nodeExt.Services.FtsSSL;
-                Analytics = _nodeExt.Services.Analytics;
-                AnalyticsSsl = _nodeExt.Services.AnalyticsSsl;
-            }
+                MgmtApi = nodeExt.Services.Mgmt;
+                MgmtApiSsl = nodeExt.Services.MgmtSSL;
+                Views = nodeExt.Services.Capi;
+                ViewsSsl = nodeExt.Services.CapiSSL;
+                Moxi = nodeExt.Services.Moxi;
+                Projector = nodeExt.Services.Projector;
+                IndexAdmin = nodeExt.Services.IndexAdmin;
+                IndexScan = nodeExt.Services.IndexScan;
+                IndexHttp = nodeExt.Services.IndexHttp;
+                IndexStreamInit = nodeExt.Services.IndexStreamInit;
+                IndexStreamCatchup = nodeExt.Services.IndexStreamCatchup;
+                IndexStreamMaint = nodeExt.Services.IndexStreamMaint;
+                N1QL = nodeExt.Services.N1QL;
+                N1QLSsl = nodeExt.Services.N1QLSsl;
+                Fts = nodeExt.Services.Fts;
+                FtsSsl = nodeExt.Services.FtsSSL;
+                Analytics = nodeExt.Services.Analytics;
+                AnalyticsSsl = nodeExt.Services.AnalyticsSsl;
 
-            //override nodesExt id nodes exists for KV only
-            if (_node != null)
-            {
-                KeyValue = _node.Ports.Direct;
-                KeyValueSsl = _node.Ports.SslDirect;
+                // if using nodeExt and node is null, the KV service may not be available yet and should be disabled (set to 0)
+                // this prevents the server's data service being marked as active before it is ready
+                // see https://issues.couchbase.com/browse/JVMCBC-564, https://issues.couchbase.com/browse/NCBC-1791 and
+                // https://issues.couchbase.com/browse/NCBC-1808 for more details
+                KeyValue = node != null ? nodeExt.Services.KV : 0;
+                KeyValueSsl = node != null ? nodeExt.Services.KvSSL : 0;
             }
         }
 
@@ -205,7 +199,7 @@ namespace Couchbase.Core
         /// <value>
         /// 	<c>true</c> if this instance is data node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsDataNode => _node != null && (KeyValue > 0 || KeyValueSsl > 0);
+        public bool IsDataNode => KeyValue > 0 || KeyValueSsl > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is index node.

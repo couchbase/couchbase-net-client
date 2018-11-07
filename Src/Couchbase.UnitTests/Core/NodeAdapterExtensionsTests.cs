@@ -1,11 +1,9 @@
-﻿
-using System.IO;
 using Couchbase.Configuration.Server.Serialization;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using Couchbase.Core;
 
-namespace Couchbase.Tests.Core
+namespace Couchbase.UnitTests.Core
 {
     [TestFixture]
     public class NodeAdapterExtensionsTests
@@ -15,11 +13,11 @@ namespace Couchbase.Tests.Core
         {
             var rev839 =
                JsonConvert.DeserializeObject<BucketConfig>(
-                   ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev839.json"));
+                   ResourceHelper.ReadResource("Data\\couchbase-4.0-rev839.json"));
 
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(rev839.GetNodes().AreEqual(rev855.GetNodes()));
         }
@@ -29,11 +27,11 @@ namespace Couchbase.Tests.Core
         {
             var rev839 =
                JsonConvert.DeserializeObject<BucketConfig>(
-                   ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev839.json"));
+                   ResourceHelper.ReadResource("Data\\couchbase-4.0-rev839.json"));
 
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(rev855.GetNodes().AreEqual(rev839.GetNodes()));
         }
@@ -43,7 +41,7 @@ namespace Couchbase.Tests.Core
         {
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\couchbase-4.0-rev855.json"));
 
             Assert.IsTrue(rev855.GetNodes().AreEqual(rev855.GetNodes()));
         }
@@ -53,7 +51,7 @@ namespace Couchbase.Tests.Core
         {
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(rev855.GetNodes().AreEqual(null));
         }
@@ -63,9 +61,33 @@ namespace Couchbase.Tests.Core
         {
             var rev855 =
              JsonConvert.DeserializeObject<BucketConfig>(
-                 ResourceHelper.ReadResource("Data\\Configuration\\couchbase-4.0-rev855.json"));
+                 ResourceHelper.ReadResource("Data\\couchbase-4.0-rev855.json"));
 
             Assert.IsFalse(NodeAdapterExtensions.AreEqual(null, rev855.GetNodes()));
+        }
+
+        [Test]
+        public void When_NodeAdapter_hostnames_match_but_port_numbers_are_different_AreEqual_returns_false()
+        {
+            const string hostname = "localhost";
+            var nodes1 = new NodeAdapter[]
+            {
+                new NodeAdapter
+                (
+                    new Node {Hostname = hostname, Ports = new Ports {Direct = 11210}},
+                    new NodeExt {Hostname = hostname, Services = new Services {KV = 11210}}
+                )
+            };
+            var nodes2 = new NodeAdapter[]
+            {
+                new NodeAdapter
+                (
+                    new Node {Hostname = hostname, Ports = new Ports {Direct = 11211}},
+                    new NodeExt {Hostname = hostname, Services = new Services {KV = 11211}}
+                )
+            };
+
+            Assert.IsFalse(nodes1.AreEqual(nodes2));
         }
     }
 }

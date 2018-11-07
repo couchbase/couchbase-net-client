@@ -64,6 +64,8 @@
     <None Remove="Data\config-rev-46.json" />
     <None Remove="Data\config-rev-60.json" />
     <None Remove="Data\configs.json" />
+    <None Remove="Data\Data\couchbase-4.0-rev839.json" />
+    <None Remove="Data\Data\couchbase-4.0-rev855.json" />
   </ItemGroup>
 
   <ItemGroup>

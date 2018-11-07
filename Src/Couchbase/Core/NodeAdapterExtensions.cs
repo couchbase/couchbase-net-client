@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Couchbase.Core
 {
     /// <summary>
-    /// Provides helper methods for workng with NodeAdapter's
+    /// Provides helper methods for working with NodeAdapter's
     /// </summary>
     public static class NodeAdapterExtensions
     {
@@ -26,9 +26,16 @@ namespace Couchbase.Core
             var orderedOther = other.OrderBy(x => x.Hostname).ToArray();
             for (var i = 0; i < ordered.Count(); i++)
             {
+                // check if hostname matches
                 if (string.Compare(ordered[i].Hostname,
                     orderedOther[i].Hostname,
                     StringComparison.OrdinalIgnoreCase) != 0)
+                {
+                    return false;
+                }
+
+                // check if KV port matches
+                if (ordered[i].KeyValue != orderedOther[i].KeyValue)
                 {
                     return false;
                 }
