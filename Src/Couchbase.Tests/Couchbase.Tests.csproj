@@ -1,346 +1,54 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{DE41E3C6-1A34-4C23-8422-9DF09CCC924C}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
     <RootNamespace>Couchbase.Tests</RootNamespace>
     <AssemblyName>Couchbase.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-    <RestorePackages>true</RestorePackages>
-    <TargetFrameworkProfile />
+    <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <NoWarn>1701,0618</NoWarn>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <LangVersion>5</LangVersion>
+
+  <PropertyGroup Condition="'$(OS)'=='Windows_NT'">
+    <TargetFrameworks>$(TargetFrameworks);net452</TargetFrameworks>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <LangVersion>5</LangVersion>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <DefineConstants>$(DefineConstants);NET452</DefineConstants>
   </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="Common.Logging, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.3.4.1\lib\net40\Common.Logging.dll</HintPath>
-    </Reference>
-    <Reference Include="Common.Logging.Core, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Common.Logging.Log4Net207, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.Log4Net207.3.4.1\lib\net40\Common.Logging.Log4Net207.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net, Version=2.0.7.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <HintPath>..\packages\log4net.2.0.7\lib\net45-full\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Moq, Version=4.2.1402.2112, Culture=neutral, PublicKeyToken=69f491c39445e920, processorArchitecture=MSIL">
-      <HintPath>..\packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.framework, Version=3.4.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
-      <HintPath>..\packages\NUnit.3.4.1\lib\net45\nunit.framework.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenTracing, Version=0.12.0.0, Culture=neutral, PublicKeyToken=61503406977abdaf, processorArchitecture=MSIL">
-      <HintPath>..\packages\OpenTracing.0.12.0\lib\net45\OpenTracing.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.ComponentModel.Composition" />
+    <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0" />
+    <PackageReference Include="Moq" Version="4.7.8" />
+    <PackageReference Include="NUnit" Version="3.6.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.8.0" />
+    <PackageReference Include="OpenTracing" Version="0.12.0" />
+    <PackageReference Include="System.ComponentModel.TypeConverter" Version="4.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="1.1.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
+    <PackageReference Include="Common.Logging.Log4Net207" Version="3.4.1" />
+    <PackageReference Include="log4net" Version="2.0.7" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net452' ">
     <Reference Include="System.Configuration" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime.Remoting" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.4.0" />
+  </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Authentication\BucketAuthenticationTests.cs" />
-    <Compile Include="Authentication\Sasl\SslConnection_CramMd5MechanismTests.cs" />
-    <Compile Include="Authentication\Sasl\CramMd5MechanismTests.cs" />
-    <Compile Include="Authentication\Sasl\PlainTextMechanismTests.cs" />
-    <Compile Include="Authentication\Sasl\SaslFactoryTests.cs" />
-    <Compile Include="Authentication\SSL\SSLConnectionTests.cs" />
-    <Compile Include="ClusterTests.cs" />
-    <Compile Include="Configuration\Client\ClientClientSectionTests.cs" />
-    <Compile Include="Configuration\Client\ClientConfigurationTests.cs" />
-    <Compile Include="Configuration\Client\FakeClientConfig.cs" />
-    <Compile Include="Configuration\CouchbaseConfigContextTests.cs" />
-    <Compile Include="Configuration\CouchbaseConfigContext_MDS_Tests.cs" />
-    <Compile Include="Configuration\Server\BootstrapExtensionsTests.cs" />
-    <Compile Include="Configuration\Server\Providers\CarrierPublication\CarrierPublicationProviderTests.cs" />
-    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigProviderTests.cs" />
-    <Compile Include="Configuration\Server\Providers\FileSystem\FileSystemConfigTests.cs" />
-    <Compile Include="Configuration\Server\Providers\Streaming\HttpServerConfigTests.cs" />
-    <Compile Include="Configuration\Server\Providers\Streaming\HttpStreamingProviderTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\BucketConfigTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\NodeArrayExtensionsTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\NodeTests.cs" />
-    <Compile Include="Configuration\Server\Serialization\VBucketServerMapTests.cs" />
-    <Compile Include="ContextFactory.cs" />
-    <Compile Include="Core\LifespanTests.cs" />
-    <Compile Include="CouchbaseBucket_SpatialViewTests.cs" />
-    <Compile Include="GlobalSetup.cs" />
-    <Compile Include="N1QL\QueryResponseTests.cs" />
-    <Compile Include="ResourceHelper.cs" />
-    <Compile Include="Utils\ClientConfigUtil.cs" />
-    <Compile Include="CouchbaseBucket_View_Ssl_Tests.cs" />
-    <Compile Include="Core\Buckets\KeyObserverTests.cs" />
-    <Compile Include="Core\Buckets\KeySeqnoObserverTests.cs" />
-    <Compile Include="MemcachedBucketTests_Isolated.cs" />
-    <Compile Include="Core\Buckets\OperationExecutorTests.cs" />
-    <Compile Include="Core\NodeAdapterTests.cs" />
-    <Compile Include="Core\Transcoders\CustomTranscoderTests.cs" />
-    <Compile Include="Core\Transcoders\TranscoderFactoryTests.cs" />
-    <Compile Include="Core\Transcoders\DefaultTranscoderTests.cs" />
-    <Compile Include="ClusterHelperTests.cs" />
-    <Compile Include="CouchbaseBucketTests.cs" />
-    <Compile Include="CouchbaseBucket_View_Tests.cs" />
-    <Compile Include="Core\Buckets\KetamaMapperTests.cs" />
-    <Compile Include="MemcachedBucketTests.cs" />
-    <Compile Include="Core\Buckets\VBucketKeyMapperTests.cs" />
-    <Compile Include="Fakes\FakeConverter.cs" />
-    <Compile Include="Fakes\FakeSerializer.cs" />
-    <Compile Include="Fakes\FakeTranscoder.cs" />
-    <Compile Include="IO\Converters\ConverterFactoryTests.cs" />
-    <Compile Include="IO\Operations\HelloTests.cs" />
-    <Compile Include="IO\Operations\EnhancedDurability\ObserveSeqnoTests.cs" />
-    <Compile Include="MemcachedBucket_Async_Tests.cs" />
-    <Compile Include="CouchbaseBucket_Async_Tests.cs" />
-    <Compile Include="Data\ResponsePackets.cs" />
-    <Compile Include="Documents\Beer.cs" />
-    <Compile Include="Documents\Brewery.cs" />
-    <Compile Include="Documents\Child.cs" />
-    <Compile Include="Documents\Contact.cs" />
-    <Compile Include="Documents\Geo.cs" />
-    <Compile Include="Documents\Pascal.cs" />
-    <Compile Include="Fakes\FakeConnection.cs" />
-    <Compile Include="Fakes\FakeConnectionPool.cs" />
-    <Compile Include="Fakes\FakeIOStrategy.cs" />
-    <Compile Include="Fakes\FakeLog.cs" />
-    <Compile Include="Fakes\FakeOperation.cs" />
-    <Compile Include="Fakes\FakeOperationResult.cs" />
-    <Compile Include="Fakes\FakeServer.cs" />
-    <Compile Include="Fakes\SlowSet.cs" />
-    <Compile Include="Helpers\OperationTimer.cs" />
-    <Compile Include="IO\ConnectionPool_SslConnectionTests.cs" />
-    <Compile Include="IO\Converters\ManualByteConverterTests.cs" />
-    <Compile Include="IO\DefaultIOStrategyTests.cs" />
-    <Compile Include="IO\Operations\AddOperationTests.cs" />
-    <Compile Include="IO\Operations\AppendOperationTests.cs" />
-    <Compile Include="IO\Operations\Authentication\SaslListMechanismTests.cs" />
-    <Compile Include="IO\Operations\Authentication\SaslAuthenticateTests.cs" />
-    <Compile Include="IO\Operations\ConfigOperationTests.cs" />
-    <Compile Include="ConfigUtil.cs" />
-    <Compile Include="Core\ClusterControllerTests.cs" />
-    <Compile Include="Core\ServerTests.cs" />
-    <Compile Include="Cryptography\CrC32Tests.cs" />
-    <Compile Include="Helpers\ObjectFactory.cs" />
-    <Compile Include="IO\DefaultConnectionPoolTests.cs" />
-    <Compile Include="IO\ConnectionTests.cs" />
-    <Compile Include="IO\Operations\ConfigTests.cs" />
-    <Compile Include="IO\Operations\GetQOperationTests.cs" />
-    <Compile Include="IO\Operations\GetKOperationTests.cs" />
-    <Compile Include="IO\Operations\GetOperationTests.cs" />
-    <Compile Include="IO\Operations\DecrementTests.cs" />
-    <Compile Include="IO\Operations\GetSetPerformanceTests.cs" />
-    <Compile Include="IO\Operations\GetTests.cs" />
-    <Compile Include="IO\Operations\GetTOperationTests.cs" />
-    <Compile Include="IO\Operations\IncrementTests.cs" />
-    <Compile Include="IO\Operations\NoopOperationTests.cs" />
-    <Compile Include="IO\Operations\ObserveTests.cs" />
-    <Compile Include="IO\Operations\OperationBaseTests.cs" />
-    <Compile Include="IO\Operations\OperationTestBase.cs" />
-    <Compile Include="IO\Operations\ReplaceTests.cs" />
-    <Compile Include="IO\Operations\SetOperationTests.cs" />
-    <Compile Include="IO\Operations\SetTests.cs" />
-    <Compile Include="IO\Operations\TouchOperationTests.cs" />
-    <Compile Include="IO\Services\FakeIOService.cs" />
-    <Compile Include="CouchbaseBucket_N1QL_Tests.cs" />
-    <Compile Include="N1QL\QueryClientTests.cs" />
-    <Compile Include="N1QL\QueryRequestTests.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestKeys.cs" />
-    <Compile Include="Utils\ArrayExtensionsTests.cs" />
-    <Compile Include="Utils\BoolExtensionTests.cs" />
-    <Compile Include="Utils\IPEndpointExtensionsTests.cs" />
-    <Compile Include="Utils\TimeSpanExtensionsTests.cs" />
-    <Compile Include="Utils\BufferExtensionTests.cs" />
-    <Compile Include="Utils\SortedDictionaryExtensionsTests.cs" />
-    <Compile Include="Utils\UriExtensionTests.cs" />
-    <Compile Include="Utils\UriUtilTests.cs" />
-    <Compile Include="VBucketTests.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Views\JsonDataMapperTests.cs" />
-    <Compile Include="Views\SpatialViewQueryTests.cs" />
-    <Compile Include="Views\ViewClientTests.cs" />
-    <Compile Include="Views\ViewQueryTests.cs" />
-    <Compile Include="Views\ViewResultTests.cs" />
+    <EmbeddedResource Include="Data\*.json" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config">
-      <SubType>Designer</SubType>
-    </None>
-    <EmbeddedResource Include="Data\Configuration\bootstrap.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\bucketconfig-host-placeholder.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\buckets.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\carrier-publication-config.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\cb4-config-4-nodes.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-1070.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-1071.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-nodes-and-serverslist-out-of-order.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-rev4456-v1.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-rev4456-v2.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-revision-8934.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-revision-9958.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-with-autocompaction.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-with-fqdn-servers.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-with-long-fqdn-servers.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-with-negative-one-primary.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-with-nodes-ext.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-with-replicas-complete.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\config-with-replicas-incomplete.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\couchbase-2_5_1-couchbase_config.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\couchbase-2_5_1-memcached_config.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\nodesext-cb-beta-4.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\nodesext-with-json-and-kv.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\pools.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\terse-bucket-ssl.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\Configuration\vbucket-forwardmap.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\DesignDocs\beers_ext_spatial.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\DesignDocs\beers_ext.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\DesignDocs\docs.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\DesignDocs\by_field2.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\N1QL\prepared-statement.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\bigger-than-buffer-doc.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Couchbase\Couchbase.csproj">
-      <Project>{244EB9C8-8BCB-421D-A6DC-D54DCEB206E8}</Project>
-      <Name>Couchbase</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Data\Configuration\bucketsStreaming-default.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Data\Configuration\bucketsStreaming-test.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Data\Configuration\bucketsStreaming-memcached.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="config-example.xml" />
-    <EmbeddedResource Include="Data\DesignDocs\by_field.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Data\N1QL\HelloWorld.json" />
-  </ItemGroup>
-  <ItemGroup />
-  <ItemGroup>
-    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

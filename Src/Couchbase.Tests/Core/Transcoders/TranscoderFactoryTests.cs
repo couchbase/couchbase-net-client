@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+#if NET452
+using System.Configuration;
 using Couchbase.Configuration.Client;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core.Transcoders;
@@ -21,3 +22,4 @@ namespace Couchbase.Tests.Core.Transcoders
         }
     }
 }
+#endif

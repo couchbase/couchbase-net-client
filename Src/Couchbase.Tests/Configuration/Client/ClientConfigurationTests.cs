@@ -4,10 +4,13 @@ using System.Configuration;
 using System.Linq;
 using System.Net;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Tests.Fakes;
 using Couchbase.Tests.Utils;
 using NUnit.Framework;
+
+#if NET452
+using Couchbase.Configuration.Client.Providers;
+#endif
 
 namespace Couchbase.Tests.Configuration.Client
 {
@@ -169,6 +172,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(123, bucketConfig.DefaultOperationLifespan);
         }
 
+#if NET452
         [Test]
         public void When_AppConfig_Used_OperationLifespan_Priority_Is_Respected()
         {
@@ -201,6 +205,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.AreEqual(3000, bucketPoolConfig.ShutdownTimeout);
             Assert.AreEqual(12000, bucketPoolConfig.SendTimeout);
         }
+#endif
 
         [Test]
         public void Test_UseSsl()
@@ -417,6 +422,7 @@ namespace Couchbase.Tests.Configuration.Client
             Assert.IsTrue(couchbaseConfiguration.HasServersChanged());
         }
 
+#if NET452
         public void When_EnableTcpKeepAlives_Is_Disabled_In_AppConfig_EnableTcpKeepAlives_Is_False()
         {
             var config = new ClientConfiguration((CouchbaseClientSection)ConfigurationManager.GetSection("couchbaseClients/couchbase_4"));
@@ -461,6 +467,7 @@ namespace Couchbase.Tests.Configuration.Client
             var config = new ClientConfiguration(section);
             Assert.IsInstanceOf<FakeSerializer>(config.Serializer());
         }
+#endif
 
         [Test]
         public void When_EnhancedDurability_Is_Enabled_SupportsEnhancedDurability_Is_True()

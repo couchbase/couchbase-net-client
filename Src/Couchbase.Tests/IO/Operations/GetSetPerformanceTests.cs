@@ -69,6 +69,7 @@ namespace Couchbase.Tests.IO.Operations
             }
         }
 
+#if NET452
         [Test]
         public void Test_Timed_Execution_Parallel_Client()
         {
@@ -97,5 +98,6 @@ namespace Couchbase.Tests.IO.Operations
                 }
             }
         }
+#endif
     }
 }

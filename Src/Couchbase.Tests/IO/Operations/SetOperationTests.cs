@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET452
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
@@ -109,3 +110,4 @@ namespace Couchbase.Tests.IO.Operations
  * ************************************************************/
 
 #endregion
+#endif

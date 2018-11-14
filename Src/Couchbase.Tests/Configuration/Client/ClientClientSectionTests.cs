@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET452
+using System;
 using System.Configuration;
 using System.Linq;
 using Couchbase.Configuration.Client;
@@ -334,3 +335,4 @@ namespace Couchbase.Tests.Configuration.Client
  * ************************************************************/
 
 #endregion
+#endif

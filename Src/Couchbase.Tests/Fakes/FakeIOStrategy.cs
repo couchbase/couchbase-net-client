@@ -47,7 +47,7 @@ namespace Couchbase.Tests.Fakes
             var response = connection.Send(request);
 
             //Read the response and return the completed operation
-            operation.Read(response, 0, response.Length);
+            operation.Read(response);
             return operation.GetResultWithValue();
         }
 
@@ -85,7 +85,7 @@ namespace Couchbase.Tests.Fakes
             //Read the response and return the completed operation
             if (response != null)
             {
-                operation.Read(response, 0, response.Length);
+                operation.Read(response);
             }
             return operation.GetResult();
         }
@@ -123,7 +123,7 @@ namespace Couchbase.Tests.Fakes
             //Read the response and return the completed operation
             if (response != null)
             {
-                operation.Read(response, 0, response.Length);
+                operation.Read(response);
             }
             return operation.GetResultWithValue();
         }
@@ -146,16 +146,18 @@ namespace Couchbase.Tests.Fakes
             try
             {
                 var request = await operation.WriteAsync().ContinueOnAnyContext();
+#pragma warning disable CS4014 // We don't want to wait here - the dedicated read thread will get the result
                 connection.SendAsync(request, operation.Completed);
+#pragma warning restore CS4014
             }
             catch (Exception e)
             {
                 var completed = operation.Completed;
-                completed(new SocketAsyncState
+                await completed(new SocketAsyncState
                 {
                     Exception = e,
                     Opaque = operation.Opaque
-                });
+                }).ContinueOnAnyContext();
             }
         }
 
@@ -177,7 +179,9 @@ namespace Couchbase.Tests.Fakes
             try
             {
                 var request = await operation.WriteAsync().ContinueOnAnyContext();
+#pragma warning disable CS4014 // We don't want to wait here - the dedicated read thread will get the result
                 connection.SendAsync(request, operation.Completed);
+#pragma warning restore CS4014
             }
             catch (Exception e)
             {

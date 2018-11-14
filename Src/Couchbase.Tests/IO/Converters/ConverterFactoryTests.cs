@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿#if NET452
+using System.Configuration;
 using Couchbase.Configuration.Client.Providers;
 using Couchbase.IO.Converters;
 using Couchbase.Tests.Fakes;
@@ -19,3 +20,4 @@ namespace Couchbase.Tests.IO.Converters
         }
     }
 }
+#endif

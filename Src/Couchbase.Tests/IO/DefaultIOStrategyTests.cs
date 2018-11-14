@@ -83,7 +83,7 @@ namespace Couchbase.Tests.IO
                 Assert.IsNull(s.Exception);
 
                 var buffer = s.Data.ToArray();
-                operation.Read(buffer, 0, buffer.Length);
+                operation.Read(buffer);
                 var result = operation.GetResult();
                 Assert.IsTrue(result.Success);
                 Assert.IsNull(result.Exception);

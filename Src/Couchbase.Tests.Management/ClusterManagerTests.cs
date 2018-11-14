@@ -31,7 +31,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.AddNode(SecondaryIp);
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -55,7 +55,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.AddNodeAsync(SecondaryIp).Result;
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -78,7 +78,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.RemoveNodeAsync(SecondaryIp).Result;
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -121,7 +121,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.FailoverNode(SecondaryIp);
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -144,7 +144,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.FailoverNodeAsync(SecondaryIp).Result;
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -217,7 +217,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.Rebalance();
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -305,7 +305,7 @@ namespace Couchbase.Tests.Management
             {
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.CreateBucket("test1");
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -325,7 +325,7 @@ namespace Couchbase.Tests.Management
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.RemoveBucket("test1");
 
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -365,7 +365,7 @@ namespace Couchbase.Tests.Management
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = clusterManager.RemoveBucketAsync("test").Result;
 
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }
@@ -385,7 +385,7 @@ namespace Couchbase.Tests.Management
                 var clusterManager = cluster.CreateManager("Administrator", "password");
                 var result = await clusterManager.InitializeClusterAsync("192.168.77.101");
 
-                Assert.IsNullOrEmpty(result.Message);
+                Assert.IsTrue(string.IsNullOrWhiteSpace(result.Message));
                 Assert.IsTrue(result.Success);
             }
         }

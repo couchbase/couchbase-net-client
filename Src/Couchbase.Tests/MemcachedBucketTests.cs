@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET452
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
@@ -769,3 +770,4 @@ namespace Couchbase.Tests
  * ************************************************************/
 
 #endregion
+#endif

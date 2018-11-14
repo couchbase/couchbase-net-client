@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET452
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -234,3 +235,4 @@ namespace Couchbase.Tests.Core
  * ************************************************************/
 
 #endregion
+#endif

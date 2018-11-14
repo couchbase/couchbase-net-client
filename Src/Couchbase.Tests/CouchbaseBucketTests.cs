@@ -8,7 +8,6 @@ using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Core;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
@@ -19,6 +18,10 @@ using Couchbase.Views;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using Wintellect;
+
+#if NET452
+using Couchbase.Configuration.Client.Providers;
+#endif
 
 namespace Couchbase.Tests
 {
@@ -320,6 +323,7 @@ namespace Couchbase.Tests
             }
         }
 
+#if NET452
         [Test]
         public void When_Custom_Transcoder_Upsert_uses_it()
         {
@@ -351,6 +355,7 @@ namespace Couchbase.Tests
                 }
             }
         }
+#endif
 
         [Test]
         public void When_KeyExists_Insert_Fails()
@@ -883,6 +888,7 @@ namespace Couchbase.Tests
             }
         }
 
+#if NET452
         [Test]
         public void Test_Dispose_On_Many_Threads()
         {
@@ -921,7 +927,7 @@ namespace Couchbase.Tests
                 });
             }
         }
-
+#endif
         public class Poco
         {
             public string Bar { get; set; }

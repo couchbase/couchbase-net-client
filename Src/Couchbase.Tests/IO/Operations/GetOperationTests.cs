@@ -1,4 +1,5 @@
-﻿using Couchbase.IO.Operations;
+﻿#if NET452
+using Couchbase.IO.Operations;
 using NUnit.Framework;
 
 namespace Couchbase.Tests.IO.Operations
@@ -104,3 +105,4 @@ namespace Couchbase.Tests.IO.Operations
  * ************************************************************/
 
 #endregion
+#endif

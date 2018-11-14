@@ -361,7 +361,7 @@ namespace Couchbase.Tests.IO.Operations
             var expected = new byte[] {};//empty response
 
             var get = new Get<string>(key, GetVBucket(), Transcoder, OperationLifespanTimeout);
-            get.Read(expected, 0, expected.Length);
+            get.Read(expected);
             var result = get.GetResult();
             Assert.IsFalse(result.Success);
         }

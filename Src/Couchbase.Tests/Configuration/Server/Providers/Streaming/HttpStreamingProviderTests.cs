@@ -3,7 +3,6 @@ using System.Configuration;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
-using Couchbase.Configuration.Client.Providers;
 using Couchbase.Configuration.Server.Providers;
 using Couchbase.Configuration.Server.Providers.Streaming;
 using Couchbase.Core.Transcoders;

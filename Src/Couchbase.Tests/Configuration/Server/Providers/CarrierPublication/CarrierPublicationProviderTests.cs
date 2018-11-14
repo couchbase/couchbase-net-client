@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿#if NET452
+using System.Configuration;
 using Couchbase.Authentication.SASL;
 using Couchbase.Configuration;
 using Couchbase.Configuration.Client;
@@ -119,3 +120,4 @@ namespace Couchbase.Tests.Configuration.Server.Providers.CarrierPublication
  * ************************************************************/
 
 #endregion
+#endif
