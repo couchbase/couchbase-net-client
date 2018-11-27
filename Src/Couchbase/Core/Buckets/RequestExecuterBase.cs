@@ -283,11 +283,14 @@ namespace Couchbase.Core.Buckets
         /// <param name="deletion">True if mutation is a deletion.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="token"></param>
         /// <returns>
         /// The <see cref="Task{IOperationResult}" /> to be awaited on with it's <see cref="Durability" /> status.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        public virtual Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion,
+            ReplicateTo replicateTo, PersistTo persistTo, TaskCompletionSource<IOperationResult<T>> tcs = null,
+            CancellationTokenSource cts = null)
         {
             throw new NotImplementedException();
         }
@@ -348,7 +351,8 @@ namespace Couchbase.Core.Buckets
         /// The <see cref="Task{IOperationResult}" /> to be awaited on with it's <see cref="Durability" /> status.
         /// </returns>
         /// <exception cref="System.NotImplementedException"></exception>
-        public virtual Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        public virtual Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo, TaskCompletionSource<IOperationResult> tcs = null,
+            CancellationTokenSource cts = null)
         {
             throw new NotImplementedException();
         }

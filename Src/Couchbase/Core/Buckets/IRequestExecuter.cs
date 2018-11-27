@@ -151,8 +151,12 @@ namespace Couchbase.Core.Buckets
         /// <param name="deletion">True if mutation is a deletion.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="token"></param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
-        Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
+        Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation,
+            bool deletion, ReplicateTo replicateTo, PersistTo persistTo,
+            TaskCompletionSource<IOperationResult<T>> tcs = null,
+            CancellationTokenSource cts = null);
 
         /// <summary>
         /// Sends an operation to the server while observing it's durability requirements using async/await
@@ -161,8 +165,11 @@ namespace Couchbase.Core.Buckets
         /// <param name="deletion">True if mutation is a deletion.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="token"></param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
-        Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo);
+        Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo,
+            PersistTo persistTo, TaskCompletionSource<IOperationResult> tcs = null,
+            CancellationTokenSource cts = null);
 
         ///<summary>
         /// Executes an operation until it either succeeds, reaches a non-retriable state, or times out.

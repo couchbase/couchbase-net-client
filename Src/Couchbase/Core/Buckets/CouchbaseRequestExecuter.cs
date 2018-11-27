@@ -285,12 +285,18 @@ namespace Couchbase.Core.Buckets
         /// <param name="deletion">True if mutation is a deletion.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="tcs">The <see cref="TaskCompletionSource{T}"/> the represents the task to await on.</param>
+        /// <param name="cts">The <see cref="CancellationTokenSource"/> for cancellation.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with it's <see cref="Durability"/> status.</returns>
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
-        public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        public override async Task<IOperationResult<T>> SendWithDurabilityAsync<T>(IOperation<T> operation,
+            bool deletion, ReplicateTo replicateTo, PersistTo persistTo, TaskCompletionSource<IOperationResult<T>> tcs = null,
+            CancellationTokenSource cts = null)
         {
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
+
                 IOperationResult<T> result;
                 try
                 {
@@ -301,7 +307,7 @@ namespace Couchbase.Core.Buckets
                             ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
                     }
 
-                    result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
+                    result = await SendWithRetryAsync(operation, tcs).ContinueOnAnyContext();
                     if (result.Success)
                     {
                         if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.Zero)
@@ -312,7 +318,9 @@ namespace Couchbase.Core.Buckets
                         else
                         {
                             var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                            using (var cts = new CancellationTokenSource(config.ObserveTimeout))
+                            cts = cts ?? new CancellationTokenSource(config.ObserveTimeout);
+
+                            using (cts)
                             {
                                 if (ConfigInfo.SupportsEnhancedDurability)
                                 {
@@ -412,12 +420,20 @@ namespace Couchbase.Core.Buckets
         /// <param name="deletion">True if mutation is a deletion.</param>
         /// <param name="replicateTo">The durability requirement for replication.</param>
         /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="tcs">The <see cref="TaskCompletionSource{T}"/> the represents the task to await on.</param>
+        /// <param name="cts">The <see cref="CancellationTokenSource"/> for cancellation.</param>
         /// <returns>The <see cref="Task{IOperationResult}"/> to be awaited on with its <see cref="Durability"/> status.</returns>
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
-        public override async Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
+        public override async Task<IOperationResult> SendWithDurabilityAsync(IOperation operation, bool deletion,
+            ReplicateTo replicateTo, PersistTo persistTo, TaskCompletionSource<IOperationResult> tcs = null,
+            CancellationTokenSource cts = null)
         {
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
+                var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
+                tcs = tcs ?? new TaskCompletionSource<IOperationResult>();
+                cts = cts ?? new CancellationTokenSource(config.ObserveTimeout);
+
                 IOperationResult result;
                 try
                 {
@@ -428,7 +444,7 @@ namespace Couchbase.Core.Buckets
                             ExceptionUtil.GetMessage(ExceptionUtil.ServiceNotSupportedMsg, "Data"));
                     }
 
-                    result = await SendWithRetryAsync(operation).ContinueOnAnyContext();
+                    result = await SendWithRetryAsync(operation, tcs).ContinueOnAnyContext();
                     if (result.Success)
                     {
                         if (replicateTo == ReplicateTo.Zero && persistTo == PersistTo.Zero)
@@ -438,8 +454,7 @@ namespace Couchbase.Core.Buckets
                         }
                         else
                         {
-                            var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
-                            using (var cts = new CancellationTokenSource(config.ObserveTimeout))
+                            using (cts)
                             {
                                 if (ConfigInfo.SupportsEnhancedDurability)
                                 {
