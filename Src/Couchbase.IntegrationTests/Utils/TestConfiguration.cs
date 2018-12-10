@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Configuration.Client;
+using Couchbase.Configuration.Server.Providers;
 using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
 using Couchbase.Core;
@@ -74,6 +75,11 @@ namespace Couchbase.IntegrationTests.Utils
                 }
             };
 
+            if (Settings.IsMock)
+            {
+                configuration.ConfigurationProviders = ServerConfigurationProviders.HttpStreaming;
+            }
+
             return configuration;
         }
 
@@ -107,6 +113,14 @@ namespace Couchbase.IntegrationTests.Utils
             if (ClusterVersionProvider.Instance.GetVersion(cluster) < new ClusterVersion(new Version(5, 0)))
             {
                 Assert.Ignore(message);
+            }
+        }
+
+        internal static void IgnoreIfMock()
+        {
+            if (Settings.IsMock)
+            {
+                Assert.Ignore("Test is not supported by CouchbaseMock");
             }
         }
     }

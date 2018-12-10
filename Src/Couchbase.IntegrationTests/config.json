@@ -5,7 +5,8 @@
     "bootPort": "8091",
     "adminUsername": "Administrator",
     "adminPassword": "password",
-    "enhancedAuth": false
+    "enhancedAuth": false,
+    "isMock": false
   },
 
   "couchbase": {

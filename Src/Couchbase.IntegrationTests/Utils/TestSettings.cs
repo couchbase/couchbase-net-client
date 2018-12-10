@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace Couchbase.IntegrationTests.Utils
 {
     public class TestSettings
@@ -13,5 +8,6 @@ namespace Couchbase.IntegrationTests.Utils
         public string AdminUsername { get; set; }
         public string AdminPassword { get; set; }
         public bool EnhancedAuth { get; set; }
+        public bool IsMock { get; set; }
     }
 }
