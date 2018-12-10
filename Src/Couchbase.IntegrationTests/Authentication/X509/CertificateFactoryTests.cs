@@ -1,6 +1,6 @@
-﻿using System;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Authentication.X509;
+using Couchbase.IntegrationTests.Utils;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests.Authentication.X509
@@ -9,6 +9,12 @@ namespace Couchbase.IntegrationTests.Authentication.X509
     [Ignore("Build server needs permission set.")]
     public class CertificateFactoryTests
     {
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            TestConfiguration.IgnoreIfMock();
+        }
+
         [Test]
         public void Test_GetCertificateByPathAndPassword()
         {

@@ -18,6 +18,12 @@ namespace Couchbase.IntegrationTests
         private IConnectionPool _connectionPool;
         private readonly string _address = TestConfiguration.Settings.Hostname + ":11210";
 
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            TestConfiguration.IgnoreIfMock();
+        }
+
         [SetUp]
         public void TestFixtureSetUp()
         {

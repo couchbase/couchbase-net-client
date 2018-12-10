@@ -20,6 +20,8 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
+            TestConfiguration.IgnoreIfMock();
+
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("beer-sample"));
             _cluster.SetupEnhancedAuth();
 

@@ -26,7 +26,9 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            _cluster = new Cluster(Utils.TestConfiguration.GetCurrentConfiguration());
+            TestConfiguration.IgnoreIfMock();
+
+            _cluster = new Cluster(TestConfiguration.GetCurrentConfiguration());
             _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket();
         }

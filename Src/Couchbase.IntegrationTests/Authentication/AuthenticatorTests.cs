@@ -22,6 +22,12 @@ namespace Couchbase.IntegrationTests.Authentication
     [TestFixture]
     public class AuthenticatorTests
     {
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            TestConfiguration.IgnoreIfMock();
+        }
+
         [Test]
         public void Test_CanAuthenticate_KV()
         {

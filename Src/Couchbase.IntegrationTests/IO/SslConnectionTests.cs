@@ -25,6 +25,12 @@ namespace Couchbase.IntegrationTests.IO
     [TestFixture]
     public class SslConnectionTests
     {
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            TestConfiguration.IgnoreIfMock();
+        }
+
         [Test]
         public void Test_Authenticate_With_Ssl()
         {

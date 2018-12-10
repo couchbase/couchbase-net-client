@@ -16,6 +16,8 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void Setup()
         {
+            TestConfiguration.IgnoreIfMock();
+
             if (!TestConfiguration.Settings.EnhancedAuth)
             {
                 Assert.Ignore("Ephemeral buckets are only supported for Couchbase server 5.0");

@@ -17,6 +17,8 @@ namespace Couchbase.IntegrationTests
         [Category("Memcached")]
         public void When_Bucket_Goes_Out_of_Scope_Process_Will_Not_Hang()
         {
+            TestConfiguration.IgnoreIfMock();
+
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
 
             //if the configuration thread is a foreground thread, this would hang indefinitly

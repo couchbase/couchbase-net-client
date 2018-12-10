@@ -13,6 +13,8 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         [Test]
         public async Task Test_Couchbase()
         {
+            TestConfiguration.IgnoreIfMock();
+
             var definition = new CouchbaseClientDefinition
             {
                 ConnectionString = "couchbase://" + TestConfiguration.Settings.Hostname
@@ -38,6 +40,8 @@ namespace Couchbase.IntegrationTests.Configuration.Client
         [Test]
         public async Task Test_Couchbases()
         {
+            TestConfiguration.IgnoreIfMock();
+
             var definition = new CouchbaseClientDefinition
             {
                 ConnectionString = "couchbases://" + TestConfiguration.Settings.Hostname,

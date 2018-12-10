@@ -10,6 +10,12 @@ namespace Couchbase.IntegrationTests
     [TestFixture]
     public class CouchbaseBucketSearchTests
     {
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            TestConfiguration.IgnoreIfMock();
+        }
+
         [Test]
         public void Test_Sync()
         {

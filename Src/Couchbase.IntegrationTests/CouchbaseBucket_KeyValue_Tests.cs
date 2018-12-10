@@ -200,6 +200,8 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void Test_Upsert_GetsMutationTokenWithBucketRef()
         {
+            TestConfiguration.IgnoreIfMock();
+
             // https://issues.couchbase.com/browse/NCBC-1119
 
             var key = "Test_Upsert_GetsMutationTokenWithBucketRef";
@@ -525,6 +527,8 @@ namespace Couchbase.IntegrationTests
         [Description("This specifically tests a configuration where UseEnhancedDurability is false - CAS based observe.")]
         public async Task Insert_WithObserve_DocumentMutationDetected_IsFound()
         {
+            TestConfiguration.IgnoreIfMock();
+
             using (var cluster = new Cluster(TestConfiguration.GetConfiguration("observeConfig")))
             {
                 cluster.SetupEnhancedAuth();
@@ -656,6 +660,7 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void GetAndLock_TemporaryLockFailureException()
         {
+            TestConfiguration.IgnoreIfMock();
             if (TestConfiguration.Settings.EnhancedAuth)
             {
                 Assert.Ignore("https://issues.couchbase.com/browse/NCBC-1499");

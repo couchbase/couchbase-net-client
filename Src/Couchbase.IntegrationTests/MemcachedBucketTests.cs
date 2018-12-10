@@ -25,6 +25,8 @@ namespace Couchbase.IntegrationTests
         [OneTimeSetUp]
         public void SetUp()
         {
+            TestConfiguration.IgnoreIfMock();
+
             var config = Utils.TestConfiguration.GetCurrentConfiguration();
             _cluster = new Cluster(config);
             _cluster.SetupEnhancedAuth();

@@ -39,6 +39,8 @@ namespace Couchbase.IntegrationTests.Management
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
+            TestConfiguration.IgnoreIfMock();
+
             _cluster = new Cluster(Utils.TestConfiguration.GetConfiguration("basic"));
             _cluster.SetupEnhancedAuth();
             _clusterManager = _cluster.CreateManager(TestConfiguration.Settings.AdminUsername, TestConfiguration.Settings.AdminPassword);

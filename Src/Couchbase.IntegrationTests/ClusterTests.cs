@@ -15,6 +15,12 @@ namespace Couchbase.IntegrationTests
     [TestFixture]
     public class ClusterTests
     {
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            TestConfiguration.IgnoreIfMock();
+        }
+
         [Test]
         public void Test_Query()
         {

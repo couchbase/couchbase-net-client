@@ -6,7 +6,6 @@ using Couchbase.Authentication;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Couchbase.IntegrationTests.Utils;
-using Couchbase.Management;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -14,11 +13,17 @@ namespace Couchbase.IntegrationTests
     [TestFixture]
     public class ClusterHelperTests
     {
+        [OneTimeSetUp]
+        public void Setup()
+        {
+            TestConfiguration.IgnoreIfMock();
+        }
+
         [Test]
         public void When_Get_Called_Without_Calling_Initialize_InitializationException_Is_Thrown()
         {
             ClusterHelper.Close();
-            var ex = Assert.Throws<InitializationException>(() => ClusterHelper.Get());
+            Assert.Throws<InitializationException>(() => ClusterHelper.Get());
         }
 
         [Test]
