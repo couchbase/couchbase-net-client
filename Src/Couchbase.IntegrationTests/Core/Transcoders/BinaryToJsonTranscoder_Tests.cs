@@ -14,7 +14,7 @@ namespace Couchbase.IntegrationTests.Core.Transcoders
     // ReSharper disable once InconsistentNaming
     public class BinaryToJsonTranscoder_Tests
     {
-#if NET45
+#if NET452
         [Test]
         public void Test()
         {

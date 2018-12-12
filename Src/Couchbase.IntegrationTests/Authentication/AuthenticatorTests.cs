@@ -445,7 +445,7 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(result.Success);
         }
 
-#if NET45
+#if NET452
         [Test]
         public void PasswordAuthenticator_Can_Auth_Using_ConfigSection()
         {
@@ -615,7 +615,7 @@ namespace Couchbase.IntegrationTests.Authentication
             Assert.IsTrue(listbucketsResult.Value.Any());
         }
 
-#if NET45
+#if NET452
         [Test]
         public void ClassicAuthenticator_Can_Auth_Using_ConfigSection()
         {
