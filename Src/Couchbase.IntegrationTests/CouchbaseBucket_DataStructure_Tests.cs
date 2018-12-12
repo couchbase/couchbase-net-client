@@ -1,14 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Couchbase.Authentication;
-using Couchbase.Configuration.Client;
 using Couchbase.Core;
-using Couchbase.Core.Transcoders;
 using Couchbase.IntegrationTests.Utils;
-using Couchbase.IO.Converters;
-using Moq;
 using NUnit.Framework;
 
 namespace Couchbase.IntegrationTests
@@ -19,10 +13,10 @@ namespace Couchbase.IntegrationTests
         private ICluster _cluster;
         private IBucket _bucket;
 
-        public void Setup(bool useMutation)
+        [OneTimeSetUp]
+        public void Setup()
         {
-            var config = Utils.TestConfiguration.GetCurrentConfiguration();
-            config.BucketConfigs.First().Value.UseEnhancedDurability = useMutation;
+            var config = TestConfiguration.GetCurrentConfiguration();
             _cluster = new Cluster(config);
             _cluster.SetupEnhancedAuth();
             _bucket = _cluster.OpenBucket();
@@ -31,8 +25,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task Test_MapGetAsync()
         {
-            Setup(true);
-
             const string key = "Test_MapGetAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, "{\"name\":\"value\"}");
@@ -45,8 +37,6 @@ namespace Couchbase.IntegrationTests
         public void Test_MapGet()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_MapGet";
             _bucket.Remove(key);
             _bucket.Insert(key, "{\"name\":\"value\"}");
@@ -63,8 +53,6 @@ namespace Couchbase.IntegrationTests
         public void Test_MapRemove()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_MapRemove";
             _bucket.Remove(key);
             _bucket.Insert(key, "{\"name\":\"value\"}");
@@ -80,8 +68,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_MapRemoveAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_MapRemoveAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, "{\"name\":\"value\"}");
@@ -97,8 +83,6 @@ namespace Couchbase.IntegrationTests
         public void Test_MapSize()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_MapSize";
             _bucket.Remove(key);
             _bucket.Insert(key, new Dictionary<string, string> { {"name", "value"} });
@@ -115,8 +99,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_MapSizeAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_MapSize";
             _bucket.Remove(key);
             _bucket.Insert(key, new Dictionary<string, string> { { "name", "value" } });
@@ -133,8 +115,6 @@ namespace Couchbase.IntegrationTests
         public void Test_MapAdd()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_MapAdd";
             _bucket.Remove(key);
             _bucket.Insert(key, "{\"name\":\"value\"}");
@@ -150,8 +130,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_MapAddAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_MapAddAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, "{\"name\":\"value\"}");
@@ -167,8 +145,6 @@ namespace Couchbase.IntegrationTests
         public void Test_ListGet()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListGet";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -185,8 +161,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_ListGetAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListGet";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -203,8 +177,6 @@ namespace Couchbase.IntegrationTests
         public void Test_ListAppend()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListAppend";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -220,8 +192,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_ListAppendAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListAppendAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -237,8 +207,6 @@ namespace Couchbase.IntegrationTests
         public void Test_ListPrepend()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListPrepend";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -254,8 +222,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_ListPrependAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListPrependAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -271,8 +237,6 @@ namespace Couchbase.IntegrationTests
         public void Test_ListRemove()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListRemove";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -288,8 +252,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_ListRemoveASync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListDeleteAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -305,8 +267,6 @@ namespace Couchbase.IntegrationTests
         public void Test_ListSet()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListSet";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -322,8 +282,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_ListSetAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListSetAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -339,8 +297,6 @@ namespace Couchbase.IntegrationTests
         public void Test_ListSize()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListSize";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value" });
@@ -357,8 +313,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_ListSizeAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_ListSizeAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value" });
@@ -375,8 +329,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_SetAddAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetAddAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value" });
@@ -392,8 +344,6 @@ namespace Couchbase.IntegrationTests
         public void Test_SetAdd()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetAdd";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value" });
@@ -409,8 +359,6 @@ namespace Couchbase.IntegrationTests
         public void Test_SetContains()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetContains";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value", "value2" });
@@ -426,8 +374,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_SetContainsAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetContainsAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "name", "value", "value2" });
@@ -443,8 +389,6 @@ namespace Couchbase.IntegrationTests
         public void Test_SetSize()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetSize";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -460,8 +404,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_SetSizeAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetSizeAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -477,8 +419,6 @@ namespace Couchbase.IntegrationTests
         public void Test_SetRemove()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetRemove";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -494,8 +434,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_SetRemoveAsync()
         {
             //arrange
-            Setup(true);
-
             const string key = "Test_SetRemoveAsync";
             _bucket.Remove(key);
             _bucket.Insert(key, new List<string> { "foo", "bar" });
@@ -510,8 +448,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task QueuePushAsync_Returns_Success_When_Adding_Item_To_Existing_Queue()
         {
-            Setup(true);
-
             const string key = "QueuePushAsync_Returns_Success_When_Adding_Item_To_Existing_Queue";
             await _bucket.UpsertAsync(key, new List<Poco1>());
 
@@ -533,8 +469,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task QueuePushAsync_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True()
         {
-            Setup(true);
-
             const string key = "QueuePushAsync_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True";
             await _bucket.RemoveAsync(key);
 
@@ -556,8 +490,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task QueuePushAsync_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False()
         {
-            Setup(true);
-
             const string key = "QueuePushAsync_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False";
             await _bucket.RemoveAsync(key);
 
@@ -575,8 +507,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task QueuePopAsync_Returns_Item_From_Front_Of_Queue()
         {
-            Setup(true);
-
             const string key = "QueuePopAsync_Returns_Item_From_Front_Of_Queue";
             var bob = new Poco1 {Name = "Bob", Items = new List<string> {"Red", "Orange"}};
             var mary = new Poco1 {Name = "Mary", Items = new List<string> {"Pink", "Purple"}};
@@ -606,8 +536,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task QueuePopAsync_Returns_Failure_If_Document_Doesnt_Exist()
         {
-            Setup(true);
-
             const string key = "QueuePopAsync_Returns_Failure_If_Document_Doesnt_Exist";
             await _bucket.RemoveAsync(key);
 
@@ -619,8 +547,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task QueuePopAsync_Returns_Failures_If_Document_Has_No_Items()
         {
-            Setup(true);
-
             const string key = "QueuePopAsync_Returns_Failures_If_Document_Has_No_Items";
             await _bucket.UpsertAsync(key, new List<Poco1>());
 
@@ -632,8 +558,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void QueuePush_Returns_Success_When_Adding_Item_To_Existing_Queue()
         {
-            Setup(true);
-
             const string key = "QueuePush_Returns_Success_When_Adding_Item_To_Existing_Queue";
             _bucket.Upsert(key, new List<Poco1>());
 
@@ -655,8 +579,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void QueuePush_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True()
         {
-            Setup(true);
-
             const string key = "QueuePush_Returns_Success_When_Adding_Item_To_New_Queue_With_CreateQueue_True";
             _bucket.Remove(key);
 
@@ -678,8 +600,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void QueuePush_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False()
         {
-            Setup(true);
-
             const string key = "QueuePush_Returns_Failure_When_Adding_Item_To_New_Queue_With_CreateQueue_False";
             _bucket.Remove(key);
 
@@ -697,8 +617,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void QueuePop_Returns_Item_From_Front_Of_Queue()
         {
-            Setup(true);
-
             const string key = "QueuePop_Returns_Item_From_Front_Of_Queue";
             var bob = new Poco1 { Name = "Bob", Items = new List<string> { "Red", "Orange" } };
             var mary = new Poco1 { Name = "Mary", Items = new List<string> { "Pink", "Purple" } };
@@ -728,8 +646,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void QueuePop_Returns_Failure_If_Document_Doesnt_Exist()
         {
-            Setup(true);
-
             const string key = "QueuePop_Returns_Failure_If_Document_Doesnt_Exist";
             _bucket.Remove(key);
 
@@ -741,8 +657,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void QueuePop_Returns_Failures_If_Document_Has_No_Items()
         {
-            Setup(true);
-
             const string key = "QueuePop_Returns_Failures_If_Document_Has_No_Items";
             _bucket.Upsert(key, new List<Poco1>());
 
@@ -754,8 +668,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void MapAdd_creates_document_if_missing_and_createList_is_true()
         {
-            Setup(true);
-
             const string key = "MapAdd_creates_document_if_missing_and_createList_is_true";
             const string expected = "{\"item\":\"value\"}";
 
@@ -775,8 +687,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task MapAddAsync_creates_document_if_missing_and_createList_is_true()
         {
-            Setup(true);
-
             const string key = "MapAdd_creates_document_if_missing_and_createList_is_true";
             const string expected = "{\"item\":\"value\"}";
 
@@ -796,8 +706,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void SetAdd_creates_document_if_missing_and_createList_is_true()
         {
-            Setup(true);
-
             const string key = "SetAdd_creates_document_if_missing_and_createList_is_true";
             const string expected = "[\"value\"]";
 
@@ -817,8 +725,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task SetAddAsync_creates_document_if_missing_and_createList_is_true()
         {
-            Setup(true);
-
             const string key = "SetAddAsync_creates_document_if_missing_and_createList_is_true";
             const string expected = "[\"value\"]";
 
@@ -838,8 +744,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public void QueuePush_creates_document_if_missing_and_createQueue_is_true()
         {
-            Setup(true);
-
             const string key = "QueuePush_creates_document_if_missing_and_createQueue_is_true";
             const string expected = "[\"value\"]";
 
@@ -859,8 +763,6 @@ namespace Couchbase.IntegrationTests
         [Test]
         public async Task QueuePushAsync_creates_document_if_missing_and_createQueue_is_true()
         {
-            Setup(true);
-
             const string key = "QueuePushAsync_creates_document_if_missing_and_createQueue_is_true";
             const string expected = "[\"value\"]";
 
@@ -882,8 +784,6 @@ namespace Couchbase.IntegrationTests
         [TestCase(true, "[true]")]
         public void ListAppend_creates_document_if_missing_and_createList_is_true(object value, string expected)
         {
-            Setup(true);
-
             const string key = "ListAppend_creates_document_if_missing_and_createList_is_true";
 
             // ensure document does not exist first
@@ -904,8 +804,6 @@ namespace Couchbase.IntegrationTests
         [TestCase(true, "[true]")]
         public async Task ListAppendAsync_creates_document_if_missing_and_createList_is_true(object value, string expected)
         {
-            Setup(true);
-
             const string key = "ListAppendAsync_creates_document_if_missing_and_createList_is_true";
 
             // ensure document does not exist first
@@ -926,8 +824,6 @@ namespace Couchbase.IntegrationTests
         [TestCase(true, "[true]")]
         public void ListPrepend_creates_document_if_missing_and_createList_is_true(object value, string expected)
         {
-            Setup(true);
-
             const string key = "ListPrepend_create_document_if_missing_and_createDoc_is_true";
 
             // ensure document does not exist first
@@ -948,8 +844,6 @@ namespace Couchbase.IntegrationTests
         [TestCase(true, "[true]")]
         public async Task ListPrependAsync_creates_document_if_missing_and_createList_is_true(object value, string expected)
         {
-            Setup(true);
-
             const string key = "ListPrependAsync_creates_document_if_missing_and_createList_is_true";
 
             // ensure document does not exist first
@@ -965,7 +859,7 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(expected, doc.Value);
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void OneTimeTearDown()
         {
             _cluster.CloseBucket(_bucket);
