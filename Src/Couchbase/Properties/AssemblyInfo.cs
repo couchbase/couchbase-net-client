@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("11f64121-1774-42f2-ba1a-c79e1f2d8896")]
 
+#if DEBUG
 [assembly: InternalsVisibleTo("Couchbase.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.IntegrationTests")]
 [assembly: InternalsVisibleTo("Couchbase.UnitTests")]
@@ -21,4 +22,4 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("SdkdConsole")]
 [assembly: InternalsVisibleTo("Sdkd.NetStandard")]
 [assembly: InternalsVisibleTo("SdkdConsole.NetStandard")]
-
+#endif
