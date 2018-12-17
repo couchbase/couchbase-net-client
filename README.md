@@ -1,4 +1,4 @@
-The Official Couchbase .NET SDK [![Build status](https://ci.appveyor.com/api/projects/status/j3oy23e3vcnpneru/branch/master?svg=true)](https://ci.appveyor.com/project/Couchbase/couchbase-net-client/branch/master)
+The Official Couchbase .NET SDK ![](http://sdk.jenkins.couchbase.com/job/dotnet/job/couchbase-net-client-scripted-build-pipeline/badge/icon)
 [![Join the chat at https://gitter.im/couchbase/discuss](https://badges.gitter.im/couchbase/discuss.svg)](https://gitter.im/couchbase/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 * master is 2.0 development branch
