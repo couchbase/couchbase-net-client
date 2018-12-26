@@ -6346,23 +6346,32 @@ namespace Couchbase
             switch (spec.OpCode)
             {
                 case OperationCode.SubArrayAddUnique:
-                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()){ BucketName = Name };
+                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubArrayInsert:
-                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubArrayPushFirst:
-                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubArrayPushLast:
-                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubCounter:
-                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubDelete:
-                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubDictAdd:
-                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubDictUpsert:
-                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubReplace:
-                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds()) { BucketName = Name };
+                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                        { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 default:
                     throw new NotSupportedException("Opcode is not supported for MutateInBuilder.");
             }
