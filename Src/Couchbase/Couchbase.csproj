@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <PackageId>CouchbaseNetClient</PackageId>
@@ -18,7 +18,7 @@
     <RootNamespace>Couchbase</RootNamespace>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
     <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
-    <VersionPrefix>2.7.3</VersionPrefix>
+    <VersionPrefix>2.7.4</VersionPrefix>
     <VersionSuffix>rev-0</VersionSuffix>
     <NoWarn>1591,0618,0612</NoWarn>
 
