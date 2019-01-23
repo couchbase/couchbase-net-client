@@ -527,10 +527,11 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(bob.Name, item.Name);
             CollectionAssert.AreEqual(bob.Items, item.Items);
 
-            // Now there should be two items
+            // Now there should be one item
             queue = await _bucket.GetAsync<List<Poco1>>(key);
             Assert.IsNotNull(queue);
             Assert.AreEqual(1, queue.Value.Count);
+            Assert.AreEqual(mary.Name, queue.Value[0].Name);
         }
 
         [Test]
@@ -637,10 +638,11 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(bob.Name, item.Name);
             CollectionAssert.AreEqual(bob.Items, item.Items);
 
-            // Now there should be two items
+            // Now there should be one item
             queue = _bucket.Get<List<Poco1>>(key).Value;
             Assert.IsNotNull(queue);
             Assert.AreEqual(1, queue.Count);
+            Assert.AreEqual(mary.Name, queue[0].Name);
         }
 
         [Test]
