@@ -7101,7 +7101,7 @@ namespace Couchbase
 
                 var item = getResult.Value.First();
                 var mutateResult = MutateIn<List<T>>(key)
-                    .Remove("[-1]")
+                    .Remove("[0]")
                     .WithCas(getResult.Cas)
                     .WithTimeout(timeout)
                     .Execute();
@@ -7749,7 +7749,7 @@ namespace Couchbase
 
                 var item = getResult.Value.First();
                 var mutateResult = await MutateIn<List<T>>(key)
-                    .Remove("[-1]")
+                    .Remove("[0]")
                     .WithCas(getResult.Cas)
                     .WithTimeout(timeout)
                     .ExecuteAsync()
