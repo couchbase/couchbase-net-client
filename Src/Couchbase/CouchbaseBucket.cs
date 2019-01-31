@@ -90,7 +90,7 @@ namespace Couchbase
                 : _clusterController.Configuration.DefaultOperationLifespan;
 
             //the global timeout for all operations unless an overload with timeout is called
-            GlobalTimeout = new TimeSpan(0, 0, 0, (int)_operationLifespanTimeout);
+            GlobalTimeout = TimeSpan.FromMilliseconds(_operationLifespanTimeout);
 
             //If ICluster.Authenticate was called.
             _authenticator = authenticator;
