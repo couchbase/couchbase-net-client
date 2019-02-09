@@ -46,6 +46,31 @@ namespace Couchbase.IntegrationTests
         [Test]
         [TestCase(true)]
         [TestCase(false)]
+        public void LookupIn_Last_Command_Returns_Status(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            var key = "LookupIn_Last_Command_Returns_Status";
+
+            bucket.Upsert(key, new
+            {
+                field1 = "value1",
+                field2 = "value2"
+            });
+
+            var lookupInBuilder = bucket.LookupIn<dynamic>(key);
+            lookupInBuilder.Get("field1");
+            lookupInBuilder.Get("field2");
+            lookupInBuilder.Exists("does_not_exist");
+            var result = lookupInBuilder.Execute();
+
+            Assert.AreEqual(result.OpStatus(0), ResponseStatus.Success);
+            Assert.AreEqual(result.OpStatus(1), ResponseStatus.Success);
+            Assert.AreEqual(result.OpStatus(2), ResponseStatus.SubDocPathNotFound);
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
         public void LookupIn_MultiCommands_ReturnsCorrectCount(bool useMutation)
         {
             var bucket = GetBucket(useMutation);

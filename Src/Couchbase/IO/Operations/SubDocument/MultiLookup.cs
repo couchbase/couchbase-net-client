@@ -107,7 +107,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 valueLengthOffset = statusOffset + 2;
                 valueOffset = statusOffset + 6;
 
-                if (valueOffset >= response.Length) break;
+                if (valueOffset > response.Length) break;
             }
             return (T)_lookupCommands;
         }
