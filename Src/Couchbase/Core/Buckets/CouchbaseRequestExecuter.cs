@@ -611,7 +611,7 @@ namespace Couchbase.Core.Buckets
 
                 if (!operationResult.Success)
                 {
-                    if (operation.TimedOut())
+                    if (operation.TimedOut() && operationResult.ShouldRetry())
                     {
                         const string msg = "The operation has timed out.";
                         ((OperationResult)operationResult).Message = msg;
@@ -690,7 +690,7 @@ namespace Couchbase.Core.Buckets
 
                 if (!operationResult.Success)
                 {
-                    if (operation.TimedOut())
+                    if (operation.TimedOut() && operationResult.ShouldRetry())
                     {
                         const string msg = "The operation has timed out.";
                         ((OperationResult)operationResult).Message = msg;

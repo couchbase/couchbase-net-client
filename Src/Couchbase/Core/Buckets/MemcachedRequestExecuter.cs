@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
@@ -89,7 +89,7 @@ namespace Couchbase.Core.Buckets
 
                 if (!operationResult.Success)
                 {
-                    if (operation.TimedOut())
+                    if (operation.TimedOut() && operationResult.ShouldRetry())
                     {
                         const string msg = "The operation has timed out.";
                         ((OperationResult) operationResult).Message = msg;
@@ -150,7 +150,7 @@ namespace Couchbase.Core.Buckets
 
                 if (!operationResult.Success)
                 {
-                    if (operation.TimedOut())
+                    if (operation.TimedOut() && operationResult.ShouldRetry())
                     {
                         const string msg = "The operation has timed out.";
                         ((OperationResult) operationResult).Message = msg;
