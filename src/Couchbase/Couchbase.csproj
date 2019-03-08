@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <VersionPrefix>3.0.0</VersionPrefix>
+    <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Core\IO\Errors\**" />
+    <Compile Remove="Core\Logging\**" />
+    <Compile Remove="Core\Tracing\**" />
+    <EmbeddedResource Remove="Core\IO\Errors\**" />
+    <EmbeddedResource Remove="Core\Logging\**" />
+    <EmbeddedResource Remove="Core\Tracing\**" />
+    <None Remove="Core\IO\Errors\**" />
+    <None Remove="Core\Logging\**" />
+    <None Remove="Core\Tracing\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Core\Diagnostics\Tracing\TracerExtensions.cs" />
+    <Compile Remove="Core\Diagnostics\Tracing\TracerFactory.cs" />
+    <Compile Remove="Core\IO\Compression.cs" />
+    <Compile Remove="Core\IO\DataFormat.cs" />
+    <Compile Remove="Core\IO\Flags.cs" />
+    <Compile Remove="Core\IO\Operations\Config.cs" />
+    <Compile Remove="Core\IO\Operations\Get.cs" />
+    <Compile Remove="Core\IO\Operations\Helo.cs" />
+    <Compile Remove="Core\IO\Operations\IOperation.cs" />
+    <Compile Remove="Core\IO\Operations\Legacy\OperationCode.cs" />
+    <Compile Remove="Core\IO\Operations\Manifest.cs" />
+    <Compile Remove="Core\IO\Operations\SaslStart.cs" />
+    <Compile Remove="Core\IO\Operations\SelectBucket.cs" />
+    <Compile Remove="Core\IO\Operations\ServerFeatures.cs" />
+    <Compile Remove="Core\IO\Operations\Set.cs" />
+    <Compile Remove="Core\IO\Operations\Upsert.cs" />
+    <Compile Remove="IDocument %282%29.cs" />
+    <Compile Remove="IDocument_T.cs" />
+    <Compile Remove="IFetchOperation.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Core\Diagnostics\Logging\" />
+    <Folder Include="Core\Converters\" />
+    <Folder Include="Services\Collections\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="OpenTracing" Version="0.12.0" />
+  </ItemGroup>
+
+</Project>

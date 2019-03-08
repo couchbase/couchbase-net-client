@@ -1,1 +1,0 @@
-﻿{ "resultset": [ { "Greeting": "Hello World" } ], "info": [ { "caller": "http_response:152", "code": 100, "key": "total_rows", "message": "1" }, { "caller": "http_response:154", "code": 101, "key": "total_elapsed_time", "message": "54.3442ms" } ] } 

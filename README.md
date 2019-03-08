@@ -1,7 +1,8 @@
 The Official Couchbase .NET SDK ![](http://sdk.jenkins.couchbase.com/job/dotnet/job/couchbase-net-client-scripted-build-pipeline/badge/icon)
 [![Join the chat at https://gitter.im/couchbase/discuss](https://badges.gitter.im/couchbase/discuss.svg)](https://gitter.im/couchbase/discuss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-* master is 2.0 development branch
+* master is 3.0 development branch
+* release27 is 2.7.X development branch
 * release13 is 1.3.X development branch
 
 ## Getting Started

@@ -1,0 +1,43 @@
+﻿{
+  "uid": "1b",
+  "scopes": [
+    {
+      "name": "_default",
+      "uid": "0",
+      "collections": [
+        {
+          "name": "_default",
+          "uid": "0"
+        }
+      ]
+    },
+    {
+      "name": "app_west",
+      "uid": "43",
+      "collections": [
+        {
+          "name": "users",
+          "uid": "80a1"
+        },
+        {
+          "name": "games",
+          "uid": "9221"
+        }
+      ]
+    },
+    {
+      "name": "app_east",
+      "uid": "5612a",
+      "collections": [
+        {
+          "name": "users",
+          "uid": "7f1"
+        },
+        {
+          "name": "games",
+          "uid": "3356"
+        }
+      ]
+    }
+  ]
+}
