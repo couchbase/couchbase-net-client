@@ -116,7 +116,7 @@ namespace Couchbase
                     options.Timeout = DefaultTimeout;
                 }
 
-                var lookupOp = await ExecuteLookupIn(id, specs, new LookupInOptions().Timeout(options.Timeout.Value));
+                var lookupOp = await ExecuteLookupIn(id, specs, new LookupInOptions().WithTimeout(options.Timeout.Value));
                 return new GetResult(lookupOp.Data.ToArray(), _transcoder, specs)
                 {
                     Id = lookupOp.Key,
@@ -472,12 +472,12 @@ namespace Couchbase
         {
             if (timeout.HasValue)
             {
-                options.Timeout(timeout.Value);
+                options.WithTimeout(timeout.Value);
             }
 
             if (token != CancellationToken.None)
             {
-                options._Token = token;
+                options.Token = token;
             }
         }
 
@@ -547,7 +547,7 @@ namespace Couchbase
                 Cid = Cid
             };
 
-            await ExecuteOp(lookup, options._Token, options._Timeout);
+            await ExecuteOp(lookup, options.Token, options.Timeout);
             return lookup;
         }
 
@@ -597,17 +597,17 @@ namespace Couchbase
         {
             if (timeout.HasValue)
             {
-                options.Timeout(timeout.Value);
+                options.WithTimeout(timeout.Value);
             }
 
             if (expiration.HasValue)
             {
-                options.Expiration(expiration.Value);
+                options.WithExpiration(expiration.Value);
             }
 
             if (cas > 0)
             {
-                options.Cas(cas);
+                options.WithCas(cas);
             }
 
             var flags = SubdocDocFlags.None;
@@ -618,15 +618,15 @@ namespace Couchbase
 
             if (durabilityLevel != DurabilityLevel.None)
             {
-                options._DurabilityLevel = durabilityLevel;
+                options.DurabilityLevel = durabilityLevel;
             }
 
             if (token != CancellationToken.None)
             {
-                options._Token = token;
+                options.Token = token;
             }
 
-            options.Flags(flags);
+            options.WithFlags(flags);
         }
 
         public Task<IMutationResult> MutateIn(string id, Action<MutateInSpecBuilder> configureBuilder, TimeSpan? timeout = null, TimeSpan? expiration = null, ulong cas = 0, bool createDocument = false,
@@ -687,10 +687,10 @@ namespace Couchbase
                 Key = id,
                 Builder = builder,
                 Cid = Cid,
-                DurabilityLevel = options._DurabilityLevel
+                DurabilityLevel = options.DurabilityLevel
             };
 
-            await ExecuteOp(mutation, options._Token, options._Timeout);
+            await ExecuteOp(mutation, options.Token, options.Timeout);
             return new MutationResult(mutation.Cas, null, mutation.MutationToken);
         }
 

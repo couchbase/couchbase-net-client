@@ -12,26 +12,15 @@ namespace Couchbase
 
         public bool CreatePath { get; set; }
 
+        public List<string> ProjectList { get; set; }
+
         public TimeSpan? Timeout { get; set; }
 
         public CancellationToken Token { get; set; }
 
-        public PersistTo PersistTo { get; set; }
-
-        public DurabilityLevel DurabilityLevel { get; set; }
-
-        public List<string> ProjectList { get; set; }
-
-        public GetOptions WithTimeout(TimeSpan timeout)
+        public GetOptions WithExpiration()
         {
-            Timeout = timeout;
-            return this;
-        }
-
-        public GetOptions Project(params string[] fields)
-        {
-            if(ProjectList == null) ProjectList = new List<string>();
-            ProjectList.AddRange(fields);
+            IncludeExpiration = true;
             return this;
         }
 
@@ -41,9 +30,26 @@ namespace Couchbase
             return this;
         }
 
-        public GetOptions WithExpiration()
+        public GetOptions WithProjection(params string[] fields)
         {
-            IncludeExpiration = true;
+            if (ProjectList == null)
+            {
+                ProjectList = new List<string>();
+            }
+
+            ProjectList.AddRange(fields);
+            return this;
+        }
+
+        public GetOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public GetOptions WithToken(CancellationToken token)
+        {
+            Token = token;
             return this;
         }
     }
@@ -54,9 +60,21 @@ namespace Couchbase
 
     public class ExistsOptions
     {
-        public TimeSpan? Timeout { get; set; }
+        public TimeSpan? Timeout { get;set; }
 
-        public CancellationToken Token { get;set; }
+        public CancellationToken Token { get; set; }
+
+        public ExistsOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public ExistsOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -65,8 +83,6 @@ namespace Couchbase
 
     public class UpsertOptions
     {
-        public TimeSpan? Timeout { get; set; }
-
         public TimeSpan Expiration { get; set; }
 
         public ulong Cas { get; set; }
@@ -77,7 +93,46 @@ namespace Couchbase
 
         public DurabilityLevel DurabilityLevel { get; set; }
 
+        public TimeSpan? Timeout { get;set; }
+
         public CancellationToken Token { get; set; }
+
+        public UpsertOptions WithExpiration(TimeSpan expiration)
+        {
+            Expiration = expiration;
+            return this;
+        }
+
+        public UpsertOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public UpsertOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public UpsertOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public UpsertOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public UpsertOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -86,8 +141,6 @@ namespace Couchbase
 
     public class InsertOptions
     {
-        public TimeSpan? Timeout { get; set; }
-
         public TimeSpan Expiration { get; set; }
 
         public ulong Cas { get; set; }
@@ -98,7 +151,46 @@ namespace Couchbase
 
         public DurabilityLevel DurabilityLevel { get; set; }
 
-        public CancellationToken Token { get;set; }
+        public TimeSpan? Timeout { get;set; }
+
+        public CancellationToken Token { get; set; }
+
+        public InsertOptions WithExpiration(TimeSpan expiration)
+        {
+            Expiration = expiration;
+            return this;
+        }
+
+        public InsertOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public InsertOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public InsertOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public InsertOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public InsertOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -107,8 +199,6 @@ namespace Couchbase
 
     public class ReplaceOptions
     {
-        public TimeSpan? Timeout { get; set; }
-
         public TimeSpan Expiration { get; set; }
 
         public ulong Cas { get; set; }
@@ -119,7 +209,46 @@ namespace Couchbase
 
         public DurabilityLevel DurabilityLevel { get; set; }
 
+        public TimeSpan? Timeout { get;set; }
+
         public CancellationToken Token { get; set; }
+
+        public ReplaceOptions WithExpiration(TimeSpan expiration)
+        {
+            Expiration = expiration;
+            return this;
+        }
+
+        public ReplaceOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public ReplaceOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public ReplaceOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public ReplaceOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public ReplaceOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -128,7 +257,140 @@ namespace Couchbase
 
     public class RemoveOptions
     {
-        public TimeSpan? Timeout { get; set; }
+        public ulong Cas { get; set; }
+
+        public ReplicateTo ReplicateTo { get; set; }
+
+        public PersistTo PersistTo { get; set; }
+
+        public DurabilityLevel DurabilityLevel { get; set; }
+
+        public TimeSpan? Timeout { get;set; }
+
+        public CancellationToken Token { get; set; }
+        
+        public RemoveOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public RemoveOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public RemoveOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public RemoveOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public RemoveOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
+    }
+
+    #endregion
+
+    #region Unlock Options
+
+    public class UnlockOptions
+    {
+        public ulong Cas { get; set; }
+
+        public TimeSpan? Timeout { get;set; }
+
+        public CancellationToken Token { get; set; }
+        
+        public UnlockOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public UnlockOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public UnlockOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
+    }
+
+    #endregion
+
+    #region Touch Options
+
+    public class TouchOptions
+    {
+        public ulong Cas { get; set; }
+
+        public ReplicateTo ReplicateTo { get; set; }
+
+        public PersistTo PersistTo { get; set; }
+
+        public DurabilityLevel DurabilityLevel { get; set; }
+
+        public TimeSpan? Timeout { get;set; }
+
+        public CancellationToken Token { get; set; }
+        
+        public TouchOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public TouchOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public TouchOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public TouchOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public TouchOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
+    }
+
+    #endregion
+
+    #region Increment Options
+
+    public class IncrementOptions
+    {
+        public ulong Initial { get; set; } = 1;
+
+        public ulong Delta { get; set; } = 1;
 
         public ulong Cas { get; set; }
 
@@ -138,48 +400,52 @@ namespace Couchbase
 
         public DurabilityLevel DurabilityLevel { get; set; }
 
-        public CancellationToken Token { get; set; }
-    }
-
-    #endregion
-
-    #region Unlock Options
-
-    public class UnlockOptions
-    {
-        public TimeSpan? Timeout { get; set; }
-
-        public ulong Cas { get; set; }
+        public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
-    }
 
-    #endregion
+        public IncrementOptions WithInitial(ulong initial)
+        {
+            Initial = initial;
+            return this;
+        }
 
-    #region Touch Options
+        public IncrementOptions WithDelta(ulong delta)
+        {
+            Delta = delta;
+            return this;
+        }
 
-    public class TouchOptions
-    {
-        public TimeSpan? Timeout { get; set; }
+        public IncrementOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        public IncrementOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
 
-        public CancellationToken Token { get; set; }
-    }
+        public IncrementOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
 
-    #endregion
+        public IncrementOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
 
-    #region Increment Options
-
-    public class IncrementOptions
-    {
-        public TimeSpan Timeout { get; set; }
-
-        public TimeSpan Expiration { get; set; }
-
-        public ulong Initial { get; set; }
-
-        public ulong Delta { get; set; }
+        public IncrementOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -188,23 +454,114 @@ namespace Couchbase
 
     public class DecrementOptions
     {
-        public TimeSpan Timeout { get; set; }
+        public ulong Initial { get; set; } = 1;
 
-        public TimeSpan Expiration { get; set; }
+        public ulong Delta { get; set; } = 1;
 
-        public ulong Initial { get; set; }
+        public ulong Cas { get; set; }
 
-        public ulong Delta { get; set; }
+        public ReplicateTo ReplicateTo { get; set; }
+
+        public PersistTo PersistTo { get; set; }
+
+        public DurabilityLevel DurabilityLevel { get; set; }
+
+        public TimeSpan? Timeout { get;set; }
+
+        public CancellationToken Token { get; set; }
+
+        public DecrementOptions WithInitial(ulong initial)
+        {
+            Initial = initial;
+            return this;
+        }
+
+        public DecrementOptions WithDelta(ulong delta)
+        {
+            Delta = delta;
+            return this;
+        }
+
+        public DecrementOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public DecrementOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public DecrementOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public DecrementOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public DecrementOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
+
     #endregion
 
     #region Append Options
 
     public class AppendOptions
     {
-        public TimeSpan Timeout { get; set; }
+        public ulong Cas { get; set; }
 
-        public TimeSpan Expiration { get; set; }
+        public ReplicateTo ReplicateTo { get; set; }
+
+        public PersistTo PersistTo { get; set; }
+
+        public DurabilityLevel DurabilityLevel { get; set; }
+
+        public TimeSpan? Timeout { get;set; }
+
+        public CancellationToken Token { get; set; }
+        
+        public AppendOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public AppendOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public AppendOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public AppendOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public AppendOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -213,9 +570,48 @@ namespace Couchbase
 
     public class PrependOptions
     {
-        public TimeSpan Timeout { get; set; }
+        public ulong Cas { get; set; }
 
-        public TimeSpan Expiration { get; set; }
+        public ReplicateTo ReplicateTo { get; set; }
+
+        public PersistTo PersistTo { get; set; }
+
+        public DurabilityLevel DurabilityLevel { get; set; }
+
+        public TimeSpan? Timeout { get;set; }
+
+        public CancellationToken Token { get; set; }
+        
+        public PrependOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public PrependOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public PrependOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public PrependOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public PrependOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
     
     #endregion
@@ -227,6 +623,18 @@ namespace Couchbase
         public TimeSpan? Timeout { get; set; }
 
         public CancellationToken Token { get; set; }
+
+        public GetAndLockOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public GetAndLockOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -235,11 +643,48 @@ namespace Couchbase
 
     public class GetAndTouchOptions
     {
-        public TimeSpan? Timeout { get; set; }
+        public ulong Cas { get; set; }
+
+        public ReplicateTo ReplicateTo { get; set; }
+
+        public PersistTo PersistTo { get; set; }
 
         public DurabilityLevel DurabilityLevel { get; set; }
 
+        public TimeSpan? Timeout { get;set; }
+
         public CancellationToken Token { get; set; }
+        
+        public GetAndTouchOptions WithCas(ulong cas)
+        {
+            Cas = cas;
+            return this;
+        }
+
+        public GetAndTouchOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        {
+            PersistTo = persistTo;
+            ReplicateTo = replicateTo;
+            return this;
+        }
+
+        public GetAndTouchOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public GetAndTouchOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public GetAndTouchOptions WithToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
     }
 
     #endregion
@@ -248,19 +693,19 @@ namespace Couchbase
 
     public class LookupInOptions
     {
-        internal TimeSpan _Timeout { get; set; }
+        public TimeSpan Timeout { get; set; }
 
-        internal CancellationToken _Token { get; set; }
+        public CancellationToken Token { get; set; }
 
-        public LookupInOptions Timeout(TimeSpan timeout)
+        public LookupInOptions WithTimeout(TimeSpan timeout)
         {
-            _Timeout = timeout;
+            Timeout = timeout;
             return this;
         }
 
-        public LookupInOptions Token(CancellationToken token)
+        public LookupInOptions WithToken(CancellationToken token)
         {
-            _Token = token;
+            Token = token;
             return this;
         }
     }
@@ -271,78 +716,78 @@ namespace Couchbase
 
     public class MutateInOptions
     {
-        internal TimeSpan _Timeout { get; set; }
+        public TimeSpan Expiration { get; set; }
 
-        internal CancellationToken _Token { get; set; }
+        public SubdocDocFlags Flags { get; set; }
 
-        internal TimeSpan _Expiration { get; set; }
+        public ulong Cas { get; set; }
 
-        internal ulong _Cas { get; set; }
+        public Tuple<PersistTo, ReplicateTo> Durabilty { get; set; }
 
-        internal SubdocDocFlags _Flags { get; set; }
+        public DurabilityLevel DurabilityLevel { get; set; }
 
-        internal Tuple<PersistTo, ReplicateTo> _Durabilty { get; set; }
+        public TimeSpan Timeout { get; set; }
 
-        internal DurabilityLevel _DurabilityLevel { get; set; }
+        public CancellationToken Token { get; set; }
 
-        public MutateInOptions Timeout(TimeSpan timeout)
+        public MutateInOptions WithExpiration(TimeSpan expiration)
         {
-            _Timeout = timeout;
+            Expiration = expiration;
             return this;
         }
 
-        public MutateInOptions Timeout(int minutes = 0, int seconds = 0, int milliseconds=0)
+        public MutateInOptions WithExpiration(int days = 0, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds=0)
         {
-            return Timeout(new TimeSpan(0, 0, minutes, seconds, milliseconds));
+            return WithExpiration(new TimeSpan(days, hours, minutes, seconds, milliseconds));
         }
 
-        public MutateInOptions Token(CancellationToken token)
-        {
-            _Token = token;
-            return this;
-        }
-
-        public MutateInOptions Expiration(TimeSpan expiration)
-        {
-            _Expiration = expiration;
-            return this;
-        }
-
-        public MutateInOptions Expiration(int days = 0, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds=0)
-        {
-            return Expiration(new TimeSpan(days, hours, minutes, seconds, milliseconds));
-        }
-
-        public MutateInOptions Cas(ulong cas)
-        {
-            _Cas = cas;
-            return this;
-        }
-
-        public MutateInOptions CreateDoc(bool createDoc)
+        public MutateInOptions WithCreateDoc(bool createDoc)
         {
             if (createDoc)
             {
-                _Flags = _Flags | SubdocDocFlags.InsertDocument;
+                Flags = Flags | SubdocDocFlags.InsertDocument;
             }
             return this;
         }
 
-        public MutateInOptions Flags(SubdocDocFlags flags)
+        public MutateInOptions WithFlags(SubdocDocFlags flags)
         {
-            _Flags = flags;
+            Flags = flags;
             return this;
         }
 
-        public MutateInOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
+        public MutateInOptions WithCas(ulong cas)
         {
-            _Durabilty = new Tuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
+            Cas = cas;
             return this;
         }
 
-        public MutateInOptions Durability(DurabilityLevel durabilityLevel)
+        public MutateInOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
         {
-            _DurabilityLevel = durabilityLevel;
+            Durabilty = new Tuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
+            return this;
+        }
+
+        public MutateInOptions WithDurability(DurabilityLevel durabilityLevel)
+        {
+            DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        public MutateInOptions WithTimeout(TimeSpan timeout)
+        {
+            Timeout = timeout;
+            return this;
+        }
+
+        public MutateInOptions WithTimeout(int minutes = 0, int seconds = 0, int milliseconds=0)
+        {
+            return WithTimeout(new TimeSpan(0, 0, minutes, seconds, milliseconds));
+        }
+
+        public MutateInOptions WithToken(CancellationToken token)
+        {
+            Token = token;
             return this;
         }
     }

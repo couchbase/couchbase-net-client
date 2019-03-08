@@ -46,7 +46,7 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.Insert(key, Person.Create());
 
-                var result = await collection.Get(key, options => options.Project("name"));
+                var result = await collection.Get(key, options => options.WithProjection("name"));
                 var content = result.ContentAs<Person>();
 
                 Assert.Equal("Emmy-lou Dickerson", content.name);
@@ -68,7 +68,7 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.Insert(key, Person.Create());
 
-                var result = await collection.Get(key, options => options.Project("name", "age"));
+                var result = await collection.Get(key, options => options.WithProjection("name", "age"));
                 var content = result.ContentAs<Person>();
 
                 Assert.Equal("Emmy-lou Dickerson", content.name);
