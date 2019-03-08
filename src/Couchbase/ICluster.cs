@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Management;
@@ -10,10 +10,6 @@ namespace Couchbase
 {
     public interface ICluster : IDisposable
     {
-        Task Initialize();
-
-        Task<IBucket> this[string name] { get; }
-
         Task<IBucket> Bucket(string name);
 
         Task<IDiagnosticsReport> Diagnostics();
@@ -21,8 +17,6 @@ namespace Couchbase
         Task<IDiagnosticsReport> Diagnostics(string reportId);
 
         Task<IClusterManager> ClusterManager();
-
-       // Task<IQueryResult<T>> Query<T>(string statement);
 
         Task<IQueryResult<T>> Query<T>(string statement, QueryParameter parameters = null, IQueryOptions options = null);
 

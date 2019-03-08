@@ -9,17 +9,10 @@ namespace Couchbase.IntegrationTests.Fixtures
 
         public ClusterFixture()
         {
-            var cluster = new Cluster();
-            var task = cluster.Initialize(
-                new Configuration()
-                    .WithServers("couchbase://10.143.192.101")
-                    .WithBucket("default")
-                    .WithCredentials("Administrator", "password")
-            );
-            task.ConfigureAwait(false);
-            task.Wait();
-
-            Cluster = cluster;
+            Cluster = new Cluster(new Configuration()
+                .WithServers("couchbase://localhost")
+                .WithBucket("default")
+                .WithCredentials("Administrator", "password"));
         }
 
         public async Task<IBucket> GetDefaultBucket()
@@ -35,7 +28,7 @@ namespace Couchbase.IntegrationTests.Fixtures
 
         public void Dispose()
         {
-            //Cluster?.Dispose();
+            Cluster?.Dispose();
         }
     }
 }

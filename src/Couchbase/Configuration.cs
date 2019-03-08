@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ namespace Couchbase
     public class Configuration : IConfiguration
     {
         private ConcurrentBag<Uri>_servers = new ConcurrentBag<Uri>();
-        protected ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
+        private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 

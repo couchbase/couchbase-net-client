@@ -1,6 +1,6 @@
-﻿    using System;
+using System;
 using System.Threading.Tasks;
-    using Couchbase.Services.Views;
+using Couchbase.Services.Views;
 
 namespace Couchbase
 {

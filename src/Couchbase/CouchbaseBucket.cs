@@ -32,6 +32,8 @@ namespace Couchbase
         internal const string DefaultScope = "_default";
         private readonly ICluster _cluster;
         private readonly ConcurrentDictionary<string, IScope> _scopes = new ConcurrentDictionary<string, IScope>();
+
+        private bool _disposed;
         private BucketConfig _bucketConfig;
         private Manifest _manifest;
         private IKeyMapper _keyMapper;
@@ -274,7 +276,17 @@ namespace Couchbase
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            if (_disposed)
+            {
+                return;
+            }
+
+            foreach (var connection in Connections.Values)
+            {
+                connection.Dispose();
+            }
+
+            _disposed = true;
         }
 
         public async Task Send(IOperation op, TaskCompletionSource<byte[]> tcs)

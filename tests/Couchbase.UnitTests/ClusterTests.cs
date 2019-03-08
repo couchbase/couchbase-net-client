@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+using System;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -7,12 +6,9 @@ namespace Couchbase.UnitTests
     public class ClusterTests
     {
         [Fact]
-        public async Task Authenticate_Throws_ArgumentNullException_When_Crendentials_Not_Provided()
+        public void Authenticate_Throws_ArgumentNullException_When_Credentials_Not_Provided()
         {
-
-            var cluster = new Cluster();
-            await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-                await cluster.Initialize(new Configuration()).ConfigureAwait(false));
+            Assert.Throws<ArgumentNullException>(() => new Cluster(new Configuration()));
         }
     }
 }

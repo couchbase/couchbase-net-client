@@ -13,28 +13,54 @@ namespace Couchbase
     public class Cluster : ICluster
     {
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
+        private bool _disposed;
         private IConfiguration _configuration;
         private IQueryClient _queryClient;
 
-        public Cluster()
+        public Cluster(IConfiguration configuration)
         {
-        }
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
 
-        public void Dispose()
-        {
-            throw new NotImplementedException();
-        }
+            if (string.IsNullOrWhiteSpace(configuration.Password) || string.IsNullOrWhiteSpace(configuration.UserName))
+            {
+                throw new ArgumentNullException(nameof(configuration), "Username and password are required.");
+            }
 
-        public Task Initialize()
-        {
-            throw new NotImplementedException();
-        }
+            _configuration = configuration;
 
-        public Task<IBucket> this[string name] => throw new NotImplementedException();
+            if (!_configuration.Buckets.Any())
+            {
+                _configuration = _configuration.WithBucket("default");
+            }
+
+            if (!_configuration.Servers.Any())
+            {
+                _configuration = _configuration.WithServers("couchbase://localhost");
+            }
+
+            var task = Task.Run(async () =>
+            {
+                foreach (var configBucket in _configuration.Buckets)
+                {
+                    foreach (var configServer in _configuration.Servers)
+                    {
+                        var bucket = new CouchbaseBucket(this, configBucket);
+                        await bucket.BootstrapAsync(configServer, _configuration).ConfigureAwait(false);
+                        _bucketRefs.TryAdd(configBucket, bucket);
+                        return;
+                    }
+                }
+            });
+            task.ConfigureAwait(false);
+            task.Wait();
+        }
 
         public Task<IBucket> Bucket(string name)
         {
-            if (_bucketRefs.TryGetValue(name, out IBucket bucket))
+            if (_bucketRefs.TryGetValue(name, out var bucket))
             {
                 return Task.FromResult(bucket);
             }
@@ -98,30 +124,25 @@ namespace Couchbase
         public IBucketManager Buckets { get; }
         public IUserManager Users { get; }
 
-        public async Task Initialize(IConfiguration config)
+        public void Dispose()
         {
-            if (string.IsNullOrWhiteSpace(config.Password) || string.IsNullOrWhiteSpace(config.UserName))
+            if (_disposed)
             {
-                throw new ArgumentNullException(nameof(config), "Username and password are required.");
+                return;
             }
 
-            _configuration = config;
-            if (!_configuration.Buckets.Any())
+            foreach (var bucket in _bucketRefs.Values)
             {
-                _configuration = _configuration.WithBucket("default");
-                _configuration = _configuration.WithServers("couchbase://localhost");
+                // maybe this should be an internal Close instead of Dispose to prevent external calls
+                bucket.Dispose();
             }
 
-            foreach (var configBucket in _configuration.Buckets)
+            if (_queryClient is IDisposable disposable)
             {
-                foreach (var configServer in _configuration.Servers)
-                {
-                    var bucket = new CouchbaseBucket(this, configBucket);
-                    await bucket.BootstrapAsync(configServer, _configuration).ConfigureAwait(false);
-                    _bucketRefs.TryAdd(configBucket, bucket);
-                    return;
-                }
+                disposable.Dispose();
             }
+
+            _disposed = true;
         }
     }
 }
