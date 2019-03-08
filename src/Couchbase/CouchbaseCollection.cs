@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy.SubDocument;
 using Couchbase.Core.IO.Operations.SubDocument;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 
 namespace Couchbase
@@ -19,7 +18,7 @@ namespace Couchbase
         internal const string DefaultCollection = "_default";
         private readonly IBucketSender _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
-        private ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
+        private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
         public CouchbaseCollection(IBucket bucket, string cid, string name, IBinaryCollection binaryCollection = null)
         {
@@ -34,6 +33,8 @@ namespace Couchbase
         public string Name { get; }
 
         public IBinaryCollection Binary { get; }
+
+        #region ExecuteOp Helper
 
         private async Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken), TimeSpan? timeout = null)
         {
@@ -78,23 +79,19 @@ namespace Couchbase
             }
         }
 
-        public Task<IGetResult> Get(string id, IEnumerable<string> projections = null, TimeSpan? timeout = null,
-            CancellationToken token = default(CancellationToken))
-        {
-            var options = new GetOptions
-            {
-                ProjectList = projections?.ToList(),
-                Timeout = timeout,
-                Token = token
-            };
+        #endregion
 
-            return Get(id, options);
+        #region Get
+
+        public Task<IGetResult> Get(string id)
+        {
+            return Get(id, new GetOptions());
         }
 
-        public Task<IGetResult> Get(string id, Action<GetOptions> optionsAction)
+        public Task<IGetResult> Get(string id, Action<GetOptions> configureOptions)
         {
             var options = new GetOptions();
-            optionsAction(options);
+            configureOptions?.Invoke(options);
 
             return Get(id, options);
         }
@@ -135,7 +132,7 @@ namespace Couchbase
             };
 
             await ExecuteOp(getOp, options.Token, options.Timeout).ConfigureAwait(false);
-            return new GetResult(getOp.Data.ToArray(), _transcoder, null)
+            return new GetResult(getOp.Data.ToArray(), _transcoder)
             {
                 Id = getOp.Key,
                 Cas = getOp.Cas,
@@ -145,21 +142,19 @@ namespace Couchbase
             };
         }
 
-        public Task<IExistsResult> Exists(string id, TimeSpan? timeout = null, CancellationToken token = default(CancellationToken))
-        {
-            var options = new ExistsOptions
-            {
-                Timeout = timeout,
-                Token = token
-            };
+        #endregion
 
-            return Exists(id, options);
+        #region Exists
+
+        public Task<IExistsResult> Exists(string id)
+        {
+            return Exists(id, new ExistsOptions());
         }
 
-        public Task<IExistsResult> Exists(string id, Action<ExistsOptions> optionsAction)
+        public Task<IExistsResult> Exists(string id, Action<ExistsOptions> configureOptions)
         {
             var options = new ExistsOptions();
-            optionsAction(options);
+            configureOptions?.Invoke(options);
 
             return Exists(id, options);
         }
@@ -192,27 +187,19 @@ namespace Couchbase
             }
         }
 
-        public Task<IMutationResult> Upsert<T>(string id, T content, TimeSpan? timeout = null, TimeSpan expiration = default(TimeSpan),
-            ulong cas = 0, PersistTo persistTo = PersistTo.None, ReplicateTo replicateTo = ReplicateTo.None,
-            DurabilityLevel durabilityLevel = DurabilityLevel.None, CancellationToken token = default(CancellationToken))
-        {
-            var options = new UpsertOptions
-            {
-                Timeout = timeout,
-                Expiration = expiration,
-                Cas = cas, PersistTo = persistTo,
-                ReplicateTo = replicateTo,
-                DurabilityLevel = durabilityLevel,
-                Token = token
-            };
+        #endregion
 
-            return Upsert(id, content, options);
+        #region Upsert
+
+        public Task<IMutationResult> Upsert<T>(string id, T content)
+        {
+            return Upsert(id, content, new UpsertOptions());
         }
 
-        public Task<IMutationResult> Upsert<T>(string id, T content, Action<UpsertOptions> optionsAction)
+        public Task<IMutationResult> Upsert<T>(string id, T content, Action<UpsertOptions> configureOptions)
         {
             var options = new UpsertOptions();
-            optionsAction(options);
+            configureOptions(options);
 
             return Upsert(id, content, options);
         }
@@ -234,21 +221,13 @@ namespace Couchbase
             return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
         }
 
-        public Task<IMutationResult> Insert<T>(string id, T content, TimeSpan? timeout = null, TimeSpan expiration = default(TimeSpan),
-            ulong cas = 0, PersistTo persistTo = PersistTo.None, ReplicateTo replicateTo = ReplicateTo.None,
-            DurabilityLevel durabilityLevel = DurabilityLevel.None, CancellationToken token = default(CancellationToken))
-        {
-            var options = new InsertOptions
-            {
-                Timeout = timeout,
-                Expiration = expiration,
-                Cas = cas, PersistTo = persistTo,
-                ReplicateTo = replicateTo,
-                DurabilityLevel = durabilityLevel,
-                Token = token
-            };
+        #endregion
 
-            return Insert(id, content, options);
+        #region Insert
+
+        public Task<IMutationResult> Insert<T>(string id, T content)
+        {
+            return Insert(id, content, new InsertOptions());
         }
 
         public Task<IMutationResult> Insert<T>(string id, T content, Action<InsertOptions> optionsAction)
@@ -271,33 +250,24 @@ namespace Couchbase
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             };
-  
+
             await ExecuteOp(insertOp, options.Token, options.Timeout).ConfigureAwait(false);
             return new MutationResult(insertOp.Cas, null, insertOp.MutationToken);
         }
 
-        public Task<IMutationResult> Replace<T>(string id, T content, TimeSpan? timeout = null, TimeSpan expiration = default(TimeSpan),
-            ulong cas = 0, PersistTo persistTo = PersistTo.None, ReplicateTo replicateTo = ReplicateTo.None,
-            DurabilityLevel durabilityLevel = DurabilityLevel.None, CancellationToken token = default(CancellationToken))
-        {
-            var options = new ReplaceOptions
-            {
-                Timeout = timeout,
-                Expiration = expiration,
-                Cas = cas,
-                PersistTo = persistTo,
-                ReplicateTo = replicateTo,
-                DurabilityLevel = durabilityLevel,
-                Token = token
-            };
+        #endregion
 
-            return Replace(id, content, options);
+        #region Replace
+
+        public Task<IMutationResult> Replace<T>(string id, T content)
+        {
+            return Replace(id, content, new ReplaceOptions());
         }
 
-        public Task<IMutationResult> Replace<T>(string id, T content, Action<ReplaceOptions> optionsAction)
+        public Task<IMutationResult> Replace<T>(string id, T content, Action<ReplaceOptions> configureOptions)
         {
             var options = new ReplaceOptions();
-            optionsAction(options);
+            configureOptions(options);
 
             return Replace(id, content, options);
         }
@@ -319,27 +289,19 @@ namespace Couchbase
             return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken);
         }
 
-        public Task Remove(string id, TimeSpan? timeout = null, ulong cas = 0,
-            PersistTo persistTo = PersistTo.None, ReplicateTo replicateTo = ReplicateTo.None,
-            DurabilityLevel durabilityLevel = DurabilityLevel.None, CancellationToken token = default(CancellationToken))
-        {
-            var options = new RemoveOptions
-            {
-                Timeout = timeout,
-                Cas = cas,
-                PersistTo = persistTo,
-                ReplicateTo = replicateTo,
-                DurabilityLevel = durabilityLevel,
-                Token = token
-            };
+        #endregion
 
-            return Remove(id, options);
+        #region Remove
+
+        public Task Remove(string id)
+        {
+            return Remove(id, new RemoveOptions());
         }
 
-        public Task Remove(string id, Action<RemoveOptions> optionsAction)
+        public Task Remove(string id, Action<RemoveOptions> configureOptions)
         {
             var options = new RemoveOptions();
-            optionsAction(options);
+            configureOptions(options);
 
             return Remove(id, options);
         }
@@ -358,22 +320,19 @@ namespace Couchbase
             await ExecuteOp(removeOp, options.Token, options.Timeout).ConfigureAwait(false);
         }
 
-        public Task Unlock<T>(string id, TimeSpan? timeout = null, ulong cas = 0, CancellationToken token = default(CancellationToken))
-        {
-            var options = new UnlockOptions
-            {
-                Timeout = timeout,
-                Cas = cas,
-                Token = token
-            };
+        #endregion
 
-            return Unlock<T>(id, options);
+        #region Unlock
+
+        public Task Unlock<T>(string id)
+        {
+            return Unlock<T>(id, new UnlockOptions());
         }
 
-        public Task Unlock<T>(string id, Action<UnlockOptions> optionsAction)
+        public Task Unlock<T>(string id, Action<UnlockOptions> configureOptions)
         {
             var options = new UnlockOptions();
-            optionsAction(options);
+            configureOptions(options);
 
             return Unlock<T>(id, options);
         }
@@ -390,23 +349,19 @@ namespace Couchbase
             await ExecuteOp(unlockOp, options.Token, options.Timeout).ConfigureAwait(false);
         }
 
-        public Task Touch(string id, TimeSpan expiration, TimeSpan? timeout = null,
-            DurabilityLevel durabilityLevel = DurabilityLevel.None, CancellationToken token = default(CancellationToken))
-        {
-            var options = new TouchOptions
-            {
-                Timeout = timeout,
-                DurabilityLevel = durabilityLevel,
-                Token = token
-            };
+        #endregion
 
-            return Touch(id, expiration, options);
+        #region Touch
+
+        public Task Touch(string id, TimeSpan expiration)
+        {
+            return Touch(id, expiration, new TouchOptions());
         }
 
-        public Task Touch(string id, TimeSpan expiration, Action<TouchOptions> optionsAction)
+        public Task Touch(string id, TimeSpan expiration, Action<TouchOptions> configureOptions)
         {
             var options = new TouchOptions();
-            optionsAction(options);
+            configureOptions(options);
 
             return Touch(id, expiration, options);
         }
@@ -425,26 +380,19 @@ namespace Couchbase
             await ExecuteOp(touchOp, options.Token, options.Timeout).ConfigureAwait(false);
         }
 
+        #endregion
+
         #region GetAndTouch
 
-        public Task<IGetResult> GetAndTouch(string id, TimeSpan expiration, IEnumerable<string> projections = null,
-            TimeSpan? timeout = null, DurabilityLevel durabilityLevel = DurabilityLevel.None,
-            CancellationToken token = default(CancellationToken))
+        public Task<IGetResult> GetAndTouch(string id, TimeSpan expiration)
         {
-            var options = new GetAndTouchOptions
-            {
-                Timeout = timeout,
-                DurabilityLevel = durabilityLevel,
-                Token = token
-            };
-
-            return GetAndTouch(id, expiration, options);
+            return GetAndTouch(id, expiration, new GetAndTouchOptions());
         }
 
-        public Task<IGetResult> GetAndTouch(string id, TimeSpan expiration, Action<GetAndTouchOptions> optionsAction)
+        public Task<IGetResult> GetAndTouch(string id, TimeSpan expiration, Action<GetAndTouchOptions> configureOptions)
         {
             var options = new GetAndTouchOptions();
-            optionsAction(options);
+            configureOptions(options);
 
             return GetAndTouch(id, expiration, options);
         }
@@ -466,31 +414,44 @@ namespace Couchbase
 
         #endregion
 
-        #region LookupIn
+        #region GetAndLock
 
-        private static void ConfigureLookupInOptions(LookupInOptions options, TimeSpan? timeout, CancellationToken token)
+        public Task<IGetResult> GetAndLock(string id, TimeSpan expiration)
         {
-            if (timeout.HasValue)
-            {
-                options.WithTimeout(timeout.Value);
-            }
-
-            if (token != CancellationToken.None)
-            {
-                options.Token = token;
-            }
+            return GetAndLock(id, expiration, new GetAndLockOptions());
         }
 
-        public Task<ILookupInResult> LookupIn(string id, Action<LookupInSpecBuilder> configureBuilder, TimeSpan? timeout = null,
-            CancellationToken token = default(CancellationToken))
+        public Task<IGetResult> GetAndLock(string id, TimeSpan expiration, Action<GetAndLockOptions> configureOptions)
+        {
+            var options = new GetAndLockOptions();
+            configureOptions(options);
+
+            return GetAndLock(id, expiration, options);
+        }
+
+        public async Task<IGetResult> GetAndLock(string id, TimeSpan expiration, GetAndLockOptions options)
+        {
+            var getAndLockOp = new GetL<byte[]>
+            {
+                Key = id,
+                Cid = Cid,
+                Expiration = expiration.ToTtl()
+            };
+
+            await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
+            return new GetResult(getAndLockOp.Data.ToArray(), _transcoder);
+        }
+
+        #endregion
+
+        #region LookupIn
+
+        public Task<ILookupInResult> LookupIn(string id, Action<LookupInSpecBuilder> configureBuilder)
         {
             var builder = new LookupInSpecBuilder();
             configureBuilder(builder);
 
-            var options = new LookupInOptions();
-            ConfigureLookupInOptions(options, timeout, token);
-
-            return LookupIn(id, builder.Specs, options);
+            return LookupIn(id, builder.Specs, new LookupInOptions());
         }
 
         public Task<ILookupInResult> LookupIn(string id, Action<LookupInSpecBuilder> configureBuilder, Action<LookupInOptions> configureOptions)
@@ -512,13 +473,9 @@ namespace Couchbase
             return LookupIn(id, lookupInSpec.Specs, options);
         }
 
-        public Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs, TimeSpan? timeout = null,
-            CancellationToken token = default(CancellationToken))
+        public Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs)
         {
-            var options = new LookupInOptions();
-            ConfigureLookupInOptions(options, timeout, token);
-
-            return LookupIn(id, specs, options);
+            return LookupIn(id, specs, new LookupInOptions());
         }
 
         public Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs, Action<LookupInOptions> configureOptions)
@@ -553,92 +510,14 @@ namespace Couchbase
 
         #endregion
 
-        #region GetAndLock
-
-        public Task<IGetResult> GetAndLock(string id, TimeSpan expiration, TimeSpan? timeout = null,
-            CancellationToken token = default(CancellationToken))
-        {
-            var options = new GetAndLockOptions
-            {
-                Timeout = timeout,
-                Token = token
-            };
-
-            return GetAndLock(id, expiration, options);
-        }
-
-        public Task<IGetResult> GetAndLock(string id, TimeSpan expiration, Action<GetAndLockOptions> optionsAction)
-        {
-            var options = new GetAndLockOptions();
-            optionsAction(options);
-
-            return GetAndLock(id, expiration, options);
-        }
-
-        public async Task<IGetResult> GetAndLock(string id, TimeSpan expiration, GetAndLockOptions options)
-        {
-            var getAndLockOp = new GetL<byte[]>
-            {
-                Key = id,
-                Cid = Cid,
-                Expiration = expiration.ToTtl()
-            };
-
-            await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
-            return new GetResult(getAndLockOp.Data.ToArray(), _transcoder);
-        }
-
-        #endregion
-
         #region MutateIn
 
-        private static void ConfigureMutateInOptions(MutateInOptions options, TimeSpan? timeout, TimeSpan? expiration,
-            ulong cas, bool createDocument, DurabilityLevel durabilityLevel, CancellationToken token)
-        {
-            if (timeout.HasValue)
-            {
-                options.WithTimeout(timeout.Value);
-            }
-
-            if (expiration.HasValue)
-            {
-                options.WithExpiration(expiration.Value);
-            }
-
-            if (cas > 0)
-            {
-                options.WithCas(cas);
-            }
-
-            var flags = SubdocDocFlags.None;
-            if (createDocument)
-            {
-                flags ^= SubdocDocFlags.UpsertDocument;
-            }
-
-            if (durabilityLevel != DurabilityLevel.None)
-            {
-                options.DurabilityLevel = durabilityLevel;
-            }
-
-            if (token != CancellationToken.None)
-            {
-                options.Token = token;
-            }
-
-            options.WithFlags(flags);
-        }
-
-        public Task<IMutationResult> MutateIn(string id, Action<MutateInSpecBuilder> configureBuilder, TimeSpan? timeout = null, TimeSpan? expiration = null, ulong cas = 0, bool createDocument = false,
-            DurabilityLevel durabilityLevel = DurabilityLevel.None, CancellationToken token = default(CancellationToken))
+        public Task<IMutationResult> MutateIn(string id, Action<MutateInSpecBuilder> configureBuilder)
         {
             var builder = new MutateInSpecBuilder();
             configureBuilder(builder);
 
-            var options = new MutateInOptions();
-            ConfigureMutateInOptions(options, timeout, expiration, cas, createDocument, durabilityLevel, token);
-
-            return MutateIn(id, builder.Specs, options);
+            return MutateIn(id, builder.Specs, new MutateInOptions());
         }
 
         public Task<IMutationResult> MutateIn(string id, Action<MutateInSpecBuilder> configureBuilder, Action<MutateInOptions> configureOptions)
@@ -648,7 +527,7 @@ namespace Couchbase
 
             var options = new MutateInOptions();
             configureOptions(options);
-            
+
             return MutateIn(id, builder.Specs, options);
         }
 
@@ -660,13 +539,9 @@ namespace Couchbase
             return MutateIn(id, mutateInSpec.Specs, options);
         }
 
-        public Task<IMutationResult> MutateIn(string id, IEnumerable<OperationSpec> specs, TimeSpan? timeout = null, TimeSpan? expiration = null, ulong cas = 0, bool createDocument = false,
-            DurabilityLevel durabilityLevel = DurabilityLevel.None, CancellationToken token = default(CancellationToken))
+        public Task<IMutationResult> MutateIn(string id, IEnumerable<OperationSpec> specs)
         {
-            var options = new MutateInOptions();
-            ConfigureMutateInOptions(options, timeout, expiration, cas, createDocument, durabilityLevel, token);
-
-            return MutateIn(id, specs, options);
+            return MutateIn(id, specs, new MutateInOptions());
         }
 
         public Task<IMutationResult> MutateIn(string id, IEnumerable<OperationSpec> specs, Action<MutateInOptions> configureOptions)

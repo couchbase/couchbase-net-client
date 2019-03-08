@@ -26,7 +26,7 @@ namespace Couchbase.IntegrationTests
             await collection.Upsert(
                 "id",
                 new {name = "mike"},
-                durabilityLevel: durabilityLevel
+                options => options.DurabilityLevel = durabilityLevel
             );
         }
     }
