@@ -6,6 +6,17 @@
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DefineConstants>$(DefineConstants);RELEASE</DefineConstants>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Remove="Core\IO\Errors\**" />
     <Compile Remove="Core\Logging\**" />
