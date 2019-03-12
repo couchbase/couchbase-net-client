@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Services.Query.Couchbase.N1QL;
 using Xunit;
@@ -32,13 +32,11 @@ namespace Couchbase.IntegrationTests
             var result = await cluster.Query<dynamic>("SELECT * FROM `default` WHERE type=$name;",
                 parameter =>
             {
-                parameter.Add("name", "poo");
+                parameter.Add("name", "person");
             }).ConfigureAwait(false);
 
-            
             foreach (var o in result)
             {
-                
             }
             result.Dispose();
         }

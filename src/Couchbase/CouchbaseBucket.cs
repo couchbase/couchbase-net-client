@@ -57,7 +57,7 @@ namespace Couchbase
                     return Task.FromResult(scope);
                 }
 
-                throw new ScopeNotFoundException("Cannot locate the scope {scopeName");
+                throw new ScopeMissingException("Cannot locate the scope {scopeName}");
             }
         }
 

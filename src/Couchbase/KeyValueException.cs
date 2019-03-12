@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Text;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Legacy.Errors;
 
 namespace Couchbase
 {
@@ -19,8 +17,28 @@ namespace Couchbase
         public KeyValueException(string message, Exception innerException) : base(message, innerException)
         {
         }
+
+        public ResponseStatus ResponseStatus { get; internal set; }
+
+        public ErrorMap ErrorMap { get; internal set; }
+
+        public static KeyValueException Create(ResponseStatus status, Exception innerException = null, string message = null, ErrorMap errorMap = null)
+        {
+            return new KeyValueException(message, innerException)
+            {
+                ErrorMap = errorMap,
+                ResponseStatus = status
+            };
+        }
+
+        //TODO Note this should include the ErrorMap and any other info
+        public override string ToString()
+        {
+            return "K/V Error: " + ResponseStatus;
+        }
     }
 
+    //TODO for legacy remove later
     public class CasMismatchException : KeyValueException
     {
         public CasMismatchException()

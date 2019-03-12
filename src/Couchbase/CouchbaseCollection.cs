@@ -25,7 +25,7 @@ namespace Couchbase
             Cid = Convert.ToUInt32(cid);
             Name = name;
             Binary = binaryCollection;
-            _bucket = (IBucketSender) bucket;
+            _bucket = (IBucketSender)bucket;
         }
 
         public uint Cid { get; }
@@ -48,32 +48,45 @@ namespace Couchbase
                 }
                 else
                 {
-                    tcs.SetException(new Exception(state.Status.ToString()));
+                    tcs.SetException(KeyValueException.Create(state.Status, errorMap : state.ErrorMap));
                 }
 
                 return tcs.Task;
             };
 
             CancellationTokenSource cts = null;
-            if (token == CancellationToken.None)
+            try
             {
-                cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                cts.CancelAfter(timeout.HasValue && timeout != TimeSpan.Zero ? timeout.Value : DefaultTimeout);
-                token = cts.Token;
-            }
-
-            using (token.Register(() =>
-            {
-                if (tcs.Task.Status != TaskStatus.RanToCompletion)
+                if (token == CancellationToken.None)
                 {
-                    tcs.SetCanceled();
+                    cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    cts.CancelAfter(timeout.HasValue && timeout != TimeSpan.Zero ? timeout.Value : DefaultTimeout);
+                    token = cts.Token;
                 }
-            }, useSynchronizationContext: false))
-            {
-                await _bucket.Send(op, tcs).ConfigureAwait(false);
-                var bytes = await tcs.Task.ConfigureAwait(false);
-                await op.ReadAsync(bytes).ConfigureAwait(false);
 
+                using (token.Register(() =>
+                {
+                    if (tcs.Task.Status != TaskStatus.RanToCompletion)
+                    {
+                        tcs.SetCanceled();
+                    }
+                }, useSynchronizationContext: false))
+                {
+                    await _bucket.Send(op, tcs).ConfigureAwait(false);
+                    var bytes = await tcs.Task.ConfigureAwait(false);
+                    await op.ReadAsync(bytes).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException e)
+            {
+                if (!e.CancellationToken.IsCancellationRequested)
+                {
+                    //oddly IsCancellationRequested is false when timed out
+                    throw new TimeoutException();
+                }
+            }
+            finally
+            {
                 //clean up the token if we used a default token
                 cts?.Dispose();
             }

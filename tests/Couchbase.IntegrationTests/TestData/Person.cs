@@ -46,6 +46,7 @@ namespace Couchbase.IntegrationTests.TestData
         public int age { get; set; }
         public List<string> animals { get; set; }
         public Attributes attributes { get; set; }
+        public string Type => "person";
 
         public static Person Create()
         {

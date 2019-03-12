@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,12 +25,12 @@ namespace Couchbase
         public ICollection this[string name]
         {
             get
-            {             
+            {
                 if(_collections.TryGetValue(name, out ICollection collection))
                 {
                     return collection;
                 };
-                throw new CollectionNotFoundException("Cannot find collection {name}");
+                throw new CollectionMissingException("Cannot find collection {name}");
             }
         }
 
