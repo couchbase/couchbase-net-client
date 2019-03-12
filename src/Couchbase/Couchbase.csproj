@@ -1,9 +1,22 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <VersionPrefix>3.0.0</VersionPrefix>
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
+    <AssemblyName>Couchbase.NetClient</AssemblyName>
+    <PackageId>CouchbaseNetClient</PackageId>
+    <Authors>Couchbase, Inc.</Authors>
+    <Company>Couchbase, Inc.</Company>
+    <Product>CouchbaseNetClient</Product>
+    <Description>The all new Couchbase client supporting the soon to be available Couchbase Server 6.5.0 DP and .NET Standard v2.0.</Description>
+    <Copyright>Copyright 2019</Copyright>
+
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</PackageIconUrl>
+    <PackageReleaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</PackageReleaseNotes>
+    <RootNamespace>Couchbase</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
