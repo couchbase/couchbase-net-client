@@ -13,18 +13,17 @@ using Couchbase.Core.IO.Transcoders;
 
 namespace Couchbase
 {
-    public class CouchbaseCollection : ICollection
+    public class CouchbaseCollection : ICollection, IBinaryCollection
     {
         internal const string DefaultCollection = "_default";
         private readonly IBucketSender _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
-        public CouchbaseCollection(IBucket bucket, uint? cid, string name, IBinaryCollection binaryCollection = null)
+        public CouchbaseCollection(IBucket bucket, uint? cid, string name)
         {
             Cid = cid;
             Name = name;
-            Binary = binaryCollection;
             _bucket = (IBucketSender)bucket;
         }
 
@@ -32,7 +31,7 @@ namespace Couchbase
 
         public string Name { get; }
 
-        public IBinaryCollection Binary { get; }
+        public IBinaryCollection Binary => this;
 
         #region ExecuteOp Helper
 
@@ -580,6 +579,132 @@ namespace Couchbase
 
             await ExecuteOp(mutation, options.Token, options.Timeout);
             return new MutationResult(mutation.Cas, null, mutation.MutationToken);
+        }
+
+        #endregion
+
+        #region Append
+
+        public Task<IMutationResult> Append(string id, byte[] value)
+        {
+            return Append(id, value, new AppendOptions());
+        }
+
+        public Task<IMutationResult> Append(string id, byte[] value, Action<AppendOptions> configureOptions)
+        {
+            var options = new AppendOptions();
+            configureOptions(options);
+
+            return Append(id, value, options);
+        }
+
+        public async Task<IMutationResult> Append(string id, byte[] value, AppendOptions options)
+        {
+            var op = new Append<byte[]>
+            {
+                Cid = Cid,
+                Key = id,
+                Content = value,
+                DurabilityLevel = options.DurabilityLevel
+            };
+
+            await ExecuteOp(op, options.Token, options.Timeout);
+            return new MutationResult(op.Cas, null, op.MutationToken);
+        }
+
+        #endregion
+
+        #region Prepend
+
+        public Task<IMutationResult> Prepend(string id, byte[] value)
+        {
+            return Prepend(id, value, new PrependOptions());
+        }
+
+        public Task<IMutationResult> Prepend(string id, byte[] value, Action<PrependOptions> configureOptions)
+        {
+            var options = new PrependOptions();
+            configureOptions(options);
+
+            return Prepend(id, value, options);
+        }
+
+        public async Task<IMutationResult> Prepend(string id, byte[] value, PrependOptions options)
+        {
+            var op = new Prepend<byte[]>
+            {
+                Cid = Cid,
+                Key = id,
+                Content = value,
+                DurabilityLevel = options.DurabilityLevel
+            };
+
+            await ExecuteOp(op, options.Token, options.Timeout);
+            return new MutationResult(op.Cas, null, op.MutationToken);
+        }
+
+        #endregion
+
+        #region Increment
+
+        public Task<ICounterResult> Increment(string id)
+        {
+            return Increment(id, new IncrementOptions());
+        }
+
+        public Task<ICounterResult> Increment(string id, Action<IncrementOptions> configureOptions)
+        {
+            var options = new IncrementOptions();
+            configureOptions(options);
+
+            return Increment(id, options);
+        }
+
+        public async Task<ICounterResult> Increment(string id, IncrementOptions options)
+        {
+            var op = new Increment
+            {
+                Cid = Cid,
+                Key = id,
+                Delta = options.Delta,
+                Initial = options.Initial,
+                DurabilityLevel = options.DurabilityLevel
+            };
+
+            await ExecuteOp(op, options.Token, options.Timeout);
+            return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
+        }
+
+        #endregion
+
+        #region Decrement
+
+        public Task<ICounterResult> Decrement(string id)
+        {
+            return Decrement(id, new DecrementOptions());
+        }
+
+        public Task<ICounterResult> Decrement(string id, Action<DecrementOptions> configureOptions)
+        {
+            var options = new DecrementOptions();
+            configureOptions(options);
+
+            return Decrement(id, options);
+        }
+
+        public async Task<ICounterResult> Decrement(string id, DecrementOptions options)
+        {
+            var op = new Decrement
+            {
+                Cid = Cid,
+                Key = id,
+                Delta = options.Delta,
+                Initial = options.Initial,
+                DurabilityLevel = options.DurabilityLevel
+            };
+
+            await ExecuteOp(op, options.Token, options.Timeout);
+            return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
 
         #endregion
