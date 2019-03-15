@@ -1,21 +1,16 @@
 using System.Net;
 
-namespace Couchbase.Services.Search
+namespace Couchbase.Management
 {
     /// <summary>
-    /// Represents an error that occured while performing a query operation while using the Search Service.
+    /// Represents an error that occured while performing an operation while using a Management API.
     /// </summary>
-    public class SearchException : CouchbaseException
+    public class ManagementException : CouchbaseException
     {
         /// <summary>
         /// The HTTP status code that was returned by the Search service
         /// </summary>
         public HttpStatusCode StatusCode { get; internal set; }
-
-        /// <summary>
-        /// The <see cref="SearchStatus"/> returned by the Search service.
-        /// </summary>
-        public SearchStatus Status { get; internal set; }
 
         /// <summary>
         /// The error response from the service.

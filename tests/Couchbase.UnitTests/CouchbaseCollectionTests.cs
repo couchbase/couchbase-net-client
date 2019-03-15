@@ -26,15 +26,56 @@ namespace Couchbase.UnitTests
         }
 
         [Theory]
-        [InlineData(ResponseStatus.KeyNotFound)]
-        [InlineData(ResponseStatus.KeyExists)]
-        [InlineData(ResponseStatus.ValueTooLarge)]
-        [InlineData(ResponseStatus.Locked)]
-        [InlineData(ResponseStatus.TemporaryFailure)]
-        [InlineData(ResponseStatus.InvalidRange)]
+        //specific key value errors
+        [InlineData(ResponseStatus.KeyNotFound, typeof(KeyNotFoundException))]
+        [InlineData(ResponseStatus.KeyExists, typeof(KeyExistsException))]
+        [InlineData(ResponseStatus.ValueTooLarge, typeof(ValueTooLargeException))]
+        [InlineData(ResponseStatus.InvalidArguments, typeof(InvalidArgumentException))]
+        [InlineData(ResponseStatus.TemporaryFailure, typeof(TempFailException))]
+        [InlineData(ResponseStatus.OperationTimeout, typeof(TimeoutException))]
+        [InlineData(ResponseStatus.Locked, typeof(KeyLockedException))]
+        //durability errors
+        [InlineData(ResponseStatus.DurabilityInvalidLevel, typeof(DurabilityException))]
+        [InlineData(ResponseStatus.DurabilityImpossible, typeof(DurabilityException))]
+        [InlineData(ResponseStatus.SyncWriteInProgress, typeof(DurabilityException))]
+        [InlineData(ResponseStatus.SyncWriteAmbiguous, typeof(DurabilityException))]
+        //auth errors
+        [InlineData(ResponseStatus.AuthenticationError, typeof(AuthenticationException))]
+        //internal errors
+        [InlineData(ResponseStatus.InternalError, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.Eaccess, typeof(AuthenticationException))]
+        [InlineData(ResponseStatus.Rollback, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.VBucketBelongsToAnotherServer, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.AuthenticationContinue, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.AuthStale, typeof(InternalErrorException))]
+        //generic key-value errors
+        [InlineData(ResponseStatus.InvalidRange, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.ItemNotStored, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.IncrDecrOnNonNumericValue, typeof(KeyValueException))]
+        //sub doc errors
+        [InlineData(ResponseStatus.SubDocPathNotFound, typeof(PathNotFoundException))]
+        [InlineData(ResponseStatus.SubDocPathMismatch, typeof(PathMismatchException))]
+        [InlineData(ResponseStatus.SubDocPathInvalid, typeof(PathInvalidException))]
+        [InlineData(ResponseStatus.SubDocPathTooBig, typeof(PathTooBigException))]
+        [InlineData(ResponseStatus.SubDocDocTooDeep, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.SubDocCannotInsert, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.SubDocDocNotJson, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.SubDocNumRange, typeof(KeyValueException))]
+        [InlineData( ResponseStatus.SubDocDeltaRange, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.SubDocPathExists, typeof(KeyValueException))]
+        [InlineData( ResponseStatus.SubDocValueTooDeep, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.SubDocInvalidCombo, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.SubDocMultiPathFailure, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.SubDocXattrInvalidFlagCombo, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.SubDocXattrInvalidKeyCombo, typeof(InternalErrorException))]
+        [InlineData( ResponseStatus.SubdocXattrUnknownMacro, typeof(KeyValueException))]
+        [InlineData( ResponseStatus.SubdocXattrUnknownVattr, typeof(InternalErrorException))]
+        [InlineData( ResponseStatus.SubdocXattrCantModifyVattr, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.SubdocMultiPathFailureDeleted, typeof(InternalErrorException))]
+        [InlineData( ResponseStatus.SubdocInvalidXattrOrder, typeof(InternalErrorException))]
         //[InlineData(ResponseStatus.CasMismatch)] TODO
        // [InlineData(ResponseStatus.KeyDeleted)] TODO
-        public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus)
+        public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus, Type exceptionType)
         {
             var bucket = new FakeBucket(responseStatus);
             var collection = new CouchbaseCollection(bucket, 0, "_default");
@@ -45,9 +86,9 @@ namespace Couchbase.UnitTests
                 {
                 }
             }
-            catch (KeyValueException e)
+            catch (Exception e)
             {
-                Assert.Equal(responseStatus, e.ResponseStatus);
+                Assert.IsType(exceptionType, e);
             }
         }
 

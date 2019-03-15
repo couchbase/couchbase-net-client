@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
@@ -19,6 +19,33 @@
     <None Remove="Services\Search\error-with-errors.js" />
     <None Remove="Services\Search\search-response-success.js" />
     <None Remove="Services\Search\search-response-with-facets.js" />
+    <None Remove="Services\Query\query-badrequest-error-response-400.json" />
+    <None Remove="Services\Query\query-n1ql-error-response-400.json" />
+    <None Remove="Services\Query\query-notfound-response-404.json" />
+    <None Remove="Services\Query\query-service-error-response-503.json" />
+    <None Remove="Services\Query\query-timeout-response-200.json" />
+    <None Remove="Services\Query\query-unsupported-error-405.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Documents\Query\query-badrequest-error-response-400.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\query-n1ql-error-response-400.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\query-notfound-response-404.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\query-service-error-response-503.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\query-timeout-response-200.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\query-unsupported-error-405.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

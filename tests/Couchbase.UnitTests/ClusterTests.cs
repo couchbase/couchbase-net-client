@@ -6,9 +6,9 @@ namespace Couchbase.UnitTests
     public class ClusterTests
     {
         [Fact]
-        public void Authenticate_Throws_ArgumentNullException_When_Credentials_Not_Provided()
+        public void Authenticate_Throws_InvalidConfigurationException_When_Credentials_Not_Provided()
         {
-            Assert.Throws<ArgumentNullException>(() => new Cluster(new Configuration()));
+            Assert.Throws<InvalidConfigurationException>(() => new Cluster(new Configuration()));
         }
     }
 }

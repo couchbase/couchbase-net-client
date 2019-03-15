@@ -1,28 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Net;
 
 namespace Couchbase.Services.Query
 {
-    public class QueryException : Exception
+    /// <summary>
+    /// Represents an error that occured while performing a query operation while using the Query Service.
+    /// </summary>
+    public class QueryException : CouchbaseException
     {
         /// <summary>
-        /// <see cref="QueryStatus"/> returned from Couchbase.
-        /// </summary>
-        public QueryStatus Status { get; private set; }
-
-        /// <summary>
-        /// Errors returned from Couchbase.
-        /// </summary>
-        public IReadOnlyCollection<Error> Errors { get; private set; }
-
-        /// <summary>
-        /// Query metrics for the query.
-        /// </summary>
-        public Metrics Metrics { get; private set; }
-
-        /// <summary>
-        /// Creates a new CouchbaseQueryResponseException.
+        /// Creates a new QueryException.
         /// </summary>
         /// <param name="message">Error message.</param>
         /// <param name="status"><see cref="QueryStatus"/> returned from Couchbase.</param>
@@ -33,7 +22,7 @@ namespace Couchbase.Services.Query
         }
 
         /// <summary>
-        /// Creates a new CouchbaseQueryResponseException.
+        /// Creates a new QueryException.
         /// </summary>
         /// <param name="message">Error message.</param>
         /// <param name="status"><see cref="QueryStatus"/> returned from Couchbase.</param>
@@ -46,5 +35,25 @@ namespace Couchbase.Services.Query
             Status = status;
             Errors = new ReadOnlyCollection<Error>(errors ?? new Error[] {});
         }
+
+        /// <summary>
+        /// The HTTP status code that was returned by the Query service
+        /// </summary>
+        public HttpStatusCode StatusCode { get; internal set; }
+
+        /// <summary>
+        /// <see cref="QueryStatus"/> returned from Couchbase.
+        /// </summary>
+        public QueryStatus Status { get; internal set; }
+
+        /// <summary>
+        /// Errors returned from Couchbase.
+        /// </summary>
+        public IReadOnlyCollection<Error> Errors { get; private set; }
+
+        /// <summary>
+        /// Query metrics for the query.
+        /// </summary>
+        public Metrics Metrics { get; internal set; }
     }
 }

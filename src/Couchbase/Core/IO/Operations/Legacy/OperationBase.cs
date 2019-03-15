@@ -205,7 +205,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             {
                 result.Exception = e;
                 result.Success = false;
-                result.Status = ResponseStatus.ClientFailure;
+                result.Status = ResponseStatus.Failure;
             }
             finally
             {

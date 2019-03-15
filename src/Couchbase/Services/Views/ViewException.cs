@@ -1,19 +1,21 @@
-using System;
+using System.Collections.Generic;
+using System.Net;
 
 namespace Couchbase.Services.Views
 {
-    public class ViewException : Exception
+    /// <summary>
+    /// Represents an error that occured while performing a query operation while using the View Service.
+    /// </summary>
+    public class ViewException : CouchbaseException
     {
-        public ViewException()
-        {
-        }
+        /// <summary>
+        /// The HTTP status code that was returned by the Analytics service
+        /// </summary>
+        public HttpStatusCode StatusCode { get; internal set; }
 
-        public ViewException(string message) : base(message)
-        {
-        }
-
-        public ViewException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
+        /// <summary>
+        /// The error response from the service.
+        /// </summary>
+        public List<string> Context { get; internal set; }
     }
 }

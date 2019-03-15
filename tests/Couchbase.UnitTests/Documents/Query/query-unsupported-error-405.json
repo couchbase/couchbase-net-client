@@ -1,0 +1,19 @@
+{
+  "requestID": "6e0143ed-4657-4c9d-a184-703c930c7401",
+
+  "errors": [
+    {
+      "code": 4050,
+      "msg": "PUT is not supported"
+    }],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "134.7944us",
+    "executionTime": "130.5518us",
+    "resultCount": 0,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}

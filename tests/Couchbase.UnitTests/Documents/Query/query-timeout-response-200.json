@@ -1,0 +1,21 @@
+{
+    "requestID": "cb7b070d-3faa-4ee3-a9ed-bfa97a965d6b",
+    "signature": {
+        "text": "json"
+    },
+    "errors": [
+	{
+	  "code": 1080,
+	  "msg": "The request resulted in timeout"
+    }],
+    "status": "timeout",
+    "metrics": {
+        "elapsedTime": "1.347944ms",
+        "executionTime": "1.305518ms",
+        "resultCount": 0,
+	  "resultSize": 0,
+	  "mutationCount": 0,
+	  "errorCount": 0,
+	  "warningCount": 0
+    }
+}

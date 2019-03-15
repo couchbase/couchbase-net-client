@@ -1,0 +1,18 @@
+{
+  "requestID": "922edd9a-23d7-4053-8d60-91f7cbc22c83",
+  "errors": [
+    {
+      "code": 4000,
+      "msg": "Syntax error at token: SLECT"
+    }],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "134.7944us",
+    "executionTime": "130.5518us",
+    "resultCount": 0,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}

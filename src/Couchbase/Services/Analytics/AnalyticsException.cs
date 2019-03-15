@@ -1,19 +1,25 @@
-using System;
+using System.Net;
 
 namespace Couchbase.Services.Analytics
 {
-    public class AnalyticsException : Exception
+    /// <summary>
+    /// Represents an error that occured while performing a query operation while using the Analytics Service.
+    /// </summary>
+    public class AnalyticsException : CouchbaseException
     {
-        public AnalyticsException()
-        {
-        }
+        /// <summary>
+        /// The HTTP status code that was returned by the Analytics service
+        /// </summary>
+        public HttpStatusCode StatusCode { get; internal set; }
 
-        public AnalyticsException(string message) : base(message)
-        {
-        }
+        /// <summary>
+        /// The <see cref="AnalyticsStatus"/> returned by the Analytics service.
+        /// </summary>
+        public AnalyticsStatus Status { get; internal set; }
 
-        public AnalyticsException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
+        /// <summary>
+        /// The error response from the service.
+        /// </summary>
+        public string Context { get; internal set; }
     }
 }

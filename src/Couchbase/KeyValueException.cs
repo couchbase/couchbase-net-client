@@ -1,56 +1,49 @@
-﻿using System;
+using System;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Newtonsoft.Json;
 
 namespace Couchbase
 {
-    public class KeyValueException : Exception
+    /// <summary>
+    /// Represents an error that occurs while performing a Key/Value operation while using the Memcached Protocol and/or related services.
+    /// </summary>
+    public class KeyValueException : CouchbaseException
     {
         public KeyValueException()
         {
         }
 
-        public KeyValueException(string message) : base(message)
+        public KeyValueException(string message)
+            : base(message)
         {
         }
 
-        public KeyValueException(string message, Exception innerException) : base(message, innerException)
+        public KeyValueException(string message, Exception innerException)
+            : base(message, innerException)
         {
         }
 
-        public ResponseStatus ResponseStatus { get; internal set; }
+        public ResponseStatus Status { get; internal set; }
 
+        public string Key { get; internal set; }
+
+        public string Context { get; internal set; }
+
+        //TODO possibly remove - redundent with Context
         public ErrorMap ErrorMap { get; internal set; }
 
-        public static KeyValueException Create(ResponseStatus status, Exception innerException = null, string message = null, ErrorMap errorMap = null)
+        public static KeyValueException Create(ResponseStatus status, Exception innerException = null, string message = null, ErrorMap errorMap = null, string Key = null) => new KeyValueException(message, innerException)
         {
-            return new KeyValueException(message, innerException)
-            {
-                ErrorMap = errorMap,
-                ResponseStatus = status
-            };
-        }
+            ErrorMap = errorMap,
+            Status = status,
+            Key = Key,
+            Context = errorMap == null ? null : JsonConvert.SerializeObject(errorMap)
+        };
 
-        //TODO Note this should include the ErrorMap and any other info
         public override string ToString()
         {
-            return "K/V Error: " + ResponseStatus;
-        }
-    }
-
-    //TODO for legacy remove later
-    public class CasMismatchException : KeyValueException
-    {
-        public CasMismatchException()
-        {
-        }
-
-        public CasMismatchException(string message) : base(message)
-        {
-        }
-
-        public CasMismatchException(string message, Exception innerException) : base(message, innerException)
-        {
+            return Context;
         }
     }
 }

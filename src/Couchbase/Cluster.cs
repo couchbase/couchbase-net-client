@@ -26,12 +26,12 @@ namespace Couchbase
         {
             if (configuration == null)
             {
-                throw new ArgumentNullException(nameof(configuration));
+                throw new InvalidConfigurationException("Configuration is null.");
             }
 
             if (string.IsNullOrWhiteSpace(configuration.Password) || string.IsNullOrWhiteSpace(configuration.UserName))
             {
-                throw new ArgumentNullException(nameof(configuration), "Username and password are required.");
+                throw new InvalidConfigurationException("Username and password are required.");
             }
 
             _configuration = configuration;

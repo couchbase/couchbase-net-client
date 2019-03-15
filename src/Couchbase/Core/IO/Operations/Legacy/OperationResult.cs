@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Sockets;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -160,7 +160,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 case ResponseStatus.KeyExists:
                     if (OpCode != OpCode.Add)
                     {
-                        Exception = new CasMismatchException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
+                        Exception = new KeyValueException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
                     }
                     else
                     {
@@ -194,7 +194,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 case ResponseStatus.DocumentMutationLost:
                     break;
                 case ResponseStatus.DocumentMutationDetected:
-                    Exception = new CasMismatchException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
+                    Exception = new KeyValueException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
                     break;
                 case ResponseStatus.SubDocPathNotFound:
                 case ResponseStatus.SubDocPathMismatch:

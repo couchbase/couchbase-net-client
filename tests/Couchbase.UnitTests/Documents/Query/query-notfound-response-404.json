@@ -1,0 +1,18 @@
+{
+  "requestID": "2ac080ba-6419-4905-a20b-c881966b6402",
+  "errors": [
+    {
+      "code": 4040,
+      "msg": "Keyspace weets does not exist"
+    }],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "134.7944us",
+    "executionTime": "130.5518us",
+    "resultCount": 0,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}

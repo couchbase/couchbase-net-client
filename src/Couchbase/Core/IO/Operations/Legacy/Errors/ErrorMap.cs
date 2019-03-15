@@ -41,7 +41,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Errors
                 return true;
             }
 
-            //Log.Warn("Unexpected ResponseStatus for KeyValue operation not found in Error Map: 0x{0}", code.ToString("X4"));
+            //Log.Warn("Unexpected Status for KeyValue operation not found in Error Map: 0x{0}", code.ToString("X4"));
             return false;
         }
     }

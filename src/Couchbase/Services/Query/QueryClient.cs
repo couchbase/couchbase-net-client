@@ -55,7 +55,7 @@ namespace Couchbase.Services.Query
             options.Statement(statement);
             var body = options.GetFormValuesAsJson();
 
-            StreamingQueryResult<T> queryResult = null;
+            StreamingQueryResult<T> queryResult;
             using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
@@ -75,25 +75,7 @@ namespace Couchbase.Services.Query
                     {
                         //read the header and stop when we reach the queried rows
                         queryResult.ReadToRows();
-
-                        //A problem with the HTTP request itself
-                        if (response.StatusCode == HttpStatusCode.BadRequest)
-                        {
-                            throw new QueryErrorException(response.ReasonPhrase,
-                                queryResult.Status,
-                                queryResult.Errors);
-                        }
-
-                        //A problem with the service itself
-                        if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
-                        {
-                            throw new QueryServiceException(response.ReasonPhrase,
-                                queryResult.Status, 
-                                queryResult.Errors);
-                        }
-
-                        //A problem with the query iteself
-                        if (queryResult.Status != QueryStatus.Success)
+                        if (response.StatusCode != HttpStatusCode.OK || queryResult.Status != QueryStatus.Success)
                         {
                             throw new QueryException(queryResult.Message,
                                 queryResult.Status,
@@ -103,7 +85,7 @@ namespace Couchbase.Services.Query
                 }
                 catch (TaskCanceledException e)
                 {
-                    throw new TimeoutException("The request has timed out.");
+                    throw new TimeoutException("The request has timed out.", e);
                 }
             }
 
