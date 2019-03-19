@@ -996,7 +996,7 @@ namespace Couchbase.Configuration.Client
             try
             {
                 ConfigLock.EnterWriteLock();
-                foreach (var node in bucketConfig.GetNodes())
+                foreach (var node in bucketConfig.GetNodes().Where(node => node.IsDataNode))
                 {
                     if (!string.IsNullOrWhiteSpace(node.Hostname))
                     {
