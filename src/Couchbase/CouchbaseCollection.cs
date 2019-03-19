@@ -20,15 +20,15 @@ namespace Couchbase
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
-        public CouchbaseCollection(IBucket bucket, string cid, string name, IBinaryCollection binaryCollection = null)
+        public CouchbaseCollection(IBucket bucket, uint? cid, string name, IBinaryCollection binaryCollection = null)
         {
-            Cid = Convert.ToUInt32(cid);
+            Cid = cid;
             Name = name;
             Binary = binaryCollection;
             _bucket = (IBucketSender)bucket;
         }
 
-        public uint Cid { get; }
+        public uint? Cid { get; }
 
         public string Name { get; }
 

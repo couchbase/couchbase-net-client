@@ -7,7 +7,7 @@ namespace Couchbase
 {
     public interface ICollection
     {
-        uint Cid { get; }
+        uint? Cid { get; }
 
         string Name { get; }
 

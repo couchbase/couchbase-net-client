@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -39,6 +40,7 @@ namespace Couchbase
         private IKeyMapper _keyMapper;
         private IConfiguration _configuration;
         internal ConcurrentDictionary<IPEndPoint, IConnection> Connections = new ConcurrentDictionary<IPEndPoint, IConnection>();
+        private bool _supportsCollections;
 
         public CouchbaseBucket(ICluster cluster, string name)
         {
@@ -72,9 +74,20 @@ namespace Couchbase
             var connection = GetConnection(endPoint);
 
             await Authenticate(connection);
+            await Negotiate(connection);
             await GetClusterMap(connection, endPoint);
-            await Negotiate(connection);   
-            await GetManifest(connection);
+
+            if (_supportsCollections)
+            {
+                await GetManifest(connection);
+            }
+            else
+            {
+                //build a fake scope and collection for pre-6.5 clusters
+                var defaultCollection = new CouchbaseCollection(this, null, "_default");
+                var defaultScope = new Scope("_default", "0", new List<ICollection> {defaultCollection}, this);
+                _scopes.TryAdd("_default", defaultScope);
+            }
 
             Connections.AddOrUpdate(endPoint, connection, (ep, conn) => connection);
             await LoadConnections(configuration);
@@ -221,6 +234,7 @@ namespace Couchbase
             var result = await completionSource.Task.ConfigureAwait(false);
             await heloOp.ReadAsync(result).ConfigureAwait(false);
             var supported = heloOp.GetResultWithValue();
+            _supportsCollections = supported.Content.Contains((short) ServerFeatures.Collections);
         }
 
         private async Task GetManifest(IConnection connection)
@@ -252,7 +266,8 @@ namespace Couchbase
                 var collections = new List<ICollection>();
                 foreach (var collectionDef in scopeDef.collections)
                 {
-                    collections.Add(new CouchbaseCollection(this, collectionDef.uid, collectionDef.name));
+                    collections.Add(new CouchbaseCollection(this,
+                        Convert.ToUInt32(collectionDef.uid), collectionDef.name));
                 }
 
                 _scopes.TryAdd(scopeDef.name, new Scope(scopeDef.name, scopeDef.uid, collections, this));

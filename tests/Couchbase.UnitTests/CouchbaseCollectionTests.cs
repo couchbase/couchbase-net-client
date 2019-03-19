@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests
         public void Get_Timed_Out_Throw_TimeoutException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, "0", "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
 
             Assert.ThrowsAsync<TimeoutException>(async () => await collection.Get("key", options =>
             {
@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests
         public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus)
         {
             var bucket = new FakeBucket(responseStatus);
-            var collection = new CouchbaseCollection(bucket, "0", "_default");
+            var collection = new CouchbaseCollection(bucket, 0, "_default");
 
             try
             {
