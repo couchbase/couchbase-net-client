@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -100,7 +100,6 @@ namespace Couchbase.Configuration.Server.Monitoring
                                     {
                                         _log.Debug("Checking config with revision #{0}", config.Rev);
                                         ClusterController.EnqueueConfigForProcessing(config);
-                                        break;
                                     }
                                 }
                             }
