@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Couchbase.Core.Utils;
 using Xunit;
 using Xunit.Abstractions;
@@ -30,8 +31,10 @@ namespace Couchbase.UnitTests.Core.Utils
         [InlineData(0xFFFFFFFF, new byte[] {0xFF, 0xFF, 0xFF, 0xFF, 0x0F})]
         public void Test_Write(uint value, byte[] expected)
         {
-            var bytes = Leb128.Write(value);
-            Assert.Equal(expected, bytes);
+            var bytes = new byte[5];
+
+            var length = Leb128.Write(bytes, value);
+            Assert.Equal(expected, bytes.Take(length));
 
             var decoded = Leb128.Read(bytes);
             Assert.Equal(value, decoded);

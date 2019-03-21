@@ -1,13 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Couchbase.Core.Utils
 {
     public static class Leb128
     {
-        public static byte[] Write(uint value)
+        /// <summary>
+        /// Encodes a value onto a buffer using LEB128 encoding.
+        /// </summary>
+        /// <param name="buffer">Buffer to receive the value.</param>
+        /// <param name="value">Value to encode.</param>
+        /// <returns>Number of bytes encoded.</returns>
+        public static int Write(Span<byte> buffer, uint value)
         {
-            var bytes = new List<byte>();
+            var index = 0;
 
             do
             {
@@ -20,13 +27,14 @@ namespace Couchbase.Core.Utils
                     @byte ^= 0x80; // set highest bit
                 }
 
-                bytes.Add(@byte);
+                buffer[index] = @byte;
+                index++;
             } while (value != 0);
 
-            return bytes.ToArray();
+            return index;
         }
 
-        public static uint Read(byte[] bytes)
+        public static uint Read(Span<byte> bytes)
         {
             var result = 0u;
             uint current;

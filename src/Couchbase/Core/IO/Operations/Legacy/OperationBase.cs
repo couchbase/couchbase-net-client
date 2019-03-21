@@ -190,9 +190,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
             var buffer = new byte[length];
             if (Cid.HasValue)
             {
-                var leb128Bytes = Leb128.Write(Cid.Value);
-                Buffer.BlockCopy(leb128Bytes, 0, buffer, 0, leb128Bytes.Length);
-                Converter.FromString(Key, buffer, leb128Bytes.Length);
+                var leb128Length = Leb128.Write(buffer, Cid.Value);
+                Converter.FromString(Key, buffer, leb128Length);
             }
             else
             {
