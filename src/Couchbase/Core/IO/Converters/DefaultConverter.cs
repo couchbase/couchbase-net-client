@@ -347,7 +347,7 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="offset">The offset.</param>
         public void FromInt16(short value, byte[] buffer, int offset)
         {
-            FromInt16(value, ref buffer, offset, true);
+            FromInt16(value, ref buffer, offset);
         }
 
         /// <summary>
