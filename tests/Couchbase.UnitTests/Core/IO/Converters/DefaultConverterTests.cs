@@ -351,7 +351,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
 
         [Theory]
         [InlineData(5, 3, true, new byte[] {0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00})]
-        [InlineData(5, 0, false, new byte[] {0x05, 0x00})]
+        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromInt16(short value, int offset, bool useNbo, byte[] expected)
         {
             var converter = new DefaultConverter();
@@ -374,7 +374,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
 
         [Theory]
         [InlineData(5, 3, true, new byte[] {0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00})]
-        [InlineData(5, 0, false, new byte[] {0x05, 0x00})]
+        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromUInt16(ushort value, int offset, bool useNbo, byte[] expected)
         {
             var converter = new DefaultConverter();
@@ -397,7 +397,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
 
         [Theory]
         [InlineData(5, 3, true, new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})]
-        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00})]
+        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromInt32(int value, int offset, bool useNbo, byte[] expected)
         {
             var converter = new DefaultConverter();
@@ -420,7 +420,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
 
         [Theory]
         [InlineData(5u, 3, true, new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})]
-        [InlineData(5u, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00})]
+        [InlineData(5u, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromUInt32(uint value, int offset, bool useNbo, byte[] expected)
         {
             var converter = new DefaultConverter();
@@ -443,7 +443,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
 
         [Theory]
         [InlineData(5, 3, true, new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})]
-        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
+        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromInt64(long value, int offset, bool useNbo, byte[] expected)
         {
             var converter = new DefaultConverter();
@@ -466,7 +466,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
 
         [Theory]
         [InlineData(5, 3, true, new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})]
-        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
+        [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromUInt64(ulong value, int offset, bool useNbo, byte[] expected)
         {
             var converter = new DefaultConverter();

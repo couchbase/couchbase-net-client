@@ -1,4 +1,7 @@
-﻿using System;
+using System;
+using System.IO.Compression;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Couchbase.Core.IO.Converters
@@ -10,25 +13,60 @@ namespace Couchbase.Core.IO.Converters
     /// </summary>
     public sealed class DefaultConverter : IByteConverter
     {
-        static byte[] CopyAndReverse(byte[] src, int offset, int length)
+        private static T Read<T>(ReadOnlySpan<byte> src, bool useNbo)
+            where T: struct
         {
-            var dst = new byte[length];
-            for (var i = dst.Length; i > 0; i--)
+            if (useNbo)
             {
-                dst[i - 1] = src[offset++];
+                Span<byte> dst = stackalloc byte[Unsafe.SizeOf<T>()];
+
+                var j = 0;
+                for (var i = dst.Length - 1; i >= 0; i--)
+                {
+                    dst[i] = src[j++];
+                }
+
+                return MemoryMarshal.Read<T>(dst);
             }
-            return dst;
+            else
+            {
+                return MemoryMarshal.Read<T>(src);
+            }
         }
 
-        static void CopyAndReverse(byte[] src, ref byte[] dst, int offset, int length)
+        private static void Write<T>(T value, ref byte[] dst, int offset, bool useNbo)
+            where T: struct
         {
             if (dst.Length == 0)
             {
-                dst = new byte[length];
+                dst = new byte[Unsafe.SizeOf<T>()];
             }
-            for (var i = src.Length; i > 0; i--)
+
+            Write(value, dst.AsSpan(offset), useNbo);
+        }
+
+        private static void Write<T>(T value, Span<byte> dst, bool useNbo)
+            where T: struct
+        {
+            var size = Unsafe.SizeOf<T>();
+
+            if (size > 1 && (useNbo ^ !BitConverter.IsLittleEndian))
             {
-                dst[offset++] = src[i - 1];
+                // size is > 1 means byte order is significant
+                // switch if useNbo = true and we are little endian, or useNbo = false and we are big endian
+
+                Span<byte> buffer = stackalloc byte[size];
+                MemoryMarshal.Write(buffer, ref value);
+
+                var j = 0;
+                for (var i = buffer.Length - 1; i >= 0; i--)
+                {
+                    dst[j++] = buffer[i];
+                }
+            }
+            else
+            {
+                MemoryMarshal.Write(dst, ref value);
             }
         }
 
@@ -41,13 +79,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public bool ToBoolean(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 1;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToBoolean(array, 0);
-            }
-            return BitConverter.ToBoolean(buffer, offset);
+            return Read<bool>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -59,13 +91,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public float ToSingle(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 4;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToSingle(array, 0);
-            }
-            return BitConverter.ToSingle(buffer, offset);
+            return Read<float>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -78,13 +104,7 @@ namespace Couchbase.Core.IO.Converters
         /// <exception cref="System.NotImplementedException"></exception>
         public DateTime ToDateTime(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 8;
-                var array = CopyAndReverse(buffer, offset, length);
-                return DateTime.FromBinary(BitConverter.ToInt64(array, 0));
-            }
-            return DateTime.FromBinary(BitConverter.ToInt64(buffer, offset));
+            return DateTime.FromBinary(Read<long>(buffer.AsSpan(offset), useNbo));
         }
 
         /// <summary>
@@ -96,13 +116,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public double ToDouble(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 8;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToDouble(array, 0);
-            }
-            return BitConverter.ToDouble(buffer, offset);
+            return Read<double>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -136,13 +150,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public short ToInt16(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 2;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToInt16(array, 0);
-            }
-            return BitConverter.ToInt16(buffer, offset);
+            return Read<short>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -165,13 +173,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public ushort ToUInt16(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 2;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToUInt16(array, 0);
-            }
-            return BitConverter.ToUInt16(buffer, offset);
+            return Read<ushort>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -194,13 +196,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public int ToInt32(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 4;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToInt32(array, 0);
-            }
-            return BitConverter.ToInt32(buffer, offset);
+            return Read<int>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -223,13 +219,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public uint ToUInt32(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 4;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToUInt32(array, 0);
-            }
-            return BitConverter.ToUInt32(buffer, offset);
+            return Read<uint>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -240,9 +230,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public long ToInt64(byte[] buffer, int offset)
         {
-            const int length = 8;
-            var array = CopyAndReverse(buffer, offset, length);
-            return BitConverter.ToInt64(array, 0);
+            return ToInt64(buffer, offset, true);
         }
 
         /// <summary>
@@ -254,13 +242,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public long ToInt64(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 8;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToInt64(array, 0);
-            }
-            return BitConverter.ToInt64(buffer, offset);
+            return Read<long>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -283,13 +265,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns></returns>
         public ulong ToUInt64(byte[] buffer, int offset, bool useNbo)
         {
-            if (useNbo)
-            {
-                const int length = 8;
-                var array = CopyAndReverse(buffer, offset, length);
-                return BitConverter.ToUInt64(array, 0);
-            }
-            return BitConverter.ToUInt64(buffer, offset);
+            return Read<ulong>(buffer.AsSpan(offset), useNbo);
         }
 
         /// <summary>
@@ -315,17 +291,7 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="offset">The offset.</param>
         public void FromInt16(short value, ref byte[] buffer, int offset, bool useNbo)
         {
-            const int length = 2;
-            var src = BitConverter.GetBytes(value);
-            if (useNbo)
-            {
-                CopyAndReverse(src, ref buffer, offset, length);
-            }
-            else
-            {
-                buffer = new byte[length];
-                Buffer.BlockCopy(src, 0, buffer, offset, length);
-            }
+            Write(value, ref buffer, offset, useNbo);
         }
 
         /// <summary>
@@ -359,17 +325,7 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="offset">The offset.</param>
         public void FromUInt16(ushort value, ref byte[] buffer, int offset, bool useNbo)
         {
-            const int length = 2;
-            var src = BitConverter.GetBytes(value);
-            if (useNbo)
-            {
-                CopyAndReverse(src, ref buffer, offset, length);
-            }
-            else
-            {
-                buffer = new byte[length];
-                Buffer.BlockCopy(src, 0, buffer, offset, length);
-            }
+            Write(value, ref buffer, offset, useNbo);
         }
 
         /// <summary>
@@ -403,17 +359,7 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         public void FromInt32(int value, ref byte[] buffer, int offset, bool useNbo)
         {
-            const int length = 4;
-            var src = BitConverter.GetBytes(value);
-            if (useNbo)
-            {
-                CopyAndReverse(src, ref buffer, offset, length);
-            }
-            else
-            {
-                buffer = new byte[length];
-                Buffer.BlockCopy(src, 0, buffer, offset, length);
-            }
+            Write(value, ref buffer, offset, useNbo);
         }
 
         /// <summary>
@@ -469,17 +415,7 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         public void FromUInt32(uint value, ref byte[] buffer, int offset, bool useNbo)
         {
-            const int length = 4;
-            var src = BitConverter.GetBytes(value);
-            if (useNbo)
-            {
-                CopyAndReverse(src, ref buffer, offset, length);
-            }
-            else
-            {
-                buffer = new byte[length];
-                Buffer.BlockCopy(src, 0, buffer, offset, length);
-            }
+            Write(value, ref buffer, offset, useNbo);
         }
 
         /// <summary>
@@ -491,17 +427,7 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         public void FromInt64(long value, ref byte[] buffer, int offset, bool useNbo)
         {
-            const int length = 8;
-            var src = BitConverter.GetBytes(value);
-            if (useNbo)
-            {
-                CopyAndReverse(src, ref buffer, offset, length);
-            }
-            else
-            {
-                buffer = new byte[length];
-                Buffer.BlockCopy(src, 0, buffer, offset, length);
-            }
+            Write(value, ref buffer, offset, useNbo);
         }
 
         /// <summary>
@@ -535,17 +461,7 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         public void FromUInt64(ulong value, ref byte[] buffer, int offset, bool useNbo)
         {
-            const int length = 8;
-            var src = BitConverter.GetBytes(value);
-            if (useNbo)
-            {
-                CopyAndReverse(src, ref buffer, offset, length);
-            }
-            else
-            {
-                buffer = new byte[length];
-                Buffer.BlockCopy(src, 0, buffer, offset, length);
-            }
+            Write(value, ref buffer, offset, useNbo);
         }
 
         /// <summary>
