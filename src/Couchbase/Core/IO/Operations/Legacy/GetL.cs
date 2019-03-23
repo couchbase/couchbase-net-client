@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal class GetL<T> : Get<T>
@@ -14,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             var key = CreateKey();
             var extras = CreateExtras();
             var framingExtras = CreateFramingExtras();
-            var header = CreateHeader(extras, new byte[0], key, framingExtras);
+            var header = CreateHeader(extras, Array.Empty<byte>(), key, framingExtras);
 
             var buffer = new byte[header.GetLengthSafe() + key.GetLengthSafe() + extras.GetLengthSafe() + framingExtras.GetLengthSafe()];
 

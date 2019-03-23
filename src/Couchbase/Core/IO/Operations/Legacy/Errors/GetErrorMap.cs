@@ -1,4 +1,6 @@
-﻿namespace Couchbase.Core.IO.Operations.Legacy.Errors
+using System;
+
+namespace Couchbase.Core.IO.Operations.Legacy.Errors
 {
     internal class GetErrorMap : OperationBase<ErrorMap>
     {
@@ -8,12 +10,12 @@
 
         public override byte[] CreateKey()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override byte[] CreateExtras()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override byte[] CreateBody()

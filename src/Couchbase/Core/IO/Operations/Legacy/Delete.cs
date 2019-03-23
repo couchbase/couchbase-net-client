@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal sealed class Delete : MutationOperationBase
@@ -7,7 +9,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public override byte[] Write()
         {
             var key = CreateKey();
-            var header = CreateHeader(new byte[0], new byte[0], key, new byte[0]);
+            var header = CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), key, Array.Empty<byte>());
 
             var buffer = new byte[key.GetLengthSafe() + header.GetLengthSafe()];
 

@@ -1,4 +1,6 @@
-﻿namespace Couchbase.Core.IO.Operations.Legacy
+using System;
+
+namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal class Increment : MutationOperationBase<ulong>
     {
@@ -19,7 +21,7 @@
 
         public override byte[] CreateBody()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override IOperation Clone()

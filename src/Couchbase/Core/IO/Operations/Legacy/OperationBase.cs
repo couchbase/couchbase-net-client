@@ -425,17 +425,17 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public virtual byte[] CreateExtras()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public virtual byte[] CreateBody()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public virtual byte[] CreateFramingExtras()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public virtual byte[] Write()

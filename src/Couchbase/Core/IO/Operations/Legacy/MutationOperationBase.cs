@@ -26,7 +26,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             if (DurabilityLevel == DurabilityLevel.None)
             {
-                return new byte[0];
+                return Array.Empty<byte>();
             }
 
             // TODO: omit timeout bytes if no timeout provided

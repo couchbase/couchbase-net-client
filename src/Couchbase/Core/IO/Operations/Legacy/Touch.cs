@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal class Touch : MutationOperationBase
@@ -13,7 +15,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             var key = CreateKey();
             var extras = CreateExtras();
-            var body = new byte[0];
+            var body = Array.Empty<byte>();
             var framingExtras = CreateFramingExtras();
             var header = CreateHeader(extras, body, key, framingExtras);
 

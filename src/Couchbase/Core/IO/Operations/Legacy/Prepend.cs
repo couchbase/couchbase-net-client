@@ -1,4 +1,6 @@
-﻿namespace Couchbase.Core.IO.Operations.Legacy
+using System;
+
+namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal sealed class Prepend<T> : MutationOperationBase<T>
     {
@@ -7,7 +9,7 @@
             Flags = Transcoder.GetFormat(Content);
             Format = Flags.DataFormat;
             Compression = Flags.Compression;
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override OpCode OpCode => OpCode.Prepend;

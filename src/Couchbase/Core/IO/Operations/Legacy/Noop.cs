@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal class Noop : OperationBase
@@ -6,7 +8,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override byte[] Write()
         {
-            return CreateHeader(new byte[0], new byte[0], null, new byte[0]);
+            return CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), null, Array.Empty<byte>());
         }
 
         public override bool RequiresKey => false;

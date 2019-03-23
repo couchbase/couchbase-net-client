@@ -16,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             }
             else
             {
-                bytes = Content == null ? new byte[0] :
+                bytes = Content == null ? Array.Empty<byte>() :
                     Transcoder.Encode(Content, Flags, OpCode);
             }
 

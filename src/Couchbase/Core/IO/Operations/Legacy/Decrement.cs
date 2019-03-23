@@ -1,4 +1,6 @@
-﻿
+
+using System;
+
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal sealed class Decrement : MutationOperationBase<ulong>
@@ -20,7 +22,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override byte[] CreateBody()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override IOperation Clone()

@@ -1,4 +1,6 @@
-﻿namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
+using System;
+
+namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
     /// <summary>
     /// This command removes an entry from the document. If the entry points to a dictionary key-value,
@@ -25,7 +27,7 @@
         /// <returns></returns>
         public override byte[] CreateBody()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         /// <summary>

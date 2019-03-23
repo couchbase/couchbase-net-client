@@ -18,7 +18,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
                 DataFormat = Format,
                 TypeCode = TypeCode.String
             };
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override void ReadExtras(byte[] buffer)

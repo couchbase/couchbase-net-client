@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Core.Configuration.Server;
 
 namespace Couchbase.Core.IO.Operations.Legacy.Collections
@@ -16,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Collections
                 DataFormat = Format,
                 TypeCode = TypeCode.Object
             };
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override void ReadExtras(byte[] buffer)

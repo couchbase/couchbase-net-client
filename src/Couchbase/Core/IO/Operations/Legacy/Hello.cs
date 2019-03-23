@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -22,7 +22,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override byte[] CreateExtras()
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public override short[] GetValue()

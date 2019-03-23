@@ -10,7 +10,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             var key = CreateKey();
             var framingExtras = CreateFramingExtras();
-            var header = CreateHeader(new byte[0], new byte[0], key, framingExtras);
+            var header = CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), key, framingExtras);
 
             var buffer = new byte[key.GetLengthSafe() + header.GetLengthSafe() + framingExtras.GetLengthSafe()];
             Buffer.BlockCopy(header, 0, buffer, 0, header.Length);

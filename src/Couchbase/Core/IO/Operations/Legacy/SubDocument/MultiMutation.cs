@@ -30,7 +30,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         {
             if (DurabilityLevel == DurabilityLevel.None)
             {
-                return new byte[0];
+                return Array.Empty<byte>();
             }
 
             // TODO: omit timeout bytes if no timeout provided
@@ -87,7 +87,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 var opcode = (byte)mutate.OpCode;
                 var flags = (byte) mutate.PathFlags;
                 var pathLength = Encoding.UTF8.GetByteCount(mutate.Path);
-                var fragment = mutate.Value == null ? new byte[0] : GetBytes(mutate);
+                var fragment = mutate.Value == null ? Array.Empty<byte>() : GetBytes(mutate);
 
                 var spec = new byte[pathLength + 8];
                 Converter.FromByte(opcode, spec, 0);
