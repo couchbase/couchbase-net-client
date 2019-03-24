@@ -1,3 +1,4 @@
+using System;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
@@ -62,7 +63,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             return bytes;
         }
 
-        public override void ReadExtras(byte[] buffer)
+        public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             TryReadMutationToken(buffer);
         }

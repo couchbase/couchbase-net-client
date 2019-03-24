@@ -17,7 +17,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         /// only persistent Couchbase buckets that use VBucket Hashing support mutation tokens.
         /// </summary>
         /// <param name="buffer">The memcached response buffer.</param>
-        public override void ReadExtras(byte[] buffer)
+        public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             TryReadMutationToken(buffer);
         }

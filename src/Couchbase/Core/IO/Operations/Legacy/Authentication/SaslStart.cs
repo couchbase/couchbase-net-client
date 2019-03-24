@@ -21,7 +21,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
             return Array.Empty<byte>();
         }
 
-        public override void ReadExtras(byte[] buffer)
+        public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             Format = DataFormat.String;
             Flags = new Flags

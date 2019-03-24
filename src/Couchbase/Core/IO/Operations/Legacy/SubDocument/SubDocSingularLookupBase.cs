@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
     internal abstract class SubDocSingularLookupBase<T> : SubDocSingularBase<T>
@@ -45,7 +47,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             }
         }
 
-        public override void ReadExtras(byte[] buffer)
+        public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             // Do nothing, lookups don't return extras
         }

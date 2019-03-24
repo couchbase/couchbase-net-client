@@ -19,7 +19,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Collections
             return Array.Empty<byte>();
         }
 
-        public override void ReadExtras(byte[] buffer)
+        public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             //force it to treat the result as JSON for serialization
             Format = DataFormat.Json;

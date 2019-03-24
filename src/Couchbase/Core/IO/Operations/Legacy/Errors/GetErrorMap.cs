@@ -25,7 +25,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Errors
             return body;
         }
 
-        public override void ReadExtras(byte[] buffer)
+        public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             // no extras to read
         }

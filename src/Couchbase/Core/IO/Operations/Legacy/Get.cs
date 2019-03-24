@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -20,12 +21,12 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return buffer;
         }
 
-        public override void ReadExtras(byte[] buffer)
+        public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length > Header.ExtrasOffset)
             {
                 var format = new byte();
-                var flags = Converter.ToByte(buffer, Header.ExtrasOffset);
+                var flags = Converter.ToByte(buffer.Slice(Header.ExtrasOffset));
                 Converter.SetBit(ref format, 0, Converter.GetBit(flags, 0));
                 Converter.SetBit(ref format, 1, Converter.GetBit(flags, 1));
                 Converter.SetBit(ref format, 2, Converter.GetBit(flags, 2));
@@ -36,7 +37,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 Converter.SetBit(ref compression, 5, Converter.GetBit(flags, 5));
                 Converter.SetBit(ref compression, 6, Converter.GetBit(flags, 6));
 
-                var typeCode = (TypeCode)(Converter.ToUInt16(buffer, 26) & 0xff);
+                var typeCode = (TypeCode)(Converter.ToUInt16(buffer.Slice(26)) & 0xff);
                 Format = (DataFormat)format;
                 Compression = (Compression)compression;
                 Flags.DataFormat = Format;
