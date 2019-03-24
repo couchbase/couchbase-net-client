@@ -1,4 +1,4 @@
-﻿using System;   
+using System;
 using System.IO;
 
 namespace Couchbase.Core.IO.Serializers
@@ -13,10 +13,8 @@ namespace Couchbase.Core.IO.Serializers
         /// </summary>
         /// <typeparam name="T">The <see cref="Type"/> specified as the type of the value.</typeparam>
         /// <param name="buffer">The buffer to deserialize from.</param>
-        /// <param name="offset">The offset of the buffer to start reading from.</param>
-        /// <param name="length">The length of the buffer to read from.</param>
         /// <returns>The <see cref="Type"/> instance representing the value of the key.</returns>
-        T Deserialize<T>(byte[] buffer, int offset, int length);
+        T Deserialize<T>(ReadOnlyMemory<byte> buffer);
 
         /// <summary>
         /// Deserializes the specified stream into the <see cref="Type"/> T specified as a generic parameter.

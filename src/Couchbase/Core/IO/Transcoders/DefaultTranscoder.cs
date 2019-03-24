@@ -378,7 +378,7 @@ namespace Couchbase.Core.IO.Transcoders
         /// <returns></returns>
         public virtual T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
         {
-            return Serializer.Deserialize<T>(buffer, offset, length);
+            return Serializer.Deserialize<T>(buffer.AsMemory(offset, length));
         }
 
         /// <summary>

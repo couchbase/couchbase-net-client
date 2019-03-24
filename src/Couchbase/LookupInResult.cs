@@ -54,7 +54,7 @@ namespace Couchbase
             }
 
             var spec = operationSpecs[index];
-            return _serializer.Deserialize<T>(spec.Bytes, 0, spec.Bytes.Length);
+            return _serializer.Deserialize<T>(spec.Bytes.AsMemory());
         }
 
         public T ContentAs<T>(int index, ITypeSerializer serializer)

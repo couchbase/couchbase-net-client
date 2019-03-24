@@ -52,7 +52,7 @@ namespace Couchbase
             var root = new JObject();
             foreach (var spec in _specs)
             {
-                var content = _serializer.Deserialize<JToken>(spec.Bytes, 0, spec.Bytes.Length);
+                var content = _serializer.Deserialize<JToken>(spec.Bytes.AsMemory());
                 var projection = CreateProjection(spec.Path, content);
 
                 try

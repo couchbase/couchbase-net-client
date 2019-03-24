@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -123,19 +124,12 @@ namespace Couchbase.Core.IO.Serializers
 
         #region Methods
 
-        /// <summary>
-        /// Deserializes the specified buffer into the <see cref="Type"/> T specified as a generic parameter.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> specified as the type of the value.</typeparam>
-        /// <param name="buffer">The buffer to deserialize from.</param>
-        /// <param name="offset">The offset of the buffer to start reading from.</param>
-        /// <param name="length">The length of the buffer to read from.</param>
-        /// <returns>The <see cref="Type"/> instance representing the value of the key.</returns>
-        public T Deserialize<T>(byte[] buffer, int offset, int length)
+        /// <inheritdoc />
+        public T Deserialize<T>(ReadOnlyMemory<byte> buffer)
         {
             T value = default(T);
-            if (length == 0) return value;
-            using (var ms = new MemoryStream(buffer, offset, length))
+            if (buffer.Length == 0) return value;
+            using (var ms = new MemoryReaderStream(buffer))
             {
                 using (var sr = new StreamReader(ms))
                 {

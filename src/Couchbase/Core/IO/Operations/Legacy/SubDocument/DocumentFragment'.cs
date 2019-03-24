@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -38,7 +38,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public TContent Content<TContent>(string path)
         {
             var spec = Value.Single(x => x.Path.Equals(path));
-            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes, 0, spec.Bytes.Length);
+            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes.AsMemory());
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             {
                 return default(TContent);
             }
-            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes, 0, spec.Bytes.Length);
+            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes.AsMemory());
         }
 
         /// <summary>
