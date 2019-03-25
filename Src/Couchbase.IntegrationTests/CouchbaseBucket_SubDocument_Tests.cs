@@ -1647,6 +1647,30 @@ namespace Couchbase.IntegrationTests
 
         #endregion
 
+        [Test]
+        public async Task Can_upsert_full_doc_body()
+        {
+            var bucket = GetBucket(false);
+            if (!SupportsXAttributes(bucket))
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
+
+            var key = Guid.NewGuid().ToString();
+            try
+            {
+                var result = await bucket.MutateIn<dynamic>(key)
+                    .Upsert("key", "value", SubdocPathFlags.CreatePath | SubdocPathFlags.Xattr)
+                    .Upsert(new {name = "mike"}, SubdocDocFlags.UpsertDocument)
+                    .ExecuteAsync();
+                Assert.IsTrue(result.Success);
+            }
+            finally
+            {
+                //await bucket.RemoveAsync(key);
+            }
+        }
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {

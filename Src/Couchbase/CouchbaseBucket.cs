@@ -6372,6 +6372,8 @@ namespace Couchbase
                 case OperationCode.SubReplace:
                     return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
+                case OperationCode.Set:
+                    return new SubDocUpsert<T>(builder, null, _transcoder, GlobalTimeout.GetSeconds());
                 default:
                     throw new NotSupportedException("Opcode is not supported for MutateInBuilder.");
             }

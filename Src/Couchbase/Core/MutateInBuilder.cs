@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -172,6 +172,27 @@ namespace Couchbase.Core
                 DocFlags = docFlags
             });
 
+            return this;
+        }
+
+        /// <summary>
+        /// Inserts or updates the JSON document body. This can be used in conjunction with XATTRs to atomically set both parts
+        /// at the same time.
+        /// </summary>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="docFlags">The document flags.</param>
+        /// <returns>
+        /// An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.
+        /// </returns>
+        public IMutateInBuilder<TDocument> Upsert(object value, SubdocDocFlags docFlags = SubdocDocFlags.None)
+        {
+            _commands.Enqueue(new OperationSpec
+            {
+                OpCode = OperationCode.Set,
+                Value = value,
+                PathFlags = SubdocPathFlags.None,
+                DocFlags = docFlags
+            });
             return this;
         }
 

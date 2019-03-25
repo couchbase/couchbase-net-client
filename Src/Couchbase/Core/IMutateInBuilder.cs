@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Couchbase.Core
 {
@@ -46,6 +46,15 @@ namespace Couchbase.Core
         /// <param name="docFlags">The document flags.</param>
         /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
         IMutateInBuilder<TDocument> Insert(string path, object value, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None);
+
+        /// <summary>
+        /// Inserts or updates the JSON document body. This can be used in conjunction with XATTRs to atomically set both parts
+        /// at the same time.
+        /// </summary>
+        /// <param name="value">An array value, dictionary entry, scalar or any other valid JSON item.</param>
+        /// <param name="docFlags">The document flags.</param>
+        /// <returns>An <see cref="IMutateInBuilder{TDocument}"/> reference for chaining operations.</returns>
+        IMutateInBuilder<TDocument> Upsert(object value, SubdocDocFlags docFlags = SubdocDocFlags.None);
 
         /// <summary>
         /// Inserts or updates an element within or into a JSON document at a given path.

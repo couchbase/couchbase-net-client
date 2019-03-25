@@ -64,7 +64,7 @@ namespace Couchbase.IO.Operations.SubDocument
             {
                 var opcode = (byte)mutate.OpCode;
                 var flags = (byte) mutate.PathFlags;
-                var pathLength = Encoding.UTF8.GetByteCount(mutate.Path);
+                var pathLength = string.IsNullOrWhiteSpace(mutate.Path) ? 0 : Encoding.UTF8.GetByteCount(mutate.Path);
                 var fragment = mutate.Value == null ? new byte[0] : GetBytes(mutate);
 
                 var spec = new byte[pathLength + 8];
@@ -72,7 +72,11 @@ namespace Couchbase.IO.Operations.SubDocument
                 Converter.FromByte(flags, spec, 1);
                 Converter.FromUInt16((ushort)pathLength, spec, 2);
                 Converter.FromUInt32((uint)fragment.Length, spec, 4);
-                Converter.FromString(mutate.Path, spec, 8);
+
+                if (pathLength > 0)
+                {
+                    Converter.FromString(mutate.Path, spec, 8);
+                }
 
                 buffer.AddRange(spec);
                 buffer.AddRange(fragment);
