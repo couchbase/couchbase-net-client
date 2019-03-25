@@ -190,18 +190,8 @@ namespace Couchbase.Core.IO.Transcoders
             return bytes;
         }
 
-        /// <summary>
-        /// Decodes the specified buffer.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
-        /// <param name="flags">The flags used for decoding the payload.</param>
-        /// <param name="opcode"></param>
-        /// <returns></returns>
-        /// <exception cref="System.ArgumentException"></exception>
-        public virtual T Decode<T>(byte[] buffer, int offset, int length, Flags flags, OpCode opcode)
+        /// <inheritdoc />
+        public virtual T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
             object value = default(T);
             switch (flags.DataFormat)
@@ -210,29 +200,29 @@ namespace Couchbase.Core.IO.Transcoders
                 case DataFormat.Private:
                     if (typeof (T) == typeof (byte[]))
                     {
-                        value = DecodeBinary(buffer, offset, length);
+                        value = DecodeBinary(buffer.Span);
                     }
                     else
                     {
-                        value = Decode<T>(buffer, offset, length, opcode);
+                        value = Decode<T>(buffer, opcode);
                     }
                     break;
 
                 case DataFormat.Json:
                     if (typeof (T) == typeof (string))
                     {
-                        value = DecodeString(buffer, offset, length);
+                        value = DecodeString(buffer.Span);
                     }
                     else
                     {
-                        value = DeserializeAsJson<T>(buffer, offset, length);
+                        value = DeserializeAsJson<T>(buffer);
                     }
                     break;
 
                 case DataFormat.Binary:
                     if (typeof(T) == typeof(byte[]))
                     {
-                        value = DecodeBinary(buffer, offset, length);
+                        value = DecodeBinary(buffer.Span);
                     }
                     else
                     {
@@ -245,16 +235,16 @@ namespace Couchbase.Core.IO.Transcoders
                 case DataFormat.String:
                     if (typeof(T) == typeof(char))
                     {
-                        value = DecodeChar(buffer, offset, length);
+                        value = DecodeChar(buffer.Span);
                     }
                     else
                     {
-                        value = DecodeString(buffer, offset, length);
+                        value = DecodeString(buffer.Span);
                     }
                     break;
 
                 default:
-                    value = DecodeString(buffer, offset, length);
+                    value = DecodeString(buffer.Span);
                     break;
             }
             return (T)value;
@@ -265,11 +255,9 @@ namespace Couchbase.Core.IO.Transcoders
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public virtual T Decode<T>(byte[] buffer, int offset, int length, OpCode opcode)
+        public virtual T Decode<T>(ReadOnlyMemory<byte> buffer, OpCode opcode)
         {
             object value = default(T);
 
@@ -281,58 +269,58 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.DBNull:
 #endif
                 case TypeCode.String:
-                    value = DecodeString(buffer, offset, length);
+                    value = DecodeString(buffer.Span);
                     break;
 
                 case TypeCode.Char:
-                    value = DecodeChar(buffer, offset, length);
+                    value = DecodeChar(buffer.Span);
                     break;
 
                 case TypeCode.Int16:
-                    if (length > 0)
+                    if (buffer.Length > 0)
                     {
-                        value = Converter.ToInt16(buffer, offset, false);
+                        value = Converter.ToInt16(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.UInt16:
-                    if (length > 0)
+                    if (buffer.Length > 0)
                     {
-                        value = Converter.ToUInt16(buffer, offset, false);
+                        value = Converter.ToUInt16(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.Int32:
-                    if (length > 0)
+                    if (buffer.Length > 0)
                     {
-                        value = Converter.ToInt32(buffer, offset, false);
+                        value = Converter.ToInt32(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.UInt32:
-                    if (length > 0)
+                    if (buffer.Length > 0)
                     {
-                        value = Converter.ToUInt32(buffer, offset, false);
+                        value = Converter.ToUInt32(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.Int64:
-                    if (length > 0)
+                    if (buffer.Length > 0)
                     {
-                        value = Converter.ToInt64(buffer, offset, false);
+                        value = Converter.ToInt64(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.UInt64:
-                    if (length > 0)
+                    if (buffer.Length > 0)
                     {
                         if (opcode == OpCode.Increment || opcode == OpCode.Decrement)
                         {
-                            value = Converter.ToUInt64(buffer, offset, true);
+                            value = Converter.ToUInt64(buffer.Span, true);
                         }
                         else
                         {
-                            value = Converter.ToUInt64(buffer, offset, false);
+                            value = Converter.ToUInt64(buffer.Span, false);
                         }
                     }
                     break;
@@ -359,7 +347,7 @@ namespace Couchbase.Core.IO.Transcoders
                     break;
 
                 case TypeCode.Object:
-                    value = DeserializeAsJson<T>(buffer, offset, length);
+                    value = DeserializeAsJson<T>(buffer);
                     break;
 
                 default:
@@ -373,27 +361,10 @@ namespace Couchbase.Core.IO.Transcoders
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
         /// <returns></returns>
-        public virtual T DeserializeAsJson<T>(byte[] buffer, int offset, int length)
+        public virtual T DeserializeAsJson<T>(ReadOnlyMemory<byte> buffer)
         {
-            return Serializer.Deserialize<T>(buffer.AsMemory(offset, length));
-        }
-
-        /// <summary>
-        /// Decodes the specified buffer.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="buffer">The buffer representing the value of the key to decode.</param>
-        /// <param name="offset">The offset to start reading at.</param>
-        /// <param name="length">The length to read from the buffer.</param>
-        /// <param name="flags">The flags used to encode the payload.</param>
-        /// <param name="opcode"></param>
-        /// <returns></returns>
-        public virtual T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags, OpCode opcode)
-        {
-            return Decode<T>(buffer.Array, offset, length, flags, opcode);
+            return Serializer.Deserialize<T>(buffer);
         }
 
         /// <summary>
@@ -410,15 +381,13 @@ namespace Couchbase.Core.IO.Transcoders
         /// Decodes the specified buffer as string.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
         /// <returns></returns>
-        protected string DecodeString(byte[] buffer, int offset, int length)
+        protected string DecodeString(ReadOnlySpan<byte> buffer)
         {
             string result = null;
-            if (buffer != null && buffer.Length > 0 && length > 0)
+            if (buffer.Length > 0)
             {
-                result = Encoding.UTF8.GetString(buffer, offset, length);
+                result = Converter.ToString(buffer);
             }
             return result;
         }
@@ -427,15 +396,13 @@ namespace Couchbase.Core.IO.Transcoders
         /// Decodes the specified buffer as char.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
         /// <returns></returns>
-        protected char DecodeChar(byte[] buffer, int offset, int length)
+        protected char DecodeChar(ReadOnlySpan<byte> buffer)
         {
             char result = default(char);
-            if (buffer != null && buffer.Length > 0 && length > 0)
+            if (buffer.Length > 0)
             {
-                var str = Encoding.UTF8.GetString(buffer, offset, length);
+                var str = Converter.ToString(buffer);
                 if (str.Length == 1)
                 {
                     result = str[0];
@@ -453,13 +420,11 @@ namespace Couchbase.Core.IO.Transcoders
         /// Decodes the binary.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
         /// <returns></returns>
-        protected byte[] DecodeBinary(byte[] buffer, int offset, int length)
+        protected byte[] DecodeBinary(ReadOnlySpan<byte> buffer)
         {
-            var temp = new byte[length];
-            Buffer.BlockCopy(buffer, offset, temp, 0, length);
+            var temp = new byte[buffer.Length];
+            buffer.CopyTo(temp.AsSpan());
             return temp;
         }
     }

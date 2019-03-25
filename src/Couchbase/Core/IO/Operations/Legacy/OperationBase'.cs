@@ -74,7 +74,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                     ReadExtras(buffer);
                     var offset = Header.BodyOffset;
                     var length = Header.TotalLength - Header.BodyOffset;
-                    result = Transcoder.Decode<T>(buffer, offset, length, Flags, OpCode);
+                    result = Transcoder.Decode<T>(buffer.AsMemory(offset, length), Flags, OpCode);
                 }
                 catch (Exception e)
                 {

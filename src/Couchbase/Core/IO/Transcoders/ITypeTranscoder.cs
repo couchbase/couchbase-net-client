@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
@@ -34,24 +34,10 @@ namespace Couchbase.Core.IO.Transcoders
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="buffer">The buffer representing the value of the key to decode.</param>
-        /// <param name="offset">The offset to start reading at.</param>
-        /// <param name="length">The length to read from the buffer.</param>
         /// <param name="flags">The flags used to encode the payload.</param>
         /// <param name="opcode"></param>
         /// <returns></returns>
-        T Decode<T>(ArraySegment<byte> buffer, int offset, int length, Flags flags, OpCode opcode);
-
-        /// <summary>
-        /// Decodes the specified buffer.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
-        /// <param name="flags">The flags used for decoding the payload.</param>
-        /// <param name="opcode"></param>
-        /// <returns></returns>
-        T Decode<T>(byte[] buffer, int offset, int length, Flags flags, OpCode opcode);
+        T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode);
 
         /// <summary>
         /// Gets or sets the serializer used by the <see cref="ITypeTranscoder"/> implementation.
