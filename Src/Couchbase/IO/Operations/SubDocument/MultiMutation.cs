@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Core.IO.SubDocument;
@@ -12,7 +13,7 @@ namespace Couchbase.IO.Operations.SubDocument
     internal class MultiMutation<T> : OperationBase<T>, IEquatable<MultiMutation<T>>
     {
         private readonly MutateInBuilder<T> _builder;
-        private readonly IList<OperationSpec> _lookupCommands = new List<OperationSpec>();
+        private readonly IList<OperationSpec> _mutateCommands = new List<OperationSpec>();
 
         public MultiMutation(string key, MutateInBuilder<T> mutateInBuilder, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : base(key, vBucket, transcoder, timeout)
@@ -23,12 +24,19 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override byte[] Write()
         {
-            var totalLength = OperationHeader.Length + KeyLength + BodyLength;
+            // create this first because we need to iterate builder for operation specs
+            var bodyBytes = CreateBody();
+
+            var totalLength = OperationHeader.Length + KeyLength + ExtrasLength + bodyBytes.Length;
             var buffer = AllocateBuffer(totalLength);
 
             WriteHeader(buffer);
-            WriteKey(buffer, OperationHeader.Length);
-            WriteBody(buffer, OperationHeader.Length + KeyLength);
+            WriteExtras(buffer, OperationHeader.Length);
+            WriteKey(buffer, OperationHeader.Length + ExtrasLength);
+
+            // manually write body to buffer so we won't re-create it
+            System.Buffer.BlockCopy(bodyBytes, 0, buffer, OperationHeader.Length + ExtrasLength + KeyLength, bodyBytes.Length);
+            //WriteBody(buffer, OperationHeader.Length + ExtrasLength + KeyLength);
             return buffer;
         }
 
@@ -68,9 +76,30 @@ namespace Couchbase.IO.Operations.SubDocument
 
                 buffer.AddRange(spec);
                 buffer.AddRange(fragment);
-                _lookupCommands.Add(mutate);
+                _mutateCommands.Add(mutate);
             }
             return buffer.ToArray();
+        }
+
+        public override void WriteExtras(byte[] buffer, int offset)
+        {
+            var hasExpiry = Expires > 0;
+            if (hasExpiry)
+            {
+                Converter.FromUInt32(Expires, buffer, offset); //4 Expiration time
+            }
+
+            if (_mutateCommands.Any(spec => spec.DocFlags != SubdocDocFlags.None))
+            {
+                var docFlags = SubdocDocFlags.None;
+                foreach (var spec in _mutateCommands)
+                {
+                    docFlags |= spec.DocFlags;
+                }
+
+                // write doc flags, offset depends on if there is an expiry
+                Converter.FromByte((byte) docFlags, buffer, offset + (hasExpiry ? 4 : 0));
+            }
         }
 
         byte[] GetBytes(OperationSpec spec)
@@ -133,7 +162,7 @@ namespace Couchbase.IO.Operations.SubDocument
             //all mutations successful
             if (response.Length == OperationHeader.Length + Header.FramingExtrasLength)
             {
-                return _lookupCommands;
+                return _mutateCommands;
             }
 
             var indexOffset = Header.ExtrasOffset;
@@ -144,7 +173,7 @@ namespace Couchbase.IO.Operations.SubDocument
             for (;;)
             {
                 var index = Converter.ToByte(response, indexOffset);
-                var command = _lookupCommands[index];
+                var command = _mutateCommands[index];
                 command.Status = (ResponseStatus) Converter.ToUInt16(response, statusOffset);
 
                 //if succcess read value and loop to next result - otherwise terminate loop here
@@ -165,12 +194,32 @@ namespace Couchbase.IO.Operations.SubDocument
 
                 if (valueOffset + Header.ExtrasLength > response.Length) break;
             }
-            return _lookupCommands;
+            return _mutateCommands;
         }
 
+        private short? _extrasLength;
         public override short ExtrasLength
         {
-            get { return (short)(Expires == 0 ? 0 : 4); }
+            get
+            {
+                if (!_extrasLength.HasValue)
+                {
+                    short length = 0;
+                    if (Expires > 0)
+                    {
+                        length += 4;
+                    }
+
+                    if (_mutateCommands.Any(x => x.DocFlags != SubdocDocFlags.None))
+                    {
+                        length += 1;
+                    }
+
+                    _extrasLength = length;
+                }
+
+                return _extrasLength.Value;
+            }
         }
 
         public override void WriteKey(byte[] buffer, int offset)

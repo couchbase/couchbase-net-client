@@ -1545,6 +1545,38 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(name, getResult.Content<string>(0));
         }
 
+        [Test]
+        public async Task Can_create_multiple_xattrs_in_single_call()
+        {
+            var bucket = GetBucket(false);
+
+            if (!SupportsXAttributes(bucket))
+            {
+                Assert.Ignore(XAttrsNotSupported);
+            }
+
+            const string key = "Can_create_multiple_xattrs_in_single_call";
+
+            await bucket.RemoveAsync(key);
+            Assert.IsFalse(bucket.Exists(key));
+
+            var mutateResult = await bucket.MutateIn<dynamic>(key)
+                .Upsert("txn.id", "123", SubdocPathFlags.CreatePath | SubdocPathFlags.Xattr, SubdocDocFlags.InsertDocument)
+                .Upsert("txn.ver", "v1", SubdocPathFlags.Xattr)
+                .ExecuteAsync();
+
+            Assert.IsTrue(mutateResult.Success);
+
+            var getResult = await bucket.LookupIn<dynamic>(key)
+                .Get("txn.id", SubdocPathFlags.Xattr)
+                .Get("txn.ver", SubdocPathFlags.Xattr)
+                .ExecuteAsync();
+
+            Assert.IsTrue(getResult.Success);
+            Assert.AreEqual("123", getResult.Content<string>(0));
+            Assert.AreEqual("v1", getResult.Content<string>(1));
+        }
+
         [Ignore("Requires additional logical delete server feature")]
         [TestCase(false)]
         [TestCase(true)]

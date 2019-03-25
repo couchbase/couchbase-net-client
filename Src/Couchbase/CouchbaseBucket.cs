@@ -6405,7 +6405,10 @@ namespace Couchbase
             }
 
             var timeout = builder.Timeout.HasValue ? builder.Timeout.Value: GlobalTimeout;
-            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds());
+            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = builder.Expiry.ToTtl()
+            };
             return (DocumentFragment<T>)_requestExecuter.SendWithRetry(multiMutate);
         }
 
@@ -6426,7 +6429,10 @@ namespace Couchbase
             }
 
             var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
-            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds());
+            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds())
+            {
+                Expires = builder.Expiry.ToTtl()
+            };
             return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(multiMutate).ContinueOnAnyContext();
         }
 
