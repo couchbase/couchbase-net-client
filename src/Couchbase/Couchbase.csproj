@@ -18,6 +18,7 @@
     <PackageReleaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</PackageReleaseNotes>
     <RootNamespace>Couchbase</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
