@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -32,18 +33,18 @@ namespace Couchbase.Core.IO.Operations.Legacy
             {
                 try
                 {
-                    var buffer = Data.ToArray();
-                    var keylength = Converter.ToInt16(buffer, 26);
+                    var buffer = Data.ToArray().AsSpan();
+                    var keylength = Converter.ToInt16(buffer.Slice(26));
 
                     return new ObserveState
                     {
-                        PersistStat = Converter.ToUInt32(buffer, 16),
-                        ReplState = Converter.ToUInt32(buffer, 20),
-                        VBucket = Converter.ToInt16(buffer, 24),
+                        PersistStat = Converter.ToUInt32(buffer.Slice(16)),
+                        ReplState = Converter.ToUInt32(buffer.Slice(20)),
+                        VBucket = Converter.ToInt16(buffer.Slice(24)),
                         KeyLength = keylength,
-                        Key = Converter.ToString(buffer, 28, keylength),
-                        KeyState = (KeyState) Converter.ToByte(buffer, 28 + keylength),
-                        Cas = Converter.ToUInt64(buffer, 28 + keylength + 1)
+                        Key = Converter.ToString(buffer.Slice(28, keylength)),
+                        KeyState = (KeyState) Converter.ToByte(buffer.Slice(28 + keylength)),
+                        Cas = Converter.ToUInt64(buffer.Slice(28 + keylength + 1))
                     };
                 }
                 catch (Exception e)

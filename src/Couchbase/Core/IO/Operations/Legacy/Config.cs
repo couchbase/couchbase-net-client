@@ -41,11 +41,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
             {
                 try
                 {
-                    var buffer = Data.ToArray();
-                    ReadExtras(buffer);
+                    var buffer = Data.ToArray().AsMemory();
+                    ReadExtras(buffer.Span);
                     var offset = Header.BodyOffset;
                     var length = TotalLength - Header.BodyOffset;
-                    var json = Transcoder.Decode<string>(buffer.AsMemory(offset, length), Flags, OpCode);
+                    var json = Transcoder.Decode<string>(buffer.Slice(offset, length), Flags, OpCode);
                     if (EndPoint != null)
                     {
                         json = json.Replace("$HOST", EndPoint.Address.ToString());

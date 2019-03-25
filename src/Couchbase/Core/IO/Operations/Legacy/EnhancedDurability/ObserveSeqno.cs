@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
 {
@@ -45,21 +46,20 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
             {
                 try
                 {
-                    var buffer = Data.ToArray();
-                    var offset = Header.BodyOffset;
+                    var buffer = Data.ToArray().AsSpan(Header.BodyOffset);
 
-                    var isHardFailover = Converter.ToByte(buffer, offset) == 1;
+                    var isHardFailover = Converter.ToByte(buffer) == 1;
                     if (isHardFailover)
                     {
                         result = new ObserveSeqnoResponse
                         {
                             IsHardFailover = true,
-                            VBucketId = Converter.ToInt16(buffer, offset + 1),
-                            VBucketUuid = Converter.ToInt64(buffer, offset + 3),
-                            LastPersistedSeqno = Converter.ToInt64(buffer, offset + 11),
-                            CurrentSeqno = Converter.ToInt64(buffer, offset + 19),
-                            OldVBucketUuid = Converter.ToInt64(buffer, offset + 27),
-                            LastSeqnoReceived = Converter.ToInt64(buffer, offset + 35)
+                            VBucketId = Converter.ToInt16(buffer.Slice(1)),
+                            VBucketUuid = Converter.ToInt64(buffer.Slice(3)),
+                            LastPersistedSeqno = Converter.ToInt64(buffer.Slice(11)),
+                            CurrentSeqno = Converter.ToInt64(buffer.Slice(19)),
+                            OldVBucketUuid = Converter.ToInt64(buffer.Slice(27)),
+                            LastSeqnoReceived = Converter.ToInt64(buffer.Slice(35))
                         };
                     }
                     else
@@ -67,10 +67,10 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
                         result = new ObserveSeqnoResponse
                         {
                             IsHardFailover = false,
-                            VBucketId = Converter.ToInt16(buffer, offset + 1),
-                            VBucketUuid = Converter.ToInt64(buffer, offset + 3),
-                            LastPersistedSeqno = Converter.ToInt64(buffer, offset + 11),
-                            CurrentSeqno = Converter.ToInt64(buffer, offset + 19),
+                            VBucketId = Converter.ToInt16(buffer.Slice(1)),
+                            VBucketUuid = Converter.ToInt64(buffer.Slice(3)),
+                            LastPersistedSeqno = Converter.ToInt64(buffer.Slice(11)),
+                            CurrentSeqno = Converter.ToInt64(buffer.Slice(19)),
                         };
                     }
                 }

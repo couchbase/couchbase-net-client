@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.IO.Converters;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -32,17 +33,15 @@ namespace Couchbase.Core.IO.Operations.Legacy
             {
                 try
                 {
-                    var buffer = Data.ToArray();
-                    var offset = Header.BodyOffset;
+                    var buffer = Data.ToArray().AsSpan(Header.BodyOffset);
                     result = new short[Header.BodyLength/2];
 
                     for (int i = 0; i < result.Length; i++)
                     {
-                        var temp = offset + i * 2;
-                        if (temp < buffer.Length)
-                        {
-                            result[i] = Converter.ToInt16(buffer, temp);
-                        }
+                        result[i] = Converter.ToInt16(buffer);
+
+                        buffer = buffer.Slice(2);
+                        if (buffer.Length <= 0) break;
                     }
                 }
                 catch (Exception e)

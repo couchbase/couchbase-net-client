@@ -70,11 +70,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
             {
                 try
                 {
-                    var buffer = Data.ToArray();
-                    ReadExtras(buffer);
+                    var buffer = Data.ToArray().AsMemory();
+                    ReadExtras(buffer.Span);
                     var offset = Header.BodyOffset;
                     var length = Header.TotalLength - Header.BodyOffset;
-                    result = Transcoder.Decode<T>(buffer.AsMemory(offset, length), Flags, OpCode);
+                    result = Transcoder.Decode<T>(buffer.Slice(offset, length), Flags, OpCode);
                 }
                 catch (Exception e)
                 {
