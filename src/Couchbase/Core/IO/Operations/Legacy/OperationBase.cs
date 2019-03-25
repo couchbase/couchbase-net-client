@@ -86,7 +86,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public Task ReadAsync(byte[] buffer, ErrorMap errorMap = null)
         {
-            var header = buffer.CreateHeader(errorMap, out var errorCode);
+            var header = buffer.AsSpan().CreateHeader(errorMap, out var errorCode);
             return ReadAsync(buffer, header, errorCode);
         }
 
@@ -536,7 +536,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         }
 
         #region Temp add for sub doc - should refactor
- 
+
         public virtual void WriteBody(byte[] buffer, int offset)
         {
             throw new NotImplementedException();

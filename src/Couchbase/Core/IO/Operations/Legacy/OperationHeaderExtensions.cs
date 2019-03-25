@@ -9,29 +9,16 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         private static readonly IByteConverter Converter = new DefaultConverter();
 
-        internal static OperationHeader CreateHeader(this SocketAsyncState state, out ErrorCode errorCode)
+        internal static OperationHeader CreateHeader(this Span<byte> buffer, ErrorMap errorMap,
+            out ErrorCode errorCode)
         {
-            if (state.Data == null || state.Data.Length < OperationHeader.Length)
-            {
-                errorCode = null;
-                return new OperationHeader { Status = ResponseStatus.None };
-            }
+            // This overload is necessary because the compiler won't apply implicit casting when finding extension methods,
+            // so it avoids the need for explicit casting to find the extension method below.
 
-            // take first 24 bytes of the buffer to create the header then reset stream position
-            var buffer = new byte[OperationHeader.Length];
-            state.Data.Position = 0;
-            state.Data.Read(buffer, 0, buffer.Length);
-            state.Data.Position = 0;
-
-            return CreateHeader(buffer, state.ErrorMap, out errorCode);
+            return CreateHeader((ReadOnlySpan<byte>) buffer, errorMap, out errorCode);
         }
 
-        internal static OperationHeader CreateHeader(this byte[] buffer)
-        {
-            return CreateHeader(buffer, null, out var _);
-        }
-
-        internal static OperationHeader CreateHeader(this byte[] buffer, ErrorMap errorMap, out ErrorCode errorCode)
+        internal static OperationHeader CreateHeader(this ReadOnlySpan<byte> buffer, ErrorMap errorMap, out ErrorCode errorCode)
         {
             if (buffer == null || buffer.Length < OperationHeader.Length)
             {
@@ -40,33 +27,33 @@ namespace Couchbase.Core.IO.Operations.Legacy
             }
 
             int keyLength, framingExtrasLength;
-            var magic = (Magic) Converter.ToByte(buffer, HeaderOffsets.Magic);
+            var magic = (Magic) Converter.ToByte(buffer.Slice(HeaderOffsets.Magic));
             if (magic == Magic.AltResponse)
             {
-                framingExtrasLength = Converter.ToByte(buffer, HeaderOffsets.FramingExtras);
-                keyLength = Converter.ToByte(buffer, HeaderOffsets.AltKeyLength);
+                framingExtrasLength = Converter.ToByte(buffer.Slice(HeaderOffsets.FramingExtras));
+                keyLength = Converter.ToByte(buffer.Slice(HeaderOffsets.AltKeyLength));
             }
             else
             {
                 framingExtrasLength = 0;
-                keyLength = Converter.ToInt16(buffer, HeaderOffsets.KeyLength);
+                keyLength = Converter.ToInt16(buffer.Slice(HeaderOffsets.KeyLength));
             }
 
-            var statusCode = Converter.ToInt16(buffer, HeaderOffsets.Status);
+            var statusCode = Converter.ToInt16(buffer.Slice(HeaderOffsets.Status));
             var status = GetResponseStatus(statusCode, errorMap, out errorCode);
 
             return new OperationHeader
             {
                 Magic = (byte) magic,
-                OpCode = Converter.ToByte(buffer, HeaderOffsets.Opcode).ToOpCode(),
+                OpCode = Converter.ToByte(buffer.Slice(HeaderOffsets.Opcode)).ToOpCode(),
                 FramingExtrasLength = framingExtrasLength,
                 KeyLength = keyLength,
-                ExtrasLength = Converter.ToByte(buffer, HeaderOffsets.ExtrasLength),
-                DataType = (DataType) Converter.ToByte(buffer, HeaderOffsets.Datatype),
+                ExtrasLength = Converter.ToByte(buffer.Slice(HeaderOffsets.ExtrasLength)),
+                DataType = (DataType) Converter.ToByte(buffer.Slice(HeaderOffsets.Datatype)),
                 Status = status,
-                BodyLength = Converter.ToInt32(buffer, HeaderOffsets.Body),
-                Opaque = Converter.ToUInt32(buffer, HeaderOffsets.Opaque),
-                Cas = Converter.ToUInt64(buffer, HeaderOffsets.Cas)
+                BodyLength = Converter.ToInt32(buffer.Slice(HeaderOffsets.Body)),
+                Opaque = Converter.ToUInt32(buffer.Slice(HeaderOffsets.Opaque)),
+                Cas = Converter.ToUInt64(buffer.Slice(HeaderOffsets.Cas))
             };
         }
 
@@ -109,7 +96,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return GetServerDuration(bytes);
         }
 
-        internal static long? GetServerDuration(this OperationHeader header, byte[] buffer)
+        internal static long? GetServerDuration(this OperationHeader header, ReadOnlySpan<byte> buffer)
         {
             if (header.FramingExtrasLength <= 0)
             {
@@ -117,13 +104,13 @@ namespace Couchbase.Core.IO.Operations.Legacy
             }
 
             // copy framing extra bytes
-            var bytes = new byte[header.FramingExtrasLength];
-            Buffer.BlockCopy(buffer, OperationHeader.Length, bytes, 0, header.FramingExtrasLength);
+            Span<byte> bytes = new byte[header.FramingExtrasLength];
+            buffer.Slice(OperationHeader.Length, header.FramingExtrasLength).CopyTo(bytes);
 
             return GetServerDuration(bytes);
         }
 
-        internal static long? GetServerDuration(byte[] buffer)
+        internal static long? GetServerDuration(ReadOnlySpan<byte> buffer)
         {
             var offset = 0;
             while (offset < buffer.Length)
@@ -135,7 +122,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 if (type == ResponseFramingExtraType.ServerDuration)
                 {
                     // read encoded two byte server duration
-                    var encoded = Converter.ToUInt16(buffer, offset);
+                    var encoded = Converter.ToUInt16(buffer.Slice(offset));
                     if (encoded > 0)
                     {
                         // decode into microseconds
