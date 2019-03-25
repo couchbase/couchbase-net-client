@@ -41,7 +41,7 @@ namespace Couchbase
                 var command = new OperationSpec
                 {
                     Status = (ResponseStatus) _converter.ToUInt16(response, statusOffset),
-                    ValueIsJson = payLoad.IsJson(0, bodyLength - 1),
+                    ValueIsJson = payLoad.AsSpan().IsJson(),
                     Bytes = payLoad
                 };
                 operationSpecs.Add(command);

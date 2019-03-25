@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
 
@@ -76,28 +77,22 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         public override T GetValue()
         {
-            var response = Data.ToArray();
-            var statusOffset = Header.BodyOffset;
-            var valueLengthOffset = statusOffset + 2;
-            var valueOffset = statusOffset + 6;
+            var responseSpan = Data.ToArray().AsSpan(Header.BodyOffset);
             var commandIndex = 0;
 
             for (;;)
             {
-                var bodyLength = Converter.ToInt32(response, valueLengthOffset);
+                var bodyLength = Converter.ToInt32(responseSpan.Slice(2));
                 var payLoad = new byte[bodyLength];
-                System.Buffer.BlockCopy(response, valueOffset, payLoad, 0, bodyLength);
+                responseSpan.Slice(6, bodyLength).CopyTo(payLoad);
 
                 var command = LookupCommands[commandIndex++];
-                command.Status = (ResponseStatus)Converter.ToUInt16(response, statusOffset);
-                command.ValueIsJson = payLoad.IsJson(0, bodyLength - 1);
+                command.Status = (ResponseStatus)Converter.ToUInt16(responseSpan);
+                command.ValueIsJson = payLoad.AsSpan().IsJson();
                 command.Bytes = payLoad;
 
-                statusOffset = valueOffset + bodyLength;
-                valueLengthOffset = statusOffset + 2;
-                valueOffset = statusOffset + 6;
-
-                if (valueOffset >= response.Length) break;
+                responseSpan = responseSpan.Slice(6 + bodyLength);
+                if (responseSpan.Length <= 0) break;
             }
             return (T)LookupCommands;
         }

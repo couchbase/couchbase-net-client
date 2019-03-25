@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -162,12 +162,12 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             {
                 try
                 {
-                    var buffer = Data.ToArray();
+                    var buffer = Data.ToArray().AsSpan();
                     ReadExtras(buffer);
                     var offset = Header.BodyOffset;
-                    CurrentSpec.ValueIsJson = buffer.IsJson(offset, TotalLength-1);
+                    CurrentSpec.ValueIsJson = buffer.Slice(offset, TotalLength).IsJson();
                     CurrentSpec.Bytes = new byte[TotalLength-offset];
-                    Buffer.BlockCopy(buffer, offset, CurrentSpec.Bytes, 0, TotalLength-offset);
+                    buffer.Slice(offset, CurrentSpec.Bytes.Length).CopyTo(CurrentSpec.Bytes);
                 }
                 catch (Exception e)
                 {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
 
@@ -157,43 +158,38 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         public IList<OperationSpec> GetCommandValues()
         {
-            var response = Data.ToArray();
-            ReadExtras(response);
+            var responseSpan = Data.ToArray().AsSpan();
+            ReadExtras(responseSpan);
 
             //all mutations successful
-            if (response.Length == OperationHeader.Length + Header.FramingExtrasLength)
+            if (responseSpan.Length == OperationHeader.Length + Header.FramingExtrasLength)
             {
                 return _lookupCommands;
             }
 
-            var indexOffset = Header.ExtrasOffset;
-            var statusOffset = indexOffset + 1;
-            var valueLengthOffset = indexOffset + 3;
-            var valueOffset = indexOffset + 7;
+            responseSpan = responseSpan.Slice(Header.ExtrasOffset);
 
             for (;;)
             {
-                var index = Converter.ToByte(response, indexOffset);
+                var index = Converter.ToByte(responseSpan);
                 var command = _lookupCommands[index];
-                command.Status = (ResponseStatus) Converter.ToUInt16(response, statusOffset);
+                command.Status = (ResponseStatus) Converter.ToUInt16(responseSpan.Slice(1));
 
-                //if succcess read value and loop to next result - otherwise terminate loop here
+                //if success read value and loop to next result - otherwise terminate loop here
                 if (command.Status == ResponseStatus.Success)
                 {
-                    var valueLength = Converter.ToInt32(response, valueLengthOffset);
+                    var valueLength = Converter.ToInt32(responseSpan.Slice(3));
                     if (valueLength > 0)
                     {
                         var payLoad = new byte[valueLength];
-                        System.Buffer.BlockCopy(response, valueOffset, payLoad, 0, valueLength);
+                        responseSpan.Slice(7, valueLength).CopyTo(payLoad);
                         command.Bytes = payLoad;
                     }
-                    indexOffset = valueOffset + valueLength;
-                    statusOffset = indexOffset + 1;
-                    valueLengthOffset = indexOffset + 3;
-                    valueOffset = indexOffset + 7;
+
+                    responseSpan = responseSpan.Slice(7 + valueLength);
                 }
 
-                if (valueOffset + Header.ExtrasLength > response.Length) break;
+                if (responseSpan.Length <= 0) break;
             }
             return _lookupCommands;
         }

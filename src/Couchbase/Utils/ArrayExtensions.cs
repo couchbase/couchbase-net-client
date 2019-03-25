@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -161,14 +161,15 @@ namespace Couchbase.Utils
             return theArray;
         }
 
-        public static bool IsJson(this byte[] theArray, int startIndex, int endIndex)
+        public static bool IsJson(this Span<byte> buffer)
         {
-            if (endIndex < theArray.Length)
-            {
-                return false;
-            }
-            return (theArray.Length > 1 && theArray[startIndex] == 0x5b && theArray[endIndex] == 0x5d) ||
-                   (theArray.Length > 1 && theArray[startIndex] == 0x7b && theArray[endIndex] == 0x7d);
+            return ((ReadOnlySpan<byte>) buffer).IsJson();
+        }
+
+        public static bool IsJson(this ReadOnlySpan<byte> buffer)
+        {
+            return (buffer.Length > 1 && buffer[0] == 0x5b && buffer[buffer.Length-1] == 0x5d) ||
+                   (buffer.Length > 1 && buffer[0] == 0x7b && buffer[buffer.Length-1] == 0x7d);
         }
 
         /// <summary>Creates a string from a list with each value delimited by the value of <see cref="delimiter"/> and
