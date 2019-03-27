@@ -1,11 +1,12 @@
-﻿using System;
-using System.IO;
+using System;
+using System.Buffers;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO
 {
@@ -18,7 +19,7 @@ namespace Couchbase.Core.IO
         public Func<SocketAsyncState, Task> Callback { get; set; }
         public IByteConverter Converter { get; set; }
         public uint Opaque { get; set; }
-        public Timer Timer; 
+        public Timer Timer;
         public string ConnectionId { get; set; }
         public ErrorMap ErrorMap { get; set; }
         public string LocalEndpoint { get; set; }
@@ -30,12 +31,11 @@ namespace Couchbase.Core.IO
         {
             Timer?.Dispose();
 
-            var response = new byte[24];
-            Converter.FromUInt32(Opaque, response, HeaderOffsets.Opaque);
+            var response = MemoryPool<byte>.Shared.RentAndSlice(24);
+            Converter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
 
-            Callback(new SocketAsyncState
+            var state = new SocketAsyncState
             {
-                Data = new MemoryStream(response),
                 Opaque = Opaque,
                 // ReSharper disable once MergeConditionalExpression
                 Exception = e,
@@ -44,34 +44,37 @@ namespace Couchbase.Core.IO
                 ConnectionId = ConnectionId,
                 ErrorMap = ErrorMap,
                 LocalEndpoint = LocalEndpoint
-            });
+            };
+
+            state.SetData(response);
+
+            Callback(state);
         }
 
-        /// <summary>
-        /// Completes the specified Memcached response.
-        /// </summary>
-        /// <param name="response">The Memcached response packet.</param>
-        public void Complete(byte[] response)
+        /// <inheritdoc />
+        public void Complete(IMemoryOwner<byte> response)
         {
             Timer?.Dispose();
 
-            //defaults
-            var status = (ResponseStatus) Converter.ToInt16(response, HeaderOffsets.Status);
+            ResponseStatus status;
             Exception e = null;
 
-            //this means the request never completed - assume a transport failure
             if (response == null)
             {
-                response = new byte[24];
-                Converter.FromUInt32(Opaque, response, HeaderOffsets.Opaque);
+                //this means the request never completed - assume a transport failure
+                response = MemoryPool<byte>.Shared.RentAndSlice(24);
+                Converter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
                 e = new Exception("SendTimeoutException");
                 status = ResponseStatus.TransportFailure;
             }
-
-            //somewhat of hack for backwards compatibility
-            Task.Run(() => Callback(new SocketAsyncState
+            else
             {
-                Data = new MemoryStream(response),
+                //defaults
+                status = (ResponseStatus) Converter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status));
+            }
+
+            var state = new SocketAsyncState
+            {
                 Opaque = Opaque,
                 Exception = e,
                 Status = status,
@@ -79,7 +82,12 @@ namespace Couchbase.Core.IO
                 ConnectionId = ConnectionId,
                 ErrorMap = ErrorMap,
                 LocalEndpoint = LocalEndpoint
-            }));
+            };
+
+            state.SetData(response);
+
+            //somewhat of hack for backwards compatibility
+            Task.Factory.StartNew(stateObj => Callback((SocketAsyncState) stateObj), state);
         }
 
         public void Dispose()

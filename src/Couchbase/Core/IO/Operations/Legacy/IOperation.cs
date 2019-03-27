@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Buffers;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ using Couchbase.Core.IO.Transcoders;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
-    public interface IOperation
+    public interface IOperation : IDisposable
     {
         OpCode OpCode { get; }
 
@@ -26,7 +27,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         Exception Exception { get; set; }
 
-        MemoryStream Data { get; set; }
+        Memory<byte> Data { get; }
 
         uint LastConfigRevisionTried { get; set; }
 
@@ -52,9 +53,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         Task<byte[]> WriteAsync();
 
-        Task ReadAsync(byte[] buffer, ErrorMap errorMap = null);
-
-        Task ReadAsync(byte[] buffer, OperationHeader header, ErrorCode errorCode);
+        Task ReadAsync(IMemoryOwner<byte> buffer, ErrorMap errorMap = null);
 
         void HandleClientError(string message, ResponseStatus responseStatus);
 

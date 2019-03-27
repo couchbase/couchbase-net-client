@@ -1,5 +1,5 @@
 using System;
-using System.IO;
+using System.Buffers;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +8,7 @@ using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Utils;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations.Legacy
@@ -20,11 +21,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
         internal ErrorCode ErrorCode;
         private static readonly IByteConverter DefaultConverter = new DefaultConverter();
         private static readonly ITypeTranscoder DefaultTranscoder = new DefaultTranscoder(DefaultConverter);
+        private IMemoryOwner<byte> _data;
 
         protected OperationBase()
         {
             Opaque = SequenceGenerator.GetNext();
-            Data = MemoryStreamFactory.GetMemoryStream();
             Header = new OperationHeader {Status = ResponseStatus.None};
             Key = string.Empty;
 
@@ -41,7 +42,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public Exception Exception { get; set; }
         public ulong Cas { get; set; }
         public uint? Cid { get; set; }
-        public MemoryStream Data { get; set; }
+        public Memory<byte> Data => _data?.Memory ?? Memory<byte>.Empty;
         public uint Opaque { get; set; }
         public short? VBucketId { get; set; }
         public int TotalLength => Header.TotalLength;
@@ -59,8 +60,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public virtual void Reset(ResponseStatus status)
         {
-            Data?.Dispose();
-            Data = MemoryStreamFactory.GetMemoryStream();
+            _data?.Dispose();
+            _data = null;
 
             Header = new OperationHeader
             {
@@ -77,28 +78,26 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             Reset(responseStatus);
             var msgBytes = Encoding.UTF8.GetBytes(message);
-            if (Data == null)
-            {
-                Data = MemoryStreamFactory.GetMemoryStream();
-            }
-            Data.Write(msgBytes, 0, msgBytes.Length);
+
+            _data = MemoryPool<byte>.Shared.RentAndSlice(msgBytes.Length);
+            msgBytes.AsSpan().CopyTo(_data.Memory.Span);
         }
 
-        public Task ReadAsync(byte[] buffer, ErrorMap errorMap = null)
+        public Task ReadAsync(IMemoryOwner<byte> buffer, ErrorMap errorMap = null)
         {
-            var header = buffer.AsSpan().CreateHeader(errorMap, out var errorCode);
+            EnsureNotDisposed();
+
+            var header = buffer.Memory.Span.CreateHeader(errorMap, out var errorCode);
             return ReadAsync(buffer, header, errorCode);
         }
 
-        public async Task ReadAsync(byte[] buffer, OperationHeader header, ErrorCode errorCode = null)
+        private Task ReadAsync(IMemoryOwner<byte> buffer, OperationHeader header, ErrorCode errorCode = null)
         {
             Header = header;
             ErrorCode = errorCode;
+            _data = buffer;
 
-            if (buffer?.Length > 0)
-            {
-                await Data.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-            }
+            return Task.CompletedTask;
         }
 
         public OperationHeader ReadHeader()
@@ -215,18 +214,16 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 result.OpCode = OpCode;
 
                 // make sure we read any extras
-                if (Success && Data != null && Data.Length > 0)
+                if (Success && Data.Length > 0)
                 {
-                    var buffer = Data.ToArray();
-                    ReadExtras(buffer);
+                    ReadExtras(_data.Memory.Span);
                     result.Token = MutationToken ?? DefaultMutationToken;
                 }
 
                 //clean up and set to null
                 if (!result.IsNmv())
                 {
-                    Data?.Dispose();
-                    Data = null;
+                    Dispose();
                 }
             }
             catch (Exception e)
@@ -237,9 +234,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
             }
             finally
             {
-                if (Data != null && !result.IsNmv())
+                if (_data != null && !result.IsNmv())
                 {
-                    Data.Dispose();
+                    Dispose();
                 }
             }
             return result;
@@ -374,16 +371,15 @@ namespace Couchbase.Core.IO.Operations.Legacy
         private string GetResponseBodyAsString()
         {
             var body = string.Empty;
-            if (GetResponseStatus() != ResponseStatus.Success && Data != null && Data.Length > 0)
+            if (GetResponseStatus() != ResponseStatus.Success && Data.Length > 0)
             {
-                var buffer = Data.ToArray();
-                if (buffer.Length > 0 && TotalLength == OperationHeader.Length)
+                if (TotalLength == OperationHeader.Length)
                 {
-                    body = Converter.ToString(buffer, 0, buffer.Length);
+                    body = Converter.ToString(Data.Span);
                 }
                 else
                 {
-                    body = Converter.ToString(buffer, OperationHeader.Length, Math.Min(buffer.Length - OperationHeader.Length, TotalLength - OperationHeader.Length));
+                    body = Converter.ToString(Data.Span.Slice(OperationHeader.Length, Math.Min(Data.Length - OperationHeader.Length, TotalLength - OperationHeader.Length)));
                 }
             }
 
@@ -393,13 +389,13 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public virtual BucketConfig GetConfig(ITypeTranscoder transcoder)
         {
             BucketConfig config = null;
-            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data != null)
+            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data.Length > 0)
             {
                 var offset = Header.BodyOffset;
                 var length = Header.TotalLength - Header.BodyOffset;
 
                 //Override any flags settings since the body of the response has changed to a config
-                config = transcoder.Decode<BucketConfig>(Data.ToArray(), offset, length, new Flags
+                config = transcoder.Decode<BucketConfig>(Data.Slice(offset, length), new Flags
                 {
                     Compression = Compression.None,
                     DataFormat = DataFormat.Json,
@@ -556,6 +552,38 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             throw new NotImplementedException();
         }
+        #endregion
+
+        #region Finalization and Dispose
+
+        ~OperationBase()
+        {
+            Dispose(false);
+        }
+
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            _disposed = true;
+            _data?.Dispose();
+            _data = null;
+        }
+
+        protected void EnsureNotDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
+        }
+
         #endregion
     }
 }

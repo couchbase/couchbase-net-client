@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy.SubDocument;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.UnitTests.Helpers;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -129,7 +130,7 @@ namespace Couchbase.UnitTests
         public void Test_Projection()
         {
             var getRequest = new MultiLookup<byte[]>();
-            getRequest.ReadAsync(_lookupInPacket);
+            getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(_lookupInPacket,
                 new DefaultTranscoder(new DefaultConverter()),
@@ -148,7 +149,7 @@ namespace Couchbase.UnitTests
         public void Test_Projection_With_Poco()
         {
             var getRequest = new MultiLookup<byte[]>();
-            getRequest.ReadAsync(_lookupInPacket);
+            getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(_lookupInPacket,
                 new DefaultTranscoder(new DefaultConverter()),
@@ -167,7 +168,7 @@ namespace Couchbase.UnitTests
         public void Test_Projection_With_Dictionary()
         {
             var getRequest = new MultiLookup<byte[]>();
-            getRequest.ReadAsync(_lookupInPacket);
+            getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(_lookupInPacket,
                 new DefaultTranscoder(new DefaultConverter()),

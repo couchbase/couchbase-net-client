@@ -2,6 +2,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Utils;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -38,12 +39,12 @@ namespace Couchbase
         private async Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken), TimeSpan? timeout = null)
         {
             // wire up op's completed function
-            var tcs = new TaskCompletionSource<byte[]>();
+            var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
             op.Completed = state =>
             {
                 if (state.Status == ResponseStatus.Success)
                 {
-                    tcs.SetResult(state.Data.ToArray());
+                    tcs.SetResult(state.ExtractData());
                 }
                 else
                 {
@@ -137,21 +138,22 @@ namespace Couchbase
             }
 
             //A regular get operation
-            var getOp = new Get<object>
+            using (var getOp = new Get<object>
             {
                 Key = id,
                 Cid = Cid
-            };
-
-            await ExecuteOp(getOp, options.Token, options.Timeout).ConfigureAwait(false);
-            return new GetResult(getOp.Data.ToArray(), _transcoder)
+            })
             {
-                Id = getOp.Key,
-                Cas = getOp.Cas,
-                OpCode = getOp.OpCode,
-                Flags = getOp.Flags,
-                Header = getOp.Header
-            };
+                await ExecuteOp(getOp, options.Token, options.Timeout).ConfigureAwait(false);
+                return new GetResult(getOp.Data.ToArray(), _transcoder)
+                {
+                    Id = getOp.Key,
+                    Cas = getOp.Cas,
+                    OpCode = getOp.OpCode,
+                    Flags = getOp.Flags,
+                    Header = getOp.Header
+                };
+            }
         }
 
         #endregion
@@ -173,29 +175,31 @@ namespace Couchbase
 
         public async Task<IExistsResult> Exists(string id, ExistsOptions options)
         {
-            var existsOp = new Observe
+            using (var existsOp = new Observe
             {
                 Key = id,
                 Cid = Cid
-            };
-
-            try
+            })
             {
-                await ExecuteOp(existsOp, options.Token, options.Timeout);
-                var keyState = existsOp.GetValue().KeyState;
-                return new ExistsResult
+                try
                 {
-                    Exists = existsOp.Success && keyState != KeyState.NotFound && keyState != KeyState.LogicalDeleted,
-                    Cas = existsOp.Cas,
-                    Expiration = TimeSpan.FromMilliseconds(existsOp.Expires)
-                };
-            }
-            catch (KeyNotFoundException)
-            {
-                return new ExistsResult
+                    await ExecuteOp(existsOp, options.Token, options.Timeout);
+                    var keyState = existsOp.GetValue().KeyState;
+                    return new ExistsResult
+                    {
+                        Exists = existsOp.Success && keyState != KeyState.NotFound &&
+                                 keyState != KeyState.LogicalDeleted,
+                        Cas = existsOp.Cas,
+                        Expiration = TimeSpan.FromMilliseconds(existsOp.Expires)
+                    };
+                }
+                catch (KeyNotFoundException)
                 {
-                    Exists = false
-                };
+                    return new ExistsResult
+                    {
+                        Exists = false
+                    };
+                }
             }
         }
 
@@ -218,7 +222,7 @@ namespace Couchbase
 
         public async Task<IMutationResult> Upsert<T>(string id, T content, UpsertOptions options)
         {
-            var upsertOp = new Set<T>
+            using (var upsertOp = new Set<T>
             {
                 Key = id,
                 Content = content,
@@ -227,10 +231,11 @@ namespace Couchbase
                 Expires = options.Expiration.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
-            };
-
-            await ExecuteOp(upsertOp, options.Token, options.Timeout).ConfigureAwait(false);
-            return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
+            })
+            {
+                await ExecuteOp(upsertOp, options.Token, options.Timeout).ConfigureAwait(false);
+                return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
+            }
         }
 
         #endregion
@@ -252,7 +257,7 @@ namespace Couchbase
 
         public async Task<IMutationResult> Insert<T>(string id, T content, InsertOptions options)
         {
-            var insertOp = new Add<T>
+            using (var insertOp = new Add<T>
             {
                 Key = id,
                 Content = content,
@@ -261,10 +266,11 @@ namespace Couchbase
                 Expires = options.Expiration.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
-            };
-
-            await ExecuteOp(insertOp, options.Token, options.Timeout).ConfigureAwait(false);
-            return new MutationResult(insertOp.Cas, null, insertOp.MutationToken);
+            })
+            {
+                await ExecuteOp(insertOp, options.Token, options.Timeout).ConfigureAwait(false);
+                return new MutationResult(insertOp.Cas, null, insertOp.MutationToken);
+            }
         }
 
         #endregion
@@ -286,7 +292,7 @@ namespace Couchbase
 
         public async Task<IMutationResult> Replace<T>(string id, T content, ReplaceOptions options)
         {
-            var replaceOp = new Replace<T>
+            using (var replaceOp = new Replace<T>
             {
                 Key = id,
                 Content = content,
@@ -295,10 +301,11 @@ namespace Couchbase
                 Expires = options.Expiration.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
-            };
-
-            await ExecuteOp(replaceOp, options.Token, options.Timeout).ConfigureAwait(false);
-            return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken);
+            })
+            {
+                await ExecuteOp(replaceOp, options.Token, options.Timeout).ConfigureAwait(false);
+                return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken);
+            }
         }
 
         #endregion
@@ -320,16 +327,17 @@ namespace Couchbase
 
         public async Task Remove(string id, RemoveOptions options)
         {
-            var removeOp = new Delete
+            using (var removeOp = new Delete
             {
                 Key = id,
                 Cas = options.Cas,
                 Cid = Cid,
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
-            };
-
-            await ExecuteOp(removeOp, options.Token, options.Timeout).ConfigureAwait(false);
+            })
+            {
+                await ExecuteOp(removeOp, options.Token, options.Timeout).ConfigureAwait(false);
+            }
         }
 
         #endregion
@@ -351,14 +359,15 @@ namespace Couchbase
 
         public async Task Unlock<T>(string id, UnlockOptions options)
         {
-            var unlockOp = new Unlock
+            using (var unlockOp = new Unlock
             {
                 Key = id,
                 Cid = Cid,
                 Cas = options.Cas
-            };
-
-            await ExecuteOp(unlockOp, options.Token, options.Timeout).ConfigureAwait(false);
+            })
+            {
+                await ExecuteOp(unlockOp, options.Token, options.Timeout).ConfigureAwait(false);
+            }
         }
 
         #endregion
@@ -380,16 +389,17 @@ namespace Couchbase
 
         public async Task Touch(string id, TimeSpan expiration, TouchOptions options)
         {
-            var touchOp = new Touch
+            using (var touchOp = new Touch
             {
                 Key = id,
                 Cid = Cid,
                 Expires = expiration.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
-            };
-
-            await ExecuteOp(touchOp, options.Token, options.Timeout).ConfigureAwait(false);
+            })
+            {
+                await ExecuteOp(touchOp, options.Token, options.Timeout).ConfigureAwait(false);
+            }
         }
 
         #endregion
@@ -411,17 +421,18 @@ namespace Couchbase
 
         public async Task<IGetResult> GetAndTouch(string id, TimeSpan expiration, GetAndTouchOptions options)
         {
-            var getAndTouchOp = new GetT<byte[]>
+            using (var getAndTouchOp = new GetT<byte[]>
             {
                 Key = id,
                 Cid = Cid,
                 Expires = expiration.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
-            };
-
-            await ExecuteOp(getAndTouchOp, options.Token, options.Timeout);
-            return new GetResult(getAndTouchOp.Data.ToArray(), _transcoder);
+            })
+            {
+                await ExecuteOp(getAndTouchOp, options.Token, options.Timeout);
+                return new GetResult(getAndTouchOp.Data.ToArray(), _transcoder);
+            }
         }
 
         #endregion
@@ -443,15 +454,16 @@ namespace Couchbase
 
         public async Task<IGetResult> GetAndLock(string id, TimeSpan expiration, GetAndLockOptions options)
         {
-            var getAndLockOp = new GetL<byte[]>
+            using (var getAndLockOp = new GetL<byte[]>
             {
                 Key = id,
                 Cid = Cid,
                 Expiration = expiration.ToTtl()
-            };
-
-            await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
-            return new GetResult(getAndLockOp.Data.ToArray(), _transcoder);
+            })
+            {
+                await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
+                return new GetResult(getAndLockOp.Data.ToArray(), _transcoder);
+            }
         }
 
         #endregion
@@ -500,8 +512,10 @@ namespace Couchbase
 
         public async Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs, LookupInOptions options)
         {
-            var lookup = await ExecuteLookupIn(id, specs, options);
-            return new LookupInResult(lookup.Data.ToArray(), lookup.Cas, null);
+            using (var lookup = await ExecuteLookupIn(id, specs, options))
+            {
+                return new LookupInResult(lookup.Data.ToArray(), lookup.Cas, null);
+            }
         }
 
         private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<OperationSpec> specs, LookupInOptions options)
@@ -569,16 +583,17 @@ namespace Couchbase
             // convert new style specs into old style builder
             var builder = new MutateInBuilder<byte[]>(null, null, id, specs);
 
-            var mutation = new MultiMutation<byte[]>
+            using (var mutation = new MultiMutation<byte[]>
             {
                 Key = id,
                 Builder = builder,
                 Cid = Cid,
                 DurabilityLevel = options.DurabilityLevel
-            };
-
-            await ExecuteOp(mutation, options.Token, options.Timeout);
-            return new MutationResult(mutation.Cas, null, mutation.MutationToken);
+            })
+            {
+                await ExecuteOp(mutation, options.Token, options.Timeout);
+                return new MutationResult(mutation.Cas, null, mutation.MutationToken);
+            }
         }
 
         #endregion
@@ -600,16 +615,17 @@ namespace Couchbase
 
         public async Task<IMutationResult> Append(string id, byte[] value, AppendOptions options)
         {
-            var op = new Append<byte[]>
+            using (var op = new Append<byte[]>
             {
                 Cid = Cid,
                 Key = id,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel
-            };
-
-            await ExecuteOp(op, options.Token, options.Timeout);
-            return new MutationResult(op.Cas, null, op.MutationToken);
+            })
+            {
+                await ExecuteOp(op, options.Token, options.Timeout);
+                return new MutationResult(op.Cas, null, op.MutationToken);
+            }
         }
 
         #endregion
@@ -631,16 +647,17 @@ namespace Couchbase
 
         public async Task<IMutationResult> Prepend(string id, byte[] value, PrependOptions options)
         {
-            var op = new Prepend<byte[]>
+            using (var op = new Prepend<byte[]>
             {
                 Cid = Cid,
                 Key = id,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel
-            };
-
-            await ExecuteOp(op, options.Token, options.Timeout);
-            return new MutationResult(op.Cas, null, op.MutationToken);
+            })
+            {
+                await ExecuteOp(op, options.Token, options.Timeout);
+                return new MutationResult(op.Cas, null, op.MutationToken);
+            }
         }
 
         #endregion
@@ -662,17 +679,18 @@ namespace Couchbase
 
         public async Task<ICounterResult> Increment(string id, IncrementOptions options)
         {
-            var op = new Increment
+            using (var op = new Increment
             {
                 Cid = Cid,
                 Key = id,
                 Delta = options.Delta,
                 Initial = options.Initial,
                 DurabilityLevel = options.DurabilityLevel
-            };
-
-            await ExecuteOp(op, options.Token, options.Timeout);
-            return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
+            })
+            {
+                await ExecuteOp(op, options.Token, options.Timeout);
+                return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
+            }
         }
 
         #endregion
@@ -694,17 +712,18 @@ namespace Couchbase
 
         public async Task<ICounterResult> Decrement(string id, DecrementOptions options)
         {
-            var op = new Decrement
+            using (var op = new Decrement
             {
                 Cid = Cid,
                 Key = id,
                 Delta = options.Delta,
                 Initial = options.Initial,
                 DurabilityLevel = options.DurabilityLevel
-            };
-
-            await ExecuteOp(op, options.Token, options.Timeout);
-            return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
+            })
+            {
+                await ExecuteOp(op, options.Token, options.Timeout);
+                return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
+            }
         }
 
         #endregion

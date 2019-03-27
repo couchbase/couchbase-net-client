@@ -42,11 +42,11 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
         public override ObserveSeqnoResponse GetValue()
         {
             var result = default(ObserveSeqnoResponse);
-            if (Success && Data != null && Data.Length > 0)
+            if (Success && Data.Length > 0)
             {
                 try
                 {
-                    var buffer = Data.ToArray().AsSpan(Header.BodyOffset);
+                    var buffer = Data.Span.Slice(Header.BodyOffset);
 
                     var isHardFailover = Converter.ToByte(buffer) == 1;
                     if (isHardFailover)

@@ -29,11 +29,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override ObserveState GetValue()
         {
-            if (Success && Data != null && Data.Length > 0)
+            if (Success && Data.Length > 0)
             {
                 try
                 {
-                    var buffer = Data.ToArray().AsSpan();
+                    var buffer = Data.Span;
                     var keylength = Converter.ToInt16(buffer.Slice(26));
 
                     return new ObserveState

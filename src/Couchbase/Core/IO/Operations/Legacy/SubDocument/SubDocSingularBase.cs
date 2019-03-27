@@ -119,8 +119,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 //clean up and set to null
                 if (!result.IsNmv())
                 {
-                    Data.Dispose();
-                    Data = null;
+                    Dispose();
                 }
             }
             catch (Exception e)
@@ -131,9 +130,9 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             }
             finally
             {
-                if (Data != null && !result.IsNmv())
+                if (!result.IsNmv())
                 {
-                    Data.Dispose();
+                    Dispose();
                 }
             }
 
@@ -158,11 +157,11 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public override T GetValue()
         {
             var result = default(T);
-            if (Success && Data != null && Data.Length > 0)
+            if (Success && Data.Length > 0)
             {
                 try
                 {
-                    var buffer = Data.ToArray().AsSpan();
+                    var buffer = Data.Span;
                     ReadExtras(buffer);
                     var offset = Header.BodyOffset;
                     CurrentSpec.ValueIsJson = buffer.Slice(offset, TotalLength).IsJson();

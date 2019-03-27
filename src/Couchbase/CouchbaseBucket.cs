@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +26,7 @@ namespace Couchbase
 {
     internal interface IBucketSender
     {
-        Task Send(IOperation op, TaskCompletionSource<byte[]> tcs);
+        Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs);
     }
 
     public class CouchbaseBucket : IBucket, IBucketSender
@@ -179,8 +180,8 @@ namespace Couchbase
 
         private async Task GetClusterMap(IConnection connection, IPEndPoint endPoint)
         {
-            var completionSource = new TaskCompletionSource<byte[]>();
-            var configOp = new Config
+            var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
+            using (var configOp = new Config
             {
                 CurrentHost = endPoint,
                 Converter = new DefaultConverter(),
@@ -190,19 +191,20 @@ namespace Couchbase
                 Completed = s =>
                 {
                     //Status will be Success if bucket select was bueno
-                    completionSource.SetResult(s.Data.ToArray());
+                    completionSource.SetResult(s.ExtractData());
                     return completionSource.Task;
                 }
-            };
+            })
+            {
+                await connection.SendAsync(configOp.Write(), configOp.Completed).ConfigureAwait(false);
 
-            await connection.SendAsync(configOp.Write(), configOp.Completed).ConfigureAwait(false);
+                var clusterMapBytes = await completionSource.Task.ConfigureAwait(false);
+                await configOp.ReadAsync(clusterMapBytes).ConfigureAwait(false);
 
-            var clusterMapBytes = await completionSource.Task.ConfigureAwait(false);
-            await configOp.ReadAsync(clusterMapBytes).ConfigureAwait(false);
-
-            var configResult = configOp.GetResultWithValue();
-            _bucketConfig = configResult.Content;              //the cluster map
-            _keyMapper = new VBucketKeyMapper(_bucketConfig);  //for vbucket key mapping
+                var configResult = configOp.GetResultWithValue();
+                _bucketConfig = configResult.Content; //the cluster map
+                _keyMapper = new VBucketKeyMapper(_bucketConfig); //for vbucket key mapping
+            }
         }
 
         private async Task Negotiate(IConnection connection)
@@ -214,10 +216,10 @@ namespace Couchbase
                 (short) ServerFeatures.AlternateRequestSupport,
                 (short) ServerFeatures.SynchronousReplication
             };
-            var completionSource = new TaskCompletionSource<byte[]>();
-            var heloOp = new Hello
+            var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
+            using (var heloOp = new Hello
             {
-                Key = Hello.BuildHelloKey(1),//temp
+                Key = Hello.BuildHelloKey(1), //temp
                 Content = features.ToArray(),
                 Converter = new DefaultConverter(),
                 Transcoder = new DefaultTranscoder(new DefaultConverter()),
@@ -225,22 +227,23 @@ namespace Couchbase
                 Completed = s =>
                 {
                     //Status will be Success if bucket select was bueno
-                    completionSource.SetResult(s.Data.ToArray());
+                    completionSource.SetResult(s.ExtractData());
                     return completionSource.Task;
                 }
-            };
-
-            await connection.SendAsync(heloOp.Write(), heloOp.Completed).ConfigureAwait(false);
-            var result = await completionSource.Task.ConfigureAwait(false);
-            await heloOp.ReadAsync(result).ConfigureAwait(false);
-            var supported = heloOp.GetResultWithValue();
-            _supportsCollections = supported.Content.Contains((short) ServerFeatures.Collections);
+            })
+            {
+                await connection.SendAsync(heloOp.Write(), heloOp.Completed).ConfigureAwait(false);
+                var result = await completionSource.Task.ConfigureAwait(false);
+                await heloOp.ReadAsync(result).ConfigureAwait(false);
+                var supported = heloOp.GetResultWithValue();
+                _supportsCollections = supported.Content.Contains((short) ServerFeatures.Collections);
+            }
         }
 
         private async Task GetManifest(IConnection connection)
         {
-            var completionSource = new TaskCompletionSource<byte[]>();
-            var manifestOp = new GetManifest
+            var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
+            using (var manifestOp = new GetManifest
             {
                 Converter = new DefaultConverter(),
                 Transcoder = new DefaultTranscoder(new DefaultConverter()),
@@ -248,17 +251,18 @@ namespace Couchbase
                 Completed = s =>
                 {
                     //Status will be Success if bucket select was bueno
-                    completionSource.SetResult(s.Data.ToArray());
+                    completionSource.SetResult(s.ExtractData());
                     return completionSource.Task;
                 }
-            };
+            })
+            {
+                await connection.SendAsync(manifestOp.Write(), manifestOp.Completed).ConfigureAwait(false);
+                var manifestBytes = await completionSource.Task.ConfigureAwait(false);
+                await manifestOp.ReadAsync(manifestBytes).ConfigureAwait(false);
 
-            await connection.SendAsync(manifestOp.Write(), manifestOp.Completed).ConfigureAwait(false);
-            var manifestBytes = await completionSource.Task.ConfigureAwait(false);
-            await manifestOp.ReadAsync(manifestBytes).ConfigureAwait(false);
-
-            var manifestResult = manifestOp.GetResultWithValue();
-            _manifest = manifestResult.Content;
+                var manifestResult = manifestOp.GetResultWithValue();
+                _manifest = manifestResult.Content;
+            }
 
             //warmup the scopes/collections and cache them
             foreach (var scopeDef in _manifest.scopes)
@@ -304,7 +308,7 @@ namespace Couchbase
             _disposed = true;
         }
 
-        public async Task Send(IOperation op, TaskCompletionSource<byte[]> tcs)
+        public async Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
         {
             var vBucket = (VBucket) _keyMapper.MapKey(op.Key);
             op.VBucketId = vBucket.Index; //hack - make vBucketIndex a short

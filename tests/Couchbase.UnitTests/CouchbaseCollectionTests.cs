@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.IO;
@@ -88,7 +89,7 @@ namespace Couchbase.UnitTests
                 throw new NotImplementedException();
             }
 
-            public Task Send(IOperation op, TaskCompletionSource<byte[]> tcs)
+            public Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
             {
                 if(_statuses.TryDequeue(out ResponseStatus status))
                 {

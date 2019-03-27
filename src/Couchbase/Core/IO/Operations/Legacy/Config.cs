@@ -37,11 +37,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public override BucketConfig GetValue()
         {
             BucketConfig bucketConfig = null;
-            if (Success && Data != null)
+            if (Success && Data.Length > 0)
             {
                 try
                 {
-                    var buffer = Data.ToArray().AsMemory();
+                    var buffer = Data;
                     ReadExtras(buffer.Span);
                     var offset = Header.BodyOffset;
                     var length = TotalLength - Header.BodyOffset;

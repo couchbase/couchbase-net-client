@@ -77,7 +77,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         public override T GetValue()
         {
-            var responseSpan = Data.ToArray().AsSpan(Header.BodyOffset);
+            var responseSpan = Data.Span.Slice(Header.BodyOffset);
             var commandIndex = 0;
 
             for (;;)
@@ -113,8 +113,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 //clean up and set to null
                 if (!result.IsNmv())
                 {
-                    Data.Dispose();
-                    Data = null;
+                    Dispose();
                 }
             }
             catch (Exception e)
@@ -125,9 +124,9 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             }
             finally
             {
-                if (Data != null && !result.IsNmv())
+                if (!result.IsNmv())
                 {
-                    Data.Dispose();
+                    Dispose();
                 }
             }
 

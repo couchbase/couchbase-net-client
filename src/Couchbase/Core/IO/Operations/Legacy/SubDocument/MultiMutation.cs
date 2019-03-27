@@ -130,8 +130,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 //clean up and set to null
                 if (!result.IsNmv())
                 {
-                    Data.Dispose();
-                    Data = null;
+                    Dispose();
                 }
             }
             catch (Exception e)
@@ -142,9 +141,9 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             }
             finally
             {
-                if (Data != null && !result.IsNmv())
+                if (!result.IsNmv())
                 {
-                    Data.Dispose();
+                    Dispose();
                 }
             }
 
@@ -158,7 +157,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         public IList<OperationSpec> GetCommandValues()
         {
-            var responseSpan = Data.ToArray().AsSpan();
+            var responseSpan = Data.Span;
             ReadExtras(responseSpan);
 
             //all mutations successful

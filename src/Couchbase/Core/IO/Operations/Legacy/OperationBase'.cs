@@ -42,8 +42,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 //clean up and set to null
                 if (!result.IsNmv())
                 {
-                    Data.Dispose();
-                    Data = null;
+                    Dispose();
                 }
             }
             catch (Exception e)
@@ -54,9 +53,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
             }
             finally
             {
-                if (Data != null && !result.IsNmv())
+                if (!result.IsNmv())
                 {
-                    Data.Dispose();
+                    Dispose();
                 }
             }
             return result;
@@ -66,11 +65,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public virtual T GetValue()
         {
             var result = default(T);
-            if(Success && Data != null && Data.Length > 0)
+            if(Success && Data.Length > 0)
             {
                 try
                 {
-                    var buffer = Data.ToArray().AsMemory();
+                    var buffer = Data;
                     ReadExtras(buffer.Span);
                     var offset = Header.BodyOffset;
                     var length = Header.TotalLength - Header.BodyOffset;

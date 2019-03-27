@@ -29,11 +29,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public override short[] GetValue()
         {
             var result = default(short[]);
-            if (Success && Data != null && Data.Length > 0)
+            if (Success && Data.Length > 0)
             {
                 try
                 {
-                    var buffer = Data.ToArray().AsSpan(Header.BodyOffset);
+                    var buffer = Data.Span.Slice(Header.BodyOffset);
                     result = new short[Header.BodyLength/2];
 
                     for (int i = 0; i < result.Length; i++)

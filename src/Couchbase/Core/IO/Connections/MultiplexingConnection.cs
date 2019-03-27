@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.Connections
@@ -30,7 +32,7 @@ namespace Couchbase.Core.IO.Connections
             EndPoint = socket.RemoteEndPoint;
 
             ConnectionPool = connectionPool;
-           
+
             _statesInFlight = new ConcurrentDictionary<uint, IState>();
 
             //allocate a buffer
@@ -185,22 +187,34 @@ namespace Couchbase.Core.IO.Connections
                 if (parsedOffset + responseSize > _receiveBufferLength) break;
 
                 var opaque = Converter.ToUInt32(_receiveBuffer, parsedOffset + HeaderOffsets.Opaque);
-                var response = new byte[responseSize];
-                Buffer.BlockCopy(_receiveBuffer, parsedOffset, response, 0, responseSize);
-
-                parsedOffset += responseSize;
-
-                if (_statesInFlight.TryRemove(opaque, out var state))
+                var response = MemoryPool<byte>.Shared.RentAndSlice(responseSize);
+                try
                 {
-                    state.Complete(response);
+                    _receiveBuffer.AsMemory(parsedOffset, responseSize).CopyTo(response.Memory);
+
+                    parsedOffset += responseSize;
+
+                    if (_statesInFlight.TryRemove(opaque, out var state))
+                    {
+                        state.Complete(response);
+                    }
+                    else
+                    {
+                        response.Dispose();
+
+                        // create orphaned response context
+                        // var context = CreateOperationContext(opaque);
+
+                        // send to orphaned response reporter
+                        //  Configuration.ClientConfiguration.OrphanedResponseLogger.Add(context);
+                    }
                 }
-                else
+                catch
                 {
-                    // create orphaned response context
-                   // var context = CreateOperationContext(opaque);
-
-                    // send to orphaned response reporter
-                  //  Configuration.ClientConfiguration.OrphanedResponseLogger.Add(context);
+                    // Ownership of the buffer was not accepted by state.Complete due to an exception
+                    // Make sure we release the buffer
+                    response.Dispose();
+                    throw;
                 }
 
                 UpdateLastActivity();
