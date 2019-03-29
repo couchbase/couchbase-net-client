@@ -99,7 +99,6 @@ namespace Couchbase.IO
         public void Dispose()
         {
             Timer?.Dispose();
-            DispatchSpan?.Finish();
         }
     }
 }

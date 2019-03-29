@@ -19,8 +19,12 @@ namespace Couchbase.Core.Buckets
         {
             var header = state.CreateHeader(out errorCode);
             serverDuration = header.GetServerDuration(state.Data);
-            state.DispatchSpan?.SetPeerLatencyTag(serverDuration);
-            state.DispatchSpan?.Finish();
+
+            if (state.DispatchSpan != null)
+            {
+                state.DispatchSpan.SetPeerLatencyTag(serverDuration);
+                state.DispatchSpan.Finish();
+            }
 
             return header;
         }
