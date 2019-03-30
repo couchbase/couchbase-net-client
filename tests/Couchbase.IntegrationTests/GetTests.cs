@@ -25,10 +25,12 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.Insert(key, new {name = "mike"});
 
-                var result = await collection.Get(key);
-                var content = result.ContentAs<dynamic>();
+                using (var result = await collection.Get(key))
+                {
+                    var content = result.ContentAs<dynamic>();
 
-                Assert.Equal("mike", (string) content.name);
+                    Assert.Equal("mike", (string) content.name);
+                }
             }
             finally
             {
@@ -46,11 +48,13 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.Insert(key, Person.Create());
 
-                var result = await collection.Get(key, options => options.WithProjection("name"));
-                var content = result.ContentAs<Person>();
+                using (var result = await collection.Get(key, options => options.WithProjection("name")))
+                {
+                    var content = result.ContentAs<Person>();
 
-                Assert.Equal("Emmy-lou Dickerson", content.name);
-                Assert.Null(content.animals);
+                    Assert.Equal("Emmy-lou Dickerson", content.name);
+                    Assert.Null(content.animals);
+                }
             }
             finally
             {
@@ -68,11 +72,13 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.Insert(key, Person.Create());
 
-                var result = await collection.Get(key, options => options.WithProjection("name", "age"));
-                var content = result.ContentAs<Person>();
+                using (var result = await collection.Get(key, options => options.WithProjection("name", "age")))
+                {
+                    var content = result.ContentAs<Person>();
 
-                Assert.Equal("Emmy-lou Dickerson", content.name);
-                Assert.Equal(26,  content.age);
+                    Assert.Equal("Emmy-lou Dickerson", content.name);
+                    Assert.Equal(26, content.age);
+                }
             }
             finally
             {

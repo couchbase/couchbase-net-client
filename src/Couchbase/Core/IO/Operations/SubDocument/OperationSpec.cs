@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Newtonsoft.Json;
 
@@ -38,7 +39,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The bytes.
         /// </value>
-        public byte[] Bytes { get; set; }
+        public ReadOnlyMemory<byte> Bytes { get; set; }
 
         /// <summary>
         /// Gets or sets the path flags for the operation.
@@ -91,7 +92,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             return new OperationSpec
             {
-                Bytes = null,
+                Bytes = ReadOnlyMemory<byte>.Empty,
                 PathFlags = PathFlags,
                 DocFlags = DocFlags,
                 OpCode = OpCode,

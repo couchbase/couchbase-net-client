@@ -21,14 +21,15 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollection();
             await collection.Upsert(DocumentKey, new {foo = "bar", bar = "foo"});
 
-            var result = await collection.LookupIn(DocumentKey, ops =>
+            using (var result = await collection.LookupIn(DocumentKey, ops =>
             {
                 ops.Get("foo");
                 ops.Get("bar");
-            });
-
-            Assert.Equal("bar", result.ContentAs<string>(0));
-            Assert.Equal("foo", result.ContentAs<string>(1));
+            }))
+            {
+                Assert.Equal("bar", result.ContentAs<string>(0));
+                Assert.Equal("foo", result.ContentAs<string>(1));
+            }
         }
 
         [Fact]
@@ -37,14 +38,15 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollection();
             await collection.Upsert(DocumentKey, new {foo = "bar", bar = "foo"});
 
-            var result = await collection.LookupIn(DocumentKey, new []
+            using (var result = await collection.LookupIn(DocumentKey, new[]
             {
                 LookupInSpec.Get("foo"),
                 LookupInSpec.Get("bar")
-            });
-
-            Assert.Equal("bar", result.ContentAs<string>(0));
-            Assert.Equal("foo", result.ContentAs<string>(1));
+            }))
+            {
+                Assert.Equal("bar", result.ContentAs<string>(0));
+                Assert.Equal("foo", result.ContentAs<string>(1));
+            }
         }
 
         [Fact]
@@ -59,16 +61,18 @@ namespace Couchbase.IntegrationTests
                 ops.Replace("bar", "bar");
             });
 
-            var getResult = await collection.Get(DocumentKey);
-            var content = getResult.ContentAs<string>();
-
-            var expected = new
+            using (var getResult = await collection.Get(DocumentKey))
             {
-                foo = "bar",
-                bar = "bar",
-                name = "mike"
-            };
-            Assert.Equal(JsonConvert.SerializeObject(expected), content);
+                var content = getResult.ContentAs<string>();
+
+                var expected = new
+                {
+                    foo = "bar",
+                    bar = "bar",
+                    name = "mike"
+                };
+                Assert.Equal(JsonConvert.SerializeObject(expected), content);
+            }
         }
 
         [Fact]
@@ -83,16 +87,18 @@ namespace Couchbase.IntegrationTests
                 MutateInSpec.Replace("bar", "bar")
             });
 
-            var getResult = await collection.Get(DocumentKey);
-            var content = getResult.ContentAs<string>();
-
-            var expected = new
+            using (var getResult = await collection.Get(DocumentKey))
             {
-                foo = "bar",
-                bar = "bar",
-                name = "mike"
-            };
-            Assert.Equal(JsonConvert.SerializeObject(expected), content);
+                var content = getResult.ContentAs<string>();
+
+                var expected = new
+                {
+                    foo = "bar",
+                    bar = "bar",
+                    name = "mike"
+                };
+                Assert.Equal(JsonConvert.SerializeObject(expected), content);
+            }
         }
     }
 }

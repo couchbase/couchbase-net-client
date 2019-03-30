@@ -41,7 +41,9 @@ namespace Couchbase.UnitTests
 
             try
             {
-                var result = await collection.Get("key");
+                using (await collection.Get("key"))
+                {
+                }
             }
             catch (KeyValueException e)
             {

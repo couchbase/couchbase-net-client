@@ -112,10 +112,11 @@ namespace Couchbase.LoadTests
 
         private static async Task Get(ICollection collection, string key)
         {
-            var result = await collection.Get(key);
-
-            // Trigger deserialization
-            result.ContentAs<dynamic>();
+            using (var result = await collection.Get(key))
+            {
+                // Trigger deserialization
+                result.ContentAs<dynamic>();
+            }
         }
     }
 }

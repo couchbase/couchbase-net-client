@@ -1,5 +1,7 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -10,11 +12,11 @@ namespace Couchbase
 {
     public class LookupInResult : ILookupInResult
     {
-        private readonly byte[] _bytes;
+        private readonly IMemoryOwner<byte> _bytes;
         private IByteConverter _converter = new DefaultConverter();
         private ITypeSerializer _serializer = new DefaultSerializer();
 
-        internal LookupInResult(byte[] bytes, ulong cas, TimeSpan? expiration)
+        internal LookupInResult(IMemoryOwner<byte> bytes, ulong cas, TimeSpan? expiration)
         {
             _bytes = bytes;
             Cas = cas;
@@ -26,35 +28,31 @@ namespace Couchbase
 
         public T ContentAs<T>(int index)
         {
-            var response = _bytes;
-            var statusOffset = 24;//Header.BodyOffset;
-            var valueLengthOffset = statusOffset + 2;
-            var valueOffset = statusOffset + 6;
+            EnsureNotDisposed();
+
+            var response = _bytes.Memory.Slice(HeaderOffsets.HeaderLength);
 
             var operationSpecs = new List<OperationSpec>();
             for (;;)
             {
-                var bodyLength = _converter.ToInt32(response, valueLengthOffset);
-                var payLoad = new byte[bodyLength];
-                Buffer.BlockCopy(response, valueOffset, payLoad, 0, bodyLength);
+                var bodyLength = _converter.ToInt32(response.Span.Slice(2));
+                var payLoad = response.Slice(6, bodyLength);
 
                 var command = new OperationSpec
                 {
-                    Status = (ResponseStatus) _converter.ToUInt16(response, statusOffset),
-                    ValueIsJson = payLoad.AsSpan().IsJson(),
+                    Status = (ResponseStatus) _converter.ToUInt16(response.Span),
+                    ValueIsJson = payLoad.Span.IsJson(),
                     Bytes = payLoad
                 };
                 operationSpecs.Add(command);
 
-                statusOffset = valueOffset + bodyLength;
-                valueLengthOffset = statusOffset + 2;
-                valueOffset = statusOffset + 6;
+                response = response.Slice(6 + bodyLength);
 
-                if (valueOffset >= response.Length) break;
+                if (response.Length <= 0) break;
             }
 
             var spec = operationSpecs[index];
-            return _serializer.Deserialize<T>(spec.Bytes.AsMemory());
+            return _serializer.Deserialize<T>(spec.Bytes);
         }
 
         public T ContentAs<T>(int index, ITypeSerializer serializer)
@@ -71,5 +69,36 @@ namespace Couchbase
         {
             throw new NotImplementedException();
         }
+
+        #region Finalization and Dispose
+
+        ~LookupInResult()
+        {
+            Dispose(false);
+        }
+
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            _disposed = true;
+            _bytes?.Dispose();
+        }
+
+        protected void EnsureNotDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
+        }
+
+        #endregion
     }
 }

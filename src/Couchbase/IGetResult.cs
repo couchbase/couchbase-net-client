@@ -1,8 +1,9 @@
-﻿using Couchbase.Core.IO.Serializers;
+using System;
+using Couchbase.Core.IO.Serializers;
 
 namespace Couchbase
 {
-    public interface IGetResult : IResult
+    public interface IGetResult : IResult, IDisposable
     {
         T ContentAs<T>();
 

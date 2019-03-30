@@ -26,8 +26,10 @@ namespace Couchbase.IntegrationTests
                 await collection.Insert(key, Encoding.UTF8.GetBytes("hello"));
                 await collection.Binary.Append(key, Encoding.UTF8.GetBytes(" world"));
 
-                var result = await collection.Get(key);
-                Assert.Equal("hello world", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+                using (var result = await collection.Get(key))
+                {
+                    Assert.Equal("hello world", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
+                }
             }
             finally
             {

@@ -165,8 +165,9 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                     ReadExtras(buffer);
                     var offset = Header.BodyOffset;
                     CurrentSpec.ValueIsJson = buffer.Slice(offset, TotalLength).IsJson();
-                    CurrentSpec.Bytes = new byte[TotalLength-offset];
-                    buffer.Slice(offset, CurrentSpec.Bytes.Length).CopyTo(CurrentSpec.Bytes);
+                    var payload = new byte[TotalLength-offset];
+                    buffer.Slice(offset, CurrentSpec.Bytes.Length).CopyTo(payload);
+                    CurrentSpec.Bytes = payload;
                 }
                 catch (Exception e)
                 {

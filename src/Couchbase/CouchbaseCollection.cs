@@ -127,7 +127,7 @@ namespace Couchbase
                 }
 
                 var lookupOp = await ExecuteLookupIn(id, specs, new LookupInOptions().WithTimeout(options.Timeout.Value));
-                return new GetResult(lookupOp.Data.ToArray(), _transcoder, specs)
+                return new GetResult(lookupOp.ExtractData(), _transcoder, specs)
                 {
                     Id = lookupOp.Key,
                     Cas = lookupOp.Cas,
@@ -145,7 +145,7 @@ namespace Couchbase
             })
             {
                 await ExecuteOp(getOp, options.Token, options.Timeout).ConfigureAwait(false);
-                return new GetResult(getOp.Data.ToArray(), _transcoder)
+                return new GetResult(getOp.ExtractData(), _transcoder)
                 {
                     Id = getOp.Key,
                     Cas = getOp.Cas,
@@ -431,7 +431,7 @@ namespace Couchbase
             })
             {
                 await ExecuteOp(getAndTouchOp, options.Token, options.Timeout);
-                return new GetResult(getAndTouchOp.Data.ToArray(), _transcoder);
+                return new GetResult(getAndTouchOp.ExtractData(), _transcoder);
             }
         }
 
@@ -462,7 +462,7 @@ namespace Couchbase
             })
             {
                 await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
-                return new GetResult(getAndLockOp.Data.ToArray(), _transcoder);
+                return new GetResult(getAndLockOp.ExtractData(), _transcoder);
             }
         }
 
@@ -514,7 +514,7 @@ namespace Couchbase
         {
             using (var lookup = await ExecuteLookupIn(id, specs, options))
             {
-                return new LookupInResult(lookup.Data.ToArray(), lookup.Cas, null);
+                return new LookupInResult(lookup.ExtractData(), lookup.Cas, null);
             }
         }
 

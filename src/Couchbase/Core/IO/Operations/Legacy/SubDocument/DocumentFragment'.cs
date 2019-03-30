@@ -38,7 +38,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public TContent Content<TContent>(string path)
         {
             var spec = Value.Single(x => x.Path.Equals(path));
-            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes.AsMemory());
+            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes);
         }
 
         /// <summary>
@@ -51,11 +51,11 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public TContent Content<TContent>(int index)
         {
             var spec = Value[index];
-            if (spec.Bytes == null)
+            if (spec.Bytes.Length == 0)
             {
                 return default(TContent);
             }
-            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes.AsMemory());
+            return _sourceTypeSerializerProvider.Serializer.Deserialize<TContent>(spec.Bytes);
         }
 
         /// <summary>

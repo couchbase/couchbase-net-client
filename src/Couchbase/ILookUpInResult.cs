@@ -1,9 +1,10 @@
-﻿using Couchbase.Core.IO.Operations;
+using System;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 
 namespace Couchbase
 {
-    public interface ILookupInResult : IResult
+    public interface ILookupInResult : IResult, IDisposable
     {
         bool Exists(int index);
 

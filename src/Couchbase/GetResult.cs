@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
@@ -13,13 +14,13 @@ namespace Couchbase
 {
     public class GetResult : IGetResult
     {
-        private readonly byte[] _contentBytes;
+        private readonly IMemoryOwner<byte> _contentBytes;
         private readonly List<OperationSpec> _specs;
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer _serializer;
         private readonly IByteConverter _converter;
 
-        internal GetResult(byte[] contentBytes, ITypeTranscoder transcoder, List<OperationSpec> specs = null)
+        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, List<OperationSpec> specs = null)
         {
             _contentBytes = contentBytes;
             _transcoder = transcoder;
@@ -38,12 +39,12 @@ namespace Couchbase
 
         public T ContentAs<T>()
         {
+            EnsureNotDisposed();
+
             //basic GET operation
             if (OpCode == OpCode.Get)
             {
-                var bodyOffset = Header.BodyOffset;
-                var length = _contentBytes.Length - Header.BodyOffset;
-                return _transcoder.Decode<T>(_contentBytes.AsMemory(bodyOffset, length), Flags, OpCode);
+                return _transcoder.Decode<T>(_contentBytes.Memory.Slice(Header.BodyOffset), Flags, OpCode);
             }
 
             //oh mai, its a projection
@@ -52,7 +53,7 @@ namespace Couchbase
             var root = new JObject();
             foreach (var spec in _specs)
             {
-                var content = _serializer.Deserialize<JToken>(spec.Bytes.AsMemory());
+                var content = _serializer.Deserialize<JToken>(spec.Bytes);
                 var projection = CreateProjection(spec.Path, content);
 
                 try
@@ -73,27 +74,26 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public bool HasValue => _contentBytes.Length > 24;
+        public bool HasValue => _contentBytes.Memory.Length > 24;
 
         private void ParseSpecs()
         {
-            var responseSpan = _contentBytes.AsSpan(Header.BodyOffset);
+            var response = _contentBytes.Memory.Slice(Header.BodyOffset);
             var commandIndex = 0;
 
             for (;;)
             {
-                var bodyLength = _converter.ToInt32(responseSpan.Slice(2));
-                var payLoad = new byte[bodyLength];
-                responseSpan.Slice(6, bodyLength).CopyTo(payLoad);
+                var bodyLength = _converter.ToInt32(response.Span.Slice(2));
+                var payLoad = response.Slice(6, bodyLength);
 
                 var command = _specs[commandIndex++];
-                command.Status = (ResponseStatus)_converter.ToUInt16(responseSpan);
-                command.ValueIsJson = payLoad.AsSpan().IsJson();
+                command.Status = (ResponseStatus)_converter.ToUInt16(response.Span);
+                command.ValueIsJson = payLoad.Span.IsJson();
                 command.Bytes = payLoad;
 
-                responseSpan = responseSpan.Slice(6 + bodyLength);
+                response = response.Slice(6 + bodyLength);
 
-                if (responseSpan.Length <= 0) break;
+                if (response.Length <= 0) break;
             }
         }
 
@@ -141,5 +141,36 @@ namespace Couchbase
 
             return projection;
         }
+
+        #region Finalization and Dispose
+
+        ~GetResult()
+        {
+            Dispose(false);
+        }
+
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            _disposed = true;
+            _contentBytes?.Dispose();
+        }
+
+        protected void EnsureNotDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
+        }
+
+        #endregion
     }
 }

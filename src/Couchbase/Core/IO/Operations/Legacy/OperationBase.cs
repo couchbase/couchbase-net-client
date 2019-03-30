@@ -74,6 +74,14 @@ namespace Couchbase.Core.IO.Operations.Legacy
             };
         }
 
+        /// <inheritdoc />
+        public IMemoryOwner<byte> ExtractData()
+        {
+            var data = _data;
+            _data = null;
+            return data;
+        }
+
         public virtual void HandleClientError(string message, ResponseStatus responseStatus)
         {
             Reset(responseStatus);

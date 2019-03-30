@@ -68,6 +68,13 @@ namespace Couchbase.Core.IO.Operations.Legacy
         IOperation Clone();
 
         int GetRetryTimeout(int defaultTimeout);
+
+        /// <summary>
+        /// Extracts the data for this instance, if any. The data is removed, and ownership is transferred to the receiver.
+        /// The receiver is now responsible for releasing the memory.
+        /// </summary>
+        /// <returns>The <see cref="IMemoryOwner{T}"/>.</returns>
+        IMemoryOwner<byte> ExtractData();
     }
 }
 
