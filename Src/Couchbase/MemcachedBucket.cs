@@ -2685,7 +2685,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> Get<T>(string key, TimeSpan timeout)
         {
-            var operation = new Get<T>(key, null, _transcoder, timeout.GetSeconds());
+            var operation = new Get<T>(key, null, _transcoder, timeout.GetMilliseconds());
             return _requestExecuter.SendWithRetry(operation);
         }
 
