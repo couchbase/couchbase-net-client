@@ -65,21 +65,9 @@ namespace Couchbase.Core.IO.Converters
         #region ToXXX
 
         /// <inheritdoc />
-        public bool ToBoolean(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToBoolean(buffer.AsSpan(offset), useNbo);
-        }
-
-        /// <inheritdoc />
         public bool ToBoolean(ReadOnlySpan<byte> buffer, bool useNbo)
         {
             return Read<bool>(buffer, useNbo);
-        }
-
-        /// <inheritdoc />
-        public float ToSingle(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToSingle(buffer.AsSpan(offset), useNbo);
         }
 
         /// <inheritdoc />
@@ -89,21 +77,9 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public DateTime ToDateTime(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToDateTime(buffer.AsSpan(offset), useNbo);
-        }
-
-        /// <inheritdoc />
         public DateTime ToDateTime(ReadOnlySpan<byte> buffer, bool useNbo)
         {
             return DateTime.FromBinary(Read<long>(buffer, useNbo));
-        }
-
-        /// <inheritdoc />
-        public double ToDouble(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToDouble(buffer.AsSpan(offset), useNbo);
         }
 
         /// <inheritdoc />
@@ -113,27 +89,9 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public byte ToByte(byte[] buffer, int offset)
-        {
-            return ToByte(buffer.AsSpan(offset));
-        }
-
-        /// <inheritdoc />
         public byte ToByte(ReadOnlySpan<byte> buffer)
         {
             return buffer[0];
-        }
-
-        /// <inheritdoc />
-        public short ToInt16(byte[] buffer, int offset)
-        {
-            return ToInt16(buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public short ToInt16(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToInt16(buffer.AsSpan(offset), useNbo);
         }
 
         /// <inheritdoc />
@@ -143,33 +101,9 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public ushort ToUInt16(byte[] buffer, int offset)
-        {
-            return ToUInt16(buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public ushort ToUInt16(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToUInt16(buffer.AsSpan(offset), useNbo);
-        }
-
-        /// <inheritdoc />
         public ushort ToUInt16(ReadOnlySpan<byte> buffer, bool useNbo)
         {
             return Read<ushort>(buffer, useNbo);
-        }
-
-        /// <inheritdoc />
-        public int ToInt32(byte[] buffer, int offset)
-        {
-            return ToInt32(buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public int ToInt32(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToInt32(buffer.AsSpan(offset), useNbo);
         }
 
         /// <inheritdoc />
@@ -179,33 +113,9 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public uint ToUInt32(byte[] buffer, int offset)
-        {
-            return ToUInt32(buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public uint ToUInt32(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToUInt32(buffer.AsSpan(offset), useNbo);
-        }
-
-        /// <inheritdoc />
         public uint ToUInt32(ReadOnlySpan<byte> buffer, bool useNbo)
         {
             return Read<uint>(buffer, useNbo);
-        }
-
-        /// <inheritdoc />
-        public long ToInt64(byte[] buffer, int offset)
-        {
-            return ToInt64(buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public long ToInt64(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToInt64(buffer.AsSpan(offset), useNbo);
         }
 
         /// <inheritdoc />
@@ -215,27 +125,9 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public ulong ToUInt64(byte[] buffer, int offset)
-        {
-            return ToUInt64(buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public ulong ToUInt64(byte[] buffer, int offset, bool useNbo)
-        {
-            return ToUInt64(buffer.AsSpan(offset), useNbo);
-        }
-
-        /// <inheritdoc />
         public ulong ToUInt64(ReadOnlySpan<byte> buffer, bool useNbo)
         {
             return Read<ulong>(buffer, useNbo);
-        }
-
-        /// <inheritdoc />
-        public string ToString(byte[] buffer, int offset, int length)
-        {
-            return ToString(buffer.AsSpan(offset, length));
         }
 
         /// <inheritdoc />

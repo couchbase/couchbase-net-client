@@ -420,7 +420,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             var converter = new DefaultConverter();
             var format = new byte();
 
-            var temp = converter.ToByte(legacyByteArray, 24);
+            var temp = converter.ToByte(legacyByteArray.AsSpan(24));
             converter.SetBit(ref format, 0, converter.GetBit(temp, 0));
             converter.SetBit(ref format, 1, converter.GetBit(temp, 1));
             converter.SetBit(ref format, 2, converter.GetBit(temp, 2));
@@ -435,7 +435,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             {
                 DataFormat = (DataFormat)format,
                 Compression = (Compression)compression,
-                TypeCode = (TypeCode)(converter.ToUInt16(legacyByteArray, 26) & 0xff),
+                TypeCode = (TypeCode)(converter.ToUInt16(legacyByteArray.AsSpan(26)) & 0xff),
             };
 
             var transcoder = new DefaultTranscoder(new DefaultConverter());

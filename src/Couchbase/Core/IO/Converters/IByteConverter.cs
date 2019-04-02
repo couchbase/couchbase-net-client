@@ -10,15 +10,6 @@ namespace Couchbase.Core.IO.Converters
         #region ToXXX
 
         /// <summary>
-        /// Reads a <see cref="bool"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
-        /// <returns></returns>
-        bool ToBoolean(byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
         /// Reads a <see cref="bool"/> from a buffer.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
@@ -27,30 +18,12 @@ namespace Couchbase.Core.IO.Converters
         bool ToBoolean(ReadOnlySpan<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Reads a <see cref="float"/> from a buffer starting from a given offset..
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
-        /// <returns></returns>
-        float ToSingle(byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
         /// Reads a <see cref="float"/> from a buffer.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
         /// <returns></returns>
         float ToSingle(ReadOnlySpan<byte> buffer, bool useNbo);
-
-        /// <summary>
-        /// Reads a <see cref="DateTime"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
-        /// <returns></returns>
-        DateTime ToDateTime(byte[] buffer, int offset, bool useNbo);
 
         /// <summary>
         /// Reads a <see cref="DateTime"/> from a buffer.
@@ -64,26 +37,9 @@ namespace Couchbase.Core.IO.Converters
         /// To the double.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
-        /// <returns></returns>
-        double ToDouble(byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
-        /// To the double.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
         /// <param name="useNbo">if set to <c>true</c> [use nbo].</param>
         /// <returns></returns>
         double ToDouble(ReadOnlySpan<byte> buffer, bool useNbo);
-
-        /// <summary>
-        /// Reads a <see cref="Byte"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        byte ToByte(byte[] buffer, int offset);
 
         /// <summary>
         /// Reads a <see cref="Byte"/> from a buffer.
@@ -91,23 +47,6 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
         byte ToByte(ReadOnlySpan<byte> buffer);
-
-        /// <summary>
-        ///  Reads a <see cref="Int16"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        short ToInt16(byte[] buffer, int offset);
-
-        /// <summary>
-        /// Reads a <see cref="Int16" /> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <returns></returns>
-        short ToInt16(byte[] buffer, int offset, bool useNbo);
 
         /// <summary>
         /// Reads a <see cref="Int16" /> from a buffer starting.
@@ -118,47 +57,12 @@ namespace Couchbase.Core.IO.Converters
         short ToInt16(ReadOnlySpan<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Reads a <see cref="UInt16"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        ushort ToUInt16(byte[] buffer, int offset);
-
-        /// <summary>
-        /// Reads a <see cref="UInt16" /> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <returns></returns>
-        ushort ToUInt16(byte[] buffer, int offset, bool useNbo);
-
-
-        /// <summary>
         /// Reads a <see cref="UInt16" /> from a buffer.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         /// <returns></returns>
         ushort ToUInt16(ReadOnlySpan<byte> buffer, bool useNbo);
-
-        /// <summary>
-        /// Reads a <see cref="Int32" /> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        int ToInt32(byte[] buffer, int offset);
-
-        /// <summary>
-        /// Reads a <see cref="Int32" /> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <returns></returns>
-        int ToInt32(byte[] buffer, int offset, bool useNbo);
 
         /// <summary>
         /// Reads a <see cref="Int32" /> from a buffer.
@@ -169,46 +73,12 @@ namespace Couchbase.Core.IO.Converters
         int ToInt32(ReadOnlySpan<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Reads a <see cref="UInt32"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        uint ToUInt32(byte[] buffer, int offset);
-
-        /// <summary>
-        /// Reads a <see cref="UInt32" /> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <returns></returns>
-        uint ToUInt32(byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
         /// Reads a <see cref="UInt32" /> from a buffer.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         /// <returns></returns>
         uint ToUInt32(ReadOnlySpan<byte> buffer, bool useNbo);
-
-        /// <summary>
-        /// Reads a <see cref="Int64"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        long ToInt64(byte[] buffer, int offset);
-
-        /// <summary>
-        /// Reads a <see cref="Int64" /> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <returns></returns>
-        long ToInt64(byte[] buffer, int offset, bool useNbo);
 
         /// <summary>
         /// Reads a <see cref="Int64" /> from a buffer.
@@ -219,40 +89,12 @@ namespace Couchbase.Core.IO.Converters
         long ToInt64(ReadOnlySpan<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Reads a <see cref="UInt64"/> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <returns></returns>
-        ulong ToUInt64(byte[] buffer, int offset);
-
-        /// <summary>
-        /// Reads a <see cref="UInt64" /> from a buffer starting from a given offset.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <returns></returns>
-        ulong ToUInt64(byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
         /// Reads a <see cref="UInt64" /> from a buffer.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         /// <returns></returns>
         ulong ToUInt64(ReadOnlySpan<byte> buffer, bool useNbo);
-
-        /// <summary>
-        /// Returns a <see cref="System.String" /> from the buffer starting at a given offset and length.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="length">The length.</param>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        string ToString(byte[] buffer, int offset, int length);
 
         /// <summary>
         /// Returns a <see cref="System.String" /> from the buffer.
