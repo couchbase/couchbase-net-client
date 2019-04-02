@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
@@ -22,7 +23,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             Converter.FromUInt64(Cas, buffer, HeaderOffsets.Cas);
         }
 
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var totalLength = OperationHeader.Length + KeyLength + ExtrasLength + PathLength + BodyLength;
             var buffer = new byte[totalLength];
@@ -33,7 +34,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             WritePath(buffer, OperationHeader.Length + ExtrasLength + KeyLength);
             WriteBody(buffer, OperationHeader.Length + ExtrasLength + KeyLength + PathLength);
 
-            return buffer;
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public override void WriteExtras(byte[] buffer, int offset)

@@ -1,11 +1,12 @@
 using System;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal sealed class Observe : OperationBase<ObserveState>
     {
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var key = CreateKey();
 
@@ -24,7 +25,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
             var buffer = new byte[body.Length + header.Length];
             System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
             System.Buffer.BlockCopy(body, 0, buffer, header.Length, body.Length);
-            return buffer;
+
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public override ObserveState GetValue()

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -11,7 +12,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return extras;
         }
 
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var key = CreateKey();
             var extras = CreateExtras();
@@ -25,7 +26,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             System.Buffer.BlockCopy(extras, 0, buffer, header.Length + framingExtras.Length, extras.Length);
             System.Buffer.BlockCopy(key, 0, buffer, header.Length + framingExtras.Length + extras.Length, key.Length);
 
-            return buffer;
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public uint Expiration { get; set; }

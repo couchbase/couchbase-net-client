@@ -49,9 +49,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         DateTime CreationTime { get; set; }
 
-        byte[] Write();
-
-        Task<byte[]> WriteAsync();
+        Task SendAsync(IConnection connection);
 
         Task ReadAsync(IMemoryOwner<byte> buffer, ErrorMap errorMap = null);
 

@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
@@ -75,14 +76,14 @@ namespace Couchbase.Core.IO.Connections
         /// </value>
         public bool IsDead { get; set; }
 
-        public Task SendAsync(byte[] buffer, Func<SocketAsyncState, Task> callback)
+        public Task SendAsync(Memory<byte> buffer, Func<SocketAsyncState, Task> callback)
         {
             return SendAsync(buffer, callback, null);
         }
 
-        public Task SendAsync(byte[] request, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
+        public Task SendAsync(Memory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
         {
-            var opaque = Converter.ToUInt32(request.AsSpan(HeaderOffsets.Opaque));
+            var opaque = Converter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
             var state = new AsyncState
             {
                 Opaque = opaque,
@@ -103,17 +104,39 @@ namespace Couchbase.Core.IO.Connections
                 a.Cancel(ResponseStatus.OperationTimeout, new TimeoutException());
             }, state, 75000, Timeout.Infinite);
 
-            var sentBytesCount = 0;
+
             lock (Socket)
             {
                 try
                 {
+                    #if NETCOREAPP2_1
+
+                    var requestSpan = request.Span;
+                    while (requestSpan.Length > 0) {
+                        var sentBytesCount = Socket.Send(requestSpan, SocketFlags.None);
+
+                        requestSpan = requestSpan.Slice(sentBytesCount);
+                    }
+
+                    #else
+
+                    if (!MemoryMarshal.TryGetArray<byte>(request, out var arraySegment))
+                    {
+                        // Fallback in case we can't use the more efficient TryGetArray method
+                        arraySegment = new ArraySegment<byte>(request.ToArray());
+                    }
+
+                    var sentBytesCount = 0;
                     do
                     {
-                        sentBytesCount += Socket.Send(request, sentBytesCount, request.Length - sentBytesCount,
+                        // ReSharper disable once AssignNullToNotNullAttribute
+                        sentBytesCount += Socket.Send(arraySegment.Array,
+                            arraySegment.Offset + sentBytesCount,
+                            arraySegment.Count - sentBytesCount,
                             SocketFlags.None);
+                    } while (sentBytesCount < arraySegment.Count);
 
-                    } while (sentBytesCount < request.Length);
+                    #endif
                 }
                 catch (Exception e)
                 {

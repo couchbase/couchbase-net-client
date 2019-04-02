@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -6,9 +7,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         public override OpCode OpCode => OpCode.NoOp;
 
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
-            return CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), null, Array.Empty<byte>());
+            var buffer = CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), null, Array.Empty<byte>());
+
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public override bool RequiresKey => false;

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.Operations.Legacy.Authentication
 {
@@ -46,7 +47,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
             return header;
         }
 
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var body = CreateBody();
             var key = CreateKey();
@@ -60,7 +61,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
             System.Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
             System.Buffer.BlockCopy(body, 0, buffer, header.Length + key.Length, body.Length);
 
-            return buffer;
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public override bool RequiresKey => false;

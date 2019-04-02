@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
@@ -15,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public DurabilityLevel DurabilityLevel { get; set; }
         public TimeSpan? DurabilityTimeout { get; set; }
 
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var keyBytes = CreateKey();
             var totalLength = OperationHeader.Length + keyBytes.Length + BodyLength;
@@ -24,7 +25,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             WriteHeader(buffer);
             Buffer.BlockCopy(keyBytes, 0, buffer, OperationHeader.Length, keyBytes.Length);
             WriteBody(buffer, OperationHeader.Length + keyBytes.Length);
-            return buffer;
+
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public override byte[] CreateFramingExtras()

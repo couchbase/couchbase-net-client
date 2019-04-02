@@ -110,29 +110,6 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
             return extras;
         }
-
-        public override byte[] Write()
-        {
-            var extras = CreateExtras();
-            var key = CreateKey();
-            var body = CreateBody();
-            var framingExtras = CreateFramingExtras();
-            var header = CreateHeader(extras, body, key, framingExtras);
-
-            var buffer = new byte[extras.GetLengthSafe() +
-                                  body.GetLengthSafe() +
-                                  key.GetLengthSafe() +
-                                  header.GetLengthSafe() +
-                                  framingExtras.GetLengthSafe()];
-
-            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            Buffer.BlockCopy(framingExtras, 0, buffer, header.Length, framingExtras.Length);
-            Buffer.BlockCopy(extras, 0, buffer, header.Length + framingExtras.Length, extras.Length);
-            Buffer.BlockCopy(key, 0, buffer, header.Length + framingExtras.Length + extras.Length, key.Length);
-            Buffer.BlockCopy(body, 0, buffer, header.Length + framingExtras.Length + extras.Length + key.Length, body.Length);
-
-            return buffer;
-        }
     }
 }
 

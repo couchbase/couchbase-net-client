@@ -38,7 +38,7 @@ namespace Couchbase.Core.IO.Authentication
                 }
             })
             {
-                await connection.SendAsync(op.Write(), op.Completed).ConfigureAwait(false);
+                await op.SendAsync(connection).ConfigureAwait(false);
                 return await tcs.Task.ConfigureAwait(false);
             }
         }

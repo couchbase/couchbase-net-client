@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -11,7 +12,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return Array.Empty<byte>();
         }
 
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var key = CreateKey();
             var header = CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), key, Array.Empty<byte>());
@@ -21,7 +22,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
             System.Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
 
-            return buffer;
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public override IOperation Clone()

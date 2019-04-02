@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
@@ -17,7 +18,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
         /// Writes this instance into a memcached packet.
         /// </summary>
         /// <returns></returns>
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var body = new byte[8];
             Converter.FromInt64(MutationToken.VBucketUuid, body, 0);
@@ -32,7 +33,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
             var buffer = new byte[body.Length + header.Length];
             System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
             System.Buffer.BlockCopy(body, 0, buffer, header.Length, body.Length);
-            return buffer;
+
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         /// <summary>

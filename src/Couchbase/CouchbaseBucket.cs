@@ -169,8 +169,7 @@ namespace Couchbase
                     }
                 };
 
-                await connection.SendAsync(selectBucketOp.Write(), selectBucketOp.Completed)
-                    .ConfigureAwait(false);
+                await selectBucketOp.SendAsync(connection).ConfigureAwait(false);
             }
             else
             {
@@ -196,7 +195,7 @@ namespace Couchbase
                 }
             })
             {
-                await connection.SendAsync(configOp.Write(), configOp.Completed).ConfigureAwait(false);
+                await configOp.SendAsync(connection).ConfigureAwait(false);
 
                 var clusterMapBytes = await completionSource.Task.ConfigureAwait(false);
                 await configOp.ReadAsync(clusterMapBytes).ConfigureAwait(false);
@@ -232,7 +231,7 @@ namespace Couchbase
                 }
             })
             {
-                await connection.SendAsync(heloOp.Write(), heloOp.Completed).ConfigureAwait(false);
+                await heloOp.SendAsync(connection).ConfigureAwait(false);
                 var result = await completionSource.Task.ConfigureAwait(false);
                 await heloOp.ReadAsync(result).ConfigureAwait(false);
                 var supported = heloOp.GetResultWithValue();
@@ -256,7 +255,7 @@ namespace Couchbase
                 }
             })
             {
-                await connection.SendAsync(manifestOp.Write(), manifestOp.Completed).ConfigureAwait(false);
+                await manifestOp.SendAsync(connection).ConfigureAwait(false);
                 var manifestBytes = await completionSource.Task.ConfigureAwait(false);
                 await manifestOp.ReadAsync(manifestBytes).ConfigureAwait(false);
 
@@ -314,7 +313,7 @@ namespace Couchbase
             op.VBucketId = vBucket.Index; //hack - make vBucketIndex a short
 
             var node =  vBucket.LocatePrimary();
-            await Connections[node].SendAsync(op.Write(), op.Completed).ConfigureAwait(false);
+            await op.SendAsync(Connections[node]).ConfigureAwait(false);
         }
     }
 }

@@ -113,20 +113,6 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return new OperationHeader();
         }
 
-        public virtual Task<byte[]> WriteAsync()
-        {
-            var tcs = new TaskCompletionSource<byte[]>();
-            try
-            {
-                tcs.SetResult(Write());
-            }
-            catch (Exception e)
-            {
-                tcs.SetException(e);
-            }
-            return tcs.Task;
-        }
-
         public virtual byte[] CreateHeader(byte[] extras, byte[] body, byte[] key, byte[] framingExtras)
         {
             var header = new byte[OperationHeader.Length];
@@ -442,7 +428,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return Array.Empty<byte>();
         }
 
-        public virtual byte[] Write()
+        public virtual async Task SendAsync(IConnection connection)
         {
             var extras = CreateExtras();
             var key = CreateKey();
@@ -462,7 +448,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             Buffer.BlockCopy(key, 0, buffer, header.Length + framingExtras.Length + extras.Length, key.Length);
             Buffer.BlockCopy(body, 0, buffer, header.Length + framingExtras.Length + extras.Length + key.Length, body.Length);
 
-            return buffer;
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
         public virtual IOperation Clone()

@@ -1,10 +1,11 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
     internal abstract class SubDocSingularLookupBase<T> : SubDocSingularBase<T>
     {
-        public override byte[] Write()
+        public override async Task SendAsync(IConnection connection)
         {
             var totalLength = OperationHeader.Length + KeyLength + ExtrasLength + PathLength + BodyLength;
             var buffer = new byte[totalLength];
@@ -15,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             WritePath(buffer, OperationHeader.Length + ExtrasLength + KeyLength);
             WriteBody(buffer, OperationHeader.Length + ExtrasLength + KeyLength + BodyLength);
 
-            return buffer;
+            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
         }
 
 
