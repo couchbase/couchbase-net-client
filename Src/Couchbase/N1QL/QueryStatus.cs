@@ -14,7 +14,9 @@
 
         Timeout,
 
-        Fatal
+        Fatal,
+
+        Failed
     }
 }
 
