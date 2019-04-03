@@ -91,12 +91,12 @@ namespace Couchbase.Analytics
                 case QueryStatus.Errors:
                 case QueryStatus.Timeout:
                 case QueryStatus.Fatal:
-                    return Errors.Any(error =>
-                        error.Code == 21002 || // Request timed out and will be cancelled
-                        error.Code == 23000 || // Analytics Service is temporarily unavailable
-                        error.Code == 23003 || // Operation cannot be performed during rebalance
-                        error.Code == 23007    // Job queue is full with [string] jobs
-                    );
+                    return Errors != null && Errors.Any(error =>
+                                   error.Code == 21002 || // Request timed out and will be cancelled
+                                   error.Code == 23000 || // Analytics Service is temporarily unavailable
+                                   error.Code == 23003 || // Operation cannot be performed during rebalance
+                                   error.Code == 23007    // Job queue is full with [string] jobs
+                           );
                 default:
                     return false;
             }
@@ -187,9 +187,9 @@ namespace Couchbase.Analytics
                 Signature = signature,
                 Rows = results.ToList(),
                 Status = status,
-                Errors = errors != null ? errors.Select(e => e.ToError()).ToList() : null,
-                Warnings = warnings != null ? warnings.Select(w => w.ToWarning()).ToList() : null,
-                Metrics = metrics != null ? metrics.ToMetrics() : null
+                Errors = errors?.Select(e => e.ToError()).ToList(),
+                Warnings = warnings?.Select(w => w.ToWarning()).ToList(),
+                Metrics = metrics?.ToMetrics()
             };
 
             if (!string.IsNullOrWhiteSpace(handle))

@@ -120,6 +120,7 @@ namespace Couchbase.Analytics
                     ae.Flatten().Handle(e =>
                     {
                         Log.Info("Failed analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                        Log.Error(e);
                         ProcessError(e, result);
                         return true;
                     });
