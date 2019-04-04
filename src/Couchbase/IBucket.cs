@@ -16,8 +16,10 @@ namespace Couchbase
 
         Task<IScope> Scope(string name);
 
-        Task<IViewResult> ViewQuery<T>(string statement, IViewOptions options);
+        Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default);
+        Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, Action<ViewOptions> configureOptions);
 
-        Task<ISpatialViewResult> SpatialViewQuery<T>(string statement, ISpatialViewOptions options);
+        Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, SpatialViewOptions options = default);
+        Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, Action<SpatialViewOptions> configureOptions);
     }
 }

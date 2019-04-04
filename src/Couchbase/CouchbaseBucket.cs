@@ -8,14 +8,17 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.IO.Operations.Legacy.Authentication;
 using Couchbase.Core.IO.Operations.Legacy.Collections;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Sharding;
 using Couchbase.Services.Views;
@@ -34,6 +37,7 @@ namespace Couchbase
         internal const string DefaultScope = "_default";
         private readonly ICluster _cluster;
         private readonly ConcurrentDictionary<string, IScope> _scopes = new ConcurrentDictionary<string, IScope>();
+        private readonly Lazy<IViewClient> _viewClientLazy;
 
         private bool _disposed;
         private BucketConfig _bucketConfig;
@@ -47,6 +51,10 @@ namespace Couchbase
         {
             _cluster = cluster;
             Name = name;
+
+            _viewClientLazy = new Lazy<IViewClient>(() =>
+                new ViewClient(new CouchbaseHttpClient(_configuration, _bucketConfig), new JsonDataMapper(new DefaultSerializer()), _configuration)
+            );
         }
 
         public string Name { get; }
@@ -282,14 +290,110 @@ namespace Couchbase
             return this[name];
         }
 
-        public Task<IViewResult> ViewQuery<T>(string statement, IViewOptions options)
+        private Uri GetViewUri()
         {
-            throw new NotImplementedException();
+            var server = _bucketConfig.Nodes.GetRandom();
+            var uri = new UriBuilder
+            {
+                Scheme = Uri.UriSchemeHttp,
+                Host = server.hostname.Split(':')[0],
+                Port = 8092
+            }.Uri;
+            return uri;
         }
 
-        public Task<ISpatialViewResult> SpatialViewQuery<T>(string statement, ISpatialViewOptions options)
+        public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default)
         {
-            throw new NotImplementedException();
+            if (options == default)
+            {
+                options = new ViewOptions();
+            }
+
+            // create old style query
+            var query = new ViewQuery(GetViewUri().ToString())
+            {
+                UseSsl = _configuration.UseSsl
+            };
+            query.Bucket(Name);
+            query.From(designDocument, viewName);
+            query.Stale(options.StaleState);
+            query.Limit(options.Limit);
+            query.Skip(options.Skip);
+            query.StartKey(options.StartKey);
+            query.StartKeyDocId(options.StartKeyDocId);
+            query.EndKey(options.EndKey);
+            query.EndKeyDocId(options.EndKeyDocId);
+            query.InclusiveEnd(options.InclusiveEnd);
+            query.Group(options.Group);
+            query.GroupLevel(options.GroupLevel);
+            query.Key(options.Key);
+            query.Keys(options.Keys);
+            query.GroupLevel(options.GroupLevel);
+            query.Reduce(options.Reduce);
+            query.Development(options.Development);
+            query.ConnectionTimeout(options.ConnectionTimeout);
+
+            if (options.Descending.HasValue)
+            {
+                if (options.Descending.Value)
+                {
+                    query.Desc();
+                }
+                else
+                {
+                    query.Asc();
+                }
+            }
+
+            if (options.FullSet.HasValue && options.FullSet.Value)
+            {
+                query.FullSet();
+            }
+
+            return _viewClientLazy.Value.ExecuteAsync<T>(query);
+        }
+
+        public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, Action<ViewOptions> configureOptions)
+        {
+            var options = new ViewOptions();
+            configureOptions(options);
+
+            return ViewQueryAsync<T>(designDocument, viewName, options);
+        }
+
+        public Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, SpatialViewOptions options = default)
+        {
+            if (options == default)
+            {
+                options = new SpatialViewOptions();
+            }
+
+            var uri = GetViewUri();
+
+            // create old style query
+            var query = new SpatialViewQuery(uri)
+            {
+                UseSsl = _configuration.UseSsl
+            };
+            query.Bucket(Name);
+            query.From(designDocument, viewName);
+            query.Stale(options.StaleState);
+            query.Skip(options.Skip);
+            query.Limit(options.Limit);
+            query.StartRange(options.StartRange.ToList());
+            query.EndRange(options.EndRange.ToList());
+            query.Development(options.Development);
+            query.ConnectionTimeout(options.ConnectionTimeout);
+
+            return _viewClientLazy.Value.ExecuteAsync<T>(query);
+        }
+
+        public Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, Action<SpatialViewOptions> configureOptions)
+        {
+            var options = new SpatialViewOptions();
+            configureOptions(options);
+
+            return SpatialViewQuery<T>(designDocument, viewName, options);
         }
 
         public void Dispose()

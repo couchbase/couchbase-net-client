@@ -1,0 +1,55 @@
+{
+  "total_rows": 7303,
+  "rows": [
+    {
+      "id": "21st_amendment_brewery_cafe",
+      "key": [ "21st_amendment_brewery_cafe" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-21a_ipa",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-21a_ipa" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-563_stout",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-563_stout" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-amendment_pale_ale",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-amendment_pale_ale" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-bitter_american",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-bitter_american" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-double_trouble_ipa",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-double_trouble_ipa" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-general_pippo_s_porter",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-general_pippo_s_porter" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-north_star_red",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-north_star_red" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-oyster_point_oyster_stout",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-oyster_point_oyster_stout" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-potrero_esb",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-potrero_esb" ],
+      "value": null
+    }
+  ]
+}

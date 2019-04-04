@@ -15,6 +15,7 @@
     <None Remove="Data\multi-getresponse-packet.txt" />
     <None Remove="Documents\config.json" />
     <None Remove="Documents\emmy-lou.json" />
+    <None Remove="Services\Views\view_result.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +28,7 @@
     <EmbeddedResource Include="Documents\config.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="Services\Views\view_result.json" />
   </ItemGroup>
 
   <ItemGroup>

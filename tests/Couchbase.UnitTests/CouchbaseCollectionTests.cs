@@ -81,12 +81,22 @@ namespace Couchbase.UnitTests
                 throw new NotImplementedException();
             }
 
-            public Task<IViewResult> ViewQuery<T>(string statement, IViewOptions options)
+            public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options)
             {
                 throw new NotImplementedException();
             }
 
-            public Task<ISpatialViewResult> SpatialViewQuery<T>(string statement, ISpatialViewOptions options)
+            public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, Action<ViewOptions> configureOptions)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, SpatialViewOptions options)
+            {
+                throw new NotImplementedException();
+            }
+
+            public Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, Action<SpatialViewOptions> configureOptions)
             {
                 throw new NotImplementedException();
             }
