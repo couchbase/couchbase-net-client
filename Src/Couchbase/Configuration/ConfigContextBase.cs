@@ -135,7 +135,20 @@ namespace Couchbase.Configuration
 
         public FailureCountingUri GetAnalyticsUri()
         {
-            return AnalyticsUris.Where(x => x.IsHealthy(2)).GetRandom();
+            var analyticsUris = AnalyticsUris.Where(x => x.IsHealthy(2)).ToList();
+            if (analyticsUris.Count == 0)
+            {
+                // All analytics URIs are unhealthy, so reset them all back to healthy and return the entire list
+                // It's better to at least try the nodes than assume they're all failing indefinitely
+
+                foreach (var analyticsUri in AnalyticsUris)
+                {
+                    analyticsUri.ClearFailed();
+                    analyticsUris.Add(analyticsUri);
+                }
+            }
+
+            return analyticsUris.GetRandom();
         }
 
         protected ITypeTranscoder Transcoder { get; private set; }
