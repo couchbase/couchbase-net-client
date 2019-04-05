@@ -145,6 +145,17 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return header;
         }
 
+        protected virtual OperationRequestHeader CreateHeader()
+        {
+            return new OperationRequestHeader
+            {
+                OpCode = OpCode,
+                VBucketId = VBucketId,
+                Opaque = Opaque,
+                Cas = Cas
+            };
+        }
+
         public virtual void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length > Header.ExtrasOffset)
@@ -430,25 +441,23 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public virtual async Task SendAsync(IConnection connection)
         {
-            var extras = CreateExtras();
-            var key = CreateKey();
-            var body = CreateBody();
-            var framingExtras = CreateFramingExtras();
-            var header = CreateHeader(extras, body, key, framingExtras);
+            using (var builder = new OperationBuilder(Converter))
+            {
+                builder.Write(CreateFramingExtras());
 
-            var buffer = new byte[extras.GetLengthSafe() +
-                                  body.GetLengthSafe() +
-                                  key.GetLengthSafe() +
-                                  header.GetLengthSafe() +
-                                  framingExtras.GetLengthSafe()];
+                builder.AdvanceToSegment(OperationSegment.Extras);
+                builder.Write(CreateExtras());
 
-            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            Buffer.BlockCopy(framingExtras, 0, buffer, header.Length, framingExtras.Length);
-            Buffer.BlockCopy(extras, 0, buffer, header.Length + framingExtras.Length, extras.Length);
-            Buffer.BlockCopy(key, 0, buffer, header.Length + framingExtras.Length + extras.Length, key.Length);
-            Buffer.BlockCopy(body, 0, buffer, header.Length + framingExtras.Length + extras.Length + key.Length, body.Length);
+                builder.AdvanceToSegment(OperationSegment.Key);
+                builder.Write(CreateKey());
 
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+                builder.AdvanceToSegment(OperationSegment.Body);
+                builder.Write(CreateBody());
+
+                builder.WriteHeader(CreateHeader());
+
+                await connection.SendAsync(builder.GetBuffer(), Completed).ConfigureAwait(false);
+            }
         }
 
         public virtual IOperation Clone()

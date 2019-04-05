@@ -83,9 +83,9 @@ namespace Couchbase.Core.IO
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>
         /// <param name="callback">The callback that will be fired after the operation is completed.</param>
-        Task SendAsync(Memory<byte> buffer, Func<SocketAsyncState, Task> callback);
+        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback);
 
-        Task SendAsync(Memory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap errorMap);
+        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap errorMap);
 
         /// <summary>
         ///  Checks whether this <see cref="Connection"/> is currently being used to execute a request.

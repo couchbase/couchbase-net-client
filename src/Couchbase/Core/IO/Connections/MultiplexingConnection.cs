@@ -76,12 +76,12 @@ namespace Couchbase.Core.IO.Connections
         /// </value>
         public bool IsDead { get; set; }
 
-        public Task SendAsync(Memory<byte> buffer, Func<SocketAsyncState, Task> callback)
+        public Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback)
         {
             return SendAsync(buffer, callback, null);
         }
 
-        public Task SendAsync(Memory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
+        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
         {
             var opaque = Converter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
             var state = new AsyncState
