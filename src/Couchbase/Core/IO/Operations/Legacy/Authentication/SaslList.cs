@@ -9,13 +9,6 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
     {
         public override byte[] CreateExtras()
         {
-            Format = DataFormat.String;
-            Flags = new Flags
-            {
-                Compression = Compression.None,
-                DataFormat = Format,
-                TypeCode = TypeCode.String
-            };
             return Array.Empty<byte>();
         }
 
@@ -32,15 +25,15 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
 
         public override OpCode OpCode => OpCode.SaslList;
 
-        public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key, byte[] framingExtras)
+        protected override void BeginSend()
         {
-            var header = new byte[OperationHeader.Length];
-
-            Converter.FromByte((byte)Magic.Request, header, HeaderOffsets.Magic);
-            Converter.FromByte((byte)OpCode, header, HeaderOffsets.Opcode);
-            Converter.FromUInt32(Opaque, header, HeaderOffsets.Opaque);
-
-            return header;
+            Format = DataFormat.String;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.String
+            };
         }
 
         public override bool RequiresKey => false;

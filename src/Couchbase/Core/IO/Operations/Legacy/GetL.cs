@@ -12,21 +12,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return extras;
         }
 
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateBody()
         {
-            var key = CreateKey();
-            var extras = CreateExtras();
-            var framingExtras = CreateFramingExtras();
-            var header = CreateHeader(extras, Array.Empty<byte>(), key, framingExtras);
-
-            var buffer = new byte[header.GetLengthSafe() + key.GetLengthSafe() + extras.GetLengthSafe() + framingExtras.GetLengthSafe()];
-
-            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            System.Buffer.BlockCopy(framingExtras, 0, buffer, header.Length, framingExtras.Length);
-            System.Buffer.BlockCopy(extras, 0, buffer, header.Length + framingExtras.Length, extras.Length);
-            System.Buffer.BlockCopy(key, 0, buffer, header.Length + framingExtras.Length + extras.Length, key.Length);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+            return Array.Empty<byte>();
         }
 
         public uint Expiration { get; set; }

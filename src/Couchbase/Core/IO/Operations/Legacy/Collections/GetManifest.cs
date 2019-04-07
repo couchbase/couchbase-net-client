@@ -7,7 +7,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Collections
     {
         public override OpCode OpCode  => OpCode.GetCollectionsManifest;
 
-        public override byte[] CreateExtras()
+        protected override void BeginSend()
         {
             Format = DataFormat.Json;
             Flags = new Flags
@@ -16,6 +16,10 @@ namespace Couchbase.Core.IO.Operations.Legacy.Collections
                 DataFormat = Format,
                 TypeCode = TypeCode.Object
             };
+        }
+
+        public override byte[] CreateExtras()
+        {
             return Array.Empty<byte>();
         }
 

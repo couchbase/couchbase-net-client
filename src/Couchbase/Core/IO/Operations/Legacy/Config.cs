@@ -9,7 +9,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         internal IPEndPoint EndPoint { get; set; }
 
-        public override byte[] CreateExtras()
+        protected override void BeginSend()
         {
             Format = DataFormat.Json;
             Flags = new Flags
@@ -18,6 +18,10 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 DataFormat = Format,
                 TypeCode = TypeCode.Object
             };
+        }
+
+        public override byte[] CreateExtras()
+        {
             return Array.Empty<byte>();
         }
 

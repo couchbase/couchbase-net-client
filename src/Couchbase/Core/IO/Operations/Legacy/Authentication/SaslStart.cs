@@ -12,13 +12,6 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
 
         public override byte[] CreateExtras()
         {
-            Format = DataFormat.String;
-            Flags = new Flags
-            {
-                Compression = Compression.None,
-                DataFormat = Format,
-                TypeCode = TypeCode.String
-            };
             return Array.Empty<byte>();
         }
 
@@ -33,35 +26,15 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
             };
         }
 
-        public override byte[] CreateHeader(byte[] extras, byte[] body, byte[] key, byte[] framingExtras)
+        protected override void BeginSend()
         {
-            var header = new byte[OperationHeader.Length];
-            var totalLength = key.GetLengthSafe() + body.GetLengthSafe();
-
-            Converter.FromByte((byte)Magic.Request, header, HeaderOffsets.Magic);
-            Converter.FromByte((byte)OpCode, header, HeaderOffsets.Opcode);
-            Converter.FromInt16((short)key.Length, header, HeaderOffsets.KeyLength);
-            Converter.FromInt32(totalLength, header, HeaderOffsets.BodyLength);
-            Converter.FromUInt32(Opaque, header, HeaderOffsets.Opaque);
-
-            return header;
-        }
-
-        public override async Task SendAsync(IConnection connection)
-        {
-            var body = CreateBody();
-            var key = CreateKey();
-            var header = CreateHeader(null, body, key, null);
-
-            var buffer = new byte[header.GetLengthSafe() +
-                key.GetLengthSafe() +
-                body.GetLengthSafe()];
-
-            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            System.Buffer.BlockCopy(key, 0, buffer, header.Length, key.Length);
-            System.Buffer.BlockCopy(body, 0, buffer, header.Length + key.Length, body.Length);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+            Format = DataFormat.String;
+            Flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = Format,
+                TypeCode = TypeCode.String
+            };
         }
 
         public override bool RequiresKey => false;

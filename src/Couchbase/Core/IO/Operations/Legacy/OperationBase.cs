@@ -113,38 +113,6 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return new OperationHeader();
         }
 
-        public virtual byte[] CreateHeader(byte[] extras, byte[] body, byte[] key, byte[] framingExtras)
-        {
-            var header = new byte[OperationHeader.Length];
-            var totalLength = extras.GetLengthSafe() + key.GetLengthSafe() + body.GetLengthSafe() + framingExtras.GetLengthSafe();
-
-            if (framingExtras.GetLengthSafe() > 0)
-            {
-                Converter.FromByte((byte) Magic.AltRequest, header, HeaderOffsets.Magic);
-                Converter.FromByte((byte) framingExtras.GetLengthSafe(), header, HeaderOffsets.KeyLength);
-                Converter.FromByte((byte) key.GetLengthSafe(), header, HeaderOffsets.AltKeyLength);
-            }
-            else
-            {
-                Converter.FromByte((byte) Magic.Request, header, HeaderOffsets.Magic);
-                Converter.FromInt16((short) key.GetLengthSafe(), header, HeaderOffsets.KeyLength);
-            }
-
-            Converter.FromByte((byte)OpCode, header, HeaderOffsets.Opcode);
-            Converter.FromByte((byte)extras.GetLengthSafe(), header, HeaderOffsets.ExtrasLength);
-
-            if (VBucketId.HasValue)
-            {
-                Converter.FromInt16(VBucketId.Value, header, HeaderOffsets.VBucket);
-            }
-
-            Converter.FromInt32(totalLength, header, HeaderOffsets.BodyLength);
-            Converter.FromUInt32(Opaque, header, HeaderOffsets.Opaque);
-            Converter.FromUInt64(Cas, header, HeaderOffsets.Cas);
-
-            return header;
-        }
-
         protected virtual OperationRequestHeader CreateHeader()
         {
             return new OperationRequestHeader
@@ -439,8 +407,17 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return Array.Empty<byte>();
         }
 
+        /// <summary>
+        /// Prepares the operation to be sent.
+        /// </summary>
+        protected virtual void BeginSend()
+        {
+        }
+
         public virtual async Task SendAsync(IConnection connection)
         {
+            BeginSend();
+
             using (var builder = new OperationBuilder(Converter))
             {
                 builder.Write(CreateFramingExtras());

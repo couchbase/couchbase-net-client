@@ -14,27 +14,19 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
         /// </value>
         public override OpCode OpCode => OpCode.ObserveSeqNo;
 
-        /// <summary>
-        /// Writes this instance into a memcached packet.
-        /// </summary>
-        /// <returns></returns>
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateExtras()
         {
-            var body = new byte[8];
-            Converter.FromInt64(MutationToken.VBucketUuid, body, 0);
+            return Array.Empty<byte>();
+        }
 
-            var header = new byte[OperationHeader.Length];
-            Converter.FromByte((byte)Magic.Request, header, HeaderOffsets.Magic);
-            Converter.FromByte((byte)OpCode, header, HeaderOffsets.Opcode);
-            Converter.FromInt16(MutationToken.VBucketId, header, HeaderOffsets.VBucket);
-            Converter.FromInt32(body.Length, header, HeaderOffsets.BodyLength);
-            Converter.FromUInt32(Opaque, header, HeaderOffsets.Opaque);
+        public override byte[] CreateFramingExtras()
+        {
+            return Array.Empty<byte>();
+        }
 
-            var buffer = new byte[body.Length + header.Length];
-            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            System.Buffer.BlockCopy(body, 0, buffer, header.Length, body.Length);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+        public override byte[] CreateKey()
+        {
+            return Array.Empty<byte>();
         }
 
         /// <summary>

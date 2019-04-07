@@ -7,11 +7,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         public override OpCode OpCode => OpCode.NoOp;
 
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateKey()
         {
-            var buffer = CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), null, Array.Empty<byte>());
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+            return Array.Empty<byte>();
         }
 
         public override bool RequiresKey => false;

@@ -4,11 +4,15 @@ namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal sealed class Append<T> : MutationOperationBase<T>
     {
-        public override byte[] CreateExtras()
+        protected override void BeginSend()
         {
             Flags = Transcoder.GetFormat(Content);
             Format = Flags.DataFormat;
             Compression = Flags.Compression;
+        }
+
+        public override byte[] CreateExtras()
+        {
             return Array.Empty<byte>();
         }
 

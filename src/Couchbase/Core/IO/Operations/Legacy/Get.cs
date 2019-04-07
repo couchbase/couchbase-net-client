@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
@@ -8,18 +7,14 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         public override OpCode OpCode => OpCode.Get;
 
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateExtras()
         {
-            var key = CreateKey();
-            var framingExtras = CreateFramingExtras();
-            var header = CreateHeader(Array.Empty<byte>(), Array.Empty<byte>(), key, framingExtras);
+            return Array.Empty<byte>();
+        }
 
-            var buffer = new byte[key.GetLengthSafe() + header.GetLengthSafe() + framingExtras.GetLengthSafe()];
-            Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            Buffer.BlockCopy(framingExtras, 0, buffer, header.Length, framingExtras.Length);
-            Buffer.BlockCopy(key, 0, buffer, header.Length + framingExtras.Length, key.Length);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+        public override byte[] CreateBody()
+        {
+            return Array.Empty<byte>();
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)

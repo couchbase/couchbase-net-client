@@ -1,32 +1,53 @@
 using System;
-using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
+using Couchbase.Core.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal sealed class Observe : OperationBase<ObserveState>
     {
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateExtras()
         {
-            var key = CreateKey();
+            return Array.Empty<byte>();
+        }
 
-            var body = new byte[4 + key.Length];
+        public override byte[] CreateFramingExtras()
+        {
+            return Array.Empty<byte>();
+        }
+
+        public override byte[] CreateKey()
+        {
+            return Array.Empty<byte>();
+        }
+
+        public override byte[] CreateBody()
+        {
+            var keyLength = Converter.GetStringByteCount(Key);
+
+            //for collections add the leb128 cid
+            if (Cid.HasValue)
+            {
+                keyLength = keyLength + 2;
+            }
+
+            var buffer = new byte[4 + keyLength];
             // ReSharper disable once PossibleInvalidOperationException
-            Converter.FromInt16(VBucketId.Value, body, 0);
-            Converter.FromInt16((short)key.Length, body, 2);
-            Buffer.BlockCopy(key, 0, body, 4, key.Length);
+            Converter.FromInt16(VBucketId.Value, buffer);
+            Converter.FromInt16((short)keyLength, buffer.AsSpan(2));
 
-            var header = new byte[OperationHeader.Length];
-            Converter.FromByte((byte)Magic.Request, header, HeaderOffsets.Magic);
-            Converter.FromByte((byte)OpCode, header, HeaderOffsets.Opcode);
-            Converter.FromInt32(body.Length, header, HeaderOffsets.BodyLength);
-            Converter.FromUInt32(Opaque, header, HeaderOffsets.Opaque);
+            var keySpan = buffer.AsSpan(4);
+            if (Cid.HasValue)
+            {
+                var leb128Length = Leb128.Write(keySpan, Cid.Value);
+                Converter.FromString(Key, keySpan.Slice(leb128Length));
+            }
+            else
+            {
+                Converter.FromString(Key, keySpan);
+            }
 
-            var buffer = new byte[body.Length + header.Length];
-            System.Buffer.BlockCopy(header, 0, buffer, 0, header.Length);
-            System.Buffer.BlockCopy(body, 0, buffer, header.Length, body.Length);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+            return buffer;
         }
 
         public override ObserveState GetValue()

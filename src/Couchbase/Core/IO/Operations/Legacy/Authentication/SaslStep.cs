@@ -7,29 +7,6 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
     /// </summary>
     internal class SaslStep : SaslStart
     {
-        public override byte[] CreateExtras()
-        {
-            Format = DataFormat.String;
-            Flags = new Flags
-            {
-                Compression = Compression.None,
-                DataFormat = Format,
-                TypeCode = TypeCode.String
-            };
-            return Array.Empty<byte>();
-        }
-
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
-        {
-            Format = DataFormat.String;
-            Flags = new Flags
-            {
-                Compression = Compression.None,
-                DataFormat = Format,
-                TypeCode = TypeCode.String
-            };
-        }
-
         public override OpCode OpCode => OpCode.SaslStep;
     }
 }
