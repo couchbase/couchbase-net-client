@@ -16,17 +16,16 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public DurabilityLevel DurabilityLevel { get; set; }
         public TimeSpan? DurabilityTimeout { get; set; }
 
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateExtras()
         {
-            var keyBytes = CreateKey();
-            var totalLength = OperationHeader.Length + keyBytes.Length + BodyLength;
-            var buffer = new byte[totalLength];
+            if (Expires <= 0)
+            {
+                return Array.Empty<byte>();
+            }
 
-            WriteHeader(buffer);
-            Buffer.BlockCopy(keyBytes, 0, buffer, OperationHeader.Length, keyBytes.Length);
-            WriteBody(buffer, OperationHeader.Length + keyBytes.Length);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+            var buffer = new byte[sizeof(uint)];
+            Converter.FromUInt32(Expires, buffer);
+            return buffer;
         }
 
         public override byte[] CreateFramingExtras()
@@ -48,38 +47,6 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             //Converter.FromUInt16((ushort)timeout, bytes, 2);
 
             return bytes;
-        }
-
-        public override void WriteHeader(byte[] buffer)
-        {
-            var keyBytes = CreateKey();
-            var framingExtras = CreateFramingExtras();
-
-            if (framingExtras.Length > 0)
-            {
-                Converter.FromByte((byte) Magic.AltRequest, buffer, HeaderOffsets.Magic); //0
-                Converter.FromByte((byte) OpCode, buffer, HeaderOffsets.Opcode); //1
-                Converter.FromByte((byte) framingExtras.Length, buffer, HeaderOffsets.KeyLength); //2
-                Converter.FromByte((byte) keyBytes.Length, buffer, HeaderOffsets.AltKeyLength); //3
-                Converter.FromByte((byte) ExtrasLength, buffer, HeaderOffsets.ExtrasLength); //4
-            }
-            else
-            {
-                Converter.FromByte((byte) Magic.Request, buffer, HeaderOffsets.Magic); //0
-                Converter.FromByte((byte) OpCode, buffer, HeaderOffsets.Opcode); //1
-                Converter.FromInt16((short) keyBytes.Length, buffer, HeaderOffsets.KeyLength); //2-3
-                Converter.FromByte((byte) ExtrasLength, buffer, HeaderOffsets.ExtrasLength); //4
-            }
-
-            //5 datatype?
-            if (VBucketId.HasValue)
-            {
-                Converter.FromInt16(VBucketId.Value, buffer, HeaderOffsets.VBucket);//6-7
-            }
-
-            Converter.FromInt32(framingExtras.Length + ExtrasLength + keyBytes.Length + BodyLength, buffer, HeaderOffsets.BodyLength);//8-11
-            Converter.FromUInt32(Opaque, buffer, HeaderOffsets.Opaque);//12-15
-            Converter.FromUInt64(Cas, buffer, HeaderOffsets.Cas);
         }
 
         public override byte[] CreateBody()
@@ -193,21 +160,6 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 if (responseSpan.Length <= 0) break;
             }
             return _lookupCommands;
-        }
-
-        public override short ExtrasLength
-        {
-            get { return (short)(Expires == 0 ? 0 : 4); }
-        }
-
-        public override void WriteKey(byte[] buffer, int offset)
-        {
-            Converter.FromString(Key, buffer, offset);
-        }
-
-        public override void WriteBody(byte[] buffer, int offset)
-        {
-            System.Buffer.BlockCopy(BodyBytes, 0, buffer, offset, BodyLength);
         }
 
         public override OpCode OpCode

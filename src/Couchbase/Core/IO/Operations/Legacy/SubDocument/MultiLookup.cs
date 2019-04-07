@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
@@ -13,35 +12,14 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public LookupInBuilder<T> Builder { get; set; }
         public readonly IList<OperationSpec> LookupCommands = new List<OperationSpec>();
 
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateExtras()
         {
-            var keyBytes = CreateKey();
-            var totalLength = OperationHeader.Length + keyBytes.Length + BodyLength;
-            var buffer = new byte[totalLength];
-
-            WriteHeader(buffer);
-            Buffer.BlockCopy(keyBytes, 0, buffer, OperationHeader.Length, keyBytes.Length);
-            WriteBody(buffer, OperationHeader.Length + keyBytes.Length);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
+            return Array.Empty<byte>();
         }
 
-        public override void WriteHeader(byte[] buffer)
+        public override byte[] CreateFramingExtras()
         {
-            var keyBytes = CreateKey();
-            Converter.FromByte((byte)Magic.Request, buffer, HeaderOffsets.Magic);//0
-            Converter.FromByte((byte)OpCode, buffer, HeaderOffsets.Opcode);//1
-            Converter.FromInt16((short)keyBytes.Length, buffer, HeaderOffsets.KeyLength);//2-3
-            Converter.FromByte((byte)ExtrasLength, buffer, HeaderOffsets.ExtrasLength);  //4
-            //5 datatype?
-            if (VBucketId.HasValue)
-            {
-                Converter.FromInt16((short)VBucketId, buffer, HeaderOffsets.VBucket);//6-7
-            }
-
-            Converter.FromInt32(ExtrasLength + keyBytes.Length + BodyLength, buffer, HeaderOffsets.BodyLength);//8-11
-            Converter.FromUInt32(Opaque, buffer, HeaderOffsets.Opaque);//12-15
-            Converter.FromUInt64(Cas, buffer, HeaderOffsets.Cas);
+            return Array.Empty<byte>();
         }
 
         public override byte[] CreateBody()
@@ -63,16 +41,6 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 LookupCommands.Add(lookup);
             }
             return buffer.ToArray();
-        }
-
-        public override void WriteKey(byte[] buffer, int offset)
-        {
-            Converter.FromString(Key, buffer, offset);
-        }
-
-        public override void WriteBody(byte[] buffer, int offset)
-        {
-            System.Buffer.BlockCopy(BodyBytes, 0, buffer, offset, BodyLength);
         }
 
         public override OpCode OpCode => OpCode.MultiLookup;

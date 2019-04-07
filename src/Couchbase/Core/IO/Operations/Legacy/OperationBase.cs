@@ -468,71 +468,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
             }
         }
 
-        private short _keyLength;
-
-        public virtual short KeyLength
-        {
-            get
-            {
-                if (_keyLength == 0)
-                {
-                    _keyLength = (short)Encoding.UTF8.GetByteCount(Key);
-                }
-                return _keyLength;
-            }
-        }
-
-        public virtual short ExtrasLength { get; protected set; }
-
-        protected int _bodyLength = 0;
-        public virtual int BodyLength
-        {
-            get
-            {
-                if (_bodyLength == 0)
-                {
-                    BodyBytes = CreateBody();
-                    _bodyLength = BodyBytes.Length;
-                }
-                return _bodyLength;
-            }
-        }
-
-        public virtual byte[] BodyBytes { get; protected set; }
-
-        public virtual short PathLength { get; protected set; }
-
         public virtual bool RequiresKey => true;
 
         public string BucketName { get; set; }
-
-        public virtual void WriteHeader(byte[] buffer)
-        {
-            throw new NotImplementedException();
-        }
-
-        #region Temp add for sub doc - should refactor
-
-        public virtual void WriteBody(byte[] buffer, int offset)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual void WriteExtras(byte[] buffer, int offset)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual void WriteKey(byte[] buffer, int offset)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual void WritePath(byte[] buffer, int offset)
-        {
-            throw new NotImplementedException();
-        }
-        #endregion
 
         #region Finalization and Dispose
 

@@ -9,41 +9,10 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
     internal abstract class SubDocSingularBase<T> : OperationBase<T>
     {
-        private short _pathLength;
         protected ITypeSerializerProvider Builder;
         protected OperationSpec CurrentSpec;
 
         public string Path { get; protected set; }
-
-        public override short PathLength
-        {
-            get
-            {
-                if (_pathLength == 0)
-                {
-                    _pathLength = (short)Encoding.UTF8.GetByteCount(Path);
-                }
-                return _pathLength;
-            }
-        }
-
-        public override short ExtrasLength
-        {
-            get
-            {
-                short length = 3;
-                if (Expires > 0)
-                {
-                    length += 4;
-                }
-                if (CurrentSpec.DocFlags != SubdocDocFlags.None)
-                {
-                    length += 1;
-                }
-
-                return length;
-            }
-        }
 
         protected virtual ResponseStatus GetParentStatus(ResponseStatus status)
         {
@@ -139,19 +108,9 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             return result;
         }
 
-        public override void WriteKey(byte[] buffer, int offset)
+        public override byte[] CreateFramingExtras()
         {
-            Converter.FromString(Key, buffer, offset);
-        }
-
-        public override void WritePath(byte[] buffer, int offset)
-        {
-            Converter.FromString(Path, buffer, offset);
-        }
-
-        public override void WriteBody(byte[] buffer, int offset)
-        {
-            Buffer.BlockCopy(BodyBytes, 0, buffer, offset, BodyLength);
+            return Array.Empty<byte>();
         }
 
         public override T GetValue()

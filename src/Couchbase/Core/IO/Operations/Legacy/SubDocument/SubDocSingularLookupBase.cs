@@ -1,51 +1,32 @@
 using System;
-using System.Threading.Tasks;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
     internal abstract class SubDocSingularLookupBase<T> : SubDocSingularBase<T>
     {
-        public override async Task SendAsync(IConnection connection)
+        public override byte[] CreateExtras()
         {
-            var totalLength = OperationHeader.Length + KeyLength + ExtrasLength + PathLength + BodyLength;
-            var buffer = new byte[totalLength];
+            var buffer = new byte[CurrentSpec.DocFlags != SubdocDocFlags.None ? 4 : 3];
 
-            WriteHeader(buffer);
-            WriteExtras(buffer, OperationHeader.Length);
-            WriteKey(buffer, OperationHeader.Length + ExtrasLength);
-            WritePath(buffer, OperationHeader.Length + ExtrasLength + KeyLength);
-            WriteBody(buffer, OperationHeader.Length + ExtrasLength + KeyLength + BodyLength);
-
-            await connection.SendAsync(buffer, Completed).ConfigureAwait(false);
-        }
-
-
-        public override void WriteHeader(byte[] buffer)
-        {
-            Converter.FromByte((byte)Magic.Request, buffer, HeaderOffsets.Magic);//0
-            Converter.FromByte((byte)OpCode, buffer, HeaderOffsets.Opcode);//1
-            Converter.FromInt16(KeyLength, buffer, HeaderOffsets.KeyLength);//2-3
-            Converter.FromByte((byte)ExtrasLength, buffer, HeaderOffsets.ExtrasLength);  //4
-            //5 datatype?
-            if (VBucketId.HasValue)
-            {
-                Converter.FromInt16(VBucketId.Value, buffer, HeaderOffsets.VBucket);//6-7
-            }
-
-            Converter.FromInt32(ExtrasLength + PathLength + KeyLength, buffer, HeaderOffsets.BodyLength);//8-11
-            Converter.FromUInt32(Opaque, buffer, HeaderOffsets.Opaque);//12-15
-            Converter.FromUInt64(Cas, buffer, HeaderOffsets.Cas);
-        }
-
-        public override void WriteExtras(byte[] buffer, int offset)
-        {
-            Converter.FromInt16(PathLength, buffer, offset); //1-2
-            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer, offset + 2); //3
+            Converter.FromInt16((short) Converter.GetStringByteCount(Path), buffer); //1-2
+            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer.AsSpan(2)); //3
 
             if (CurrentSpec.DocFlags != SubdocDocFlags.None)
             {
-                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer, offset + 3);
+                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer.AsSpan(3));
             }
+
+            return buffer;
+        }
+
+        public override byte[] CreateBody()
+        {
+            var pathLength = Converter.GetStringByteCount(Path);
+
+            var buffer = new byte[pathLength];
+            Converter.FromString(Path, buffer);
+            return buffer;
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)
