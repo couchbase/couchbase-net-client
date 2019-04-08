@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -49,18 +49,6 @@ namespace Couchbase.Services.Query
         private const string QueryArgPattern = "{0}={1}&";
         public const string TimeoutArgPattern = "{0}={1}ms&";
         public const uint TimeoutDefault = 75000;
-
-        public static readonly Dictionary<ScanConsistency, string> ScanConsistencyResolver = new Dictionary<ScanConsistency, string>
-        {
-#pragma warning disable 618
-            {Query.ScanConsistency.AtPlus, "at_plus"},
-#pragma warning restore 618
-            {Query.ScanConsistency.NotBounded, "not_bounded"},
-            {Query.ScanConsistency.RequestPlus, "request_plus"},
-#pragma warning disable 618
-            {Query.ScanConsistency.StatementPlus, "statement_plus"}
-#pragma warning restore 618
-        };
 
         public QueryOptions()
         {
@@ -157,7 +145,7 @@ namespace Couchbase.Services.Query
         public IQueryOptions ConsistentWith(MutationState mutationState)
         {
 #pragma warning disable 618
-            ScanConsistency(Query.ScanConsistency.AtPlus);
+            WithScanConsistency(ScanConsistency.AtPlus);
 #pragma warning restore 618
             _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
             foreach (var token in mutationState)
@@ -491,10 +479,10 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions ScanConsistency(ScanConsistency scanConsistency)
+        public IQueryOptions WithScanConsistency(ScanConsistency scanConsistency)
         {
 #pragma warning disable 618
-            if (scanConsistency == Query.ScanConsistency.StatementPlus)
+            if (scanConsistency == ScanConsistency.StatementPlus)
 #pragma warning restore 618
             {
                 throw new NotSupportedException(
@@ -773,12 +761,12 @@ namespace Couchbase.Services.Query
             }
             if (_scanConsistency.HasValue)
             {
-                formValues.Add(QueryParameters.ScanConsistency, ScanConsistencyResolver[_scanConsistency.Value]);
+                formValues.Add(QueryParameters.ScanConsistency, _scanConsistency.GetDescription());
             }
             if (_scanVectors != null)
             {
 #pragma warning disable 618
-                if (_scanConsistency != Query.ScanConsistency.AtPlus)
+                if (_scanConsistency != ScanConsistency.AtPlus)
 #pragma warning restore 618
                 {
                     throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");

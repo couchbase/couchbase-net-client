@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Couchbase.Core;
 using Couchbase.Core.IO.Operations.Legacy;
@@ -189,7 +189,7 @@ namespace Couchbase.Services.Query
         /// <remarks>Optional.</remarks>
         /// <remarks>The default is <see cref="ScanConsistency"/>.NotBounded.</remarks>
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
-        IQueryOptions ScanConsistency(ScanConsistency scanConsistency);
+        IQueryOptions WithScanConsistency(ScanConsistency scanConsistency);
 
         /// <summary>
         ///  Specifies the maximum time the client is willing to wait for an index to catch up to the vector timestamp in the request. If an index has to catch up, and the <see cref="ScanWait"/> time is exceed doing so, an error is returned.
@@ -293,7 +293,7 @@ namespace Couchbase.Services.Query
         /// <summary>
         /// Provides a means of ensuring "read your own wites" or RYOW consistency on the current query.
         /// </summary>
-        /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="N1QL.ScanConsistency.AtPlus"/>.</remarks>
+        /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="ScanConsistency.AtPlus"/>.</remarks>
         /// <param name="mutationState">State of the mutation.</param>
         /// <returns>A reference to the current <see cref="IQueryRequest"/> for method chaining.</returns>
         IQueryOptions ConsistentWith(MutationState mutationState);

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
+using System.ComponentModel;
 
-namespace Couchbase.Services.Query
+namespace Couchbase
 {
    /// <summary>
     /// Sets the desired index scan consistency for current N1QL query.
@@ -14,6 +15,7 @@ namespace Couchbase.Services.Query
         /// the index or the view. This consistency level is useful for queries that favor
         /// low latency and do not need precise and most up-to-date information.
         /// </summary>
+        [Description("not_bounded")]
         NotBounded,
 
         /// <summary>
@@ -21,18 +23,21 @@ namespace Couchbase.Services.Query
         /// latencies than the other levels. This consistency level requires all mutations, up
         /// to the moment of the query request, to be processed before the query execution can start.
         /// </summary>
+        [Description("request_plus")]
         RequestPlus,
 
         /// <summary>
         /// Not supported; do not use.
         /// </summary>
         [Obsolete("Do not use.")]
+        [Description("statement_plus")]
         StatementPlus,
 
         /// <summary>
         /// Do not use; for RYOW use <see cref="IQueryRequest.ConsistentWith"/> and do not specify a <see cref="ScanConsistency"/>.
         /// </summary>
         [Obsolete("Do not use; for RYOW use IQueryRequest.ConsistentWith and do not specify a ScanConsistency.")]
+        [Description("at_plus")]
         AtPlus
     }
 }
