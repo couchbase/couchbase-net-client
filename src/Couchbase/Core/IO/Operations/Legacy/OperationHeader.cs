@@ -3,6 +3,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
     public struct OperationHeader
     {
         public const int Length = 24;
+        public const int MaxKeyLength = 250;
 
         public int Magic { get; set; }
 

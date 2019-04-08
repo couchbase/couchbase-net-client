@@ -22,9 +22,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
         {
         }
 
-        public override byte[] CreateKey()
+        public override void WriteKey(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         /// <summary>

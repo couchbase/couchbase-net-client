@@ -14,9 +14,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
         }
 
-        public override byte[] CreateKey()
+        public override void WriteKey(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateBody()

@@ -1,11 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Couchbase.Core.Utils
 {
     public static class Leb128
     {
+        /// <summary>
+        /// Maximum length, in bytes, when encoding a 32-bit integer.
+        /// </summary>
+        public const int MaxLength = 5;
+
         /// <summary>
         /// Encodes a value onto a buffer using LEB128 encoding.
         /// </summary>
