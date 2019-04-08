@@ -18,9 +18,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.Collections
             };
         }
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)

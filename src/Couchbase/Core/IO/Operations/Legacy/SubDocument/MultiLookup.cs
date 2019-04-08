@@ -12,9 +12,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public LookupInBuilder<T> Builder { get; set; }
         public readonly IList<OperationSpec> LookupCommands = new List<OperationSpec>();
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateFramingExtras()

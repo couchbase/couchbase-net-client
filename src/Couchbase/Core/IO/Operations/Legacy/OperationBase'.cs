@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -84,9 +85,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return result;
         }
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            var extras = new byte[8];
+            Span<byte> extras = stackalloc byte[8];
 
             Flags = Transcoder.GetFormat(Content);
             Format = Flags.DataFormat;
@@ -105,10 +106,10 @@ namespace Couchbase.Core.IO.Operations.Legacy
             Converter.SetBit(ref extras[0], 7, Converter.GetBit(compression, 2));
 
             var typeCode = (ushort)Flags.TypeCode;
-            Converter.FromUInt16(typeCode, extras, 2);
-            Converter.FromUInt32(Expires, extras, 4);
+            Converter.FromUInt16(typeCode, extras.Slice(2));
+            Converter.FromUInt32(Expires, extras.Slice(4));
 
-            return extras;
+            builder.Write(extras);
         }
     }
 }

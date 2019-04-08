@@ -5,19 +5,19 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
     internal abstract class SubDocSingularLookupBase<T> : SubDocSingularBase<T>
     {
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            var buffer = new byte[CurrentSpec.DocFlags != SubdocDocFlags.None ? 4 : 3];
+            Span<byte> buffer = stackalloc byte[CurrentSpec.DocFlags != SubdocDocFlags.None ? 4 : 3];
 
             Converter.FromInt16((short) Converter.GetStringByteCount(Path), buffer); //1-2
-            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer.AsSpan(2)); //3
+            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer.Slice(2)); //3
 
             if (CurrentSpec.DocFlags != SubdocDocFlags.None)
             {
-                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer.AsSpan(3));
+                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer.Slice(3));
             }
 
-            return buffer;
+            builder.Write(buffer);
         }
 
         public override byte[] CreateBody()

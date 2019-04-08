@@ -1,14 +1,15 @@
 using System;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal class GetT<T> : MutationOperationBase<T>
     {
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            var extras = new byte[4];
-            Converter.FromUInt32(Expires, extras, 0);
-            return extras;
+            Span<byte> extras = stackalloc byte[4];
+            Converter.FromUInt32(Expires, extras);
+            builder.Write(extras);
         }
 
         public override byte[] CreateBody()

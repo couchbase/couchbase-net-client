@@ -11,9 +11,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
             Compression = Flags.Compression;
         }
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override OpCode OpCode => OpCode.Append;

@@ -14,9 +14,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
         /// </value>
         public override OpCode OpCode => OpCode.ObserveSeqNo;
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateFramingExtras()

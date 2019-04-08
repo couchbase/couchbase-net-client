@@ -392,9 +392,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public MutationToken MutationToken { get; protected set; }
 
-        public virtual byte[] CreateExtras()
+        public virtual void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public virtual byte[] CreateBody()
@@ -423,7 +422,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 builder.Write(CreateFramingExtras());
 
                 builder.AdvanceToSegment(OperationSegment.Extras);
-                builder.Write(CreateExtras());
+                WriteExtras(builder);
 
                 builder.AdvanceToSegment(OperationSegment.Key);
                 builder.Write(CreateKey());

@@ -6,9 +6,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal sealed class Observe : OperationBase<ObserveState>
     {
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateFramingExtras()

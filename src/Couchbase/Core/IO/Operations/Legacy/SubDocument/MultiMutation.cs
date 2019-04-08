@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
@@ -16,16 +15,16 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public DurabilityLevel DurabilityLevel { get; set; }
         public TimeSpan? DurabilityTimeout { get; set; }
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
             if (Expires <= 0)
             {
-                return Array.Empty<byte>();
+                return;
             }
 
-            var buffer = new byte[sizeof(uint)];
+            Span<byte> buffer = stackalloc byte[sizeof(uint)];
             Converter.FromUInt32(Expires, buffer);
-            return buffer;
+            builder.Write(buffer);
         }
 
         public override byte[] CreateFramingExtras()

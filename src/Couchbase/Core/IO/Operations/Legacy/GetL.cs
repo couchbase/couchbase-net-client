@@ -1,15 +1,15 @@
 using System;
-using System.Threading.Tasks;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal class GetL<T> : Get<T>
     {
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            var extras = new byte[4];
-            Converter.FromUInt32(Expiration, extras, 0);
-            return extras;
+            Span<byte> extras = stackalloc byte[4];
+            Converter.FromUInt32(Expiration, extras);
+            builder.Write(extras);
         }
 
         public override byte[] CreateBody()

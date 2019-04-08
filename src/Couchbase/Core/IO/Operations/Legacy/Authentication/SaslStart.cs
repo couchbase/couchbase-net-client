@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.Operations.Legacy.Authentication
 {
@@ -10,9 +9,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.Authentication
     {
         public override OpCode OpCode => OpCode.SaslStart;
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)

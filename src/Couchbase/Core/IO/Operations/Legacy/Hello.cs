@@ -21,9 +21,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return body;
         }
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override short[] GetValue()

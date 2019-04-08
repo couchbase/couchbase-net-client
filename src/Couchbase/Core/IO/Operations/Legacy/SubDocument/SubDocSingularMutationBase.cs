@@ -6,7 +6,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
     internal abstract class SubDocSingularMutationBase<T> : SubDocSingularBase<T>
     {
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
             var hasExpiry = Expires > 0;
             var length = CurrentSpec.DocFlags != SubdocDocFlags.None ? 4 : 3;
@@ -15,22 +15,22 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 length += 4;
             }
 
-            var buffer = new byte[length];
+            Span<byte> buffer = stackalloc byte[length];
 
             Converter.FromInt16((short) Converter.GetStringByteCount(Path), buffer); //1-2
-            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer.AsSpan(2)); //3
+            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer.Slice(2)); //3
 
             if (hasExpiry)
             {
-                Converter.FromUInt32(Expires, buffer.AsSpan(3)); //4@27 Expiration time (if present, extras is 7)
+                Converter.FromUInt32(Expires, buffer.Slice(3)); //4@27 Expiration time (if present, extras is 7)
             }
             if (CurrentSpec.DocFlags != SubdocDocFlags.None)
             {
                 // write doc flags, offset depends on if there is an expiry
-                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer.AsSpan(hasExpiry ? 7 : 3));
+                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer.Slice(hasExpiry ? 7 : 3));
             }
 
-            return buffer;
+            builder.Write(buffer);
         }
 
         public override byte[] CreateBody()

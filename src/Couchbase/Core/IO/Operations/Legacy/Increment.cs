@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -10,13 +11,13 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override OpCode OpCode => OpCode.Increment;
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            var extras = new byte[20];
-            Converter.FromUInt64(Delta, extras, 0);
-            Converter.FromUInt64(Initial, extras, 8);
-            Converter.FromUInt32(Expires, extras, 16);
-            return extras;
+            Span<byte> extras = stackalloc byte[20];
+            Converter.FromUInt64(Delta, extras);
+            Converter.FromUInt64(Initial, extras.Slice(8));
+            Converter.FromUInt32(Expires, extras.Slice(16));
+            builder.Write(extras);
         }
 
         public override byte[] CreateBody()

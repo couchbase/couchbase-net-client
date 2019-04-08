@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -7,9 +6,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         public override OpCode OpCode => OpCode.ReplicaRead;
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateFramingExtras()

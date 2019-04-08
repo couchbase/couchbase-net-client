@@ -13,9 +13,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.Errors
             return Array.Empty<byte>();
         }
 
-        public override byte[] CreateExtras()
+        public override void WriteExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateBody()
