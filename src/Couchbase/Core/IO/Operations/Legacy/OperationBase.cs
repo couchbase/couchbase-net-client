@@ -401,9 +401,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return Array.Empty<byte>();
         }
 
-        public virtual byte[] CreateFramingExtras()
+        public virtual void WriteFramingExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         /// <summary>
@@ -419,7 +418,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
             using (var builder = new OperationBuilder(Converter))
             {
-                builder.Write(CreateFramingExtras());
+                WriteFramingExtras(builder);
 
                 builder.AdvanceToSegment(OperationSegment.Extras);
                 WriteExtras(builder);

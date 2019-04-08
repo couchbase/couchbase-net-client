@@ -18,9 +18,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
         {
         }
 
-        public override byte[] CreateFramingExtras()
+        public override void WriteFramingExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateKey()

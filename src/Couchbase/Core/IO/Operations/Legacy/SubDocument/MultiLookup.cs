@@ -16,9 +16,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         {
         }
 
-        public override byte[] CreateFramingExtras()
+        public override void WriteFramingExtras(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override byte[] CreateBody()
