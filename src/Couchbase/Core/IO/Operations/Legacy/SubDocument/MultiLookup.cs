@@ -23,22 +23,18 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         public override void WriteBody(OperationBuilder builder)
         {
-            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength + 4))
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength))
             {
                 var buffer = bufferOwner.Memory.Span;
 
                 foreach (var lookup in Builder)
                 {
-                    var pathLength = Converter.FromString(lookup.Path, buffer.Slice(4));
+                    builder.BeginOperationSpec(false);
 
-                    var opcode = (byte) lookup.OpCode;
-                    var flags = (byte) lookup.PathFlags;
+                    var pathLength = Converter.FromString(lookup.Path, buffer);
+                    builder.Write(buffer.Slice(0, pathLength));
 
-                    Converter.FromByte(opcode, buffer);
-                    Converter.FromByte(flags, buffer.Slice(1));
-                    Converter.FromUInt16((ushort) pathLength, buffer.Slice(2));
-
-                    builder.Write(buffer.Slice(0, pathLength + 4));
+                    builder.CompleteOperationSpec(lookup);
                     LookupCommands.Add(lookup);
                 }
             }

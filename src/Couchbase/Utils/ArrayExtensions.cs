@@ -150,13 +150,11 @@ namespace Couchbase.Utils
             return ToJson(array);
         }
 
-        public static byte[] StripBrackets(this byte[] theArray)
+        public static ReadOnlySpan<byte> StripBrackets(this ReadOnlySpan<byte> theArray)
         {
             if (theArray.Length > 1 && theArray[0] == 0x5b && theArray[theArray.Length-1] == 0x5d)
             {
-                var newArray = new byte[theArray.Length - 2];
-                Buffer.BlockCopy(theArray, 1, newArray, 0, theArray.Length - 2);
-                return newArray;
+                return theArray.Slice(1, theArray.Length - 2);
             }
             return theArray;
         }

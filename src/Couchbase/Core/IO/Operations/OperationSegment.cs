@@ -7,6 +7,8 @@ namespace Couchbase.Core.IO.Operations
         FramingExtras,
         Extras,
         Key,
-        Body
+        Body,
+        OperationSpecPath,
+        OperationSpecFragment
     }
 }

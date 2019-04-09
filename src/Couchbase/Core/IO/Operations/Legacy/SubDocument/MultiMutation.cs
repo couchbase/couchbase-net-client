@@ -51,38 +51,37 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         public override void WriteBody(OperationBuilder builder)
         {
-            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength + 8))
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength))
             {
                 var buffer = bufferOwner.Memory.Span;
                 foreach (var mutate in Builder)
                 {
-                    var pathLength = Converter.FromString(mutate.Path, buffer.Slice(8));
+                    builder.BeginOperationSpec(true);
 
-                    var opcode = (byte) mutate.OpCode;
-                    var flags = (byte) mutate.PathFlags;
-                    var fragment = mutate.Value == null ? Array.Empty<byte>() : GetBytes(mutate);
+                    var pathLength = Converter.FromString(mutate.Path, buffer);
+                    builder.Write(buffer.Slice(0, pathLength));
 
-                    Converter.FromByte(opcode, buffer);
-                    Converter.FromByte(flags, buffer.Slice(1));
-                    Converter.FromUInt16((ushort) pathLength, buffer.Slice(2));
-                    Converter.FromUInt32((uint) fragment.Length, buffer.Slice(4));
+                    if (mutate.Value != null)
+                    {
+                        builder.AdvanceToSegment(OperationSegment.OperationSpecFragment);
+                        WriteSpecValue(builder, mutate);
+                    }
 
-                    // TODO: Optimize fragment handling to use OperationBuilder directly
-                    builder.Write(buffer.Slice(0, pathLength + 8));
-                    builder.Write(fragment, 0, fragment.Length);
+                    builder.CompleteOperationSpec(mutate);
                     _lookupCommands.Add(mutate);
                 }
             }
         }
 
-        byte[] GetBytes(OperationSpec spec)
+        private void WriteSpecValue(OperationBuilder builder, OperationSpec spec)
         {
-            var bytes = Transcoder.Serializer.Serialize(spec.Value);
+            ReadOnlySpan<byte> bytes = Transcoder.Serializer.Serialize(spec.Value).AsSpan();
             if (spec.RemoveBrackets)
             {
-                return bytes.StripBrackets();
+                bytes = bytes.StripBrackets();
             }
-            return bytes;
+
+            builder.Write(bytes);
         }
 
         public override IOperationResult<T> GetResultWithValue()

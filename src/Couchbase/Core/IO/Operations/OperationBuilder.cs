@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations.SubDocument;
 using Microsoft.IO;
 
 namespace Couchbase.Core.IO.Operations
@@ -24,6 +25,12 @@ namespace Couchbase.Core.IO.Operations
         private int _extrasLength;
         private int _keyLength;
         private int _bodyLength;
+
+        private int _operationSpecStartPosition;
+        private bool _operationSpecIsMutation;
+        private int _operationSpecPathLength;
+        private int _operationSpecFragmentLength;
+
         private bool _headerWritten;
 
         /// <inheritdoc />
@@ -82,6 +89,14 @@ namespace Couchbase.Core.IO.Operations
             if (segment < CurrentSegment)
             {
                 throw new InvalidOperationException("Segment cannot be moved backwards");
+            }
+            if (CurrentSegment <= OperationSegment.Body && segment > OperationSegment.Body)
+            {
+                throw new InvalidOperationException("Operation specs must be started with BeginOperationSpec");
+            }
+            if (segment == OperationSegment.OperationSpecFragment && !_operationSpecIsMutation)
+            {
+                throw new InvalidOperationException("This operation spec is not a mutation");
             }
 
             EnsureHeaderNotWritten();
@@ -189,6 +204,11 @@ namespace Couchbase.Core.IO.Operations
         {
             EnsureHeaderNotWritten();
 
+            if (CurrentSegment > OperationSegment.Body)
+            {
+                throw new InvalidOperationException("An operation spec is still in progress.");
+            }
+
             Span<byte> headerBytes = stackalloc byte[OperationHeader.Length];
             headerBytes.Fill(0);
 
@@ -224,6 +244,72 @@ namespace Couchbase.Core.IO.Operations
         }
 
         /// <summary>
+        /// Begin a sub-document operation spec within the operation body.
+        /// </summary>
+        /// <param name="isMutation">This is a mutation operation which should have a fragment length.</param>
+        /// <remarks>
+        /// Each call to BeginOperationSpec should be followed by a call to <see cref="CompleteOperationSpec"/>
+        /// once the path and fragment are written. <see cref="AdvanceToSegment"/> can be used to to move from
+        /// writing the path to writing the fragment.
+        /// </remarks>
+        public void BeginOperationSpec(bool isMutation)
+        {
+            EnsureHeaderNotWritten();
+
+            if (CurrentSegment < OperationSegment.Body)
+            {
+                AdvanceToSegment(OperationSegment.Body);
+            }
+            else if (CurrentSegment > OperationSegment.Body)
+            {
+                throw new InvalidOperationException("Operation spec is already in progress");
+            }
+
+            var headerSize = isMutation ? 8 : 4;
+
+            _operationSpecStartPosition = (int) _stream.Position;
+            _stream.SetLength(_stream.Length + headerSize);
+            _stream.Position += headerSize;
+
+            _operationSpecIsMutation = isMutation;
+            _operationSpecPathLength = 0;
+            _operationSpecFragmentLength = 0;
+            CurrentSegment = OperationSegment.OperationSpecPath;
+        }
+
+        /// <summary>
+        /// Completes an in progress operation spec.
+        /// </summary>
+        /// <param name="spec">The spec which was written.</param>
+        /// <remarks>
+        /// This method should be called after the path and fragment for each operation have been written,
+        /// and before the next call to <see cref="BeginOperationSpec"/>.
+        /// </remarks>
+        public void CompleteOperationSpec(OperationSpec spec)
+        {
+            if (CurrentSegment < OperationSegment.Body)
+            {
+                throw new InvalidOperationException("An operation spec is not in progress.");
+            }
+
+            Span<byte> buffer = stackalloc byte[_operationSpecIsMutation ? 8 : 4];
+            _converter.FromByte((byte) spec.OpCode, buffer);
+            _converter.FromByte((byte) spec.PathFlags, buffer.Slice(1));
+            _converter.FromUInt16((ushort) _operationSpecPathLength, buffer.Slice(2));
+
+            if (_operationSpecIsMutation)
+            {
+                _converter.FromUInt32((uint) _operationSpecFragmentLength, buffer.Slice(4));
+            }
+
+            _stream.Position = _operationSpecStartPosition;
+            Write(buffer);
+            _stream.Position = _stream.Length;
+
+            CurrentSegment = OperationSegment.Body;
+        }
+
+        /// <summary>
         /// After writing to the stream, records the number of bytes written to the current segment.
         /// </summary>
         /// <param name="bytes">Number of bytes written.</param>
@@ -245,6 +331,16 @@ namespace Couchbase.Core.IO.Operations
 
                 case OperationSegment.Body:
                     _bodyLength += bytes;
+                    break;
+
+                case OperationSegment.OperationSpecPath:
+                    _bodyLength += bytes;
+                    _operationSpecPathLength += bytes;
+                    break;
+
+                case OperationSegment.OperationSpecFragment:
+                    _bodyLength += bytes;
+                    _operationSpecFragmentLength += bytes;
                     break;
             }
         }

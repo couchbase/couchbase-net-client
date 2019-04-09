@@ -46,12 +46,12 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 builder.Write(buffer.Slice(0, pathLength));
             }
 
-            var body = Transcoder.Serializer.Serialize(CurrentSpec.Value);
+            ReadOnlySpan<byte> body = Transcoder.Serializer.Serialize(CurrentSpec.Value);
             if (CurrentSpec.RemoveBrackets)
             {
                 body = body.StripBrackets();
             }
-            builder.Write(body, 0, body.Length);
+            builder.Write(body);
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)
