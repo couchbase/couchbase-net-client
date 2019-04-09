@@ -1,39 +1,34 @@
-using System;
-using System.Collections.Generic;
-
-namespace Couchbase.Services.Search
+﻿namespace Couchbase.Services.Search
 {
     /// <summary>
-    /// The result of a search query.
+    /// Represents a range of values.
     /// </summary>
-    public interface ISearchResult : IEnumerable<ISearchQueryRow>
+    /// <typeparam name="T"></typeparam>
+    public sealed class Range<T>
     {
         /// <summary>
-        /// The rows returned by the search request.
+        /// Gets or sets the name for the range.
         /// </summary>
-        IList<ISearchQueryRow> Hits { get; }
+        /// <value>
+        /// The name.
+        /// </value>
+        public string Name { get; set; }
 
         /// <summary>
-        /// The results for the facet components of the query.
+        /// Gets or sets the start value.
         /// </summary>
-        IDictionary<string, IFacetResult> Facets { get; }
+        /// <value>
+        /// The start.
+        /// </value>
+        public T Start { get; set; }
 
-        MetaData MetaData { get; }
-    }
-
-    public class MetaData
-    {
-        public long SuccessCount { get; internal set; }
-
-        public long ErrorCount { get; internal set; }
-
-        public TimeSpan TimeTook { get; internal set; }
-
-        public long TotalHits { get; internal set; }
-
-        public double MaxScore { get; internal set; }
-
-        public long TotalCount { get; internal set; }
+        /// <summary>
+        /// Gets or sets the end value.
+        /// </summary>
+        /// <value>
+        /// The end.
+        /// </value>
+        public T End { get; set; }
     }
 
     #region [ License information ]

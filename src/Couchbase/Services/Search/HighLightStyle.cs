@@ -1,39 +1,24 @@
-using System;
-using System.Collections.Generic;
-
-namespace Couchbase.Services.Search
+﻿namespace Couchbase.Services.Search
 {
     /// <summary>
-    /// The result of a search query.
+    /// The highlighting options available from the server.
     /// </summary>
-    public interface ISearchResult : IEnumerable<ISearchQueryRow>
+    public enum HighLightStyle
     {
         /// <summary>
-        /// The rows returned by the search request.
+        /// The default if <see cref="Html"/> or <see cref="Ansi"/> are not specified.
         /// </summary>
-        IList<ISearchQueryRow> Hits { get; }
+        None = -1,
 
         /// <summary>
-        /// The results for the facet components of the query.
+        /// For Html style highlighting
         /// </summary>
-        IDictionary<string, IFacetResult> Facets { get; }
+        Html = 0,
 
-        MetaData MetaData { get; }
-    }
-
-    public class MetaData
-    {
-        public long SuccessCount { get; internal set; }
-
-        public long ErrorCount { get; internal set; }
-
-        public TimeSpan TimeTook { get; internal set; }
-
-        public long TotalHits { get; internal set; }
-
-        public double MaxScore { get; internal set; }
-
-        public long TotalCount { get; internal set; }
+        /// <summary>
+        /// For Ansi style highlighting
+        /// </summary>
+        Ansi = 1
     }
 
     #region [ License information ]

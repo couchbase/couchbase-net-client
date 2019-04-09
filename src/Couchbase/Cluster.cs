@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Management;
 using Couchbase.Services.Analytics;
 using Couchbase.Services.Query;
@@ -16,6 +17,7 @@ namespace Couchbase
         private bool _disposed;
         private IConfiguration _configuration;
         private IQueryClient _queryClient;
+        private ISearchClient _searchClient;
 
         public Cluster(IConfiguration configuration)
         {
@@ -113,10 +115,54 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<ISearchResult> SearchQuery<T>(ISearchQuery query, ISearchOptions options)
+        #region Search
+
+        public ISearchResult SearchQuery(string indexName, SearchQuery query, Action<ISearchOptions> configureOptions)
         {
-            throw new NotImplementedException();
+            var options = new SearchOptions();
+            configureOptions(options);
+
+            return SearchQueryAsync(indexName, query, options)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
         }
+
+        public ISearchResult SearchQuery(string indexName, SearchQuery query, ISearchOptions options = default)
+        {
+            return SearchQueryAsync(indexName, query, options)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        public Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, Action<ISearchOptions> configureOptions)
+        {
+            var options = new SearchOptions();
+            configureOptions(options);
+
+            return SearchQueryAsync(indexName, query, options);
+        }
+
+        public Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default)
+        {
+            if (_searchClient == null)
+            {
+                _searchClient = new SearchClient(_configuration);
+            }
+
+            query.Index = indexName;
+
+            if (options == default)
+            {
+                options = new SearchOptions();
+            }
+            //TODO: convert options to params
+
+            return _searchClient.QueryAsync(query);
+        }
+
+        #endregion
 
         public IQueryIndexes QueryIndexes { get; }
         public IAnalyticsIndexes AnalyticsIndexes { get; }

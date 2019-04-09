@@ -1,39 +1,19 @@
-using System;
-using System.Collections.Generic;
-
-namespace Couchbase.Services.Search
+﻿namespace Couchbase.Services.Search
 {
     /// <summary>
-    /// The result of a search query.
+    /// A <see cref="ISearchFacet"/> implementation which counts up how many  of the matching documents have a particular term in a particular field.
     /// </summary>
-    public interface ISearchResult : IEnumerable<ISearchQueryRow>
+    public sealed class TermFacet : SearchFacet
     {
-        /// <summary>
-        /// The rows returned by the search request.
-        /// </summary>
-        IList<ISearchQueryRow> Hits { get; }
+        public TermFacet() {}
 
-        /// <summary>
-        /// The results for the facet components of the query.
-        /// </summary>
-        IDictionary<string, IFacetResult> Facets { get; }
-
-        MetaData MetaData { get; }
-    }
-
-    public class MetaData
-    {
-        public long SuccessCount { get; internal set; }
-
-        public long ErrorCount { get; internal set; }
-
-        public TimeSpan TimeTook { get; internal set; }
-
-        public long TotalHits { get; internal set; }
-
-        public double MaxScore { get; internal set; }
-
-        public long TotalCount { get; internal set; }
+        public TermFacet(string name, string field, int size)
+        {
+            Name = name;
+            Field = field;
+            Size = size;
+        }
+        //use base properties
     }
 
     #region [ License information ]

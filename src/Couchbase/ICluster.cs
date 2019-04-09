@@ -20,11 +20,19 @@ namespace Couchbase
 
         Task<IQueryResult<T>> Query<T>(string statement, QueryParameter parameters = null, IQueryOptions options = null);
 
-        Task<IQueryResult<T>> Query<T>(string statement, Action<QueryParameter> parameters = null,  Action<IQueryOptions> options = null);
+        Task<IQueryResult<T>> Query<T>(string statement, Action<QueryParameter> parameters = null, Action<IQueryOptions> options = null);
 
         Task<IAnalyticsResult> AnalyticsQuery<T>(string statement, IAnalyticsOptions options);
 
-        Task<ISearchResult> SearchQuery<T>(ISearchQuery query, ISearchOptions options);
+        #region Search
+
+        ISearchResult SearchQuery(string indexName, SearchQuery query, Action<ISearchOptions> options);
+        ISearchResult SearchQuery(string indexName, SearchQuery query, ISearchOptions options = default);
+
+        Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, Action<ISearchOptions> options);
+        Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default);
+
+        #endregion
 
         IQueryIndexes QueryIndexes { get; }
 

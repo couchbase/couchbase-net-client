@@ -1,39 +1,32 @@
-using System;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Services.Search
 {
     /// <summary>
-    /// The result of a search query.
+    /// A <see cref="ISearchFacet"/> allows for aggregating information collected on a particular result set.
     /// </summary>
-    public interface ISearchResult : IEnumerable<ISearchQueryRow>
+    public interface ISearchFacet
     {
         /// <summary>
-        /// The rows returned by the search request.
+        /// The name of the facet.
         /// </summary>
-        IList<ISearchQueryRow> Hits { get; }
+        string Name { get; set; }
 
         /// <summary>
-        /// The results for the facet components of the query.
+        /// The field of the facet.
         /// </summary>
-        IDictionary<string, IFacetResult> Facets { get; }
+        string Field { get; set; }
 
-        MetaData MetaData { get; }
-    }
+        /// <summary>
+        /// The limit for ??????
+        /// </summary>
+        int Size { get; set; }
 
-    public class MetaData
-    {
-        public long SuccessCount { get; internal set; }
-
-        public long ErrorCount { get; internal set; }
-
-        public TimeSpan TimeTook { get; internal set; }
-
-        public long TotalHits { get; internal set; }
-
-        public double MaxScore { get; internal set; }
-
-        public long TotalCount { get; internal set; }
+        /// <summary>
+        /// Gets the JSON representation of this object.
+        /// </summary>
+        /// <returns></returns>
+        JProperty ToJson();
     }
 
     #region [ License information ]
