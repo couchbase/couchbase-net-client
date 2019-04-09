@@ -20,9 +20,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
             builder.Write(extras);
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override IOperation Clone()

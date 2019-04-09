@@ -8,7 +8,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         public T Content { get; set; }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
             byte[] bytes;
             if (typeof(T).GetTypeInfo().IsValueType)
@@ -21,7 +21,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                     Transcoder.Encode(Content, Flags, OpCode);
             }
 
-            return bytes;
+            builder.Write(bytes, 0, bytes.Length);
         }
 
         public virtual IOperationResult<T> GetResultWithValue()

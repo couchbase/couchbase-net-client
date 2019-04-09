@@ -10,6 +10,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     public class OperationSpec : IEqualityComparer
     {
         /// <summary>
+        /// Maximum length of the path, in bytes.
+        /// </summary>
+        public const int MaxPathLength = 1024;
+
+        /// <summary>
         /// Gets or sets the N1QL path within the document.
         /// </summary>
         /// <value>

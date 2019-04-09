@@ -1,5 +1,7 @@
 using System;
+using System.Buffers;
 using Couchbase.Core.IO.Converters;
+using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
@@ -33,20 +35,23 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             builder.Write(buffer);
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            // TODO: This is inefficient, we'll optimize with streams
-            var pathLength = Converter.GetStringByteCount(Path);
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength))
+            {
+                var buffer = bufferOwner.Memory.Span;
+
+                var pathLength = Converter.FromString(Path, buffer);
+
+                builder.Write(buffer.Slice(0, pathLength));
+            }
+
             var body = Transcoder.Serializer.Serialize(CurrentSpec.Value);
             if (CurrentSpec.RemoveBrackets)
             {
                 body = body.StripBrackets();
             }
-
-            var buffer = new byte[pathLength + body.Length];
-            Converter.FromString(Path, buffer);
-            Buffer.BlockCopy(body, 0, buffer, pathLength, body.Length);
-            return buffer;
+            builder.Write(body, 0, body.Length);
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)

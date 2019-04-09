@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.Utils;
 
@@ -18,33 +19,20 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            var keyLength = Converter.GetStringByteCount(Key);
-
-            //for collections add the leb128 cid
-            if (Cid.HasValue)
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationHeader.MaxKeyLength + Leb128.MaxLength + 4))
             {
-                keyLength = keyLength + 2;
-            }
+                var buffer = bufferOwner.Memory.Span;
 
-            var buffer = new byte[4 + keyLength];
-            // ReSharper disable once PossibleInvalidOperationException
-            Converter.FromInt16(VBucketId.Value, buffer);
-            Converter.FromInt16((short)keyLength, buffer.AsSpan(2));
+                var keyLength = WriteKey(buffer.Slice(4));
 
-            var keySpan = buffer.AsSpan(4);
-            if (Cid.HasValue)
-            {
-                var leb128Length = Leb128.Write(keySpan, Cid.Value);
-                Converter.FromString(Key, keySpan.Slice(leb128Length));
-            }
-            else
-            {
-                Converter.FromString(Key, keySpan);
-            }
+                // ReSharper disable once PossibleInvalidOperationException
+                Converter.FromInt16(VBucketId.Value, buffer);
+                Converter.FromInt16((short) keyLength, buffer.Slice(2));
 
-            return buffer;
+                builder.Write(buffer.Slice(0, keyLength + 4));
+            }
         }
 
         public override ObserveState GetValue()

@@ -11,9 +11,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)

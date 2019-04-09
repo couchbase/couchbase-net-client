@@ -25,9 +25,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         /// </summary>
         /// <remarks>Sub-Document delete is always empty.</remarks>
         /// <returns></returns>
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         /// <summary>

@@ -1,5 +1,7 @@
 using System;
+using System.Buffers;
 using Couchbase.Core.IO.Converters;
+using Couchbase.Core.IO.Operations.SubDocument;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
@@ -20,13 +22,16 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             builder.Write(buffer);
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            var pathLength = Converter.GetStringByteCount(Path);
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength))
+            {
+                var buffer = bufferOwner.Memory.Span;
 
-            var buffer = new byte[pathLength];
-            Converter.FromString(Path, buffer);
-            return buffer;
+                var pathLength = Converter.FromString(Path, buffer);
+
+                builder.Write(buffer.Slice(0, pathLength));
+            }
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)

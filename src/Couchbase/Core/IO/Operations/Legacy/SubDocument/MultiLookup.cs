@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core.IO.Converters;
@@ -20,25 +21,27 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         {
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            var buffer = new List<byte>();
-            foreach (var lookup in Builder)
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength + 4))
             {
-                var opcode = (byte) lookup.OpCode;
-                var flags = (byte) lookup.PathFlags;
-                var pathLength = Encoding.UTF8.GetByteCount(lookup.Path);
+                var buffer = bufferOwner.Memory.Span;
 
-                var spec = new byte[pathLength + 4];
-                Converter.FromByte(opcode, spec, 0);
-                Converter.FromByte(flags, spec, 1);
-                Converter.FromUInt16((ushort) pathLength, spec, 2);
-                Converter.FromString(lookup.Path, spec, 4);
+                foreach (var lookup in Builder)
+                {
+                    var pathLength = Converter.FromString(lookup.Path, buffer.Slice(4));
 
-                buffer.AddRange(spec);
-                LookupCommands.Add(lookup);
+                    var opcode = (byte) lookup.OpCode;
+                    var flags = (byte) lookup.PathFlags;
+
+                    Converter.FromByte(opcode, buffer);
+                    Converter.FromByte(flags, buffer.Slice(1));
+                    Converter.FromUInt16((ushort) pathLength, buffer.Slice(2));
+
+                    builder.Write(buffer.Slice(0, pathLength + 4));
+                    LookupCommands.Add(lookup);
+                }
             }
-            return buffer.ToArray();
         }
 
         public override OpCode OpCode => OpCode.MultiLookup;

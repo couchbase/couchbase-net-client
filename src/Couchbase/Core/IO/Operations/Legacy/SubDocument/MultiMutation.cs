@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core.IO.Converters;
@@ -48,28 +49,30 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             builder.Write(bytes);
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            var buffer = new List<byte>();
-            foreach (var mutate in Builder)
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength + 8))
             {
-                var opcode = (byte)mutate.OpCode;
-                var flags = (byte) mutate.PathFlags;
-                var pathLength = Encoding.UTF8.GetByteCount(mutate.Path);
-                var fragment = mutate.Value == null ? Array.Empty<byte>() : GetBytes(mutate);
+                var buffer = bufferOwner.Memory.Span;
+                foreach (var mutate in Builder)
+                {
+                    var pathLength = Converter.FromString(mutate.Path, buffer.Slice(8));
 
-                var spec = new byte[pathLength + 8];
-                Converter.FromByte(opcode, spec, 0);
-                Converter.FromByte(flags, spec, 1);
-                Converter.FromUInt16((ushort)pathLength, spec, 2);
-                Converter.FromUInt32((uint)fragment.Length, spec, 4);
-                Converter.FromString(mutate.Path, spec, 8);
+                    var opcode = (byte) mutate.OpCode;
+                    var flags = (byte) mutate.PathFlags;
+                    var fragment = mutate.Value == null ? Array.Empty<byte>() : GetBytes(mutate);
 
-                buffer.AddRange(spec);
-                buffer.AddRange(fragment);
-                _lookupCommands.Add(mutate);
+                    Converter.FromByte(opcode, buffer);
+                    Converter.FromByte(flags, buffer.Slice(1));
+                    Converter.FromUInt16((ushort) pathLength, buffer.Slice(2));
+                    Converter.FromUInt32((uint) fragment.Length, buffer.Slice(4));
+
+                    // TODO: Optimize fragment handling to use OperationBuilder directly
+                    builder.Write(buffer.Slice(0, pathLength + 8));
+                    builder.Write(fragment, 0, fragment.Length);
+                    _lookupCommands.Add(mutate);
+                }
             }
-            return buffer.ToArray();
         }
 
         byte[] GetBytes(OperationSpec spec)

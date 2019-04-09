@@ -155,17 +155,25 @@ namespace Couchbase.Core.IO.Operations.Legacy
             using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationHeader.MaxKeyLength + Leb128.MaxLength))
             {
                 var buffer = bufferOwner.Memory.Span;
-                var length = 0;
 
-                if (Cid.HasValue)
-                {
-                    length += Leb128.Write(buffer, Cid.Value);
-                }
-
-                length += Converter.FromString(Key, buffer.Slice(length));
+                var length = WriteKey(buffer);
 
                 builder.Write(buffer.Slice(0, length));
             }
+        }
+
+        protected int WriteKey(Span<byte> buffer)
+        {
+            var length = 0;
+
+            if (Cid.HasValue)
+            {
+                length += Leb128.Write(buffer, Cid.Value);
+            }
+
+            length += Converter.FromString(Key, buffer.Slice(length));
+
+            return length;
         }
 
         public IOperationResult GetResult()
@@ -392,9 +400,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
         }
 
-        public virtual byte[] CreateBody()
+        public virtual void WriteBody(OperationBuilder builder)
         {
-            return Array.Empty<byte>();
         }
 
         public virtual void WriteFramingExtras(OperationBuilder builder)
@@ -423,7 +430,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 WriteKey(builder);
 
                 builder.AdvanceToSegment(OperationSegment.Body);
-                builder.Write(CreateBody());
+                WriteBody(builder);
 
                 builder.WriteHeader(CreateHeader());
 

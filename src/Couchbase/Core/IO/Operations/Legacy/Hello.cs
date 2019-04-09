@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -9,16 +10,22 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         public override OpCode OpCode => OpCode.Helo;
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            var body = new byte[Content.Length * 2];
-            for (var i = 0; i < Content.Length; i++)
-            {
-                var offset = i * 2;
-                Converter.FromInt16(Content[i], body, offset);
-            }
+            var contentLength = Content.Length;
 
-            return body;
+            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(contentLength * 2))
+            {
+                var body = bufferOwner.Memory.Span;
+
+                for (var i = 0; i < contentLength; i++)
+                {
+                    Converter.FromInt16(Content[i], body);
+                    body = body.Slice(2);
+                }
+
+                builder.Write(bufferOwner.Memory.Span.Slice(0, contentLength * 2));
+            }
         }
 
         public override void WriteExtras(OperationBuilder builder)

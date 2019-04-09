@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations.Legacy.Errors
 {
@@ -16,11 +17,11 @@ namespace Couchbase.Core.IO.Operations.Legacy.Errors
         {
         }
 
-        public override byte[] CreateBody()
+        public override void WriteBody(OperationBuilder builder)
         {
-            var body = new byte[2];
-            Converter.FromInt16(DefaultVersion, body, 0);
-            return body;
+            Span<byte> body = stackalloc byte[2];
+            Converter.FromInt16(DefaultVersion, body);
+            builder.Write(body);
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)
