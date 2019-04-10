@@ -25,10 +25,10 @@ namespace Couchbase.Core.IO.Serializers
         T Deserialize<T>(Stream stream);
 
         /// <summary>
-        /// Serializes the specified object into a buffer.
+        /// Serializes the specified object onto a stream.
         /// </summary>
+        /// <param name="stream">The stream to receive the serialized object.</param>
         /// <param name="obj">The object to serialize.</param>
-        /// <returns>A <see cref="byte"/> array that is the serialized value of the key.</returns>
-        byte[] Serialize(object obj);
+        void Serialize(Stream stream, object obj);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
@@ -75,35 +76,25 @@ namespace Couchbase.Core.IO.Transcoders
             return new Flags() { Compression = Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
         }
 
-        /// <summary>
-        /// Encodes the specified value.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="value">The value of the key to encode.</param>
-        /// <param name="flags">The flags used for decoding the response.</param>
-        /// <param name="opcode"></param>
-        /// <returns></returns>
-        /// <exception cref="System.ArgumentException"></exception>
-        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public virtual byte[] Encode<T>(T value, Flags flags, OpCode opcode)
+        /// <inheritdoc />
+        public virtual void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode)
         {
-            byte[] bytes;
             switch (flags.DataFormat)
             {
                 case DataFormat.Reserved:
                 case DataFormat.Private:
                 case DataFormat.String:
-                    bytes = Encode(value, flags.TypeCode, opcode);
+                    Encode(stream, value, flags.TypeCode, opcode);
                     break;
 
                 case DataFormat.Json:
-                    bytes = SerializeAsJson(value);
+                    SerializeAsJson(stream, value);
                     break;
 
                 case DataFormat.Binary:
-                    if (typeof(T) == typeof(byte[]))
+                    if (value is byte[] bytes)
                     {
-                        bytes = value as byte[];
+                        stream.Write(bytes, 0, bytes.Length);
                     }
                     else
                     {
@@ -116,21 +107,20 @@ namespace Couchbase.Core.IO.Transcoders
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            return bytes;
         }
 
         /// <summary>
         /// Encodes the specified value.
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <param name="stream">The stream to receive the encoded value.</param>
         /// <param name="value">The value.</param>
         /// <param name="typeCode">Type to use for encoding</param>
         /// <param name="opcode"></param>
-        /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public virtual byte[] Encode<T>(T value, TypeCode typeCode, OpCode opcode)
+        public virtual void Encode<T>(Stream stream, T value, TypeCode typeCode, OpCode opcode)
         {
-            var bytes = new byte[] { };
+            byte[] bytes = Array.Empty<byte>();
             switch (typeCode)
             {
                 case TypeCode.Empty:
@@ -181,13 +171,17 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.SByte:
                 case TypeCode.Byte:
                 case TypeCode.Object:
-                    bytes = SerializeAsJson(value);
+                    SerializeAsJson(stream, value);
                     break;
 
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            return bytes;
+
+            if (bytes != null)
+            {
+                stream.Write(bytes, 0, bytes.Length);
+            }
         }
 
         /// <inheritdoc />
@@ -370,11 +364,12 @@ namespace Couchbase.Core.IO.Transcoders
         /// <summary>
         /// Serializes as json.
         /// </summary>
+        /// <param name="stream">The stream to receive the encoded value.</param>
         /// <param name="value">The value.</param>
         /// <returns></returns>
-        public virtual byte[] SerializeAsJson(object value)
+        public virtual void SerializeAsJson(Stream stream, object value)
         {
-            return Serializer.Serialize(value);
+            Serializer.Serialize(stream, value);
         }
 
         /// <summary>

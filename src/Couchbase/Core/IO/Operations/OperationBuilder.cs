@@ -15,9 +15,6 @@ namespace Couchbase.Core.IO.Operations
     /// </summary>
     internal class OperationBuilder : Stream
     {
-        private static readonly RecyclableMemoryStreamManager MemoryStreamManager =
-            new RecyclableMemoryStreamManager();
-
         private readonly IByteConverter _converter;
         private readonly RecyclableMemoryStream _stream;
 
@@ -64,7 +61,7 @@ namespace Couchbase.Core.IO.Operations
         public OperationBuilder(IByteConverter converter)
         {
             _converter = converter ?? throw new ArgumentNullException(nameof(converter));
-            _stream = new RecyclableMemoryStream(MemoryStreamManager);
+            _stream = MemoryStreamFactory.GetMemoryStream();
 
             // Skip the bytes for the header, which will be written later once lengths are known.
             _stream.SetLength(OperationHeader.Length);

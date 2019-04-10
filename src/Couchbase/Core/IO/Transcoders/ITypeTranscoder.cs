@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
@@ -23,11 +24,11 @@ namespace Couchbase.Core.IO.Transcoders
         /// Encodes the specified value.
         /// </summary>
         /// <typeparam name="T"></typeparam>
+        /// <param name="stream">The stream to receive the encoded value.</param>
         /// <param name="value">The value of the key to encode.</param>
         /// <param name="flags">The flags used for decoding the response.</param>
         /// <param name="opcode"></param>
-        /// <returns></returns>
-        byte[] Encode<T>(T value, Flags flags, OpCode opcode);
+        void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode);
 
         /// <summary>
         /// Decodes the specified buffer.

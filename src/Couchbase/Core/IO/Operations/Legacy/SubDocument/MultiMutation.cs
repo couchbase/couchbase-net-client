@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Text;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
@@ -75,13 +74,23 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         private void WriteSpecValue(OperationBuilder builder, OperationSpec spec)
         {
-            ReadOnlySpan<byte> bytes = Transcoder.Serializer.Serialize(spec.Value).AsSpan();
-            if (spec.RemoveBrackets)
+            if (!spec.RemoveBrackets)
             {
-                bytes = bytes.StripBrackets();
+                // We can serialize directly
+                Transcoder.Serializer.Serialize(builder, spec.Value);
             }
+            else
+            {
+                using (var stream = MemoryStreamFactory.GetMemoryStream())
+                {
+                    Transcoder.Serializer.Serialize(stream, spec.Value);
 
-            builder.Write(bytes);
+                    ReadOnlySpan<byte> bytes = stream.GetBuffer().AsSpan(0, (int) stream.Length);
+                    bytes = bytes.StripBrackets();
+
+                    builder.Write(bytes);
+                }
+            }
         }
 
         public override IOperationResult<T> GetResultWithValue()

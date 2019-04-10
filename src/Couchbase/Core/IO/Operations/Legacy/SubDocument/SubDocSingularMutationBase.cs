@@ -46,12 +46,23 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 builder.Write(buffer.Slice(0, pathLength));
             }
 
-            ReadOnlySpan<byte> body = Transcoder.Serializer.Serialize(CurrentSpec.Value);
-            if (CurrentSpec.RemoveBrackets)
+            if (!CurrentSpec.RemoveBrackets)
             {
-                body = body.StripBrackets();
+                // We can serialize directly
+                Transcoder.Serializer.Serialize(builder, CurrentSpec.Value);
             }
-            builder.Write(body);
+            else
+            {
+                using (var stream = MemoryStreamFactory.GetMemoryStream())
+                {
+                    Transcoder.Serializer.Serialize(stream, CurrentSpec.Value);
+
+                    ReadOnlySpan<byte> body = stream.GetBuffer().AsSpan(0, (int) stream.Length);
+                    body = body.StripBrackets();
+
+                    builder.Write(body);
+                }
+            }
         }
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)

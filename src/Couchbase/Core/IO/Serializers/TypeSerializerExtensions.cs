@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace Couchbase.Core.IO.Serializers
 {
@@ -17,6 +18,22 @@ namespace Couchbase.Core.IO.Serializers
         public static T Deserialize<T>(this ITypeSerializer typeSerializer, byte[] buffer, int offset, int length)
         {
             return typeSerializer.Deserialize<T>(buffer.AsMemory(offset, length));
+        }
+
+        /// <summary>
+        /// Serializes the specified object onto a stream.
+        /// </summary>
+        /// <param name="typeSerializer">The <see cref="ITypeSerializer"/>.</param>
+        /// <param name="obj">The object to serialize.</param>
+        /// <returns>A byte array containing the serialized object.</returns>
+        public static byte[] Serialize(this ITypeSerializer typeSerializer, object obj)
+        {
+            using (var stream = new MemoryStream())
+            {
+                typeSerializer.Serialize(stream, obj);
+
+                return stream.ToArray();
+            }
         }
     }
 }

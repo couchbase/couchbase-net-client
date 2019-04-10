@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -66,9 +67,13 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x05, 0x00 };
-            var actual = transcoder.Encode(data, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, data, flags, OpCode.Get);
+
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -85,9 +90,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x05, 0x00 };
-            var actual = transcoder.Encode(data, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, data, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -104,9 +112,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x09, 0x00, 0x00, 0x00 };
-            var actual = transcoder.Encode(data, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, data, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -123,9 +134,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x09, 0x00, 0x00, 0x00 };
-            var actual = transcoder.Encode(data, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, data, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -142,9 +156,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-            var actual = transcoder.Encode(data, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, data, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -161,9 +178,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-            var actual = transcoder.Encode(data, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, data, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -180,9 +200,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x48, 0x65, 0x6c, 0x6c, 0x6f };
-            var actual = transcoder.Encode(data, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, data, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -198,9 +221,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[0];
-            var actual = transcoder.Encode<string>(null, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode<string>(stream, null, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -217,9 +243,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var expected = new byte[] { 0x6f };
-            var actual = transcoder.Encode(value, flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, value, flags, OpCode.Get);
 
-            Assert.Equal(expected, actual);
+                Assert.Equal(expected, stream.ToArray());
+            }
         }
 
         [Fact]
@@ -235,10 +264,13 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 TypeCode = Type.GetTypeCode(typeof(Person))
             };
 
-            var bytes = transcoder.Encode(value, flags, OpCode.Get);
-            var actual = transcoder.Decode<Person>(bytes.AsMemory(), flags, OpCode.Get);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, value, flags, OpCode.Get);
+                var actual = transcoder.Decode<Person>(stream.ToArray(), flags, OpCode.Get);
 
-            Assert.Equal(value.Name, actual.Name);
+                Assert.Equal(value.Name, actual.Name);
+            }
         }
 
         [Fact]
@@ -254,9 +286,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 TypeCode = Convert.GetTypeCode(five)
             };
 
-            var bytes = transcoder.Encode(five, flags, OpCode.Get);
-            var actual = transcoder.Decode<int>(bytes.AsMemory(), flags, OpCode.Get);
-            Assert.Equal(five, actual);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, five, flags, OpCode.Get);
+                var actual = transcoder.Decode<int>(stream.ToArray(), flags, OpCode.Get);
+                Assert.Equal(five, actual);
+            }
 
         }
 
@@ -274,9 +309,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             // ReSharper disable once ExpressionIsAlwaysNull
-            var bytes = transcoder.SerializeAsJson(value);
-            var actual = transcoder.Decode<object>(bytes.AsMemory(), flags, OpCode.Get);
-            Assert.Equal(value, actual);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.SerializeAsJson(stream, value);
+                var actual = transcoder.Decode<object>(stream.ToArray(), flags, OpCode.Get);
+                Assert.Equal(value, actual);
+            }
         }
 
         [Fact]
@@ -292,9 +330,12 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 TypeCode = Convert.GetTypeCode(value)
             };
 
-            var bytes = transcoder.Encode(value, flags, OpCode.Get);
-            var actual = transcoder.Decode<string>(bytes.AsMemory(), flags, OpCode.Get);
-            Assert.Equal(value, actual);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, value, flags, OpCode.Get);
+                var actual = transcoder.Decode<string>(stream.ToArray(), flags, OpCode.Get);
+                Assert.Equal(value, actual);
+            }
         }
 
         [Fact]
@@ -328,11 +369,14 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 TypeCode = Type.GetTypeCode(typeof(byte[]))
             };
 
-            var bytes = transcoder.Encode(value, flags, OpCode.Get);
-            Assert.Equal(bytes, value);
+            using (var stream = new MemoryStream())
+            {
+                transcoder.Encode(stream, value, flags, OpCode.Get);
+                Assert.Equal(value, stream.ToArray());
 
-            var actual = transcoder.Decode<byte[]>(bytes.AsMemory(), flags, OpCode.Get);
-            Assert.Equal(bytes, actual);
+                var actual = transcoder.Decode<byte[]>(stream.ToArray(), flags, OpCode.Get);
+                Assert.Equal(value, actual);
+            }
         }
 
         public class Person
@@ -346,10 +390,13 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             var transcoder = new DefaultTranscoder(new DefaultConverter());
             int value = 42;
 
-            var bytes = transcoder.SerializeAsJson(value);
-            var actual = transcoder.DeserializeAsJson<int>(bytes.AsMemory());
+            using (var stream = new MemoryStream())
+            {
+                transcoder.SerializeAsJson(stream, value);
+                var actual = transcoder.DeserializeAsJson<int>(stream.ToArray());
 
-            Assert.Equal(value, actual);
+                Assert.Equal(value, actual);
+            }
         }
 
         [Fact]
@@ -375,10 +422,15 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 HasPascalCase = true
             };
             var expectedJsonBytes = Encoding.UTF8.GetBytes("{\"someProperty\":\"SOME\",\"someIntProperty\":12345,\"hasPascalCase\":true}");
-            var actualJsonBytes = transcoder.SerializeAsJson(data);
-            var actualJsonEncoded = transcoder.Encode(data, new Flags { DataFormat = DataFormat.Json }, OpCode.Get);
-            Assert.Equal(expectedJsonBytes, actualJsonBytes);
-            Assert.Equal(expectedJsonBytes, actualJsonEncoded);
+
+            using (var jsonBytes = new MemoryStream())
+            using (var jsonEncoded = new MemoryStream())
+            {
+                transcoder.SerializeAsJson(jsonBytes, data);
+                transcoder.Encode(jsonEncoded, data, new Flags {DataFormat = DataFormat.Json}, OpCode.Get);
+                Assert.Equal(expectedJsonBytes, jsonBytes.ToArray());
+                Assert.Equal(expectedJsonBytes, jsonEncoded.ToArray());
+            }
         }
 
         [Fact]
@@ -400,11 +452,16 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 HasPascalCase = true
             };
             var expectedJsonBytes = Encoding.UTF8.GetBytes("{\"SomeProperty\":\"SOME\",\"SomeIntProperty\":12345,\"HasPascalCase\":true}");
-            var actualJsonBytes = transcoder.SerializeAsJson(data);
-            var actualJsonEncoded = transcoder.Encode(data, TypeCode.Object, OpCode.Get);
 
-            Assert.Equal(expectedJsonBytes, actualJsonBytes);
-            Assert.Equal(expectedJsonBytes, actualJsonEncoded);
+            using (var jsonBytes = new MemoryStream())
+            using (var jsonEncoded = new MemoryStream())
+            {
+                transcoder.SerializeAsJson(jsonBytes, data);
+                transcoder.Encode(jsonEncoded, data, TypeCode.Object, OpCode.Get);
+
+                Assert.Equal(expectedJsonBytes, jsonBytes.ToArray());
+                Assert.Equal(expectedJsonBytes, jsonEncoded.ToArray());
+            }
         }
 
         [Fact]

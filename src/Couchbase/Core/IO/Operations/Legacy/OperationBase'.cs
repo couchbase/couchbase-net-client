@@ -10,18 +10,10 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override void WriteBody(OperationBuilder builder)
         {
-            byte[] bytes;
-            if (typeof(T).GetTypeInfo().IsValueType)
+            if (typeof(T).GetTypeInfo().IsValueType || Content != null)
             {
-                bytes = Transcoder.Encode(Content, Flags, OpCode);
+                Transcoder.Encode(builder, Content, Flags, OpCode);
             }
-            else
-            {
-                bytes = Content == null ? Array.Empty<byte>() :
-                    Transcoder.Encode(Content, Flags, OpCode);
-            }
-
-            builder.Write(bytes, 0, bytes.Length);
         }
 
         public virtual IOperationResult<T> GetResultWithValue()

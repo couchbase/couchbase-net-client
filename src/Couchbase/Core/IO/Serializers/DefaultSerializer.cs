@@ -56,6 +56,8 @@ namespace Couchbase.Core.IO.Serializers
 
         #region Fields
 
+        private static readonly Encoding Utf8NoBomEncoding = new UTF8Encoding(false);
+
         private JsonSerializerSettings _deserializationSettings;
         private DeserializationOptions _deserializationOptions;
 
@@ -156,24 +158,16 @@ namespace Couchbase.Core.IO.Serializers
             return value;
         }
 
-        /// <summary>
-        /// Serializes the specified object into a buffer.
-        /// </summary>
-        /// <param name="obj">The object to serialize.</param>
-        /// <returns>A <see cref="byte"/> array that is the serialized value of the key.</returns>
-        public byte[] Serialize(object obj)
+        /// <inheritdoc />
+        public void Serialize(Stream stream, object obj)
         {
-            using (var ms = new MemoryStream())
+            using (var sw = new StreamWriter(stream, Utf8NoBomEncoding, 1024, true))
             {
-                using (var sw = new StreamWriter(ms))
+                using (var jr = new JsonTextWriter(sw) {CloseOutput = false})
                 {
-                    using (var jr = new JsonTextWriter(sw))
-                    {
-                        var serializer = JsonSerializer.Create(SerializerSettings);
-                        serializer.Serialize(jr, obj);
-                    }
+                    var serializer = JsonSerializer.Create(SerializerSettings);
+                    serializer.Serialize(jr, obj);
                 }
-                return ms.ToArray();
             }
         }
 
