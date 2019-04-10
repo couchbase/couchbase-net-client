@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics;
-using Couchbase.Core.IO.HTTP;
 using Couchbase.Management;
 using Couchbase.Services.Analytics;
 using Couchbase.Services.Query;
@@ -18,6 +17,7 @@ namespace Couchbase
         private IConfiguration _configuration;
         private IQueryClient _queryClient;
         private ISearchClient _searchClient;
+        private IAnalyticsClient _analyticsClient;
 
         public Cluster(IConfiguration configuration)
         {
@@ -110,10 +110,67 @@ namespace Couchbase
             return Query<T>(statement, queryParameters, queryOptions);
         }
 
-        public Task<IAnalyticsResult> AnalyticsQuery<T>(string statement, IAnalyticsOptions options)
+        #region Analytics
+
+        public IAnalyticsResult<T> AnalyticsQuery<T>(string statement, Action<AnalyticsOptions> configureOptions)
         {
-            throw new NotImplementedException();
+            var options = new AnalyticsOptions();
+            configureOptions(options);
+
+            return AnalyticsQueryAsync<T>(statement, options)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
         }
+
+        public IAnalyticsResult<T> AnalyticsQuery<T>(string statement, AnalyticsOptions options = default)
+        {
+            return AnalyticsQueryAsync<T>(statement, options)
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, Action<AnalyticsOptions> configureOptions)
+        {
+            var options = new AnalyticsOptions();
+            configureOptions(options);
+
+            return AnalyticsQueryAsync<T>(statement, options);
+        }
+
+        public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default)
+        {
+            if (options == default)
+            {
+                options = new AnalyticsOptions();
+            }
+
+            var query = new AnalyticsRequest(statement);
+            query.ClientContextId(options.ClientContextId);
+            query.Pretty(options.Pretty);
+            query.IncludeMetrics(options.IncludeMetrics);
+            query.NamedParameters = options.NamedParameters;
+            query.PositionalArguments = options.PositionalParameters;
+
+            if (options.Timeout.HasValue)
+            {
+                query.Timeout(options.Timeout.Value);
+            }
+
+            query.Priority(options.Priority);
+            query.Deferred(options.Deferred);
+
+            query.ConfigureLifespan(30); //TODO: use configuration.AnalyticsTimeout
+
+            if (_analyticsClient == null)
+            {
+                _analyticsClient = new AnalyticsClient(_configuration);
+            }
+            return _analyticsClient.QueryAsync<T>(query, options.CancellationToken);
+        }
+
+        #endregion
 
         #region Search
 
