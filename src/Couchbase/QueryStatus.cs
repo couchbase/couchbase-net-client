@@ -1,4 +1,4 @@
-﻿namespace Couchbase.Services.Query
+namespace Couchbase
 {
     public enum QueryStatus
     {
@@ -14,6 +14,8 @@
 
         Timeout,
 
-        Fatal
+        Fatal,
+
+        Failed
     }
 }
