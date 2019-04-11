@@ -3,16 +3,19 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics;
+using Couchbase.Core.Logging;
 using Couchbase.Management;
 using Couchbase.Services.Analytics;
 using Couchbase.Services.Query;
 using Couchbase.Services.Search;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase
 {
     public class Cluster : ICluster
     {
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
+        private static readonly ILogger Log = LogManager.CreateLogger<Cluster>();
         private bool _disposed;
         private IConfiguration _configuration;
         private IQueryClient _queryClient;
@@ -47,11 +50,17 @@ namespace Couchbase
             {
                 foreach (var configBucket in _configuration.Buckets)
                 {
+                    Log.LogDebug("Creating bucket {0}", configBucket);
+
                     foreach (var configServer in _configuration.Servers)
                     {
+                        Log.LogDebug("Bootstrapping bucket {0} using server {1}", configBucket, configServer);
+
                         var bucket = new CouchbaseBucket(this, configBucket);
                         await bucket.BootstrapAsync(configServer, _configuration).ConfigureAwait(false);
                         _bucketRefs.TryAdd(configBucket, bucket);
+
+                        Log.LogDebug("Succesfully bootstrapped bucket {0} using server {1}", configBucket, configServer);
                         return;
                     }
                 }

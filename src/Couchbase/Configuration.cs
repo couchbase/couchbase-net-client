@@ -2,6 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Couchbase
 {
@@ -52,6 +55,23 @@ namespace Couchbase
             {
                 UserName = username,
                 Password = password,
+                _servers = _servers,
+                _buckets = _buckets
+            };
+        }
+
+        public IConfiguration WithLogging(ILoggerProvider provider = null)
+        {
+            //configure a null logger as the default
+            if (provider == null)
+            {
+                provider = NullLoggerProvider.Instance;
+            }
+            LogManager.LoggerFactory.AddProvider(provider);
+            return new Configuration
+            {
+                UserName = UserName,
+                Password = Password,
                 _servers = _servers,
                 _buckets = _buckets
             };

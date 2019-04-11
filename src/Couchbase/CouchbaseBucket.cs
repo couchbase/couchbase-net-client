@@ -20,9 +20,11 @@ using Couchbase.Core.IO.Operations.Legacy.Authentication;
 using Couchbase.Core.IO.Operations.Legacy.Collections;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Services.Views;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
 namespace Couchbase
@@ -35,6 +37,7 @@ namespace Couchbase
     public class CouchbaseBucket : IBucket, IBucketSender
     {
         internal const string DefaultScope = "_default";
+        private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseBucket>();
         private readonly ICluster _cluster;
         private readonly ConcurrentDictionary<string, IScope> _scopes = new ConcurrentDictionary<string, IScope>();
         private readonly Lazy<IViewClient> _viewClientLazy;
@@ -63,6 +66,8 @@ namespace Couchbase
         {
             get
             {
+                Log.LogDebug("Fetching scope {0}", name);
+
                 if (_scopes.TryGetValue(name, out var scope))
                 {
                     return Task.FromResult(scope);

@@ -11,12 +11,15 @@ using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy.SubDocument;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase
 {
     public class CouchbaseCollection : ICollection, IBinaryCollection
     {
         internal const string DefaultCollection = "_default";
+        private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseCollection>();
         private readonly IBucketSender _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
@@ -38,6 +41,8 @@ namespace Couchbase
 
         private async Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken), TimeSpan? timeout = null)
         {
+            Log.LogDebug("Executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
+
             // wire up op's completed function
             var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
             op.Completed = state =>
@@ -75,6 +80,8 @@ namespace Couchbase
                     await _bucket.Send(op, tcs).ConfigureAwait(false);
                     var bytes = await tcs.Task.ConfigureAwait(false);
                     await op.ReadAsync(bytes).ConfigureAwait(false);
+
+                    Log.LogDebug("Completed executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
                 }
             }
             catch (OperationCanceledException e)
