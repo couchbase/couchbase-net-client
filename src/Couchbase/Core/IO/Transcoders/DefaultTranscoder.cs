@@ -1,5 +1,9 @@
 using System;
+using System.Buffers;
+using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
@@ -117,10 +121,9 @@ namespace Couchbase.Core.IO.Transcoders
         /// <param name="value">The value.</param>
         /// <param name="typeCode">Type to use for encoding</param>
         /// <param name="opcode"></param>
-        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+        /// <exception cref="InvalidEnumArgumentException">Invalid typeCode.</exception>
         public virtual void Encode<T>(Stream stream, T value, TypeCode typeCode, OpCode opcode)
         {
-            byte[] bytes = Array.Empty<byte>();
             switch (typeCode)
             {
                 case TypeCode.Empty:
@@ -129,39 +132,68 @@ namespace Couchbase.Core.IO.Transcoders
 #endif
                 case TypeCode.String:
                 case TypeCode.Char:
-                    Converter.FromString(Convert.ToString(value), ref bytes, 0);
+                    var str = Convert.ToString(value);
+                    using (var bufferOwner = MemoryPool<byte>.Shared.Rent(Converter.GetStringByteCount(str)))
+                    {
+                        var length = Converter.FromString(str, bufferOwner.Memory.Span);
+                        WriteHelper(stream, bufferOwner.Memory.Slice(0, length));
+                    }
                     break;
 
                 case TypeCode.Int16:
-                    Converter.FromInt16(Convert.ToInt16(value), ref bytes, 0, false);
+                {
+                    Span<byte> bytes = stackalloc byte[sizeof(short)];
+                    Converter.FromInt16(Convert.ToInt16(value), bytes, false);
+                    WriteHelper(stream, bytes);
                     break;
+                }
 
                 case TypeCode.UInt16:
-                    Converter.FromUInt16(Convert.ToUInt16(value), ref bytes, 0, false);
+                {
+                    Span<byte> bytes = stackalloc byte[sizeof(ushort)];
+                    Converter.FromUInt16(Convert.ToUInt16(value), bytes, false);
+                    WriteHelper(stream, bytes);
                     break;
+                }
 
                 case TypeCode.Int32:
-                    Converter.FromInt32(Convert.ToInt32(value), ref bytes, 0, false);
+                {
+                    Span<byte> bytes = stackalloc byte[sizeof(int)];
+                    Converter.FromInt32(Convert.ToInt32(value), bytes, false);
+                    WriteHelper(stream, bytes);
                     break;
+                }
 
                 case TypeCode.UInt32:
-                    Converter.FromUInt32(Convert.ToUInt32(value), ref bytes, 0, false);
+                {
+                    Span<byte> bytes = stackalloc byte[sizeof(uint)];
+                    Converter.FromUInt32(Convert.ToUInt32(value), bytes, false);
+                    WriteHelper(stream, bytes);
                     break;
+                }
 
                 case TypeCode.Int64:
-                    Converter.FromInt64(Convert.ToInt64(value), ref bytes, 0, false);
+                {
+                    Span<byte> bytes = stackalloc byte[sizeof(long)];
+                    Converter.FromInt64(Convert.ToInt64(value), bytes, false);
+                    WriteHelper(stream, bytes);
                     break;
+                }
 
                 case TypeCode.UInt64:
+                {
+                    Span<byte> bytes = stackalloc byte[sizeof(ulong)];
                     if (opcode == OpCode.Increment || opcode == OpCode.Decrement)
                     {
-                        Converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0, true);
+                        Converter.FromUInt64(Convert.ToUInt64(value), bytes, true);
                     }
                     else
                     {
-                        Converter.FromUInt64(Convert.ToUInt64(value), ref bytes, 0, false);
+                        Converter.FromUInt64(Convert.ToUInt64(value), bytes, false);
                     }
+                    WriteHelper(stream, bytes);
                     break;
+                }
 
                 case TypeCode.Single:
                 case TypeCode.Double:
@@ -175,12 +207,7 @@ namespace Couchbase.Core.IO.Transcoders
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException();
-            }
-
-            if (bytes != null)
-            {
-                stream.Write(bytes, 0, bytes.Length);
+                    throw new InvalidEnumArgumentException(nameof(typeCode), (int) typeCode, typeof(TypeCode));
             }
         }
 
@@ -421,6 +448,48 @@ namespace Couchbase.Core.IO.Transcoders
             var temp = new byte[buffer.Length];
             buffer.CopyTo(temp.AsSpan());
             return temp;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteHelper(Stream stream, ReadOnlySpan<byte> buffer)
+        {
+#if NETCOREAPP2_1
+            stream.Write(buffer);
+#else
+            var array = ArrayPool<byte>.Shared.Rent(buffer.Length);
+            try
+            {
+                buffer.CopyTo(array);
+
+                stream.Write(array, 0, buffer.Length);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(array);
+            }
+#endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteHelper(Stream stream, ReadOnlyMemory<byte> buffer)
+        {
+            // For cases where we have access to ReadOnlyMemory<byte>, and it happens to be
+            // backed by a byte[] (typical for MemoryPool), and we're not on .Net Core 2.1,
+            // we can improve efficiency by using MemoryMarshal.TryGetArray.
+
+#if NETCOREAPP2_1
+            WriteHelper(stream, buffer.Span);
+#else
+            if (MemoryMarshal.TryGetArray(buffer, out var segment))
+            {
+                // ReSharper disable once AssignNullToNotNullAttribute
+                stream.Write(segment.Array, segment.Offset, segment.Count);
+            }
+            else
+            {
+                WriteHelper(stream, buffer.Span);
+            }
+#endif
         }
     }
 }

@@ -110,52 +110,11 @@ namespace Couchbase.Core.IO.Converters
         #region FromXXX
 
         /// <summary>
-        /// Writes a <see cref="byte"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromByte(byte value, ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="byte"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromByte(byte value, byte[] buffer, int offset);
-
-        /// <summary>
         /// Writes a <see cref="byte"/> to a buffer.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         void FromByte(byte value, Span<byte> buffer);
-
-        /// <summary>
-        /// Writes a <see cref="Int16" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt16(short value, ref byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
-        /// Writes a <see cref="Int16" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt16(short value, ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="Int16" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt16(short value, byte[] buffer, int offset);
 
         /// <summary>
         /// Writes a <see cref="Int16" /> to a buffer.
@@ -166,62 +125,12 @@ namespace Couchbase.Core.IO.Converters
         void FromInt16(short value, Span<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Writes a <see cref="UInt16"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromUInt16(ushort value, ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="UInt16"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromUInt16(ushort value, byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="UInt16" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        /// <param name="offset">The offset.</param>
-        void FromUInt16(ushort value, ref byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
         /// Writes a <see cref="UInt16" /> to a buffer.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         void FromUInt16(ushort value, Span<byte> buffer, bool useNbo);
-
-        /// <summary>
-        /// Writes a <see cref="Int32"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt32(int value, byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="Int32"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt32(int value, ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="Int32" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        void FromInt32(int value, ref byte[] buffer, int offset, bool useNbo);
 
         /// <summary>
         /// Writes a <see cref="Int32" /> to a buffer.
@@ -232,22 +141,6 @@ namespace Couchbase.Core.IO.Converters
         void FromInt32(int value, Span<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Writes a <see cref="UInt32"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromUInt32(uint value, ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="UInt32"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromUInt32(uint value, byte[] buffer, int offset);
-
-        /// <summary>
         /// Writes a <see cref="UInt32" /> to a buffer.
         /// </summary>
         /// <param name="value">The value.</param>
@@ -256,71 +149,12 @@ namespace Couchbase.Core.IO.Converters
         void FromUInt32(uint value, Span<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Writes a <see cref="UInt32" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        void FromUInt32(uint value, ref byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
-        /// Writes a <see cref="Int64"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt64(long value,  ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="Int64"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromInt64(long value, byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="Int64" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        void FromInt64(long value, ref byte[] buffer, int offset, bool useNbo);
-
-        /// <summary>
         /// Writes a <see cref="Int64" /> to a buffer.
         /// </summary>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
         /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
         void FromInt64(long value, Span<byte> buffer, bool useNbo);
-
-        /// <summary>
-        /// Writes a <see cref="UInt64"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromUInt64(ulong value, ref byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="UInt64"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromUInt64(ulong value, byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="UInt64" /> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        /// <param name="useNbo">If <c>true</c> will make most significant byte first.</param>
-        void FromUInt64(ulong value, ref byte[] buffer, int offset, bool useNbo);
 
         /// <summary>
         /// Writes a <see cref="UInt64" /> to a buffer.
@@ -336,22 +170,6 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="value">The value.</param>
         /// <returns>The number of bytes required to convert the string.</returns>
         int GetStringByteCount(string value);
-
-        /// <summary>
-        /// Writes a <see cref="System.String"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromString(string value, byte[] buffer, int offset);
-
-        /// <summary>
-        /// Writes a <see cref="System.String"/> to a buffer starting at a given offset.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="offset">The offset.</param>
-        void FromString(string value, ref byte[] buffer, int offset);
 
         /// <summary>
         /// Writes a <see cref="System.String"/> to a buffer.

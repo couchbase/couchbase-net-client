@@ -316,7 +316,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var converter = new DefaultConverter();
 
             var buffer = new byte[32];
-            converter.FromString(value, buffer, offset);
+            converter.FromString(value, buffer.AsSpan(offset));
 
             // Buffer matches expected
             Assert.Equal(expected, buffer.Take(expected.Length));
@@ -326,25 +326,13 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         }
 
         [Theory]
-        [InlineData(new byte[] {0x48, 0x65, 0x6c, 0x6c, 0x6f}, "Hello")]
-        public void Test_FromString_EmptyBuffer(byte[] expected, string value)
-        {
-            var converter = new DefaultConverter();
-
-            var buffer = new byte[0];
-            converter.FromString(value, ref buffer, 0);
-
-            Assert.Equal(expected, buffer);
-        }
-
-        [Theory]
         [InlineData(5, 3, new byte[] {0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})]
         [InlineData(15, 0, new byte[] {0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromByte(byte value, int offset, byte[] expected)
         {
             var converter = new DefaultConverter();
             var actual = new byte[8];
-            converter.FromByte(value, actual, offset);
+            converter.FromByte(value, actual.AsSpan(offset));
 
             Assert.Equal(expected, actual);
         }
@@ -356,7 +344,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[8];
-            converter.FromInt16(value, ref actual, offset, useNbo);
+            converter.FromInt16(value, actual.AsSpan(offset), useNbo);
 
             Assert.Equal(expected, actual);
         }
@@ -367,7 +355,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[8];
-            converter.FromInt16(value, actual, offset);
+            converter.FromInt16(value, actual.AsSpan(offset));
 
             Assert.Equal(expected, actual);
         }
@@ -379,7 +367,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[8];
-            converter.FromUInt16(value, ref actual, offset, useNbo);
+            converter.FromUInt16(value, actual.AsSpan(offset), useNbo);
 
             Assert.Equal(expected, actual);
         }
@@ -390,7 +378,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[8];
-            converter.FromUInt16(value, actual, offset);
+            converter.FromUInt16(value, actual.AsSpan(offset));
 
             Assert.Equal(expected, actual);
         }
@@ -402,7 +390,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[11];
-            converter.FromInt32(value, ref actual, offset, useNbo);
+            converter.FromInt32(value, actual.AsSpan(offset), useNbo);
 
             Assert.Equal(expected, actual);
         }
@@ -413,7 +401,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[11];
-            converter.FromInt32(value, actual, offset);
+            converter.FromInt32(value, actual.AsSpan(offset));
 
             Assert.Equal(expected, actual);
         }
@@ -425,7 +413,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[11];
-            converter.FromUInt32(value, ref actual, offset, useNbo);
+            converter.FromUInt32(value, actual.AsSpan(offset), useNbo);
 
             Assert.Equal(expected, actual);
         }
@@ -436,7 +424,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[11];
-            converter.FromUInt32(value, actual, offset);
+            converter.FromUInt32(value, actual.AsSpan(offset));
 
             Assert.Equal(expected, actual);
         }
@@ -448,7 +436,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[expected.Length];
-            converter.FromInt64(value, ref actual, offset, useNbo);
+            converter.FromInt64(value, actual.AsSpan(offset), useNbo);
 
             Assert.Equal(expected, actual);
         }
@@ -459,7 +447,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[expected.Length];
-            converter.FromInt64(value, actual, offset);
+            converter.FromInt64(value, actual.AsSpan(offset));
 
             Assert.Equal(expected, actual);
         }
@@ -471,7 +459,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[expected.Length];
-            converter.FromUInt64(value, ref actual, offset, useNbo);
+            converter.FromUInt64(value, actual.AsSpan(offset), useNbo);
 
             Assert.Equal(expected, actual);
         }
@@ -482,7 +470,7 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         {
             var converter = new DefaultConverter();
             var actual = new byte[expected.Length];
-            converter.FromUInt64(value, actual, offset);
+            converter.FromUInt64(value, actual.AsSpan(offset));
 
             Assert.Equal(expected, actual);
         }

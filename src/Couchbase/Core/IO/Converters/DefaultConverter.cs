@@ -144,53 +144,9 @@ namespace Couchbase.Core.IO.Converters
         #region FromXXX
 
         /// <inheritdoc />
-        public void FromByte(byte value, ref byte[] buffer, int offset)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromByte(value);
-            }
-            else
-            {
-                FromByte(value, buffer.AsSpan(offset));
-            }
-        }
-
-        /// <inheritdoc />
-        public void FromByte(byte value, byte[] buffer, int offset)
-        {
-            FromByte(value, ref buffer, offset);
-        }
-
-        /// <inheritdoc />
         public void FromByte(byte value, Span<byte> buffer)
         {
             buffer[0] = value;
-        }
-
-        /// <inheritdoc />
-        public void FromInt16(short value, ref byte[] buffer, int offset, bool useNbo)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromInt16(value, useNbo);
-            }
-            else
-            {
-                FromInt16(value, buffer.AsSpan(offset), useNbo);
-            }
-        }
-
-        /// <inheritdoc />
-        public void FromInt16(short value, ref byte[] buffer, int offset)
-        {
-            FromInt16(value, ref buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public void FromInt16(short value, byte[] buffer, int offset)
-        {
-            FromInt16(value, ref buffer, offset);
         }
 
         /// <inheritdoc />
@@ -200,59 +156,9 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public void FromUInt16(ushort value, ref byte[] buffer, int offset, bool useNbo)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromUInt16(value, useNbo);
-            }
-            else
-            {
-                FromUInt16(value, buffer.AsSpan(offset), useNbo);
-            }
-        }
-
-        /// <inheritdoc />
-        public void FromUInt16(ushort value, ref byte[] buffer, int offset)
-        {
-            FromUInt16(value, ref buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public void FromUInt16(ushort value, byte[] buffer, int offset)
-        {
-            FromUInt16(value, buffer.AsSpan(offset), true);
-        }
-
-        /// <inheritdoc />
         public void FromUInt16(ushort value, Span<byte> buffer, bool useNbo)
         {
             Write(value, buffer, useNbo);
-        }
-
-        /// <inheritdoc />
-        public void FromInt32(int value, ref byte[] buffer, int offset, bool useNbo)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromInt32(value, useNbo);
-            }
-            else
-            {
-                FromInt32(value, buffer.AsSpan(offset), useNbo);
-            }
-        }
-
-        /// <inheritdoc />
-        public void FromInt32(int value, ref byte[] buffer, int offset)
-        {
-            FromInt32(value, ref buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public void FromInt32(int value, byte[] buffer, int offset)
-        {
-            FromInt32(value, ref buffer, offset);
         }
 
         /// <inheritdoc />
@@ -262,59 +168,9 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public void FromUInt32(uint value, byte[] buffer, int offset)
-        {
-            FromUInt32(value, ref buffer, offset);
-        }
-
-        /// <inheritdoc />
-        public void FromUInt32(uint value, ref byte[] buffer, int offset)
-        {
-            FromUInt32(value, ref buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public void FromUInt32(uint value, ref byte[] buffer, int offset, bool useNbo)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromUInt32(value, useNbo);
-            }
-            else
-            {
-                FromUInt32(value, buffer.AsSpan(offset), useNbo);
-            }
-        }
-
-        /// <inheritdoc />
         public void FromUInt32(uint value, Span<byte> buffer, bool useNbo)
         {
             Write(value, buffer, useNbo);
-        }
-
-        /// <inheritdoc />
-        public void FromInt64(long value, ref byte[] buffer, int offset, bool useNbo)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromInt64(value, useNbo);
-            }
-            else
-            {
-                FromInt64(value, buffer.AsSpan(offset), useNbo);
-            }
-        }
-
-        /// <inheritdoc />
-        public void FromInt64(long value, ref byte[] buffer, int offset)
-        {
-            FromInt64(value, ref buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public void FromInt64(long value, byte[] buffer, int offset)
-        {
-            FromInt64(value, ref buffer, offset);
         }
 
         /// <inheritdoc />
@@ -323,32 +179,7 @@ namespace Couchbase.Core.IO.Converters
             Write(value, buffer, useNbo);
         }
 
-        /// <inheritdoc />
-        public void FromUInt64(ulong value, ref byte[] buffer, int offset, bool useNbo)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromUInt64(value, useNbo);
-            }
-            else
-            {
-                FromUInt64(value, buffer.AsSpan(offset), useNbo);
-            }
-        }
-
-        /// <inheritdoc />
-        public void FromUInt64(ulong value, ref byte[] buffer, int offset)
-        {
-            FromUInt64(value, ref buffer, offset, true);
-        }
-
-        /// <inheritdoc />
-        public void FromUInt64(ulong value, byte[] buffer, int offset)
-        {
-            FromUInt64(value, ref buffer, offset);
-        }
-
-        /// <inheritdoc />
+       /// <inheritdoc />
         public void FromUInt64(ulong value, Span<byte> buffer, bool useNbo)
         {
             Write(value, buffer, useNbo);
@@ -358,25 +189,6 @@ namespace Couchbase.Core.IO.Converters
         public int GetStringByteCount(string value)
         {
             return Encoding.UTF8.GetByteCount(value);
-        }
-
-        /// <inheritdoc />
-        public void FromString(string value, ref byte[] buffer, int offset)
-        {
-            if (buffer.Length == 0)
-            {
-                buffer = this.FromString(value);
-            }
-            else
-            {
-                FromString(value, buffer.AsSpan(offset));
-            }
-        }
-
-        /// <inheritdoc />
-        public void FromString(string value, byte[] buffer, int offset)
-        {
-            FromString(value, ref buffer, offset);
         }
 
         /// <inheritdoc />
