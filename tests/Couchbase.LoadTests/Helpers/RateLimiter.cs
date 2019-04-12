@@ -22,7 +22,7 @@ namespace Couchbase.LoadTests.Helpers
                 {
                     await semaphore.WaitAsync(cancellationToken);
 
-                    var task = action.Invoke(item)
+                    var task = Task.Run(() => action.Invoke(item), cancellationToken)
                         // ReSharper disable once AccessToDisposedClosure
                         .ContinueWith(t2 => semaphore.Release(), cancellationToken);
 
