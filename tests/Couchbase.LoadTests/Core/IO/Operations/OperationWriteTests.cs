@@ -29,7 +29,14 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             var docGenerator = new JsonDocumentGenerator(32, 1024);
             var keyGenerator = new GuidKeyGenerator();
 
-            var documents = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1000).ToList();
+            var operations = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1000)
+                .Select(p => new Replace<object>
+                {
+                    Key = p.Key,
+                    Content = p.Value,
+                    Completed = state => Task.CompletedTask
+                })
+                .ToList();
 
             // Don't use Moq, adds too much overhead to the test
             var connection = new MockConnection();
@@ -43,14 +50,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             await Enumerable.Range(0, totalOperations)
                 .ExecuteRateLimited(async i =>
                 {
-                    var document = documents[i % documents.Count];
-
-                    var operation = new Replace<object>
-                    {
-                        Key = document.Key,
-                        Content = document.Value,
-                        Completed = state => Task.CompletedTask
-                    };
+                    var operation = operations[i % operations.Count];
 
                     await operation.SendAsync(connection);
                 }, maxSimultaneous);
@@ -73,7 +73,14 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             var docGenerator = new JsonDocumentGenerator(65536, 524288);
             var keyGenerator = new GuidKeyGenerator();
 
-            var documents = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1000).ToList();
+            var operations = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1000)
+                .Select(p => new Replace<object>
+                {
+                    Key = p.Key,
+                    Content = p.Value,
+                    Completed = state => Task.CompletedTask
+                })
+                .ToList();
 
             // Don't use Moq, adds too much overhead to the test
             var connection = new MockConnection();
@@ -87,14 +94,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             await Enumerable.Range(0, totalOperations)
                 .ExecuteRateLimited(async i =>
                 {
-                    var document = documents[i % documents.Count];
-
-                    var operation = new Replace<object>
-                    {
-                        Key = document.Key,
-                        Content = document.Value,
-                        Completed = state => Task.CompletedTask
-                    };
+                    var operation = operations[i % operations.Count];
 
                     await operation.SendAsync(connection);
                 }, maxSimultaneous);

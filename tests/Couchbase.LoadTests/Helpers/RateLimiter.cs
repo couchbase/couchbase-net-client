@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,20 +17,30 @@ namespace Couchbase.LoadTests.Helpers
         {
             using (var semaphore = new SemaphoreSlim(rateLimit))
             {
-                var tasks = new List<Task>();
+                var tasks = new ConcurrentDictionary<int, Task>();
+                var i = 0;
 
                 foreach (var item in source)
                 {
                     await semaphore.WaitAsync(cancellationToken);
 
-                    var task = Task.Run(() => action.Invoke(item), cancellationToken)
-                        // ReSharper disable once AccessToDisposedClosure
-                        .ContinueWith(t2 => semaphore.Release(), cancellationToken);
+                    var task = Task.Run(() => action.Invoke(item), cancellationToken);
+                    tasks.TryAdd(i, task);
 
-                    tasks.Add(task);
+                    // ReSharper disable once AccessToDisposedClosure
+#pragma warning disable 4014
+                    task.ContinueWith((t2, state) =>
+                    {
+                        var j = (int) state;
+                        semaphore.Release();
+                        tasks.TryRemove(j, out _);
+                    }, i, cancellationToken);
+#pragma warning restore 4014
+
+                    i++;
                 }
 
-                await Task.WhenAll(tasks);
+                await Task.WhenAll(tasks.Values);
             }
         }
     }
