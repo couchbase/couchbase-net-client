@@ -78,7 +78,7 @@ namespace Couchbase.Core.IO.Operations
         /// <exception cref="InvalidOperationException">Attempt to move the segment backwards, or the header has already been written.</exception>
         public void AdvanceToSegment(OperationSegment segment)
         {
-            if (!Enum.IsDefined(typeof(OperationSegment), segment))
+            if (segment < OperationSegment.FramingExtras || segment > OperationSegment.OperationSpecFragment)
             {
                 throw new InvalidEnumArgumentException(nameof(segment), (int) segment, typeof(OperationSegment));
             }
