@@ -24,7 +24,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                     body = body.Slice(2);
                 }
 
-                builder.Write(bufferOwner.Memory.Span.Slice(0, contentLength * 2));
+                builder.Write(bufferOwner.Memory.Slice(0, contentLength * 2));
             }
         }
 

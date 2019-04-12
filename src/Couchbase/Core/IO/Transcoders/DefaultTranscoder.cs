@@ -3,12 +3,11 @@ using System.Buffers;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Transcoders
 {
@@ -136,7 +135,7 @@ namespace Couchbase.Core.IO.Transcoders
                     using (var bufferOwner = MemoryPool<byte>.Shared.Rent(Converter.GetStringByteCount(str)))
                     {
                         var length = Converter.FromString(str, bufferOwner.Memory.Span);
-                        WriteHelper(stream, bufferOwner.Memory.Slice(0, length));
+                        stream.Write(bufferOwner.Memory.Slice(0, length));
                     }
                     break;
 
@@ -466,28 +465,6 @@ namespace Couchbase.Core.IO.Transcoders
             finally
             {
                 ArrayPool<byte>.Shared.Return(array);
-            }
-#endif
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteHelper(Stream stream, ReadOnlyMemory<byte> buffer)
-        {
-            // For cases where we have access to ReadOnlyMemory<byte>, and it happens to be
-            // backed by a byte[] (typical for MemoryPool), and we're not on .Net Core 2.1,
-            // we can improve efficiency by using MemoryMarshal.TryGetArray.
-
-#if NETCOREAPP2_1
-            WriteHelper(stream, buffer.Span);
-#else
-            if (MemoryMarshal.TryGetArray(buffer, out var segment))
-            {
-                // ReSharper disable once AssignNullToNotNullAttribute
-                stream.Write(segment.Array, segment.Offset, segment.Count);
-            }
-            else
-            {
-                WriteHelper(stream, buffer.Span);
             }
 #endif
         }

@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {
@@ -30,7 +31,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
                 var pathLength = Converter.FromString(Path, buffer);
 
-                builder.Write(buffer.Slice(0, pathLength));
+                builder.Write(bufferOwner.Memory.Slice(0, pathLength));
             }
         }
 

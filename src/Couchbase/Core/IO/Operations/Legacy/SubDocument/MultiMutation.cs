@@ -58,7 +58,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                     builder.BeginOperationSpec(true);
 
                     var pathLength = Converter.FromString(mutate.Path, buffer);
-                    builder.Write(buffer.Slice(0, pathLength));
+                    builder.Write(bufferOwner.Memory.Slice(0, pathLength));
 
                     if (mutate.Value != null)
                     {
@@ -85,7 +85,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                 {
                     Transcoder.Serializer.Serialize(stream, spec.Value);
 
-                    ReadOnlySpan<byte> bytes = stream.GetBuffer().AsSpan(0, (int) stream.Length);
+                    ReadOnlyMemory<byte> bytes = stream.GetBuffer().AsMemory(0, (int) stream.Length);
                     bytes = bytes.StripBrackets();
 
                     builder.Write(bytes);

@@ -32,7 +32,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
                     builder.BeginOperationSpec(false);
 
                     var pathLength = Converter.FromString(lookup.Path, buffer);
-                    builder.Write(buffer.Slice(0, pathLength));
+                    builder.Write(bufferOwner.Memory.Slice(0, pathLength));
 
                     builder.CompleteOperationSpec(lookup);
                     LookupCommands.Add(lookup);

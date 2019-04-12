@@ -150,9 +150,9 @@ namespace Couchbase.Utils
             return ToJson(array);
         }
 
-        public static ReadOnlySpan<byte> StripBrackets(this ReadOnlySpan<byte> theArray)
+        public static ReadOnlyMemory<byte> StripBrackets(this ReadOnlyMemory<byte> theArray)
         {
-            if (theArray.Length > 1 && theArray[0] == 0x5b && theArray[theArray.Length-1] == 0x5d)
+            if (theArray.Length > 1 && theArray.Span[0] == 0x5b && theArray.Span[theArray.Length-1] == 0x5d)
             {
                 return theArray.Slice(1, theArray.Length - 2);
             }

@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.Utils;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -31,7 +32,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 Converter.FromInt16(VBucketId.Value, buffer);
                 Converter.FromInt16((short) keyLength, buffer.Slice(2));
 
-                builder.Write(buffer.Slice(0, keyLength + 4));
+                builder.Write(bufferOwner.Memory.Slice(0, keyLength + 4));
             }
         }
 

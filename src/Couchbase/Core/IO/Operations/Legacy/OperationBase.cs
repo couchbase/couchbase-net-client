@@ -154,11 +154,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationHeader.MaxKeyLength + Leb128.MaxLength))
             {
-                var buffer = bufferOwner.Memory.Span;
+                var length = WriteKey(bufferOwner.Memory.Span);
 
-                var length = WriteKey(buffer);
-
-                builder.Write(buffer.Slice(0, length));
+                builder.Write(bufferOwner.Memory.Slice(0, length));
             }
         }
 
