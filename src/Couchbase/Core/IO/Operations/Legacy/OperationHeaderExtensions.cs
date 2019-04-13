@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
@@ -7,6 +8,9 @@ namespace Couchbase.Core.IO.Operations.Legacy
 {
     internal static class OperationHeaderExtensions
     {
+        private static readonly HashSet<ResponseStatus> ValidResponseStatuses =
+            new HashSet<ResponseStatus>((ResponseStatus[]) Enum.GetValues(typeof(ResponseStatus)));
+
         private static readonly IByteConverter Converter = new DefaultConverter();
 
         internal static OperationHeader CreateHeader(this Span<byte> buffer, ErrorMap errorMap,
@@ -62,7 +66,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             var status = (ResponseStatus) code;
 
             // Is it a known response status?
-            if (!Enum.IsDefined(typeof(ResponseStatus), status))
+            if (!ValidResponseStatuses.Contains(status))
             {
                 status = ResponseStatus.UnknownError;
             }
