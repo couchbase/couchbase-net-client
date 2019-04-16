@@ -30,7 +30,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         {
             // Arrange
 
-            const int totalOperations = 5_000_000;
+            const int totalOperations = 10_000_000;
             var maxSimultaneous = Environment.ProcessorCount;
 
             var converter = new DefaultConverter();
