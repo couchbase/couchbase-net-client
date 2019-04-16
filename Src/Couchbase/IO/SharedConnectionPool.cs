@@ -1,12 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Security.Authentication;
 using Couchbase.Configuration.Client;
-using Couchbase.Core.Transcoders;
 using Couchbase.IO.Converters;
-using Couchbase.IO.Operations.Authentication;
 using Couchbase.Logging;
 
 namespace Couchbase.IO
@@ -71,9 +68,23 @@ namespace Couchbase.IO
             if (_connections.Count >= Configuration.MaxSize)
             {
                 var connection = _connections[GetIndex()];
-                Authenticate(connection);
-                EnableEnhancedAuthentication(connection);
-                return connection;
+                try
+                {
+                    Authenticate(connection);
+                    EnableEnhancedAuthentication(connection);
+                    return connection;
+                }
+                catch (Exception e)
+                {
+                    Log.Debug($"Connection creation or authentication failed for {connection?.ConnectionId}", e);
+                    if (connection != null)
+                    {
+                        connection.IsDead = true;
+                        Release((T) connection);
+                    }
+
+                    throw;
+                }
             }
             lock (_lockObj)
             {
@@ -88,15 +99,23 @@ namespace Couchbase.IO
             Log.Debug("Trying to acquire new connection! Refs={0}", _connections.Count);
 
             var connection = Factory(this, Converter, BufferAllocator);
+            try
+            {
+                //Perform sasl auth
+                Authenticate(connection);
+                EnableEnhancedAuthentication(connection);
 
-            //Perform sasl auth
-            Authenticate(connection);
-            EnableEnhancedAuthentication(connection);
-
-            Log.Debug("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
+                Log.Debug("Acquire new: {0} | {1} | [{2}, {3}] - {4} - Disposed: {5}",
                     connection.Identity, EndPoint, _connections.Count, Configuration.MaxSize, _identity, _disposed);
 
-            return connection;
+                return connection;
+            }
+            catch (Exception)
+            {
+                Log.Debug("Connection creation or authentication failed for {0}", connection?.ConnectionId);
+                connection?.Dispose();
+                throw;
+            }
         }
 
         public override void Release(T connection)
@@ -108,10 +127,7 @@ namespace Couchbase.IO
                 lock (_lockObj)
                 {
                     connection.Dispose();
-                    if (Owner != null)
-                    {
-                        Owner.CheckOnline(connection.IsDead);
-                    }
+                    Owner?.CheckOnline(connection.IsDead);
                     _connections.Remove(connection);
                 }
             }
@@ -132,8 +148,16 @@ namespace Couchbase.IO
                     //auth the connection used to select the SASL type to use for auth
                     foreach (var connection in _connections.Where(x=>!x.IsAuthenticated))
                     {
-                        Authenticate(connection);
-                        EnableEnhancedAuthentication(connection);
+                        try
+                        {
+                            Authenticate(connection);
+                            EnableEnhancedAuthentication(connection);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Debug($"Connection creation or authentication failed for {connection?.ConnectionId}", e);
+                            connection?.Dispose();
+                        }
                     }
                 }
             }
