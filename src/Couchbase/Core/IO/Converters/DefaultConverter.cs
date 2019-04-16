@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -79,7 +80,7 @@ namespace Couchbase.Core.IO.Converters
         /// <inheritdoc />
         public DateTime ToDateTime(ReadOnlySpan<byte> buffer, bool useNbo)
         {
-            return DateTime.FromBinary(Read<long>(buffer, useNbo));
+            return DateTime.FromBinary(ToInt64(buffer, useNbo));
         }
 
         /// <inheritdoc />
@@ -97,37 +98,49 @@ namespace Couchbase.Core.IO.Converters
         /// <inheritdoc />
         public short ToInt16(ReadOnlySpan<byte> buffer, bool useNbo)
         {
-            return Read<short>(buffer, useNbo);
+            return useNbo
+                ? BinaryPrimitives.ReadInt16BigEndian(buffer)
+                : BinaryPrimitives.ReadInt16LittleEndian(buffer);
         }
 
         /// <inheritdoc />
         public ushort ToUInt16(ReadOnlySpan<byte> buffer, bool useNbo)
         {
-            return Read<ushort>(buffer, useNbo);
+            return useNbo
+                ? BinaryPrimitives.ReadUInt16BigEndian(buffer)
+                : BinaryPrimitives.ReadUInt16LittleEndian(buffer);
         }
 
         /// <inheritdoc />
         public int ToInt32(ReadOnlySpan<byte> buffer, bool useNbo)
         {
-            return Read<int>(buffer, useNbo);
+            return useNbo
+                ? BinaryPrimitives.ReadInt32BigEndian(buffer)
+                : BinaryPrimitives.ReadInt32LittleEndian(buffer);
         }
 
         /// <inheritdoc />
         public uint ToUInt32(ReadOnlySpan<byte> buffer, bool useNbo)
         {
-            return Read<uint>(buffer, useNbo);
+            return useNbo
+                ? BinaryPrimitives.ReadUInt32BigEndian(buffer)
+                : BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
 
         /// <inheritdoc />
         public long ToInt64(ReadOnlySpan<byte> buffer, bool useNbo)
         {
-            return Read<long>(buffer, useNbo);
+            return useNbo
+                ? BinaryPrimitives.ReadInt64BigEndian(buffer)
+                : BinaryPrimitives.ReadInt64LittleEndian(buffer);
         }
 
         /// <inheritdoc />
         public ulong ToUInt64(ReadOnlySpan<byte> buffer, bool useNbo)
         {
-            return Read<ulong>(buffer, useNbo);
+            return useNbo
+                ? BinaryPrimitives.ReadUInt64BigEndian(buffer)
+                : BinaryPrimitives.ReadUInt64LittleEndian(buffer);
         }
 
         /// <inheritdoc />
@@ -152,37 +165,79 @@ namespace Couchbase.Core.IO.Converters
         /// <inheritdoc />
         public void FromInt16(short value, Span<byte> buffer, bool useNbo)
         {
-            Write(value, buffer, useNbo);
+            if (useNbo)
+            {
+                BinaryPrimitives.WriteInt16BigEndian(buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt16LittleEndian(buffer, value);
+            }
         }
 
         /// <inheritdoc />
         public void FromUInt16(ushort value, Span<byte> buffer, bool useNbo)
         {
-            Write(value, buffer, useNbo);
+            if (useNbo)
+            {
+                BinaryPrimitives.WriteUInt16BigEndian(buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt16LittleEndian(buffer, value);
+            }
         }
 
         /// <inheritdoc />
         public void FromInt32(int value, Span<byte> buffer, bool useNbo)
         {
-            Write(value, buffer, useNbo);
+            if (useNbo)
+            {
+                BinaryPrimitives.WriteInt32BigEndian(buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt32LittleEndian(buffer, value);
+            }
         }
 
         /// <inheritdoc />
         public void FromUInt32(uint value, Span<byte> buffer, bool useNbo)
         {
-            Write(value, buffer, useNbo);
+            if (useNbo)
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
+            }
         }
 
         /// <inheritdoc />
         public void FromInt64(long value, Span<byte> buffer, bool useNbo)
         {
-            Write(value, buffer, useNbo);
+            if (useNbo)
+            {
+                BinaryPrimitives.WriteInt64BigEndian(buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt64LittleEndian(buffer, value);
+            }
         }
 
        /// <inheritdoc />
         public void FromUInt64(ulong value, Span<byte> buffer, bool useNbo)
         {
-            Write(value, buffer, useNbo);
+            if (useNbo)
+            {
+                BinaryPrimitives.WriteUInt64BigEndian(buffer, value);
+            }
+            else
+            {
+                BinaryPrimitives.WriteUInt64LittleEndian(buffer, value);
+            }
         }
 
         /// <inheritdoc />
