@@ -5,6 +5,10 @@ namespace Couchbase.LoadTests.Helpers
 {
     public class JsonDocumentGenerator : DocumentGenerator
     {
+        private const int JsonWrapperSize = 1; // 2 - 1 because there is no trailing comma on the last field
+        private const int FieldWrapperSize = 10;
+        private const int MaximumFieldSize = 1024;
+
         private readonly int _minimumSize;
         private readonly int _maximumSize;
 
@@ -38,18 +42,33 @@ namespace Couchbase.LoadTests.Helpers
 
         private object GenerateDocument(int docSize)
         {
-            return new Document
+            var remainingSize = docSize - JsonWrapperSize;
+
+            var fieldCount = remainingSize / MaximumFieldSize;
+            if (remainingSize % MaximumFieldSize > 0)
             {
-                Field = Random.GetAlphanumericString(Math.Max(docSize - Document.JsonWrapperSize, 0))
-            };
+                fieldCount++;
+            }
+
+            var document = new Dictionary<string, string>(fieldCount);
+
+            var i = 0;
+            while (remainingSize > 0)
+            {
+                var fieldSize = Math.Min(remainingSize, MaximumFieldSize);
+
+                document.Add(GetFieldName(i), Random.GetAlphanumericString(Math.Max(fieldSize - FieldWrapperSize, 0)));
+
+                remainingSize -= fieldSize;
+                i++;
+            }
+
+            return document;
         }
 
-        private class Document
+        private static string GetFieldName(int index)
         {
-            public const int JsonWrapperSize = 12; // Curly braces, two sets of double quotes, field name, and colon
-
-            // ReSharper disable once UnusedAutoPropertyAccessor.Local
-            public string Field { get; set; }
+            return index.ToString("x4");
         }
     }
 }
