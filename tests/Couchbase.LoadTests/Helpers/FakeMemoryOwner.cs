@@ -5,11 +5,11 @@ namespace Couchbase.LoadTests.Helpers
 {
     public class FakeMemoryOwner<T> : IMemoryOwner<T>
     {
-        private readonly Memory<T> _memory;
+        private T[] _array;
 
-        public FakeMemoryOwner(Memory<T> memory)
+        public FakeMemoryOwner(T[] array)
         {
-            _memory = memory;
+            _array = array;
         }
 
         public Memory<T> Memory
@@ -21,7 +21,7 @@ namespace Couchbase.LoadTests.Helpers
                     throw new ObjectDisposedException(nameof(FakeMemoryOwner<T>));
                 }
 
-                return _memory;
+                return _array.AsMemory();
             }
         }
 
@@ -29,6 +29,7 @@ namespace Couchbase.LoadTests.Helpers
 
         public void Dispose()
         {
+            _array = null;
             Disposed = true;
         }
     }

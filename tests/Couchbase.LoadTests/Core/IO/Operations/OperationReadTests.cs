@@ -49,14 +49,15 @@ namespace Couchbase.LoadTests.Core.IO.Operations
                 {
                     var response = responses[i % responses.Count];
 
-                    var operation = new Get<Dictionary<string, object>>
+                    using (var operation = new Get<Dictionary<string, object>>
                     {
                         Converter = converter,
                         Transcoder = transcoder
-                    };
-
-                    await operation.ReadAsync(new FakeMemoryOwner<byte>(response));
-                    operation.GetValue();
+                    })
+                    {
+                        await operation.ReadAsync(new FakeMemoryOwner<byte>(response));
+                        operation.GetValue();
+                    }
                 }, maxSimultaneous);
 
             var finalMemory = GC.GetTotalMemory(false);
@@ -71,7 +72,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         {
             // Arrange
 
-            const int totalOperations = 500_000;
+            const int totalOperations = 100_000;
             var maxSimultaneous = Environment.ProcessorCount;
 
             var converter = new DefaultConverter();
@@ -90,14 +91,15 @@ namespace Couchbase.LoadTests.Core.IO.Operations
                 {
                     var response = responses[i % responses.Count];
 
-                    var operation = new Get<Dictionary<string, object>>
+                    using (var operation = new Get<Dictionary<string, object>>
                     {
                         Converter = converter,
                         Transcoder = transcoder
-                    };
-
-                    await operation.ReadAsync(new FakeMemoryOwner<byte>(response));
-                    operation.GetValue();
+                    })
+                    {
+                        await operation.ReadAsync(new FakeMemoryOwner<byte>(response));
+                        operation.GetValue();
+                    }
                 }, maxSimultaneous);
 
             var finalMemory = GC.GetTotalMemory(false);
