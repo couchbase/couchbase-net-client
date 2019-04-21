@@ -135,7 +135,10 @@ namespace Couchbase.Core.IO.Serializers
             {
                 using (var sr = new StreamReader(ms))
                 {
-                    using (var jr = new JsonTextReader(sr))
+                    using (var jr = new JsonTextReader(sr)
+                    {
+                        ArrayPool = JsonArrayPool.Instance
+                    })
                     {
                         var serializer = JsonSerializer.Create(EffectiveDeserializationSettings);
 
@@ -163,7 +166,11 @@ namespace Couchbase.Core.IO.Serializers
         {
             using (var sw = new StreamWriter(stream, Utf8NoBomEncoding, 1024, true))
             {
-                using (var jr = new JsonTextWriter(sw) {CloseOutput = false})
+                using (var jr = new JsonTextWriter(sw)
+                {
+                    CloseOutput = false,
+                    ArrayPool = JsonArrayPool.Instance
+                })
                 {
                     var serializer = JsonSerializer.Create(SerializerSettings);
                     serializer.Serialize(jr, obj);
@@ -181,7 +188,10 @@ namespace Couchbase.Core.IO.Serializers
         {
             using (var streamReader = new StreamReader(stream))
             {
-                using (var reader = new JsonTextReader(streamReader))
+                using (var reader = new JsonTextReader(streamReader)
+                {
+                    ArrayPool = JsonArrayPool.Instance
+                })
                 {
                     var serializer = JsonSerializer.Create(EffectiveDeserializationSettings);
                     return serializer.Deserialize<T>(reader);
