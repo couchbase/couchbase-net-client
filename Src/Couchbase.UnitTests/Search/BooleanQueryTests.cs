@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Search.Queries.Compound;
 using Couchbase.Search.Queries.Simple;
 using Newtonsoft.Json;
@@ -128,6 +128,27 @@ namespace Couchbase.UnitTests.Search
             }, Formatting.None);
 
             Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void Can_add_should_query_with_boost()
+        {
+            new BooleanQuery()
+                .Should(new MatchQuery("term1").Field("field1").Boost(2.0));
+        }
+
+        [Test]
+        public void Can_add_must_query_with_boost()
+        {
+            new BooleanQuery()
+                .Must(new MatchQuery("term1").Field("field1").Boost(2.0));
+        }
+
+        [Test]
+        public void Can_add_mustnot_query_with_boost()
+        {
+            new BooleanQuery()
+                .MustNot(new MatchQuery("term1").Field("field1").Boost(2.0));
         }
     }
 }

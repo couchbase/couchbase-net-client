@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Compound;
 using Couchbase.Search.Queries.Simple;
@@ -51,6 +51,21 @@ namespace Couchbase.UnitTests.Search
             }, Formatting.None);
 
             Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void Can_create_disjunction_that_includes_query_with_boost()
+        {
+            new DisjunctionQuery(
+                new MatchQuery("term1").Field("field1").Boost(2.0)
+            );
+        }
+
+        [Test]
+        public void Can_add_query_with_boost()
+        {
+            new DisjunctionQuery()
+                .Or(new MatchQuery("term1").Field("field1").Boost(2.0));
         }
     }
 }
