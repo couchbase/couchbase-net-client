@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
@@ -19,7 +19,7 @@ namespace Couchbase.Services.Search.Queries.Compound
         /// </summary>
         /// <param name="queries"></param>
         /// <returns></returns>
-        public BooleanQuery Must(params FtsQueryBase[] queries)
+        public BooleanQuery Must(params IFtsQuery[] queries)
         {
             _mustQueries.And(queries);
             return this;
@@ -30,7 +30,7 @@ namespace Couchbase.Services.Search.Queries.Compound
         /// </summary>
         /// <param name="queries">The query.</param>
         /// <returns></returns>
-        public BooleanQuery Should(params FtsQueryBase[] queries)
+        public BooleanQuery Should(params IFtsQuery[] queries)
         {
             _shouldQueries.Or(queries);
             return this;
@@ -52,7 +52,7 @@ namespace Couchbase.Services.Search.Queries.Compound
         /// </summary>
         /// <param name="queries">The query.</param>
         /// <returns></returns>
-        public BooleanQuery MustNot(params FtsQueryBase[] queries)
+        public BooleanQuery MustNot(params IFtsQuery[] queries)
         {
             _mustNotQueries.Or(queries);
             return this;

@@ -128,6 +128,27 @@ namespace Couchbase.UnitTests.Services.Search
 
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void Can_add_should_query_with_boost()
+        {
+            new BooleanQuery()
+                .Should(new MatchQuery("term1").Field("field1").Boost(2.0));
+        }
+
+        [Fact]
+        public void Can_add_must_query_with_boost()
+        {
+            new BooleanQuery()
+                .Must(new MatchQuery("term1").Field("field1").Boost(2.0));
+        }
+
+        [Fact]
+        public void Can_add_mustnot_query_with_boost()
+        {
+            new BooleanQuery()
+                .MustNot(new MatchQuery("term1").Field("field1").Boost(2.0));
+        }
     }
 }
 

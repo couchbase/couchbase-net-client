@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,11 +13,11 @@ namespace Couchbase.Services.Search.Queries.Compound
     public class DisjunctionQuery : FtsQueryBase, IEnumerable<IFtsQuery>
     {
         private int _min = 1;
-        private readonly List<FtsQueryBase> _queries;
+        private readonly List<IFtsQuery> _queries;
 
-        public DisjunctionQuery(params FtsQueryBase[] queries)
+        public DisjunctionQuery(params IFtsQuery[] queries)
         {
-            _queries = new List<FtsQueryBase>(queries);
+            _queries = new List<IFtsQuery>(queries);
         }
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace Couchbase.Services.Search.Queries.Compound
         /// </summary>
         /// <param name="queries">One or more <see cref="FtsQueryBase"/> queries to add.</param>
         /// <returns></returns>
-        public DisjunctionQuery Or(params FtsQueryBase[] queries)
+        public DisjunctionQuery Or(params IFtsQuery[] queries)
         {
             _queries.AddRange(queries);
             return this;

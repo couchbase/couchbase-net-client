@@ -49,6 +49,21 @@ namespace Couchbase.UnitTests.Services.Search
 
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void Can_create_conjunction_that_includes_query_with_boost()
+        {
+            new ConjunctionQuery(
+                new MatchQuery("term1").Field("field1").Boost(2.0)
+            );
+        }
+
+        [Fact]
+        public void Can_add_query_with_boost()
+        {
+            new ConjunctionQuery()
+                .And(new MatchQuery("term1").Field("field1").Boost(2.0));
+        }
     }
 }
 
