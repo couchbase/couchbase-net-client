@@ -18,5 +18,5 @@ using System.Runtime.InteropServices;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Couchbase.UnitTests")]
-#endif
 [assembly: InternalsVisibleTo("Couchbase.LoadTests")]
+#endif
