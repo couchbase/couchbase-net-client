@@ -36,6 +36,24 @@ namespace Couchbase
 
             _configuration = configuration;
 
+            Connect();
+        }
+
+        public Cluster(string connectionStr, string username, string password)
+        {
+            var connectionString = ConnectionString.Parse(connectionStr);
+
+            _configuration = new Configuration()
+                .WithServers(connectionString.Hosts.ToArray())
+                .WithCredentials(username, password);
+
+            // TODO: load connection string params into configuration
+
+            Connect();
+        }
+
+        private void Connect()
+        {
             if (!_configuration.Buckets.Any())
             {
                 _configuration = _configuration.WithBucket("default");
@@ -46,27 +64,29 @@ namespace Couchbase
                 _configuration = _configuration.WithServers("couchbase://localhost");
             }
 
-            var task = Task.Run(async () =>
-            {
-                foreach (var configBucket in _configuration.Buckets)
+            Task.Run(async () =>
                 {
-                    Log.LogDebug("Creating bucket {0}", configBucket);
-
-                    foreach (var configServer in _configuration.Servers)
+                    foreach (var configBucket in _configuration.Buckets)
                     {
-                        Log.LogDebug("Bootstrapping bucket {0} using server {1}", configBucket, configServer);
+                        Log.LogDebug("Creating bucket {0}", configBucket);
 
-                        var bucket = new CouchbaseBucket(this, configBucket);
-                        await bucket.BootstrapAsync(configServer, _configuration).ConfigureAwait(false);
-                        _bucketRefs.TryAdd(configBucket, bucket);
+                        foreach (var configServer in _configuration.Servers)
+                        {
+                            Log.LogDebug("Bootstrapping bucket {0} using server {1}", configBucket, configServer);
 
-                        Log.LogDebug("Succesfully bootstrapped bucket {0} using server {1}", configBucket, configServer);
-                        return;
+                            var bucket = new CouchbaseBucket(this, configBucket);
+                            await bucket.BootstrapAsync(configServer, _configuration).ConfigureAwait(false);
+                            _bucketRefs.TryAdd(configBucket, bucket);
+
+                            Log.LogDebug("Succesfully bootstrapped bucket {0} using server {1}", configBucket,
+                                configServer);
+                            return;
+                        }
                     }
-                }
-            });
-            task.ConfigureAwait(false);
-            task.Wait();
+                })
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
         }
 
         public Task<IBucket> Bucket(string name)
