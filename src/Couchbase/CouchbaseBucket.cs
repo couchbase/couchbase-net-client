@@ -19,14 +19,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase
 {
-    internal interface IBucketSender
+    internal interface IBucketInternal
     {
         Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs);
 
         Task Bootstrap(ClusterNode clusterNode);
+
+        void ConfigUpdated(object sender, BucketConfigEventArgs e);
     }
 
-    public class CouchbaseBucket : IBucket, IBucketSender
+    public class CouchbaseBucket : IBucket, IBucketInternal
     {
         internal const string DefaultScope = "_default";
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseBucket>();
@@ -40,15 +42,26 @@ namespace Couchbase
         private IKeyMapper _keyMapper;
         private readonly Configuration _configuration;
         private bool _supportsCollections;
+        private ConfigContext _configContext;
 
-        internal CouchbaseBucket(string name, Configuration configuration)
+        internal CouchbaseBucket(string name, Configuration configuration, ConfigContext configContext)
         {
             Name = name;
+            _configContext = configContext;
             _configuration = configuration;
 
             _viewClientLazy = new Lazy<IViewClient>(() =>
                 new ViewClient(new CouchbaseHttpClient(_configuration, _bucketConfig), new JsonDataMapper(new DefaultSerializer()), _configuration)
             );
+        }
+
+        public void ConfigUpdated(object sender, BucketConfigEventArgs e)
+        {
+            _bucketConfig = e.Config;
+            _keyMapper = new VBucketKeyMapper(_bucketConfig);
+
+            LoadManifest();
+            LoadClusterMap().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public string Name { get; }
@@ -70,7 +83,7 @@ namespace Couchbase
 
         public Task<ICollection> DefaultCollection => Task.FromResult(_scopes[DefaultScope][CouchbaseCollection.DefaultCollection]);
 
-        async Task IBucketSender.Bootstrap(ClusterNode bootstrapNode)
+        async Task IBucketInternal.Bootstrap(ClusterNode bootstrapNode)
         {
             //should never happen
             if (bootstrapNode == null)
@@ -90,11 +103,10 @@ namespace Couchbase
             _manifest = await bootstrapNode.GetManifest().ConfigureAwait(false);
             _supportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
 
-            _bucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false);//TODO this should go through standard config check process NCBC-1944
-            _keyMapper = new VBucketKeyMapper(_bucketConfig);
+            var bucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false); //TODO this should go through standard config check process NCBC-1944
 
-            LoadManifest();
-            await LoadClusterMap().ConfigureAwait(false);
+            //first call should be synchronous
+            ConfigUpdated(this, new BucketConfigEventArgs(bucketConfig));
         }
 
         private async Task LoadClusterMap()

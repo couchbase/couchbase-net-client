@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Services.Query.Couchbase.N1QL;
@@ -18,9 +19,12 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Query()
         {
             var cluster = _fixture.Cluster;
+            cluster.Initialize();
+
 
              var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=&0",
                 parameter => parameter.Add("poo"),
+
                 options => options.Encoding(Encoding.Utf8));
         }
 
@@ -28,8 +32,7 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Query2()
         {
             var cluster = _fixture.Cluster;
-            await cluster.Bucket("default");
-
+            
             var result = await cluster.QueryAsync<dynamic>("SELECT * FROM `default` WHERE type=$name;",
                 parameter =>
             {
@@ -52,6 +55,9 @@ namespace Couchbase.IntegrationTests
             foreach (var result in results.Rows)
             {
             }
+
+            Thread.Sleep(100000);
+
         }
     }
 }

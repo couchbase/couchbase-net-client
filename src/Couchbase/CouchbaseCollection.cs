@@ -21,7 +21,7 @@ namespace Couchbase
     {
         internal const string DefaultCollection = "_default";
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseCollection>();
-        private readonly IBucketSender _bucket;
+        private readonly IBucketInternal _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
@@ -29,7 +29,7 @@ namespace Couchbase
         {
             Cid = cid;
             Name = name;
-            _bucket = (IBucketSender)bucket;
+            _bucket = (IBucketInternal)bucket;
         }
 
         public uint? Cid { get; }

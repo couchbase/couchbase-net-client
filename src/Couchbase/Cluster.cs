@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Logging;
 using Couchbase.Management;
@@ -26,6 +27,7 @@ namespace Couchbase
         private IAnalyticsClient _analyticsClient;
         private CancellationTokenSource _configTokenSource;
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
+        private readonly ConfigContext _configContext;
 
         public Cluster(Configuration configuration)
         {
@@ -39,7 +41,11 @@ namespace Couchbase
                 throw new InvalidConfigurationException("Username and password are required.");
             }
 
+            _configTokenSource = new CancellationTokenSource();
             _configuration = configuration;
+            _configContext = new ConfigContext(_configuration);
+            _configContext.Start(_configTokenSource);
+            _configContext.Poll(_configTokenSource.Token);
         }
 
         public Cluster(string connectionStr, string username, string password)
@@ -59,6 +65,8 @@ namespace Couchbase
             {
                 _configuration = _configuration.WithServers("couchbase://localhost");
             }
+            _configContext = new ConfigContext(_configuration);
+            _configContext.Start(_configTokenSource);
         }
 
         private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint)
@@ -130,8 +138,9 @@ namespace Couchbase
             if (bootstrapNode == null)
             {
                 //use existing clusterNode from bootstrapping
-                bucket = new CouchbaseBucket(name, _configuration);
-                await ((IBucketSender) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
+                bucket = new CouchbaseBucket(name, _configuration, _configContext);
+                _configContext.Subscribe((IBucketInternal)bucket);
+                await ((IBucketInternal) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
 
                 _bucketRefs.TryAdd(name, bucket);
             }
@@ -142,8 +151,9 @@ namespace Couchbase
                 var endPoint = uri.GetIpEndPoint(11210, false);
                 bootstrapNode = await GetClusterNode(endPoint).ConfigureAwait(false);
 
-                bucket = new CouchbaseBucket(name, _configuration);
-                await ((IBucketSender) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
+                bucket = new CouchbaseBucket(name, _configuration, _configContext);
+                _configContext.Subscribe((IBucketInternal)bucket);
+                await ((IBucketInternal) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
 
                 _configuration.GlobalNodes.Add(bootstrapNode);
                 _bucketRefs.TryAdd(name, bucket);
@@ -168,12 +178,10 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters = null, IQueryOptions options = null)
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters = null,
+            IQueryOptions options = null)
         {
-            if (_queryClient == null)
-            {
-                _queryClient = new QueryClient(_configuration);
-            }
+            if (_queryClient == null) _queryClient = new QueryClient(_configuration);
 
             //re-use older API by mapping parameters to new API
             options?.AddNamedParameter(parameters?.NamedParameters.ToArray());

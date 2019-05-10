@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using System.Reflection;
-using Couchbase.Core;
 
 namespace Couchbase.Utils
 {
@@ -70,6 +69,15 @@ namespace Couchbase.Utils
             return item;
         }
 
+        public static bool AreEqual<T>(this List<T> array, List<T> other)
+        {
+            if (array == null && other == null) return true;
+            if (array == null) return false;
+            if (other == null) return false;
+           
+            return array.Count == other.Count && array.SequenceEqual(other);
+        }
+
         public static bool AreEqual<T>(this Array array, Array other)
         {
             return (other != null &&
@@ -84,7 +92,7 @@ namespace Couchbase.Utils
                    array.Cast<T>().SequenceEqual(other.Cast<T>());
         }
 
-        public static bool AreEqual(this int[][] array, int[][] other)
+        public static bool AreEqual(this short[][] array, short[][] other)
         {
             if (array == null && other == null)
             {

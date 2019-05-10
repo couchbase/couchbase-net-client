@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -50,8 +50,8 @@ namespace Couchbase.Core.Sharding
         {
             return (other != null
                     && ServerList.AreEqual<string>(other.ServerList)
-                    && VBucketMap.AreEqual<short>(other.VBucketMap))
-                    && VBucketMapForward.AreEqual<short>(other.VBucketMapForward);
+                    && VBucketMap.AreEqual(other.VBucketMap))
+                    && VBucketMapForward.AreEqual(other.VBucketMapForward);
         }
 
         public override bool Equals(object obj)

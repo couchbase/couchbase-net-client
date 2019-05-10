@@ -1,5 +1,8 @@
 using System;
+using System.Buffers;
 using System.Threading.Tasks;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Services.Views;
 
 namespace Couchbase

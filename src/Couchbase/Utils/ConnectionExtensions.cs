@@ -12,6 +12,7 @@ using Couchbase.Core.IO.Operations.Legacy.Authentication;
 using Couchbase.Core.IO.Operations.Legacy.Collections;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
 using Couchbase.Core.IO.Transcoders;
+using Newtonsoft.Json;
 using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
 namespace Couchbase.Utils
@@ -153,7 +154,9 @@ namespace Couchbase.Utils
                 await configOp.ReadAsync(clusterMapBytes).ConfigureAwait(false);
 
                 var configResult = configOp.GetResultWithValue();
-                return configResult.Content;
+                var config = configResult.Content;
+                var json =  JsonConvert.SerializeObject(config);
+                return config;
             }
         }
     }

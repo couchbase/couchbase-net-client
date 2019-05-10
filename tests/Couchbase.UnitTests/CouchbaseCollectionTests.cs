@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
@@ -93,7 +94,7 @@ namespace Couchbase.UnitTests
             }
         }
 
-        public class FakeBucket : IBucket, IBucketSender
+        public class FakeBucket : IBucket, IBucketInternal
         {
             private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
             public FakeBucket(params ResponseStatus[] statuses)
@@ -108,6 +109,11 @@ namespace Couchbase.UnitTests
 
             }
             public virtual string Name { get; }
+
+            public void ConfigUpdated(object sender, BucketConfigEventArgs e)
+            {
+                throw new NotImplementedException();
+            }
 
             public Task BootstrapAsync(Uri uri, Configuration configuration)
             {
@@ -140,7 +146,7 @@ namespace Couchbase.UnitTests
                 return Task.CompletedTask;
             }
 
-            Task IBucketSender.Bootstrap(ClusterNode clusterNode)
+            Task IBucketInternal.Bootstrap(ClusterNode clusterNode)
             {
                 throw new NotImplementedException();
             }

@@ -10,7 +10,7 @@ namespace Couchbase.IntegrationTests.Fixtures
         public ClusterFixture()
         {
             Cluster = new Cluster(new Configuration()
-                .WithServers("couchbase://localhost")
+                .WithServers("couchbase://10.112.192.101")
                 .WithBucket("default")
                 .WithCredentials("Administrator", "password"));
 
