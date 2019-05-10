@@ -12,10 +12,10 @@ namespace Couchbase.Core.IO.Operations
     /// Provides a forward-only stream for building operations which tracks the size of each segment
     /// as it's being built.
     /// </summary>
-    internal class OperationBuilder : Stream
+    internal sealed class OperationBuilder : Stream
     {
         private readonly MemoryStream _stream;
-        private readonly IByteConverter _converter;
+        private IByteConverter _converter;
 
         private int _framingExtrasLength;
         private int _extrasLength;
@@ -49,6 +49,21 @@ namespace Couchbase.Core.IO.Operations
         }
 
         /// <summary>
+        /// Capacity of the underlying stream.
+        /// </summary>
+        public long Capacity => _stream.Capacity;
+
+        /// <summary>
+        /// The <see cref="IByteConverter"/> to use.
+        /// </summary>
+        [NotNull]
+        public IByteConverter Converter
+        {
+            get => _converter;
+            set => _converter = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
+        /// <summary>
         /// The current segment being written.
         /// </summary>
         public OperationSegment CurrentSegment { get; private set; }
@@ -62,11 +77,7 @@ namespace Couchbase.Core.IO.Operations
             _converter = converter ?? throw new ArgumentNullException(nameof(converter));
             _stream = MemoryStreamFactory.GetMemoryStream();
 
-            // Skip the bytes for the header, which will be written later once lengths are known.
-            _stream.SetLength(OperationHeader.Length);
-            _stream.Position = OperationHeader.Length;
-
-            CurrentSegment = OperationSegment.FramingExtras;
+            Reset();
         }
 
         /// <summary>
@@ -272,6 +283,20 @@ namespace Couchbase.Core.IO.Operations
             _operationSpecPathLength = 0;
             _operationSpecFragmentLength = 0;
             CurrentSegment = OperationSegment.OperationSpecPath;
+        }
+
+        public void Reset()
+        {
+            // Skip the bytes for the header, which will be written later once lengths are known.
+            _stream.SetLength(OperationHeader.Length);
+            _stream.Position = OperationHeader.Length;
+
+            _framingExtrasLength = 0;
+            _extrasLength = 0;
+            _keyLength = 0;
+            _bodyLength = 0;
+            _headerWritten = false;
+            CurrentSegment = OperationSegment.FramingExtras;
         }
 
         /// <summary>
