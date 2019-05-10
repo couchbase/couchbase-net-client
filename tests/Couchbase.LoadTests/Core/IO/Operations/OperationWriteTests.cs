@@ -1,109 +1,42 @@
 using System;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using BenchmarkDotNet.Attributes;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.LoadTests.Helpers;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace Couchbase.LoadTests.Core.IO.Operations
 {
+    [MemoryDiagnoser]
     public class OperationWriteTests
     {
-        private readonly ITestOutputHelper _outputHelper;
+        // Don't use Moq, adds too much overhead to the test
+        private readonly MockConnection _mockConnection = new MockConnection();
+        private IOperation<object> _operation;
 
-        public OperationWriteTests(ITestOutputHelper outputHelper)
+        [Params(512, 16384, 131072, 524288)]
+        public int DocSize;
+
+        [GlobalSetup]
+        public void Setup()
         {
-            _outputHelper = outputHelper;
-        }
-
-        [Fact]
-        public async Task SmallDocuments()
-        {
-            // Arrange
-
-            const int totalOperations = 10_000_000;
-            var maxSimultaneous = Environment.ProcessorCount;
-
-            var docGenerator = new JsonDocumentGenerator(32, 1024);
+            var docGenerator = new JsonDocumentGenerator(DocSize, DocSize);
             var keyGenerator = new GuidKeyGenerator();
 
-            var operations = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1000)
+            _operation = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1)
                 .Select(p => new Replace<object>
                 {
                     Key = p.Key,
                     Content = p.Value,
                     Completed = state => Task.CompletedTask
                 })
-                .ToList();
-
-            // Don't use Moq, adds too much overhead to the test
-            var connection = new MockConnection();
-
-            // Act
-
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-            var startMemory = GC.GetTotalMemory(true);
-
-            await Enumerable.Range(0, totalOperations)
-                .ExecuteRateLimited(async i =>
-                {
-                    var operation = operations[i % operations.Count];
-
-                    await operation.SendAsync(connection);
-                }, maxSimultaneous);
-
-            var finalMemory = GC.GetTotalMemory(false);
-            stopwatch.Stop();
-
-            _outputHelper.WriteLine($"Elapsed: {stopwatch.Elapsed.TotalSeconds:N3}s");
-            _outputHelper.WriteLine($"Allocated memory: {(double) (finalMemory - startMemory) / (1024 * 1024):N2}Mi");
+                .First();
         }
 
-        [Fact]
-        public async Task LargeDocuments()
+        [Benchmark]
+        public async Task Json()
         {
-            // Arrange
-
-            const int totalOperations = 500_000;
-            var maxSimultaneous = Environment.ProcessorCount;
-
-            var docGenerator = new JsonDocumentGenerator(65536, 524288);
-            var keyGenerator = new GuidKeyGenerator();
-
-            var operations = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1000)
-                .Select(p => new Replace<object>
-                {
-                    Key = p.Key,
-                    Content = p.Value,
-                    Completed = state => Task.CompletedTask
-                })
-                .ToList();
-
-            // Don't use Moq, adds too much overhead to the test
-            var connection = new MockConnection();
-
-            // Act
-
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-            var startMemory = GC.GetTotalMemory(true);
-
-            await Enumerable.Range(0, totalOperations)
-                .ExecuteRateLimited(async i =>
-                {
-                    var operation = operations[i % operations.Count];
-
-                    await operation.SendAsync(connection);
-                }, maxSimultaneous);
-
-            var finalMemory = GC.GetTotalMemory(false);
-            stopwatch.Stop();
-
-            _outputHelper.WriteLine($"Elapsed: {stopwatch.Elapsed.TotalSeconds:N3}s");
-            _outputHelper.WriteLine($"Allocated memory: {(double) (finalMemory - startMemory) / (1024 * 1024):N2}Mi");
+            await _operation.SendAsync(_mockConnection);
         }
     }
 }

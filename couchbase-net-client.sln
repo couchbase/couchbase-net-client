@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.IntegrationTests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.UnitTests", "tests\Couchbase.UnitTests\Couchbase.UnitTests.csproj", "{25F60E0C-7F9E-4A37-842E-6D30CEAE8280}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.LoadTests", "tests\Couchbase.LoadTests\Couchbase.LoadTests.csproj", "{1860FE86-98C9-43F0-95D9-9C44537EB6C8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.LoadTests", "tests\Couchbase.LoadTests\Couchbase.LoadTests.csproj", "{1860FE86-98C9-43F0-95D9-9C44537EB6C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

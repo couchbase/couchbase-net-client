@@ -19,3 +19,4 @@ local.config
 *.lock.json
 Couchbase.snk
 *.nupkg
+BenchmarkDotNet.Artifacts/
