@@ -99,11 +99,6 @@ namespace Couchbase
             throw new ArgumentOutOfRangeException(nameof(name), "Bucket not found!");
         }
 
-        public Task<IDiagnosticsReport> Diagnostics()
-        {
-            throw new NotImplementedException();
-        }
-
         public Task<IDiagnosticsReport> Diagnostics(string reportId)
         {
             throw new NotImplementedException();
@@ -114,7 +109,7 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IQueryResult<T>> Query<T>(string statement, QueryParameter parameters = null, IQueryOptions options = null)
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters = null, IQueryOptions options = null)
         {
             if (_queryClient == null)
             {
@@ -128,45 +123,7 @@ namespace Couchbase
             return _queryClient.QueryAsync<T>(statement, options);
         }
 
-        public Task<IQueryResult<T>> Query<T>(string statement, Action<QueryParameter> parameters = null, Action<IQueryOptions> options = null)
-        {
-            var queryParameters = new QueryParameter();
-            parameters?.Invoke(queryParameters);
-
-            var queryOptions = new QueryOptions();
-            options?.Invoke(queryOptions);
-
-            return Query<T>(statement, queryParameters, queryOptions);
-        }
-
         #region Analytics
-
-        public IAnalyticsResult<T> AnalyticsQuery<T>(string statement, Action<AnalyticsOptions> configureOptions)
-        {
-            var options = new AnalyticsOptions();
-            configureOptions(options);
-
-            return AnalyticsQueryAsync<T>(statement, options)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        public IAnalyticsResult<T> AnalyticsQuery<T>(string statement, AnalyticsOptions options = default)
-        {
-            return AnalyticsQueryAsync<T>(statement, options)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, Action<AnalyticsOptions> configureOptions)
-        {
-            var options = new AnalyticsOptions();
-            configureOptions(options);
-
-            return AnalyticsQueryAsync<T>(statement, options);
-        }
 
         public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default)
         {
@@ -202,33 +159,6 @@ namespace Couchbase
         #endregion
 
         #region Search
-
-        public ISearchResult SearchQuery(string indexName, SearchQuery query, Action<ISearchOptions> configureOptions)
-        {
-            var options = new SearchOptions();
-            configureOptions(options);
-
-            return SearchQueryAsync(indexName, query, options)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        public ISearchResult SearchQuery(string indexName, SearchQuery query, ISearchOptions options = default)
-        {
-            return SearchQueryAsync(indexName, query, options)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        public Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, Action<ISearchOptions> configureOptions)
-        {
-            var options = new SearchOptions();
-            configureOptions(options);
-
-            return SearchQueryAsync(indexName, query, options);
-        }
 
         public Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default)
         {

@@ -290,11 +290,6 @@ namespace Couchbase
             }
         }
 
-        public Task<IScope> Scope(string name)
-        {
-            return this[name];
-        }
-
         private Uri GetViewUri()
         {
             var server = _bucketConfig.Nodes.GetRandom();
@@ -358,15 +353,7 @@ namespace Couchbase
             return _viewClientLazy.Value.ExecuteAsync<T>(query);
         }
 
-        public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, Action<ViewOptions> configureOptions)
-        {
-            var options = new ViewOptions();
-            configureOptions(options);
-
-            return ViewQueryAsync<T>(designDocument, viewName, options);
-        }
-
-        public Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, SpatialViewOptions options = default)
+        public Task<IViewResult<T>> SpatialViewQueryAsync<T>(string designDocument, string viewName, SpatialViewOptions options = default)
         {
             if (options == default)
             {
@@ -391,14 +378,6 @@ namespace Couchbase
             query.ConnectionTimeout(options.ConnectionTimeout);
 
             return _viewClientLazy.Value.ExecuteAsync<T>(query);
-        }
-
-        public Task<IViewResult<T>> SpatialViewQuery<T>(string designDocument, string viewName, Action<SpatialViewOptions> configureOptions)
-        {
-            var options = new SpatialViewOptions();
-            configureOptions(options);
-
-            return SpatialViewQuery<T>(designDocument, viewName, options);
         }
 
         public void Dispose()

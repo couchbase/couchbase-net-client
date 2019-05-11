@@ -36,10 +36,5 @@ namespace Couchbase
                 throw new CollectionMissingException("Cannot find collection {name}");
             }
         }
-
-        public ICollection Collection(string name)
-        {
-            return this[name];
-        }
     }
 }

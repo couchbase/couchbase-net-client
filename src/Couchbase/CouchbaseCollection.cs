@@ -256,19 +256,6 @@ namespace Couchbase
 
         #region Get
 
-        public Task<IGetResult> Get(string id)
-        {
-            return Get(id, new GetOptions());
-        }
-
-        public Task<IGetResult> Get(string id, Action<GetOptions> configureOptions)
-        {
-            var options = new GetOptions();
-            configureOptions?.Invoke(options);
-
-            return Get(id, options);
-        }
-
         public async Task<IGetResult> Get(string id, GetOptions options)
         {
             //A projection operation
@@ -320,19 +307,6 @@ namespace Couchbase
 
         #region Exists
 
-        public Task<IExistsResult> Exists(string id)
-        {
-            return Exists(id, new ExistsOptions());
-        }
-
-        public Task<IExistsResult> Exists(string id, Action<ExistsOptions> configureOptions)
-        {
-            var options = new ExistsOptions();
-            configureOptions?.Invoke(options);
-
-            return Exists(id, options);
-        }
-
         public async Task<IExistsResult> Exists(string id, ExistsOptions options)
         {
             using (var existsOp = new Observe
@@ -367,19 +341,6 @@ namespace Couchbase
 
         #region Upsert
 
-        public Task<IMutationResult> Upsert<T>(string id, T content)
-        {
-            return Upsert(id, content, new UpsertOptions());
-        }
-
-        public Task<IMutationResult> Upsert<T>(string id, T content, Action<UpsertOptions> configureOptions)
-        {
-            var options = new UpsertOptions();
-            configureOptions(options);
-
-            return Upsert(id, content, options);
-        }
-
         public async Task<IMutationResult> Upsert<T>(string id, T content, UpsertOptions options)
         {
             using (var upsertOp = new Set<T>
@@ -401,19 +362,6 @@ namespace Couchbase
         #endregion
 
         #region Insert
-
-        public Task<IMutationResult> Insert<T>(string id, T content)
-        {
-            return Insert(id, content, new InsertOptions());
-        }
-
-        public Task<IMutationResult> Insert<T>(string id, T content, Action<InsertOptions> optionsAction)
-        {
-            var options = new InsertOptions();
-            optionsAction(options);
-
-            return Insert(id, content, options);
-        }
 
         public async Task<IMutationResult> Insert<T>(string id, T content, InsertOptions options)
         {
@@ -437,19 +385,6 @@ namespace Couchbase
 
         #region Replace
 
-        public Task<IMutationResult> Replace<T>(string id, T content)
-        {
-            return Replace(id, content, new ReplaceOptions());
-        }
-
-        public Task<IMutationResult> Replace<T>(string id, T content, Action<ReplaceOptions> configureOptions)
-        {
-            var options = new ReplaceOptions();
-            configureOptions(options);
-
-            return Replace(id, content, options);
-        }
-
         public async Task<IMutationResult> Replace<T>(string id, T content, ReplaceOptions options)
         {
             using (var replaceOp = new Replace<T>
@@ -472,19 +407,6 @@ namespace Couchbase
 
         #region Remove
 
-        public Task Remove(string id)
-        {
-            return Remove(id, new RemoveOptions());
-        }
-
-        public Task Remove(string id, Action<RemoveOptions> configureOptions)
-        {
-            var options = new RemoveOptions();
-            configureOptions(options);
-
-            return Remove(id, options);
-        }
-
         public async Task Remove(string id, RemoveOptions options)
         {
             using (var removeOp = new Delete
@@ -504,19 +426,6 @@ namespace Couchbase
 
         #region Unlock
 
-        public Task Unlock<T>(string id)
-        {
-            return Unlock<T>(id, new UnlockOptions());
-        }
-
-        public Task Unlock<T>(string id, Action<UnlockOptions> configureOptions)
-        {
-            var options = new UnlockOptions();
-            configureOptions(options);
-
-            return Unlock<T>(id, options);
-        }
-
         public async Task Unlock<T>(string id, UnlockOptions options)
         {
             using (var unlockOp = new Unlock
@@ -533,19 +442,6 @@ namespace Couchbase
         #endregion
 
         #region Touch
-
-        public Task Touch(string id, TimeSpan expiration)
-        {
-            return Touch(id, expiration, new TouchOptions());
-        }
-
-        public Task Touch(string id, TimeSpan expiration, Action<TouchOptions> configureOptions)
-        {
-            var options = new TouchOptions();
-            configureOptions(options);
-
-            return Touch(id, expiration, options);
-        }
 
         public async Task Touch(string id, TimeSpan expiration, TouchOptions options)
         {
@@ -565,19 +461,6 @@ namespace Couchbase
         #endregion
 
         #region GetAndTouch
-
-        public Task<IGetResult> GetAndTouch(string id, TimeSpan expiration)
-        {
-            return GetAndTouch(id, expiration, new GetAndTouchOptions());
-        }
-
-        public Task<IGetResult> GetAndTouch(string id, TimeSpan expiration, Action<GetAndTouchOptions> configureOptions)
-        {
-            var options = new GetAndTouchOptions();
-            configureOptions(options);
-
-            return GetAndTouch(id, expiration, options);
-        }
 
         public async Task<IGetResult> GetAndTouch(string id, TimeSpan expiration, GetAndTouchOptions options)
         {
@@ -599,19 +482,6 @@ namespace Couchbase
 
         #region GetAndLock
 
-        public Task<IGetResult> GetAndLock(string id, TimeSpan expiration)
-        {
-            return GetAndLock(id, expiration, new GetAndLockOptions());
-        }
-
-        public Task<IGetResult> GetAndLock(string id, TimeSpan expiration, Action<GetAndLockOptions> configureOptions)
-        {
-            var options = new GetAndLockOptions();
-            configureOptions(options);
-
-            return GetAndLock(id, expiration, options);
-        }
-
         public async Task<IGetResult> GetAndLock(string id, TimeSpan expiration, GetAndLockOptions options)
         {
             using (var getAndLockOp = new GetL<byte[]>
@@ -629,46 +499,6 @@ namespace Couchbase
         #endregion
 
         #region LookupIn
-
-        public Task<ILookupInResult> LookupIn(string id, Action<LookupInSpecBuilder> configureBuilder)
-        {
-            var builder = new LookupInSpecBuilder();
-            configureBuilder(builder);
-
-            return LookupIn(id, builder.Specs, new LookupInOptions());
-        }
-
-        public Task<ILookupInResult> LookupIn(string id, Action<LookupInSpecBuilder> configureBuilder, Action<LookupInOptions> configureOptions)
-        {
-            var builder = new LookupInSpecBuilder();
-            configureBuilder(builder);
-
-            var options = new LookupInOptions();
-            configureOptions(options);
-
-            return LookupIn(id, builder.Specs, options);
-        }
-
-        public Task<ILookupInResult> LookupIn(string id, Action<LookupInSpecBuilder> configureBuilder, LookupInOptions options)
-        {
-            var lookupInSpec = new LookupInSpecBuilder();
-            configureBuilder(lookupInSpec);
-
-            return LookupIn(id, lookupInSpec.Specs, options);
-        }
-
-        public Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs)
-        {
-            return LookupIn(id, specs, new LookupInOptions());
-        }
-
-        public Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs, Action<LookupInOptions> configureOptions)
-        {
-            var options = new LookupInOptions();
-            configureOptions(options);
-
-            return LookupIn(id, specs, options);
-        }
 
         public async Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs, LookupInOptions options)
         {
@@ -698,46 +528,6 @@ namespace Couchbase
 
         #region MutateIn
 
-        public Task<IMutationResult> MutateIn(string id, Action<MutateInSpecBuilder> configureBuilder)
-        {
-            var builder = new MutateInSpecBuilder();
-            configureBuilder(builder);
-
-            return MutateIn(id, builder.Specs, new MutateInOptions());
-        }
-
-        public Task<IMutationResult> MutateIn(string id, Action<MutateInSpecBuilder> configureBuilder, Action<MutateInOptions> configureOptions)
-        {
-            var builder = new MutateInSpecBuilder();
-            configureBuilder(builder);
-
-            var options = new MutateInOptions();
-            configureOptions(options);
-
-            return MutateIn(id, builder.Specs, options);
-        }
-
-        public Task<IMutationResult> MutateIn(string id, Action<MutateInSpecBuilder> configureBuilder, MutateInOptions options)
-        {
-            var mutateInSpec = new MutateInSpecBuilder();
-            configureBuilder(mutateInSpec);
-
-            return MutateIn(id, mutateInSpec.Specs, options);
-        }
-
-        public Task<IMutationResult> MutateIn(string id, IEnumerable<OperationSpec> specs)
-        {
-            return MutateIn(id, specs, new MutateInOptions());
-        }
-
-        public Task<IMutationResult> MutateIn(string id, IEnumerable<OperationSpec> specs, Action<MutateInOptions> configureOptions)
-        {
-            var options = new MutateInOptions();
-            configureOptions(options);
-
-            return MutateIn(id, specs, options);
-        }
-
         public async Task<IMutationResult> MutateIn(string id, IEnumerable<OperationSpec> specs, MutateInOptions options)
         {
             // convert new style specs into old style builder
@@ -760,19 +550,6 @@ namespace Couchbase
 
         #region Append
 
-        public Task<IMutationResult> Append(string id, byte[] value)
-        {
-            return Append(id, value, new AppendOptions());
-        }
-
-        public Task<IMutationResult> Append(string id, byte[] value, Action<AppendOptions> configureOptions)
-        {
-            var options = new AppendOptions();
-            configureOptions(options);
-
-            return Append(id, value, options);
-        }
-
         public async Task<IMutationResult> Append(string id, byte[] value, AppendOptions options)
         {
             using (var op = new Append<byte[]>
@@ -791,19 +568,6 @@ namespace Couchbase
         #endregion
 
         #region Prepend
-
-        public Task<IMutationResult> Prepend(string id, byte[] value)
-        {
-            return Prepend(id, value, new PrependOptions());
-        }
-
-        public Task<IMutationResult> Prepend(string id, byte[] value, Action<PrependOptions> configureOptions)
-        {
-            var options = new PrependOptions();
-            configureOptions(options);
-
-            return Prepend(id, value, options);
-        }
 
         public async Task<IMutationResult> Prepend(string id, byte[] value, PrependOptions options)
         {
@@ -824,19 +588,6 @@ namespace Couchbase
 
         #region Increment
 
-        public Task<ICounterResult> Increment(string id)
-        {
-            return Increment(id, new IncrementOptions());
-        }
-
-        public Task<ICounterResult> Increment(string id, Action<IncrementOptions> configureOptions)
-        {
-            var options = new IncrementOptions();
-            configureOptions(options);
-
-            return Increment(id, options);
-        }
-
         public async Task<ICounterResult> Increment(string id, IncrementOptions options)
         {
             using (var op = new Increment
@@ -856,19 +607,6 @@ namespace Couchbase
         #endregion
 
         #region Decrement
-
-        public Task<ICounterResult> Decrement(string id)
-        {
-            return Decrement(id, new DecrementOptions());
-        }
-
-        public Task<ICounterResult> Decrement(string id, Action<DecrementOptions> configureOptions)
-        {
-            var options = new DecrementOptions();
-            configureOptions(options);
-
-            return Decrement(id, options);
-        }
 
         public async Task<ICounterResult> Decrement(string id, DecrementOptions options)
         {

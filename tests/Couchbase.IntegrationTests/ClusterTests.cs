@@ -19,8 +19,8 @@ namespace Couchbase.IntegrationTests
         {
             var cluster = _fixture.Cluster;
 
-             var result = await cluster.Query<dynamic>("SELECT x.* FROM `default` WHERE x.Type=&0",
-                parameter => parameter.Add("poo"), 
+             var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=&0",
+                parameter => parameter.Add("poo"),
                 options => options.Encoding(Encoding.Utf8));
         }
 
@@ -29,7 +29,7 @@ namespace Couchbase.IntegrationTests
         {
             var cluster = _fixture.Cluster;
 
-            var result = await cluster.Query<dynamic>("SELECT * FROM `default` WHERE type=$name;",
+            var result = await cluster.QueryAsync<dynamic>("SELECT * FROM `default` WHERE type=$name;",
                 parameter =>
             {
                 parameter.Add("name", "person");
