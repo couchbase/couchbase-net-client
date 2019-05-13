@@ -46,6 +46,11 @@ namespace Couchbase.Configuration.Server.Serialization
             }
         }
 
+        public void ClearIPEndPoints()
+        {
+            _ipEndPoints = null;
+        }
+
         public bool Equals(VBucketServerMap other)
         {
             return (other != null

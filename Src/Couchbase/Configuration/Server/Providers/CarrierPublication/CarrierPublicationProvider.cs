@@ -97,6 +97,18 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
                         // Set network type for bucket configuration
                         bucketConfig.NetworkType = bucketConfiguration.NetworkType;
 
+                        // get list of node ip/port endpoints
+                        var endpoints = bucketConfig.GetNodes()
+                            .Select(x => x.GetIPEndPoint(bucketConfiguration.UseSsl).ToString())
+                            .ToArray();
+
+                        // if vbucketmap servers are different, use resolved endpoints instead
+                        if (!bucketConfig.VBucketServerMap.ServerList.SequenceEqual(endpoints))
+                        {
+                            bucketConfig.VBucketServerMap.ServerList = endpoints;
+                            bucketConfig.VBucketServerMap.ClearIPEndPoints();
+                        }
+
                         configInfo = new CouchbaseConfigContext(bucketConfig,
                             ClientConfig,
                             IOServiceFactory,
