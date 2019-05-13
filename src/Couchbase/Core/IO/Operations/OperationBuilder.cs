@@ -5,7 +5,6 @@ using System.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.IO.Operations.SubDocument;
-using Microsoft.IO;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -15,7 +14,7 @@ namespace Couchbase.Core.IO.Operations
     /// </summary>
     internal sealed class OperationBuilder : Stream
     {
-        private readonly RecyclableMemoryStream _stream;
+        private readonly MemoryStream _stream;
         private IByteConverter _converter;
 
         private int _framingExtrasLength;
@@ -137,6 +136,7 @@ namespace Couchbase.Core.IO.Operations
             {
                 throw new InvalidOperationException("The header has not been written.");
             }
+
             return _stream.GetBuffer().AsMemory(0, (int) _stream.Length);
         }
 

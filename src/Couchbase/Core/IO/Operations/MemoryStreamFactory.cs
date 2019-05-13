@@ -1,5 +1,5 @@
 using System;
-using Microsoft.IO;
+using System.IO;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -8,26 +8,25 @@ namespace Couchbase.Core.IO.Operations
     /// </summary>
     internal static class MemoryStreamFactory
     {
-        private static readonly RecyclableMemoryStreamManager MemoryStreamManager =
-            new RecyclableMemoryStreamManager();
+        private const int DefaultStreamCapacity = 16384;
 
-        private static Func<RecyclableMemoryStream> _factoryFunc = () => new RecyclableMemoryStream(MemoryStreamManager);
+        private static Func<MemoryStream> _factoryFunc = () => new MemoryStream(DefaultStreamCapacity);
 
         /// <summary>
         /// Provides a custom MemoryStream creation function that will override the default implementation.
         /// </summary>
         /// <param name="factoryFunc"></param>
         /// <exception cref="ArgumentNullException"></exception>
-        public static void SetFactoryFunc(Func<RecyclableMemoryStream> factoryFunc)
+        public static void SetFactoryFunc(Func<MemoryStream> factoryFunc)
         {
-            _factoryFunc = factoryFunc ?? throw new ArgumentNullException(nameof(factoryFunc), "You must provide a non-null factory function");
+            _factoryFunc = factoryFunc ?? throw new ArgumentNullException(nameof(factoryFunc));
         }
 
         /// <summary>
         /// Fetches a MemoryStream. The default implementation retuns a new MemoryStream instance.
         /// </summary>
         /// <returns></returns>
-        public static RecyclableMemoryStream GetMemoryStream()
+        public static MemoryStream GetMemoryStream()
         {
             return _factoryFunc();
         }
