@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             Span<byte> buffer = stackalloc byte[length];
 
             Converter.FromInt16((short) Converter.GetStringByteCount(Path), buffer); //1-2
-            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer.Slice(2)); //3
+            buffer[2] = (byte) CurrentSpec.PathFlags; //3
 
             if (hasExpiry)
             {
@@ -29,7 +29,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             if (CurrentSpec.DocFlags != SubdocDocFlags.None)
             {
                 // write doc flags, offset depends on if there is an expiry
-                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer.Slice(hasExpiry ? 7 : 3));
+                buffer[hasExpiry ? 7 : 3] = (byte) CurrentSpec.DocFlags;
             }
 
             builder.Write(buffer);

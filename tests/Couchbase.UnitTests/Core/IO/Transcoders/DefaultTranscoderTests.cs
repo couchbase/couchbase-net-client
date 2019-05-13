@@ -6,6 +6,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Xunit;
@@ -477,16 +478,16 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             var converter = new DefaultConverter();
             var format = new byte();
 
-            var temp = converter.ToByte(legacyByteArray.AsSpan(24));
-            converter.SetBit(ref format, 0, converter.GetBit(temp, 0));
-            converter.SetBit(ref format, 1, converter.GetBit(temp, 1));
-            converter.SetBit(ref format, 2, converter.GetBit(temp, 2));
-            converter.SetBit(ref format, 3, converter.GetBit(temp, 3));
+            var temp = legacyByteArray[24];
+            BitUtils.SetBit(ref format, 0, BitUtils.GetBit(temp, 0));
+            BitUtils.SetBit(ref format, 1, BitUtils.GetBit(temp, 1));
+            BitUtils.SetBit(ref format, 2, BitUtils.GetBit(temp, 2));
+            BitUtils.SetBit(ref format, 3, BitUtils.GetBit(temp, 3));
 
             var compression = new byte();
-            converter.SetBit(ref compression, 4, converter.GetBit(temp, 4));
-            converter.SetBit(ref compression, 5, converter.GetBit(temp, 5));
-            converter.SetBit(ref compression, 6, converter.GetBit(temp, 6));
+            BitUtils.SetBit(ref compression, 4, BitUtils.GetBit(temp, 4));
+            BitUtils.SetBit(ref compression, 5, BitUtils.GetBit(temp, 5));
+            BitUtils.SetBit(ref compression, 6, BitUtils.GetBit(temp, 6));
 
             var flags = new Flags
             {

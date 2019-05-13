@@ -13,11 +13,11 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             Span<byte> buffer = stackalloc byte[CurrentSpec.DocFlags != SubdocDocFlags.None ? 4 : 3];
 
             Converter.FromInt16((short) Converter.GetStringByteCount(Path), buffer); //1-2
-            Converter.FromByte((byte) CurrentSpec.PathFlags, buffer.Slice(2)); //3
+            buffer[2] = (byte) CurrentSpec.PathFlags; //3
 
             if (CurrentSpec.DocFlags != SubdocDocFlags.None)
             {
-                Converter.FromByte((byte) CurrentSpec.DocFlags, buffer.Slice(3));
+                buffer[3] = (byte) CurrentSpec.DocFlags;
             }
 
             builder.Write(buffer);

@@ -39,7 +39,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
                 {
                     var buffer = Data.Span.Slice(Header.BodyOffset);
 
-                    var isHardFailover = Converter.ToByte(buffer) == 1;
+                    var isHardFailover = buffer[0] == 1;
                     if (isHardFailover)
                     {
                         result = new ObserveSeqnoResponse

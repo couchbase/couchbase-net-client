@@ -211,18 +211,18 @@ namespace Couchbase.Core.IO.Operations
 
             if (_framingExtrasLength > 0)
             {
-                _converter.FromByte((byte) Magic.AltRequest, headerBytes.Slice(HeaderOffsets.Magic));
-                _converter.FromByte((byte) _framingExtrasLength, headerBytes.Slice(HeaderOffsets.KeyLength));
-                _converter.FromByte((byte) _keyLength, headerBytes.Slice(HeaderOffsets.AltKeyLength));
+                headerBytes[HeaderOffsets.Magic] = (byte) Magic.AltRequest;
+                headerBytes[HeaderOffsets.KeyLength] = (byte) _framingExtrasLength;
+                headerBytes[HeaderOffsets.AltKeyLength] = (byte) _keyLength;
             }
             else
             {
-                _converter.FromByte((byte) Magic.Request, headerBytes.Slice(HeaderOffsets.Magic));
+                headerBytes[HeaderOffsets.Magic] = (byte) Magic.Request;
                 _converter.FromInt16((short) _keyLength, headerBytes.Slice(HeaderOffsets.KeyLength));
             }
 
-            _converter.FromByte((byte)header.OpCode, headerBytes.Slice(HeaderOffsets.Opcode));
-            _converter.FromByte((byte)_extrasLength, headerBytes.Slice(HeaderOffsets.ExtrasLength));
+            headerBytes[HeaderOffsets.Opcode] = (byte) header.OpCode;
+            headerBytes[HeaderOffsets.ExtrasLength] = (byte) _extrasLength;
 
             if (header.VBucketId.HasValue)
             {
@@ -290,8 +290,8 @@ namespace Couchbase.Core.IO.Operations
             }
 
             Span<byte> buffer = stackalloc byte[_operationSpecIsMutation ? 8 : 4];
-            _converter.FromByte((byte) spec.OpCode, buffer);
-            _converter.FromByte((byte) spec.PathFlags, buffer.Slice(1));
+            buffer[0] = (byte) spec.OpCode;
+            buffer[1] = (byte) spec.PathFlags;
             _converter.FromUInt16((ushort) _operationSpecPathLength, buffer.Slice(2));
 
             if (_operationSpecIsMutation)

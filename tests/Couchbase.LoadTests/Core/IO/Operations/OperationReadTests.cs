@@ -75,12 +75,12 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             var header = new byte[OperationHeader.Length];
             var headerSpan = header.AsSpan();
 
-            converter.FromByte((byte) Magic.Response, headerSpan.Slice(HeaderOffsets.Magic));
+            headerSpan[HeaderOffsets.Magic] = (byte) Magic.Response;
             converter.FromInt16((short) ResponseStatus.Success, headerSpan.Slice(HeaderOffsets.Status));
-            converter.FromByte((byte) OpCode.Get, headerSpan.Slice(HeaderOffsets.Opcode));
-            converter.FromByte((byte) extrasLength, headerSpan.Slice(HeaderOffsets.ExtrasLength));
+            headerSpan[HeaderOffsets.Opcode] = (byte) OpCode.Get;
+            headerSpan[HeaderOffsets.ExtrasLength] = (byte) extrasLength;
             converter.FromInt32(bodyLength + extrasLength, headerSpan.Slice(HeaderOffsets.BodyLength));
-            converter.FromByte((byte) DataType.Json, headerSpan.Slice(HeaderOffsets.Datatype));
+            headerSpan[HeaderOffsets.Datatype] = (byte) DataType.Json;
 
             return header;
         }

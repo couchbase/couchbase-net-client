@@ -52,7 +52,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                         VBucket = Converter.ToInt16(buffer.Slice(24)),
                         KeyLength = keylength,
                         Key = Converter.ToString(buffer.Slice(28, keylength)),
-                        KeyState = (KeyState) Converter.ToByte(buffer.Slice(28 + keylength)),
+                        KeyState = (KeyState) buffer[28 + keylength],
                         Cas = Converter.ToUInt64(buffer.Slice(28 + keylength + 1))
                     };
                 }

@@ -38,8 +38,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
             Span<byte> bytes = stackalloc byte[2];
 
             var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, (byte) (bytes.Length - 1));
-            Converter.FromByte(framingExtra.Byte, bytes);
-            Converter.FromByte((byte) DurabilityLevel, bytes.Slice(1));
+            bytes[0] = framingExtra.Byte;
+            bytes[1] = (byte) DurabilityLevel;
 
             // TODO: improve timeout, coerce to 1500ms, etc
             //var timeout = DurabilityTimeout.HasValue ? DurabilityTimeout.Value.TotalMilliseconds : 0;
@@ -149,7 +149,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
             for (;;)
             {
-                var index = Converter.ToByte(responseSpan);
+                var index = responseSpan[0];
                 var command = _lookupCommands[index];
                 command.Status = (ResponseStatus) Converter.ToUInt16(responseSpan.Slice(1));
 

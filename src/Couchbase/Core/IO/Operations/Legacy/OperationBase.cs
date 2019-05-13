@@ -129,16 +129,16 @@ namespace Couchbase.Core.IO.Operations.Legacy
             if (buffer.Length > Header.ExtrasOffset)
             {
                 var format = new byte();
-                var flags = Converter.ToByte(buffer.Slice(Header.ExtrasOffset));
-                Converter.SetBit(ref format, 0, Converter.GetBit(flags, 0));
-                Converter.SetBit(ref format, 1, Converter.GetBit(flags, 1));
-                Converter.SetBit(ref format, 2, Converter.GetBit(flags, 2));
-                Converter.SetBit(ref format, 3, Converter.GetBit(flags, 3));
+                var flags = buffer[Header.ExtrasOffset];
+                BitUtils.SetBit(ref format, 0, BitUtils.GetBit(flags, 0));
+                BitUtils.SetBit(ref format, 1, BitUtils.GetBit(flags, 1));
+                BitUtils.SetBit(ref format, 2, BitUtils.GetBit(flags, 2));
+                BitUtils.SetBit(ref format, 3, BitUtils.GetBit(flags, 3));
 
                 var compression = new byte();
-                Converter.SetBit(ref compression, 4, Converter.GetBit(flags, 4));
-                Converter.SetBit(ref compression, 5, Converter.GetBit(flags, 5));
-                Converter.SetBit(ref compression, 6, Converter.GetBit(flags, 6));
+                BitUtils.SetBit(ref compression, 4, BitUtils.GetBit(flags, 4));
+                BitUtils.SetBit(ref compression, 5, BitUtils.GetBit(flags, 5));
+                BitUtils.SetBit(ref compression, 6, BitUtils.GetBit(flags, 6));
 
                 var typeCode = (TypeCode)(Converter.ToUInt16(buffer.Slice(26)) & 0xff);
                 Format = (DataFormat)format;

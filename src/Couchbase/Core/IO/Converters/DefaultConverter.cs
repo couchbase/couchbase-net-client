@@ -90,12 +90,6 @@ namespace Couchbase.Core.IO.Converters
         }
 
         /// <inheritdoc />
-        public byte ToByte(ReadOnlySpan<byte> buffer)
-        {
-            return buffer[0];
-        }
-
-        /// <inheritdoc />
         public short ToInt16(ReadOnlySpan<byte> buffer, bool useNbo)
         {
             return useNbo
@@ -155,12 +149,6 @@ namespace Couchbase.Core.IO.Converters
         #endregion
 
         #region FromXXX
-
-        /// <inheritdoc />
-        public void FromByte(byte value, Span<byte> buffer)
-        {
-            buffer[0] = value;
-        }
 
         /// <inheritdoc />
         public void FromInt16(short value, Span<byte> buffer, bool useNbo)
@@ -256,29 +244,6 @@ namespace Couchbase.Core.IO.Converters
                     return Encoding.UTF8.GetBytes(chars, value.Length, bytes, buffer.Length);
                 }
             }
-        }
-
-        #endregion
-
-        #region Bits
-
-        /// <inheritdoc />
-        public void SetBit(ref byte theByte, int position, bool value)
-        {
-            if (value)
-            {
-                theByte = (byte)(theByte | (1 << position));
-            }
-            else
-            {
-                theByte = (byte)(theByte & ~(1 << position));
-            }
-        }
-
-        /// <inheritdoc />
-        public bool GetBit(byte theByte, int position)
-        {
-            return ((theByte & (1 << position)) != 0);
         }
 
         #endregion

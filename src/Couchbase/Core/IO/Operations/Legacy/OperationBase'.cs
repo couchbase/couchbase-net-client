@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Couchbase.Core.IO.Converters;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -88,14 +89,14 @@ namespace Couchbase.Core.IO.Operations.Legacy
             byte format = (byte)Format;
             byte compression = (byte)Compression;
 
-            Converter.SetBit(ref extras[0], 0, Converter.GetBit(format, 0));
-            Converter.SetBit(ref extras[0], 1, Converter.GetBit(format, 1));
-            Converter.SetBit(ref extras[0], 2, Converter.GetBit(format, 2));
-            Converter.SetBit(ref extras[0], 3, Converter.GetBit(format, 3));
-            Converter.SetBit(ref extras[0], 4, false);
-            Converter.SetBit(ref extras[0], 5, Converter.GetBit(compression, 0));
-            Converter.SetBit(ref extras[0], 6, Converter.GetBit(compression, 1));
-            Converter.SetBit(ref extras[0], 7, Converter.GetBit(compression, 2));
+            BitUtils.SetBit(ref extras[0], 0, BitUtils.GetBit(format, 0));
+            BitUtils.SetBit(ref extras[0], 1, BitUtils.GetBit(format, 1));
+            BitUtils.SetBit(ref extras[0], 2, BitUtils.GetBit(format, 2));
+            BitUtils.SetBit(ref extras[0], 3, BitUtils.GetBit(format, 3));
+            BitUtils.SetBit(ref extras[0], 4, false);
+            BitUtils.SetBit(ref extras[0], 5, BitUtils.GetBit(compression, 0));
+            BitUtils.SetBit(ref extras[0], 6, BitUtils.GetBit(compression, 1));
+            BitUtils.SetBit(ref extras[0], 7, BitUtils.GetBit(compression, 2));
 
             var typeCode = (ushort)Flags.TypeCode;
             Converter.FromUInt16(typeCode, extras.Slice(2));

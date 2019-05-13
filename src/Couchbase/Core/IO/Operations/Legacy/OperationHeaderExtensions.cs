@@ -31,11 +31,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
             }
 
             int keyLength, framingExtrasLength;
-            var magic = (Magic) Converter.ToByte(buffer.Slice(HeaderOffsets.Magic));
+            var magic = (Magic) buffer[HeaderOffsets.Magic];
             if (magic == Magic.AltResponse)
             {
-                framingExtrasLength = Converter.ToByte(buffer.Slice(HeaderOffsets.FramingExtras));
-                keyLength = Converter.ToByte(buffer.Slice(HeaderOffsets.AltKeyLength));
+                framingExtrasLength = buffer[HeaderOffsets.FramingExtras];
+                keyLength = buffer[HeaderOffsets.AltKeyLength];
             }
             else
             {
@@ -49,11 +49,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return new OperationHeader
             {
                 Magic = (byte) magic,
-                OpCode = Converter.ToByte(buffer.Slice(HeaderOffsets.Opcode)).ToOpCode(),
+                OpCode = buffer[HeaderOffsets.Opcode].ToOpCode(),
                 FramingExtrasLength = framingExtrasLength,
                 KeyLength = keyLength,
-                ExtrasLength = Converter.ToByte(buffer.Slice(HeaderOffsets.ExtrasLength)),
-                DataType = (DataType) Converter.ToByte(buffer.Slice(HeaderOffsets.Datatype)),
+                ExtrasLength = buffer[HeaderOffsets.ExtrasLength],
+                DataType = (DataType) buffer[HeaderOffsets.Datatype],
                 Status = status,
                 BodyLength = Converter.ToInt32(buffer.Slice(HeaderOffsets.Body)),
                 Opaque = Converter.ToUInt32(buffer.Slice(HeaderOffsets.Opaque)),

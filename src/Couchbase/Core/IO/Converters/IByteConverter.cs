@@ -42,13 +42,6 @@ namespace Couchbase.Core.IO.Converters
         double ToDouble(ReadOnlySpan<byte> buffer, bool useNbo);
 
         /// <summary>
-        /// Reads a <see cref="Byte"/> from a buffer.
-        /// </summary>
-        /// <param name="buffer">The buffer.</param>
-        /// <returns></returns>
-        byte ToByte(ReadOnlySpan<byte> buffer);
-
-        /// <summary>
         /// Reads a <see cref="Int16" /> from a buffer starting.
         /// </summary>
         /// <param name="buffer">The buffer.</param>
@@ -108,13 +101,6 @@ namespace Couchbase.Core.IO.Converters
         #endregion
 
         #region FromXXX
-
-        /// <summary>
-        /// Writes a <see cref="byte"/> to a buffer.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="buffer">The buffer.</param>
-        void FromByte(byte value, Span<byte> buffer);
 
         /// <summary>
         /// Writes a <see cref="Int16" /> to a buffer.
@@ -178,26 +164,6 @@ namespace Couchbase.Core.IO.Converters
         /// <param name="buffer">The buffer.</param>
         /// <returns>Number of bytes written to the buffer.</returns>
         int FromString(string value, Span<byte> buffer);
-
-        #endregion
-
-        #region Bits
-
-        /// <summary>
-        /// Sets the bit from a <see cref="byte"/> at a given position.
-        /// </summary>
-        /// <param name="theByte">The byte.</param>
-        /// <param name="position">The position.</param>
-        /// <param name="value">if set to <c>true</c> [value].</param>
-        void SetBit(ref byte theByte, int position, bool value);
-
-        /// <summary>
-        /// Gets the bit as a <see cref="bool"/> from a <see cref="byte"/> at a given position.
-        /// </summary>
-        /// <param name="theByte">The byte.</param>
-        /// <param name="position">The position.</param>
-        /// <returns>True if the bit is set; otherwise false.</returns>
-        bool GetBit(byte theByte, int position);
 
         #endregion
     }

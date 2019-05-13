@@ -89,21 +89,6 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(128)]
-        [InlineData(255)]
-        public void Test_ToByte(byte value)
-        {
-            var converter = new DefaultConverter();
-
-            var bytes = new byte[] {0, 0, value};
-
-            var actual = converter.ToByte(bytes.AsSpan(2));
-
-            Assert.Equal(value, actual);
-        }
-
-        [Theory]
         [InlineData(5, false)]
         [InlineData(5, true)]
         [InlineData(31548, false)]
@@ -326,18 +311,6 @@ namespace Couchbase.UnitTests.Core.IO.Converters
         }
 
         [Theory]
-        [InlineData(5, 3, new byte[] {0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00})]
-        [InlineData(15, 0, new byte[] {0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
-        public void Test_FromByte(byte value, int offset, byte[] expected)
-        {
-            var converter = new DefaultConverter();
-            var actual = new byte[8];
-            converter.FromByte(value, actual.AsSpan(offset));
-
-            Assert.Equal(expected, actual);
-        }
-
-        [Theory]
         [InlineData(5, 3, true, new byte[] {0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00})]
         [InlineData(5, 0, false, new byte[] {0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})]
         public void Test_FromInt16(short value, int offset, bool useNbo, byte[] expected)
@@ -471,44 +444,6 @@ namespace Couchbase.UnitTests.Core.IO.Converters
             var converter = new DefaultConverter();
             var actual = new byte[expected.Length];
             converter.FromUInt64(value, actual.AsSpan(offset));
-
-            Assert.Equal(expected, actual);
-        }
-
-        #endregion
-
-        #region bits
-
-        [Theory]
-        [InlineData(0x00, 0, false)]
-        [InlineData(0xff, 0, true)]
-        [InlineData(0x01, 0, true)]
-        [InlineData(0x80, 7, true)]
-        [InlineData(0xf7, 3, false)]
-        public void Test_GetBit(byte value, int position, bool expected)
-        {
-            var converter = new DefaultConverter();
-            var actual = converter.GetBit(value, position);
-
-            Assert.Equal(expected, actual);
-        }
-
-        [Theory]
-        [InlineData(0x00, 0, false, 0x00)]
-        [InlineData(0xff, 0, true, 0xff)]
-        [InlineData(0x01, 0, true, 0x01)]
-        [InlineData(0x80, 7, true, 0x80)]
-        [InlineData(0xf7, 3, false, 0xf7)]
-        [InlineData(0xff, 0, false, 0xfe)]
-        [InlineData(0x00, 0, true, 0x01)]
-        [InlineData(0xfe, 0, true, 0xff)]
-        [InlineData(0x80, 3, true, 0x88)]
-        [InlineData(0xff, 3, false, 0xf7)]
-        public void Test_SetBit(byte initialValue, int position, bool bit, byte expected)
-        {
-            var converter = new DefaultConverter();
-            var actual = initialValue;
-            converter.SetBit(ref actual, position, bit);
 
             Assert.Equal(expected, actual);
         }
