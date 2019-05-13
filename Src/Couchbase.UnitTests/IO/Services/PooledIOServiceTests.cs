@@ -173,5 +173,34 @@ namespace Couchbase.UnitTests.IO.Services
             Assert.AreEqual(ResponseStatus.UnknownError, result.Status);
             Assert.AreEqual("Status code: UnknownError [-2]", result.Message);
         }
+
+        [Test]
+        public void Connection_acquired_during_construction_should_be_released_back_to_pool()
+        {
+            var inUse = false;
+            var connection = new Mock<IConnection>();
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            mockConnectionPool
+                .Setup(x => x.Acquire())
+                .Returns(() =>
+                {
+                    inUse = true;
+                    return connection.Object;
+                }
+            );
+            mockConnectionPool
+                .Setup(x => x.Release(It.IsAny<IConnection>()))
+                .Callback<IConnection>(conn =>
+                {
+                    inUse = false;
+                });
+
+            // create io service
+            var ioService = new PooledIOService(mockConnectionPool.Object);
+
+            // connection is marked as in use during constructor, after being released it should be false
+            Assert.IsFalse(inUse);
+        }
     }
 }

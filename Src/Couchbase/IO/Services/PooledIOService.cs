@@ -33,7 +33,14 @@ namespace Couchbase.IO.Services
             ConnectionPool = connectionPool;
 
             var connection = connectionPool.Connections.FirstOrDefault() ?? connectionPool.Acquire();
-            CheckEnabledServerFeatures(connection);
+            try
+            {
+                CheckEnabledServerFeatures(connection);
+            }
+            finally
+            {
+                connectionPool.Release(connection);
+            }
         }
 
         /// <summary>
