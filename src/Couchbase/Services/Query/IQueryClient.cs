@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Couchbase.Services.Query
@@ -15,34 +14,22 @@ namespace Couchbase.Services.Query
         DateTime? LastActivity { get; }
 
         /// <summary>
-        /// Prepare an ad-hoc N1QL statement for later execution against a Couchbase Server.
+        /// Asynchronously executes an a N1QL query request against a Couchbase Server.
         /// </summary>
-        /// <param name="statement"></param>
-        /// <param name="toPrepare">The <see cref="IQueryOptions"/> containing a N1QL statement to be prepared.</param>
-        /// <returns>A <see cref="IQueryResult{T}"/> containing  the <see cref="QueryPlan"/> representing the reusable
-        /// and cachable execution plan for the statement.</returns>
-        /// <remarks>Most parameters in the IQueryRequest will be ignored, appart from the Statement and the BaseUri.</remarks>
-        IQueryResult<QueryPlan> Prepare(string statement, IQueryOptions toPrepare);
+        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
+        /// <param name="statement">The query statement.</param>
+        /// <param name="configureOptions">An <see cref="Action{T}"/> to configure the <see cref="QueryOptions"/>.</param>
+        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
+        Task<IQueryResult<T>> QueryAsync<T>(string statement, Action<QueryOptions> configureOptions);
 
         /// <summary>
         /// Asynchronously executes an a N1QL query request against a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
-        /// <param name="options">The <see cref="IQueryOptions"/> to execute.</param>
-        /// <param name="statment"></param>
+        /// <param name="statement">The query statement.</param>
+        /// <param name="options">The <see cref="QueryOptions"/> to execute.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IQueryResult<T>> QueryAsync<T>(string statment, IQueryOptions options);
-
-        /// <summary>
-        /// Asynchronously executes an a N1QL query request against a Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
-        /// <param name="statement"></param>
-        /// <param name="options">The <see cref="IQueryOptions"/> to execute.</param>
-        /// <param name="cancellationToken">Token which can cancel the query.</param>
-        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IQueryResult<T>> QueryAsync<T>(string statement, IQueryOptions options,
-            CancellationToken cancellationToken);
+        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);
     }
 }
 

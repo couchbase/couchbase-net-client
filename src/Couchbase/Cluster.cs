@@ -144,6 +144,9 @@ namespace Couchbase
                             }
                         }
                     }
+
+                    // get cluster capabilities
+                    UpdateClusterCapabilities(_clusterConfig.GetClusterCapabilities());
                 }
                 catch (AuthenticationException e)
                 {
@@ -213,8 +216,9 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters = null,
-            IQueryOptions options = null)
+        #region Query
+
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters = null, QueryOptions options = null)
         {
             if (_queryClient == null) _queryClient = new QueryClient(_configuration);
 
@@ -224,6 +228,8 @@ namespace Couchbase
 
             return _queryClient.QueryAsync<T>(statement, options);
         }
+
+        #endregion
 
         #region Analytics
 
@@ -319,6 +325,14 @@ namespace Couchbase
         public IAnalyticsDeferredResultHandle<T> ImportDeferredAnalyticsQueryHandle<T>(string encodedHandle)
         {
             return _analyticsClient.ImportDeferredQueryHandle<T>(encodedHandle);
+        }
+
+        internal void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
+        {
+            if (_queryClient is QueryClient client)
+            {
+                client.UpdateClusterCapabilities(clusterCapabilities);
+            }
         }
     }
 }

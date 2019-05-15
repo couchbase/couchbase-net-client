@@ -1,0 +1,6 @@
+{
+  "clusterCapabilitiesVer": [1, 0],
+  "clusterCapabilities": {
+    "n1ql": ["enhancedPreparedStatements"]
+  }
+}

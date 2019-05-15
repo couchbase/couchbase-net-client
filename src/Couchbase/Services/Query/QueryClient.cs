@@ -1,12 +1,16 @@
 using System;
+using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Services.Query
 {
@@ -15,35 +19,94 @@ namespace Couchbase.Services.Query
     /// </summary>
     internal class QueryClient : HttpServiceBase, IQueryClient
     {
-        internal static readonly string Error5000MsgQueryportIndexNotFound = "queryport.indexNotFound";
+        internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
 
-        public QueryClient(Configuration configuration) : this(
+        private static readonly ILogger Logger = LogManager.CreateLogger<QueryClient>();
+
+        private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
+        private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
+
+        internal bool EnhancedPreparedStatementsEnabled;
+
+        internal QueryClient(Configuration configuration) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)),
             new JsonDataMapper(new DefaultSerializer()), configuration)
         {
         }
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, Configuration configuration)
+        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, Configuration configuration)
             : base(httpClient, dataMapper, configuration)
         {
         }
 
+        /// <inheritdoc />
         public int InvalidateQueryCache()
         {
-            throw new NotImplementedException();
+            var count = _queryCache.Count;
+            _queryCache.Clear();
+            return count;
         }
 
-        public IQueryResult<QueryPlan> Prepare(string statement, IQueryOptions toPrepare)
+        /// <inheritdoc />
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, Action<QueryOptions> configureOptions)
         {
-            throw new NotImplementedException();
+            var options = new QueryOptions();
+            configureOptions(options);
+
+            return QueryAsync<T>(statement, options);
         }
 
-        public Task<IQueryResult<T>> QueryAsync<T>(string statment, IQueryOptions options)
+        /// <inheritdoc />
+        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
-            return QueryAsync<T>(statment, options, CancellationToken.None);
+            if (!options.IsAdHoc)
+            {
+                var queryPlan = await PrepareAsync(statement, options).ConfigureAwait(false);
+                options.Prepared(queryPlan, statement);
+            }
+
+            return await ExecuteQuery<T>(statement, options, options.DataMapper).ConfigureAwait(false);
         }
 
-        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, IQueryOptions options, CancellationToken cancellationToken)
+        internal async Task<QueryPlan> PrepareAsync(string statement, QueryOptions options)
+        {
+            // try find cached query plan
+            if (_queryCache.TryGetValue(statement, out var queryPlan))
+            {
+                // if an upgrade has happened, don't use query plans that have an encoded plan
+                if (EnhancedPreparedStatementsEnabled || string.IsNullOrEmpty(queryPlan.EncodedPlan))
+                {
+                    return queryPlan;
+                }
+
+                // entry is stall, remove from cache
+                _queryCache.TryRemove(statement, out _);
+            }
+
+            // create prepared statement
+            var prepareStatement = statement;
+            if (prepareStatement.StartsWith("PREPARE ", StringComparison.InvariantCultureIgnoreCase))
+            {
+                prepareStatement = "PREPARE " + statement;
+            }
+
+            // execute prepare and cache query plan
+            var result = await ExecuteQuery<QueryPlan>(prepareStatement, options, _queryPlanDataMapper).ConfigureAwait(false);
+            queryPlan = result.Rows.First();
+
+            // make sure we don't store encoded plan if enhanced prepared statements is enabled
+            if (EnhancedPreparedStatementsEnabled)
+            {
+                queryPlan.EncodedPlan = null;
+            }
+
+            // add plan to cache
+            _queryCache.TryAdd(statement, queryPlan);
+
+            return queryPlan;
+        }
+
+        internal async Task<IQueryResult<T>> ExecuteQuery<T>(string statement, QueryOptions options, IDataMapper dataMapper)
         {
             //TODO make url selection round-robin
             var clusterNode = Configuration.GlobalNodes.GetRandom(x => x.HasQuery());
@@ -56,7 +119,7 @@ namespace Couchbase.Services.Query
             {
                 try
                 {
-                    var response = await HttpClient.PostAsync(clusterNode.QueryUri, content, cancellationToken)
+                    var response = await HttpClient.PostAsync(clusterNode.QueryUri, content, options.CancellationToken)
                         .ConfigureAwait(false);
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -64,7 +127,7 @@ namespace Couchbase.Services.Query
                     {
                         ResponseStream = stream,
                         HttpStatusCode = response.StatusCode,
-                        Success = response.StatusCode == HttpStatusCode.OK,
+                        Success = response.StatusCode == HttpStatusCode.OK
                     };
 
                     if (response.StatusCode != HttpStatusCode.OK)
@@ -88,19 +151,13 @@ namespace Couchbase.Services.Query
             return queryResult;
         }
 
-        /// <summary>
-        /// Returns the <see cref="IDataMapper"/> to use for a given <see cref="IQueryOptions"/>
-        /// </summary>
-        /// <param name="queryOptions">Request to get the <see cref="IDataMapper"/> for</param>
-        /// <returns><see cref="IDataMapper"/> to use for the request</returns>
-        internal IDataMapper GetDataMapper(IQueryOptions queryOptions)
+        internal void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
         {
-            if (queryOptions is IQueryRequestWithDataMapper requestWithMapper)
+            if (!EnhancedPreparedStatementsEnabled && clusterCapabilities.EnhancedPreparedStatementsEnabled)
             {
-                return requestWithMapper.DataMapper ?? DataMapper;
+                EnhancedPreparedStatementsEnabled = true;
+                Logger.LogInformation("Enabling Enhanced Prepared Statements");
             }
-
-            return DataMapper;
         }
     }
 }

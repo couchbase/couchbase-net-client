@@ -1,6 +1,9 @@
 using System;
 using Couchbase.Core.Sharding;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using Couchbase.Services;
 using Newtonsoft.Json;
 using Couchbase.Utils;
 
@@ -303,5 +306,54 @@ namespace Couchbase.Core.Configuration.Server
         {
             return !Equals(left, right);
         }
+
+        [JsonProperty("clusterCapabilitiesVer")]
+        public List<int> ClusterCapabilitiesVersion { get; set; }
+
+        [JsonProperty("clusterCapabilities")]
+        public Dictionary<string, IEnumerable<string>> ClusterCapabilities { get; set; }
+    }
+
+    internal static class BucketConfigExtensions
+    {
+        public static ClusterCapabilities GetClusterCapabilities(this BucketConfig config)
+        {
+            return new ClusterCapabilities
+            {
+                Capabilities = config.ClusterCapabilities,
+                Version = config.ClusterCapabilitiesVersion
+            };
+        }
+    }
+
+    internal class ClusterCapabilities
+    {
+        [JsonProperty("clusterCapabilitiesVer")]
+        internal IEnumerable<int> Version { get; set; }
+
+        [JsonProperty("clusterCapabilities")]
+        internal Dictionary<string, IEnumerable<string>> Capabilities { get; set; }
+
+        internal bool EnhancedPreparedStatementsEnabled
+        {
+            get
+            {
+                if (Capabilities != null)
+                {
+                    if (Capabilities.TryGetValue(ServiceType.Query.GetDescription(), out var features))
+                    {
+                        return features.Contains(ClusterCapabilityFeatures.EnhancedPreparedStatements.GetDescription());
+                    }
+                }
+
+                return false;
+            }
+        }
+    }
+
+    internal enum ClusterCapabilityFeatures
+    {
+        [Description("enhancedPreparedStatements")]
+        EnhancedPreparedStatements
     }
 }

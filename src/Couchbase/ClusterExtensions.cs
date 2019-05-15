@@ -15,7 +15,7 @@ namespace Couchbase
         }
 
         public static Task<IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,
-            Action<QueryParameter> parameters = null, Action<IQueryOptions> options = null)
+            Action<QueryParameter> parameters = null, Action<QueryOptions> options = null)
         {
             var queryParameters = new QueryParameter();
             parameters?.Invoke(queryParameters);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Services.Query.Couchbase.N1QL;
@@ -12,7 +13,7 @@ using Encoding = Couchbase.Services.Query.Couchbase.N1QL.Encoding;
 
 namespace Couchbase.Services.Query
 {
-    public class QueryOptions : IQueryOptions
+    public class QueryOptions
     {
         private string _statement;
         private QueryPlan _preparedPayload;
@@ -48,6 +49,8 @@ namespace Couchbase.Services.Query
         private const string QueryArgPattern = "{0}={1}&";
         public const string TimeoutArgPattern = "{0}={1}ms&";
         public const uint TimeoutDefault = 75000;
+
+        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
 
         public QueryOptions()
         {
@@ -140,8 +143,8 @@ namespace Couchbase.Services.Query
         /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="Query.ScanConsistency.AtPlus"/>.</remarks>
 #pragma warning restore 618
         /// <param name="mutationState">State of the mutation.</param>
-        /// <returns>A reference to the current <see cref="IQueryOptions"/> for method chaining.</returns>
-        public IQueryOptions ConsistentWith(MutationState mutationState)
+        /// <returns>A reference to the current <see cref="QueryOptions"/> for method chaining.</returns>
+        public QueryOptions ConsistentWith(MutationState mutationState)
         {
 #pragma warning disable 618
             WithScanConsistency(ScanConsistency.AtPlus);
@@ -197,7 +200,7 @@ namespace Couchbase.Services.Query
         /// </summary>
         /// <param name="streaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
         /// <returns>A reference to the current <see cref="QueryOptions"/> for method chaining.</returns>
-        public IQueryOptions UseStreaming(bool streaming)
+        public QueryOptions UseStreaming(bool streaming)
         {
             _useStreaming = streaming;
             return this;
@@ -222,7 +225,7 @@ namespace Couchbase.Services.Query
         /// <value>
         /// The maximum server parallelism.
         /// </value>
-        public IQueryOptions MaxServerParallelism(int parallelism)
+        public QueryOptions MaxServerParallelism(int parallelism)
         {
             _maxServerParallelism = parallelism;
             return this;
@@ -239,7 +242,7 @@ namespace Couchbase.Services.Query
         /// The default is <c>true</c>; the query will executed in an ad-hoc manner,
         /// without special optomizations.
         /// </remarks>
-        public IQueryOptions AdHoc(bool adHoc)
+        public QueryOptions AdHoc(bool adHoc)
         {
             _adHoc = adHoc;
             return this;
@@ -253,7 +256,7 @@ namespace Couchbase.Services.Query
         /// <returns>A reference to the current <see cref="QueryOptions"/> for method chaining.</returns>
         /// <remarks>Required if statement not provided, will erase a previously set Statement.</remarks>
         /// <exception cref="ArgumentNullException"><paramref name="preparedPlan"/> is <see langword="null" />.</exception>
-        public IQueryOptions Prepared(QueryPlan preparedPlan, string originalStatement)
+        public QueryOptions Prepared(QueryPlan preparedPlan, string originalStatement)
         {
             if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.EncodedPlan))
             {
@@ -280,7 +283,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Will erase a previous optimization of a statement using Prepared.
         /// </remarks>
-        public IQueryOptions Statement(string statement)
+        public QueryOptions Statement(string statement)
         {
             if (string.IsNullOrWhiteSpace(statement)) throw new ArgumentNullException(nameof(statement));
             _statement = statement;
@@ -299,7 +302,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional - the default is 0ms, which means the request runs for as long as it takes.
         /// </remarks>
-        public IQueryOptions Timeout(TimeSpan timeOut)
+        public QueryOptions Timeout(TimeSpan timeOut)
         {
             _timeOut = timeOut;
             return this;
@@ -315,7 +318,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Any value set here will be overridden by the type of request sent.
         /// </remarks>
-        public IQueryOptions ReadOnly(bool readOnly)
+        public QueryOptions ReadOnly(bool readOnly)
         {
             _readOnly = readOnly;
             return this;
@@ -331,7 +334,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions Metrics(bool includeMetrics)
+        public QueryOptions Metrics(bool includeMetrics)
         {
             _includeMetrics = includeMetrics;
             return this;
@@ -348,7 +351,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions AddNamedParameter(string name, object value)
+        public QueryOptions AddNamedParameter(string name, object value)
         {
             _parameters.Add(name, value);
             return this;
@@ -364,7 +367,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions AddPositionalParameter(object value)
+        public QueryOptions AddPositionalParameter(object value)
         {
             _arguments.Add(value);
             return this;
@@ -380,7 +383,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions AddNamedParameter(params KeyValuePair<string, object>[] parameters)
+        public QueryOptions AddNamedParameter(params KeyValuePair<string, object>[] parameters)
         {
             foreach (var parameter in parameters)
             {
@@ -394,7 +397,7 @@ namespace Couchbase.Services.Query
         /// </summary>
         /// <param name="parameters">A list of positional parameters.</param>
         /// <returns></returns>
-        public IQueryOptions AddPositionalParameter(params object[] parameters)
+        public QueryOptions AddPositionalParameter(params object[] parameters)
         {
             foreach (var parameter in parameters)
             {
@@ -413,7 +416,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions Format(Format format)
+        public QueryOptions Format(Format format)
         {
             _format = format;
             return this;
@@ -429,7 +432,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions Encoding(Encoding encoding)
+        public QueryOptions Encoding(Encoding encoding)
         {
             _encoding = encoding;
             return this;
@@ -445,7 +448,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional. The default is NONE.
         /// </remarks>
-        public IQueryOptions Compression(Compression compression)
+        public QueryOptions Compression(Compression compression)
         {
             _compression = compression;
             return this;
@@ -461,7 +464,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// The default is true.
         /// </remarks>
-        public IQueryOptions Signature(bool includeSignature)
+        public QueryOptions Signature(bool includeSignature)
         {
             _includeSignature = includeSignature;
             return this;
@@ -478,7 +481,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions WithScanConsistency(ScanConsistency scanConsistency)
+        public QueryOptions WithScanConsistency(ScanConsistency scanConsistency)
         {
 #pragma warning disable 618
             if (scanConsistency == ScanConsistency.StatementPlus)
@@ -501,7 +504,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions ScanWait(TimeSpan scanWait)
+        public QueryOptions ScanWait(TimeSpan scanWait)
         {
             _scanWait = scanWait;
             return this;
@@ -517,7 +520,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// True by default.
         /// </remarks>
-        public IQueryOptions Pretty(bool pretty)
+        public QueryOptions Pretty(bool pretty)
         {
             _pretty = pretty;
             return this;
@@ -536,7 +539,7 @@ namespace Couchbase.Services.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IQueryOptions AddCredentials(string username, string password, bool isAdmin)
+        public QueryOptions AddCredentials(string username, string password, bool isAdmin)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -560,7 +563,7 @@ namespace Couchbase.Services.Query
         /// </summary>
         /// <param name="clientContextId">The client context identifier.</param>
         /// <returns></returns>
-        public IQueryOptions ClientContextId(string clientContextId)
+        public QueryOptions ClientContextId(string clientContextId)
         {
             //this is seeded in the ctor
             if (clientContextId != null)
@@ -575,7 +578,7 @@ namespace Couchbase.Services.Query
         /// </summary>
         /// <param name="baseUri">The base URI.</param>
         /// <returns></returns>
-        public IQueryOptions BaseUri(Uri baseUri)
+        public QueryOptions BaseUri(Uri baseUri)
         {
             _baseUri = baseUri;
             return this;
@@ -588,7 +591,7 @@ namespace Couchbase.Services.Query
         /// <param name="name">The paramter name.</param>
         /// <param name="value">The parameter value.</param>
         /// <returns>A reference to the current <see cref="QueryOptions" /> for method chaining.</returns>
-        public IQueryOptions RawParameter(string name, object value)
+        public QueryOptions RawParameter(string name, object value)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -610,7 +613,7 @@ namespace Couchbase.Services.Query
         /// <returns>
         /// A reference to the current <see cref="QueryOptions" /> for method chaining.
         /// </returns>
-        public IQueryOptions ScanCapacity(int capacity)
+        public QueryOptions ScanCapacity(int capacity)
         {
             _scanCapacity = capacity;
             return this;
@@ -624,7 +627,7 @@ namespace Couchbase.Services.Query
         /// <returns>
         /// A reference to the current <see cref="QueryOptions" /> for method chaining.
         /// </returns>
-        public IQueryOptions PipelineBatch(int batchSize)
+        public QueryOptions PipelineBatch(int batchSize)
         {
             _pipelineBatch = batchSize;
             return this;
@@ -638,15 +641,27 @@ namespace Couchbase.Services.Query
         /// <returns>
         /// A reference to the current <see cref="QueryOptions" /> for method chaining.
         /// </returns>
-        public IQueryOptions PipelineCapacity(int capacity)
+        public QueryOptions PipelineCapacity(int capacity)
         {
             _pipelineCapacity = capacity;
             return this;
         }
 
-        public IQueryOptions Profile(QueryProfile profile)
+        public QueryOptions Profile(QueryProfile profile)
         {
             _profile = profile;
+            return this;
+        }
+
+        public QueryOptions WithCancellationToken(CancellationToken cancellationToken)
+        {
+            CancellationToken = cancellationToken;
+            return this;
+        }
+
+        internal QueryOptions WithQueryPlan(QueryPlan queryPlan)
+        {
+            _preparedPayload = queryPlan;
             return this;
         }
 
@@ -706,7 +721,12 @@ namespace Couchbase.Services.Query
             if (_prepareEncoded)
             {
                 formValues.Add(QueryParameters.Prepared, _preparedPayload.Name);
-                formValues.Add(QueryParameters.PreparedEncoded, _preparedPayload.EncodedPlan);
+
+                // don't include empty plan
+                if (!string.IsNullOrEmpty(_preparedPayload.EncodedPlan))
+                {
+                    formValues.Add(QueryParameters.PreparedEncoded, _preparedPayload.EncodedPlan);
+                }
             }
             else
             {
@@ -860,7 +880,7 @@ namespace Couchbase.Services.Query
         /// Creates a new <see cref="QueryOptions"/> object.
         /// </summary>
         /// <returns></returns>
-        public static IQueryOptions Create()
+        public static QueryOptions Create()
         {
             return new QueryOptions();
         }
@@ -870,7 +890,7 @@ namespace Couchbase.Services.Query
         /// </summary>
         /// <param name="statement">The statement.</param>
         /// <returns></returns>
-        public static IQueryOptions Create(string statement)
+        public static QueryOptions Create(string statement)
         {
             return new QueryOptions(statement);
         }
@@ -881,7 +901,7 @@ namespace Couchbase.Services.Query
         /// <param name="plan">The plan.</param>
         /// <param name="originalStatement">The original statement, unoptimized.</param>
         /// <returns></returns>
-        public static IQueryOptions Create(QueryPlan plan, string originalStatement)
+        public static QueryOptions Create(QueryPlan plan, string originalStatement)
         {
             return new QueryOptions(plan, originalStatement);
         }
@@ -908,25 +928,20 @@ namespace Couchbase.Services.Query
 
         /// <summary>
         /// Sets the lifespan of the query request; used to check if the request exceeded the maximum time
-#pragma warning disable 1584,1711,1572,1581,1580
-        /// configured for it in <see cref="ClientConfiguration.QueryRequestTimeout" />
-#pragma warning restore 1584,1711,1572,1581,1580
+        /// configured for it in <see cref="Configuration.QueryTimeout" />
         /// </summary>
         /// <value>
         /// The lifespan.
         /// </value>
-        Lifespan IQueryOptions.Lifespan { get; set; }
+        public Lifespan Lifespan { get; set; }
 
         /// <summary>
-#pragma warning disable 1584,1711,1572,1581,1580
-        /// True if the request exceeded it's <see cref="ClientConfiguration.QueryRequestTimeout" />
-#pragma warning restore 1584,1711,1572,1581,1580
+        /// True if the request exceeded it's <see cref="Configuration.QueryTimeout" />
         /// </summary>
         /// <returns></returns>
-        bool IQueryOptions.TimedOut()
+        public bool TimedOut()
         {
-            var temp = this as IQueryOptions;
-            return temp.Lifespan.TimedOut();
+            return Lifespan.TimedOut();
         }
 
         /// <summary>
@@ -936,7 +951,7 @@ namespace Couchbase.Services.Query
         {
             get
             {
-                var temp = this as IQueryOptions;
+                var temp = this as QueryOptions;
                 return temp.Lifespan.Duration * 1000;
             }
         }

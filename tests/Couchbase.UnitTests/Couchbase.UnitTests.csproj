@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
     <None Remove="Data\multi-getresponse-packet.txt" />
     <None Remove="Documents\config.json" />
     <None Remove="Documents\Configs\rev92-single-node.json" />
@@ -29,6 +30,10 @@
     <None Remove="Services\Query\query-service-error-response-503.json" />
     <None Remove="Services\Query\query-timeout-response-200.json" />
     <None Remove="Services\Query\query-unsupported-error-405.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
   </ItemGroup>
 
   <ItemGroup>

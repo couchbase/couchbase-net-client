@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
@@ -9,6 +10,7 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Services;
 using Couchbase.Services.Query;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
@@ -78,6 +80,32 @@ namespace Couchbase.UnitTests.Services.Query
                     Assert.True(e.GetType() == errorType);
                 }
             }
+        }
+
+        [Fact]
+        public void EnhancedPreparedStatements_defaults_to_false()
+        {
+            var client = new QueryClient(new Configuration());
+            Assert.False(client.EnhancedPreparedStatementsEnabled);
+        }
+
+        [Fact]
+        public void EnhancedPreparedStatements_is_set_to_true_if_enabled_in_cluster_caps()
+        {
+            var client = new QueryClient(new Configuration());
+            Assert.False(client.EnhancedPreparedStatementsEnabled);
+
+            var clusterCapabilities = new ClusterCapabilities();
+            clusterCapabilities.Capabilities = new Dictionary<string, IEnumerable<string>>
+            {
+                {
+                    ServiceType.Query.GetDescription(),
+                    new List<string> {ClusterCapabilityFeatures.EnhancedPreparedStatements.GetDescription()}
+                }
+            };
+
+            client.UpdateClusterCapabilities(clusterCapabilities);
+            Assert.True(client.EnhancedPreparedStatementsEnabled);
         }
     }
 }

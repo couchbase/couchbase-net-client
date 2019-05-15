@@ -137,7 +137,7 @@ namespace Couchbase.Services.Query
                         error.Code == (int) ErrorPrepared.Unrecognized ||
                         error.Code == (int) ErrorPrepared.UnableToDecode ||
                         error.Code == (int) ErrorPrepared.IndexNotFound ||
-                        (error.Code == (int) ErrorPrepared.Generic && error.Message != null && error.Message.Contains(QueryClient.Error5000MsgQueryportIndexNotFound))
+                        (error.Code == (int) ErrorPrepared.Generic && error.Message != null && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
                     );
                 default:
                     return false;
