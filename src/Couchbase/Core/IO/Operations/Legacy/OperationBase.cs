@@ -417,8 +417,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             BeginSend();
 
-            var builder = OperationBuilderPool.Instance.Rent(Converter);
-            try
+            using (var builder = new OperationBuilder(Converter))
             {
                 WriteFramingExtras(builder);
 
@@ -434,10 +433,6 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 builder.WriteHeader(CreateHeader());
 
                 await connection.SendAsync(builder.GetBuffer(), Completed).ConfigureAwait(false);
-            }
-            finally
-            {
-                OperationBuilderPool.Instance.Return(builder);
             }
         }
 

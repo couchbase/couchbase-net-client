@@ -12,10 +12,10 @@ namespace Couchbase.Core.IO.Operations
     /// Provides a forward-only stream for building operations which tracks the size of each segment
     /// as it's being built.
     /// </summary>
-    internal sealed class OperationBuilder : Stream
+    internal class OperationBuilder : Stream
     {
         private readonly MemoryStream _stream;
-        private IByteConverter _converter;
+        private readonly IByteConverter _converter;
 
         private int _framingExtrasLength;
         private int _extrasLength;
@@ -46,21 +46,6 @@ namespace Couchbase.Core.IO.Operations
         {
             get => _stream.Position;
             set => throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// Capacity of the underlying stream.
-        /// </summary>
-        public long Capacity => _stream.Capacity;
-
-        /// <summary>
-        /// The <see cref="IByteConverter"/> to use.
-        /// </summary>
-        [NotNull]
-        public IByteConverter Converter
-        {
-            get => _converter;
-            set => _converter = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         /// <summary>
@@ -287,19 +272,6 @@ namespace Couchbase.Core.IO.Operations
             _operationSpecPathLength = 0;
             _operationSpecFragmentLength = 0;
             CurrentSegment = OperationSegment.OperationSpecPath;
-        }
-
-        public void Reset()
-        {
-            _stream.Position = 0;
-            _stream.SetLength(0);
-
-            _framingExtrasLength = 0;
-            _extrasLength = 0;
-            _keyLength = 0;
-            _bodyLength = 0;
-            _headerWritten = false;
-            CurrentSegment = OperationSegment.FramingExtras;
         }
 
         /// <summary>
