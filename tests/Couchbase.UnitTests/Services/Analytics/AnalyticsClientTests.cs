@@ -19,8 +19,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public void Query_Sets_LastActivity()
         {
-            var mockConfiguration = new Mock<IConfiguration>();
-            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+            var configuration = new Configuration().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
@@ -29,7 +28,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), mockConfiguration.Object);
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), configuration);
 
             Assert.Null(client.LastActivity);
 
@@ -42,8 +41,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public async Task QueryAsync_Sets_LastActivity()
         {
-            var mockConfiguration = new Mock<IConfiguration>();
-            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+            var configuration = new Configuration().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
@@ -52,7 +50,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), mockConfiguration.Object);
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), configuration);
 
             Assert.Null(client.LastActivity);
 
@@ -67,8 +65,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [InlineData(false)]
         public void Client_sets_AnalyticsPriority_Header(bool priority)
         {
-            var mockConfiguration = new Mock<IConfiguration>();
-            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+            var configuration = new Configuration().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request =>
@@ -87,7 +84,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), mockConfiguration.Object);
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), configuration);
 
             var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
             queryRequest.Priority(priority);
@@ -104,8 +101,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 handle = "handle"
             });
 
-            var mockConfiguration = new Mock<IConfiguration>();
-            mockConfiguration.Setup(x => x.Servers).Returns(new[] { new Uri("http://localhost") });
+            var configuration = new Configuration().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
@@ -114,7 +110,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), mockConfiguration.Object);
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), configuration);
 
             var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
             var result = client.Query<dynamic>(queryRequest);
@@ -133,8 +129,8 @@ namespace Couchbase.UnitTests.Services.Analytics
             const string expectedJson = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
             var handle = new AnalyticsDeferredResultHandle<dynamic>(null, null, null, handleUri);
 
-            var mockConfiguration = new Mock<IConfiguration>();
-            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+            var configuration = new Configuration();
+            configuration.WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -142,7 +138,7 @@ namespace Couchbase.UnitTests.Services.Analytics
 
             var client = new AnalyticsClient(httpClient,
                 new JsonDataMapper(new DefaultSerializer()),
-                mockConfiguration.Object);
+                configuration);
 
             var encodedHandle = client.ExportDeferredQueryHandle(handle);
             Assert.Equal(expectedJson, encodedHandle);
@@ -154,8 +150,7 @@ namespace Couchbase.UnitTests.Services.Analytics
             const string expectedHandle = "/analytics/service/status/3-0";
             const string json = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
 
-            var mockConfiguration = new Mock<IConfiguration>();
-            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+            var configuration = new Configuration().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -163,7 +158,7 @@ namespace Couchbase.UnitTests.Services.Analytics
 
             var client = new AnalyticsClient(httpClient,
                 new JsonDataMapper(new DefaultSerializer()),
-                mockConfiguration.Object);
+                configuration);
 
             var handle = client.ImportDeferredQueryHandle<dynamic>(json);
             Assert.NotNull(handle);
@@ -175,8 +170,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [InlineData("")]
         public void Import_throws_exception_when_json_is_invalid(string handleUri)
         {
-            var mockConfiguration = new Mock<IConfiguration>();
-            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+            var configuration = new Configuration().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -184,7 +178,7 @@ namespace Couchbase.UnitTests.Services.Analytics
 
             var client = new AnalyticsClient(httpClient,
                 new JsonDataMapper(new DefaultSerializer()),
-                mockConfiguration.Object);
+                configuration);
 
             var json = JsonConvert.SerializeObject(new {v = 1, uri = handleUri});
             Assert.Throws<ArgumentException>(() => client.ImportDeferredQueryHandle<dynamic>(json));

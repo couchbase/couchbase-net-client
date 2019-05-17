@@ -1,4 +1,4 @@
-﻿{
+{
   "rev": 2156,
   "name": "default",
   "uri": "/pools/default/buckets/default?bucket_uuid=12542eae76412f8b383582816ea7653f",
@@ -33,7 +33,11 @@
         "capiSSL": 18092,
         "projector": 9999,
         "n1ql": 8093,
-        "n1qlSSL": 18093
+        "n1qlSSL": 18093,
+        "fts":8094,
+        "ftsSSL":18094,
+        "cbas": 8095,
+        "cbasSSL": 18095  
       },
       "thisNode": true,
       "hostname": "10.143.192.101"

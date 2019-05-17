@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using System.Reflection;
+using Couchbase.Core;
 
 namespace Couchbase.Utils
 {
@@ -50,6 +51,20 @@ namespace Couchbase.Utils
             {
                 var index = Random.Next(enumerable.Count);
                 item = enumerable[index];
+            }
+
+            return item;
+        }
+
+        public static T GetRandom<T>(this IEnumerable<T> enumerable, Func<T, bool> whereClause)
+        {
+            var item = default(T);
+
+            var list = enumerable as IList<T> ?? enumerable.Where(whereClause).ToList();
+            if (list.Any())
+            {
+                var index = Random.Next(list.Count);
+                item = list[index];
             }
 
             return item;

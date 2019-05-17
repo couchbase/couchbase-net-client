@@ -8,8 +8,6 @@ namespace Couchbase
     {
         string Name { get; }
 
-        Task BootstrapAsync(Uri uri, IConfiguration configuration);
-
         Task<IScope> this[string name] { get; }
 
         Task<ICollection> DefaultCollection { get; }

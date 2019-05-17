@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Operations.Legacy;
@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.HTTP
     {
         private const string ConnectionIdHeaderName = "cb-client-id";
 
-        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, IConfiguration configuration)
+        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, Couchbase.Configuration configuration)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
@@ -28,7 +28,7 @@ namespace Couchbase.Core.IO.HTTP
         /// <summary>
         /// Gets the client configuration.
         /// </summary>
-        protected Couchbase.IConfiguration Configuration { get; set; }
+        protected Couchbase.Configuration Configuration { get; set; }
 
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.

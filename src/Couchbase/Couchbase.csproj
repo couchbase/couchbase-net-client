@@ -59,6 +59,7 @@
     <Compile Remove="Core\IO\Operations\ServerFeatures.cs" />
     <Compile Remove="Core\IO\Operations\Set.cs" />
     <Compile Remove="Core\IO\Operations\Upsert.cs" />
+    <Compile Remove="IConfiguration.cs" />
     <Compile Remove="IDocument %282%29.cs" />
     <Compile Remove="IDocument_T.cs" />
     <Compile Remove="IFetchOperation.cs" />

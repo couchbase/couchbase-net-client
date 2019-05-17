@@ -1,5 +1,10 @@
-﻿using System;
+using System;
 using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Utils
 {
@@ -65,6 +70,40 @@ namespace Couchbase.Utils
             return server.Contains(".") && !server.Contains("[") ?
                 GetIPv4EndPoint(server) :
                 GetIPv6EndPoint(server);
+        }
+
+        //TODO: refactor into factory so IConnection impls can be used
+        public static IConnection GetConnection(this IPEndPoint endPoint)
+        {
+            var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            var waitHandle = new ManualResetEvent(false);
+            var asyncEventArgs = new SocketAsyncEventArgs
+            {
+                RemoteEndPoint = endPoint
+            };
+            asyncEventArgs.Completed += delegate { waitHandle.Set(); };
+
+            if (socket.ConnectAsync(asyncEventArgs))
+            {
+                // True means the connect command is running asynchronously, so we need to wait for completion
+                if (!waitHandle.WaitOne(10000))//default connect timeout
+                {
+                    socket.Dispose();
+                    const int connectionTimedOut = 10060;
+                    throw new SocketException(connectionTimedOut);
+                }
+            }
+
+            if ((asyncEventArgs.SocketError != SocketError.Success) || !socket.Connected)
+            {
+                socket.Dispose();
+                throw new SocketException((int)asyncEventArgs.SocketError);
+            }
+
+            socket.SetKeepAlives(true, 2*60*60*1000, 1000);
+
+            return new MultiplexingConnection(null, socket, new DefaultConverter());
         }
     }
 }

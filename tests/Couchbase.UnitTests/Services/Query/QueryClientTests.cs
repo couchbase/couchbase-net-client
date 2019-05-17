@@ -1,13 +1,17 @@
 using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Services.Query;
 using Couchbase.UnitTests.Utils;
+using Couchbase.Utils;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -45,6 +49,24 @@ namespace Couchbase.UnitTests.Services.Query
                     BaseAddress = new Uri("http://localhost:8091")
                 };
                 var config = new Configuration().WithBucket("default").WithServers("http://localhost:8901");
+                var clusterNode = new ClusterNode
+                {
+                    Configuration = config,
+                    EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
+                    NodesExt = new NodesExt
+                    {
+                        hostname = "127.0.0.1",
+                        services = new Couchbase.Core.Configuration.Server.Services
+                        {
+                            n1ql = 8093,
+                            n1qlSSL = 18093
+                        }
+                    }
+                };
+                clusterNode.BuildServiceUris();
+
+                config.GlobalNodes = new ConcurrentBag<ClusterNode>{ clusterNode };
+
                 var client = new QueryClient(httpClient, new JsonDataMapper(new DefaultSerializer()), config);
 
                 try

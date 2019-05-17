@@ -1,4 +1,4 @@
-﻿using Couchbase.Core.Sharding;
+using Couchbase.Core.Sharding;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
@@ -34,12 +34,17 @@ namespace Couchbase.Core.Configuration.Server
         public int projector { get; set; }
         public int n1ql { get; set; }
         public int n1qlSSL { get; set; }
+        public int cbas { get; set; }
+        public int cbasSSL { get; set; }
+        public int fts { get; set; }
+        public int ftsSSL { get; set; }
     }
 
     public class NodesExt
     {
         public Services services { get; set; }
         public bool thisNode { get; set; }
+        public string hostname { get; set; }
     }
 
     public class Ddocs

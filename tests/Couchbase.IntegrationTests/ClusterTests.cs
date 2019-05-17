@@ -28,6 +28,7 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Query2()
         {
             var cluster = _fixture.Cluster;
+            await cluster.Bucket("default");
 
             var result = await cluster.QueryAsync<dynamic>("SELECT * FROM `default` WHERE type=$name;",
                 parameter =>
@@ -39,6 +40,18 @@ namespace Couchbase.IntegrationTests
             {
             }
             result.Dispose();
+        }
+
+        [Fact]
+        public async Task Test_Views()
+        {
+            var cluster = _fixture.Cluster;
+            var bucket = await cluster.Bucket("default");
+
+            var results = await bucket.ViewQueryAsync<dynamic>("test", "testView").ConfigureAwait(false);
+            foreach (var result in results.Rows)
+            {
+            }
         }
     }
 }

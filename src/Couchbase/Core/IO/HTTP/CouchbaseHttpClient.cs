@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -12,12 +12,12 @@ namespace Couchbase.Core.IO.HTTP
     {
         private const string UserAgentHeaderName = "User-Agent";
 
-        private IConfiguration ClientConfig { get; set; }
+        private Couchbase.Configuration ClientConfig { get; set; }
 
         private BucketConfig BucketConfig { get; set; }
 
         //used by all http services
-        internal CouchbaseHttpClient(IConfiguration clientConfig, BucketConfig bucketConfig)
+        internal CouchbaseHttpClient(Couchbase.Configuration clientConfig, BucketConfig bucketConfig)
             : this (CreateClientHandler(clientConfig.UserName, clientConfig.Password, clientConfig))
         {
             ClientConfig = clientConfig;
@@ -31,7 +31,7 @@ namespace Couchbase.Core.IO.HTTP
             DefaultRequestHeaders.Add(UserAgentHeaderName, ClientIdentifier.GetClientDescription());
         }
 
-        private static HttpClientHandler CreateClientHandler(string username, string password, IConfiguration clientConfig)
+        private static HttpClientHandler CreateClientHandler(string username, string password, Couchbase.Configuration clientConfig)
         {
             HttpClientHandler handler;
 

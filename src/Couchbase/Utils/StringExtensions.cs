@@ -1,11 +1,14 @@
-﻿using System;
+using System;
 using System.ComponentModel;
+using System.Net;
+using Couchbase.Core.Configuration.Server;
 using Newtonsoft.Json;
 
 namespace Couchbase.Utils
 {
     internal static class StringExtensions
     {
+        private const char Colon = ':';
 
         /// <summary>
         /// Converts a <see cref="System.String"/> to an <see cref="System.Enum"/>. Assumes that
@@ -48,6 +51,21 @@ namespace Couchbase.Utils
             }
 
             return theString;
+        }
+
+        //TODO refactor/harden/tests - perhaps move to different class
+        public static IPEndPoint GetIpEndPoint(this NodesExt nodesExt, Configuration configuration)
+        {
+            var useSsl = configuration.UseSsl;
+            var uriBuilder = new UriBuilder
+            {
+                Scheme = useSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
+                Host = nodesExt.hostname,
+                Port = useSsl ? nodesExt.services.kvSSL : nodesExt.services.kv
+            };
+
+            var ipAddress = uriBuilder.Uri.GetIpAddress(false);//TODO support IPv6
+            return new IPEndPoint(ipAddress, uriBuilder.Port);
         }
     }
 }

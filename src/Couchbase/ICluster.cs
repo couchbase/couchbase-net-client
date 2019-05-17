@@ -10,6 +10,8 @@ namespace Couchbase
 {
     public interface ICluster : IDisposable
     {
+        Task Initialize();
+
         Task<IBucket> Bucket(string name);
 
         Task<IDiagnosticsReport> Diagnostics(string reportId);

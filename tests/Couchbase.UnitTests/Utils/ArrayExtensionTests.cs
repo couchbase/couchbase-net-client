@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
+using Couchbase.Core;
 using Couchbase.Utils;
 using Xunit;
 
@@ -35,5 +37,35 @@ namespace Couchbase.UnitTests.Utils
         }
 
         #endregion
+
+        [Fact]
+        public void GetRandom_Where_Clause()
+        {
+            var dict = new Dictionary<string, ClusterNode>
+            {
+                {"127.0.0.1", new ClusterNode {ViewsUri = new Uri("http://127.0.0.1:8092")}},
+                {"127.0.0.2", new ClusterNode {ViewsUri = new Uri("http://127.0.0.2:0")}},
+                {"127.0.0.3", new ClusterNode {ViewsUri = new Uri("http://127.0.0.3:8092")}}
+            };
+
+            var node = dict.GetRandom(x => x.Value.HasViews());
+
+            Assert.True(node.Value.HasViews());
+        }
+
+        [Fact]
+        public void GetRandom_Where_Clause_No_Matches()
+        {
+            var dict = new Dictionary<string, ClusterNode>
+            {
+                {"127.0.0.1", new ClusterNode {ViewsUri = new Uri("http://127.0.0.1:0")}},
+                {"127.0.0.2", new ClusterNode {ViewsUri = new Uri("http://127.0.0.2:0")}},
+                {"127.0.0.3", new ClusterNode {ViewsUri = new Uri("http://127.0.0.3:0")}}
+            };
+
+            var node = dict.GetRandom(x => x.Value.HasViews());
+
+            Assert.Null(node.Value);
+        }
     }
 }

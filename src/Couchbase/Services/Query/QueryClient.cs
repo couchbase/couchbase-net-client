@@ -17,13 +17,13 @@ namespace Couchbase.Services.Query
     {
         internal static readonly string Error5000MsgQueryportIndexNotFound = "queryport.indexNotFound";
 
-        public QueryClient(IConfiguration configuration) : this(
+        public QueryClient(Configuration configuration) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)),
             new JsonDataMapper(new DefaultSerializer()), configuration)
         {
         }
 
-        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, IConfiguration configuration)
+        public QueryClient(HttpClient httpClient, IDataMapper dataMapper, Configuration configuration)
             : base(httpClient, dataMapper, configuration)
         {
         }
@@ -45,12 +45,8 @@ namespace Couchbase.Services.Query
 
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, IQueryOptions options, CancellationToken cancellationToken)
         {
-            var uriBuilder = new UriBuilder(Configuration.Servers.GetRandom())
-            {
-                Scheme = "http",
-                Path = "/query",
-                Port = 8093
-            };
+            //TODO make url selection round-robin
+            var clusterNode = Configuration.GlobalNodes.GetRandom(x => x.HasQuery());
 
             options.Statement(statement);
             var body = options.GetFormValuesAsJson();
@@ -60,7 +56,7 @@ namespace Couchbase.Services.Query
             {
                 try
                 {
-                    var response = await HttpClient.PostAsync(uriBuilder.Uri, content, cancellationToken)
+                    var response = await HttpClient.PostAsync(clusterNode.QueryUri, content, cancellationToken)
                         .ConfigureAwait(false);
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

@@ -13,6 +13,8 @@ namespace Couchbase.IntegrationTests.Fixtures
                 .WithServers("couchbase://localhost")
                 .WithBucket("default")
                 .WithCredentials("Administrator", "password"));
+
+            Cluster.Initialize().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public async Task<IBucket> GetDefaultBucket()

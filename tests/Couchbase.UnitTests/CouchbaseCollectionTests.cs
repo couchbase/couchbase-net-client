@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
@@ -108,7 +109,7 @@ namespace Couchbase.UnitTests
             }
             public virtual string Name { get; }
 
-            public Task BootstrapAsync(Uri uri, IConfiguration configuration)
+            public Task BootstrapAsync(Uri uri, Configuration configuration)
             {
                 throw new NotImplementedException();
             }
@@ -142,6 +143,11 @@ namespace Couchbase.UnitTests
                 }
 
                 return Task.CompletedTask;
+            }
+
+            Task IBucketSender.Bootstrap(ClusterNode clusterNode)
+            {
+                throw new NotImplementedException();
             }
         }
     }

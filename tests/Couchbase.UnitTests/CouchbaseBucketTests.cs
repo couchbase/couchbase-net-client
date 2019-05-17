@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using Moq;
+using Couchbase.Core;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -10,12 +8,11 @@ namespace Couchbase.UnitTests
     public class CouchbaseBucketTests
     {
         [Fact]
-        public void Scope_Indexer_NotFound_Throws_ScopeMissingException()
+        public async Task Scope_Indexer_NotFound_Throws_ScopeMissingException()
         {
-            var cluster = new Mock<ICluster>();
-            var bucket = new CouchbaseBucket(cluster.Object, "default");
+            var bucket = new CouchbaseBucket("default", new Configuration());
 
-            Assert.ThrowsAsync<ScopeMissingException>(() =>
+            await Assert.ThrowsAsync<ScopeMissingException>(() =>
             {
                 var scope = bucket["doesnotexist"].Result;
                 return Task.CompletedTask;
@@ -23,12 +20,11 @@ namespace Couchbase.UnitTests
         }
 
         [Fact]
-        public void Scope_NotFound_Throws_ScopeMissingException()
+        public async Task Scope_NotFound_Throws_ScopeMissingException( )
         {
-            var cluster = new Mock<ICluster>();
-            var bucket = new CouchbaseBucket(cluster.Object, "default");
+            var bucket = new CouchbaseBucket("default",  new Configuration());
 
-            Assert.ThrowsAsync<ScopeMissingException>(() =>
+            await Assert.ThrowsAsync<ScopeMissingException>(() =>
             {
                 var scope = bucket.Scope("doesnotexist").Result;
                 return Task.CompletedTask;

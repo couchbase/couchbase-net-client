@@ -18,7 +18,7 @@ namespace Couchbase.Services.Views
         //private static readonly ILog Log = LogManager.GetLogger<StreamingViewClient>();
         private readonly uint? _viewTimeout;
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper, IConfiguration configuration)
+        public ViewClient(HttpClient httpClient, IDataMapper mapper, Configuration configuration)
             : base(httpClient, mapper, configuration)
         {
             _viewTimeout = (uint) configuration.ViewTimeout.TotalMilliseconds * 1000; // convert millis to micros

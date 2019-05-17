@@ -17,13 +17,13 @@ namespace Couchbase.Services.Analytics
         //private static readonly ILog Log = LogManager.GetLogger(typeof(AnalyticsClient));
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
-        public AnalyticsClient(IConfiguration configuration) : this(
+        public AnalyticsClient(Configuration configuration) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)),
             new JsonDataMapper(new DefaultSerializer()), configuration
         )
         { }
 
-        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, IConfiguration configuration)
+        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, Configuration configuration)
             : base(client, dataMapper, configuration)
         { }
 

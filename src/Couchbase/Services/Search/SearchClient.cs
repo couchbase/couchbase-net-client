@@ -25,12 +25,12 @@ namespace Couchbase.Services.Search
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
 
-        public SearchClient(IConfiguration configuration) : this(
+        public SearchClient(Configuration configuration) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)),
             new SearchDataMapper(), configuration)
         { }
 
-        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, IConfiguration configuration)
+        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, Configuration configuration)
             : base(httpClient, dataMapper, configuration)
         { }
 

@@ -9,7 +9,7 @@ namespace Couchbase.Services.Query
 {
     internal class StreamingQueryClient : QueryClient
     {
-        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, IConfiguration configuration) : base(httpClient, dataMapper, configuration)
+        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, Configuration configuration) : base(httpClient, dataMapper, configuration)
         {
         }
     }

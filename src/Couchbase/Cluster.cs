@@ -1,28 +1,33 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Logging;
 using Couchbase.Management;
 using Couchbase.Services.Analytics;
 using Couchbase.Services.Query;
 using Couchbase.Services.Search;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase
 {
     public class Cluster : ICluster
     {
-        private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
         private static readonly ILogger Log = LogManager.CreateLogger<Cluster>();
         private bool _disposed;
-        private IConfiguration _configuration;
+        private readonly Configuration _configuration;
         private IQueryClient _queryClient;
         private ISearchClient _searchClient;
         private IAnalyticsClient _analyticsClient;
+        private CancellationTokenSource _configTokenSource;
+        private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
 
-        public Cluster(IConfiguration configuration)
+        public Cluster(Configuration configuration)
         {
             if (configuration == null)
             {
@@ -35,8 +40,6 @@ namespace Couchbase
             }
 
             _configuration = configuration;
-
-            Connect();
         }
 
         public Cluster(string connectionStr, string username, string password)
@@ -47,13 +50,6 @@ namespace Couchbase
                 .WithServers(connectionString.Hosts.ToArray())
                 .WithCredentials(username, password);
 
-            // TODO: load connection string params into configuration
-
-            Connect();
-        }
-
-        private void Connect()
-        {
             if (!_configuration.Buckets.Any())
             {
                 _configuration = _configuration.WithBucket("default");
@@ -63,40 +59,103 @@ namespace Couchbase
             {
                 _configuration = _configuration.WithServers("couchbase://localhost");
             }
-
-            Task.Run(async () =>
-                {
-                    foreach (var configBucket in _configuration.Buckets)
-                    {
-                        Log.LogDebug("Creating bucket {0}", configBucket);
-
-                        foreach (var configServer in _configuration.Servers)
-                        {
-                            Log.LogDebug("Bootstrapping bucket {0} using server {1}", configBucket, configServer);
-
-                            var bucket = new CouchbaseBucket(this, configBucket);
-                            await bucket.BootstrapAsync(configServer, _configuration).ConfigureAwait(false);
-                            _bucketRefs.TryAdd(configBucket, bucket);
-
-                            Log.LogDebug("Succesfully bootstrapped bucket {0} using server {1}", configBucket,
-                                configServer);
-                            return;
-                        }
-                    }
-                })
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
         }
 
-        public Task<IBucket> Bucket(string name)
+        private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint)
+        {
+            var connection = endPoint.GetConnection();
+
+            var serverFeatures = await connection.Hello().ConfigureAwait(false);
+            var errorMap = await connection.GetErrorMap().ConfigureAwait(false);
+            await connection.Authenticate(_configuration, null).ConfigureAwait(false);
+
+            var clusterNode = new ClusterNode
+            {
+                EndPoint = endPoint,
+                Connection = connection,
+                ServerFeatures = serverFeatures,
+                ErrorMap = errorMap
+            };
+
+            return clusterNode;
+        }
+
+        public async Task Initialize()
+        {
+            //try to connect via GCCP
+            foreach (var uri in _configuration.Servers)
+            {
+                try
+                {
+                    var endPoint = uri.GetIpEndPoint(11210, false);
+                    var bootstrapNode = await GetClusterNode(endPoint).ConfigureAwait(false);
+
+                    //note this returns bucketConfig, but clusterConfig will be returned once server supports GCCP
+                    var clusterMap = await bootstrapNode.GetClusterMap().ConfigureAwait(false);
+                    if (clusterMap == null)//TODO fix bug NCBC-1966 - hiding XError when no error map (and others)
+                    {
+                        //No GCCP but we connected - save connections and info for connecting later
+                        _configuration.GlobalNodes.Add(bootstrapNode);
+                    }
+                    else
+                    {
+                        //TODO add GCCP path when it exists on Mad Hatter builds
+                        //Store the ClusterConfig (global) and then build the nodes
+                    }
+                }
+                catch (AuthenticationException e)
+                {
+                    //auth failed so bubble up exception and clean up resources
+                    Log.LogError(e, @"Could not authenticate user {_configuration.UserName}");
+
+                    while (_configuration.GlobalNodes.TryTake(out ClusterNode clusterNode))
+                    {
+                        clusterNode.Dispose();
+                    }
+
+                    throw;
+                }
+            }
+        }
+
+        public async Task<IBucket> Bucket(string name)
         {
             if (_bucketRefs.TryGetValue(name, out var bucket))
             {
-                return Task.FromResult(bucket);
+                return bucket;
             }
 
-            throw new ArgumentOutOfRangeException(nameof(name), "Bucket not found!");
+            //No GCCP but we have a connection - not bootstrapped yet so commence strapping das boot
+            var bootstrapNode = _configuration.GlobalNodes.FirstOrDefault(x => x.Owner == null);
+            if (bootstrapNode == null)
+            {
+                //use existing clusterNode from bootstrapping
+                bucket = new CouchbaseBucket(name, _configuration);
+                await ((IBucketSender) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
+
+                _bucketRefs.TryAdd(name, bucket);
+            }
+            else
+            {
+                //all clusterNodes have owners so create a new one
+                var uri = _configuration.Servers.GetRandom();
+                var endPoint = uri.GetIpEndPoint(11210, false);
+                bootstrapNode = await GetClusterNode(endPoint).ConfigureAwait(false);
+
+                bucket = new CouchbaseBucket(name, _configuration);
+                await ((IBucketSender) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
+
+                _configuration.GlobalNodes.Add(bootstrapNode);
+                _bucketRefs.TryAdd(name, bucket);
+            }
+
+            //TODO add 3rd state when connected and have GCCP
+            if (bucket == null)
+            {
+                throw new BucketMissingException(@"{name} Bucket not found!");
+            }
+
+            return bucket;
         }
 
         public Task<IDiagnosticsReport> Diagnostics(string reportId)

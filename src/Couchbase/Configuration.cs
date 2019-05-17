@@ -2,20 +2,22 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Couchbase
 {
-    public class Configuration : IConfiguration
+    public sealed class Configuration
     {
         private ConcurrentBag<Uri>_servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
+        internal ConcurrentBag<ClusterNode> GlobalNodes { get; set; } = new ConcurrentBag<ClusterNode>();
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 
-        public IConfiguration WithServers(params string[] ips)
+        public Configuration WithServers(params string[] ips)
         {
             if (ips == null)
             {
@@ -32,7 +34,7 @@ namespace Couchbase
             };
         }
 
-        public IConfiguration WithBucket(params string[] bucketNames)
+        public Configuration WithBucket(params string[] bucketNames)
         {
             if(bucketNames == null)
             {
@@ -49,7 +51,7 @@ namespace Couchbase
             };
         }
 
-        public IConfiguration WithCredentials(string username, string password)
+        public Configuration WithCredentials(string username, string password)
         {
             return new Configuration
             {
@@ -60,7 +62,7 @@ namespace Couchbase
             };
         }
 
-        public IConfiguration WithLogging(ILoggerProvider provider = null)
+        public Configuration WithLogging(ILoggerProvider provider = null)
         {
             //configure a null logger as the default
             if (provider == null)
@@ -91,6 +93,7 @@ namespace Couchbase
         public bool UseSsl { get; set; }
         public bool EnableTracing { get; set; }
         public bool EnableMutationTokens { get; set; }
+        public int MgmtPort { get; set; } = 8091;
         public bool Expect100Continue { get; set; }
         public bool EnableCertificateAuthentication { get; set; }
         public bool EnableCertificateRevocation { get; set; }
