@@ -206,5 +206,17 @@ namespace Couchbase
 
             _disposed = true;
         }
+
+        /// <inheritdoc />
+        public string ExportDeferredAnalyticsQueryHandle<T>(IAnalyticsDeferredResultHandle<T> handle)
+        {
+            return _analyticsClient.ExportDeferredQueryHandle(handle);
+        }
+
+        /// <inheritdoc />
+        public IAnalyticsDeferredResultHandle<T> ImportDeferredAnalyticsQueryHandle<T>(string encodedHandle)
+        {
+            return _analyticsClient.ImportDeferredQueryHandle<T>(encodedHandle);
+        }
     }
 }

@@ -7,6 +7,8 @@ using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Utils;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Services.Analytics
 {
@@ -143,6 +145,35 @@ namespace Couchbase.Services.Analytics
         {
             queryResult.MetaData.Status = QueryStatus.Fatal;
             queryResult.MetaData.HttpStatusCode = HttpStatusCode.BadRequest;
+        }
+
+        /// <inheritdoc />
+        public string ExportDeferredQueryHandle<T>(IAnalyticsDeferredResultHandle<T> handle)
+        {
+            var json = new JObject();
+            json["v"] = 1;
+            json["uri"] = (handle as AnalyticsDeferredResultHandle<T>).HandleUri;
+
+            return json.ToString(Formatting.None);
+        }
+
+        /// <inheritdoc />
+        public IAnalyticsDeferredResultHandle<T> ImportDeferredQueryHandle<T>(string encodedHandle)
+        {
+            var json = JObject.Parse(encodedHandle);
+            if (json["v"].Value<string>() != "1")
+            {
+                throw new ArgumentException("Invalid encoded handle.");
+            }
+
+            var uri = json["uri"].Value<string>();
+            if (string.IsNullOrWhiteSpace(uri))
+            {
+                throw new ArgumentException("Invalid encoded handle.");
+            }
+
+            var result = new AnalyticsResult<T> {MetaData = new MetaData {Status = QueryStatus.Running}}; // default to running
+            return new AnalyticsDeferredResultHandle<T>(result, HttpClient, DataMapper, uri);
         }
     }
 }

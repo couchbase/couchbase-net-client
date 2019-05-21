@@ -125,5 +125,69 @@ namespace Couchbase.UnitTests.Services.Analytics
             var deferredResult = (AnalyticsDeferredResultHandle<dynamic>)result.Handle;
             Assert.Equal("handle", deferredResult.HandleUri);
         }
+
+        [Fact]
+        public void Can_export_deferred_handle()
+        {
+            const string handleUri = "/analytics/service/status/3-0";
+            const string expectedJson = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
+            var handle = new AnalyticsDeferredResultHandle<dynamic>(null, null, null, handleUri);
+
+            var mockConfiguration = new Mock<IConfiguration>();
+            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var client = new AnalyticsClient(httpClient,
+                new JsonDataMapper(new DefaultSerializer()),
+                mockConfiguration.Object);
+
+            var encodedHandle = client.ExportDeferredQueryHandle(handle);
+            Assert.Equal(expectedJson, encodedHandle);
+        }
+
+        [Fact]
+        public void Can_import_deferred_handle()
+        {
+            const string expectedHandle = "/analytics/service/status/3-0";
+            const string json = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
+
+            var mockConfiguration = new Mock<IConfiguration>();
+            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var client = new AnalyticsClient(httpClient,
+                new JsonDataMapper(new DefaultSerializer()),
+                mockConfiguration.Object);
+
+            var handle = client.ImportDeferredQueryHandle<dynamic>(json);
+            Assert.NotNull(handle);
+            Assert.Equal(expectedHandle, (handle as AnalyticsDeferredResultHandle<dynamic>).HandleUri);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void Import_throws_exception_when_json_is_invalid(string handleUri)
+        {
+            var mockConfiguration = new Mock<IConfiguration>();
+            mockConfiguration.Setup(x => x.Servers).Returns(new[] {new Uri("http://localhost")});
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var client = new AnalyticsClient(httpClient,
+                new JsonDataMapper(new DefaultSerializer()),
+                mockConfiguration.Object);
+
+            var json = JsonConvert.SerializeObject(new {v = 1, uri = handleUri});
+            Assert.Throws<ArgumentException>(() => client.ImportDeferredQueryHandle<dynamic>(json));
+        }
     }
 }
