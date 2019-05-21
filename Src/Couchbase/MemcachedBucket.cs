@@ -6956,6 +6956,18 @@ namespace Couchbase
             throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
         }
 
+        /// <inheritdoc />
+        public string ExportDeferredAnalyticsQueryHandle<T>(IAnalyticsDeferredResultHandle<T> handle)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
+        /// <inheritdoc />
+        public IAnalyticsDeferredResultHandle<T> ImportDeferredAnalyticsQueryHandle<T>(string encodedHandle)
+        {
+            throw new NotSupportedException("This method is only supported on Couchbase Bucket (persistent) types.");
+        }
+
         #endregion
 
         #region Diagnostics

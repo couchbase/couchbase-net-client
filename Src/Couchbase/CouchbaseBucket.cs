@@ -7944,6 +7944,20 @@ namespace Couchbase
             return _requestExecuter.SendWithRetryAsync<T>(analyticsRequest, cancellationToken);
         }
 
+        /// <inheritdoc />
+        public string ExportDeferredAnalyticsQueryHandle<T>(IAnalyticsDeferredResultHandle<T> handle)
+        {
+            CheckDisposed();
+            return _configInfo.GetAnalyticsNode().AnalyticsClient.ExportDeferredQueryHandle(handle);
+        }
+
+        /// <inheritdoc />
+        public IAnalyticsDeferredResultHandle<T> ImportDeferredAnalyticsQueryHandle<T>(string encodedHandle)
+        {
+            CheckDisposed();
+            return _configInfo.GetAnalyticsNode().AnalyticsClient.ImportDeferredQueryHandle<T>(encodedHandle);
+        }
+
         #endregion
 
         #region Diagnostics

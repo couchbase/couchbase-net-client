@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -7,7 +8,9 @@ using Couchbase.Analytics;
 using Couchbase.N1QL;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
+using Moq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace Couchbase.UnitTests.Analytics
@@ -122,6 +125,69 @@ namespace Couchbase.UnitTests.Analytics
 
             var deferredResult = (AnalyticsDeferredResultHandle<dynamic>) result.Handle;
             Assert.AreEqual("handle", deferredResult.HandleUri);
+        }
+
+        [Test]
+        public void Can_export_deferred_handle()
+        {
+            const string handleUri = "/analytics/service/status/3-0";
+            const string expectedJson = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
+            var handle = new AnalyticsDeferredResultHandle<dynamic>(null, null, null, handleUri);
+
+            var context = ContextFactory.GetCouchbaseContext();
+            context.AnalyticsUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var client = new AnalyticsClient(httpClient,
+                new JsonDataMapper(context.ClientConfig),
+                context);
+
+            var encodedHandle = client.ExportDeferredQueryHandle(handle);
+            Assert.AreEqual(expectedJson, encodedHandle);
+        }
+
+        [Test]
+        public void Can_import_deferred_handle()
+        {
+            const string expectedHandle = "/analytics/service/status/3-0";
+            const string json = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
+
+            var context = ContextFactory.GetCouchbaseContext();
+            context.AnalyticsUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var client = new AnalyticsClient(httpClient,
+                new JsonDataMapper(context.ClientConfig),
+                context);
+
+            var handle = client.ImportDeferredQueryHandle<dynamic>(json);
+            Assert.IsNotNull(handle);
+            Assert.AreEqual(expectedHandle, (handle as AnalyticsDeferredResultHandle<dynamic>).HandleUri);
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        public void Import_throws_exception_when_json_is_invalid(string handleUri)
+        {
+            var context = ContextFactory.GetCouchbaseContext();
+            context.AnalyticsUris.Add(new FailureCountingUri("http://localhost"));
+
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
+            );
+
+            var client = new AnalyticsClient(httpClient,
+                new JsonDataMapper(context.ClientConfig),
+                context);
+
+            var json = JsonConvert.SerializeObject(new {v = 1, uri = handleUri});
+            Assert.Throws<ArgumentException>(() => client.ImportDeferredQueryHandle<dynamic>(json));
         }
     }
 }

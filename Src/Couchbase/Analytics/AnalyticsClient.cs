@@ -11,6 +11,8 @@ using Couchbase.N1QL;
 using Couchbase.Tracing;
 using Couchbase.Utils;
 using Couchbase.Views;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Analytics
 {
@@ -171,6 +173,35 @@ namespace Couchbase.Analytics
                     request.Credentials(cred.Key, cred.Value, false);
                 }
             }
+        }
+
+        /// <inheritdoc />
+        public string ExportDeferredQueryHandle<T>(IAnalyticsDeferredResultHandle<T> handle)
+        {
+            var json = new JObject();
+            json["v"] = 1;
+            json["uri"] = (handle as AnalyticsDeferredResultHandle<T>).HandleUri;
+
+            return json.ToString(Formatting.None);
+        }
+
+        /// <inheritdoc />
+        public IAnalyticsDeferredResultHandle<T> ImportDeferredQueryHandle<T>(string encodedHandle)
+        {
+            var json = JObject.Parse(encodedHandle);
+            if (json["v"].Value<string>() != "1")
+            {
+                throw new ArgumentException("Invalid encoded handle.");
+            }
+
+            var uri = json["uri"].Value<string>();
+            if (string.IsNullOrWhiteSpace(uri))
+            {
+                throw new ArgumentException("Invalid encoded handle.");
+            }
+
+            var result = new AnalyticsResult<T> {Status = QueryStatus.Running}; // default to running
+            return new AnalyticsDeferredResultHandle<T>(result, HttpClient, DataMapper, uri);
         }
     }
 }
