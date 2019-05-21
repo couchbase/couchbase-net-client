@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -8,10 +8,11 @@ using Couchbase.Utils;
 
 namespace Couchbase.Analytics.Ingestion
 {
-    public static class AnalyticsExtensionsnsns
+    public static class AnalyticsExtensions
     {
         /// <summary>
         /// Executes a query and ingests the results as documents into Couchbase server for further analytics.
+        /// <para>NOTE: This is an experimental feature and is subject to change.</para>
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="bucket"></param>
