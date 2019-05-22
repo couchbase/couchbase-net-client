@@ -32,7 +32,7 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(SigningKey)'!=''">
+  <PropertyGroup Condition="'$(SignAssembly)'=='true'">
     <DefineConstants>$(DefineConstants);SIGNING</DefineConstants>
   </PropertyGroup>
 
