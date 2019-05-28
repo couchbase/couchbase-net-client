@@ -46,8 +46,6 @@ namespace Couchbase.Core.IO.Connections
             _receiveThread.Start();
         }
 
-        public Guid Identity { get; set; }
-
         public ulong ConnectionId { get; }
 
         public IConnectionPool ConnectionPool { get; set; }
@@ -61,8 +59,6 @@ namespace Couchbase.Core.IO.Connections
         public EndPoint EndPoint { get; set; }
 
         EndPoint IConnection.LocalEndPoint { get; }
-
-        public string ContextId { get; }
 
         public bool IsAuthenticated { get; set; }
 
@@ -90,7 +86,7 @@ namespace Couchbase.Core.IO.Connections
                 Callback = callback,
                 Converter = Converter,
                 EndPoint = (IPEndPoint)EndPoint,
-                ConnectionId = ContextId,
+                ConnectionId = ConnectionId,
                 ErrorMap = errorMap,
                 LocalEndpoint = LocalEndPoint.ToString()
             };

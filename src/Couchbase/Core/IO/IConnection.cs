@@ -17,22 +17,9 @@ namespace Couchbase.Core.IO
         Socket Socket { get; }
 
         /// <summary>
-        /// Unique identifier for this connection.
-        /// </summary>
-        Guid Identity { get; }
-
-        /// <summary>
         /// Internal randomly generated connectio ID.
         /// </summary>
         ulong ConnectionId { get; }
-
-        /// <summary>
-        /// Gets the connection context identifier.
-        /// </summary>
-        /// <value>
-        /// Connection context ID as a <see cref="string"/>.
-        /// </value>
-        string ContextId { get; }
 
         /// <summary>
         /// True if the connection has been SASL authenticated.

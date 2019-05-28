@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO
         public IByteConverter Converter { get; set; }
         public uint Opaque { get; set; }
         public Timer Timer;
-        public string ConnectionId { get; set; }
+        public ulong ConnectionId { get; set; }
         public ErrorMap ErrorMap { get; set; }
         public string LocalEndpoint { get; set; }
 

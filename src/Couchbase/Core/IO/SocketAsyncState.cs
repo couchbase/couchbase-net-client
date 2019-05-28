@@ -21,7 +21,7 @@ namespace Couchbase.Core.IO
 
         public uint Opaque { get; set; }
 
-        public string ConnectionId { get; set; }
+        public ulong ConnectionId { get; set; }
 
         public string LocalEndpoint { get; set; }
 
