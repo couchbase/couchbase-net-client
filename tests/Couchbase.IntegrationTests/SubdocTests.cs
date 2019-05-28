@@ -100,5 +100,24 @@ namespace Couchbase.IntegrationTests
                 Assert.Equal(JsonConvert.SerializeObject(expected), content);
             }
         }
+
+        [Fact]
+        public async Task t()
+        {
+            var collection = await _fixture.GetDefaultCollection();
+
+            await collection.LookupIn("docId", builder =>
+            {
+                builder.Get("doc.path", isXattr: true);
+                builder.Count("path", isXattr: true);
+            });
+
+            await collection.MutateIn("docId", builder =>
+            {
+                builder.Insert("path", "value", isXattr: true);
+                builder.Replace("path", "value", isXattr: true);
+                builder.Remove("path", isXattr: true);
+            });
+        }
     }
 }
