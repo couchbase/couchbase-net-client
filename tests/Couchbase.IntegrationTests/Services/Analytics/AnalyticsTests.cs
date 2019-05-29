@@ -1,7 +1,10 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Services.Analytics;
+using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -87,6 +90,24 @@ namespace Couchbase.IntegrationTests.Services.Analytics
             var rows = await result.Handle.GetRowsAsync().ConfigureAwait(false);
             Assert.NotEmpty(rows);
             Assert.Equal("hello", rows.First().Greeting);
+        }
+
+        [Fact]
+        public async Task Test_Ingest()
+        {
+            const string statement = "SELECT \"hello\" as greeting;";
+
+            var result = await _fixture.Cluster.IngestAsync<dynamic>(
+                statement,
+                await _fixture.GetDefaultCollection(),
+                options =>
+                {
+                    options.WithTimeout(TimeSpan.FromSeconds(75));
+                    options.WithExpiration(TimeSpan.FromDays(1));
+                }
+            ).ConfigureAwait(false);
+
+            Assert.True(result.Any());
         }
     }
 }
