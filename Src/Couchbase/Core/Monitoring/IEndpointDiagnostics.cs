@@ -28,7 +28,7 @@ namespace Couchbase.Core.Monitoring
         long? LastActivity { get; }
 
         /// <summary>
-        /// Gets the latency for service endpint expressed as microseconds.
+        /// Gets the latency for service endpoint expressed as microseconds.
         /// </summary>
         long? Latency { get; }
 
@@ -37,5 +37,10 @@ namespace Couchbase.Core.Monitoring
         /// This could be the bucket name for <see cref="ServiceType.KeyValue"/> service endpoints.
         /// </summary>
         string Scope { get; }
+
+        /// <summary>
+        /// Gets the service state.
+        /// </summary>
+        ServiceState? State { get; }
     }
 }
