@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Security.Authentication;
 using System.Threading.Tasks;
@@ -123,6 +123,29 @@ namespace Couchbase.UnitTests
         #endregion
 
         #region Upsert
+
+        [Test]
+        public async Task UpsertAsyncOverloadPassesExpirationAndCasParametersAsExpected()
+        {
+            var mockOperationResult = new Mock<IOperationResult<dynamic>>();
+
+            var mockRequestExecutor = new Mock<IRequestExecuter>();
+            mockRequestExecutor.Setup(x => x.SendWithDurabilityAsync(It.IsAny<Set<dynamic>>(), false, ReplicateTo.One, PersistTo.One, null, null))
+                .Returns(Task.FromResult(mockOperationResult.Object));
+
+            var bucket = new CouchbaseBucket(mockRequestExecutor.Object, new DefaultConverter(), new DefaultTranscoder());
+
+            await bucket.UpsertAsync<dynamic>("key", new { }, TimeSpan.FromSeconds(10), ReplicateTo.One, PersistTo.One, TimeSpan.FromSeconds(5));
+
+            mockRequestExecutor.Verify(x => x.SendWithDurabilityAsync(
+                It.Is<Set<dynamic>>(set => set.Expires == 10 && set.Cas == 0 && set.Timeout == 5),
+                false,
+                ReplicateTo.One,
+                PersistTo.One,
+                null,
+                null)
+            );
+        }
 
         #region Upsert Disposed Bucket
 

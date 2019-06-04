@@ -5559,7 +5559,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, TimeSpan expiration, ReplicateTo replicateTo, PersistTo persistTo,
             TimeSpan timeout)
         {
-            return UpsertAsync(key, value, expiration.ToTtl(), 0, replicateTo, persistTo, timeout);
+            return UpsertAsync(key, value, 0, expiration.ToTtl(), replicateTo, persistTo, timeout);
         }
 
         /// <summary>
