@@ -50,6 +50,8 @@ namespace Couchbase.UnitTests.Core.Logging
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
                 var msg = $"{DateTime.Now} [{Thread.CurrentThread.ManagedThreadId}] {logLevel} {formatter(state, exception)}";
+                _provider.Loggers.TryAdd(_categoryName, this);
+                _provider.Logs.TryAdd(_categoryName, new List<string>());
                 _provider.Logs[_categoryName].Add(msg);
             }
 
@@ -66,21 +68,22 @@ namespace Couchbase.UnitTests.Core.Logging
 
         public class InMemoryLoggerProvider : ILoggerProvider
         {
-            public ConcurrentDictionary<string, List<string>> Logs = new ConcurrentDictionary<string, List<string>>();
-            private readonly ConcurrentDictionary<string, InMemoryLogger> _loggers = new ConcurrentDictionary<string, InMemoryLogger>();
+            public readonly ConcurrentDictionary<string, List<string>> Logs = new ConcurrentDictionary<string, List<string>>();
+            public readonly ConcurrentDictionary<string, InMemoryLogger> Loggers = new ConcurrentDictionary<string, InMemoryLogger>();
 
             public void Dispose()
             {
-               _loggers.Clear();
+               Loggers.Clear();
             }
 
             public ILogger CreateLogger(string categoryName)
             {
-                if (!Logs.ContainsKey(categoryName))
-                {
-                    Logs.TryAdd(categoryName, new List<string>());
-                }
-                return new InMemoryLogger(this, categoryName);
+                Logs.TryAdd(categoryName, new List<string>());
+
+                var logger = new InMemoryLogger(this, categoryName);
+                Loggers.TryAdd(categoryName, logger);
+
+                return logger;
             }
         }
     }
