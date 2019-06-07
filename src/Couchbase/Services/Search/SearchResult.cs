@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
+using Newtonsoft.Json;
 
 namespace Couchbase.Services.Search
 {
@@ -31,13 +32,19 @@ namespace Couchbase.Services.Search
         /// <summary>
         /// The rows returned by the search request.
         /// </summary>
+        [JsonProperty("hits")]
         public IList<ISearchQueryRow> Hits { get; internal set; }
 
         /// <summary>
         /// The facets for the result.
         /// </summary>
+        [JsonProperty("facets")]
         public IDictionary<string, IFacetResult> Facets { get; internal set; }
 
+        /// <summary>
+        /// The search result metadata.
+        /// </summary>
+        [JsonProperty("metaData")]
         public MetaData MetaData { get; }
 
         /// <summary>

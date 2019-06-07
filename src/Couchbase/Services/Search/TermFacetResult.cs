@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Couchbase.Services.Search
 {
@@ -13,6 +14,7 @@ namespace Couchbase.Services.Search
         /// <value>
         /// The terms.
         /// </value>
+        [JsonProperty("terms")]
         public IReadOnlyCollection<Term> Terms { get; set; }
 
         /// <summary>
@@ -21,7 +23,8 @@ namespace Couchbase.Services.Search
         /// <value>
         /// The type of the facet result.
         /// </value>
-        public override FacetResultType FacetResultType { get { return FacetResultType.Term;} }
+        [JsonProperty("facetResultType")]
+        public override FacetResultType FacetResultType => FacetResultType.Term;
     }
 }
 

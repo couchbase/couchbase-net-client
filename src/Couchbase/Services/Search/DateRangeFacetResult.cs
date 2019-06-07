@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Couchbase.Services.Search
 {
@@ -18,6 +19,7 @@ namespace Couchbase.Services.Search
         /// <value>
         /// The date ranges.
         /// </value>
+        [JsonProperty("dateRanges")]
         public IReadOnlyCollection<DateRange> DateRanges { get; set; }
 
         /// <summary>
@@ -26,7 +28,8 @@ namespace Couchbase.Services.Search
         /// <value>
         /// The type of the facet result.
         /// </value>
-        public override FacetResultType FacetResultType { get { return FacetResultType.DateRange; } }
+        [JsonProperty("facetResultType")]
+        public override FacetResultType FacetResultType => FacetResultType.DateRange;
     }
 }
 

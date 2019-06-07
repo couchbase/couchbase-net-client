@@ -1,4 +1,6 @@
-﻿namespace Couchbase.Services.Search
+using Newtonsoft.Json;
+
+namespace Couchbase.Services.Search
 {
     /// <summary>
     /// The default facet result.
@@ -11,6 +13,7 @@
         /// <value>
         /// The name.
         /// </value>
+        [JsonProperty("name")]
         public string Name { get; set; }
 
         /// <summary>
@@ -19,6 +22,7 @@
         /// <value>
         /// The field.
         /// </value>
+        [JsonProperty("field")]
         public string Field { get; set; }
 
         /// <summary>
@@ -27,6 +31,7 @@
         /// <value>
         /// The total.
         /// </value>
+        [JsonProperty("total")]
         public long Total { get; set; }
 
         /// <summary>
@@ -35,6 +40,7 @@
         /// <value>
         /// The missing.
         /// </value>
+        [JsonProperty("missing")]
         public long Missing { get; set; }
 
         /// <summary>
@@ -43,6 +49,7 @@
         /// <value>
         /// The other.
         /// </value>
+        [JsonProperty("other")]
         public long Other { get; set; }
 
         /// <summary>
@@ -51,7 +58,8 @@
         /// <value>
         /// The type of the facet result.
         /// </value>
-        public virtual FacetResultType FacetResultType { get { return FacetResultType.Unknown;} }
+        [JsonProperty("FacetResultType")]
+        public virtual FacetResultType FacetResultType => FacetResultType.Unknown;
     }
 }
 
