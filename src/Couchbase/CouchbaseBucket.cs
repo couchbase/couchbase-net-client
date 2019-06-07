@@ -228,33 +228,6 @@ namespace Couchbase
             return _viewClientLazy.Value.ExecuteAsync<T>(query);
         }
 
-        public Task<IViewResult<T>> SpatialViewQueryAsync<T>(string designDocument, string viewName, SpatialViewOptions options = default)
-        {
-            if (options == default)
-            {
-                options = new SpatialViewOptions();
-            }
-
-            var uri = GetViewUri();
-
-            // create old style query
-            var query = new SpatialViewQuery(uri)
-            {
-                UseSsl = _configuration.UseSsl
-            };
-            query.Bucket(Name);
-            query.From(designDocument, viewName);
-            query.Stale(options.StaleState);
-            query.Skip(options.Skip);
-            query.Limit(options.Limit);
-            query.StartRange(options.StartRange.ToList());
-            query.EndRange(options.EndRange.ToList());
-            query.Development(options.Development);
-            query.ConnectionTimeout(options.ConnectionTimeout);
-
-            return _viewClientLazy.Value.ExecuteAsync<T>(query);
-        }
-
         public void Dispose()
         {
             if (_disposed)

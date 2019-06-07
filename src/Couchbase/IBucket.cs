@@ -13,7 +13,5 @@ namespace Couchbase
         Task<ICollection> DefaultCollection { get; }
 
         Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default);
-
-        Task<IViewResult<T>> SpatialViewQueryAsync<T>(string designDocument, string viewName, SpatialViewOptions options = default);
     }
 }

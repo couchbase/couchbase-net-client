@@ -123,11 +123,6 @@ namespace Couchbase.UnitTests
                 throw new NotImplementedException();
             }
 
-            public Task<IViewResult<T>> SpatialViewQueryAsync<T>(string designDocument, string viewName, SpatialViewOptions options)
-            {
-                throw new NotImplementedException();
-            }
-
             public Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
             {
                 if(_statuses.TryDequeue(out ResponseStatus status))

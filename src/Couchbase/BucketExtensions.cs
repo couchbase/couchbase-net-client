@@ -19,14 +19,5 @@ namespace Couchbase
 
             return bucket.ViewQueryAsync<T>(designDocument, viewName, options);
         }
-
-        public static Task<IViewResult<T>> SpatialViewQueryAsync<T>(this IBucket bucket, string designDocument,
-            string viewName, Action<SpatialViewOptions> configureOptions)
-        {
-            var options = new SpatialViewOptions();
-            configureOptions(options);
-
-            return bucket.SpatialViewQueryAsync<T>(designDocument, viewName, options);
-        }
     }
 }
