@@ -19,14 +19,14 @@ namespace Couchbase.Utils
         {
             if (duration <= TimeSpan.FromDays(30))
             {
+                //round up so ttl is not infinite (0)
+                if (duration.TotalMilliseconds > 0 && duration.TotalMilliseconds < 1000) return 1;
                 return (uint)duration.TotalSeconds;
             }
-            else
-            {
-                var dateExpiry = DateTime.UtcNow + duration;
-                var unixTimeStamp = (uint) (dateExpiry.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                return unixTimeStamp;
-            }
+
+            var dateExpiry = DateTime.UtcNow + duration;
+            var unixTimeStamp = (uint) (dateExpiry.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+            return unixTimeStamp;
         }
 
         /// <summary>
@@ -36,7 +36,17 @@ namespace Couchbase.Utils
         /// <returns>The TTL, expressed as a unix-based TTL in milliseconds.</returns>
         public static uint ToTtl(this uint duration)
         {
-            return ToTtl(TimeSpan.FromMilliseconds(duration));
+            const uint thirtyDaysInMilliseconds = 2592000000;
+            if (duration <=  thirtyDaysInMilliseconds)
+            {
+                //round up so ttl is not infinite (0)
+                if (duration > 0 && duration < 1000) return 1;
+                return duration / 1000;
+            }
+
+            var dateExpiry = DateTime.UtcNow + TimeSpan.FromMilliseconds(duration);
+            var unixTimeStamp = (uint) (dateExpiry.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+            return unixTimeStamp;
         }
 
         /// <summary>

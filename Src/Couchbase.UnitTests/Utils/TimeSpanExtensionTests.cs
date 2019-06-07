@@ -40,5 +40,34 @@ namespace Couchbase.UnitTests.Utils
                 Assert.IsFalse(result);
             }
         }
+
+        [Test]
+        [TestCase(0u, 0u)]
+        [TestCase(999u, 1u)]
+        [TestCase(1001u, 1u)]
+        [TestCase(2500u, 2u)]
+        public void Test_ToTtl(uint expiry, uint expected)
+        {
+            var doc = new Document<dynamic>
+            {
+                Expiry = expiry
+            };
+
+            var actual = doc.Expiry.ToTtl();
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        [TestCase(0u, 0u)]
+        [TestCase(999u, 1u)]
+        [TestCase(1001u, 1u)]
+        [TestCase(2500u, 2u)]
+        public void Test_ToTtl_TimeStamp(uint expiry, uint expected)
+        {
+            var actual = TimeSpan.FromMilliseconds(expiry).ToTtl();
+
+            Assert.AreEqual(expected, actual);
+        }
     }
 }
