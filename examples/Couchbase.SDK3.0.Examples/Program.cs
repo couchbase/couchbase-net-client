@@ -57,6 +57,9 @@ namespace Couchbase.SDK3._0.Examples
             var id = "p01";
 
             //upsert a new person
+            /*Is this the proposed new API for the SDK version 3? Removing async from all the async methods? Why
+            go against all the current standards that Microsoft and every other .net developer is using? 
+            This would be very confusing and not good practice */
             var result = await collection.Upsert(id, new Person
             {
                 name = "Joan Deere",
