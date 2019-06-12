@@ -3,8 +3,6 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations.Legacy;
-using Couchbase.Utils;
 
 namespace Couchbase.Core.Configuration.Server
 {
@@ -52,7 +50,7 @@ namespace Couchbase.Core.Configuration.Server
                 Thread.CurrentThread.Name = "cnfg";
                 while (!TokenSource.IsCancellationRequested)
                 {
-                    await Task.Delay(2500, TokenSource.Token).ConfigureAwait(false);
+                    await Task.Delay(_configuration.ConfigPollInterval, TokenSource.Token).ConfigureAwait(false);
 
                     foreach (var clusterNode in _configuration.GlobalNodes.Where(x=>x.Connection != null))
                     {

@@ -90,6 +90,7 @@ namespace Couchbase
         public TimeSpan AnalyticsTimeout { get; set; }
         public TimeSpan SearchTimeout { get; set; }
         public TimeSpan ManagementTimeout { get; set; }
+        public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2500);
         public bool UseSsl { get; set; }
         public bool EnableTracing { get; set; }
         public bool EnableMutationTokens { get; set; }
@@ -100,5 +101,6 @@ namespace Couchbase
         public bool IgnoreRemoteCertificateNameMismatch { get; set; }
         public int MaxQueryConnectionsPerServer { get; set; } = 10;
         public bool OrphanedResponseLoggingEnabled { get; set; }
+        public bool EnableConfigPolling { get; set; }
     }
 }

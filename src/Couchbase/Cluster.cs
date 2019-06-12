@@ -45,7 +45,10 @@ namespace Couchbase
             _configuration = configuration;
             _configContext = new ConfigContext(_configuration);
             _configContext.Start(_configTokenSource);
-            _configContext.Poll(_configTokenSource.Token);
+            if (_configuration.EnableConfigPolling)
+            {
+                _configContext.Poll(_configTokenSource.Token);
+            }
         }
 
         public Cluster(string connectionStr, string username, string password)
@@ -67,6 +70,11 @@ namespace Couchbase
             }
             _configContext = new ConfigContext(_configuration);
             _configContext.Start(_configTokenSource);
+
+            if (_configuration.EnableConfigPolling)
+            {
+                _configContext.Poll(_configTokenSource.Token);
+            }
         }
 
         private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint)
