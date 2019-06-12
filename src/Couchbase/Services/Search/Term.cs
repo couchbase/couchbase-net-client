@@ -19,6 +19,7 @@ namespace Couchbase.Services.Search
         /// <value>
         /// The count.
         /// </value>
+        [JsonProperty("count")]
         public long Count { get; set; }
     }
 }
