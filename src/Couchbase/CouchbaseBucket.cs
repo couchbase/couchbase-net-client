@@ -57,11 +57,20 @@ namespace Couchbase
 
         public void ConfigUpdated(object sender, BucketConfigEventArgs e)
         {
-            _bucketConfig = e.Config;
-            _keyMapper = new VBucketKeyMapper(_bucketConfig);
+            if (e.Config.Rev > _bucketConfig.Rev)
+            {
+                _bucketConfig = e.Config;
+                if (_bucketConfig.VBucketMapChanged)
+                {
+                    _keyMapper = new VBucketKeyMapper(_bucketConfig);
+                }
 
-            LoadManifest();
-            LoadClusterMap().ConfigureAwait(false).GetAwaiter().GetResult();
+                if (_bucketConfig.ClusterNodesChanged)
+                {
+                    LoadClusterMap(_bucketConfig).ConfigureAwait(false).GetAwaiter().GetResult();
+                    Prune(_bucketConfig);
+                }
+            }
         }
 
         public string Name { get; }
@@ -103,10 +112,62 @@ namespace Couchbase
             _manifest = await bootstrapNode.GetManifest().ConfigureAwait(false);
             _supportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
 
-            var bucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false); //TODO this should go through standard config check process NCBC-1944
+            _bucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false); //TODO this should go through standard config check process NCBC-1944
+            _keyMapper = new VBucketKeyMapper(_bucketConfig);
 
-            //first call should be synchronous
-            ConfigUpdated(this, new BucketConfigEventArgs(bucketConfig));
+            LoadManifest();
+            LoadClusterMap(_bucketConfig).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        private async Task LoadClusterMap(BucketConfig bucketConfig)
+        {
+            foreach (var nodesExt in bucketConfig.NodesExt)
+            {
+                var endPoint = nodesExt.GetIpEndPoint(_configuration);
+                if (_bucketNodes.TryGetValue(endPoint, out ClusterNode bootstrapNode))
+                {
+                    bootstrapNode.NodesExt = nodesExt;
+                    bootstrapNode.BuildServiceUris();
+                    continue; //bootstrap node is skipped because it already went through these steps
+                }
+
+                var connection = endPoint.GetConnection();
+                await connection.Authenticate(_configuration, Name).ConfigureAwait(false);
+                await connection.SelectBucket(Name).ConfigureAwait(false);
+
+                //one error map per node
+                var errorMap = await connection.GetErrorMap().ConfigureAwait(false);
+                var supportedFeatures = await connection.Hello().ConfigureAwait(false);
+
+                var clusterNode = new ClusterNode
+                {
+                    Connection = connection,
+                    ErrorMap = errorMap,
+                    EndPoint = endPoint,
+                    ServerFeatures = supportedFeatures,
+                    Configuration = _configuration,
+                    NodesExt = nodesExt
+                };
+                clusterNode.BuildServiceUris();
+                _supportsCollections = clusterNode.Supports(ServerFeatures.Collections);
+                _bucketNodes.AddOrUpdate(endPoint, clusterNode, (ep, node) => clusterNode);
+                _configuration.GlobalNodes.Add(clusterNode);
+            }
+        }
+
+        private void Prune(BucketConfig newConfig)
+        {
+            var removed = _bucketNodes.Where(x =>
+                !newConfig.NodesExt.Any(y => x.Key.Equals(y.GetIpEndPoint(_configuration))));
+
+            foreach (var valuePair in removed)
+            {
+                if (!_bucketNodes.TryRemove(valuePair.Key, out var clusterNode)) continue;
+                if (_configuration.GlobalNodes.TryTake(out clusterNode))
+                {
+                    clusterNode.Dispose();
+                }
+            }
         }
 
         private async Task LoadClusterMap()

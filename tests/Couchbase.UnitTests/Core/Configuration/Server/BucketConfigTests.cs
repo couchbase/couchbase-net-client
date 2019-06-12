@@ -1,5 +1,10 @@
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Net;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.UnitTests.Utils;
+using Couchbase.Utils;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server
@@ -113,6 +118,61 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             config2.NodesExt[0].hostname = "localhost:8091";
 
             Assert.False(config2.Equals(config1));
+        }
+
+        [Theory]
+        [InlineData(@"Documents\Configs\rev92-single-node.json", @"Documents\Configs\rev94.json")]
+        [InlineData(@"Documents\Configs\rev96.json", @"Documents\Configs\rev98-single-node.json")]
+        public void Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
+        {
+            var oldConfig = ResourceHelper.ReadResource<BucketConfig>(oldConfigPath);
+            var newConfig = ResourceHelper.ReadResource<BucketConfig>(newConfigPath);
+
+            var configuration = new Couchbase.Configuration();
+            var bucketNodes = new ConcurrentDictionary<IPEndPoint, ClusterNode>();
+
+            //load up the initial state after bootstrapping
+            foreach (var server in oldConfig.NodesExt)
+            {
+                var endPoint = server.GetIpEndPoint(configuration);
+                var clusterNode = new ClusterNode
+                {
+                    EndPoint = endPoint
+                };
+                configuration.GlobalNodes.Add(clusterNode);
+                bucketNodes.TryAdd(endPoint, clusterNode);
+            }
+
+            foreach (var nodesExt in newConfig.NodesExt)
+            {
+                var endPoint = nodesExt.GetIpEndPoint(configuration);
+                if (bucketNodes.ContainsKey(endPoint))
+                {
+                    continue;
+                }
+
+                var clusterNode = new ClusterNode
+                {
+                    EndPoint = endPoint
+                };
+                configuration.GlobalNodes.Add(clusterNode);
+                bucketNodes.TryAdd(endPoint, clusterNode);
+            }
+
+            var removed = bucketNodes.Where(x =>
+                !newConfig.NodesExt.Any(y => x.Key.Equals(y.GetIpEndPoint(configuration))));
+
+            foreach (var valuePair in removed)
+            {
+                if (!bucketNodes.TryRemove(valuePair.Key, out var clusterNode)) continue;
+                if (configuration.GlobalNodes.TryTake(out clusterNode))
+                {
+                    clusterNode.Dispose();
+                }
+            }
+
+            Assert.Equal(newConfig.NodesExt.Count, bucketNodes.Count);
+            Assert.Equal(configuration.GlobalNodes.Count, bucketNodes.Count);
         }
     }
 }
