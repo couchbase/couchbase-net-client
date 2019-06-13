@@ -27,6 +27,22 @@ namespace Couchbase.UnitTests
             }));
         }
 
+        [Fact]
+        public async Task SubDoc_More_Than_One_XAttr_Throws_ArgumentException()
+        {
+            var mockBucket = new Mock<FakeBucket>();
+            var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
+
+            Assert.ThrowsAsync<ArgumentException>(async () =>
+            {
+                await collection.LookupIn("docId", builder =>
+                {
+                    builder.Get("doc.path", isXattr: true);
+                    builder.Count("path", isXattr: true);
+                }, new LookupInOptions {Timeout = TimeSpan.FromHours(1)});
+            });
+        }
+
         [Theory]
         //specific key value errors
         [InlineData(ResponseStatus.KeyNotFound, typeof(KeyNotFoundException))]
