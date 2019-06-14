@@ -19,8 +19,6 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Query()
         {
             var cluster = _fixture.Cluster;
-            cluster.Initialize();
-
 
              var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=&0",
                 parameter => parameter.Add("poo"),
@@ -55,9 +53,6 @@ namespace Couchbase.IntegrationTests
             foreach (var result in results.Rows)
             {
             }
-
-            Thread.Sleep(100000);
-
         }
     }
 }
