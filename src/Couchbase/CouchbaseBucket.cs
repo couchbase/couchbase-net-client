@@ -170,48 +170,6 @@ namespace Couchbase
             }
         }
 
-        private async Task LoadClusterMap()
-        {
-            foreach (var nodesExt in _bucketConfig.NodesExt)//will need to update to use "NodeAdapter" = Nodes + NodesExt like in 2.0
-            {
-                var endpoint = nodesExt.GetIpEndPoint(_configuration);
-                if (_bucketNodes.TryGetValue(endpoint, out ClusterNode bootstrapNode))
-                {
-                    bootstrapNode.NodesExt = nodesExt;
-                    bootstrapNode.BuildServiceUris();
-                    continue; //bootstrap node is skipped because it already went through these steps
-                }
-
-                var connection = endpoint.GetConnection();
-                await connection.Authenticate(_configuration, Name).ConfigureAwait(false);
-                await connection.SelectBucket(Name).ConfigureAwait(false);
-
-                //one error map per node
-                var errorMap = await connection.GetErrorMap().ConfigureAwait(false);
-                var supportedFeatures = await connection.Hello().ConfigureAwait(false);
-
-                var clusterNode = new ClusterNode
-                {
-                    Connection = connection,
-                    ErrorMap = errorMap,
-                    EndPoint = endpoint,
-                    ServerFeatures = supportedFeatures,
-                    Configuration = _configuration,
-                    NodesExt = nodesExt,
-
-                    //build the services urls
-                    QueryUri = endpoint.GetQueryUri(_configuration, nodesExt),
-                    SearchUri = endpoint.GetSearchUri(_configuration, nodesExt),
-                    AnalyticsUri = endpoint.GetAnalyticsUri(_configuration, nodesExt),
-                    ViewsUri = endpoint.GetViewsUri(_configuration, nodesExt),
-                };
-                clusterNode.BuildServiceUris();
-                _supportsCollections = clusterNode.Supports(ServerFeatures.Collections);
-                _bucketNodes.AddOrUpdate(endpoint, clusterNode, (ep, node) => clusterNode);
-                _configuration.GlobalNodes.Add(clusterNode);
-            }
-        }
-
         private void LoadManifest()
         {
             //The server supports collections so build them from the manifest
@@ -324,7 +282,23 @@ namespace Couchbase
             op.VBucketId = vBucket.Index;
 
             var endPoint = vBucket.LocatePrimary();
-            await op.SendAsync(_bucketNodes[endPoint].Connection).ConfigureAwait(false);
+            var clusterNode = _bucketNodes[endPoint];
+            await CheckConnection(clusterNode).ConfigureAwait(false);
+            await op.SendAsync(clusterNode.Connection).ConfigureAwait(false);
+        }
+
+        private async Task CheckConnection(ClusterNode clusterNode)
+        {
+            //TODO temp fix for recreating dead connections - in future use CP to manage them
+            var connection = clusterNode.Connection;
+            if (connection.IsDead)
+            {
+                //recreate the connection its been closed and disposed
+                connection = clusterNode.EndPoint.GetConnection();
+                await connection.Authenticate(_configuration, Name).ConfigureAwait(false);
+                await connection.SelectBucket(Name).ConfigureAwait(false);
+                clusterNode.Connection = connection;
+            }
         }
     }
 }

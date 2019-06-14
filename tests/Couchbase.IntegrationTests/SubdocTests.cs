@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Newtonsoft.Json;
@@ -102,22 +103,26 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
-        public async Task t()
+        public async Task Test_When_Connection_Fails_It_Is_Recreated()
         {
             var collection = await _fixture.GetDefaultCollection();
 
-            await collection.LookupIn("docId", builder =>
+            try
             {
-                builder.Get("doc.path", isXattr: true);
-                builder.Count("path", isXattr: true);
-            });
+                await collection.LookupIn("docId", builder =>
+                {
+                    builder.Get("doc.path", isXattr: true);
+                    builder.Count("path", isXattr: true); //will fail and cause server to close connection
+                });
+            }
+            catch
+            {
+                // ignored -
+                // The code above will force the server to abort the socket;
+                // the connection will be reestablished and the code below should succeed
+            }
 
-            await collection.MutateIn("docId", builder =>
-            {
-                builder.Insert("path", "value", isXattr: true);
-                builder.Replace("path", "value", isXattr: true);
-                builder.Remove("path", isXattr: true);
-            });
+            await collection.Upsert(DocumentKey,  new {foo = "bar", bar = "foo"});;
         }
     }
 }
