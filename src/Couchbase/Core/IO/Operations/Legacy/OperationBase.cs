@@ -189,7 +189,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
                 result.OpCode = OpCode;
 
                 // make sure we read any extras
-                if (Success && Data.Length > 0)
+                if (Data.Length > 0)
                 {
                     ReadExtras(_data.Memory.Span);
                     result.Token = MutationToken ?? DefaultMutationToken;

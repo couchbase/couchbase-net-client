@@ -59,7 +59,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public virtual T GetValue()
         {
             var result = default(T);
-            if(Success && Data.Length > 0)
+            if(Data.Length > 0)
             {
                 try
                 {

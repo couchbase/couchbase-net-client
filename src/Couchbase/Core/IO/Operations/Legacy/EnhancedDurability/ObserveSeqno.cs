@@ -33,7 +33,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.EnhancedDurability
         public override ObserveSeqnoResponse GetValue()
         {
             var result = default(ObserveSeqnoResponse);
-            if (Success && Data.Length > 0)
+            if (Data.Length > 0)
             {
                 try
                 {

@@ -38,7 +38,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override ObserveState GetValue()
         {
-            if (Success && Data.Length > 0)
+            if (Data.Length > 0)
             {
                 try
                 {

@@ -115,7 +115,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         public override T GetValue()
         {
             var result = default(T);
-            if (Success && Data.Length > 0)
+            if (Data.Length > 0)
             {
                 try
                 {
