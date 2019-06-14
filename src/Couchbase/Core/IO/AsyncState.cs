@@ -64,7 +64,7 @@ namespace Couchbase.Core.IO
                 //this means the request never completed - assume a transport failure
                 response = MemoryPool<byte>.Shared.RentAndSlice(24);
                 Converter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
-                e = new Exception("SendTimeoutException");
+                e = new NetworkErrorException("The socket connection was closed.");
                 status = ResponseStatus.TransportFailure;
             }
             else

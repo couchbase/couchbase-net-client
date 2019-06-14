@@ -183,7 +183,7 @@ namespace Couchbase
                 case ResponseStatus.NodeUnavailable:
                     break;
                 case ResponseStatus.TransportFailure:
-                    break;
+                    return state.Exception;
                 default:
                     return new ArgumentOutOfRangeException();
             }
