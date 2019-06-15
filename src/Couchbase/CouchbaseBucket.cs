@@ -295,6 +295,8 @@ namespace Couchbase
             {
                 //recreate the connection its been closed and disposed
                 connection = clusterNode.EndPoint.GetConnection();
+                clusterNode.ServerFeatures = await connection.Hello().ConfigureAwait(false);
+                clusterNode.ErrorMap = await connection.GetErrorMap().ConfigureAwait(false);
                 await connection.Authenticate(_configuration, Name).ConfigureAwait(false);
                 await connection.SelectBucket(Name).ConfigureAwait(false);
                 clusterNode.Connection = connection;
