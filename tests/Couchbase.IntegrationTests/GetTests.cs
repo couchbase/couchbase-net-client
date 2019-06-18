@@ -23,9 +23,9 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.Insert(key, new {name = "mike"});
+                await collection.InsertAsync(key, new {name = "mike"});
 
-                using (var result = await collection.Get(key))
+                using (var result = await collection.GetAsync(key))
                 {
                     var content = result.ContentAs<dynamic>();
 
@@ -34,7 +34,7 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.Remove(key);
+                await collection.RemoveAsync(key);
             }
         }
 
@@ -46,9 +46,9 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.Insert(key, Person.Create());
+                await collection.InsertAsync(key, Person.Create());
 
-                using (var result = await collection.Get(key, options => options.WithProjection("name")))
+                using (var result = await collection.GetAsync(key, options => options.WithProjection("name")))
                 {
                     var content = result.ContentAs<Person>();
 
@@ -58,7 +58,7 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.Remove(key);
+                await collection.RemoveAsync(key);
             }
         }
 
@@ -70,9 +70,9 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.Insert(key, Person.Create());
+                await collection.InsertAsync(key, Person.Create());
 
-                using (var result = await collection.Get(key, options => options.WithProjection("name", "age")))
+                using (var result = await collection.GetAsync(key, options => options.WithProjection("name", "age")))
                 {
                     var content = result.ContentAs<Person>();
 
@@ -82,7 +82,7 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.Remove(key);
+                await collection.RemoveAsync(key);
             }
         }
     }

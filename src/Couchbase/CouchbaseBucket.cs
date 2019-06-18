@@ -90,7 +90,7 @@ namespace Couchbase
             }
         }
 
-        public Task<ICollection> DefaultCollection => Task.FromResult(_scopes[DefaultScope][CouchbaseCollection.DefaultCollection]);
+        public Task<ICollection> DefaultCollectionAsync => Task.FromResult(_scopes[DefaultScope][CouchbaseCollection.DefaultCollection]);
 
         async Task IBucketInternal.Bootstrap(ClusterNode bootstrapNode)
         {

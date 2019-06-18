@@ -22,17 +22,17 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var result = await collection.Exists(key);
+                var result = await collection.ExistsAsync(key);
                 Assert.False(result.Exists);
 
-                await collection.Insert(key, new { });
+                await collection.InsertAsync(key, new { });
 
-                result = await collection.Exists(key);
+                result = await collection.ExistsAsync(key);
                 Assert.True(result.Exists);
             }
             finally
             {
-                await collection.Remove(key);
+                await collection.RemoveAsync(key);
             }
         }
     }

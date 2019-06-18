@@ -6,7 +6,7 @@ namespace Couchbase
 {
     public static class BucketExtensions
     {
-        public static Task<IScope> Scope(this IBucket bucket, string name)
+        public static Task<IScope> ScopeAsync(this IBucket bucket, string name)
         {
             return bucket[name];
         }

@@ -20,9 +20,9 @@ namespace Couchbase.IntegrationTests
         public async Task Can_perform_lookup_in()
         {
             var collection = await _fixture.GetDefaultCollection();
-            await collection.Upsert(DocumentKey, new {foo = "bar", bar = "foo"});
+            await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"});
 
-            using (var result = await collection.LookupIn(DocumentKey, ops =>
+            using (var result = await collection.LookupInAsync(DocumentKey, ops =>
             {
                 ops.Get("foo");
                 ops.Get("bar");
@@ -37,9 +37,9 @@ namespace Couchbase.IntegrationTests
         public async Task Can_do_lookup_in_with_array()
         {
             var collection = await _fixture.GetDefaultCollection();
-            await collection.Upsert(DocumentKey, new {foo = "bar", bar = "foo"});
+            await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"});
 
-            using (var result = await collection.LookupIn(DocumentKey, new[]
+            using (var result = await collection.LookupInAsync(DocumentKey, new[]
             {
                 LookupInSpec.Get("foo"),
                 LookupInSpec.Get("bar")
@@ -54,15 +54,15 @@ namespace Couchbase.IntegrationTests
         public async Task Can_perform_mutate_in()
         {
             var collection = await _fixture.GetDefaultCollection();
-            await collection.Upsert(DocumentKey,  new {foo = "bar", bar = "foo"});
+            await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"});
 
-            await collection.MutateIn(DocumentKey, ops =>
+            await collection.MutateInAsync(DocumentKey, ops =>
             {
                 ops.Upsert("name", "mike");
                 ops.Replace("bar", "bar");
             });
 
-            using (var getResult = await collection.Get(DocumentKey))
+            using (var getResult = await collection.GetAsync(DocumentKey))
             {
                 var content = getResult.ContentAs<string>();
 
@@ -80,15 +80,15 @@ namespace Couchbase.IntegrationTests
         public async Task Can_perform_mutate_in_with_array()
         {
             var collection = await _fixture.GetDefaultCollection();
-            await collection.Upsert(DocumentKey, new {foo = "bar", bar = "foo"});
+            await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"});
 
-            await collection.MutateIn(DocumentKey, new[]
+            await collection.MutateInAsync(DocumentKey, new[]
             {
                 MutateInSpec.Upsert("name", "mike"),
                 MutateInSpec.Replace("bar", "bar")
             });
 
-            using (var getResult = await collection.Get(DocumentKey))
+            using (var getResult = await collection.GetAsync(DocumentKey))
             {
                 var content = getResult.ContentAs<string>();
 
@@ -109,7 +109,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.LookupIn("docId", builder =>
+                await collection.LookupInAsync("docId", builder =>
                 {
                     builder.Get("doc.path", isXattr: true);
                     builder.Count("path", isXattr: true); //will fail and cause server to close connection
@@ -122,7 +122,7 @@ namespace Couchbase.IntegrationTests
                 // the connection will be reestablished and the code below should succeed
             }
 
-            await collection.Upsert(DocumentKey,  new {foo = "bar", bar = "foo"});;
+            await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"});;
         }
     }
 }

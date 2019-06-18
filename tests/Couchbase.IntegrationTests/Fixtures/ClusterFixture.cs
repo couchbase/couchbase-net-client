@@ -10,22 +10,22 @@ namespace Couchbase.IntegrationTests.Fixtures
         public ClusterFixture()
         {
             Cluster = new Cluster(new Configuration()
-                .WithServers("couchbase://10.112.192.101")
+                .WithServers("couchbase://10.143.190.101")
                 .WithBucket("default")
                 .WithCredentials("Administrator", "password"));
 
-            Cluster.Initialize().ConfigureAwait(false).GetAwaiter().GetResult();
+            Cluster.InitializeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public async Task<IBucket> GetDefaultBucket()
         {
-            return await Cluster.Bucket("default");
+            return await Cluster.BucketAsync("default");
         }
 
         public async Task<ICollection> GetDefaultCollection()
         {
             var bucket = await GetDefaultBucket();
-            return await bucket.DefaultCollection;
+            return await bucket.DefaultCollectionAsync;
         }
 
         public void Dispose()

@@ -19,13 +19,13 @@ namespace Couchbase.UnitTests.Fixtures
 
         public async Task<IBucket> GetDefaultBucket()
         {
-            return await Cluster.Bucket("default");
+            return await Cluster.BucketAsync("default");
         }
 
         public async Task<ICollection> GetDefaultCollection()
         {
             var bucket = await GetDefaultBucket();
-            return await bucket.DefaultCollection;
+            return await bucket.DefaultCollectionAsync;
         }
 
         public void Dispose()

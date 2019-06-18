@@ -256,7 +256,7 @@ namespace Couchbase
 
         #region Get
 
-        public async Task<IGetResult> Get(string id, GetOptions options)
+        public async Task<IGetResult> GetAsync(string id, GetOptions options)
         {
             //A projection operation
             var enumerable = options.ProjectList ?? new List<string>();
@@ -307,7 +307,7 @@ namespace Couchbase
 
         #region Exists
 
-        public async Task<IExistsResult> Exists(string id, ExistsOptions options)
+        public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions options)
         {
             using (var existsOp = new Observe
             {
@@ -341,7 +341,7 @@ namespace Couchbase
 
         #region Upsert
 
-        public async Task<IMutationResult> Upsert<T>(string id, T content, UpsertOptions options)
+        public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions options)
         {
             using (var upsertOp = new Set<T>
             {
@@ -363,7 +363,7 @@ namespace Couchbase
 
         #region Insert
 
-        public async Task<IMutationResult> Insert<T>(string id, T content, InsertOptions options)
+        public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions options)
         {
             using (var insertOp = new Add<T>
             {
@@ -385,7 +385,7 @@ namespace Couchbase
 
         #region Replace
 
-        public async Task<IMutationResult> Replace<T>(string id, T content, ReplaceOptions options)
+        public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions options)
         {
             using (var replaceOp = new Replace<T>
             {
@@ -407,7 +407,7 @@ namespace Couchbase
 
         #region Remove
 
-        public async Task Remove(string id, RemoveOptions options)
+        public async Task RemoveAsync(string id, RemoveOptions options)
         {
             using (var removeOp = new Delete
             {
@@ -426,7 +426,7 @@ namespace Couchbase
 
         #region Unlock
 
-        public async Task Unlock<T>(string id, UnlockOptions options)
+        public async Task UnlockAsync<T>(string id, UnlockOptions options)
         {
             using (var unlockOp = new Unlock
             {
@@ -443,7 +443,7 @@ namespace Couchbase
 
         #region Touch
 
-        public async Task Touch(string id, TimeSpan expiration, TouchOptions options)
+        public async Task TouchAsync(string id, TimeSpan expiration, TouchOptions options)
         {
             using (var touchOp = new Touch
             {
@@ -462,7 +462,7 @@ namespace Couchbase
 
         #region GetAndTouch
 
-        public async Task<IGetResult> GetAndTouch(string id, TimeSpan expiration, GetAndTouchOptions options)
+        public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiration, GetAndTouchOptions options)
         {
             using (var getAndTouchOp = new GetT<byte[]>
             {
@@ -482,7 +482,7 @@ namespace Couchbase
 
         #region GetAndLock
 
-        public async Task<IGetResult> GetAndLock(string id, TimeSpan expiration, GetAndLockOptions options)
+        public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiration, GetAndLockOptions options)
         {
             using (var getAndLockOp = new GetL<byte[]>
             {
@@ -500,7 +500,7 @@ namespace Couchbase
 
         #region LookupIn
 
-        public async Task<ILookupInResult> LookupIn(string id, IEnumerable<OperationSpec> specs, LookupInOptions options)
+        public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<OperationSpec> specs, LookupInOptions options)
         {
             using (var lookup = await ExecuteLookupIn(id, specs, options))
             {
@@ -528,7 +528,7 @@ namespace Couchbase
 
         #region MutateIn
 
-        public async Task<IMutationResult> MutateIn(string id, IEnumerable<OperationSpec> specs, MutateInOptions options)
+        public async Task<IMutationResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options)
         {
             // convert new style specs into old style builder
             var builder = new MutateInBuilder<byte[]>(null, null, id, specs);
@@ -550,7 +550,7 @@ namespace Couchbase
 
         #region Append
 
-        public async Task<IMutationResult> Append(string id, byte[] value, AppendOptions options)
+        public async Task<IMutationResult> AppendAsync(string id, byte[] value, AppendOptions options)
         {
             using (var op = new Append<byte[]>
             {
@@ -569,7 +569,7 @@ namespace Couchbase
 
         #region Prepend
 
-        public async Task<IMutationResult> Prepend(string id, byte[] value, PrependOptions options)
+        public async Task<IMutationResult> PrependAsync(string id, byte[] value, PrependOptions options)
         {
             using (var op = new Prepend<byte[]>
             {
@@ -588,7 +588,7 @@ namespace Couchbase
 
         #region Increment
 
-        public async Task<ICounterResult> Increment(string id, IncrementOptions options)
+        public async Task<ICounterResult> IncrementAsync(string id, IncrementOptions options)
         {
             using (var op = new Increment
             {
@@ -608,7 +608,7 @@ namespace Couchbase
 
         #region Decrement
 
-        public async Task<ICounterResult> Decrement(string id, DecrementOptions options)
+        public async Task<ICounterResult> DecrementAsync(string id, DecrementOptions options)
         {
             using (var op = new Decrement
             {

@@ -23,17 +23,17 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.Insert(key, Encoding.UTF8.GetBytes("world"));
-                await collection.Binary.Prepend(key, Encoding.UTF8.GetBytes("hello "));
+                await collection.InsertAsync(key, Encoding.UTF8.GetBytes("world"));
+                await collection.Binary.PrependAsync(key, Encoding.UTF8.GetBytes("hello "));
 
-                using (var result = await collection.Get(key))
+                using (var result = await collection.GetAsync(key))
                 {
                     Assert.Equal("hello world", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
                 }
             }
             finally
             {
-                await collection.Remove(key);
+                await collection.RemoveAsync(key);
             }
         }
     }

@@ -107,12 +107,12 @@ namespace Couchbase.LoadTests
 
         private static Task Upsert(ICollection collection, KeyValuePair<string, object> document)
         {
-            return collection.Upsert(document.Key, document.Value);
+            return collection.UpsertAsync(document.Key, document.Value);
         }
 
         private static async Task Get(ICollection collection, string key)
         {
-            using (var result = await collection.Get(key))
+            using (var result = await collection.GetAsync(key))
             {
                 // Trigger deserialization
                 result.ContentAs<dynamic>();

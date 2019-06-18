@@ -47,7 +47,7 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Views()
         {
             var cluster = _fixture.Cluster;
-            var bucket = await cluster.Bucket("default");
+            var bucket = await cluster.BucketAsync("default");
 
             var results = await bucket.ViewQueryAsync<dynamic>("test", "testView").ConfigureAwait(false);
             foreach (var result in results.Rows)

@@ -96,7 +96,7 @@ namespace Couchbase
             return clusterNode;
         }
 
-        public async Task Initialize()
+        public async Task InitializeAsync()
         {
             //try to connect via GCCP
             foreach (var uri in _configuration.Servers)
@@ -134,7 +134,7 @@ namespace Couchbase
             }
         }
 
-        public async Task<IBucket> Bucket(string name)
+        public async Task<IBucket> BucketAsync(string name)
         {
             if (_bucketRefs.TryGetValue(name, out var bucket))
             {
@@ -176,12 +176,12 @@ namespace Couchbase
             return bucket;
         }
 
-        public Task<IDiagnosticsReport> Diagnostics(string reportId)
+        public Task<IDiagnosticsReport> DiagnosticsAsync(string reportId)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IClusterManager> ClusterManager()
+        public Task<IClusterManager> ClusterManagerAsync()
         {
             throw new NotImplementedException();
         }

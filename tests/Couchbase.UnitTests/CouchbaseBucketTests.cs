@@ -27,7 +27,7 @@ namespace Couchbase.UnitTests
 
             await Assert.ThrowsAsync<ScopeMissingException>(() =>
             {
-                var scope = bucket.Scope("doesnotexist").Result;
+                var scope = bucket.ScopeAsync("doesnotexist").Result;
                 return Task.CompletedTask;
             });
         }

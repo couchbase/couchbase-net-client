@@ -23,7 +23,7 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollection();
 
             // Upsert will throw exception if durability is not met
-            await collection.Upsert(
+            await collection.UpsertAsync(
                 "id",
                 new {name = "mike"},
                 options => options.DurabilityLevel = durabilityLevel

@@ -21,7 +21,7 @@ namespace Couchbase.UnitTests
             var mockBucket = new Mock<FakeBucket>();
             var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
 
-            Assert.ThrowsAsync<TimeoutException>(async () => await collection.Get("key", options =>
+            Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
                 options.WithTimeout(TimeSpan.FromMilliseconds(1d));
             }));
@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests
 
             Assert.ThrowsAsync<ArgumentException>(async () =>
             {
-                await collection.LookupIn("docId", builder =>
+                await collection.LookupInAsync("docId", builder =>
                 {
                     builder.Get("doc.path", isXattr: true);
                     builder.Count("path", isXattr: true);
@@ -100,7 +100,7 @@ namespace Couchbase.UnitTests
 
             try
             {
-                using (await collection.Get("key"))
+                using (await collection.GetAsync("key"))
                 {
                 }
             }
@@ -138,7 +138,7 @@ namespace Couchbase.UnitTests
 
             public Task<IScope> this[string name] => throw new NotImplementedException();
 
-            public Task<ICollection> DefaultCollection => throw new NotImplementedException();
+            public Task<ICollection> DefaultCollectionAsync => throw new NotImplementedException();
 
             public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options)
             {

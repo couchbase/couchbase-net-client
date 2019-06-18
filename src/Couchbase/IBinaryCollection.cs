@@ -1,16 +1,15 @@
-using System;
 using System.Threading.Tasks;
 
 namespace Couchbase
 {
     public interface IBinaryCollection
     {
-        Task<IMutationResult> Append(string id, byte[] value, AppendOptions options);
+        Task<IMutationResult> AppendAsync(string id, byte[] value, AppendOptions options);
 
-        Task<IMutationResult> Prepend(string id, byte[] value, PrependOptions options);
+        Task<IMutationResult> PrependAsync(string id, byte[] value, PrependOptions options);
 
-        Task<ICounterResult> Increment(string id, IncrementOptions options);
+        Task<ICounterResult> IncrementAsync(string id, IncrementOptions options);
 
-        Task<ICounterResult> Decrement(string id, DecrementOptions options);
+        Task<ICounterResult> DecrementAsync(string id, DecrementOptions options);
     }
 }

@@ -76,7 +76,7 @@ namespace Couchbase.Services.Analytics
                 switch (ingestOptions.IngestMethod)
                 {
                     case IngestMethod.Insert:
-                        op = collection.Insert(
+                        op = collection.InsertAsync(
                             ingestOptions.IdGenerator(row),
                             row,
                             options =>
@@ -86,7 +86,7 @@ namespace Couchbase.Services.Analytics
                             });
                         break;
                     case IngestMethod.Upsert:
-                        op = collection.Upsert(
+                        op = collection.UpsertAsync(
                             ingestOptions.IdGenerator(row),
                             row,
                             options =>
@@ -96,7 +96,7 @@ namespace Couchbase.Services.Analytics
                             });
                         break;
                     case IngestMethod.Replace:
-                        op = collection.Replace(
+                        op = collection.ReplaceAsync(
                             ingestOptions.IdGenerator(row),
                             row,
                             options =>
