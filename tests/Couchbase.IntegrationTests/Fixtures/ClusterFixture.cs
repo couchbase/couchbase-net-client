@@ -10,10 +10,10 @@ namespace Couchbase.IntegrationTests.Fixtures
         public ClusterFixture()
         {
             Cluster = new Cluster(new Configuration()
-                .WithServers("couchbase://10.143.190.101")
+                .WithServers("couchbase://localhost")
                 .WithBucket("default")
-                .WithCredentials("Administrator", "password"));
-
+                .WithCredentials("Administrator", "password")
+            );
             Cluster.InitializeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 

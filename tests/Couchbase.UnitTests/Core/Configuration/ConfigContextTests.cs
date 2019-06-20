@@ -223,7 +223,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             throw new NotImplementedException();
         }
 
-        Task IBucketInternal.Bootstrap(ClusterNode clusterNode)
+        Task IBucketInternal.Bootstrap(params ClusterNode[] clusterNode)
         {
             throw new NotImplementedException();
         }

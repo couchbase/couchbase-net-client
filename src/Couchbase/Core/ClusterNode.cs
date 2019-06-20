@@ -19,6 +19,8 @@ namespace Couchbase.Core
 
         public NodesExt NodesExt { get; set; }
 
+        public Uri BootstrapUri { get; internal set; }
+
         public IPEndPoint EndPoint { get; internal set; }
 
         public Uri QueryUri { get; internal set; }

@@ -1,0 +1,69 @@
+{
+  "rev": 69,
+  "name": null,
+  "uri": null,
+  "streamingUri": null,
+  "nodes": null,
+  "nodesExt": [
+    {
+      "services": {
+        "mgmt": 8091,
+        "mgmtSSL": 18091,
+        "indexAdmin": 9100,
+        "indexScan": 9101,
+        "indexHttp": 9102,
+        "indexStreamInit": 9103,
+        "indexStreamCatchup": 9104,
+        "indexStreamMaint": 9105,
+        "indexHttps": 19102,
+        "kv": 11210,
+        "kvSSL": 11207,
+        "capi": 8092,
+        "capiSSL": 18092,
+        "projector": 9999,
+        "n1ql": 8093,
+        "n1qlSSL": 18093,
+        "cbas": 8095,
+        "cbasSSL": 18095,
+        "fts": 8094,
+        "ftsSSL": 18094
+      },
+      "thisNode": true,
+      "hostname": "10.112.192.101"
+    },
+    {
+      "services": {
+        "mgmt": 8091,
+        "mgmtSSL": 18091,
+        "indexAdmin": 9100,
+        "indexScan": 9101,
+        "indexHttp": 9102,
+        "indexStreamInit": 9103,
+        "indexStreamCatchup": 9104,
+        "indexStreamMaint": 9105,
+        "indexHttps": 19102,
+        "kv": 11210,
+        "kvSSL": 11207,
+        "capi": 8092,
+        "capiSSL": 18092,
+        "projector": 9999,
+        "n1ql": 8093,
+        "n1qlSSL": 18093,
+        "cbas": 0,
+        "cbasSSL": 0,
+        "fts": 0,
+        "ftsSSL": 0
+      },
+      "thisNode": false,
+      "hostname": "10.112.192.102"
+    }
+  ],
+  "nodeLocator": null,
+  "uuid": null,
+  "ddocs": null,
+  "vBucketServerMap": null,
+  "bucketCapabilitiesVer": null,
+  "bucketCapabilities": null,
+  "VBucketMapChanged": false,
+  "ClusterNodesChanged": false
+}

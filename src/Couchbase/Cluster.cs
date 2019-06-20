@@ -28,6 +28,7 @@ namespace Couchbase
         private CancellationTokenSource _configTokenSource;
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
         private readonly ConfigContext _configContext;
+        private BucketConfig _clusterConfig;
 
         public Cluster(Configuration configuration)
         {
@@ -77,7 +78,7 @@ namespace Couchbase
             }
         }
 
-        private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint)
+        private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint, Uri uri)
         {
             var connection = endPoint.GetConnection();
 
@@ -90,7 +91,9 @@ namespace Couchbase
                 EndPoint = endPoint,
                 Connection = connection,
                 ServerFeatures = serverFeatures,
-                ErrorMap = errorMap
+                ErrorMap = errorMap,
+                Configuration = _configuration,
+                BootstrapUri = uri
             };
 
             return clusterNode;
@@ -104,19 +107,42 @@ namespace Couchbase
                 try
                 {
                     var endPoint = uri.GetIpEndPoint(11210, false);
-                    var bootstrapNode = await GetClusterNode(endPoint).ConfigureAwait(false);
+                    var bootstrapNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
 
                     //note this returns bucketConfig, but clusterConfig will be returned once server supports GCCP
-                    var clusterMap = await bootstrapNode.GetClusterMap().ConfigureAwait(false);
-                    if (clusterMap == null)//TODO fix bug NCBC-1966 - hiding XError when no error map (and others)
+                    _clusterConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false);
+                    if (_clusterConfig == null)//TODO fix bug NCBC-1966 - hiding XError when no error map (and others)
                     {
                         //No GCCP but we connected - save connections and info for connecting later
                         _configuration.GlobalNodes.Add(bootstrapNode);
                     }
                     else
                     {
-                        //TODO add GCCP path when it exists on Mad Hatter builds
-                        //Store the ClusterConfig (global) and then build the nodes
+                        foreach (var nodesExt in _clusterConfig.NodesExt)
+                        {
+                            //fixup server bug(?) where hostname is null on single node
+                            if (nodesExt.hostname == null)
+                            {
+                                nodesExt.hostname = uri.Host;
+                            }
+
+                            //This is the bootstrap node so we update it
+                            if (uri.Host == nodesExt.hostname)
+                            {
+                                bootstrapNode.NodesExt = nodesExt;
+                                bootstrapNode.BuildServiceUris();
+                                _configuration.GlobalNodes.Add(bootstrapNode);
+                            }
+                            else
+                            {
+                                endPoint = IpEndPointExtensions.GetEndPoint(nodesExt.hostname, 11210);
+
+                                var clusterNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
+                                clusterNode.NodesExt = nodesExt;
+                                clusterNode.BuildServiceUris();
+                                _configuration.GlobalNodes.Add(clusterNode);
+                            }
+                        }
                     }
                 }
                 catch (AuthenticationException e)
@@ -142,13 +168,14 @@ namespace Couchbase
             }
 
             //No GCCP but we have a connection - not bootstrapped yet so commence strapping das boot
-            var bootstrapNode = _configuration.GlobalNodes.FirstOrDefault(x => x.Owner == null);
-            if (bootstrapNode == null)
+            var bootstrapNodes = _configuration.GlobalNodes.Where(x => x.Owner == null);
+            var clusterNodes = bootstrapNodes as ClusterNode[] ?? bootstrapNodes.ToArray();
+            if (clusterNodes.Any())
             {
                 //use existing clusterNode from bootstrapping
                 bucket = new CouchbaseBucket(name, _configuration, _configContext);
                 _configContext.Subscribe((IBucketInternal)bucket);
-                await ((IBucketInternal) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
+                await ((IBucketInternal) bucket).Bootstrap(clusterNodes.ToArray()).ConfigureAwait(false);
 
                 _bucketRefs.TryAdd(name, bucket);
             }
@@ -157,7 +184,7 @@ namespace Couchbase
                 //all clusterNodes have owners so create a new one
                 var uri = _configuration.Servers.GetRandom();
                 var endPoint = uri.GetIpEndPoint(11210, false);
-                bootstrapNode = await GetClusterNode(endPoint).ConfigureAwait(false);
+                var bootstrapNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
 
                 bucket = new CouchbaseBucket(name, _configuration, _configContext);
                 _configContext.Subscribe((IBucketInternal)bucket);

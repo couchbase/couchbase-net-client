@@ -23,7 +23,7 @@ namespace Couchbase
     {
         Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs);
 
-        Task Bootstrap(ClusterNode clusterNode);
+        Task Bootstrap(params ClusterNode[] bootstrapNodes);
 
         void ConfigUpdated(object sender, BucketConfigEventArgs e);
     }
@@ -92,28 +92,50 @@ namespace Couchbase
 
         public Task<ICollection> DefaultCollectionAsync => Task.FromResult(_scopes[DefaultScope][CouchbaseCollection.DefaultCollection]);
 
-        async Task IBucketInternal.Bootstrap(ClusterNode bootstrapNode)
+        async Task IBucketInternal.Bootstrap(params ClusterNode[] bootstrapNodes)
         {
             //should never happen
-            if (bootstrapNode == null)
+            if (bootstrapNodes == null)
             {
-                throw new ArgumentNullException(nameof(bootstrapNode));
+                throw new ArgumentNullException(nameof(bootstrapNodes));
             }
 
-            bootstrapNode.Owner = this;
+            foreach (var bootstrapNode in bootstrapNodes)
+            {
+                bootstrapNode.Owner = this;
 
-            //reuse the bootstrapNode
-            _bucketNodes.AddOrUpdate(bootstrapNode.EndPoint, bootstrapNode, (key, node) => bootstrapNode);
-            bootstrapNode.Configuration = _configuration;
+                //reuse the bootstrapNode
+                _bucketNodes.AddOrUpdate(bootstrapNode.EndPoint, bootstrapNode, (key, node) => bootstrapNode);
+                bootstrapNode.Configuration = _configuration;
 
-            //the initial bootstrapping endpoint;
-            await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);
+                //the initial bootstrapping endpoint;
+                await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);
 
-            _manifest = await bootstrapNode.GetManifest().ConfigureAwait(false);
-            _supportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
+                _manifest = await bootstrapNode.GetManifest().ConfigureAwait(false);
+                _supportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
 
-            _bucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false); //TODO this should go through standard config check process NCBC-1944
-            _keyMapper = new VBucketKeyMapper(_bucketConfig);
+                if (_bucketConfig == null)
+                {
+                    _bucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false); 
+                    _keyMapper = new VBucketKeyMapper(_bucketConfig);
+                }
+
+                if (_bucketConfig.NodesExt.Count == 1)
+                {
+                    var nodesExt = _bucketConfig.NodesExt.First();
+                    if (nodesExt.hostname == null)
+                    {
+                        nodesExt.hostname = bootstrapNode.BootstrapUri.Host;
+                    }
+
+                    bootstrapNode.NodesExt = nodesExt;
+                }
+                else
+                {
+                    bootstrapNode.NodesExt =
+                        _bucketConfig.NodesExt.Find(x => x.hostname == bootstrapNode.BootstrapUri.Host);
+                }
+            }
 
             LoadManifest();
             LoadClusterMap(_bucketConfig).ConfigureAwait(false).GetAwaiter().GetResult();
