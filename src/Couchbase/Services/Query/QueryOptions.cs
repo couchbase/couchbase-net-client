@@ -5,8 +5,7 @@ using System.Net;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.IO.Operations.Legacy;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Services.Query.Couchbase.N1QL;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Encoding = Couchbase.Services.Query.Couchbase.N1QL.Encoding;
@@ -749,7 +748,7 @@ namespace Couchbase.Services.Query
             }
             if (_encoding.HasValue)
             {
-                formValues.Add(QueryParameters.Encoding, _encoding.Value.ToString());
+                formValues.Add(QueryParameters.Encoding, _encoding.Value.GetDescription());
             }
             if (_compression.HasValue)
             {
