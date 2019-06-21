@@ -207,7 +207,8 @@ namespace Couchbase.UnitTests.N1Ql
                 .Timeout(new TimeSpan(0, 0, 0, 0, 10000))
                 .Compression(Compression.RLE)
                 .AddCredentials("authenticated", "secret", false)
-                .AddPositionalParameter("boo");
+                .AddPositionalParameter("boo")
+                .Encoding(Encoding.Utf8);
         }
 
         [Test]
@@ -369,7 +370,7 @@ namespace Couchbase.UnitTests.N1Ql
             var request = CreateFullQueryRequest();
             QuerySequenceGenerator.Reset();
             request.ClientContextId("0");
-            Assert.AreEqual("http://localhost:8093/query[{\"statement\":\"SELECT * from Who WHERE $1\",\"timeout\":\"10000ms\",\"readonly\":false,\"metrics\":true,\"args\":[\"boo\"],\"compression\":\"RLE\",\"signature\":true,\"scan_consistency\":\"request_plus\",\"scan_wait\":\"100ms\",\"pretty\":true,\"creds\":[{\"user\":\"local:authenticated\",\"pass\":\"secret\"}],\"client_context_id\":\"0::0\"}]", request.ToString());
+            Assert.AreEqual("http://localhost:8093/query[{\"statement\":\"SELECT * from Who WHERE $1\",\"timeout\":\"10000ms\",\"readonly\":false,\"metrics\":true,\"args\":[\"boo\"],\"encoding\":\"UTF-8\",\"compression\":\"RLE\",\"signature\":true,\"scan_consistency\":\"request_plus\",\"scan_wait\":\"100ms\",\"pretty\":true,\"creds\":[{\"user\":\"local:authenticated\",\"pass\":\"secret\"}],\"client_context_id\":\"0::0\"}]", request.ToString());
         }
 
         [Test]

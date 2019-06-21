@@ -777,7 +777,7 @@ namespace Couchbase.N1QL
             }
             if (_encoding.HasValue)
             {
-                formValues.Add(QueryParameters.Encoding, _encoding.Value.ToString());
+                formValues.Add(QueryParameters.Encoding, _encoding.Value.GetDescription());
             }
             if (_compression.HasValue)
             {
