@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Utils;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -13,7 +14,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
     internal class OrphanedResponseLogger : IOrphanedResponseLogger
     {
         private const int WorkerSleep = 100;
-       // private static readonly ILog Log = LogManager.GetLogger<OrphanedResponseLogger>();
+        private static readonly ILogger Logger = LogManager.CreateLogger<OrphanedResponseLogger>();
 
         private readonly CancellationTokenSource _source = new CancellationTokenSource();
         private readonly BlockingCollection<OperationContext> _queue = new BlockingCollection<OperationContext>(1000);
@@ -64,7 +65,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
                             if (result.Any())
                             {
-                                //Log.Warn("Orphaned responses observed: {0}", result.ToString(Formatting.None));
+                                Logger.LogWarning("Orphaned responses observed: {0}", result.ToString(Formatting.None));
                             }
 
                             _hasOrphans = false;
@@ -113,7 +114,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 catch (OperationCanceledException) { } // ignore
                 catch (Exception exception)
                 {
-                  //  Log.Error("Error when processing Orphaned Responses", exception);
+                    Logger.LogError(exception, "Error when processing Orphaned Responses");
                 }
             }
         }

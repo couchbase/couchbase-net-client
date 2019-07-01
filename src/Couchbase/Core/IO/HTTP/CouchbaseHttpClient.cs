@@ -4,12 +4,16 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.HTTP
 {
     public class CouchbaseHttpClient : HttpClient
     {
+        private static readonly ILogger Logger = LogManager.CreateLogger<CouchbaseHttpClient>();
+
         private const string UserAgentHeaderName = "User-Agent";
 
         private Couchbase.Configuration ClientConfig { get; set; }
@@ -59,7 +63,7 @@ namespace Couchbase.Core.IO.HTTP
             }
             catch (NotImplementedException)
             {
-                //Log.Debug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
+                Logger.LogDebug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
             }
 
             if (clientConfig != null)
@@ -70,7 +74,7 @@ namespace Couchbase.Core.IO.HTTP
                 }
                 catch (PlatformNotSupportedException e)
                 {
-                   // Log.Debug("Cannot set MaxConnectionsPerServer, not supported on this platform", e);
+                   Logger.LogDebug("Cannot set MaxConnectionsPerServer, not supported on this platform", e);
                 }
             }
             return handler;

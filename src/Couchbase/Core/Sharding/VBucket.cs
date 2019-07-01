@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Sharding
 {
@@ -11,6 +13,8 @@ namespace Couchbase.Core.Sharding
     /// </summary>
     internal class VBucket : IVBucket
     {
+        private static readonly ILogger Logger = LogManager.CreateLogger<VBucket>();
+
         private readonly short[] _replicas;
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly ICollection<IPEndPoint> _endPoints;
@@ -44,7 +48,7 @@ namespace Couchbase.Core.Sharding
                 }
                 catch (Exception e)
                 {
-                    //Log.Debug(e);
+                    Logger.LogDebug(e, "Error locating Primary");
                 }
             }
             if(endPoint == null)
@@ -61,7 +65,7 @@ namespace Couchbase.Core.Sharding
                         }
                         catch (Exception e)
                         {
-                           // Log.Debug(e);
+                           Logger.LogDebug(e, "Error locating Primary");
                         }
                     }
                 }
@@ -82,7 +86,7 @@ namespace Couchbase.Core.Sharding
             }
             catch
             {
-                //Log.Debug("No server found for replica with index of {0}.", index);
+                Logger.LogDebug("No server found for replica with index of {0}.", index);
                 return null;
             }
         }

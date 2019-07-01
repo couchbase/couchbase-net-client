@@ -60,7 +60,7 @@ namespace Couchbase
                 {
                     root.Add(projection.First); //hacky should be improved later
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     //ignore for now - these are cases where a root attribute is already mapped
                     //for example "attributes" and "attributes.hair" will cause exceptions

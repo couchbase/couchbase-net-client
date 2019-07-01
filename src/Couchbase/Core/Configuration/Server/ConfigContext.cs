@@ -1,3 +1,5 @@
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -18,6 +20,8 @@ namespace Couchbase.Core.Configuration.Server
 
     internal class ConfigContext : IDisposable
     {
+        private static readonly ILogger Logger = LogManager.CreateLogger<ConfigContext>();
+
         private readonly BlockingCollection<BucketConfig> _configQueue = new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
         private readonly ConcurrentDictionary<string, BucketConfig> _configs = new ConcurrentDictionary<string, BucketConfig>();
         private CancellationTokenSource TokenSource { get; set; }
@@ -96,7 +100,7 @@ namespace Couchbase.Core.Configuration.Server
                 }
                 catch (Exception e)
                 {
-
+                    Logger.LogWarning(e, "Error processing new configuration");
                 }
             }
         }

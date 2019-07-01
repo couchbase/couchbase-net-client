@@ -33,6 +33,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         /// </exception>
         internal LookupInBuilder(ISubdocInvoker invoker, Func<ITypeSerializer> serializer, string key)
         {
+            _invoker = invoker;
+            _serializer = serializer;
             Key = key ?? throw new ArgumentNullException(nameof(key));
         }
 
