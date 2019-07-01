@@ -6,7 +6,7 @@ namespace Couchbase.Core.Logging
     {
         public static RedactionLevel RedactionLevel = RedactionLevel.None;
 
-        public static ILoggerFactory LoggerFactory { get; } = new LoggerFactory();
+        public static ILoggerFactory LoggerFactory { get; set; } = new LoggerFactory();
 
         public static ILogger CreateLogger<T>() => LoggerFactory.CreateLogger<T>();
     }
