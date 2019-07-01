@@ -138,7 +138,7 @@ namespace Couchbase.UnitTests
 
             public Task<IScope> this[string name] => throw new NotImplementedException();
 
-            public Task<ICollection> DefaultCollectionAsync => throw new NotImplementedException();
+            public Task<ICollection> DefaultCollectionAsync() => throw new NotImplementedException();
 
             public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options)
             {
