@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Logging
@@ -9,5 +10,7 @@ namespace Couchbase.Core.Logging
         public static ILoggerFactory LoggerFactory { get; set; } = new LoggerFactory();
 
         public static ILogger CreateLogger<T>() => LoggerFactory.CreateLogger<T>();
+
+        public static ILogger CreateLogger(Type type) => LoggerFactory.CreateLogger(type);
     }
 }
