@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Runtime.Serialization;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -73,7 +72,7 @@ namespace Couchbase.Configuration.Server.Serialization
         }
 
         // ReSharper disable once InconsistentNaming
-        private void EnsureIPEndPointsAreLoaded()
+        internal void EnsureIPEndPointsAreLoaded()
         {
             lock (_syncObj)
             {
@@ -86,14 +85,6 @@ namespace Couchbase.Configuration.Server.Serialization
                     }
                 }
             }
-        }
-
-        [OnDeserialized]
-        internal void OnDeserializedMethod(StreamingContext context)
-        {
-            // If we're deserializing the configuration, go ahead and load the endpoints in advance
-            // https://issues.couchbase.com/browse/NCBC-1614
-            EnsureIPEndPointsAreLoaded();
         }
     }
 }

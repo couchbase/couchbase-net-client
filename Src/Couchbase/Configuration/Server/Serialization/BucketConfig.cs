@@ -60,7 +60,7 @@ namespace Couchbase.Configuration.Server.Serialization
         public Node[] Nodes { get; set; }
 
         [JsonProperty("nodesExt")]
-        public NodeExt[] NodesExt { get; set; }
+        public NodeExt[] NodesExt { get; set; } = new NodeExt[0];
 
         [JsonProperty("stats")]
         public Stats Stats { get; set; }
@@ -208,6 +208,34 @@ namespace Couchbase.Configuration.Server.Serialization
         public bool IsVBucketServerMapEqual(IBucketConfig other)
         {
             return VBucketServerMap.Equals(other.VBucketServerMap);
+        }
+
+        [OnDeserialized]
+        internal void OnDeserializedMethod(StreamingContext context)
+        {
+            ResolveHostName();
+            VBucketServerMap.EnsureIPEndPointsAreLoaded();
+        }
+
+        public void ResolveHostName()
+        {
+            for (var i = 0; i < VBucketServerMap.ServerList.Length; i++)
+            {
+                var nodeExt = NodesExt.FirstOrDefault(x => x.Hostname != null && VBucketServerMap.ServerList[i].Contains(x.Hostname));
+                if (nodeExt != null && nodeExt.HasAlternateAddress && nodeExt.AlternateAddresses.HasExternalAddress)
+                {
+                    //The SSL port is resolved later
+                    VBucketServerMap.ServerList[i] = nodeExt.AlternateAddresses.External.Hostname + ":" + nodeExt.Services.KV;
+                }
+            }
+
+            foreach (var nodeExt in NodesExt)
+            {
+                if (nodeExt.HasAlternateAddress && nodeExt.AlternateAddresses.HasExternalAddress)
+                {
+                    nodeExt.Hostname = nodeExt.AlternateAddresses.External.Hostname+ ":" + nodeExt.Services.KV;
+                }
+            }
         }
     }
 }

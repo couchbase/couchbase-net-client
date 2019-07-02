@@ -12,6 +12,8 @@ namespace Couchbase.Configuration.Server.Serialization
         /// </value>
         [JsonProperty("external")]
         public ExternalAddressesConfig External { get; set; }
+
+        public bool HasExternalAddress => External?.Hostname != null;
     }
 }
 

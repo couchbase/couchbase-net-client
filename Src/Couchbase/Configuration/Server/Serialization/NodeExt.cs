@@ -33,6 +33,8 @@ namespace Couchbase.Configuration.Server.Serialization
 
         [JsonProperty("alternateAddresses")]
         public AlternateAddressesConfig AlternateAddresses { get; set; }
+
+        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.HasExternalAddress;
     }
 }
 
