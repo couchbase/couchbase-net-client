@@ -11,55 +11,51 @@ namespace Couchbase
 {
     public sealed class Configuration
     {
-        private ConcurrentBag<Uri>_servers = new ConcurrentBag<Uri>();
+        private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
         internal ConcurrentBag<ClusterNode> GlobalNodes { get; set; } = new ConcurrentBag<ClusterNode>();
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 
-        public Configuration WithServers(params string[] ips)
+        public Configuration WithServers(params string[] servers)
         {
-            if (ips == null)
+            if (!servers?.Any() ?? true)
             {
-                throw new ArgumentNullException(nameof(ips));
+                throw new ArgumentException($"{nameof(servers)} cannot be null or empty.");
             }
 
             //for now just copy over - later ensure only new nodes are added
-            return new Configuration
-            {
-                UserName = UserName,
-                Password = Password,
-                _servers = new ConcurrentBag<Uri>(ips.Select(x=>new Uri(x))),
-                _buckets = _buckets
-            };
+            _servers = new ConcurrentBag<Uri>(servers.Select(x => new Uri(x)));
+            return this;
         }
 
         public Configuration WithBucket(params string[] bucketNames)
         {
-            if(bucketNames == null)
+            if (!bucketNames?.Any() ?? true)
             {
-                throw new ArgumentNullException(nameof(bucketNames ));
+                throw new ArgumentException($"{nameof(bucketNames)} cannot be null or empty.");
             }
 
             //just the name of the bucket for now - later make and actual config
-            return new Configuration
-            {
-                UserName = UserName,
-                Password = Password,
-                _buckets = new ConcurrentBag<string>(bucketNames.ToList()),
-                _servers = _servers
-            };
+            _buckets = new ConcurrentBag<string>(bucketNames.ToList());
+            return this;
         }
 
         public Configuration WithCredentials(string username, string password)
         {
-            return new Configuration
+            if (string.IsNullOrWhiteSpace(username))
             {
-                UserName = username,
-                Password = password,
-                _servers = _servers,
-                _buckets = _buckets
-            };
+                throw new ArgumentException($"{nameof(username)} cannot be null or empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                throw new ArgumentException($"{nameof(password)} cannot be null or empty.");
+            }
+
+            UserName = username;
+            Password = password;
+            return this;
         }
 
         public Configuration WithLogging(ILoggerProvider provider = null)
@@ -69,14 +65,9 @@ namespace Couchbase
             {
                 provider = NullLoggerProvider.Instance;
             }
+
             LogManager.LoggerFactory.AddProvider(provider);
-            return new Configuration
-            {
-                UserName = UserName,
-                Password = Password,
-                _servers = _servers,
-                _buckets = _buckets
-            };
+            return this;
         }
 
         public IEnumerable<Uri> Servers => _servers;
