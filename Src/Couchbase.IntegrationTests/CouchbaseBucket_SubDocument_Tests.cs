@@ -1671,6 +1671,63 @@ namespace Couchbase.IntegrationTests
             }
         }
 
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_SingleMutate_Execute(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            var key = "Test_Multiple_SingleMutate_Execute";
+            var document = new Document<dynamic>
+            {
+                Id = key,
+                Content = new
+                {
+                    name = "Couchbase"
+                }
+            };
+
+            bucket.Upsert(document);
+            var mutator = bucket.MutateIn<dynamic>(key).Upsert("name", "Matt");
+
+            mutator.Execute();
+            var result = bucket.Get<dynamic>(key);
+            Assert.AreEqual("Matt", result.Value.name.ToString());
+
+            mutator.Execute();
+            result = bucket.Get<dynamic>(key);
+            Assert.AreEqual("Matt", result.Value.name.ToString());
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_MultipleMutate_Execute(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+
+            var key = "Test_Multiple_MultiMutate_Execute";
+            var document = new Document<dynamic>
+            {
+                Id = key,
+                Content = new
+                {
+                    name = "Couchbase"
+                }
+            };
+
+            bucket.Upsert(document);
+            var mutator = bucket.MutateIn<dynamic>(key).Upsert("name", "Matt").Upsert("name", "John");
+
+            mutator.Execute();
+            var result = bucket.Get<dynamic>(key);
+            Assert.AreEqual("John", result.Value.name.ToString());
+
+            mutator.Execute();
+            result = bucket.Get<dynamic>(key);
+            Assert.AreEqual("John", result.Value.name.ToString());
+        }
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {

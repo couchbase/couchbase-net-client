@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using Couchbase.Core;
+using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Transcoders;
 using Couchbase.IO.Utils;
 using Couchbase.Utils;
@@ -78,6 +81,49 @@ namespace Couchbase.IO.Operations.SubDocument
         public override void ReadExtras(byte[] buffer)
         {
             TryReadMutationToken(buffer);
+        }
+
+        public override IOperationResult<T> GetResultWithValue()
+        {
+            var result = new DocumentFragment<T>(Builder);
+            try
+            {
+                var status = GetResponseStatus();
+                result.Success = GetSuccess();
+                result.Message = GetMessage();
+                result.Status = GetParentStatus(status);
+                result.Cas = Header.Cas;
+                result.Exception = Exception;
+
+                GetValue();
+                CurrentSpec.Status = status;
+                result.Value = new List<OperationSpec> { CurrentSpec };
+
+                // Read MutationToken after GetValue(), which may fill it with a value
+                result.Token = MutationToken ?? DefaultMutationToken;
+
+                //clean up and set to null
+                if (!result.IsNmv())
+                {
+                    Data.Dispose();
+                    Data = null;
+                }
+            }
+            catch (Exception e)
+            {
+                result.Exception = e;
+                result.Success = false;
+                result.Status = ResponseStatus.ClientFailure;
+            }
+            finally
+            {
+                if (Data != null && !result.IsNmv())
+                {
+                    Data.Dispose();
+                }
+            }
+
+            return result;
         }
     }
 }
