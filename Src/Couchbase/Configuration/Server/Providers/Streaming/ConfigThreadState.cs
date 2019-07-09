@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -99,10 +99,13 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
                             httpClient.GetAsync(streamingUri, HttpCompletionOption.ResponseHeadersRead,
                                 _cancellationToken)
                                 .Result;
+
                         response.EnsureSuccessStatusCode();
 
                         using (var stream = response.Content.ReadAsStreamAsync().Result)
                         {
+                            stream.ReadTimeout = Timeout.Infinite;
+
                             //this will cancel the infinite wait below
                             _cancellationToken.Register(stream.Dispose);
 
