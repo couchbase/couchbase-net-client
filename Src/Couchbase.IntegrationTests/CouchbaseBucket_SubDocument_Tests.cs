@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Buckets;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.IO;
@@ -1726,6 +1727,43 @@ namespace Couchbase.IntegrationTests
             mutator.Execute();
             result = bucket.Get<dynamic>(key);
             Assert.AreEqual("John", result.Value.name.ToString());
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_Counter_WithUpsert_ReturnsSuccess(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            var key = "MutateInAsync_Counter_WithValidPathAndCreateParentsFalse_ReturnsSuccess";
+            bucket.Upsert(key, new { foo = "bar", bar = "foo", count=0 });
+
+            var builder = bucket.MutateIn<dynamic>(key)
+                .Counter("baz", 1, false)
+                .Upsert("foo", "bar2", false);
+
+            var result = builder.Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(useMutation, result.Token.IsSet);
+            Assert.AreEqual(1, result.Content("baz"));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task MutateInAsync_Counter_WithUpsert_ReturnsSuccess(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            var key = "MutateInAsync_Counter_WithValidPathAndCreateParentsFalse_ReturnsSuccess";
+            bucket.Upsert(key, new { foo = "bar", bar = "foo", count=0 });
+
+            var builder = bucket.MutateIn<dynamic>(key)
+                .Counter("baz", 1, false)
+                .Upsert("foo", "bar2", false);
+
+            var result = await builder.ExecuteAsync();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(useMutation, result.Token.IsSet);
         }
 
         [OneTimeTearDown]

@@ -25,9 +25,8 @@ namespace Couchbase.IO.Operations.SubDocument
         public override byte[] Write()
         {
             // create this first because we need to iterate builder for operation specs
-            var bodyBytes = CreateBody();
-
-            var totalLength = OperationHeader.Length + KeyLength + ExtrasLength + bodyBytes.Length;
+            var bodyLength = BodyLength; // getter triggers BodyBytes to be set
+            var totalLength = OperationHeader.Length + KeyLength + ExtrasLength + bodyLength;
             var buffer = AllocateBuffer(totalLength);
 
             WriteHeader(buffer);
@@ -35,8 +34,7 @@ namespace Couchbase.IO.Operations.SubDocument
             WriteKey(buffer, OperationHeader.Length + ExtrasLength);
 
             // manually write body to buffer so we won't re-create it
-            System.Buffer.BlockCopy(bodyBytes, 0, buffer, OperationHeader.Length + ExtrasLength + KeyLength, bodyBytes.Length);
-            //WriteBody(buffer, OperationHeader.Length + ExtrasLength + KeyLength);
+            System.Buffer.BlockCopy(BodyBytes, 0, buffer, OperationHeader.Length + ExtrasLength + KeyLength, bodyLength);
             return buffer;
         }
 
@@ -126,8 +124,8 @@ namespace Couchbase.IO.Operations.SubDocument
                 result.Status = GetResponseStatus();
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
-                result.Token = MutationToken ?? DefaultMutationToken;
                 result.Value = GetCommandValues();
+                result.Token = MutationToken ?? DefaultMutationToken;
 
                 //clean up and set to null
                 if (!result.IsNmv())
@@ -164,12 +162,12 @@ namespace Couchbase.IO.Operations.SubDocument
             ReadExtras(response);
 
             //all mutations successful
-            if (response.Length == OperationHeader.Length + Header.FramingExtrasLength)
+            if (response.Length == OperationHeader.Length + Header.FramingExtrasLength + Header.ExtrasLength)
             {
                 return _mutateCommands;
             }
 
-            var indexOffset = Header.ExtrasOffset;
+            var indexOffset = Header.BodyOffset;
             var statusOffset = indexOffset + 1;
             var valueLengthOffset = indexOffset + 3;
             var valueOffset = indexOffset + 7;
