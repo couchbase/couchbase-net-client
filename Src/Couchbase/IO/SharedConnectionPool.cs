@@ -67,9 +67,13 @@ namespace Couchbase.IO
             // ReSharper disable once InconsistentlySynchronizedField
             if (_connections.Count >= Configuration.MaxSize)
             {
-                var connection = _connections[GetIndex()];
+                var connection = _connections.ElementAtOrDefault(GetIndex());
                 try
                 {
+                    if (connection == null)
+                    {
+                        return Acquire();
+                    }
                     Authenticate(connection);
                     EnableEnhancedAuthentication(connection);
                     return connection;
@@ -90,7 +94,7 @@ namespace Couchbase.IO
             {
                 var connection = CreateAndAuthConnection();
                 _connections.Add(connection);
-                return _connections[GetIndex()];
+                return _connections?.ElementAtOrDefault(GetIndex());
             }
         }
 
