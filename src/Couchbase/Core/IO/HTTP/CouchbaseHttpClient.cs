@@ -18,14 +18,11 @@ namespace Couchbase.Core.IO.HTTP
 
         private Couchbase.Configuration ClientConfig { get; set; }
 
-        private BucketConfig BucketConfig { get; set; }
-
         //used by all http services
-        internal CouchbaseHttpClient(Couchbase.Configuration clientConfig, BucketConfig bucketConfig)
+        internal CouchbaseHttpClient(Couchbase.Configuration clientConfig)
             : this (CreateClientHandler(clientConfig.UserName, clientConfig.Password, clientConfig))
         {
             ClientConfig = clientConfig;
-            BucketConfig = bucketConfig;
             DefaultRequestHeaders.ExpectContinue = clientConfig.Expect100Continue;
         }
 

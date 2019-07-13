@@ -19,6 +19,7 @@ using System.Runtime.InteropServices;
 #if !SIGNING
 [assembly: InternalsVisibleTo("Couchbase.UnitTests")]
 [assembly: InternalsVisibleTo("Couchbase.LoadTests")]
+[assembly: InternalsVisibleTo("Couchbase.IntegrationTests")]
 [assembly: InternalsVisibleTo("Sdkd")]
 [assembly: InternalsVisibleTo("SdkdConsole")]
 #endif

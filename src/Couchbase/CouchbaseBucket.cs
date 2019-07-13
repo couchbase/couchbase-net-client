@@ -51,13 +51,12 @@ namespace Couchbase
             _configContext = configContext;
             _configuration = configuration;
 
-            var httpClient = new CouchbaseHttpClient(_configuration, _bucketConfig);
+            var httpClient = new CouchbaseHttpClient(_configuration);
             _viewClientLazy = new Lazy<IViewClient>(() =>
                 new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), _configuration)
             );
             _viewManagerLazy = new Lazy<IViewManager>(() =>
-                new ViewManager(name, httpClient, configuration)
-            );
+                new ViewManager(name, httpClient, configuration));
         }
 
         public void ConfigUpdated(object sender, BucketConfigEventArgs e)
