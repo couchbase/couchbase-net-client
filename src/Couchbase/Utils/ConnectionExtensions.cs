@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
@@ -155,7 +156,16 @@ namespace Couchbase.Utils
 
                 var configResult = configOp.GetResultWithValue();
                 var config = configResult.Content;
-                var json =  JsonConvert.SerializeObject(config);
+
+                if (config != null)
+                {
+                    // fixes single node cluster where config doesn't know hostname
+                    foreach (var nodesExt in config.NodesExt.Where(x => x.thisNode && string.IsNullOrWhiteSpace(x.hostname)))
+                    {
+                        nodesExt.hostname = endPoint.Address.ToString();
+                    }
+                }
+
                 return config;
             }
         }
