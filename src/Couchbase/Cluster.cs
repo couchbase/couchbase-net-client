@@ -295,7 +295,8 @@ namespace Couchbase
         private IBucketManager _bucketManager;
         public IBucketManager Buckets => _bucketManager ?? new BucketManager(_configuration);
 
-        public IUserManager Users { get; }
+        private IUserManager _userManager;
+        public IUserManager Users => _userManager ?? new UserManager(_configuration);
 
         public void Dispose()
         {

@@ -1,16 +1,18 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Couchbase.Management
 {
     public interface IUserManager
     {
-        User Get();
+        Task<User> GetAsync(string username, GetUserOptions options);
 
-        IEnumerable<User> GetAll();
+        Task<IEnumerable<User>> GetAllAsync(GetAllUserOptions options);
 
-        Task Insert(string userName, UserOptions options);
+        Task CreateAsync(string username, string password, IEnumerable<UserRole> roles, CreateUserOptions options);
 
-        Task Remove(string userName);
+        Task UpsertAsync(string username, IEnumerable<UserRole> roles, UpsertUserOptions options);
+
+        Task DropAsync(string username, DropUserOptions options);
     }
 }
