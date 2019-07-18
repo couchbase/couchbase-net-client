@@ -35,6 +35,7 @@ namespace Couchbase
         private readonly ConcurrentDictionary<IPEndPoint, ClusterNode> _bucketNodes = new ConcurrentDictionary<IPEndPoint, ClusterNode>();
         private readonly ConcurrentDictionary<string, IScope> _scopes = new ConcurrentDictionary<string, IScope>();
         private readonly Lazy<IViewClient> _viewClientLazy;
+        private readonly Lazy<IViewManager> _viewManagerLazy;
 
         private bool _disposed;
         private BucketConfig _bucketConfig;
@@ -50,8 +51,12 @@ namespace Couchbase
             _configContext = configContext;
             _configuration = configuration;
 
+            var httpClient = new CouchbaseHttpClient(_configuration, _bucketConfig);
             _viewClientLazy = new Lazy<IViewClient>(() =>
-                new ViewClient(new CouchbaseHttpClient(_configuration, _bucketConfig), new JsonDataMapper(new DefaultSerializer()), _configuration)
+                new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), _configuration)
+            );
+            _viewManagerLazy = new Lazy<IViewManager>(() =>
+                new ViewManager(name, httpClient, configuration)
             );
         }
 
@@ -94,6 +99,8 @@ namespace Couchbase
         {
             return Task.FromResult(_scopes[DefaultScope][CouchbaseCollection.DefaultCollection]);
         }
+
+        public IViewManager ViewIndexes => _viewManagerLazy.Value;
 
         async Task IBucketInternal.Bootstrap(params ClusterNode[] bootstrapNodes)
         {

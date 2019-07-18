@@ -143,10 +143,10 @@ namespace Couchbase
                                 _configuration.GlobalNodes.Add(clusterNode);
                             }
                         }
-                    }
 
-                    // get cluster capabilities
-                    UpdateClusterCapabilities(_clusterConfig.GetClusterCapabilities());
+                        // get cluster capabilities
+                        UpdateClusterCapabilities(_clusterConfig.GetClusterCapabilities());
+                    }
                 }
                 catch (AuthenticationException e)
                 {

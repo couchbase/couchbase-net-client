@@ -13,5 +13,7 @@ namespace Couchbase
         Task<ICollection> DefaultCollectionAsync();
 
         Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default);
+
+        IViewManager ViewIndexes { get; }
     }
 }
