@@ -1,20 +1,20 @@
-﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Couchbase.Management
 {
     public interface IBucketManager
     {
-        IEnumerable<IBucket> GetAll();
+        Task CreateAsync(BucketSettings settings, CreateBucketOptions options);
 
-        Task Insert(string bucketName, BucketManagerOptions options);
+        Task UpsertAsync(BucketSettings settings, UpsertBucketOptions options);
 
-        Task Upsert(string bucketName, BucketManagerOptions options);
+        Task DropAsync(string bucketName, DropBucketOptions options);
 
-        Task Remove(string bucketName);
-        
-        Task Flush();
+        Task<BucketSettings> GetAsync(string bucketName, GetBucketOptions options);
+
+        Task<Dictionary<string, BucketSettings>> GetAllAsync(GetAllBucketOptions options);
+
+        Task Flush(string bucketName, FlushBucketOptions options);
     }
 }

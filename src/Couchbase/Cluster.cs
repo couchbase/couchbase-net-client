@@ -291,7 +291,10 @@ namespace Couchbase
         public IQueryIndexes QueryIndexes { get; }
         public IAnalyticsIndexes AnalyticsIndexes { get; }
         public ISearchIndexes SearchIndexes { get; }
-        public IBucketManager Buckets { get; }
+
+        private IBucketManager _bucketManager;
+        public IBucketManager Buckets => _bucketManager ?? new BucketManager(_configuration);
+
         public IUserManager Users { get; }
 
         public void Dispose()

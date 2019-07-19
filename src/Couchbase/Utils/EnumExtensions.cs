@@ -20,5 +20,20 @@ namespace Couchbase.Utils
             }
             return null;
         }
+
+        public static bool TryGetFromDescription<T>(string description, out T @enum)
+        {
+            foreach (var entry in Enum.GetValues(typeof(T)))
+            {
+                if ((entry as Enum).GetDescription() == description)
+                {
+                    @enum = (T) entry;
+                    return true;
+                }
+            }
+
+            @enum = default;
+            return false;
+        }
     }
 }
