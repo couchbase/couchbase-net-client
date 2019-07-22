@@ -50,6 +50,9 @@ namespace Couchbase
             {
                 _configContext.Poll(_configTokenSource.Token);
             }
+
+            _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_configuration));
+            _lazyQueryManager = new Lazy<IQueryIndexes>(() => new QueryIndexes(_lazyQueryClient.Value));
         }
 
         public Cluster(string connectionStr, string username, string password)
@@ -76,6 +79,9 @@ namespace Couchbase
             {
                 _configContext.Poll(_configTokenSource.Token);
             }
+
+            _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_configuration));
+            _lazyQueryManager = new Lazy<IQueryIndexes>(() => new QueryIndexes(_lazyQueryClient.Value));
         }
 
         private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint, Uri uri)
@@ -218,15 +224,15 @@ namespace Couchbase
 
         #region Query
 
+        private readonly Lazy<IQueryClient> _lazyQueryClient;
+
         public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters, QueryOptions options)
         {
-            if (_queryClient == null) _queryClient = new QueryClient(_configuration);
-
             //re-use older API by mapping parameters to new API
             options?.AddNamedParameter(parameters?.NamedParameters.ToArray());
             options?.AddPositionalParameter(parameters?.PostionalParameters.ToArray());
 
-            return _queryClient.QueryAsync<T>(statement, options);
+            return _lazyQueryClient.Value.QueryAsync<T>(statement, options);
         }
 
         #endregion
@@ -288,7 +294,9 @@ namespace Couchbase
 
         #endregion
 
-        public IQueryIndexes QueryIndexes { get; }
+        private Lazy<IQueryIndexes> _lazyQueryManager;
+        public IQueryIndexes QueryIndexes => _lazyQueryManager.Value;
+
         public IAnalyticsIndexes AnalyticsIndexes { get; }
         public ISearchIndexes SearchIndexes { get; }
 

@@ -1,34 +1,22 @@
-﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Couchbase.Management
 {
     public interface IQueryIndexes
     {
-        QueryIndex Get(string indexName);
+        Task<IEnumerable<QueryIndex>> GetAllAsync(string bucketName, GetAllQueryIndexOptions options);
 
-        IEnumerable<QueryIndex> GetAll();
+        Task CreateAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options);
 
-        Task BuildDeferred();
+        Task CreatePrimaryAsync(string bucketName, CreatePrimaryQueryIndexOptions options);
 
-        Task Watch();
-            
-        Task Create(string indexName, QueryIndexOptions options);
+        Task DropAsync(string bucketName, string indexName, DropQueryIndexOptions options);
 
-        Task Drop(string indexName);
+        Task DropPrimaryAsync(string bucketName, DropPrimaryQueryIndexOptions options);
 
-        Task CreatePrimary(string indexName, QueryIndexOptions options);
+        Task BuildDeferredAsync(string bucketName, BuildDeferredQueryIndexOptions options);
 
-        Task DropPrimary(string indexName);
-    }
-
-    public class QueryIndex
-    {
-    }
-
-    public class QueryIndexOptions
-    {
+        Task WatchAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions options);
     }
 }
