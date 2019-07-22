@@ -52,6 +52,7 @@ namespace Couchbase.Configuration.Client
         private uint _operationLifespan;
         private bool _operationLifespanChanged;
         private bool _enableCertificateAuthentication;
+        private Func<X509Certificate2Collection> _certificateFactoryFunc;
 
         [Obsolete]
         private double _heartbeatConfigInterval;
@@ -1420,7 +1421,15 @@ namespace Couchbase.Configuration.Client
         /// <summary>
         /// Factory for retrieving X509 certificates from a store or off of the file system.
         /// </summary>
-        public Func<X509Certificate2Collection> CertificateFactory { get; set; }
+        public Func<X509Certificate2Collection> CertificateFactory
+        {
+            get => _certificateFactoryFunc;
+            set
+            {
+                _certificateFactoryFunc = value;
+                EnableCertificateAuthentication = _certificateFactoryFunc != null;
+            }
+        }
 
 #if NET452
         /// <summary>

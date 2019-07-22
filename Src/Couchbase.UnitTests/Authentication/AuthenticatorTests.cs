@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using Couchbase.Authentication;
+using Couchbase.Authentication.X509;
 using Couchbase.Configuration.Client;
 using Couchbase.Core;
 using Moq;
@@ -147,6 +149,24 @@ namespace Couchbase.UnitTests.Authentication
             var authenticator = (PasswordAuthenticator) cluster.Configuration.Authenticator;
             Assert.AreEqual(username, authenticator.Username);
             Assert.AreEqual(password, authenticator.Password);
+        }
+
+        [Test]
+        public void Setting_CertificateFactory_Enables_Certificate_Authentication()
+        {
+            var config = new ClientConfiguration
+            {
+                CertificateFactory = CertificateFactory.GetCertificatesFromStore(new CertificateStoreOptions
+                {
+                    StoreLocation = StoreLocation.LocalMachine,
+                    StoreName = StoreName.TrustedPeople,
+                    X509FindType = X509FindType.FindByThumbprint,
+                    FindValue = "<thumbprint>"
+                })
+            };
+
+            Assert.IsTrue(config.EnableCertificateAuthentication);
+            Assert.IsTrue(config.UseSsl);
         }
     }
 }
