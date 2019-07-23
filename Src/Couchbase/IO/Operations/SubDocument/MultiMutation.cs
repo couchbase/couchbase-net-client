@@ -63,7 +63,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 var opcode = (byte)mutate.OpCode;
                 var flags = (byte) mutate.PathFlags;
                 var pathLength = string.IsNullOrWhiteSpace(mutate.Path) ? 0 : Encoding.UTF8.GetByteCount(mutate.Path);
-                var fragment = mutate.Value == null ? new byte[0] : GetBytes(mutate);
+                var fragment = GetBytes(mutate);
 
                 var spec = new byte[pathLength + 8];
                 Converter.FromByte(opcode, spec, 0);
@@ -104,7 +104,7 @@ namespace Couchbase.IO.Operations.SubDocument
             }
         }
 
-        byte[] GetBytes(OperationSpec spec)
+        private byte[] GetBytes(OperationSpec spec)
         {
             var bytes = Transcoder.Serializer.Serialize(spec.Value);
             if (spec.RemoveBrackets)

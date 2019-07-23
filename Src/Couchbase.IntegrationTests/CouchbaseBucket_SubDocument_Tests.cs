@@ -1766,6 +1766,46 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(useMutation, result.Token.IsSet);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void MutateIn_with_multimutate_can_set_property_value_to_null(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            const string key = "MutateIn_with_multimutate_can_set_property_value_to_null";
+
+            bucket.Upsert(key, new { });
+
+            bucket.MutateIn<dynamic>(key)
+                .Upsert("nullProperty", null)
+                .Execute();
+
+            var result = bucket.MutateIn<dynamic>(key)
+                .Upsert("nullProperty", null)
+                .Upsert("name", "MutatedName")
+                .Execute();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(useMutation, result.Token.IsSet);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task MutateInAsync_with_multimutate_can_set_property_value_to_null(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            const string key = "MutateInAsync_with_multimutate_can_set_property_value_to_null";
+
+            await bucket.UpsertAsync(key, new { });
+
+            var result = await bucket.MutateIn<dynamic>(key)
+                .Upsert("nullProperty", null)
+                .Upsert("name", "MutatedName")
+                .ExecuteAsync();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(useMutation, result.Token.IsSet);
+        }
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
