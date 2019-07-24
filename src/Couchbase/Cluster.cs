@@ -218,7 +218,7 @@ namespace Couchbase
 
         #region Query
 
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters = null, QueryOptions options = null)
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters, QueryOptions options)
         {
             if (_queryClient == null) _queryClient = new QueryClient(_configuration);
 

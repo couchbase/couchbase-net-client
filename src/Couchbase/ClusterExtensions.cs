@@ -15,15 +15,15 @@ namespace Couchbase
         }
 
         public static Task<IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,
-            Action<QueryParameter> parameters = null, Action<QueryOptions> options = null)
+            Action<QueryParameter> configureParameters = null, Action<QueryOptions> configureOptions = null)
         {
-            var queryParameters = new QueryParameter();
-            parameters?.Invoke(queryParameters);
+            var parameters = new QueryParameter();
+            configureParameters?.Invoke(parameters);
 
-            var queryOptions = new QueryOptions();
-            options?.Invoke(queryOptions);
+            var options = new QueryOptions();
+            configureOptions?.Invoke(options);
 
-            return cluster.QueryAsync<T>(statement, queryParameters, queryOptions);
+            return cluster.QueryAsync<T>(statement, parameters, options);
         }
 
         #region Analytics
