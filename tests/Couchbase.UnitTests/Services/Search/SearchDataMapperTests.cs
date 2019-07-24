@@ -4,6 +4,7 @@ using System.Linq;
 using Couchbase.Services.Search;
 using Couchbase.UnitTests.Utils;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Xunit;
 
 namespace Couchbase.UnitTests.Services.Search
@@ -175,9 +176,15 @@ namespace Couchbase.UnitTests.Services.Search
                         }
                     }
                 }
+            }, new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
             });
 
-            Assert.Equal(expectedFacets, JsonConvert.SerializeObject(result.Facets));
+            Assert.Equal(expectedFacets, JsonConvert.SerializeObject(result.Facets, new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            }));
         }
 
         private Stream OpenResource(string resourceName)
