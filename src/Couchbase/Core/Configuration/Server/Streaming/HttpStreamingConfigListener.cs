@@ -15,19 +15,19 @@ namespace Couchbase.Core.Configuration.Server.Streaming
     internal class HttpStreamingConfigListener : IDisposable
     {
         private static readonly ILogger Log = LogManager.CreateLogger<HttpStreamingConfigListener>();
-        private Couchbase.Configuration _configuration;
-        private HttpClient _httpClient;
+        private readonly Couchbase.Configuration _configuration;
+        private readonly HttpClient _httpClient;
         private CancellationToken _cancellationToken;
-        private ConfigContext _configContext;
-        private string _bucketName;
+        private readonly ConfigContext _couchbaseContext;
+        private readonly string _bucketName;
 
         public HttpStreamingConfigListener(string bucketName, Couchbase.Configuration configuration, HttpClient httpClient,
-            ConfigContext configContext, CancellationToken cancellationToken)
+            ConfigContext couchbaseContext, CancellationToken cancellationToken)
         {
             _bucketName = bucketName;
             _configuration = configuration;
             _httpClient = httpClient;
-            _configContext = configContext;
+            _couchbaseContext = couchbaseContext;
             _cancellationToken = cancellationToken;
         }
 
@@ -82,7 +82,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                                         {
                                             config = config.Replace("$HOST", server.Host);
                                             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);
-                                            _configContext.Publish(bucketConfig);
+                                            _couchbaseContext.Publish(bucketConfig);
                                         }
                                     }
                                 }

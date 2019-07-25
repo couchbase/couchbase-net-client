@@ -1,9 +1,7 @@
 using System;
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -19,73 +17,34 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase
 {
-    internal interface IBucketInternal
+    internal class CouchbaseBucket : BucketBase
     {
-        Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs);
-
-        Task Bootstrap(params ClusterNode[] bootstrapNodes);
-
-        void ConfigUpdated(object sender, BucketConfigEventArgs e);
-    }
-
-    public class CouchbaseBucket : IBucket, IBucketInternal
-    {
-        internal const string DefaultScope = "_default";
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseBucket>();
-        private readonly ConcurrentDictionary<IPEndPoint, ClusterNode> _bucketNodes = new ConcurrentDictionary<IPEndPoint, ClusterNode>();
-        private readonly ConcurrentDictionary<string, IScope> _scopes = new ConcurrentDictionary<string, IScope>();
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewManager> _viewManagerLazy;
 
-        private bool _disposed;
-        private BucketConfig _bucketConfig;
-        private Manifest _manifest;
-        private IKeyMapper _keyMapper;
-        private readonly Configuration _configuration;
-        private bool _supportsCollections;
-        private ConfigContext _configContext;
-
-        internal CouchbaseBucket(string name, Configuration configuration, ConfigContext configContext)
+        internal CouchbaseBucket(string name, Configuration configuration, ConfigContext couchbaseContext)
         {
             Name = name;
-            _configContext = configContext;
-            _configuration = configuration;
+            CouchbaseContext = couchbaseContext;
+            Configuration = configuration;
+            CouchbaseContext.Subscribe(this);
 
-            var httpClient = new CouchbaseHttpClient(_configuration);
+            var httpClient = new CouchbaseHttpClient(Configuration);
             _viewClientLazy = new Lazy<IViewClient>(() =>
-                new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), _configuration)
+                new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), Configuration)
             );
             _viewManagerLazy = new Lazy<IViewManager>(() =>
                 new ViewManager(name, httpClient, configuration));
         }
 
-        public void ConfigUpdated(object sender, BucketConfigEventArgs e)
-        {
-            if (e.Config.Rev > _bucketConfig.Rev)
-            {
-                _bucketConfig = e.Config;
-                if (_bucketConfig.VBucketMapChanged)
-                {
-                    _keyMapper = new VBucketKeyMapper(_bucketConfig);
-                }
-
-                if (_bucketConfig.ClusterNodesChanged)
-                {
-                    LoadClusterMap(_bucketConfig).ConfigureAwait(false).GetAwaiter().GetResult();
-                    Prune(_bucketConfig);
-                }
-            }
-        }
-
-        public string Name { get; }
-
-        public Task<IScope> this[string name]
+        public override Task<IScope> this[string name]
         {
             get
             {
                 Log.LogDebug("Fetching scope {0}", name);
 
-                if (_scopes.TryGetValue(name, out var scope))
+                if (Scopes.TryGetValue(name, out var scope))
                 {
                     return Task.FromResult(scope);
                 }
@@ -94,107 +53,15 @@ namespace Couchbase
             }
         }
 
-        public Task<ICollection> DefaultCollectionAsync()
-        {
-            return Task.FromResult(_scopes[DefaultScope][CouchbaseCollection.DefaultCollection]);
-        }
+        public override IViewManager ViewIndexes => _viewManagerLazy.Value;
 
-        public IViewManager ViewIndexes => _viewManagerLazy.Value;
-
-        async Task IBucketInternal.Bootstrap(params ClusterNode[] bootstrapNodes)
-        {
-            //should never happen
-            if (bootstrapNodes == null)
-            {
-                throw new ArgumentNullException(nameof(bootstrapNodes));
-            }
-
-            foreach (var bootstrapNode in bootstrapNodes)
-            {
-                bootstrapNode.Owner = this;
-
-                //reuse the bootstrapNode
-                _bucketNodes.AddOrUpdate(bootstrapNode.EndPoint, bootstrapNode, (key, node) => bootstrapNode);
-                bootstrapNode.Configuration = _configuration;
-
-                //the initial bootstrapping endpoint;
-                await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);
-
-                _manifest = await bootstrapNode.GetManifest().ConfigureAwait(false);
-                _supportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
-
-                if (_bucketConfig == null)
-                {
-                    _bucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false); 
-                    _keyMapper = new VBucketKeyMapper(_bucketConfig);
-                }
-
-                bootstrapNode.NodesAdapter =
-                    _bucketConfig.GetNodes().Find(x => x.Hostname == bootstrapNode.BootstrapUri.Host);
-            }
-
-            LoadManifest();
-            LoadClusterMap(_bucketConfig).ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-
-        private async Task LoadClusterMap(BucketConfig bucketConfig)
-        {
-            foreach (var nodeAdapter in bucketConfig.GetNodes())
-            {
-                var endPoint = nodeAdapter.GetIpEndPoint();
-                if (_bucketNodes.TryGetValue(endPoint, out ClusterNode bootstrapNode))
-                {
-                    bootstrapNode.NodesAdapter = nodeAdapter;
-                    bootstrapNode.BuildServiceUris();
-                    continue; //bootstrap node is skipped because it already went through these steps
-                }
-
-                var connection = endPoint.GetConnection();
-                await connection.Authenticate(_configuration, Name).ConfigureAwait(false);
-                await connection.SelectBucket(Name).ConfigureAwait(false);
-
-                //one error map per node
-                var errorMap = await connection.GetErrorMap().ConfigureAwait(false);
-                var supportedFeatures = await connection.Hello().ConfigureAwait(false);
-
-                var clusterNode = new ClusterNode
-                {
-                    Connection = connection,
-                    ErrorMap = errorMap,
-                    EndPoint = endPoint,
-                    ServerFeatures = supportedFeatures,
-                    Configuration = _configuration,
-                    NodesAdapter = nodeAdapter
-                };
-                clusterNode.BuildServiceUris();
-                _supportsCollections = clusterNode.Supports(ServerFeatures.Collections);
-                _bucketNodes.AddOrUpdate(endPoint, clusterNode, (ep, node) => clusterNode);
-                _configuration.GlobalNodes.Add(clusterNode);
-            }
-        }
-
-        private void Prune(BucketConfig newConfig)
-        {
-            var removed = _bucketNodes.Where(x =>
-                !newConfig.NodesExt.Any(y => x.Key.Equals(y.GetIpEndPoint(_configuration))));
-
-            foreach (var valuePair in removed)
-            {
-                if (!_bucketNodes.TryRemove(valuePair.Key, out var clusterNode)) continue;
-                if (_configuration.GlobalNodes.TryTake(out clusterNode))
-                {
-                    clusterNode.Dispose();
-                }
-            }
-        }
-
-        private void LoadManifest()
+        protected override void LoadManifest()
         {
             //The server supports collections so build them from the manifest
-            if (_supportsCollections)
+            if (SupportsCollections)
             {
                 //warmup the scopes/collections and cache them
-                foreach (var scopeDef in _manifest.scopes)
+                foreach (var scopeDef in Manifest.scopes)
                 {
                     var collections = new List<ICollection>();
                     foreach (var collectionDef in scopeDef.collections)
@@ -203,7 +70,7 @@ namespace Couchbase
                             Convert.ToUInt32(collectionDef.uid), collectionDef.name));
                     }
 
-                    _scopes.TryAdd(scopeDef.name, new Scope(scopeDef.name, scopeDef.uid, collections, this));
+                    Scopes.TryAdd(scopeDef.name, new Scope(scopeDef.name, scopeDef.uid, collections, this));
                 }
             }
             else
@@ -211,14 +78,14 @@ namespace Couchbase
                 //build a fake scope and collection for pre-6.5 clusters
                 var defaultCollection = new CouchbaseCollection(this, null, "_default");
                 var defaultScope = new Scope("_default", "0", new List<ICollection> { defaultCollection }, this);
-                _scopes.TryAdd("_default", defaultScope);
+                Scopes.TryAdd("_default", defaultScope);
             }
         }
 
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though
         private Uri GetViewUri()
         {
-            var clusterNode = _configuration.GlobalNodes.GetRandom(x=>x.Owner==this && x.HasViews());
+            var clusterNode = Configuration.GlobalNodes.GetRandom(x=>x.Owner==this && x.HasViews());
             if (clusterNode == null)
             {
                 throw new ServiceMissingException("Views Service cannot be located.");
@@ -226,7 +93,7 @@ namespace Couchbase
             return clusterNode.ViewsUri;
         }
 
-        public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default)
+        public override Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default)
         {
             if (options == default)
             {
@@ -236,7 +103,7 @@ namespace Couchbase
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
             {
-                UseSsl = _configuration.UseSsl
+                UseSsl = Configuration.UseSsl
             };
             query.Bucket(Name);
             query.From(designDocument, viewName);
@@ -277,48 +144,73 @@ namespace Couchbase
             return _viewClientLazy.Value.ExecuteAsync<T>(query);
         }
 
-        public void Dispose()
+        internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
         {
-            if (_disposed)
+            if (e.Config.Name == Name &&  e.Config.Rev > BucketConfig.Rev)
             {
-                return;
+                BucketConfig = e.Config;
+                if (BucketConfig.VBucketMapChanged)
+                {
+                    KeyMapper = new VBucketKeyMapper(BucketConfig);
+                }
+                if (BucketConfig.ClusterNodesChanged)
+                {
+                    LoadClusterMap(BucketConfig.GetNodes()).ConfigureAwait(false).GetAwaiter().GetResult();
+                    Prune(BucketConfig);
+                }
             }
-
-            foreach (var clusterNode in _configuration.GlobalNodes.Where(x=>x.Owner==this))
-            {
-                clusterNode.Dispose();
-            }
-
-            //clear the local nodes but keep the global ones alive
-            _bucketNodes.Clear();
-            _disposed = true;
         }
 
-        async Task IBucketInternal.Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+        internal override async Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
         {
-            var vBucket = (VBucket) _keyMapper.MapKey(op.Key);
+            var vBucket = (VBucket) KeyMapper.MapKey(op.Key);
             op.VBucketId = vBucket.Index;
 
             var endPoint = vBucket.LocatePrimary();
-            var clusterNode = _bucketNodes[endPoint];
+            var clusterNode = BucketNodes[endPoint];
             await CheckConnection(clusterNode).ConfigureAwait(false);
             await op.SendAsync(clusterNode.Connection).ConfigureAwait(false);
         }
 
-        private async Task CheckConnection(ClusterNode clusterNode)
+        internal override async Task Bootstrap(params ClusterNode[] bootstrapNodes)
         {
-            //TODO temp fix for recreating dead connections - in future use CP to manage them
-            var connection = clusterNode.Connection;
-            if (connection.IsDead)
+            //should never happen
+            if (bootstrapNodes == null)
             {
-                //recreate the connection its been closed and disposed
-                connection = clusterNode.EndPoint.GetConnection();
-                clusterNode.ServerFeatures = await connection.Hello().ConfigureAwait(false);
-                clusterNode.ErrorMap = await connection.GetErrorMap().ConfigureAwait(false);
-                await connection.Authenticate(_configuration, Name).ConfigureAwait(false);
-                await connection.SelectBucket(Name).ConfigureAwait(false);
-                clusterNode.Connection = connection;
+                throw new ArgumentNullException(nameof(bootstrapNodes));
             }
+
+            List<NodeAdapter> nodeAdapters = null;
+            var bootstrapNode = bootstrapNodes.First();
+
+            //reuse the bootstrapNode
+            BucketNodes.AddOrUpdate(bootstrapNode.EndPoint, bootstrapNode, (key, node) => bootstrapNode);
+            bootstrapNode.Configuration = Configuration;
+
+            //the initial bootstrapping endpoint;
+            await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);
+
+            Manifest = await bootstrapNode.GetManifest().ConfigureAwait(false);
+            SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
+
+            BucketConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false);
+            KeyMapper = new VBucketKeyMapper(BucketConfig);
+
+            nodeAdapters = BucketConfig.GetNodes();
+            if (nodeAdapters.Count == 1)
+            {
+                var nodeAdapter = nodeAdapters.First();
+                bootstrapNode.NodesAdapter = nodeAdapter;
+            }
+            else
+            {
+                bootstrapNode.NodesAdapter =
+                    nodeAdapters.Find(x => x.Hostname == bootstrapNode.BootstrapUri.Host);
+            }
+
+            LoadManifest();
+            LoadClusterMap(nodeAdapters).ConfigureAwait(false).GetAwaiter().GetResult();
+            bootstrapNode.Owner = this;
         }
     }
 }

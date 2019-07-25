@@ -110,7 +110,7 @@ namespace Couchbase.UnitTests
             }
         }
 
-        public class FakeBucket : IBucket, IBucketInternal
+        internal class FakeBucket : BucketBase
         {
             private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
             public FakeBucket(params ResponseStatus[] statuses)
@@ -120,34 +120,10 @@ namespace Couchbase.UnitTests
                     _statuses.Enqueue(responseStatuse);
                 }
             }
-            public virtual void Dispose()
-            {
 
-            }
-            public virtual string Name { get; }
+            public override IViewManager ViewIndexes => throw new NotImplementedException();
 
-            public void ConfigUpdated(object sender, BucketConfigEventArgs e)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task BootstrapAsync(Uri uri, Configuration configuration)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task<IScope> this[string name] => throw new NotImplementedException();
-
-            public Task<ICollection> DefaultCollectionAsync() => throw new NotImplementedException();
-
-            public IViewManager ViewIndexes => throw new NotImplementedException();
-
-            public Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options)
-            {
-                throw new NotImplementedException();
-            }
-
-            public Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
             {
                 if(_statuses.TryDequeue(out ResponseStatus status))
                 {
@@ -164,7 +140,24 @@ namespace Couchbase.UnitTests
                 return Task.CompletedTask;
             }
 
-            Task IBucketInternal.Bootstrap(params ClusterNode[] clusterNode)
+            public override Task<IScope> this[string name] => throw new NotImplementedException();
+
+            public override Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void LoadManifest()
+            {
+                throw new NotImplementedException();
+            }
+
+            internal override Task Bootstrap(params ClusterNode[] bootstrapNodes)
+            {
+                throw new NotImplementedException();
+            }
+
+            internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
             {
                 throw new NotImplementedException();
             }

@@ -24,7 +24,7 @@ namespace Couchbase
         private readonly Configuration _configuration;
         private CancellationTokenSource _configTokenSource;
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
-        private readonly ConfigContext _configContext;
+        private readonly ConfigContext _couchbaseContext;
         private BucketConfig _clusterConfig;
         private bool _hasBootStrapped;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
@@ -50,11 +50,11 @@ namespace Couchbase
 
             _configTokenSource = new CancellationTokenSource();
             _configuration = configuration;
-            _configContext = new ConfigContext(_configuration);
-            _configContext.Start(_configTokenSource);
+            _couchbaseContext = new ConfigContext(_configuration);
+            _couchbaseContext.Start(_configTokenSource);
             if (_configuration.EnableConfigPolling)
             {
-                _configContext.Poll(_configTokenSource.Token);
+                _couchbaseContext.Poll(_configTokenSource.Token);
             }
 
             _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_configuration));
@@ -77,12 +77,12 @@ namespace Couchbase
             {
                 _configuration = _configuration.WithServers("couchbase://localhost");
             }
-            _configContext = new ConfigContext(_configuration);
-            _configContext.Start(_configTokenSource);
+            _couchbaseContext = new ConfigContext(_configuration);
+            _couchbaseContext.Start(_configTokenSource);
 
             if (_configuration.EnableConfigPolling)
             {
-                _configContext.Poll(_configTokenSource.Token);
+                _couchbaseContext.Poll(_configTokenSource.Token);
             }
 
             _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_configuration));
@@ -133,27 +133,20 @@ namespace Couchbase
                     }
                     else
                     {
-                        foreach (var nodeAdapter in _clusterConfig.GetNodes())
+                        foreach (var nodesExt in _clusterConfig.GetNodes())
                         {
-                            //fixup server bug(?) where hostname is null on single node
-                            if (nodeAdapter.Hostname == null)
-                            {
-                                nodeAdapter.Hostname = uri.Host;
-                            }
-
                             //This is the bootstrap node so we update it
-                            if (uri.Host == nodeAdapter.Hostname)
+                            if (uri.Host == nodesExt.Hostname)
                             {
-                                bootstrapNode.NodesAdapter = nodeAdapter;
+                                bootstrapNode.NodesAdapter = nodesExt;
                                 bootstrapNode.BuildServiceUris();
                                 _configuration.GlobalNodes.Add(bootstrapNode);
                             }
                             else
                             {
-                                endPoint = IpEndPointExtensions.GetEndPoint(nodeAdapter.Hostname, 11210);
-
+                                endPoint = IpEndPointExtensions.GetEndPoint(nodesExt.Hostname, 11210);
                                 var clusterNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
-                                clusterNode.NodesAdapter = nodeAdapter;
+                                clusterNode.NodesAdapter = nodesExt;
                                 clusterNode.BuildServiceUris();
                                 _configuration.GlobalNodes.Add(clusterNode);
                             }
@@ -181,36 +174,26 @@ namespace Couchbase
 
         public async Task<IBucket> BucketAsync(string name)
         {
+            //fetching a bucket that has already been opened and cached
             if (_bucketRefs.TryGetValue(name, out var bucket))
             {
                 return bucket;
             }
 
-            //No GCCP but we have a connection - not bootstrapped yet so commence strapping das boot
-            var bootstrapNodes = _configuration.GlobalNodes.Where(x => x.Owner == null);
-            var clusterNodes = bootstrapNodes as ClusterNode[] ?? bootstrapNodes.ToArray();
-            if (clusterNodes.Any())
+            //Loop through configured list of bootstrap servers
+            foreach (var server in _configuration.Servers)
             {
-                //use existing clusterNode from bootstrapping
-                bucket = new CouchbaseBucket(name, _configuration, _configContext);
-                _configContext.Subscribe((IBucketInternal)bucket);
-                await ((IBucketInternal) bucket).Bootstrap(clusterNodes.ToArray()).ConfigureAwait(false);
+                try
+                {
+                    bucket = await BootstrapBucketAsync(name, server, BucketType.Couchbase)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    bucket = await BootstrapBucketAsync(name, server, BucketType.Memcached)
+                        .ConfigureAwait(false);
+                }
 
-                _bucketRefs.TryAdd(name, bucket);
-            }
-            else
-            {
-                //all clusterNodes have owners so create a new one
-                var uri = _configuration.Servers.GetRandom();
-                var endPoint = uri.GetIpEndPoint(11210, false);
-                var bootstrapNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
-
-                bucket = new CouchbaseBucket(name, _configuration, _configContext);
-                _configContext.Subscribe((IBucketInternal)bucket);
-                await ((IBucketInternal) bucket).Bootstrap(bootstrapNode).ConfigureAwait(false);
-
-                _configuration.GlobalNodes.Add(bootstrapNode);
-                _bucketRefs.TryAdd(name, bucket);
             }
 
             //TODO add 3rd state when connected and have GCCP
@@ -220,6 +203,54 @@ namespace Couchbase
             }
 
             _hasBootStrapped = true;
+            return bucket;
+        }
+
+        private async Task<IBucket> BootstrapBucketAsync(string bucketName, Uri bootstrapUri, BucketType bucketType)
+        {
+            //Check for any available GC3P connections
+            var bootstrapNode = _configuration.GlobalNodes.FirstOrDefault(x =>
+                x.Owner == null && x.EndPoint.Address.Equals(bootstrapUri.GetIpAddress(false)));
+
+            //If not create a new connection but don't add to list until it has an owner
+            if (bootstrapNode == null)
+            {
+                var endPoint = bootstrapUri.GetIpEndPoint(11210, false);
+                bootstrapNode = await GetClusterNode(endPoint, bootstrapUri).ConfigureAwait(false);
+
+                //Add to global nodes but its no longer a GC3P node since it has an owner
+                if (!_configuration.GlobalNodes.Contains(bootstrapNode))
+                {
+                    _configuration.GlobalNodes.Add(bootstrapNode);
+                }
+            }
+
+            BucketBase bucket;
+            switch (bucketType)
+            {
+                case BucketType.Couchbase:
+                case BucketType.Ephemeral:
+                    bucket = new CouchbaseBucket(bucketName, _configuration, _couchbaseContext);
+                    break;
+                case BucketType.Memcached:
+                    bucket = new MemcachedBucket(bucketName, _configuration, _couchbaseContext);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(bucketType), bucketType, null);
+            }
+
+            try
+            {
+                await bucket.Bootstrap(bootstrapNode).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                _couchbaseContext.Unsubscribe(bucket);
+                throw;
+            }
+
+            _bucketRefs.TryAdd(bucketName, bucket);
+
             return bucket;
         }
 

@@ -5,18 +5,21 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Services.Views;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.Configuration
 {
-    public class ConfigContextTests : IBucketInternal
+    public class ConfigContextTests
     {
         private readonly ITestOutputHelper _output;
+        private readonly FakeBucket _bucket;
 
         public ConfigContextTests(ITestOutputHelper output)
         {
             _output = output;
+            _bucket = new FakeBucket(_output);
         }
 
         [Fact]
@@ -27,7 +30,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             var config1 = new BucketConfig
             {
@@ -59,7 +62,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             var config = new BucketConfig
             {
@@ -83,7 +86,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             context.Stop();
 
@@ -110,7 +113,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             //act
             var config1 = new BucketConfig
@@ -142,7 +145,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             var config1 = new BucketConfig
             {
@@ -174,7 +177,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             Assert.Throws<BucketMissingException>(() => context.Get("default"));
         }
@@ -187,7 +190,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
             context.Stop();
 
             var config = new BucketConfig
@@ -212,25 +215,49 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             var context = new ConfigContext(new Couchbase.Configuration());
             context.Start(cts);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             //act/assert
             Assert.Throws<BucketMissingException>(() => context.Get("default"));
         }
 
-        public Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+        internal class FakeBucket : BucketBase
         {
-            throw new NotImplementedException();
-        }
+            private ITestOutputHelper _output;
 
-        Task IBucketInternal.Bootstrap(params ClusterNode[] clusterNode)
-        {
-            throw new NotImplementedException();
-        }
+            public FakeBucket(ITestOutputHelper output)
+            {
+                _output = output;
+            }
 
-        public void ConfigUpdated(object sender, BucketConfigEventArgs e)
-        {
-            _output.WriteLine("recieved config #: {0}", e.Config.Rev);
+            public override IViewManager ViewIndexes => throw new NotImplementedException();
+
+            public override Task<IScope> this[string name] => throw new NotImplementedException();
+
+            public override Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void LoadManifest()
+            {
+                throw new NotImplementedException();
+            }
+
+            internal override Task Bootstrap(params ClusterNode[] bootstrapNodes)
+            {
+                throw new NotImplementedException();
+            }
+
+            internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
+            {
+                _output.WriteLine("recieved config #: {0}", e.Config.Rev);
+            }
+
+            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy.SubDocument;
@@ -21,15 +22,15 @@ namespace Couchbase
     {
         internal const string DefaultCollection = "_default";
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseCollection>();
-        private readonly IBucketInternal _bucket;
+        private readonly BucketBase _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
 
-        public CouchbaseCollection(IBucket bucket, uint? cid, string name)
+        internal CouchbaseCollection(BucketBase bucket, uint? cid, string name)
         {
             Cid = cid;
             Name = name;
-            _bucket = (IBucketInternal)bucket;
+            _bucket = bucket;
         }
 
         public uint? Cid { get; }

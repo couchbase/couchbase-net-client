@@ -8,18 +8,21 @@ using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.Services.Views;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
 {
-    public class HttpStreamConfigListenerTests: IClassFixture<ClusterFixture>, IBucketInternal, IDisposable
+    public class HttpStreamConfigListenerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
-        private static AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
+        private static readonly AutoResetEvent _autoResetEvent = new AutoResetEvent(false);
+        private readonly FakeBucket _bucket;
 
         public HttpStreamConfigListenerTests(ClusterFixture fixture)
         {
             _fixture = fixture;
+            _bucket = new FakeBucket(_autoResetEvent);
         }
 
         [Fact]
@@ -30,7 +33,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
 
             var context = new ConfigContext(_fixture.Configuration);
             context.Start(tokenSource);
-            context.Subscribe(this);
+            context.Subscribe(_bucket);
 
             var httpClient = new CouchbaseHttpClient(_fixture.Configuration);
             var listener = new HttpStreamingConfigListener("default", _fixture.Configuration, httpClient, context, tokenSource.Token);
@@ -39,25 +42,55 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             Assert.True(_autoResetEvent.WaitOne(TimeSpan.FromSeconds(1)));
         }
 
-        public Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+        internal void Dispose()
         {
-            throw new NotImplementedException();
-        }
-
-        Task IBucketInternal.Bootstrap(params ClusterNode[] bootstrapNodes)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void ConfigUpdated(object sender, BucketConfigEventArgs e)
-        {
-            _autoResetEvent.Set();
-        }
-
-        public void Dispose()
-        {
-            _autoResetEvent?.Dispose();
+            _bucket.Dispose();
             _fixture?.Dispose();
+        }
+
+        internal class FakeBucket : BucketBase
+        {
+            private readonly AutoResetEvent _event;
+
+            public FakeBucket(AutoResetEvent @event)
+            {
+                _event = @event;
+            }
+
+            public override Task<IScope> this[string name] => throw new NotImplementedException();
+
+            public override IViewManager ViewIndexes => throw new NotImplementedException();
+
+            public override Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            protected override void LoadManifest()
+            {
+                throw new NotImplementedException();
+            }
+
+            internal override Task Bootstrap(params ClusterNode[] bootstrapNodes)
+            {
+                throw new NotImplementedException();
+            }
+
+            internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
+            {
+                _event.Set();
+            }
+
+            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Dispose()
+            {
+                base.Dispose();
+                _event?.Dispose();
+            }
         }
     }
 }

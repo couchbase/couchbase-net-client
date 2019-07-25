@@ -3,8 +3,11 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Configuration.Server.Streaming;
+using Couchbase.Core.IO.HTTP;
 
 namespace Couchbase.Core.Configuration.Server
 {
@@ -18,21 +21,25 @@ namespace Couchbase.Core.Configuration.Server
         public BucketConfig Config { get; }
     }
 
-    internal class ConfigContext : IDisposable
+    internal class ConfigContext : IConfigContext
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<ConfigContext>();
 
         private readonly BlockingCollection<BucketConfig> _configQueue = new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
         private readonly ConcurrentDictionary<string, BucketConfig> _configs = new ConcurrentDictionary<string, BucketConfig>();
-        private CancellationTokenSource TokenSource { get; set; }
+        public CancellationTokenSource TokenSource { get; set; } = new CancellationTokenSource();
         private readonly Couchbase.Configuration _configuration;
+        private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners = new ConcurrentDictionary<string, HttpStreamingConfigListener>();
+        private readonly HttpClient _httpClient;
 
         internal delegate void BucketConfigHandler(object sender, BucketConfigEventArgs a);
-        private event BucketConfigHandler ConfigChanged;
+
+        public event BucketConfigHandler ConfigChanged;
 
         public ConfigContext(Couchbase.Configuration configuration)
         {
             _configuration = configuration;
+            _httpClient = new CouchbaseHttpClient(_configuration);
         }
 
         public void Start(CancellationTokenSource tokenSource)
@@ -58,10 +65,14 @@ namespace Couchbase.Core.Configuration.Server
 
                     foreach (var clusterNode in _configuration.GlobalNodes.Where(x=>x.Connection != null))
                     {
-                        var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
-                        if (config != null)//TODO GetClusterMap should throw exception instead of return null on error
+                        try
                         {
+                            var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
                             Publish(config);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.LogWarning(e, "Issue getting Cluster Map config!");
                         }
                     }
                 }
@@ -117,14 +128,31 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
-        public void Subscribe(IBucketInternal bucket)
+        public void Subscribe(BucketBase bucket)
         {
             ConfigChanged += bucket.ConfigUpdated;
+
+            if (bucket is MemcachedBucket)
+            {
+                var httpListener = new HttpStreamingConfigListener(bucket.Name, _configuration, _httpClient, this, TokenSource.Token);
+                if (_httpConfigListeners.TryAdd(bucket.Name, httpListener))
+                {
+                    httpListener.StartListening();
+                }
+            }
         }
 
-        public void Unsubscribe(IBucketInternal bucket)
+        public void Unsubscribe(BucketBase bucket)
         {
             ConfigChanged -= bucket.ConfigUpdated;
+
+            if (bucket is MemcachedBucket)
+            {
+                if(_httpConfigListeners.TryRemove(bucket.Name, out HttpStreamingConfigListener listener))
+                {
+                    listener.Dispose();
+                }
+            }
         }
 
         public BucketConfig Get(string bucketName)
@@ -158,6 +186,7 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Dispose()
         {
+            _httpClient?.Dispose();
             _configQueue?.Dispose();
             TokenSource?.Dispose();
             if (ConfigChanged == null) return;
