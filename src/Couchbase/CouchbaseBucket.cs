@@ -307,7 +307,7 @@ namespace Couchbase
             _disposed = true;
         }
 
-        public async Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+        async Task IBucketInternal.Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
         {
             var vBucket = (VBucket) _keyMapper.MapKey(op.Key);
             op.VBucketId = vBucket.Index;
