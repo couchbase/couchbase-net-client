@@ -22,15 +22,19 @@ namespace Couchbase
         private static readonly ILogger Log = LogManager.CreateLogger<Cluster>();
         private bool _disposed;
         private readonly Configuration _configuration;
-        private IQueryClient _queryClient;
-        private ISearchClient _searchClient;
-        private IAnalyticsClient _analyticsClient;
         private CancellationTokenSource _configTokenSource;
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
         private readonly ConfigContext _configContext;
         private BucketConfig _clusterConfig;
         private bool _hasBootStrapped;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
+
+        private readonly Lazy<IQueryClient> _lazyQueryClient;
+        private readonly Lazy<ISearchClient> _lazySearchClient;
+        private readonly Lazy<IAnalyticsClient> _lazyAnalyticsClient;
+        private readonly Lazy<IUserManager> _lazyUserManager;
+        private readonly Lazy<IBucketManager> _lazyBucketManager;
+        private readonly Lazy<IQueryIndexes> _lazyQueryManager;
 
         public Cluster(Configuration configuration)
         {
@@ -54,7 +58,11 @@ namespace Couchbase
             }
 
             _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_configuration));
+            _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_configuration));
+            _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_configuration));
             _lazyQueryManager = new Lazy<IQueryIndexes>(() => new QueryIndexes(_lazyQueryClient.Value));
+            _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_configuration));
+            _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_configuration));
         }
 
         public Cluster(string connectionStr, string username, string password)
@@ -78,7 +86,11 @@ namespace Couchbase
             }
 
             _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_configuration));
+            _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_configuration));
+            _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_configuration));
             _lazyQueryManager = new Lazy<IQueryIndexes>(() => new QueryIndexes(_lazyQueryClient.Value));
+            _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_configuration));
+            _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_configuration));
         }
 
         private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint, Uri uri)
@@ -254,8 +266,6 @@ namespace Couchbase
 
         #region Query
 
-        private readonly Lazy<IQueryClient> _lazyQueryClient;
-
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters, QueryOptions options)
         {
             await EnsureBootstrapped();
@@ -297,11 +307,7 @@ namespace Couchbase
 
             query.ConfigureLifespan(30); //TODO: use configuration.AnalyticsTimeout
 
-            if (_analyticsClient == null)
-            {
-                _analyticsClient = new AnalyticsClient(_configuration);
-            }
-            return await _analyticsClient.QueryAsync<T>(query, options.CancellationToken);
+            return await _lazyAnalyticsClient.Value.QueryAsync<T>(query, options.CancellationToken);
         }
 
         #endregion
@@ -312,11 +318,6 @@ namespace Couchbase
         {
             await EnsureBootstrapped();
 
-            if (_searchClient == null)
-            {
-                _searchClient = new SearchClient(_configuration);
-            }
-
             query.Index = indexName;
 
             if (options == default)
@@ -325,22 +326,19 @@ namespace Couchbase
             }
             //TODO: convert options to params
 
-            return await _searchClient.QueryAsync(query);
+            return await _lazySearchClient.Value.QueryAsync(query);
         }
 
         #endregion
 
-        private Lazy<IQueryIndexes> _lazyQueryManager;
         public IQueryIndexes QueryIndexes => _lazyQueryManager.Value;
 
         public IAnalyticsIndexes AnalyticsIndexes { get; }
         public ISearchIndexes SearchIndexes { get; }
 
-        private IBucketManager _bucketManager;
-        public IBucketManager Buckets => _bucketManager ?? new BucketManager(_configuration);
+        public IBucketManager Buckets => _lazyBucketManager.Value;
 
-        private IUserManager _userManager;
-        public IUserManager Users => _userManager ?? new UserManager(_configuration);
+        public IUserManager Users => _lazyUserManager.Value;
 
         public void Dispose()
         {
@@ -355,29 +353,24 @@ namespace Couchbase
                 bucket.Dispose();
             }
 
-            if (_queryClient is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-
             _disposed = true;
         }
 
         /// <inheritdoc />
         public string ExportDeferredAnalyticsQueryHandle<T>(IAnalyticsDeferredResultHandle<T> handle)
         {
-            return _analyticsClient.ExportDeferredQueryHandle(handle);
+            return _lazyAnalyticsClient.Value.ExportDeferredQueryHandle(handle);
         }
 
         /// <inheritdoc />
         public IAnalyticsDeferredResultHandle<T> ImportDeferredAnalyticsQueryHandle<T>(string encodedHandle)
         {
-            return _analyticsClient.ImportDeferredQueryHandle<T>(encodedHandle);
+            return _lazyAnalyticsClient.Value.ImportDeferredQueryHandle<T>(encodedHandle);
         }
 
         internal void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
         {
-            if (_queryClient is QueryClient client)
+            if (_lazyQueryClient.Value is QueryClient client)
             {
                 client.UpdateClusterCapabilities(clusterCapabilities);
             }
