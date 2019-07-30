@@ -69,12 +69,40 @@ namespace Couchbase.Utils
             return item;
         }
 
+        public static bool TryGetRandom<T>(this IEnumerable<T> list, out T item)
+        {
+            var enumerable = list as IList<T> ?? list.ToList();
+            if (enumerable.Any())
+            {
+                var index = Random.Next(enumerable.Count);
+                item = enumerable[index];
+                return true;
+            }
+
+            item = default;
+            return false;
+        }
+
+        public static bool TryGetRandom<T>(this IEnumerable<T> enumerable, Func<T, bool> whereClause, out T item)
+        {
+            var list = enumerable as IList<T> ?? enumerable.Where(whereClause).ToList();
+            if (list.Any())
+            {
+                var index = Random.Next(list.Count);
+                item = list[index];
+                return true;
+            }
+
+            item = default;
+            return false;
+        }
+
         public static bool AreEqual<T>(this List<T> array, List<T> other)
         {
             if (array == null && other == null) return true;
             if (array == null) return false;
             if (other == null) return false;
-           
+
             return array.Count == other.Count && array.SequenceEqual(other);
         }
 

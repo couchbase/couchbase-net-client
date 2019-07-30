@@ -53,13 +53,13 @@ namespace Couchbase.Services.Search
         /// <returns>A <see cref="ISearchResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
         public async Task<ISearchResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken = default)
         {
-            //TODO: need to use cached list of search nodes
-            var uri = new UriBuilder(Configuration.Servers.GetRandom())
+            // try get Search node
+            if (!Configuration.GlobalNodes.TryGetRandom(x => x.HasSearch(), out var node))
             {
-                Scheme = "http",
-                Path = $"/api/index/{searchQuery.Index}/query",
-                Port = 8094
-            }.Uri;
+                //const string noNodeAvailableMessage = "Unable to locate search node to submit query to.";
+                //Logger.LogError(noNodeAvailableMessage);
+                throw new ServiceNotAvailableException(ServiceType.Search);
+            }
 
             var searchResult = new SearchResult();
 
@@ -76,7 +76,7 @@ namespace Couchbase.Services.Search
                     HttpResponseMessage response;
                     //using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.DispatchToServer).StartActive())
                     //{
-                        response = await HttpClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false);
+                        response = await HttpClient.PostAsync(node.SearchUri, content, cancellationToken).ConfigureAwait(false);
                     //}
 
                     //using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.ResponseDecoding).StartActive())

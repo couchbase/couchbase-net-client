@@ -4,11 +4,11 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Services.Analytics;
 using Couchbase.UnitTests.Utils;
-using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -20,6 +20,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         public void Query_Sets_LastActivity()
         {
             var configuration = new Configuration().WithServers("http://localhost");
+            configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
@@ -42,6 +43,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         public async Task QueryAsync_Sets_LastActivity()
         {
             var configuration = new Configuration().WithServers("http://localhost");
+            configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
@@ -66,6 +68,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         public void Client_sets_AnalyticsPriority_Header(bool priority)
         {
             var configuration = new Configuration().WithServers("http://localhost");
+            configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request =>
@@ -102,6 +105,7 @@ namespace Couchbase.UnitTests.Services.Analytics
             });
 
             var configuration = new Configuration().WithServers("http://localhost");
+            configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)

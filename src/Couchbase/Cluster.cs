@@ -29,6 +29,8 @@ namespace Couchbase
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
         private readonly ConfigContext _configContext;
         private BucketConfig _clusterConfig;
+        private bool _hasBootStrapped;
+        private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
 
         public Cluster(Configuration configuration)
         {
@@ -62,11 +64,6 @@ namespace Couchbase
             _configuration = new Configuration()
                 .WithServers(connectionString.Hosts.ToArray())
                 .WithCredentials(username, password);
-
-            if (!_configuration.Buckets.Any())
-            {
-                _configuration = _configuration.WithBucket("default");
-            }
 
             if (!_configuration.Servers.Any())
             {
@@ -152,6 +149,7 @@ namespace Couchbase
 
                         // get cluster capabilities
                         UpdateClusterCapabilities(_clusterConfig.GetClusterCapabilities());
+                        _hasBootStrapped = true;
                     }
                 }
                 catch (AuthenticationException e)
@@ -209,6 +207,7 @@ namespace Couchbase
                 throw new BucketMissingException(@"{name} Bucket not found!");
             }
 
+            _hasBootStrapped = true;
             return bucket;
         }
 
@@ -222,25 +221,60 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
+        private async Task EnsureBootstrapped()
+        {
+            if (_hasBootStrapped)
+            {
+                return;
+            }
+
+            // if no buckets registered in config, throw exception
+            if (!_configuration.Buckets.Any())
+            {
+                throw new CouchbaseException("Unable to bootstrap - please open a bucket or add a bucket name to the configuration.");
+            }
+
+            await _bootstrapLock.WaitAsync();
+            try
+            {
+                // check again to make sure we still need to bootstrap
+                if (_hasBootStrapped)
+                {
+                    return;
+                }
+
+                // try to bootstrap first bucket in config
+                await BucketAsync(_configuration.Buckets.First());
+            }
+            finally
+            {
+                _bootstrapLock.Release(1);
+            }
+        }
+
         #region Query
 
         private readonly Lazy<IQueryClient> _lazyQueryClient;
 
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters, QueryOptions options)
+        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters, QueryOptions options)
         {
+            await EnsureBootstrapped();
+
             //re-use older API by mapping parameters to new API
             options?.AddNamedParameter(parameters?.NamedParameters.ToArray());
             options?.AddPositionalParameter(parameters?.PostionalParameters.ToArray());
 
-            return _lazyQueryClient.Value.QueryAsync<T>(statement, options);
+            return await _lazyQueryClient.Value.QueryAsync<T>(statement, options);
         }
 
         #endregion
 
         #region Analytics
 
-        public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default)
+        public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default)
         {
+            await EnsureBootstrapped();
+
             if (options == default)
             {
                 options = new AnalyticsOptions();
@@ -267,15 +301,17 @@ namespace Couchbase
             {
                 _analyticsClient = new AnalyticsClient(_configuration);
             }
-            return _analyticsClient.QueryAsync<T>(query, options.CancellationToken);
+            return await _analyticsClient.QueryAsync<T>(query, options.CancellationToken);
         }
 
         #endregion
 
         #region Search
 
-        public Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default)
+        public async Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default)
         {
+            await EnsureBootstrapped();
+
             if (_searchClient == null)
             {
                 _searchClient = new SearchClient(_configuration);
@@ -289,7 +325,7 @@ namespace Couchbase
             }
             //TODO: convert options to params
 
-            return _searchClient.QueryAsync(query);
+            return await _searchClient.QueryAsync(query);
         }
 
         #endregion

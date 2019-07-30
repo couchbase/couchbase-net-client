@@ -50,13 +50,13 @@ namespace Couchbase.Services.Analytics
         /// <returns></returns>
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token)
         {
-            //TODO: need to use cached list of analytics nodes
-            var uri = new UriBuilder(Configuration.Servers.GetRandom())
+            // try get Analytics node
+            if (!Configuration.GlobalNodes.TryGetRandom(x => x.HasAnalytics(), out var node))
             {
-                Scheme = "http",
-                Path = "/analytics/service",
-                Port = 8095
-            }.Uri;
+                //const string noNodeAvailableMessage = "Unable to locate analytics node to submit query to.";
+                //Logger.LogError(noNodeAvailableMessage);
+                throw new ServiceNotAvailableException(ServiceType.Analytics);
+            }
 
             var result = new AnalyticsResult<T>();
 
@@ -75,7 +75,7 @@ namespace Couchbase.Services.Analytics
                     HttpResponseMessage response;
                     //using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).StartActive())
                     //{
-                        var request = new HttpRequestMessage(HttpMethod.Post, uri)
+                        var request = new HttpRequestMessage(HttpMethod.Post, node.AnalyticsUri)
                         {
                             Content = content
                         };

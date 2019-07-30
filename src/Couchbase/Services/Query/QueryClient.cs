@@ -108,8 +108,13 @@ namespace Couchbase.Services.Query
 
         internal async Task<IQueryResult<T>> ExecuteQuery<T>(string statement, QueryOptions options, IDataMapper dataMapper)
         {
-            //TODO make url selection round-robin
-            var clusterNode = Configuration.GlobalNodes.GetRandom(x => x.HasQuery());
+            // try get Query node
+            if (!Configuration.GlobalNodes.TryGetRandom(x => x.HasQuery(), out var node))
+            {
+                const string noNodeAvailableMessage = "Unable to locate query node to submit query to.";
+                Logger.LogError(noNodeAvailableMessage);
+                throw new ServiceNotAvailableException(ServiceType.Query);
+            }
 
             options.Statement(statement);
             var body = options.GetFormValuesAsJson();
@@ -119,7 +124,7 @@ namespace Couchbase.Services.Query
             {
                 try
                 {
-                    var response = await HttpClient.PostAsync(clusterNode.QueryUri, content, options.CancellationToken)
+                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.CancellationToken)
                         .ConfigureAwait(false);
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

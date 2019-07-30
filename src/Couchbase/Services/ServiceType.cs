@@ -2,9 +2,18 @@ using System.ComponentModel;
 
 namespace Couchbase.Services
 {
-    internal enum ServiceType
+    public enum ServiceType
     {
+        [Description("kv")]
+        KeyValue,
+
         [Description("n1ql")]
-        Query
+        Query,
+
+        [Description("fts")]
+        Search,
+
+        [Description("cbas")]
+        Analytics
     }
 }
