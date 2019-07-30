@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using Couchbase.Utils;
 using OpenTracing;
 using OpenTracing.Tag;
 
@@ -95,7 +96,7 @@ namespace Couchbase.Tracing
             {
                 if (_endTimestamp.HasValue)
                 {
-                    return (_endTimestamp.Value - _startTimestamp) / 10;
+                    return TimeSpanExtensions.ConvertTicksToMicros(_endTimestamp.Value - _startTimestamp);
                 }
                 return 0;
             }

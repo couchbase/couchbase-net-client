@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Couchbase.Logging;
 
@@ -115,6 +116,22 @@ namespace Couchbase.Utils
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The number of ticks per microsecond is based on executing system clock resolution frequency.
+        /// This is the conversion factor needed based on current frequency to get a consistent cross-platform value.
+        /// </summary>
+        public static readonly long TicksPerMicroSecondFactor = Stopwatch.Frequency / (1000L * 1000L);
+
+        /// <summary>
+        /// Converts ticks to microseconds.
+        /// </summary>
+        /// <param name="ticks">The ticks to convert to microseconds.</param>
+        /// <returns>The number of ticks expressed as a <see cref="long"/>.</returns>
+        public static long ConvertTicksToMicros(long ticks)
+        {
+            return ticks / TicksPerMicroSecondFactor;
         }
     }
 }
