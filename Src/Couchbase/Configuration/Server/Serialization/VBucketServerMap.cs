@@ -74,14 +74,17 @@ namespace Couchbase.Configuration.Server.Serialization
         // ReSharper disable once InconsistentNaming
         internal void EnsureIPEndPointsAreLoaded()
         {
-            lock (_syncObj)
+            if (_ipEndPoints == null || !_ipEndPoints.Any())
             {
-                if (_ipEndPoints == null || !_ipEndPoints.Any())
+                lock (_syncObj)
                 {
-                    _ipEndPoints = new List<IPEndPoint>();
-                    foreach (var server in ServerList)
+                    if (_ipEndPoints == null || !_ipEndPoints.Any())
                     {
-                        _ipEndPoints.Add(IPEndPointExtensions.GetEndPoint(server));
+                        _ipEndPoints = new List<IPEndPoint>();
+                        foreach (var server in ServerList)
+                        {
+                            _ipEndPoints.Add(IPEndPointExtensions.GetEndPoint(server));
+                        }
                     }
                 }
             }
