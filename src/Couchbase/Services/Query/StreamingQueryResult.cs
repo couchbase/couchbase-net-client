@@ -377,7 +377,7 @@ namespace Couchbase.Services.Query
                         Profile = JToken.ReadFrom(_reader);
                         break;
                     case "metrics.elapsedTime" when _reader.TokenType == JsonToken.String:
-                        _metrics.ElaspedTime = _reader.Value.ToString();
+                        _metrics.ElapsedTime = _reader.Value.ToString();
                         break;
                     case "metrics.executionTime" when _reader.TokenType == JsonToken.String:
                         _metrics.ExecutionTime = _reader.Value.ToString();

@@ -96,7 +96,7 @@ namespace Couchbase.Services.Analytics
                         result.MetaData.HttpStatusCode = response.StatusCode;
                         //Log.Trace("Received analytics query cid{0}: {1}", result.ClientContextId, result.ToString());
 
-                        //scope.Span.SetPeerLatencyTag(result.Metrics.ElaspedTime);
+                        //scope.Span.SetPeerLatencyTag(result.Metrics.ElapsedTime);
                     }
                     //uri.ClearFailed();analytu
                 }

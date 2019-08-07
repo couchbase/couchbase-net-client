@@ -1,8 +1,8 @@
-﻿namespace Couchbase.Services.Query
+namespace Couchbase.Services.Query
 {
     public class Metrics
     {
-        public string ElaspedTime { get; set; }
+        public string ElapsedTime { get; set; }
 
         public string ExecutionTime { get; set; }
 
@@ -34,7 +34,7 @@
         {
             return new Metrics
             {
-                ElaspedTime = elapsedTime,
+                ElapsedTime = elapsedTime,
                 ExecutionTime = executionTime,
                 ResultCount = resultCount,
                 ResultSize = resultSize,
