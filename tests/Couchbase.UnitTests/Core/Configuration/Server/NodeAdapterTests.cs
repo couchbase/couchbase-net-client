@@ -1,0 +1,222 @@
+using Couchbase.Core.Configuration.Server;
+using Couchbase.UnitTests.Utils;
+using Moq;
+using Newtonsoft.Json;
+using Xunit;
+
+namespace Couchbase.UnitTests.Core.Configuration.Server
+{
+    public class NodeAdapterTests
+    {
+        [Fact]
+        public void IsAnalyticsNode_Is_True_When_Port_Is_Provided()
+        {
+            var node = new Node();
+            var nodeExt = new NodesExt
+            {
+                Hostname = "localhost",
+                Services = {Cbas = 8095}
+            };
+
+            var mockBucketConfig = new Mock<BucketConfig>();
+            var adapater = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
+
+            Assert.Equal(8095, adapater.Analytics);
+            Assert.True(adapater.IsAnalyticsNode);
+        }
+
+        [Fact]
+        public void IsAnalyticsNodeSsl_Is_True_When_Port_Is_Provided()
+        {
+            var node = new Node();
+            var nodeExt = new NodesExt
+            {
+                Hostname = "localhost",
+                Services = {CbasSsl = 18095}
+            };
+
+            var mockBucketConfig = new Mock<BucketConfig>();
+            var adapater = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
+
+            Assert.Equal(18095, adapater.AnalyticsSsl);
+            Assert.True(adapater.IsAnalyticsNode);
+        }
+
+        [Fact]
+        public void When_IPv6_NodeAdapter_Does_Not_Fail()
+        {
+            //arrange
+            var serverConfigJson = ResourceHelper.ReadResource("config-with-ipv6.json");
+            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+            var mockBucketConfig = new Mock<BucketConfig>();
+
+            //act
+            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0], mockBucketConfig.Object);
+
+            //assert
+            Assert.NotNull(adapter);
+        }
+
+        [Fact]
+        public void When_IPv6_NodeAdapter_GetEndpoint_Succeeds()
+        {
+            //arrange
+            var serverConfigJson = ResourceHelper.ReadResource("config-with-ipv6.json");
+            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+            var mockBucketConfig = new Mock<BucketConfig>();
+
+            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0], mockBucketConfig.Object);
+
+            //act
+            var endpoint = adapter.GetIpEndPoint(false);
+
+            //assert
+            Assert.NotNull(endpoint);
+        }
+
+        [Theory]
+        [InlineData("$HOST", "localhost")]
+        [InlineData("$HOST:8091", "localhost")]
+        [InlineData("192.168.1.1", "192.168.1.1")]
+        [InlineData("192.168.1.1:8091", "192.168.1.1")]
+        [InlineData("cb1.somewhere.org", "cb1.somewhere.org")]
+        [InlineData("cb1.somewhere.org:8091", "cb1.somewhere.org")]
+        [InlineData("::1", "::1")]
+        [InlineData("[::1]", "[::1]")]
+        [InlineData("[::1]:8091", "[::1]")]
+        [InlineData("fd63:6f75:6368:2068", "fd63:6f75:6368:2068")]
+        [InlineData("[fd63:6f75:6368:2068]", "[fd63:6f75:6368:2068]")]
+        [InlineData("[fd63:6f75:6368:2068]:8091", "[fd63:6f75:6368:2068]")]
+        [InlineData("fd63:6f75:6368:2068:1471:75ff:fe25:a8be", "fd63:6f75:6368:2068:1471:75ff:fe25:a8be")]
+        [InlineData("[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]", "[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]")]
+        [InlineData("[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]:8091", "[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]")]
+        public void When_NodeExt_Hostname_Is_Null_NodeAdapater_Can_Parse_Hostname_and_Port_From_Node(string hostname, string expectedHostname)
+        {
+            var node = new Node
+            {
+                Hostname = hostname
+            };
+            var nodeExt = new NodesExt();
+            var mockBucketConfig = new Mock<BucketConfig>();
+
+            var adapter = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
+            Assert.Equal(expectedHostname, adapter.Hostname);
+        }
+
+        [Fact]
+        public void When_Node_is_null_Kv_service_should_be_disabled()
+        {
+            const string hostname = "localhost";
+            var nodeExt = new NodesExt
+            {
+                Hostname = hostname,
+                Services = new Couchbase.Core.Configuration.Server.Services
+                {
+                    Kv = 11210 // nodeEXt has KV port, but node is null
+                }
+            };
+
+            var adapter = new NodeAdapter(null, nodeExt, null);
+            Assert.Equal(adapter.Hostname, hostname);
+            Assert.False(adapter.IsDataNode);
+        }
+
+        [Theory]
+        [InlineData(NetworkTypes.Auto, "external")]
+        [InlineData(NetworkTypes.External, "external")]
+        [InlineData(NetworkTypes.Default, "default")]
+        [InlineData("", "default")]
+        [InlineData(null, "default")]
+        public void When_NodeExt_Has_Alternate_Network_Configured_Use_External_Hostname(string networkType, string expected)
+        {
+            var node = new Node();
+            var nodeExt = new NodesExt
+            {
+                Hostname = "default",
+                AlternateAddresses = new AlternateAddressesConfig
+                {
+                    External = new ExternalAddressesConfig
+                    {
+                        Hostname = "external"
+                    }
+                }
+            };
+
+            var bucketConfig = new BucketConfig
+            {
+                NetworkType = NetworkTypes.Auto,
+                SurrogateHost = expected
+            };
+
+            var adapter = new NodeAdapter(node, nodeExt, bucketConfig);
+
+            Assert.Equal(expected, adapter.Hostname);
+        }
+
+        [Theory]
+        [InlineData(NetworkTypes.Auto, "external")]
+        [InlineData(NetworkTypes.External, "external")]
+        [InlineData(NetworkTypes.Default, "default")]
+        [InlineData("", "default")]
+        [InlineData(null, "default")]
+        public void When_NodeExt_Has_Alternate_Network_With_Ports_Configured_Use_External_Ports(string networkType, string expected)
+        {
+            var defaultServices = new Couchbase.Core.Configuration.Server.Services
+            {
+                Cbas = 1,
+                CbasSsl = 2,
+                Capi = 3,
+                CapiSsl = 4,
+                Fts = 5,
+                FtsSsl = 6,
+                Kv = 1,
+                KvSsl = 2,
+                N1Ql = 9,
+                N1QlSsl = 10
+            };
+            var externalServices = new Couchbase.Core.Configuration.Server.Services
+            {
+                Cbas = 10,
+                CbasSsl = 20,
+                Capi = 30,
+                CapiSsl = 40,
+                Fts = 50,
+                FtsSsl = 60,
+                Kv = 10,
+                KvSsl = 20,
+                N1Ql = 90,
+                N1QlSsl = 100
+            };
+
+            var node = new Node();
+            var nodeExt = new NodesExt
+            {
+                Hostname = "default",
+                Services = defaultServices,
+                AlternateAddresses = new AlternateAddressesConfig
+                {
+                    External = new ExternalAddressesConfig
+                    {
+                        Hostname = "external",
+                        Ports = externalServices
+                    }
+                }
+            };
+
+            var bucketConfig = new BucketConfig
+            {
+                NetworkType = NetworkTypes.Auto,
+                SurrogateHost = expected
+            };
+
+            var adapter = new NodeAdapter(node, nodeExt, bucketConfig);
+            VerifyServices(expected == "external" ? externalServices : defaultServices, adapter);
+        }
+
+        private void VerifyServices(Couchbase.Core.Configuration.Server.Services services, NodeAdapter adapter)
+        {
+            Assert.Equal(services.Kv, adapter.KeyValue);
+            Assert.Equal(services.KvSsl, adapter.KeyValueSsl);
+        }
+    }
+}

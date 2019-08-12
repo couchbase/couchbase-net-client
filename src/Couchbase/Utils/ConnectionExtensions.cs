@@ -1,6 +1,6 @@
+using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
@@ -13,7 +13,6 @@ using Couchbase.Core.IO.Operations.Legacy.Authentication;
 using Couchbase.Core.IO.Operations.Legacy.Collections;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
 using Couchbase.Core.IO.Transcoders;
-using Newtonsoft.Json;
 using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
 namespace Couchbase.Utils
@@ -132,7 +131,7 @@ namespace Couchbase.Utils
             }
         }
 
-        internal static async Task<BucketConfig> GetClusterMap(this IConnection connection, IPEndPoint endPoint)
+        internal static async Task<BucketConfig> GetClusterMap(this IConnection connection, IPEndPoint endPoint, Uri bootstrapUri)
         {
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
             using (var configOp = new Config
@@ -144,7 +143,22 @@ namespace Couchbase.Utils
                 EndPoint = endPoint,
                 Completed = s =>
                 {
-                    completionSource.SetResult(s.ExtractData());
+                    if (s.Status == ResponseStatus.Success)
+                    {
+                        completionSource.SetResult(s.ExtractData());
+                    }
+                    else
+                    {
+                        if (s.Status == ResponseStatus.KeyNotFound)
+                        {
+                            completionSource.SetException(new KeyNotFoundException("CCCP or G3CP not supported."));
+                        }
+                        else
+                        {
+                            completionSource.SetException(new KeyValueException(s.Status.ToString()));
+                        }
+                    }
+
                     return completionSource.Task;
                 }
             })
@@ -159,11 +173,7 @@ namespace Couchbase.Utils
 
                 if (config != null)
                 {
-                    // fixes single node cluster where config doesn't know hostname
-                    foreach (var nodesExt in config.NodesExt.Where(x => x.thisNode && string.IsNullOrWhiteSpace(x.hostname)))
-                    {
-                        nodesExt.hostname = endPoint.Address.ToString();
-                    }
+                    config.ReplacePlaceholderWithBootstrapHost(bootstrapUri);
                 }
 
                 return config;

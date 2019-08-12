@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Utils;
@@ -19,10 +21,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var configuration = new Configuration {UseSsl = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
-            var nodesExt = bucketConfig.NodesExt.Find(x => x.hostname.Equals(host));
-
-            var endpoint = nodesExt.GetIpEndPoint(configuration);
-            var actual = endpoint.GetQueryUri(configuration, nodesExt);
+            var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
+            var endpoint = nodeAdapter.GetIpEndPoint();
+            var actual = endpoint.GetQueryUri(configuration, nodeAdapter);
 
             var expected = new Uri(expectedUri);
 
@@ -36,10 +37,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var configuration = new Configuration {UseSsl = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
-            var nodesExt = bucketConfig.NodesExt.Find(x => x.hostname.Equals(host));
-
-            var endpoint = nodesExt.GetIpEndPoint(configuration);
-            var actual = endpoint.GetViewsUri(configuration, nodesExt);
+            var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
+            var endpoint = nodeAdapter.GetIpEndPoint();
+            var actual = endpoint.GetViewsUri(configuration, nodeAdapter);
 
             var expected = new Uri(expectedUri);
 
@@ -53,10 +53,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var configuration = new Configuration {UseSsl = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
-            var nodesExt = bucketConfig.NodesExt.Find(x => x.hostname.Equals(host));
-
-            var endpoint = nodesExt.GetIpEndPoint(configuration);
-            var actual = endpoint.GetAnalyticsUri(configuration, nodesExt);
+            var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
+            var endpoint = nodeAdapter.GetIpEndPoint();
+            var actual = endpoint.GetAnalyticsUri(configuration, nodeAdapter);
 
             var expected = new Uri(expectedUri);
 
@@ -70,10 +69,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var configuration = new Configuration {UseSsl = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
-            var nodesExt = bucketConfig.NodesExt.Find(x => x.hostname.Equals(host));
-
-            var endpoint = nodesExt.GetIpEndPoint(configuration);
-            var actual = endpoint.GetSearchUri(configuration, nodesExt);
+            var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
+            var endpoint = nodeAdapter.GetIpEndPoint();
+            var actual = endpoint.GetSearchUri(configuration, nodeAdapter);
 
             var expected = new Uri(expectedUri);
 

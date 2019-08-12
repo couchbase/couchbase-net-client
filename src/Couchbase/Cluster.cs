@@ -133,27 +133,27 @@ namespace Couchbase
                     }
                     else
                     {
-                        foreach (var nodesExt in _clusterConfig.NodesExt)
+                        foreach (var nodeAdapter in _clusterConfig.GetNodes())
                         {
                             //fixup server bug(?) where hostname is null on single node
-                            if (nodesExt.hostname == null)
+                            if (nodeAdapter.Hostname == null)
                             {
-                                nodesExt.hostname = uri.Host;
+                                nodeAdapter.Hostname = uri.Host;
                             }
 
                             //This is the bootstrap node so we update it
-                            if (uri.Host == nodesExt.hostname)
+                            if (uri.Host == nodeAdapter.Hostname)
                             {
-                                bootstrapNode.NodesExt = nodesExt;
+                                bootstrapNode.NodesAdapter = nodeAdapter;
                                 bootstrapNode.BuildServiceUris();
                                 _configuration.GlobalNodes.Add(bootstrapNode);
                             }
                             else
                             {
-                                endPoint = IpEndPointExtensions.GetEndPoint(nodesExt.hostname, 11210);
+                                endPoint = IpEndPointExtensions.GetEndPoint(nodeAdapter.Hostname, 11210);
 
                                 var clusterNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
-                                clusterNode.NodesExt = nodesExt;
+                                clusterNode.NodesAdapter = nodeAdapter;
                                 clusterNode.BuildServiceUris();
                                 _configuration.GlobalNodes.Add(clusterNode);
                             }

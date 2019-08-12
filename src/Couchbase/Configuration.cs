@@ -94,4 +94,11 @@ namespace Couchbase
         public bool OrphanedResponseLoggingEnabled { get; set; }
         public bool EnableConfigPolling { get; set; }
     }
+
+    public static class NetworkTypes
+    {
+        public const string Auto = "auto";
+        public const string Default = "default";
+        public const string External = "external";
+    }
 }

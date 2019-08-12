@@ -11,12 +11,20 @@ namespace Couchbase.Core.Configuration.Server
 {
     public class Ports : IEquatable<Ports>
     {
-        public int direct { get; set; }
+        [JsonProperty("direct")] public int Direct { get; set; }
+        [JsonProperty("proxy")] public int Proxy { get; set; }
+        [JsonProperty("sslDirect")] public int SslDirect { get; set; }
+        [JsonProperty("httpsCAPI")] public int HttpsCapi { get; set; }
+        [JsonProperty("httpsMgmt")] public int HttpsMgmt { get; set; }
 
         public bool Equals(Ports other)
         {
             if (other == null) return false;
-            return direct == other.direct;
+            return Direct == other.Direct &&
+                Proxy == other.Proxy &&
+                SslDirect == other.SslDirect &&
+                HttpsCapi == other.HttpsCapi &&
+                HttpsMgmt == other.HttpsMgmt;
         }
 
         public override bool Equals(object obj)
@@ -28,7 +36,7 @@ namespace Couchbase.Core.Configuration.Server
 
         public override int GetHashCode()
         {
-            return direct;
+            return Direct;
         }
 
         public static bool operator ==(Ports left, Ports right)
@@ -44,16 +52,36 @@ namespace Couchbase.Core.Configuration.Server
 
     public class Node : IEquatable<Node>
     {
-        public string couchApiBase { get; set; }
-        public string hostname { get; set; }
-        public Ports ports { get; set; }
+
+        const string LocalHost = "127.0.0.1";
+        private const string HostToken = "$HOST";
+        private const string ViewPort = "8091";
+
+        public Node()
+        {
+            Ports = new Ports
+            {
+                Direct = 11210,
+                Proxy = 11211,
+                SslDirect = 11207,
+                HttpsCapi = 18092,
+                HttpsMgmt = 18091
+            };
+            CouchApiBase = "http://$HOST:8092/default";
+            CouchApiBaseHttps = "https://$HOST:18092/default";
+        }
+        [JsonProperty("couchApiBase")] public string CouchApiBase { get; set; }
+        [JsonProperty("couchApiBaseHttps")] public string CouchApiBaseHttps { get; set; }
+        [JsonProperty("hostname")] public string Hostname { get; set; }
+        [JsonProperty("ports")] public Ports Ports { get; set; }
+        [JsonProperty("services")] public List<string> Services { get; set; }
 
         public bool Equals(Node other)
         {
             if (other == null) return false;
-            return string.Equals(couchApiBase, other.couchApiBase) &&
-                   string.Equals(hostname, other.hostname) &&
-                   Equals(ports, other.ports);
+            return string.Equals(CouchApiBase, other.CouchApiBase) &&
+                   string.Equals(Hostname, other.Hostname) &&
+                   Equals(Ports, other.Ports);
         }
 
         public override bool Equals(object obj)
@@ -67,9 +95,9 @@ namespace Couchbase.Core.Configuration.Server
         {
             unchecked
             {
-                var hashCode = (couchApiBase != null ? couchApiBase.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (hostname != null ? hostname.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (ports != null ? ports.GetHashCode() : 0);
+                var hashCode = (CouchApiBase != null ? CouchApiBase.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Hostname != null ? Hostname.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (Ports != null ? Ports.GetHashCode() : 0);
                 return hashCode;
             }
         }
@@ -87,36 +115,37 @@ namespace Couchbase.Core.Configuration.Server
 
     public class Services : IEquatable<Services>
     {
-        public int mgmt { get; set; }
-        public int mgmtSSL { get; set; }
-        public int indexAdmin { get; set; }
-        public int indexScan { get; set; }
-        public int indexHttp { get; set; }
-        public int indexStreamInit { get; set; }
-        public int indexStreamCatchup { get; set; }
-        public int indexStreamMaint { get; set; }
-        public int indexHttps { get; set; }
-        public int kv { get; set; }
-        public int kvSSL { get; set; }
-        public int capi { get; set; }
-        public int capiSSL { get; set; }
-        public int projector { get; set; }
-        public int n1ql { get; set; }
-        public int n1qlSSL { get; set; }
-        public int cbas { get; set; }
-        public int cbasSSL { get; set; }
-        public int fts { get; set; }
-        public int ftsSSL { get; set; }
+        [JsonProperty("mgmt")] public int Mgmt { get; set; }
+        [JsonProperty("mgmtSSL")] public int MgmtSsl { get; set; }
+        [JsonProperty("indexAdmin")] public int IndexAdmin { get; set; }
+        [JsonProperty("indexScan")] public int IndexScan { get; set; }
+        [JsonProperty("indexHttp")] public int IndexHttp { get; set; }
+        [JsonProperty("indexStreamInit")] public int IndexStreamInit { get; set; }
+        [JsonProperty("indexStreamCatchup")] public int IndexStreamCatchup { get; set; }
+        [JsonProperty("indexStreamMaint")] public int IndexStreamMaint { get; set; }
+        [JsonProperty("indexHttps")] public int IndexHttps { get; set; }
+        [JsonProperty("kv")] public int Kv { get; set; }
+        [JsonProperty("kvSSL")] public int KvSsl { get; set; }
+        [JsonProperty("capi")] public int Capi { get; set; }
+        [JsonProperty("capiSSL")] public int CapiSsl { get; set; }
+        [JsonProperty("projector")] public int Projector { get; set; }
+        [JsonProperty("n1ql")] public int N1Ql { get; set; }
+        [JsonProperty("n1qlSSL")] public int N1QlSsl { get; set; }
+        [JsonProperty("cbas")] public int Cbas { get; set; }
+        [JsonProperty("cbasSSL")] public int CbasSsl { get; set; }
+        [JsonProperty("fts")] public int Fts { get; set; }
+        [JsonProperty("ftsSSL")] public int FtsSsl { get; set; }
+        [JsonProperty("moxi")] public int Moxi { get; set; }
 
         public bool Equals(Services other)
         {
             if (other == null) return false;
-            return mgmt == other.mgmt && mgmtSSL == other.mgmtSSL && indexAdmin == other.indexAdmin &&
-                   indexScan == other.indexScan && indexHttp == other.indexHttp &&
-                   indexStreamInit == other.indexStreamInit && indexStreamCatchup == other.indexStreamCatchup &&
-                   indexStreamMaint == other.indexStreamMaint && indexHttps == other.indexHttps && kv == other.kv &&
-                   kvSSL == other.kvSSL && capi == other.capi && capiSSL == other.capiSSL &&
-                   projector == other.projector && n1ql == other.n1ql && n1qlSSL == other.n1qlSSL;
+            return Mgmt == other.Mgmt && MgmtSsl == other.MgmtSsl && IndexAdmin == other.IndexAdmin &&
+                   IndexScan == other.IndexScan && IndexHttp == other.IndexHttp &&
+                   IndexStreamInit == other.IndexStreamInit && IndexStreamCatchup == other.IndexStreamCatchup &&
+                   IndexStreamMaint == other.IndexStreamMaint && IndexHttps == other.IndexHttps && Kv == other.Kv &&
+                   KvSsl == other.KvSsl && Capi == other.Capi && CapiSsl == other.CapiSsl &&
+                   Projector == other.Projector && N1Ql == other.N1Ql && N1QlSsl == other.N1QlSsl;
         }
 
         public override bool Equals(object obj)
@@ -130,22 +159,22 @@ namespace Couchbase.Core.Configuration.Server
         {
             unchecked
             {
-                var hashCode = mgmt;
-                hashCode = (hashCode * 397) ^ mgmtSSL;
-                hashCode = (hashCode * 397) ^ indexAdmin;
-                hashCode = (hashCode * 397) ^ indexScan;
-                hashCode = (hashCode * 397) ^ indexHttp;
-                hashCode = (hashCode * 397) ^ indexStreamInit;
-                hashCode = (hashCode * 397) ^ indexStreamCatchup;
-                hashCode = (hashCode * 397) ^ indexStreamMaint;
-                hashCode = (hashCode * 397) ^ indexHttps;
-                hashCode = (hashCode * 397) ^ kv;
-                hashCode = (hashCode * 397) ^ kvSSL;
-                hashCode = (hashCode * 397) ^ capi;
-                hashCode = (hashCode * 397) ^ capiSSL;
-                hashCode = (hashCode * 397) ^ projector;
-                hashCode = (hashCode * 397) ^ n1ql;
-                hashCode = (hashCode * 397) ^ n1qlSSL;
+                var hashCode = Mgmt;
+                hashCode = (hashCode * 397) ^ MgmtSsl;
+                hashCode = (hashCode * 397) ^ IndexAdmin;
+                hashCode = (hashCode * 397) ^ IndexScan;
+                hashCode = (hashCode * 397) ^ IndexHttp;
+                hashCode = (hashCode * 397) ^ IndexStreamInit;
+                hashCode = (hashCode * 397) ^ IndexStreamCatchup;
+                hashCode = (hashCode * 397) ^ IndexStreamMaint;
+                hashCode = (hashCode * 397) ^ IndexHttps;
+                hashCode = (hashCode * 397) ^ Kv;
+                hashCode = (hashCode * 397) ^ KvSsl;
+                hashCode = (hashCode * 397) ^ Capi;
+                hashCode = (hashCode * 397) ^ CapiSsl;
+                hashCode = (hashCode * 397) ^ Projector;
+                hashCode = (hashCode * 397) ^ N1Ql;
+                hashCode = (hashCode * 397) ^ N1QlSsl;
                 return hashCode;
             }
         }
@@ -163,16 +192,23 @@ namespace Couchbase.Core.Configuration.Server
 
     public class NodesExt : IEquatable<NodesExt>
     {
-        public Services services { get; set; }
-        public bool thisNode { get; set; }
-        public string hostname { get; set; }
+        public NodesExt()
+        {
+            Services = new Services();
+        }
+
+        [JsonProperty("thisNode")] public bool ThisNode { get; set; }
+        [JsonProperty("services")] public Services Services { get; set; }
+        [JsonProperty("hostname")] public string Hostname { get; set; }
+        [JsonProperty("alternateAddresses")] public AlternateAddressesConfig AlternateAddresses { get; set; }
+
+        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.HasExternalAddress;
 
         public bool Equals(NodesExt other)
         {
             if (other == null) return false;
-            return Equals(services, other.services) &&
-                   thisNode == other.thisNode &&
-                   hostname == other.hostname;
+            return Equals(Services, other.Services) &&
+                   Hostname == other.Hostname;
         }
 
         public override bool Equals(object obj)
@@ -186,7 +222,7 @@ namespace Couchbase.Core.Configuration.Server
         {
             unchecked
             {
-                return ((services != null ? services.GetHashCode() : 0) * 397) ^ thisNode.GetHashCode();
+                return ((Services != null ? Services.GetHashCode() : 0) * 397);
             }
         }
 
@@ -206,53 +242,33 @@ namespace Couchbase.Core.Configuration.Server
         public string uri { get; set; }
     }
 
-    //use Couchbase.Core.ShardingVBucket.ServerMap instead
-   /* public class VBucketServerMap
-    {
-        public string hashAlgorithm { get; set; }
-        public int numReplicas { get; set; }
-        public List<string> serverList { get; set; }
-        public List<List<int>> vBucketMap { get; set; }
-    }*/
-
     //Root object
     public class BucketConfig : IEquatable<BucketConfig>
     {
-        [JsonProperty("rev")]
-        public uint Rev { get; set; }
+        public BucketConfig()
+        {
+            Nodes = new List<Node>();
+            VBucketServerMap = new VBucketServerMap();
+        }
 
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        public string NetworkType { get; set; }
 
-        [JsonProperty("uri")]
-        public string Uri { get; set; }
+        public string SurrogateHost { get; set; }
 
-        [JsonProperty("streamingUri")]
-        public string StreamingUri { get; set; }
-
-        [JsonProperty("nodes")]
-        public List<Node> Nodes { get; set; }
-
-        [JsonProperty("nodesExt")]
-        public List<NodesExt> NodesExt { get; set; }
-
-        [JsonProperty("nodeLocator")]
-        public string NodeLocator { get; set; }
-
-        [JsonProperty("uuid")]
-        public string Uuid { get; set; }
-
-        [JsonProperty("ddocs")]
-        public Ddocs Ddocs { get; set; }
-
-        [JsonProperty("vBucketServerMap")]
-        public VBucketServerMap VBucketServerMap { get; set; }
-
-        [JsonProperty("bucketCapabilitiesVer")]
-        public string BucketCapabilitiesVer { get; set; }
-
-        [JsonProperty("bucketCapabilities")]
-        public List<string> BucketCapabilities { get; set; }
+        [JsonProperty("rev")] public uint Rev { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("uri")] public string Uri { get; set; }
+        [JsonProperty("streamingUri")] public string StreamingUri { get; set; }
+        [JsonProperty("nodes")] public List<Node> Nodes { get; set; }
+        [JsonProperty("nodesExt")] public List<NodesExt> NodesExt { get; set; }
+        [JsonProperty("nodeLocator")] public string NodeLocator { get; set; }
+        [JsonProperty("uuid")] public string Uuid { get; set; }
+        [JsonProperty("ddocs")] public Ddocs Ddocs { get; set; }
+        [JsonProperty("vBucketServerMap")] public VBucketServerMap VBucketServerMap { get; set; }
+        [JsonProperty("bucketCapabilitiesVer")] public string BucketCapabilitiesVer { get; set; }
+        [JsonProperty("bucketCapabilities")] public List<string> BucketCapabilities { get; set; }
+        [JsonProperty("clusterCapabilitiesVer")] public List<int> ClusterCapabilitiesVersion { get; set; }
+        [JsonProperty("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> ClusterCapabilities { get; set; }
 
         public bool Equals(BucketConfig other)
         {
@@ -306,33 +322,12 @@ namespace Couchbase.Core.Configuration.Server
         {
             return !Equals(left, right);
         }
-
-        [JsonProperty("clusterCapabilitiesVer")]
-        public List<int> ClusterCapabilitiesVersion { get; set; }
-
-        [JsonProperty("clusterCapabilities")]
-        public Dictionary<string, IEnumerable<string>> ClusterCapabilities { get; set; }
-    }
-
-    internal static class BucketConfigExtensions
-    {
-        public static ClusterCapabilities GetClusterCapabilities(this BucketConfig config)
-        {
-            return new ClusterCapabilities
-            {
-                Capabilities = config.ClusterCapabilities,
-                Version = config.ClusterCapabilitiesVersion
-            };
-        }
     }
 
     internal class ClusterCapabilities
     {
-        [JsonProperty("clusterCapabilitiesVer")]
-        internal IEnumerable<int> Version { get; set; }
-
-        [JsonProperty("clusterCapabilities")]
-        internal Dictionary<string, IEnumerable<string>> Capabilities { get; set; }
+        [JsonProperty("clusterCapabilitiesVer")] internal IEnumerable<int> Version { get; set; }
+        [JsonProperty("clusterCapabilities")] internal Dictionary<string, IEnumerable<string>> Capabilities { get; set; }
 
         internal bool EnhancedPreparedStatementsEnabled
         {
@@ -353,7 +348,19 @@ namespace Couchbase.Core.Configuration.Server
 
     internal enum ClusterCapabilityFeatures
     {
-        [Description("enhancedPreparedStatements")]
-        EnhancedPreparedStatements
+        [Description("enhancedPreparedStatements")] EnhancedPreparedStatements
+    }
+
+    public sealed class AlternateAddressesConfig
+    {
+        [JsonProperty("external")] public ExternalAddressesConfig External { get; set; }
+
+        public bool HasExternalAddress => External?.Hostname != null;
+    }
+
+    public sealed class ExternalAddressesConfig
+    {
+        [JsonProperty("hostname")] public string Hostname { get; set; }
+        [JsonProperty("ports")] public Services Ports { get; set; }
     }
 }

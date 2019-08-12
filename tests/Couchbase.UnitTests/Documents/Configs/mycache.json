@@ -1,0 +1,173 @@
+{
+  "name": "mycache",
+  "uuid": "b891201da63b3c693a16d70d37ba35a8",
+  "bucketType": "memcached",
+  "authType": "sasl",
+  "uri": "/pools/default/buckets/mycache?bucket_uuid=b891201da63b3c693a16d70d37ba35a8",
+  "streamingUri": "/pools/default/bucketsStreaming/mycache?bucket_uuid=b891201da63b3c693a16d70d37ba35a8",
+  "localRandomKeyUri": "/pools/default/buckets/mycache/localRandomKey",
+  "controllers": {
+    "compactAll": "/pools/default/buckets/mycache/controller/compactBucket",
+    "compactDB": "/pools/default/buckets/mycache/controller/compactDatabases",
+    "purgeDeletes": "/pools/default/buckets/mycache/controller/unsafePurgeBucket",
+    "startRecovery": "/pools/default/buckets/mycache/controller/startRecovery"
+  },
+  "nodes": [
+    {
+      "systemStats": {
+        "cpu_utilization_rate": 79.94722955145119,
+        "swap_total": 1107292160,
+        "swap_used": 0,
+        "mem_total": 3976765440,
+        "mem_free": 2770960384,
+        "mem_limit": 3976765440,
+        "cpu_cores_available": 4
+      },
+      "interestingStats": {
+        "cmd_get": 0,
+        "couch_docs_actual_disk_size": 8866484,
+        "couch_docs_data_size": 0,
+        "couch_spatial_data_size": 0,
+        "couch_spatial_disk_size": 0,
+        "couch_views_actual_disk_size": 0,
+        "couch_views_data_size": 0,
+        "curr_items": 0,
+        "curr_items_tot": 0,
+        "ep_bg_fetched": 0,
+        "get_hits": 0,
+        "mem_used": 23675024,
+        "ops": 0,
+        "vb_active_num_non_resident": 0,
+        "vb_replica_curr_items": 0
+      },
+      "uptime": "550",
+      "memoryTotal": 3976765440,
+      "memoryFree": 2770960384,
+      "mcdMemoryReserved": 3034,
+      "mcdMemoryAllocated": 3034,
+      "replication": 0,
+      "clusterMembership": "active",
+      "recoveryType": "none",
+      "status": "healthy",
+      "otpNode": "ns_1@10.112.192.102",
+      "hostname": "10.112.192.102:8091",
+      "nodeUUID": "1f35fe269c088fc5d7cf08b64d8a557e",
+      "clusterCompatibility": 393221,
+      "version": "6.5.0-3525-enterprise",
+      "os": "x86_64-unknown-linux-gnu",
+      "cpuCount": 4,
+      "ports": {
+        "direct": 11210,
+        "httpsCAPI": 18092,
+        "httpsMgmt": 18091,
+        "distTCP": 21100,
+        "distTLS": 21150
+      },
+      "services": [ "cbas", "eventing", "fts", "index", "kv", "n1ql" ],
+      "addressFamily": "inet",
+      "nodeEncryption": false,
+      "externalListeners": [
+        {
+          "afamily": "inet",
+          "nodeEncryption": false
+        },
+        {
+          "afamily": "inet6",
+          "nodeEncryption": false
+        }
+      ]
+    },
+    {
+      "systemStats": {
+        "cpu_utilization_rate": 83.96739130434783,
+        "swap_total": 1107292160,
+        "swap_used": 0,
+        "mem_total": 3976765440,
+        "mem_free": 2653364224,
+        "mem_limit": 3976765440,
+        "cpu_cores_available": 4
+      },
+      "interestingStats": {
+        "cmd_get": 0,
+        "couch_docs_actual_disk_size": 10170983,
+        "couch_docs_data_size": 0,
+        "couch_spatial_data_size": 0,
+        "couch_spatial_disk_size": 0,
+        "couch_views_actual_disk_size": 0,
+        "couch_views_data_size": 0,
+        "curr_items": 0,
+        "curr_items_tot": 0,
+        "ep_bg_fetched": 0,
+        "get_hits": 0,
+        "mem_used": 24677800,
+        "ops": 0,
+        "vb_active_num_non_resident": 0,
+        "vb_replica_curr_items": 0
+      },
+      "uptime": "585",
+      "memoryTotal": 3976765440,
+      "memoryFree": 2653364224,
+      "mcdMemoryReserved": 3034,
+      "mcdMemoryAllocated": 3034,
+      "replication": 0,
+      "clusterMembership": "active",
+      "recoveryType": "none",
+      "status": "healthy",
+      "otpNode": "ns_1@10.112.192.101",
+      "thisNode": true,
+      "hostname": "10.112.192.101:8091",
+      "nodeUUID": "b4056f5e86d6d0cd0fccdc4d0233660e",
+      "clusterCompatibility": 393221,
+      "version": "6.5.0-3525-enterprise",
+      "os": "x86_64-unknown-linux-gnu",
+      "cpuCount": 4,
+      "ports": {
+        "direct": 11210,
+        "httpsCAPI": 18092,
+        "httpsMgmt": 18091,
+        "distTCP": 21100,
+        "distTLS": 21150
+      },
+      "services": [ "cbas", "eventing", "fts", "index", "kv", "n1ql" ],
+      "addressFamily": "inet",
+      "nodeEncryption": false,
+      "externalListeners": [
+        {
+          "afamily": "inet",
+          "nodeEncryption": false
+        },
+        {
+          "afamily": "inet6",
+          "nodeEncryption": false
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "uri": "/pools/default/buckets/mycache/stats",
+    "directoryURI": "/pools/default/buckets/mycache/statsDirectory",
+    "nodeStatsListURI": "/pools/default/buckets/mycache/nodes"
+  },
+  "nodeLocator": "ketama",
+  "saslPassword": "ac6fb7f3d2df17650740c035af9d9101",
+  "autoCompactionSettings": false,
+  "maxTTL": 0,
+  "compressionMode": "off",
+  "replicaNumber": 0,
+  "threadsNumber": 3,
+  "quota": {
+    "ram": 209715200,
+    "rawRAM": 104857600
+  },
+  "basicStats": {
+    "quotaPercentUsed": 0,
+    "opsPerSec": 0,
+    "hitRatio": 0,
+    "itemCount": 0,
+    "memUsed": 0
+  },
+  "evictionPolicy": "valueOnly",
+  "conflictResolutionType": "seqno",
+  "bucketCapabilitiesVer": "",
+  "bucketCapabilities": [ "cbhello", "nodesExt" ]
+}

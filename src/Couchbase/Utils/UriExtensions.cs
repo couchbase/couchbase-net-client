@@ -15,77 +15,81 @@ namespace Couchbase.Utils
         public const string AnalyticsPath = "/analytics/service";
         public static string BaseUriFormat = "{0}://{1}:{2}/pools";
 
-        public static Uri GetQueryUri(this IPEndPoint endPoint, Configuration configuration, NodesExt nodesExt)
+        internal static Uri GetQueryUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodeAdapter)
         {
-            if (nodesExt.services.n1ql == 0)
+            if (nodeAdapter.IsQueryNode)
             {
                 return new UriBuilder
                 {
                     Scheme = configuration.UseSsl ? Https : Http,
-                    Host = nodesExt.hostname,
+                    Host = nodeAdapter.Hostname,
+                    Port = configuration.UseSsl ? nodeAdapter.N1QlSsl : nodeAdapter.N1Ql,
+                    Path = QueryPath
                 }.Uri;
             }
+
             return new UriBuilder
             {
                 Scheme = configuration.UseSsl ? Https : Http,
-                Host = nodesExt.hostname,
-                Port = configuration.UseSsl ? nodesExt.services.n1qlSSL : nodesExt.services.n1ql,
-                Path = QueryPath
+                Host = nodeAdapter.Hostname,
             }.Uri;
         }
 
-        public static Uri GetAnalyticsUri(this IPEndPoint endPoint, Configuration configuration, NodesExt nodesExt)
+        internal static Uri GetAnalyticsUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodesAdapter)
         {
-            if (nodesExt.services.cbas == 0)
+            if (nodesAdapter.IsAnalyticsNode)
             {
                 return new UriBuilder
                 {
                     Scheme = configuration.UseSsl ? Https : Http,
-                    Host = nodesExt.hostname,
+                    Host = nodesAdapter.Hostname,
+                    Port = configuration.UseSsl ? nodesAdapter.AnalyticsSsl : nodesAdapter.Analytics,
+                    Path = AnalyticsPath
                 }.Uri;
             }
             return new UriBuilder
             {
                 Scheme = configuration.UseSsl ? Https : Http,
-                Host = nodesExt.hostname,
-                Port = configuration.UseSsl ? nodesExt.services.cbasSSL : nodesExt.services.cbas,
-                Path = AnalyticsPath
+                Host = nodesAdapter.Hostname,
+            }.Uri;
+
+        }
+
+        internal static Uri GetSearchUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodeAdapter)
+        {
+            if (nodeAdapter.IsSearchNode)
+            {
+                return new UriBuilder
+                {
+                    Scheme = configuration.UseSsl ? Https : Http,
+                    Host = nodeAdapter.Hostname,
+                    Port = configuration.UseSsl ? nodeAdapter.FtsSsl : nodeAdapter.Fts
+                }.Uri;
+            }
+
+            return new UriBuilder
+            {
+                Scheme = configuration.UseSsl ? Https : Http,
+                Host = nodeAdapter.Hostname,
             }.Uri;
         }
 
-        public static Uri GetSearchUri(this IPEndPoint endPoint, Configuration configuration, NodesExt nodesExt)
+        internal static Uri GetViewsUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodesAdapter)
         {
-            if (nodesExt.services.fts == 0)
+            if (nodesAdapter.IsDataNode)
             {
                 return new UriBuilder
                 {
                     Scheme = configuration.UseSsl ? Https : Http,
-                    Host = nodesExt.hostname,
+                    Host = nodesAdapter.Hostname,
+                    Port = configuration.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
                 }.Uri;
             }
             return new UriBuilder
             {
                 Scheme = configuration.UseSsl ? Https : Http,
-                Host = nodesExt.hostname,
-                Port = configuration.UseSsl ? nodesExt.services.ftsSSL : nodesExt.services.fts
-            }.Uri;
-        }
-
-        public static Uri GetViewsUri(this IPEndPoint endPoint, Configuration configuration, NodesExt nodesExt)
-        {
-            if (nodesExt.services.capi == 0)
-            {
-                return new UriBuilder
-                {
-                    Scheme = configuration.UseSsl ? Https : Http,
-                    Host = nodesExt.hostname,
-                }.Uri;
-            }
-            return new UriBuilder
-            {
-                Scheme = configuration.UseSsl ? Https : Http,
-                Host = nodesExt.hostname,
-                Port = configuration.UseSsl ? nodesExt.services.capiSSL : nodesExt.services.capi,
+                Host = nodesAdapter.Hostname,
+                Port = configuration.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
             }.Uri;
         }
 

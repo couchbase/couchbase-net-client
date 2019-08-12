@@ -129,21 +129,8 @@ namespace Couchbase
                     _keyMapper = new VBucketKeyMapper(_bucketConfig);
                 }
 
-                if (_bucketConfig.NodesExt.Count == 1)
-                {
-                    var nodesExt = _bucketConfig.NodesExt.First();
-                    if (nodesExt.hostname == null)
-                    {
-                        nodesExt.hostname = bootstrapNode.BootstrapUri.Host;
-                    }
-
-                    bootstrapNode.NodesExt = nodesExt;
-                }
-                else
-                {
-                    bootstrapNode.NodesExt =
-                        _bucketConfig.NodesExt.Find(x => x.hostname == bootstrapNode.BootstrapUri.Host);
-                }
+                bootstrapNode.NodesAdapter =
+                    _bucketConfig.GetNodes().Find(x => x.Hostname == bootstrapNode.BootstrapUri.Host);
             }
 
             LoadManifest();
@@ -152,12 +139,12 @@ namespace Couchbase
 
         private async Task LoadClusterMap(BucketConfig bucketConfig)
         {
-            foreach (var nodesExt in bucketConfig.NodesExt)
+            foreach (var nodeAdapter in bucketConfig.GetNodes())
             {
-                var endPoint = nodesExt.GetIpEndPoint(_configuration);
+                var endPoint = nodeAdapter.GetIpEndPoint();
                 if (_bucketNodes.TryGetValue(endPoint, out ClusterNode bootstrapNode))
                 {
-                    bootstrapNode.NodesExt = nodesExt;
+                    bootstrapNode.NodesAdapter = nodeAdapter;
                     bootstrapNode.BuildServiceUris();
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
@@ -177,7 +164,7 @@ namespace Couchbase
                     EndPoint = endPoint,
                     ServerFeatures = supportedFeatures,
                     Configuration = _configuration,
-                    NodesExt = nodesExt
+                    NodesAdapter = nodeAdapter
                 };
                 clusterNode.BuildServiceUris();
                 _supportsCollections = clusterNode.Supports(ServerFeatures.Collections);

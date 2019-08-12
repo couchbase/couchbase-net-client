@@ -17,9 +17,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void EnhancedPreparedStatements_returns_true_when_enabled()
         {
-            var json = ResourceHelper.ReadResource(
-                "Couchbase.UnitTests.Core.Configuration.Server.cluster_capabiliteis_with_enhanced_prepared_statements.json"
-            );
+            var json = ResourceHelper.ReadResource("cluster_capabiliteis_with_enhanced_prepared_statements.json");
 
             var capabilities = JsonConvert.DeserializeObject<ClusterCapabilities>(json);
 

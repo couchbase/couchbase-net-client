@@ -72,7 +72,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
             var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
 
-            config2.Nodes[0].hostname = "localhost:8091";
+            config2.Nodes[0].Hostname = "localhost:8091";
 
             Assert.False(config2.Equals(config1));
         }
@@ -87,7 +87,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             if (hasChanged)
             {
-                config2.Nodes[0].hostname = "localhost:8091";
+                config2.Nodes[0].Hostname = "localhost:8091";
                 config2.Equals(config1);
                 Assert.True(config2.ClusterNodesChanged);
             }
@@ -115,7 +115,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
             var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
 
-            config2.NodesExt[0].hostname = "localhost:8091";
+            config2.NodesExt[0].Hostname = "localhost:8091";
 
             Assert.False(config2.Equals(config1));
         }

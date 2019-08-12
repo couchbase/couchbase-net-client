@@ -60,8 +60,8 @@ namespace Couchbase.Utils
             var uriBuilder = new UriBuilder
             {
                 Scheme = useSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
-                Host = nodesExt.hostname,
-                Port = useSsl ? nodesExt.services.kvSSL : nodesExt.services.kv
+                Host = nodesExt.Hostname,
+                Port = useSsl ? nodesExt.Services.KvSsl : nodesExt.Services.Kv
             };
 
             var ipAddress = uriBuilder.Uri.GetIpAddress(false);//TODO support IPv6

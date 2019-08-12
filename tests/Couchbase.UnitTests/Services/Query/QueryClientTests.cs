@@ -42,7 +42,7 @@ namespace Couchbase.UnitTests.Services.Query
                     ItExpr.IsAny<HttpRequestMessage>(),
                     ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
                 {
-                    StatusCode =  httpStatusCode,
+                    StatusCode = httpStatusCode,
                     Content = new ByteArrayContent(buffer)
                 });
 
@@ -55,19 +55,15 @@ namespace Couchbase.UnitTests.Services.Query
                 {
                     Configuration = config,
                     EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
-                    NodesExt = new NodesExt
-                    {
-                        hostname = "127.0.0.1",
-                        services = new Couchbase.Core.Configuration.Server.Services
+                    NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
+                        new NodesExt {Hostname = "127.0.0.1", Services = new Couchbase.Core.Configuration.Server.Services
                         {
-                            n1ql = 8093,
-                            n1qlSSL = 18093
-                        }
-                    }
+                            N1Ql = 8093
+                        }}, new BucketConfig())
                 };
                 clusterNode.BuildServiceUris();
 
-                config.GlobalNodes = new ConcurrentBag<ClusterNode>{ clusterNode };
+                config.GlobalNodes = new ConcurrentBag<ClusterNode> {clusterNode};
 
                 var client = new QueryClient(httpClient, new JsonDataMapper(new DefaultSerializer()), config);
 
