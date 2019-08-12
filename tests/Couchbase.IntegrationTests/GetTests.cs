@@ -85,5 +85,24 @@ namespace Couchbase.IntegrationTests
                 await collection.RemoveAsync(key);
             }
         }
+
+        [Fact]
+        public async Task Get_returns_cas()
+        {
+            var collection = await _fixture.GetDefaultCollection();
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                await collection.InsertAsync(key, Person.Create());
+
+                var result = await collection.GetAsync(key);
+                Assert.NotEqual(ulong.MinValue, result.Cas);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key);
+            }
+        }
     }
 }

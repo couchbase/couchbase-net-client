@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.TestData;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -29,6 +30,27 @@ namespace Couchbase.IntegrationTests
 
                 result = await collection.ExistsAsync(key);
                 Assert.True(result.Exists);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key);
+            }
+        }
+
+        [Fact]
+        public async Task Exists_returns_cas()
+        {
+            var collection = await _fixture.GetDefaultCollection();
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                await collection.InsertAsync(key, new {});
+
+                var get = await collection.GetAsync(key);
+                var result = await collection.ExistsAsync(key);
+                Assert.Equal(get.Cas, result.Cas);
+                Assert.NotEqual(ulong.MinValue, result.Cas);
             }
             finally
             {

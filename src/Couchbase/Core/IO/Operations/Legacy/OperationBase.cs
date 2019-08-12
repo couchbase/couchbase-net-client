@@ -103,6 +103,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
             Header = header;
             ErrorCode = errorCode;
+            Cas = header.Cas;
             _data = buffer;
 
             return Task.CompletedTask;

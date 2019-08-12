@@ -318,12 +318,12 @@ namespace Couchbase
                 try
                 {
                     await ExecuteOp(existsOp, options.Token, options.Timeout);
-                    var keyState = existsOp.GetValue().KeyState;
+                    var value = existsOp.GetValue();
                     return new ExistsResult
                     {
-                        Exists = existsOp.Success && keyState != KeyState.NotFound &&
-                                 keyState != KeyState.LogicalDeleted,
-                        Cas = existsOp.Cas,
+                        Exists = existsOp.Success && value.KeyState != KeyState.NotFound &&
+                                 value.KeyState != KeyState.LogicalDeleted,
+                        Cas = value.Cas,
                         Expiration = TimeSpan.FromMilliseconds(existsOp.Expires)
                     };
                 }
