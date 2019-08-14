@@ -63,7 +63,7 @@ namespace Couchbase.UnitTests.Services.Query
                 };
                 clusterNode.BuildServiceUris();
 
-                config.GlobalNodes = new ConcurrentBag<ClusterNode> {clusterNode};
+                config.GlobalNodes = new ConcurrentBag<IClusterNode> {clusterNode};
 
                 var client = new QueryClient(httpClient, new JsonDataMapper(new DefaultSerializer()), config);
 

@@ -152,7 +152,7 @@ namespace Couchbase.UnitTests
                 throw new NotImplementedException();
             }
 
-            internal override Task Bootstrap(params ClusterNode[] bootstrapNodes)
+            internal override Task Bootstrap(params IClusterNode[] bootstrapNodes)
             {
                 throw new NotImplementedException();
             }

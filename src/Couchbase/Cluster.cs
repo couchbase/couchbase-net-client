@@ -162,7 +162,7 @@ namespace Couchbase
                     //auth failed so bubble up exception and clean up resources
                     Log.LogError(e, @"Could not authenticate user {_configuration.UserName}");
 
-                    while (_configuration.GlobalNodes.TryTake(out ClusterNode clusterNode))
+                    while (_configuration.GlobalNodes.TryTake(out IClusterNode clusterNode))
                     {
                         clusterNode.Dispose();
                     }

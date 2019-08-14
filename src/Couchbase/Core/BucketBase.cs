@@ -20,7 +20,7 @@ namespace Couchbase.Core
     {
         internal const string DefaultScope = "_default";
         private static readonly ILogger Log = LogManager.CreateLogger<BucketBase>();
-        protected readonly ConcurrentDictionary<IPEndPoint, ClusterNode> BucketNodes = new ConcurrentDictionary<IPEndPoint, ClusterNode>();
+        protected readonly ConcurrentDictionary<IPEndPoint, IClusterNode> BucketNodes = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
 
         protected BucketConfig BucketConfig;
@@ -53,8 +53,8 @@ namespace Couchbase.Core
         {
             foreach (var nodeAdapter in adapters)
             {
-                var endPoint = nodeAdapter.GetIpEndPoint();
-                if (BucketNodes.TryGetValue(endPoint, out ClusterNode bootstrapNode))
+                var endPoint = nodeAdapter.GetIpEndPoint(8091);//will need to change this later to deal with custom ports
+                if (BucketNodes.TryGetValue(endPoint, out IClusterNode bootstrapNode))
                 {
                     bootstrapNode.NodesAdapter = nodeAdapter;
                     bootstrapNode.BuildServiceUris();
@@ -78,6 +78,7 @@ namespace Couchbase.Core
                     Configuration = Configuration,
                     NodesAdapter = nodeAdapter
                 };
+
                 clusterNode.BuildServiceUris();
                 SupportsCollections = clusterNode.Supports(ServerFeatures.Collections);
                 BucketNodes.AddOrUpdate(endPoint, clusterNode, (ep, node) => clusterNode);
@@ -100,7 +101,7 @@ namespace Couchbase.Core
             }
         }
 
-        protected async Task CheckConnection(ClusterNode clusterNode)
+        protected async Task CheckConnection(IClusterNode clusterNode)
         {
             //TODO temp fix for recreating dead connections - in future use CP to manage them
             var connection = clusterNode.Connection;
@@ -117,7 +118,7 @@ namespace Couchbase.Core
         }
 
         internal abstract Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs);
-        internal abstract Task Bootstrap(params ClusterNode[] bootstrapNodes);
+        internal abstract Task Bootstrap(params IClusterNode[] bootstrapNodes);
         internal abstract void ConfigUpdated(object sender, BucketConfigEventArgs e);
 
         public virtual void Dispose()

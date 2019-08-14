@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,12 +6,21 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Core.Configuration.Server.Streaming
 {
-    internal class HttpClusterMap
+    /// <summary>
+    /// For mocking/testing
+    /// </summary>
+    internal abstract class HttpClusterMapBase
     {
-        private HttpClient _httpClient;
+        public abstract Task<BucketConfig> GetClusterMapAsync(string bucketName, Uri hostUri,
+            CancellationToken cancellationToken);
+    }
+
+    internal class HttpClusterMap : HttpClusterMapBase
+    {
+        private readonly HttpClient _httpClient;
         public const string Path = "/pools/default/b/";
         private ConfigContext _ctx;
-        private Couchbase.Configuration _configuration;
+        private readonly Couchbase.Configuration _configuration;
 
         public HttpClusterMap(HttpClient httpClient, ConfigContext ctx, Couchbase.Configuration configuration)
         {
@@ -21,7 +29,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             _configuration = configuration;
         }
 
-        public async Task<BucketConfig> GetClusterMapAsync(string bucketName, Uri hostUri,
+        public override async Task<BucketConfig> GetClusterMapAsync(string bucketName, Uri hostUri,
             CancellationToken cancellationToken)
         {
             var uri = new UriBuilder(hostUri)

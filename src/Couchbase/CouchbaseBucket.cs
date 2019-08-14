@@ -172,7 +172,7 @@ namespace Couchbase
             await op.SendAsync(clusterNode.Connection).ConfigureAwait(false);
         }
 
-        internal override async Task Bootstrap(params ClusterNode[] bootstrapNodes)
+        internal override async Task Bootstrap(params IClusterNode[] bootstrapNodes)
         {
             //should never happen
             if (bootstrapNodes == null)

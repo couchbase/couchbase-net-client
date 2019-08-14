@@ -19,15 +19,20 @@ namespace Couchbase
     internal class MemcachedBucket : BucketBase
     {
         private static readonly ILogger Log = LogManager.CreateLogger<MemcachedBucket>();
-        private readonly HttpClusterMap _httClusterMap;
+        private readonly HttpClusterMapBase _httpClusterMap;
 
-        internal MemcachedBucket(string name, Configuration configuration, ConfigContext couchbaseContext)
+        internal MemcachedBucket(string name, Configuration configuration, ConfigContext couchbaseContext) :
+            this (name, configuration, couchbaseContext, new HttpClusterMap(new CouchbaseHttpClient(configuration), couchbaseContext, configuration))
+        {
+        }
+
+        internal MemcachedBucket(string name, Configuration configuration, ConfigContext couchbaseContext, HttpClusterMapBase httpClusterMap)
         {
             Name = name;
             CouchbaseContext = couchbaseContext;
             Configuration = configuration;
             CouchbaseContext.Subscribe(this);
-            _httClusterMap = new HttpClusterMap(new CouchbaseHttpClient(Configuration), CouchbaseContext, Configuration);
+            _httpClusterMap = httpClusterMap;
         }
 
         public override Task<IScope> this[string name]
@@ -67,7 +72,7 @@ namespace Couchbase
 
         internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
         {
-            if (e.Config.Name == Name &&  e.Config.Rev > BucketConfig.Rev)
+            if (e.Config.Name == Name && e.Config.Rev > BucketConfig.Rev)
             {
                 BucketConfig = e.Config;
                 KeyMapper = new KetamaKeyMapper(BucketConfig, Configuration);
@@ -89,15 +94,12 @@ namespace Couchbase
             await op.SendAsync(clusterNode.Connection).ConfigureAwait(false);
         }
 
-        internal override async Task Bootstrap(params ClusterNode[] bootstrapNodes)
+        internal override async Task Bootstrap(params IClusterNode[] bootstrapNodes)
         {
-            //should never happen
-            if (bootstrapNodes == null) throw new ArgumentNullException(nameof(bootstrapNodes));
-
             var bootstrapNode = bootstrapNodes.FirstOrDefault();
 
             //fetch the cluster map to avoid race condition with streaming http
-            BucketConfig = await _httClusterMap.GetClusterMapAsync(
+            BucketConfig = await _httpClusterMap.GetClusterMapAsync(
                 Name, bootstrapNode.BootstrapUri, CancellationToken.None).ConfigureAwait(false);
 
             KeyMapper = new KetamaKeyMapper(BucketConfig, Configuration);
@@ -108,8 +110,6 @@ namespace Couchbase
 
             //the initial bootstrapping endpoint;
             await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);
-
-            Manifest = await bootstrapNode.GetManifest().ConfigureAwait(false);
 
             LoadManifest();
             LoadClusterMap(BucketConfig.GetNodes()).ConfigureAwait(false).GetAwaiter().GetResult();

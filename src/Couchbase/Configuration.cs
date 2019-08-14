@@ -13,7 +13,7 @@ namespace Couchbase
     {
         private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
-        internal ConcurrentBag<ClusterNode> GlobalNodes { get; set; } = new ConcurrentBag<ClusterNode>();
+        internal ConcurrentBag<IClusterNode> GlobalNodes { get; set; } = new ConcurrentBag<IClusterNode>();
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 

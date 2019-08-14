@@ -20,6 +20,7 @@
     <None Remove="Documents\Configs\config-with-ipv6.json" />
     <None Remove="Documents\Configs\config-with-negative-one-primary.json" />
     <None Remove="Documents\Configs\config-with-replicas-complete.json" />
+    <None Remove="Documents\Configs\mycache.json" />
     <None Remove="Documents\Configs\rev92-single-node.json" />
     <None Remove="Documents\Configs\rev94.json" />
     <None Remove="Documents\Configs\rev96.json" />
@@ -35,6 +36,10 @@
     <None Remove="Services\Query\query-service-error-response-503.json" />
     <None Remove="Services\Query\query-timeout-response-200.json" />
     <None Remove="Services\Query\query-unsupported-error-405.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Documents\Configs\mycache.json" />
   </ItemGroup>
 
   <ItemGroup>

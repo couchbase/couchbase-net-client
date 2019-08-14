@@ -11,21 +11,21 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core
 {
-    internal class ClusterNode : IDisposable
+    internal class ClusterNode : IClusterNode
     {
         public IBucket Owner { get; set; }
         public Couchbase.Configuration Configuration { get; set; }
         public NodeAdapter NodesAdapter { get; set; }
-        public Uri BootstrapUri { get; internal set; }
-        public IPEndPoint EndPoint { get; internal set; }
-        public Uri QueryUri { get; internal set; }
-        public Uri AnalyticsUri { get; internal set; }
-        public Uri SearchUri { get; internal set; }
-        public Uri ViewsUri { get; internal set; }
-        public ErrorMap ErrorMap { get; internal set; }
-        public short[] ServerFeatures { get; internal set; }
-        public IConnection Connection { get; internal set; }//TODO this will be a connection pool later
-        public List<Exception> Exceptions { get; internal set; }//TODO catch and hold until first operation per RFC
+        public Uri BootstrapUri { get; set; }
+        public IPEndPoint EndPoint { get; set; }
+        public Uri QueryUri { get; set; }
+        public Uri AnalyticsUri { get; set; }
+        public Uri SearchUri { get; set; }
+        public Uri ViewsUri { get; set; }
+        public ErrorMap ErrorMap { get; set; }
+        public short[] ServerFeatures { get; set; }
+        public IConnection Connection { get; set; }//TODO this will be a connection pool later
+        public List<Exception> Exceptions { get; set; }//TODO catch and hold until first operation per RFC
         public bool HasViews() => ViewsUri != null && ViewsUri.Port != 0;
         public bool HasAnalytics() => AnalyticsUri != null && AnalyticsUri.Port != 0;
         public bool HasQuery() => QueryUri != null && QueryUri.Port != 0;
