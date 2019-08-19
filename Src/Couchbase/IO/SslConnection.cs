@@ -79,6 +79,16 @@ namespace Couchbase.IO
                             throw new NullConfigException("If BucketConfiguration.EnableCertificateAuthentication is true, CertificateFactory cannot be null.");
                         }
                         var certs = Configuration.ClientConfiguration.CertificateFactory();
+                        Log.Debug("Sending {0} certificates to the server.", certs?.Count ?? 0);
+
+                        if (certs != null)
+                        {
+                            foreach (var cert in certs)
+                            {
+                                Log.Debug("Cert sent {0} - Thumbprint {1}", cert.FriendlyName, cert.Thumbprint);
+                            }
+                        }
+
                         _sslStream.AuthenticateAsClientAsync(targetHost,
                             certs,
                             SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
@@ -91,6 +101,10 @@ namespace Couchbase.IO
                 }
 
                 IsSecure = _sslStream.IsAuthenticated && _sslStream.IsSigned && _sslStream.IsEncrypted;
+                Log.Debug("IsAuthenticated {0} on {1}", _sslStream.IsAuthenticated, targetHost);
+                Log.Debug("IsSigned {0} on {1}", _sslStream.IsSigned, targetHost);
+                Log.Debug("IsEncrypted {0} on {1}", _sslStream.IsEncrypted, targetHost);
+
                 if (!IsSecure)
                 {
                     throw new AuthenticationException(ExceptionUtil.SslAuthenticationFailed);

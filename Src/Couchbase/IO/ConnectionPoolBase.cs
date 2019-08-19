@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -190,7 +190,7 @@ namespace Couchbase.IO
 
                 if (!selectBucketResult.Success)
                 {
-                    Log.Error($"Failed to perform SelectBucket operation for '{Configuration.BucketName}'");
+                    Log.Error($"Failed to perform SelectBucket operation for '{Configuration.BucketName}'. Reason {selectBucketResult.Status}.");
                     throw new AuthenticationException(ExceptionUtil.FailedUserAuthenticationMsg.WithParams(Configuration.BucketName));
                 }
             }
