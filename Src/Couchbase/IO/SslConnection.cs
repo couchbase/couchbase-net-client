@@ -79,9 +79,11 @@ namespace Couchbase.IO
                             throw new NullConfigException("If BucketConfiguration.EnableCertificateAuthentication is true, CertificateFactory cannot be null.");
                         }
                         var certs = Configuration.ClientConfiguration.CertificateFactory();
-                        Log.Debug("Sending {0} certificates to the server.", certs?.Count ?? 0);
-
-                        if (certs != null)
+                        if (certs == null || certs.Count == 0)
+                        {
+                            throw new AuthenticationException("No certificates matching the X509FindType and specified FindValue were found in the Certificate Store.");
+                        }
+                        if (Log.IsDebugEnabled)
                         {
                             foreach (var cert in certs)
                             {
@@ -89,6 +91,7 @@ namespace Couchbase.IO
                             }
                         }
 
+                        Log.Debug("Sending {0} certificates to the server.", certs?.Count ?? 0);
                         _sslStream.AuthenticateAsClientAsync(targetHost,
                             certs,
                             SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
