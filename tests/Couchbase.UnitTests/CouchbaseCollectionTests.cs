@@ -7,6 +7,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Management;
 using Couchbase.Services.Views;
 using Moq;
 using Xunit;
@@ -122,6 +123,8 @@ namespace Couchbase.UnitTests
             }
 
             public override IViewManager ViewIndexes => throw new NotImplementedException();
+
+            public override ICollectionManager Collections => throw new NotImplementedException();
 
             internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
             {

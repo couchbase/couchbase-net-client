@@ -47,6 +47,8 @@ namespace Couchbase.Core
 
         public abstract IViewManager ViewIndexes { get; }
 
+        public abstract ICollectionManager Collections { get; }
+
         protected abstract void LoadManifest();
 
         protected async Task LoadClusterMap(IEnumerable<NodeAdapter> adapters)

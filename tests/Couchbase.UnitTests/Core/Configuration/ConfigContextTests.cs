@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Management;
 using Couchbase.Services.Views;
 using Xunit;
 using Xunit.Abstractions;
@@ -244,6 +245,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             }
 
             public override IViewManager ViewIndexes => throw new NotImplementedException();
+
+            public override ICollectionManager Collections => throw new NotImplementedException();
 
             public override Task<IScope> this[string name] => throw new NotImplementedException();
 

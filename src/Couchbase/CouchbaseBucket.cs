@@ -11,6 +11,7 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
+using Couchbase.Management;
 using Couchbase.Services.Views;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ namespace Couchbase
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseBucket>();
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewManager> _viewManagerLazy;
+        private readonly Lazy<ICollectionManager> _collectionManagerLazy;
 
         internal CouchbaseBucket(string name, ClusterOptions clusterOptions, ConfigContext couchbaseContext)
         {
@@ -36,6 +38,9 @@ namespace Couchbase
             );
             _viewManagerLazy = new Lazy<IViewManager>(() =>
                 new ViewManager(name, httpClient, clusterOptions));
+            _collectionManagerLazy = new Lazy<ICollectionManager>(() =>
+                new CollectionManager(name, clusterOptions, httpClient)
+            );
         }
 
         public override Task<IScope> this[string name]
@@ -54,6 +59,7 @@ namespace Couchbase
         }
 
         public override IViewManager ViewIndexes => _viewManagerLazy.Value;
+        public override ICollectionManager Collections => _collectionManagerLazy.Value;
 
         protected override void LoadManifest()
         {

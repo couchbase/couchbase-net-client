@@ -93,6 +93,16 @@ namespace Couchbase.Utils
             }.Uri;
         }
 
+        internal static Uri GetManagementUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodesAdapter)
+        {
+            return new UriBuilder
+            {
+                Scheme = clusterOptions.UseSsl ? Https : Http,
+                Host = nodesAdapter.Hostname,
+                Port = clusterOptions.UseSsl ? nodesAdapter.MgmtApiSsl : nodesAdapter.MgmtApi
+            }.Uri;
+        }
+
         /*public static Uri ReplaceCouchbaseSchemeWithHttp(this Uri uri, IConfiguration clusterOptions, string bucketName)
         {
             if (uri.Scheme == "couchbase")

@@ -1,20 +1,24 @@
-﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Couchbase.Management
 {
     public interface ICollectionManager
     {
-        Task Insert(string collectionName, CollectionManagerOptions options);
+        Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions options);
 
-        Task Upsert(string collectionName, CollectionManagerOptions options); 
+        Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions options);
 
-        Task Remove(string collectionName);
-    }
+        Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions options);
 
-    public class CollectionManagerOptions
-    {
+        Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions options);
+
+        Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions options);
+
+        Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions options);
+
+        Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions options);
+
+        Task DropScopeAsync(string scopeName, DropScopeOptions options);
     }
 }

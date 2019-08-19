@@ -21,6 +21,7 @@ namespace Couchbase.Core
         Uri AnalyticsUri { get; set; }
         Uri SearchUri { get; set; }
         Uri ViewsUri { get; set; }
+        Uri ManagementUri { get; set; }
         ErrorMap ErrorMap { get; set; }
         short[] ServerFeatures { get; set; }
         IConnection Connection { get; set; } //TODO this will be a connection pool later
