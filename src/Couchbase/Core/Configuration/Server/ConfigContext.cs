@@ -85,28 +85,24 @@ namespace Couchbase.Core.Configuration.Server
             {
                 try
                 {
-                    var isUpdate = false;
-                    var stored = _configs.AddOrUpdate(newMap.Name, newMap, (key, oldMap) =>
-                    {
-                        if (newMap.Equals(oldMap))
-                        {
-                            return oldMap;
-                        }
+                    var isNewOrUpdate = false;
 
-                        isUpdate = true;
-                        return newMap.Rev > oldMap.Rev ? newMap : oldMap;
-                    });
-
-                    if (isUpdate)
-                    {
-                        if (stored.Rev > newMap.Rev)
+                    var stored = _configs.AddOrUpdate(newMap.Name, key =>
                         {
-                            ConfigChanged?.Invoke(newMap, new BucketConfigEventArgs(stored));
-                        }
-                    }
-                    else
+                            isNewOrUpdate = true;
+                            return newMap;
+                        },
+                        (key, map) =>
+                        {
+                            if (newMap.Equals(map)) return map;
+
+                            isNewOrUpdate = true;
+                            return newMap.Rev > map.Rev ? newMap : map;
+                        });
+
+                    if (isNewOrUpdate)
                     {
-                        ConfigChanged?.Invoke(newMap, new BucketConfigEventArgs(stored));
+                        ConfigChanged?.Invoke(this, new BucketConfigEventArgs(stored));
                     }
                 }
                 catch (Exception e)
@@ -169,7 +165,7 @@ namespace Couchbase.Core.Configuration.Server
                 throw new ContextStoppedException("ConfigContext is in stopped mode.", e);
             }
 
-            throw new BucketMissingException(@"Cannot find bucket: {bucketName}");
+            throw new BucketMissingException(@"Cannot find bucket: " + bucketName);
         }
 
         public void Clear()

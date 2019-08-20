@@ -13,13 +13,15 @@ namespace Couchbase.UnitTests.Core.Configuration
 {
     public class ConfigContextTests
     {
+        private static SemaphoreSlim _event;
         private readonly ITestOutputHelper _output;
         private readonly FakeBucket _bucket;
 
         public ConfigContextTests(ITestOutputHelper output)
         {
+            _event = new SemaphoreSlim(0,1);
             _output = output;
-            _bucket = new FakeBucket(_output);
+            _bucket = new FakeBucket(_output, _event);
         }
 
         [Fact]
@@ -46,12 +48,20 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act
             context.Publish(config1);
-            Task.Delay(1, cts.Token).GetAwaiter().GetResult();
+
+            _event.Wait(cts.Token);
+
             context.Publish(config2);
-            Task.Delay(1, cts.Token).GetAwaiter().GetResult();
+
+            _event.Wait(cts.Token);
 
             //assert
             Assert.Equal(config2.Rev, context.Get("default").Rev);
+        }
+
+        private void Context_ConfigChanged(object sender, BucketConfigEventArgs a)
+        {
+            Thread.Sleep(10);
         }
 
         [Fact]
@@ -72,7 +82,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act
             context.Publish(config);
-            Task.Delay(10, cts.Token).GetAwaiter().GetResult();
+            _event.Wait(cts.Token);
 
             //assert
             Assert.Equal(1u, context.Get("default").Rev);
@@ -100,7 +110,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             context.Publish(config);
-            Task.Delay(10, cts.Token).GetAwaiter().GetResult();
+            _event.Wait(cts.Token);
 
             //assert
             Assert.Equal(1u, context.Get("default").Rev);
@@ -129,9 +139,10 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             context.Publish(config1);
-            Task.Delay(1, cts.Token).GetAwaiter().GetResult();
+            _event.Wait(cts.Token);
+
             context.Publish(config2);
-            Task.Delay(1, cts.Token).GetAwaiter().GetResult();
+            _event.Wait(cts.Token);
 
             //assert
             Assert.Equal(config1.Rev, context.Get("default").Rev);
@@ -161,9 +172,9 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act
             context.Publish(config1);
-            Task.Delay(1, cts.Token).GetAwaiter().GetResult();
+            _event.Wait(cts.Token);
+
             context.Publish(config2);
-            Task.Delay(1, cts.Token).GetAwaiter().GetResult();
 
             //assert
             Assert.Equal(config1.Rev, context.Get("default").Rev);
@@ -203,7 +214,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             Assert.Throws<ObjectDisposedException>(() =>
             {
                 context.Publish(config);
-                Task.Delay(10, cts.Token).GetAwaiter().GetResult();
+                _event.Wait(cts.Token);
             });
         }
 
@@ -223,11 +234,13 @@ namespace Couchbase.UnitTests.Core.Configuration
 
         internal class FakeBucket : BucketBase
         {
+            private SemaphoreSlim _event;
             private ITestOutputHelper _output;
 
-            public FakeBucket(ITestOutputHelper output)
+            public FakeBucket(ITestOutputHelper output,  SemaphoreSlim eventSlim)
             {
                 _output = output;
+                _event = eventSlim;
             }
 
             public override IViewManager ViewIndexes => throw new NotImplementedException();
@@ -244,6 +257,11 @@ namespace Couchbase.UnitTests.Core.Configuration
                 throw new NotImplementedException();
             }
 
+            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+            {
+                throw new NotImplementedException();
+            }
+
             internal override Task Bootstrap(params IClusterNode[] bootstrapNodes)
             {
                 throw new NotImplementedException();
@@ -252,11 +270,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
             {
                 _output.WriteLine("recieved config #: {0}", e.Config.Rev);
-            }
-
-            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
-            {
-                throw new NotImplementedException();
+                _event.Release();
             }
         }
     }
