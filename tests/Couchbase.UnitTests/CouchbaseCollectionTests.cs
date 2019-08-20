@@ -111,6 +111,46 @@ namespace Couchbase.UnitTests
             }
         }
 
+        [Fact]
+        public void Set_Factory_Test()
+        {
+            var mockBucket = new Mock<FakeBucket>();
+            var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
+
+            var set = collection.Set<dynamic>("theDocId");
+            Assert.NotNull(set);
+        }
+
+        [Fact]
+        public void Queue_Factory_Test()
+        {
+            var mockBucket = new Mock<FakeBucket>();
+            var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
+
+            var queue = collection.Queue<dynamic>("theDocId");
+            Assert.NotNull(queue);
+        }
+
+        [Fact]
+        public void List_Factory_Test()
+        {
+            var mockBucket = new Mock<FakeBucket>();
+            var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
+
+            var list = collection.List<dynamic>("theDocId");
+            Assert.NotNull(list);
+        }
+
+        [Fact]
+        public void Dictionary_Factory_Test()
+        {
+            var mockBucket = new Mock<FakeBucket>();
+            var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
+
+            var dict = collection.Dictionary<string, dynamic>("theDocId");
+            Assert.NotNull(dict);
+        }
+
         internal class FakeBucket : BucketBase
         {
             private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();

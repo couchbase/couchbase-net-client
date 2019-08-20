@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.DataStructures;
 
 namespace Couchbase
 {
@@ -278,6 +279,30 @@ namespace Couchbase
             configureOptions(options);
 
             return collection.MutateInAsync(id, specs, options);
+        }
+
+        #endregion
+
+        #region Data Structures
+
+        public static IPersistentSet<T> Set<T>(this ICollection collection, string docId)
+        {
+            return new PersistentSet<T>(collection, docId);
+        }
+
+        public static IPersistentList<T> List<T>(this ICollection collection, string docId)
+        {
+            return new PersistentList<T>(collection, docId);
+        }
+
+        public static IPersistentQueue<T> Queue<T>(this ICollection collection, string docId)
+        {
+            return new PersistentQueue<T>(collection, docId);
+        }
+
+        public static IPersistentDictionary<TKey, TValue> Dictionary<TKey, TValue>(this ICollection collection, string docId)
+        {
+            return new PersistentDictionary<TKey, TValue>(collection, docId);
         }
 
         #endregion
