@@ -7,17 +7,15 @@ namespace Couchbase.IntegrationTests.Fixtures
     {
         public ICluster Cluster { get; }
 
-        public Couchbase.Configuration Configuration { get; }
+        public ClusterOptions ClusterOptions { get; }
 
         public ClusterFixture()
         {
-            Configuration = new Couchbase.Configuration()
-                .WithServers("couchbase://localhost")
+            ClusterOptions = new ClusterOptions()
                 .WithBucket("default")
                 .WithCredentials("Administrator", "password");
 
-            Cluster = new Cluster(Configuration);
-            Cluster.InitializeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            Cluster = Couchbase.Cluster.Connect("couchbase://localhost", ClusterOptions);
         }
 
         public async Task<IBucket> GetDefaultBucket()

@@ -28,14 +28,14 @@ namespace Couchbase.Services.Query
 
         internal bool EnhancedPreparedStatementsEnabled;
 
-        internal QueryClient(Configuration configuration) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)),
-            new JsonDataMapper(new DefaultSerializer()), configuration)
+        internal QueryClient(ClusterOptions clusterOptions) : this(
+            new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)),
+            new JsonDataMapper(new DefaultSerializer()), clusterOptions)
         {
         }
 
-        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, Configuration configuration)
-            : base(httpClient, dataMapper, configuration)
+        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClusterOptions clusterOptions)
+            : base(httpClient, dataMapper, clusterOptions)
         {
         }
 
@@ -109,7 +109,7 @@ namespace Couchbase.Services.Query
         internal async Task<IQueryResult<T>> ExecuteQuery<T>(string statement, QueryOptions options, IDataMapper dataMapper)
         {
             // try get Query node
-            if (!Configuration.GlobalNodes.TryGetRandom(x => x.HasQuery(), out var node))
+            if (!ClusterOptions.GlobalNodes.TryGetRandom(x => x.HasQuery(), out var node))
             {
                 const string noNodeAvailableMessage = "Unable to locate query node to submit query to.";
                 Logger.LogError(noNodeAvailableMessage);

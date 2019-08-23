@@ -928,7 +928,7 @@ namespace Couchbase.Services.Query
 
         /// <summary>
         /// Sets the lifespan of the query request; used to check if the request exceeded the maximum time
-        /// configured for it in <see cref="Configuration.QueryTimeout" />
+        /// configured for it in <see cref="ClusterOptions.QueryTimeout" />
         /// </summary>
         /// <value>
         /// The lifespan.
@@ -936,7 +936,7 @@ namespace Couchbase.Services.Query
         public Lifespan Lifespan { get; set; }
 
         /// <summary>
-        /// True if the request exceeded it's <see cref="Configuration.QueryTimeout" />
+        /// True if the request exceeded it's <see cref="ClusterOptions.QueryTimeout" />
         /// </summary>
         /// <returns></returns>
         public bool TimedOut()

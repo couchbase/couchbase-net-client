@@ -225,7 +225,7 @@ namespace Couchbase.Core.IO.Connections
                         // var context = CreateOperationContext(opaque);
 
                         // send to orphaned response reporter
-                        //  Configuration.ClientConfiguration.OrphanedResponseLogger.Add(context);
+                        //  ClusterOptions.ClientConfiguration.OrphanedResponseLogger.Add(context);
                     }
                 }
                 catch

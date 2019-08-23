@@ -1,4 +1,4 @@
-﻿namespace Couchbase.Core.IO.Operations.Legacy
+namespace Couchbase.Core.IO.Operations.Legacy
 {
     /// <summary>
     /// The primary return type for binary Memcached operations
@@ -12,7 +12,7 @@
         /// The mutation token.
         /// </value>
         /// <remarks>Note: this is used internally for enhanced durability if supported by
-        /// the Couchbase server version and enabled by configuration.</remarks>
+        /// the Couchbase server version and enabled by clusterOptions.</remarks>
         MutationToken Token { get; }
 
         /// <summary>

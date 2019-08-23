@@ -3,7 +3,6 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -16,14 +15,14 @@ namespace Couchbase.Core.IO.HTTP
 
         private const string UserAgentHeaderName = "User-Agent";
 
-        private Couchbase.Configuration ClientConfig { get; set; }
+        private ClusterOptions ClusterOptions { get; set; }
 
         //used by all http services
-        internal CouchbaseHttpClient(Couchbase.Configuration clientConfig)
-            : this (CreateClientHandler(clientConfig.UserName, clientConfig.Password, clientConfig))
+        internal CouchbaseHttpClient(ClusterOptions clusterOptions)
+            : this (CreateClientHandler(clusterOptions.UserName, clusterOptions.Password, clusterOptions))
         {
-            ClientConfig = clientConfig;
-            DefaultRequestHeaders.ExpectContinue = clientConfig.Expect100Continue;
+            ClusterOptions = clusterOptions;
+            DefaultRequestHeaders.ExpectContinue = clusterOptions.Expect100Continue;
         }
 
         internal CouchbaseHttpClient(HttpClientHandler handler)
@@ -32,12 +31,12 @@ namespace Couchbase.Core.IO.HTTP
             DefaultRequestHeaders.Add(UserAgentHeaderName, ClientIdentifier.GetClientDescription());
         }
 
-        private static HttpClientHandler CreateClientHandler(string username, string password, Couchbase.Configuration clientConfig)
+        private static HttpClientHandler CreateClientHandler(string username, string password, ClusterOptions clusterOptions)
         {
             HttpClientHandler handler;
 
             //for x509 cert authentication
-            if (clientConfig != null && clientConfig.EnableCertificateAuthentication)
+            if (clusterOptions != null && clusterOptions.EnableCertificateAuthentication)
             {
                 handler = new NonAuthenticatingHttpClientHandler
                 {
@@ -54,7 +53,7 @@ namespace Couchbase.Core.IO.HTTP
 
             try
             {
-                handler.CheckCertificateRevocationList = clientConfig.EnableCertificateRevocation;
+                handler.CheckCertificateRevocationList = clusterOptions.EnableCertificateRevocation;
                 //handler.ServerCertificateCustomValidationCallback = config?.HttpServerCertificateValidationCallback ??
                                                                   //  OnCertificateValidation;
             }
@@ -63,11 +62,11 @@ namespace Couchbase.Core.IO.HTTP
                 Logger.LogDebug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
             }
 
-            if (clientConfig != null)
+            if (clusterOptions != null)
             {
                 try
                 {
-                    handler.MaxConnectionsPerServer = clientConfig.MaxQueryConnectionsPerServer;
+                    handler.MaxConnectionsPerServer = clusterOptions.MaxQueryConnectionsPerServer;
                 }
                 catch (PlatformNotSupportedException e)
                 {
@@ -79,7 +78,7 @@ namespace Couchbase.Core.IO.HTTP
 
         private bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (ClientConfig.IgnoreRemoteCertificateNameMismatch)
+            if (ClusterOptions.IgnoreRemoteCertificateNameMismatch)
             {
                 if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
                 {

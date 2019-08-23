@@ -50,10 +50,10 @@ namespace Couchbase.UnitTests.Services.Query
                 {
                     BaseAddress = new Uri("http://localhost:8091")
                 };
-                var config = new Configuration().WithBucket("default").WithServers("http://localhost:8901");
+                var config = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901");
                 var clusterNode = new ClusterNode
                 {
-                    Configuration = config,
+                    ClusterOptions = config,
                     EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
                     NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
                         new NodesExt {Hostname = "127.0.0.1", Services = new Couchbase.Core.Configuration.Server.Services
@@ -81,14 +81,14 @@ namespace Couchbase.UnitTests.Services.Query
         [Fact]
         public void EnhancedPreparedStatements_defaults_to_false()
         {
-            var client = new QueryClient(new Configuration());
+            var client = new QueryClient(new ClusterOptions());
             Assert.False(client.EnhancedPreparedStatementsEnabled);
         }
 
         [Fact]
         public void EnhancedPreparedStatements_is_set_to_true_if_enabled_in_cluster_caps()
         {
-            var client = new QueryClient(new Configuration());
+            var client = new QueryClient(new ClusterOptions());
             Assert.False(client.EnhancedPreparedStatementsEnabled);
 
             var clusterCapabilities = new ClusterCapabilities();

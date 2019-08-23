@@ -11,7 +11,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task Scope_Indexer_NotFound_Throws_ScopeMissingException()
         {
-            var bucket = new CouchbaseBucket("default", new Configuration(), new ConfigContext(new Configuration()));
+            var bucket = new CouchbaseBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()));
 
             await Assert.ThrowsAsync<ScopeMissingException>(() =>
             {
@@ -23,7 +23,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task Scope_NotFound_Throws_ScopeMissingException( )
         {
-            var bucket = new CouchbaseBucket("default", new Configuration(), new ConfigContext(new Configuration()));
+            var bucket = new CouchbaseBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()));
 
             await Assert.ThrowsAsync<ScopeMissingException>(() =>
             {

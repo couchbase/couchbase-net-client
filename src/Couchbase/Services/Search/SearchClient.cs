@@ -25,13 +25,13 @@ namespace Couchbase.Services.Search
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
 
-        public SearchClient(Configuration configuration) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)),
-            new SearchDataMapper(), configuration)
+        public SearchClient(ClusterOptions clusterOptions) : this(
+            new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)),
+            new SearchDataMapper(), clusterOptions)
         { }
 
-        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, Configuration configuration)
-            : base(httpClient, dataMapper, configuration)
+        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, ClusterOptions clusterOptions)
+            : base(httpClient, dataMapper, clusterOptions)
         { }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace Couchbase.Services.Search
         public async Task<ISearchResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken = default)
         {
             // try get Search node
-            if (!Configuration.GlobalNodes.TryGetRandom(x => x.HasSearch(), out var node))
+            if (!ClusterOptions.GlobalNodes.TryGetRandom(x => x.HasSearch(), out var node))
             {
                 //const string noNodeAvailableMessage = "Unable to locate search node to submit query to.";
                 //Logger.LogError(noNodeAvailableMessage);
@@ -124,7 +124,7 @@ namespace Couchbase.Services.Search
             }
             catch (OperationCanceledException e)
             {
-                //var operationContext = OperationContext.CreateSearchContext(Configuration.BucketName, baseUri?.Authority);
+                //var operationContext = OperationContext.CreateSearchContext(ClusterOptions.BucketName, baseUri?.Authority);
                 //operationContext.TimeoutMicroseconds = searchQuery.TimeoutValue;
 
                 //Log.Info(operationContext.ToString());

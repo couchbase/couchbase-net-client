@@ -20,18 +20,18 @@ namespace Couchbase.Services.Views
 
         private readonly string _bucketName;
         private readonly HttpClient _client;
-        private readonly Configuration _configuration;
+        private readonly ClusterOptions _clusterOptions;
         private readonly string _scheme;
         private readonly int _port;
 
-        internal ViewManager(string bucketName, HttpClient client, Configuration configuration)
+        internal ViewManager(string bucketName, HttpClient client, ClusterOptions clusterOptions)
         {
             _bucketName = bucketName;
             _client = client;
-            _configuration = configuration;
+            _clusterOptions = clusterOptions;
 
             //TODO: use configured ports
-            if (_configuration.UseSsl)
+            if (_clusterOptions.UseSsl)
             {
                 _scheme = "https";
                 _port = 18092;
@@ -46,7 +46,7 @@ namespace Couchbase.Services.Views
         private Uri GetUri(string designDocName, bool isProduction)
         {
             // TODO: should only get node with KV service enabled
-            var server = _configuration.Servers.GetRandom();
+            var server = _clusterOptions.Servers.GetRandom();
 
             // {0}://{1}:{2}/{3}/_design
             var builder = new UriBuilder
@@ -109,7 +109,7 @@ namespace Couchbase.Services.Views
             var uri = new UriBuilder
             {
                 Scheme = _scheme,
-                Host = _configuration.Servers.GetRandom().Host,
+                Host = _clusterOptions.Servers.GetRandom().Host,
                 Port = 8091,
                 Path = $"pools/default/buckets/{_bucketName}/ddocs"
             }.Uri;

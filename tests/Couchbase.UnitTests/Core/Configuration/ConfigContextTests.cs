@@ -30,7 +30,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
 
@@ -70,7 +70,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
 
@@ -94,7 +94,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
 
@@ -121,7 +121,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
 
@@ -154,7 +154,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
 
@@ -186,7 +186,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
 
@@ -199,7 +199,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
             context.Stop();
@@ -224,7 +224,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
 
-            var context = new ConfigContext(new Couchbase.Configuration());
+            var context = new ConfigContext(new ClusterOptions());
             context.Start(cts);
             context.Subscribe(_bucket);
 

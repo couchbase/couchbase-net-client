@@ -79,9 +79,9 @@ namespace Couchbase.Utils
             }
         }
 
-        public static async Task Authenticate(this IConnection connection, Configuration configuration, string bucketName)
+        public static async Task Authenticate(this IConnection connection, ClusterOptions clusterOptions, string bucketName)
         {
-            var sasl = new PlainSaslMechanism(configuration.UserName, configuration.Password);
+            var sasl = new PlainSaslMechanism(clusterOptions.UserName, clusterOptions.Password);
             var authenticated = await sasl.AuthenticateAsync(connection).ConfigureAwait(false);
             if (!authenticated)
             {

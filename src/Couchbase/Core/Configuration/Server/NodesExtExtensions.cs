@@ -30,9 +30,9 @@ namespace Couchbase.Core.Configuration.Server
             return nodesExt.Hostname.Contains("$HOST") ? "localhost" : nodesExt.Hostname;
         }
 
-        public static int GetKeyValuePort(this NodesExt nodesExt, Couchbase.Configuration configuration)
+        public static int GetKeyValuePort(this NodesExt nodesExt, ClusterOptions clusterOptions)
         {
-            return configuration.UseSsl ? nodesExt.Services.KvSsl : nodesExt.Services.Kv;
+            return clusterOptions.UseSsl ? nodesExt.Services.KvSsl : nodesExt.Services.Kv;
         }
     }
 }

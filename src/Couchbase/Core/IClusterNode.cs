@@ -13,7 +13,7 @@ namespace Couchbase.Core
     internal interface IClusterNode : IDisposable
     {
         IBucket Owner { get; set; }
-        Couchbase.Configuration Configuration { get; set; }
+        ClusterOptions ClusterOptions { get; set; }
         NodeAdapter NodesAdapter { get; set; }
         Uri BootstrapUri { get; set; }
         IPEndPoint EndPoint { get; set; }

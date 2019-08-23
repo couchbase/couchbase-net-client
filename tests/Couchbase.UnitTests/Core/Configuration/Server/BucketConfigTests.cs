@@ -128,7 +128,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var oldConfig = ResourceHelper.ReadResource<BucketConfig>(oldConfigPath);
             var newConfig = ResourceHelper.ReadResource<BucketConfig>(newConfigPath);
 
-            var configuration = new Couchbase.Configuration();
+            var configuration = new ClusterOptions();
             var bucketNodes = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
 
             //load up the initial state after bootstrapping

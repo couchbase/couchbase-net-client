@@ -9,10 +9,10 @@ namespace Couchbase.UnitTests.Fixtures
 
         public ClusterFixture()
         {
-            var cluster = new Cluster(new Configuration()
-                    .WithServers("couchbase://localhost")
-                    .WithBucket("default")
-                    .WithCredentials("Administrator", "password")
+            var cluster = new Cluster("couchbase://localhost", new ClusterOptions()
+                .WithServers("couchbase://localhost")
+                .WithBucket("default")
+                .WithCredentials("Administrator", "password")
             );
             Cluster = cluster;
         }

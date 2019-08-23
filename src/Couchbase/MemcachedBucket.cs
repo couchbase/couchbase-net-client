@@ -21,16 +21,16 @@ namespace Couchbase
         private static readonly ILogger Log = LogManager.CreateLogger<MemcachedBucket>();
         private readonly HttpClusterMapBase _httpClusterMap;
 
-        internal MemcachedBucket(string name, Configuration configuration, ConfigContext couchbaseContext) :
-            this (name, configuration, couchbaseContext, new HttpClusterMap(new CouchbaseHttpClient(configuration), couchbaseContext, configuration))
+        internal MemcachedBucket(string name, ClusterOptions clusterOptions, ConfigContext couchbaseContext) :
+            this (name, clusterOptions, couchbaseContext, new HttpClusterMap(new CouchbaseHttpClient(clusterOptions), couchbaseContext, clusterOptions))
         {
         }
 
-        internal MemcachedBucket(string name, Configuration configuration, ConfigContext couchbaseContext, HttpClusterMapBase httpClusterMap)
+        internal MemcachedBucket(string name, ClusterOptions clusterOptions, ConfigContext couchbaseContext, HttpClusterMapBase httpClusterMap)
         {
             Name = name;
             CouchbaseContext = couchbaseContext;
-            Configuration = configuration;
+            ClusterOptions = clusterOptions;
             CouchbaseContext.Subscribe(this);
             _httpClusterMap = httpClusterMap;
         }
@@ -75,7 +75,7 @@ namespace Couchbase
             if (e.Config.Name == Name && e.Config.Rev > BucketConfig.Rev)
             {
                 BucketConfig = e.Config;
-                KeyMapper = new KetamaKeyMapper(BucketConfig, Configuration);
+                KeyMapper = new KetamaKeyMapper(BucketConfig, ClusterOptions);
 
                 if (BucketConfig.ClusterNodesChanged)
                 {
@@ -102,11 +102,11 @@ namespace Couchbase
             BucketConfig = await _httpClusterMap.GetClusterMapAsync(
                 Name, bootstrapNode.BootstrapUri, CancellationToken.None).ConfigureAwait(false);
 
-            KeyMapper = new KetamaKeyMapper(BucketConfig, Configuration);
+            KeyMapper = new KetamaKeyMapper(BucketConfig, ClusterOptions);
 
             //reuse the bootstrapNode
             BucketNodes.AddOrUpdate(bootstrapNode.EndPoint, bootstrapNode, (key, node) => bootstrapNode);
-            bootstrapNode.Configuration = Configuration;
+            bootstrapNode.ClusterOptions = ClusterOptions;
 
             //the initial bootstrapping endpoint;
             await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);

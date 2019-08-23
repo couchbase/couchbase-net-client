@@ -4,11 +4,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
 {
     internal static class OrphanedResponseLoggerFactory
     {
-        public static Func<IOrphanedResponseLogger> GetFactory(Couchbase.Configuration config)
+        public static Func<IOrphanedResponseLogger> GetFactory(ClusterOptions clusterOptions)
         {
-            if (config.OrphanedResponseLoggingEnabled)
+            if (clusterOptions.OrphanedResponseLoggingEnabled)
             {
-                // TODO: extend to allow type building from config
+                // TODO: extend to allow type building from clusterOptions
                 return () => new OrphanedResponseLogger();
             }
 

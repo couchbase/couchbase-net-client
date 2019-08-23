@@ -43,7 +43,7 @@ namespace Couchbase.UnitTests.Services.Views
             var httpClient = new HttpClient(handler);
             var queryClient = new ViewClient(httpClient,
                 new JsonDataMapper(new DefaultSerializer()),
-                new Configuration());
+                new ClusterOptions());
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
@@ -62,7 +62,7 @@ namespace Couchbase.UnitTests.Services.Views
             var httpClient = new HttpClient(handler);
             var queryClient = new ViewClient(httpClient,
                 new JsonDataMapper(new DefaultSerializer()),
-                new Configuration());
+                new ClusterOptions());
             Assert.Null(queryClient.LastActivity);
 
             var query = new ViewQuery("bucket-name", "http://localhost");
@@ -84,7 +84,7 @@ namespace Couchbase.UnitTests.Services.Views
             var httpClient = new HttpClient(handler);
             var queryClient = new ViewClient(httpClient,
                 new JsonDataMapper(new DefaultSerializer()),
-                new Configuration());
+                new ClusterOptions());
 
             Assert.Null(queryClient.LastActivity);
 

@@ -420,7 +420,7 @@ namespace Couchbase.Services.Views
         /// <summary>
         /// Sets the base uri for the query if it's not set in the constructor.
         /// </summary>
-        /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by configuration.</param>
+        /// <param name="uri">The base uri to use - this is normally set internally and may be overridden by clusterOptions.</param>
         /// <returns>An IViewQuery object for chaining</returns>
         /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
         IViewQueryable IViewQueryable.BaseUri(Uri uri)

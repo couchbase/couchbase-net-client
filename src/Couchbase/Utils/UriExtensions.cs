@@ -15,90 +15,90 @@ namespace Couchbase.Utils
         public const string AnalyticsPath = "/analytics/service";
         public static string BaseUriFormat = "{0}://{1}:{2}/pools";
 
-        internal static Uri GetQueryUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodeAdapter)
+        internal static Uri GetQueryUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodeAdapter)
         {
             if (nodeAdapter.IsQueryNode)
             {
                 return new UriBuilder
                 {
-                    Scheme = configuration.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.UseSsl ? Https : Http,
                     Host = nodeAdapter.Hostname,
-                    Port = configuration.UseSsl ? nodeAdapter.N1QlSsl : nodeAdapter.N1Ql,
+                    Port = clusterOptions.UseSsl ? nodeAdapter.N1QlSsl : nodeAdapter.N1Ql,
                     Path = QueryPath
                 }.Uri;
             }
 
             return new UriBuilder
             {
-                Scheme = configuration.UseSsl ? Https : Http,
+                Scheme = clusterOptions.UseSsl ? Https : Http,
                 Host = nodeAdapter.Hostname,
             }.Uri;
         }
 
-        internal static Uri GetAnalyticsUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodesAdapter)
+        internal static Uri GetAnalyticsUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodesAdapter)
         {
             if (nodesAdapter.IsAnalyticsNode)
             {
                 return new UriBuilder
                 {
-                    Scheme = configuration.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.UseSsl ? Https : Http,
                     Host = nodesAdapter.Hostname,
-                    Port = configuration.UseSsl ? nodesAdapter.AnalyticsSsl : nodesAdapter.Analytics,
+                    Port = clusterOptions.UseSsl ? nodesAdapter.AnalyticsSsl : nodesAdapter.Analytics,
                     Path = AnalyticsPath
                 }.Uri;
             }
             return new UriBuilder
             {
-                Scheme = configuration.UseSsl ? Https : Http,
+                Scheme = clusterOptions.UseSsl ? Https : Http,
                 Host = nodesAdapter.Hostname,
             }.Uri;
 
         }
 
-        internal static Uri GetSearchUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodeAdapter)
+        internal static Uri GetSearchUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodeAdapter)
         {
             if (nodeAdapter.IsSearchNode)
             {
                 return new UriBuilder
                 {
-                    Scheme = configuration.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.UseSsl ? Https : Http,
                     Host = nodeAdapter.Hostname,
-                    Port = configuration.UseSsl ? nodeAdapter.FtsSsl : nodeAdapter.Fts
+                    Port = clusterOptions.UseSsl ? nodeAdapter.FtsSsl : nodeAdapter.Fts
                 }.Uri;
             }
 
             return new UriBuilder
             {
-                Scheme = configuration.UseSsl ? Https : Http,
+                Scheme = clusterOptions.UseSsl ? Https : Http,
                 Host = nodeAdapter.Hostname,
             }.Uri;
         }
 
-        internal static Uri GetViewsUri(this IPEndPoint endPoint, Configuration configuration, NodeAdapter nodesAdapter)
+        internal static Uri GetViewsUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodesAdapter)
         {
             if (nodesAdapter.IsDataNode)
             {
                 return new UriBuilder
                 {
-                    Scheme = configuration.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.UseSsl ? Https : Http,
                     Host = nodesAdapter.Hostname,
-                    Port = configuration.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
+                    Port = clusterOptions.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
                 }.Uri;
             }
             return new UriBuilder
             {
-                Scheme = configuration.UseSsl ? Https : Http,
+                Scheme = clusterOptions.UseSsl ? Https : Http,
                 Host = nodesAdapter.Hostname,
-                Port = configuration.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
+                Port = clusterOptions.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
             }.Uri;
         }
 
-        /*public static Uri ReplaceCouchbaseSchemeWithHttp(this Uri uri, IConfiguration configuration, string bucketName)
+        /*public static Uri ReplaceCouchbaseSchemeWithHttp(this Uri uri, IConfiguration clusterOptions, string bucketName)
         {
             if (uri.Scheme == "couchbase")
             {
-                var useSsl = configuration.UseSsl ? Https : Http;
-                var newUri = new UriBuilder(uri) {Scheme = useSsl ? "https" : "http", Port = configuration.MgmtPort};
+                var useSsl = clusterOptions.UseSsl ? Https : Http;
+                var newUri = new UriBuilder(uri) {Scheme = useSsl ? "https" : "http", Port = clusterOptions.MgmtPort};
                 return newUri.Uri;
             }
             return uri;

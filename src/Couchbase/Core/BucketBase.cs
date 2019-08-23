@@ -26,7 +26,7 @@ namespace Couchbase.Core
         protected BucketConfig BucketConfig;
         protected Manifest Manifest;
         protected IKeyMapper KeyMapper;
-        protected Couchbase.Configuration Configuration;
+        protected ClusterOptions ClusterOptions;
         protected bool SupportsCollections;
         protected ConfigContext CouchbaseContext;
         protected bool Disposed;
@@ -62,7 +62,7 @@ namespace Couchbase.Core
                 }
 
                 var connection = endPoint.GetConnection();
-                await connection.Authenticate(Configuration, Name).ConfigureAwait(false);
+                await connection.Authenticate(ClusterOptions, Name).ConfigureAwait(false);
                 await connection.SelectBucket(Name).ConfigureAwait(false);
 
                 //one error map per node
@@ -75,26 +75,26 @@ namespace Couchbase.Core
                     ErrorMap = errorMap,
                     EndPoint = endPoint,
                     ServerFeatures = supportedFeatures,
-                    Configuration = Configuration,
+                    ClusterOptions = ClusterOptions,
                     NodesAdapter = nodeAdapter
                 };
 
                 clusterNode.BuildServiceUris();
                 SupportsCollections = clusterNode.Supports(ServerFeatures.Collections);
                 BucketNodes.AddOrUpdate(endPoint, clusterNode, (ep, node) => clusterNode);
-                Configuration.GlobalNodes.Add(clusterNode);
+                ClusterOptions.GlobalNodes.Add(clusterNode);
             }
         }
 
         protected void Prune(BucketConfig newConfig)
         {
             var removed = BucketNodes.Where(x =>
-                !newConfig.NodesExt.Any(y => x.Key.Equals(y.GetIpEndPoint(Configuration))));
+                !newConfig.NodesExt.Any(y => x.Key.Equals(y.GetIpEndPoint(ClusterOptions))));
 
             foreach (var valuePair in removed)
             {
                 if (!BucketNodes.TryRemove(valuePair.Key, out var clusterNode)) continue;
-                if (Configuration.GlobalNodes.TryTake(out clusterNode))
+                if (ClusterOptions.GlobalNodes.TryTake(out clusterNode))
                 {
                     clusterNode.Dispose();
                 }
@@ -111,7 +111,7 @@ namespace Couchbase.Core
                 connection = clusterNode.EndPoint.GetConnection();
                 clusterNode.ServerFeatures = await connection.Hello().ConfigureAwait(false);
                 clusterNode.ErrorMap = await connection.GetErrorMap().ConfigureAwait(false);
-                await connection.Authenticate(Configuration, Name).ConfigureAwait(false);
+                await connection.Authenticate(ClusterOptions, Name).ConfigureAwait(false);
                 await connection.SelectBucket(Name).ConfigureAwait(false);
                 clusterNode.Connection = connection;
             }
@@ -127,7 +127,7 @@ namespace Couchbase.Core
             Disposed = true;
             BucketNodes.Clear();
 
-            if (Configuration.GlobalNodes.TryTake(out var clusterNode))
+            if (ClusterOptions.GlobalNodes.TryTake(out var clusterNode))
             {
                 if (clusterNode.Owner == this)
                 {

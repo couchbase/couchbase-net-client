@@ -18,11 +18,11 @@ namespace Couchbase.Core.Sharding
         private readonly ICollection<IPEndPoint> _servers;
         private readonly int _totalWeight;
         internal readonly SortedDictionary<long, IPEndPoint> Hashes = new SortedDictionary<long, IPEndPoint>();
-        private readonly Couchbase.Configuration _configuration;
+        private readonly ClusterOptions _clusterOptions;
 
-        public KetamaKeyMapper(BucketConfig config, Couchbase.Configuration configuration)
+        public KetamaKeyMapper(BucketConfig config, ClusterOptions clusterOptions)
         {
-            _configuration = configuration;
+            _clusterOptions = clusterOptions;
             _servers = GetIpEndPoints(config);
             _totalWeight = _servers.Count;
             Initialize();

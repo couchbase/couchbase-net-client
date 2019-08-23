@@ -14,7 +14,7 @@ namespace Couchbase.Core
     internal class ClusterNode : IClusterNode
     {
         public IBucket Owner { get; set; }
-        public Couchbase.Configuration Configuration { get; set; }
+        public ClusterOptions ClusterOptions { get; set; }
         public NodeAdapter NodesAdapter { get; set; }
         public Uri BootstrapUri { get; set; }
         public IPEndPoint EndPoint { get; set; }
@@ -56,10 +56,10 @@ namespace Couchbase.Core
         {
             if (NodesAdapter != null)
             {
-                QueryUri = EndPoint.GetQueryUri(Configuration, NodesAdapter);
-                SearchUri = EndPoint.GetSearchUri(Configuration, NodesAdapter);
-                AnalyticsUri = EndPoint.GetAnalyticsUri(Configuration, NodesAdapter);
-                ViewsUri = EndPoint.GetViewsUri(Configuration, NodesAdapter); //TODO move to IBucket level?
+                QueryUri = EndPoint.GetQueryUri(ClusterOptions, NodesAdapter);
+                SearchUri = EndPoint.GetSearchUri(ClusterOptions, NodesAdapter);
+                AnalyticsUri = EndPoint.GetAnalyticsUri(ClusterOptions, NodesAdapter);
+                ViewsUri = EndPoint.GetViewsUri(ClusterOptions, NodesAdapter); //TODO move to IBucket level?
             }
         }
 

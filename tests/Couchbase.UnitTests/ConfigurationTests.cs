@@ -11,7 +11,7 @@ namespace Couchbase.UnitTests
         public void Logging_Default_To_NullLogger()
         {
             //arrange
-            var config = new Configuration();
+            var config = new ClusterOptions();
 
             //act
             config.WithLogging();
@@ -25,7 +25,7 @@ namespace Couchbase.UnitTests
         public void Logging_Use_ConsoleLogger()
         {
             //arrange
-            var config = new Configuration();
+            var config = new ClusterOptions();
 
             //act
             config.WithLogging(new LogManagerTests.InMemoryLoggerProvider());
@@ -37,7 +37,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void WithServers_throws_argument_exception_for_invalid_args()
         {
-            var config = new Configuration();
+            var config = new ClusterOptions();
 
             Assert.Throws<ArgumentException>(() => config.WithServers());
             Assert.Throws<ArgumentException>(() => config.WithServers(null));
@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void WithBucket_throws_argument_exception_for_invalid_args()
         {
-            var config = new Configuration();
+            var config = new ClusterOptions();
 
             Assert.Throws<ArgumentException>(() => config.WithBucket());
             Assert.Throws<ArgumentException>(() => config.WithBucket(null));
@@ -57,7 +57,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void WithCredentials_throws_argumentException_for_invalid_args()
         {
-            var config = new Configuration();
+            var config = new ClusterOptions();
 
             Assert.Throws<ArgumentException>(() => config.WithCredentials(null, null));
             Assert.Throws<ArgumentException>(() => config.WithCredentials(string.Empty, null));

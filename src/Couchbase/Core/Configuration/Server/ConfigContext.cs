@@ -28,7 +28,7 @@ namespace Couchbase.Core.Configuration.Server
         private readonly BlockingCollection<BucketConfig> _configQueue = new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
         private readonly ConcurrentDictionary<string, BucketConfig> _configs = new ConcurrentDictionary<string, BucketConfig>();
         public CancellationTokenSource TokenSource { get; set; } = new CancellationTokenSource();
-        private readonly Couchbase.Configuration _configuration;
+        private readonly ClusterOptions _clusterOptions;
         private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners = new ConcurrentDictionary<string, HttpStreamingConfigListener>();
         private readonly HttpClient _httpClient;
 
@@ -36,10 +36,10 @@ namespace Couchbase.Core.Configuration.Server
 
         public event BucketConfigHandler ConfigChanged;
 
-        public ConfigContext(Couchbase.Configuration configuration)
+        public ConfigContext(ClusterOptions clusterOptions)
         {
-            _configuration = configuration;
-            _httpClient = new CouchbaseHttpClient(_configuration);
+            _clusterOptions = clusterOptions;
+            _httpClient = new CouchbaseHttpClient(_clusterOptions);
         }
 
         public void Start(CancellationTokenSource tokenSource)
@@ -61,9 +61,9 @@ namespace Couchbase.Core.Configuration.Server
                 Thread.CurrentThread.Name = "cnfg";
                 while (!TokenSource.IsCancellationRequested)
                 {
-                    await Task.Delay(_configuration.ConfigPollInterval, TokenSource.Token).ConfigureAwait(false);
+                    await Task.Delay(_clusterOptions.ConfigPollInterval, TokenSource.Token).ConfigureAwait(false);
 
-                    foreach (var clusterNode in _configuration.GlobalNodes.Where(x=>x.Connection != null))
+                    foreach (var clusterNode in _clusterOptions.GlobalNodes.Where(x=>x.Connection != null))
                     {
                         try
                         {
@@ -72,7 +72,7 @@ namespace Couchbase.Core.Configuration.Server
                         }
                         catch (Exception e)
                         {
-                            Logger.LogWarning(e, "Issue getting Cluster Map config!");
+                            Logger.LogWarning(e, "Issue getting Cluster Map cluster!");
                         }
                     }
                 }
@@ -107,7 +107,7 @@ namespace Couchbase.Core.Configuration.Server
                 }
                 catch (Exception e)
                 {
-                    Logger.LogWarning(e, "Error processing new configuration");
+                    Logger.LogWarning(e, "Error processing new clusterOptions");
                 }
             }
         }
@@ -130,7 +130,7 @@ namespace Couchbase.Core.Configuration.Server
 
             if (bucket is MemcachedBucket)
             {
-                var httpListener = new HttpStreamingConfigListener(bucket.Name, _configuration, _httpClient, this, TokenSource.Token);
+                var httpListener = new HttpStreamingConfigListener(bucket.Name, _clusterOptions, _httpClient, this, TokenSource.Token);
                 if (_httpConfigListeners.TryAdd(bucket.Name, httpListener))
                 {
                     httpListener.StartListening();

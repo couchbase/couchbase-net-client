@@ -17,14 +17,14 @@ namespace Couchbase.Services.Analytics
         //private static readonly ILog Log = LogManager.GetLogger(typeof(AnalyticsClient));
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
-        public AnalyticsClient(Configuration configuration) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)),
-            new JsonDataMapper(new DefaultSerializer()), configuration
+        public AnalyticsClient(ClusterOptions clusterOptions) : this(
+            new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)),
+            new JsonDataMapper(new DefaultSerializer()), clusterOptions
         )
         { }
 
-        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, Configuration configuration)
-            : base(client, dataMapper, configuration)
+        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ClusterOptions clusterOptions)
+            : base(client, dataMapper, clusterOptions)
         { }
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace Couchbase.Services.Analytics
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token)
         {
             // try get Analytics node
-            if (!Configuration.GlobalNodes.TryGetRandom(x => x.HasAnalytics(), out var node))
+            if (!ClusterOptions.GlobalNodes.TryGetRandom(x => x.HasAnalytics(), out var node))
             {
                 //const string noNodeAvailableMessage = "Unable to locate analytics node to submit query to.";
                 //Logger.LogError(noNodeAvailableMessage);

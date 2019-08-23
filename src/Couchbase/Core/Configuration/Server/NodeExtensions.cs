@@ -13,9 +13,9 @@ namespace Couchbase.Core.Configuration.Server
             return node.Hostname.Contains("$HOST") ? "localhost" : node.Hostname.Split(':')[0];
         }
 
-        public static int GetKeyValuePort(this Node node, Couchbase.Configuration configuration)
+        public static int GetKeyValuePort(this Node node, ClusterOptions clusterOptions)
         {
-            return configuration.UseSsl ? node.Ports.Direct : node.Ports.SslDirect;
+            return clusterOptions.UseSsl ? node.Ports.Direct : node.Ports.SslDirect;
         }
     }
 }

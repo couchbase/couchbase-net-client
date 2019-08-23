@@ -31,12 +31,12 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             var tokenSource = new CancellationTokenSource();
             tokenSource.CancelAfter(TimeSpan.FromSeconds(10));
 
-            var context = new ConfigContext(_fixture.Configuration);
+            var context = new ConfigContext(_fixture.ClusterOptions);
             context.Start(tokenSource);
             context.Subscribe(_bucket);
 
-            var httpClient = new CouchbaseHttpClient(_fixture.Configuration);
-            var listener = new HttpStreamingConfigListener("default", _fixture.Configuration, httpClient, context, tokenSource.Token);
+            var httpClient = new CouchbaseHttpClient(_fixture.ClusterOptions);
+            var listener = new HttpStreamingConfigListener("default", _fixture.ClusterOptions, httpClient, context, tokenSource.Token);
 
             listener.StartListening();
             Assert.True(_autoResetEvent.WaitOne(TimeSpan.FromSeconds(1)));

@@ -3,7 +3,7 @@ using System;
 namespace Couchbase
 {
     /// <summary>
-    /// A generic error raised when the configuration is invalid.
+    /// A generic error raised when the clusterOptions is invalid.
     /// </summary>
     public class InvalidConfigurationException : CouchbaseException
     {

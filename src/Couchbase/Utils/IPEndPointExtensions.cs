@@ -17,7 +17,7 @@ namespace Couchbase.Utils
             if (!IPAddress.TryParse(hostname, out var ipAddress))
             {
                 var uri = new Uri($"http://{hostname}");
-                ipAddress = uri.GetIpAddress(Configuration.UseInterNetworkV6Addresses);
+                ipAddress = uri.GetIpAddress(ClusterOptions.UseInterNetworkV6Addresses);
                 if (ipAddress == null)
                 {
                     throw new ArgumentException("ipAddress");

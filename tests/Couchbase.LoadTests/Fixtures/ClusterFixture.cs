@@ -9,8 +9,7 @@ namespace Couchbase.LoadTests.Fixtures
 
         public ClusterFixture()
         {
-            Cluster = new Cluster(new Configuration()
-                .WithServers("couchbase://localhost")
+            Cluster = new Cluster("couchbase://localhost", new ClusterOptions()
                 .WithBucket("default")
                 .WithCredentials("Administrator", "password"));
         }

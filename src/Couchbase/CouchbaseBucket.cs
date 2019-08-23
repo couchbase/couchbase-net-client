@@ -23,19 +23,19 @@ namespace Couchbase
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewManager> _viewManagerLazy;
 
-        internal CouchbaseBucket(string name, Configuration configuration, ConfigContext couchbaseContext)
+        internal CouchbaseBucket(string name, ClusterOptions clusterOptions, ConfigContext couchbaseContext)
         {
             Name = name;
             CouchbaseContext = couchbaseContext;
-            Configuration = configuration;
+            ClusterOptions = clusterOptions;
             CouchbaseContext.Subscribe(this);
 
-            var httpClient = new CouchbaseHttpClient(Configuration);
+            var httpClient = new CouchbaseHttpClient(ClusterOptions);
             _viewClientLazy = new Lazy<IViewClient>(() =>
-                new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), Configuration)
+                new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), ClusterOptions)
             );
             _viewManagerLazy = new Lazy<IViewManager>(() =>
-                new ViewManager(name, httpClient, configuration));
+                new ViewManager(name, httpClient, clusterOptions));
         }
 
         public override Task<IScope> this[string name]
@@ -85,7 +85,7 @@ namespace Couchbase
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though
         private Uri GetViewUri()
         {
-            var clusterNode = Configuration.GlobalNodes.GetRandom(x=>x.Owner==this && x.HasViews());
+            var clusterNode = ClusterOptions.GlobalNodes.GetRandom(x=>x.Owner==this && x.HasViews());
             if (clusterNode == null)
             {
                 throw new ServiceMissingException("Views Service cannot be located.");
@@ -103,7 +103,7 @@ namespace Couchbase
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
             {
-                UseSsl = Configuration.UseSsl
+                UseSsl = ClusterOptions.UseSsl
             };
             query.Bucket(Name);
             query.From(designDocument, viewName);
@@ -185,7 +185,7 @@ namespace Couchbase
 
             //reuse the bootstrapNode
             BucketNodes.AddOrUpdate(bootstrapNode.EndPoint, bootstrapNode, (key, node) => bootstrapNode);
-            bootstrapNode.Configuration = Configuration;
+            bootstrapNode.ClusterOptions = ClusterOptions;
 
             //the initial bootstrapping endpoint;
             await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);

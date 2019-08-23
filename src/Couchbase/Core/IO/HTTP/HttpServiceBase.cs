@@ -7,7 +7,7 @@ using Couchbase.Utils;
 namespace Couchbase.Core.IO.HTTP
 {
     /// <summary>
-    /// Base class for HTTP services to inherit from to provide consistent access to configuration,
+    /// Base class for HTTP services to inherit from to provide consistent access to clusterOptions,
     /// http client and data mapper.
     /// </summary>
     /// <seealso cref="System.IDisposable" />
@@ -15,20 +15,20 @@ namespace Couchbase.Core.IO.HTTP
     {
         private const string ConnectionIdHeaderName = "cb-client-id";
 
-        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, Couchbase.Configuration configuration)
+        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClusterOptions clusterOptions)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
-            Configuration = configuration;
+            ClusterOptions = clusterOptions;
 
             // set custom header for client / connection ID
             httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));
         }
 
         /// <summary>
-        /// Gets the client configuration.
+        /// Gets the client clusterOptions.
         /// </summary>
-        protected Couchbase.Configuration Configuration { get; set; }
+        protected ClusterOptions ClusterOptions { get; set; }
 
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
@@ -51,7 +51,7 @@ namespace Couchbase.Core.IO.HTTP
         public ulong ConnectionId { get; } = SequenceGenerator.GetRandomLong();
 
         /// <summary>
-        /// The configuration context for this instance.
+        /// The clusterOptions context for this instance.
         /// </summary>
        // protected ConfigContextBase Context { get; set; }
 

@@ -16,16 +16,16 @@ namespace Couchbase.Management
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<BucketManager>();
 
-        private readonly Configuration _configuration;
+        private readonly ClusterOptions _clusterOptions;
         private readonly HttpClient _client;
 
-        public BucketManager(Configuration configuration)
-            : this(configuration, new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password)))
+        public BucketManager(ClusterOptions clusterOptions)
+            : this(clusterOptions, new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)))
         { }
 
-        public BucketManager(Configuration configuration, HttpClient client)
+        public BucketManager(ClusterOptions clusterOptions, HttpClient client)
         {
-            _configuration = configuration;
+            _clusterOptions = clusterOptions;
             _client = client;
         }
 
@@ -33,9 +33,9 @@ namespace Couchbase.Management
         {
             var builder = new UriBuilder
             {
-                Scheme = _configuration.UseSsl ? "https" : "http",
-                Host = _configuration.Servers.GetRandom().Host,
-                Port = _configuration.UseSsl ? 18091 : 8091,
+                Scheme = _clusterOptions.UseSsl ? "https" : "http",
+                Host = _clusterOptions.Servers.GetRandom().Host,
+                Port = _clusterOptions.UseSsl ? 18091 : 8091,
                 Path = "pools/default/buckets"
             };
 

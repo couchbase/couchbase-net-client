@@ -15,17 +15,17 @@ namespace Couchbase.Core.Configuration.Server.Streaming
     internal class HttpStreamingConfigListener : IDisposable
     {
         private static readonly ILogger Log = LogManager.CreateLogger<HttpStreamingConfigListener>();
-        private readonly Couchbase.Configuration _configuration;
+        private readonly ClusterOptions _clusterOptions;
         private readonly HttpClient _httpClient;
         private CancellationToken _cancellationToken;
         private readonly ConfigContext _couchbaseContext;
         private readonly string _bucketName;
 
-        public HttpStreamingConfigListener(string bucketName, Couchbase.Configuration configuration, HttpClient httpClient,
+        public HttpStreamingConfigListener(string bucketName, ClusterOptions clusterOptions, HttpClient httpClient,
             ConfigContext couchbaseContext, CancellationToken cancellationToken)
         {
             _bucketName = bucketName;
-            _configuration = configuration;
+            _clusterOptions = clusterOptions;
             _httpClient = httpClient;
             _couchbaseContext = couchbaseContext;
             _cancellationToken = cancellationToken;
@@ -41,7 +41,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                 {
                     _httpClient.Timeout = Timeout.InfiniteTimeSpan;
 
-                    var servers = _configuration.Servers.ToList().Shuffle();
+                    var servers = _clusterOptions.Servers.ToList().Shuffle();
                     while (servers.Any())
                     {
                         try
@@ -51,8 +51,8 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
                             var streamingUri = new UriBuilder(server)
                             {
-                                Scheme = _configuration.UseSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
-                                Port = _configuration.MgmtPort,
+                                Scheme = _clusterOptions.UseSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
+                                Port = _clusterOptions.MgmtPort,
                                 Path = streamingUriPath
                             };
 

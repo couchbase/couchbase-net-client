@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
@@ -38,10 +38,10 @@ namespace Couchbase.Core
         int Count();
 
         /// <summary>
-        /// The configuration passed into the pool when it is created. It has fields
+        /// The clusterOptions passed into the pool when it is created. It has fields
         /// for MaxSize, MinSize, etc.
         /// </summary>
-       // PoolConfiguration Configuration { get; }
+       // PoolConfiguration ClusterOptions { get; }
 
         /// <summary>
         /// The <see cref="IPEndPoint"/> of the server that the <see cref="IConnection"/>s are connected to.

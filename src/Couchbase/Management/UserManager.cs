@@ -17,21 +17,21 @@ namespace Couchbase.Management
         private static readonly ILogger Logger = LogManager.CreateLogger<UserManager>();
 
         private readonly HttpClient _client;
-        private readonly Configuration _configuration;
+        private readonly ClusterOptions _clusterOptions;
 
-        public UserManager(Configuration configuration)
+        public UserManager(ClusterOptions clusterOptions)
         {
-            _configuration = configuration;
-            _client = new HttpClient(new AuthenticatingHttpClientHandler(configuration.UserName, configuration.Password));
+            _clusterOptions = clusterOptions;
+            _client = new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password));
         }
 
         private Uri GetUserManagementUri(AuthenticationDomain domain, string username = null)
         {
             var builder = new UriBuilder
             {
-                Scheme = _configuration.UseSsl ? "https" : "http",
-                Host = _configuration.Servers.GetRandom().Host,
-                Port = _configuration.UseSsl ? 18091 : 8091, //TODO: use configured ports
+                Scheme = _clusterOptions.UseSsl ? "https" : "http",
+                Host = _clusterOptions.Servers.GetRandom().Host,
+                Port = _clusterOptions.UseSsl ? 18091 : 8091, //TODO: use configured ports
                 Path = $"settings/rbac/users/{domain.GetDescription()}"
             };
 

@@ -19,7 +19,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public void Query_Sets_LastActivity()
         {
-            var configuration = new Configuration().WithServers("http://localhost");
+            var configuration = new ClusterOptions().WithServers("http://localhost");
             configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
@@ -42,7 +42,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public async Task QueryAsync_Sets_LastActivity()
         {
-            var configuration = new Configuration().WithServers("http://localhost");
+            var configuration = new ClusterOptions().WithServers("http://localhost");
             configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
@@ -67,7 +67,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [InlineData(false)]
         public void Client_sets_AnalyticsPriority_Header(bool priority)
         {
-            var configuration = new Configuration().WithServers("http://localhost");
+            var configuration = new ClusterOptions().WithServers("http://localhost");
             configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
@@ -104,7 +104,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 handle = "handle"
             });
 
-            var configuration = new Configuration().WithServers("http://localhost");
+            var configuration = new ClusterOptions().WithServers("http://localhost");
             configuration.GlobalNodes.Add(new ClusterNode{ AnalyticsUri = new Uri("http://localhost:8094/query")});
 
             var httpClient = new HttpClient(
@@ -133,7 +133,7 @@ namespace Couchbase.UnitTests.Services.Analytics
             const string expectedJson = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
             var handle = new AnalyticsDeferredResultHandle<dynamic>(null, null, null, handleUri);
 
-            var configuration = new Configuration();
+            var configuration = new ClusterOptions();
             configuration.WithServers("http://localhost");
 
             var httpClient = new HttpClient(
@@ -154,7 +154,7 @@ namespace Couchbase.UnitTests.Services.Analytics
             const string expectedHandle = "/analytics/service/status/3-0";
             const string json = "{\"v\":1,\"uri\":\"/analytics/service/status/3-0\"}";
 
-            var configuration = new Configuration().WithServers("http://localhost");
+            var configuration = new ClusterOptions().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))
@@ -174,7 +174,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [InlineData("")]
         public void Import_throws_exception_when_json_is_invalid(string handleUri)
         {
-            var configuration = new Configuration().WithServers("http://localhost");
+            var configuration = new ClusterOptions().WithServers("http://localhost");
 
             var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK))

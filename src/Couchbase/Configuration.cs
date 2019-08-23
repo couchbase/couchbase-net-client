@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Couchbase
 {
-    public sealed class Configuration
+    public sealed class ClusterOptions
     {
         private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
@@ -17,7 +17,7 @@ namespace Couchbase
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 
-        public Configuration WithServers(params string[] servers)
+        public ClusterOptions WithServers(params string[] servers)
         {
             if (!servers?.Any() ?? true)
             {
@@ -29,19 +29,19 @@ namespace Couchbase
             return this;
         }
 
-        public Configuration WithBucket(params string[] bucketNames)
+        public ClusterOptions WithBucket(params string[] bucketNames)
         {
             if (!bucketNames?.Any() ?? true)
             {
                 throw new ArgumentException($"{nameof(bucketNames)} cannot be null or empty.");
             }
 
-            //just the name of the bucket for now - later make and actual config
+            //just the name of the bucket for now - later make and actual cluster
             _buckets = new ConcurrentBag<string>(bucketNames.ToList());
             return this;
         }
 
-        public Configuration WithCredentials(string username, string password)
+        public ClusterOptions WithCredentials(string username, string password)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -58,7 +58,7 @@ namespace Couchbase
             return this;
         }
 
-        public Configuration WithLogging(ILoggerProvider provider = null)
+        public ClusterOptions WithLogging(ILoggerProvider provider = null)
         {
             //configure a null logger as the default
             if (provider == null)
