@@ -85,7 +85,7 @@ namespace Couchbase.Utils
             var authenticated = await sasl.AuthenticateAsync(connection).ConfigureAwait(false);
             if (!authenticated)
             {
-                throw new AuthenticationException(@"Cannot authenticate {bucketName}");
+                throw new AuthenticationException($"Cannot authenticate {bucketName}");
             }
         }
 
