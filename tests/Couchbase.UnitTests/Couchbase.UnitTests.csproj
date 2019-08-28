@@ -16,6 +16,7 @@
     <None Remove="Data\multi-getresponse-packet.txt" />
     <None Remove="Documents\config.json" />
     <None Remove="Documents\Configs\bootstrap-config.json" />
+    <None Remove="Documents\Configs\config-localhost.json" />
     <None Remove="Documents\Configs\config-nodes-and-serverslist-out-of-order.json" />
     <None Remove="Documents\Configs\config-with-ipv6.json" />
     <None Remove="Documents\Configs\config-with-negative-one-primary.json" />
@@ -40,6 +41,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Documents\Configs\mycache.json" />
+    <EmbeddedResource Include="Documents\Configs\config-localhost.json" />
   </ItemGroup>
 
   <ItemGroup>

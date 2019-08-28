@@ -80,6 +80,15 @@ namespace Couchbase.Core.Configuration.Server
                 if (node.Hostname.Contains(hostPlaceHolder))
                     node.Hostname = node.Hostname.Replace(hostPlaceHolder, bootStrapUri.Host);
             }
+
+            if (config.VBucketServerMap?.ServerList != null)
+            {
+                var servers = config.VBucketServerMap.ServerList;
+                for (var i = 0; i < servers.Length; i++)
+                {
+                    servers[i] = servers[i].Replace(hostPlaceHolder, bootStrapUri.Host);
+                }
+            }
         }
 
         public static List<Node> GetNodesOrderedToServerList(this BucketConfig config)

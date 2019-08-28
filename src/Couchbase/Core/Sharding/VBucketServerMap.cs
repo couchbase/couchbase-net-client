@@ -75,14 +75,22 @@ namespace Couchbase.Core.Sharding
         // ReSharper disable once InconsistentNaming
         private void EnsureIPEndPointsAreLoaded()
         {
+            const string hostPlaceHolder = "$HOST";
             lock (_syncObj)
             {
                 if (_ipEndPoints == null || !_ipEndPoints.Any())
                 {
-                    _ipEndPoints = new List<IPEndPoint>();
                     foreach (var server in ServerList)
                     {
-                        _ipEndPoints.Add(IpEndPointExtensions.GetEndPoint(server));
+                        if (!server.Contains(hostPlaceHolder))
+                        {
+                            //create list only if valid endpoint exists, otherwise wwe will build once $HOST is resolved
+                            if (_ipEndPoints == null)
+                            {
+                                _ipEndPoints = new List<IPEndPoint>();
+                            }
+                            _ipEndPoints.Add(IpEndPointExtensions.GetEndPoint(server));
+                        }
                     }
                 }
             }

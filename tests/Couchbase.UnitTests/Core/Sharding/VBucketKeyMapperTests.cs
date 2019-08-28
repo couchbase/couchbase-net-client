@@ -1,4 +1,5 @@
-﻿using Couchbase.Core;
+using System;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Sharding;
 using Couchbase.UnitTests.Utils;
@@ -136,6 +137,19 @@ namespace Couchbase.UnitTests.Core.Sharding
             var expected = "default";
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            IKeyMapper mapper = new VBucketKeyMapper(config);
+            var vBucket = (IVBucket) mapper.MapKey(Key);
+
+            Assert.Equal(expected, vBucket.BucketName);
+        }
+
+        [Fact]
+        public void VBucket_Supports_LocalHost()
+        {
+            var expected = "default";
+
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-localhost.json");
+            config.ReplacePlaceholderWithBootstrapHost(new Uri("http://127.0.0.1"));
             IKeyMapper mapper = new VBucketKeyMapper(config);
             var vBucket = (IVBucket) mapper.MapKey(Key);
 
