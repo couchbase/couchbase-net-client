@@ -261,7 +261,7 @@ namespace Couchbase
         {
             //A projection operation
             var enumerable = options.ProjectList ?? new List<string>();
-            if (enumerable.Any() && enumerable.Count < 16)
+            if (enumerable.Any() && enumerable.Count <= 16)
             {
                 var specs = enumerable.Select(path => new OperationSpec
                 {
