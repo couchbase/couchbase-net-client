@@ -23,16 +23,14 @@ namespace Couchbase.IntegrationTests
             {
                 Name = "mike_test",
                 BucketType = BucketType.Couchbase,
-                RamQuota = 100,
-                AuthType = AuthType.Sasl,
-                Password = "pa$$w0rd",
+                RamQuotaMB = 100,
                 MaxTtl = 100,
                 ReplicaIndexes = true,
-                ReplicaCount = 1,
+                NumReplicas = 1,
                 FlushEnabled = true,
                 CompressionMode = CompressionMode.Active,
                 ConflictResolutionType = ConflictResolutionType.Timestamp,
-                EvictionPolicyType = EvictionPolicyType.FullEviction
+                EjectionMethod = EvictionPolicyType.FullEviction
             };
 
             try
@@ -67,16 +65,15 @@ namespace Couchbase.IntegrationTests
         {
             Assert.Equal(expected.Name, actual.Name);
             Assert.Equal(expected.BucketType, actual.BucketType);
-            var ramQuotaInBytes = expected.RamQuota * 1024 * 1024; // returned value is in bytes, not mb :|
-            Assert.Equal(ramQuotaInBytes, actual.RamQuota);
-            Assert.Equal(expected.AuthType, actual.AuthType);
+            var ramQuotaInBytes = expected.RamQuotaMB * 1024 * 1024; // returned value is in bytes, not mb :|
+            Assert.Equal(ramQuotaInBytes, actual.RamQuotaMB);
             Assert.Equal(expected.MaxTtl, actual.MaxTtl);
             Assert.Equal(expected.ReplicaIndexes, actual.ReplicaIndexes);
-            Assert.Equal(expected.ReplicaCount, actual.ReplicaCount);
+            Assert.Equal(expected.NumReplicas, actual.NumReplicas);
             Assert.Equal(expected.FlushEnabled, actual.FlushEnabled);
             Assert.Equal(expected.CompressionMode, actual.CompressionMode);
             Assert.Equal(expected.ConflictResolutionType, actual.ConflictResolutionType);
-            Assert.Equal(expected.EvictionPolicyType, actual.EvictionPolicyType);
+            Assert.Equal(expected.EjectionMethod, actual.EjectionMethod);
         }
     }
 }

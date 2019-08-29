@@ -52,9 +52,9 @@ namespace Couchbase.Management
             var settings = new BucketSettings();
             settings.Name = json.SelectToken("name").Value<string>();
             settings.MaxTtl = json.SelectToken("maxTTL").Value<int>();
-            settings.ReplicaCount = json.SelectToken("replicaNumber").Value<int>();
+            settings.NumReplicas = json.SelectToken("replicaNumber").Value<int>();
             settings.ReplicaIndexes = json.SelectToken("replicaIndex").Value<bool>();
-            settings.RamQuota = json.SelectToken("quota.rawRAM").Value<int>();
+            settings.RamQuotaMB = json.SelectToken("quota.rawRAM").Value<int>();
             settings.FlushEnabled = json.SelectToken("controllers.flush") != null;
 
             var bucketTypeToken = json.SelectToken("bucketType");
@@ -82,7 +82,7 @@ namespace Couchbase.Management
             if (evictionPolicyToken != null &&
                 EnumExtensions.TryGetFromDescription(evictionPolicyToken.Value<string>(), out EvictionPolicyType evictionPolicyType))
             {
-                settings.EvictionPolicyType = evictionPolicyType;
+                settings.EjectionMethod = evictionPolicyType;
             }
 
             return settings;
@@ -93,25 +93,19 @@ namespace Couchbase.Management
             var values = new Dictionary<string, string>();
             values.Add("name", settings.Name);
             values.Add("bucketType", settings.BucketType.GetDescription());
-            values.Add("ramQuotaMB", settings.RamQuota.ToString());
+            values.Add("ramQuotaMB", settings.RamQuotaMB.ToString());
             values.Add("replicaIndex", settings.ReplicaIndexes ? "1" : "0");
-            values.Add("replicaNumber", settings.ReplicaCount.ToString());
+            values.Add("replicaNumber", settings.NumReplicas.ToString());
             values.Add("flushEnabled", settings.FlushEnabled ? "1" : "0");
-
-            values.Add("authType", settings.AuthType.GetDescription());
-            if (settings.AuthType == AuthType.Sasl)
-            {
-                values.Add("saslPassword", settings.Password);
-            }
 
             if (settings.ConflictResolutionType.HasValue)
             {
                 values.Add("conflictResolutionType", settings.ConflictResolutionType.GetDescription());
             }
 
-            if (settings.EvictionPolicyType.HasValue)
+            if (settings.EjectionMethod.HasValue)
             {
-                values.Add("evictionPolicy", settings.EvictionPolicyType.GetDescription());
+                values.Add("evictionPolicy", settings.EjectionMethod.GetDescription());
             }
 
             if (settings.MaxTtl > 0)
@@ -122,11 +116,6 @@ namespace Couchbase.Management
             if (settings.CompressionMode.HasValue)
             {
                 values.Add("compressionMode", settings.CompressionMode.GetDescription());
-            }
-
-            if (settings.ProxyPort > 0)
-            {
-                values.Add("proxyPort", settings.ProxyPort.ToString());
             }
 
             return values;
