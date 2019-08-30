@@ -8,7 +8,7 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management
 {
@@ -25,14 +25,11 @@ namespace Couchbase.Management
             _client = new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password));
         }
 
-        private Uri GetUserManagementUri(AuthenticationDomain domain, string username = null)
+        private Uri GetUsersUri(string domain, string username = null)
         {
-            var builder = new UriBuilder
+            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom().ManagementUri)
             {
-                Scheme = _clusterOptions.UseSsl ? "https" : "http",
-                Host = _clusterOptions.Servers.GetRandom().Host,
-                Port = _clusterOptions.UseSsl ? 18091 : 8091, //TODO: use configured ports
-                Path = $"settings/rbac/users/{domain.GetDescription()}"
+                Path = $"settings/rbac/users/{domain}"
             };
 
             if (!string.IsNullOrWhiteSpace(username))
@@ -43,35 +40,82 @@ namespace Couchbase.Management
             return builder.Uri;
         }
 
-        private static IEnumerable<KeyValuePair<string, string>> GetUserFormValues(string password, string name, IEnumerable<UserRole> roles)
+        private Uri GetRolesUri()
         {
-            var rolesValue = string.Join(",",
-                roles.Select(role => string.IsNullOrWhiteSpace(role.BucketName)
-                    ? role.Name
-                    : string.Format("{0}[{1}]", role.Name, role.BucketName))
-            );
-
-            var values = new Dictionary<string, string>
+            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom().ManagementUri)
             {
-                {"roles", rolesValue}
+                Path = "settings/rbac/roles"
             };
 
-            if (!string.IsNullOrWhiteSpace(password))
+            return builder.Uri;
+        }
+
+        private Uri GetGroupsUri(string groupName = null)
+        {
+            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom().ManagementUri)
             {
-                values.Add("password", password);
+                Path = "settings/rbac/groups"
+            };
+
+            if (!string.IsNullOrWhiteSpace(groupName))
+            {
+                builder.Path += $"/{groupName}";
             }
 
-            if (!string.IsNullOrWhiteSpace(name))
+            return builder.Uri;
+        }
+
+        private static IEnumerable<KeyValuePair<string, string>> GetUserFormValues(User user)
+        {
+            var values = new Dictionary<string, string>();
+
+            if (!string.IsNullOrWhiteSpace(user.DisplayName))
             {
-                values.Add("name", name);
+                values.Add("name", user.DisplayName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(user.Password))
+            {
+                values.Add("password", user.Password);
+            }
+
+            if (user.Roles?.Any() ?? false)
+            {
+                values.Add("roles", string.Join(",",
+                    user.Roles.Select(role => string.IsNullOrWhiteSpace(role.Bucket)
+                        ? role.Name
+                        : $"{role.Name}[{role.Bucket}]")
+                    )
+                );
+            }
+
+            if (user.Groups?.Any() ?? false)
+            {
+                values.Add("groups", string.Join(",", user.Groups));
             }
 
             return values;
         }
 
-        public async Task<User> GetAsync(string username, GetUserOptions options)
+        private static IEnumerable<KeyValuePair<string, string>> GetGroupFormValues(Group group)
         {
-            var uri = GetUserManagementUri(options.AuthenticationDomain, username);
+            return new Dictionary<string, string>
+            {
+                {"description", group.Description},
+                {"ldap_group_ref", group.LdapGroupReference},
+                {
+                    "roles", string.Join(",", group.Roles.Select(
+                        role => string.IsNullOrWhiteSpace(role.Bucket)
+                            ? role.Name
+                            : $"{role.Name}[{role.Bucket}]")
+                    )
+                }
+            };
+        }
+
+        public async Task<UserAndMetaData> GetUserAsync(string username, GetUserOptions options)
+        {
+            var uri = GetUsersUri(options.DomainName, username);
             Logger.LogInformation($"Attempting to get user with username {username} - {uri}");
 
             try
@@ -85,8 +129,9 @@ namespace Couchbase.Management
 
                 result.EnsureSuccessStatusCode();
 
-                var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonConvert.DeserializeObject<User>(json);
+                // get user from result
+                var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                return UserAndMetaData.FromJson(json);
             }
             catch (Exception exception)
             {
@@ -95,18 +140,20 @@ namespace Couchbase.Management
             }
         }
 
-        public async Task<IEnumerable<User>> GetAllAsync(GetAllUserOptions options)
+        public async Task<IEnumerable<UserAndMetaData>> GetAllUsersAsync(GetAllUsersOptions options)
         {
-            var uri = GetUserManagementUri(options.AuthenticationDomain);
+            var uri = GetUsersUri(options.DomainName);
             Logger.LogInformation($"Attempting to get all users - {uri}");
 
             try
             {
+                // get all users
                 var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
-                var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonConvert.DeserializeObject<List<User>>(content);
+                // get users from result
+                var json = JArray.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                return json.Select(UserAndMetaData.FromJson);
             }
             catch (Exception exception)
             {
@@ -115,49 +162,15 @@ namespace Couchbase.Management
             }
         }
 
-        public async Task CreateAsync(string username, string password, IEnumerable<UserRole> roles, CreateUserOptions options)
+        public async Task UpsertUserAsync(User user, UpsertUserOptions options)
         {
-            var uri = GetUserManagementUri(options.AuthenticationDomain, username);
-            Logger.LogInformation($"Attempting to create user with username {username} - {uri}");
+            var uri = GetUsersUri(options.DomainName, user.Username);
+            Logger.LogInformation($"Attempting to create user with username {user.Username} - {uri}");
 
             try
             {
-                try
-                {
-                    // throw UserAlreadyExitsException if user already exists
-                    await GetAsync(username, GetUserOptions.Default);
-                    throw new UserAlreadyExistsException(username);
-                }
-                catch (UserNotFoundException)
-                {
-                    // expected
-                }
-
-                // create user
-                var content = new FormUrlEncodedContent(GetUserFormValues(password, username, roles));
-                var result = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
-                result.EnsureSuccessStatusCode();
-            }
-            catch (UserAlreadyExistsException)
-            {
-                Logger.LogError($"Failed to create user with username {username} as it already exists");
-                throw;
-            }
-            catch (Exception exception)
-            {
-                Logger.LogError(exception, $"Error trying to upsert user - {uri}");
-                throw;
-            }
-        }
-
-        public async Task UpsertAsync(string username, IEnumerable<UserRole> roles, UpsertUserOptions options)
-        {
-            var uri = GetUserManagementUri(options.AuthenticationDomain, username);
-            Logger.LogInformation($"Attempting to create user with username {username} - {uri}");
-
-            try
-            {
-                var content = new FormUrlEncodedContent(GetUserFormValues(options.Password, username, roles));
+                // upsert user
+                var content = new FormUrlEncodedContent(GetUserFormValues(user));
                 var result = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
@@ -168,29 +181,138 @@ namespace Couchbase.Management
             }
         }
 
-        public async Task DropAsync(string username, DropUserOptions options)
+        public async Task DropUserAsync(string username, DropUserOptions options)
         {
-            var uri = GetUserManagementUri(options.AuthenticationDomain, username);
+            var uri = GetUsersUri(options.DomainName, username);
             Logger.LogInformation($"Attempting to drop user with username {username} - {uri}");
 
-
             try
             {
-                // check user exists, will throw UserNotFoundException if not
-                await GetAsync(username, GetUserOptions.Default);
-
-                // remove user
+                // drop user
                 var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new UserNotFoundException(username);
+                }
+
                 result.EnsureSuccessStatusCode();
-            }
-            catch (UserNotFoundException)
-            {
-                Logger.LogError($"Unable to drop user with username {username} as it does not exist");
-                throw;
             }
             catch (Exception exception)
             {
                 Logger.LogError(exception, $"Error trying to drop user with username {username} - {uri}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<RoleAndDescription>> AvailableRolesAsync(AvailableRolesOptions options)
+        {
+            var uri = GetRolesUri();
+            Logger.LogInformation($"Attempting to get all available roles - {uri}");
+
+            try
+            {
+                // get roles
+                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                result.EnsureSuccessStatusCode();
+
+                // get roles from result
+                var json = JArray.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                return json.Select(RoleAndDescription.FromJson);
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, $"Error trying to get all available roles - {uri}");
+                throw;
+            }
+        }
+
+        public async Task<Group> GetGroupAsync(string groupName, GetGroupOptions options)
+        {
+            var uri = GetGroupsUri(groupName);
+            Logger.LogInformation($"Attempting to get group with name {groupName} - {uri}");
+
+            try
+            {
+                // get group
+                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new GroupNotFoundException(groupName);
+                }
+
+                result.EnsureSuccessStatusCode();
+
+                // get group from result
+                var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                return Group.FromJson(json);
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, $"Error trying to get group with name {groupName} - {uri}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<Group>> GetAllGroupsAsync(GetAllGroupsOptions options)
+        {
+            var uri = GetGroupsUri();
+            Logger.LogInformation($"Attempting to get all groups - {uri}");
+
+            try
+            {
+                // get group
+                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                result.EnsureSuccessStatusCode();
+
+                // get groups from results
+                var json = JArray.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                return json.Select(Group.FromJson);
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, $"Error trying to get all groups - {uri}");
+                throw;
+            }
+        }
+
+        public async Task UpsertGroupAsync(Group group, UpsertGroupOptions options)
+        {
+            var uri = GetGroupsUri(group.Name);
+            Logger.LogInformation($"Attempting to upsert group with name {group.Name} - {uri}");
+
+            try
+            {
+                // upsert group
+                var content = new FormUrlEncodedContent(GetGroupFormValues(group));
+                var result = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                result.EnsureSuccessStatusCode();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, $"Error trying to upsert group with name {group.Name} - {uri}");
+                throw;
+            }
+        }
+
+        public async Task DropGroupAsync(string groupName, DropGroupOptions options)
+        {
+            var uri = GetGroupsUri(groupName);
+            Logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}");
+
+            try
+            {
+                // drop group
+                var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new GroupNotFoundException(groupName);
+                }
+
+                result.EnsureSuccessStatusCode();
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError(exception, $"Error trying to drop group with name {groupName} - {uri}");
                 throw;
             }
         }

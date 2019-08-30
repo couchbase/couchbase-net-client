@@ -4,12 +4,12 @@ namespace Couchbase.Management
 {
     public class DropUserOptions
     {
-        public AuthenticationDomain AuthenticationDomain { get; set; } = AuthenticationDomain.Local;
+        public string DomainName { get; set; } = "local";
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
 
-        public DropUserOptions WithAuthenticationDomain(AuthenticationDomain authenticationDomain)
+        public DropUserOptions WithDomainName(string domainName)
         {
-            AuthenticationDomain = authenticationDomain;
+            DomainName = domainName;
             return this;
         }
 

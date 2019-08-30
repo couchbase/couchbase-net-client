@@ -22,7 +22,7 @@ namespace Couchbase.Core
         public Uri AnalyticsUri { get; set; }
         public Uri SearchUri { get; set; }
         public Uri ViewsUri { get; set; }
-        public Uri ManagementUri { get; set;}
+        public Uri ManagementUri { get; set; }
         public ErrorMap ErrorMap { get; set; }
         public short[] ServerFeatures { get; set; }
         public IConnection Connection { get; set; }//TODO this will be a connection pool later
