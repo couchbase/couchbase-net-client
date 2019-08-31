@@ -53,7 +53,7 @@ namespace Couchbase.Core
         {
             foreach (var nodeAdapter in adapters)
             {
-                var endPoint = nodeAdapter.GetIpEndPoint(8091);//will need to change this later to deal with custom ports
+                var endPoint = nodeAdapter.GetIpEndPoint(11210);//will need to change this later to deal with custom ports
                 if (BucketNodes.TryGetValue(endPoint, out IClusterNode bootstrapNode))
                 {
                     bootstrapNode.NodesAdapter = nodeAdapter;

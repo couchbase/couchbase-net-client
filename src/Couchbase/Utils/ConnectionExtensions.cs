@@ -149,9 +149,10 @@ namespace Couchbase.Utils
                     }
                     else
                     {
-                        if (s.Status == ResponseStatus.KeyNotFound)
+                        if (s.Status == ResponseStatus.KeyNotFound || s.Status == ResponseStatus.BucketNotConnected)
                         {
-                            completionSource.SetException(new KeyNotFoundException("CCCP or G3CP not supported."));
+                            //completionSource.SetException(new KeyNotFoundException("CCCP or G3CP not supported."));
+                            completionSource.SetResult(s.ExtractData());
                         }
                         else
                         {

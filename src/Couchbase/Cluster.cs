@@ -104,9 +104,7 @@ namespace Couchbase
             using (new SynchronizationContextExclusion())
             {
                 var cluster = new Cluster(connectionString, options);
-#pragma warning disable Await1 // Method is not configured to be awaited
-                Task.Run(async () => await cluster.InitializeAsync());
-#pragma warning restore Await1 // Method is not configured to be awaited
+                cluster.InitializeAsync().GetAwaiter().GetResult();
                 return cluster;
             }
         }
