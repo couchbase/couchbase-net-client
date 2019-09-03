@@ -67,7 +67,7 @@ namespace Couchbase
                     foreach (var collectionDef in scopeDef.collections)
                     {
                         collections.Add(new CouchbaseCollection(this,
-                            Convert.ToUInt32(collectionDef.uid), collectionDef.name));
+                            Convert.ToUInt32(collectionDef.uid, 16), collectionDef.name));
                     }
 
                     Scopes.TryAdd(scopeDef.name, new Scope(scopeDef.name, scopeDef.uid, collections, this));
