@@ -18,15 +18,6 @@ namespace Couchbase.Services.Query
         /// </summary>
         /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
         /// <param name="statement">The query statement.</param>
-        /// <param name="configureOptions">An <see cref="Action{T}"/> to configure the <see cref="QueryOptions"/>.</param>
-        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IQueryResult<T>> QueryAsync<T>(string statement, Action<QueryOptions> configureOptions);
-
-        /// <summary>
-        /// Asynchronously executes an a N1QL query request against a Couchbase Server.
-        /// </summary>
-        /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
-        /// <param name="statement">The query statement.</param>
         /// <param name="options">The <see cref="QueryOptions"/> to execute.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
         Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);

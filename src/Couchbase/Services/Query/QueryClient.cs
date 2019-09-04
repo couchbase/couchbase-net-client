@@ -48,15 +48,6 @@ namespace Couchbase.Services.Query
         }
 
         /// <inheritdoc />
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, Action<QueryOptions> configureOptions)
-        {
-            var options = new QueryOptions();
-            configureOptions(options);
-
-            return QueryAsync<T>(statement, options);
-        }
-
-        /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
             if (!options.IsAdHoc)
