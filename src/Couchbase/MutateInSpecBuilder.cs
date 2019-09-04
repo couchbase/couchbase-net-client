@@ -37,15 +37,33 @@ namespace Couchbase
             return this;
         }
 
+        public MutateInSpecBuilder ArrayAppend<T>(string path, T value, bool createPath = default(bool), bool isXattr = default(bool))
+        {
+            Specs.Add(MutateInSpec.ArrayAppend(path, value, createPath, isXattr));
+            return this;
+        }
+
         public MutateInSpecBuilder ArrayPrepend<T>(string path, T[] values, bool createParents = default(bool), bool isXattr = default(bool))
         {
             Specs.Add(MutateInSpec.ArrayPrepend(path, values, createParents, isXattr));
             return this;
         }
 
+        public MutateInSpecBuilder ArrayPrepend<T>(string path, T value, bool createParents = default(bool), bool isXattr = default(bool))
+        {
+            Specs.Add(MutateInSpec.ArrayPrepend(path, value, createParents, isXattr));
+            return this;
+        }
+
         public MutateInSpecBuilder ArrayInsert<T>(string path, T[] values, bool createParents= default(bool), bool isXattr = default(bool))
         {
             Specs.Add(MutateInSpec.ArrayInsert(path, values, createParents, isXattr));
+            return this;
+        }
+
+        public MutateInSpecBuilder ArrayInsert<T>(string path, T value, bool createParents= default(bool), bool isXattr = default(bool))
+        {
+            Specs.Add(MutateInSpec.ArrayInsert(path, value, createParents, isXattr));
             return this;
         }
 
