@@ -50,54 +50,69 @@ namespace Couchbase.Services.Query
         /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
-            if (!options.IsAdHoc)
+            // does this query use a prepared plan?
+            if (options.IsAdHoc)
             {
-                var queryPlan = await PrepareAsync(statement, options).ConfigureAwait(false);
-                options.Prepared(queryPlan, statement);
+                // don't use prepared plan, execute query directly
+                options.Statement(statement);
+                return await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
             }
 
-            return await ExecuteQuery<T>(statement, options, options.DataMapper).ConfigureAwait(false);
-        }
-
-        internal async Task<QueryPlan> PrepareAsync(string statement, QueryOptions options)
-        {
             // try find cached query plan
             if (_queryCache.TryGetValue(statement, out var queryPlan))
             {
                 // if an upgrade has happened, don't use query plans that have an encoded plan
-                if (EnhancedPreparedStatementsEnabled || string.IsNullOrEmpty(queryPlan.EncodedPlan))
+                if (!EnhancedPreparedStatementsEnabled || string.IsNullOrWhiteSpace(queryPlan.EncodedPlan))
                 {
-                    return queryPlan;
+                    // plan is valid, execute query with it
+                    options.Prepared(queryPlan, statement);
+                    return await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
                 }
 
-                // entry is stall, remove from cache
+                // entry is stale, remove from cache
                 _queryCache.TryRemove(statement, out _);
             }
 
             // create prepared statement
             var prepareStatement = statement;
-            if (prepareStatement.StartsWith("PREPARE ", StringComparison.InvariantCultureIgnoreCase))
+            if (!prepareStatement.StartsWith("PREPARE ", StringComparison.InvariantCultureIgnoreCase))
             {
-                prepareStatement = "PREPARE " + statement;
+                prepareStatement = $"PREPARE {statement}";
             }
 
-            // execute prepare and cache query plan
-            var result = await ExecuteQuery<QueryPlan>(prepareStatement, options, _queryPlanDataMapper).ConfigureAwait(false);
-            queryPlan = result.Rows.First();
+            // set prepared statement
+            options.Statement(prepareStatement);
 
-            // make sure we don't store encoded plan if enhanced prepared statements is enabled
+            // server supports combined prepare & execute
             if (EnhancedPreparedStatementsEnabled)
             {
-                queryPlan.EncodedPlan = null;
+                // execute combined prepare & execute query
+                options.AutoExecute(true);
+                var result = await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
+
+                // add/replace query plan name in query cache
+                if (result is StreamingQueryResult<T> streamingResult) // NOTE: hack to not make 'PreparedPlanName' property public
+                {
+                    var plan = new QueryPlan {Name = streamingResult.PreparedPlanName, Text = statement};
+                    _queryCache.AddOrUpdate(statement, plan, (k, p) => plan);
+                }
+
+                return result;
             }
 
-            // add plan to cache
-            _queryCache.TryAdd(statement, queryPlan);
+            // older style, prepare then execute
+            var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanDataMapper).ConfigureAwait(false);
+            queryPlan = preparedResult.First();
 
-            return queryPlan;
+            // add plan to cache and execute
+            _queryCache.TryAdd(statement, queryPlan);
+            options.Prepared(queryPlan, statement);
+
+            // execute query using plan
+            return await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
         }
 
-        internal async Task<IQueryResult<T>> ExecuteQuery<T>(string statement, QueryOptions options, IDataMapper dataMapper)
+        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, IDataMapper dataMapper)
         {
             // try get Query node
             if (!ClusterOptions.GlobalNodes.TryGetRandom(x => x.HasQuery(), out var node))
@@ -107,7 +122,6 @@ namespace Couchbase.Services.Query
                 throw new ServiceNotAvailableException(ServiceType.Query);
             }
 
-            options.Statement(statement);
             var body = options.GetFormValuesAsJson();
 
             StreamingQueryResult<T> queryResult;
@@ -115,9 +129,7 @@ namespace Couchbase.Services.Query
             {
                 try
                 {
-                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.CancellationToken)
-                        .ConfigureAwait(false);
-
+                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.CancellationToken).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                     queryResult = new StreamingQueryResult<T>
                     {

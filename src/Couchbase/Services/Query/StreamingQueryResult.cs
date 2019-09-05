@@ -26,6 +26,7 @@ namespace Couchbase.Services.Query
         private Guid _requestId;
         private string _clientContextId;
         private dynamic _signature;
+        private string _preparedPlanName;
         private QueryStatus _status;
         private List<Error> _errors = new List<Error>();
         private List<Warning> _warnings = new List<Warning>();
@@ -153,6 +154,19 @@ namespace Couchbase.Services.Query
                 return _signature;
             }
             private set => _signature = value;
+        }
+
+        /// <summary>
+        /// Get the prepared query plan name stored in the cluster.
+        /// </summary>
+        public string PreparedPlanName
+        {
+            get
+            {
+                CheckRead();
+                return _preparedPlanName;
+            }
+            set => _preparedPlanName = value;
         }
 
         /// <summary>
@@ -372,6 +386,9 @@ namespace Couchbase.Services.Query
                         break;
                     case "signature":
                         Signature = JToken.ReadFrom(_reader);
+                        break;
+                    case "prepared" when _reader.TokenType == JsonToken.String:
+                        _preparedPlanName = _reader.Value.ToString();;
                         break;
                     case "profile":
                         Profile = JToken.ReadFrom(_reader);

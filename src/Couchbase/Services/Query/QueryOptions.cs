@@ -43,6 +43,7 @@ namespace Couchbase.Services.Query
         private int? _pipelineCapacity;
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private QueryProfile _profile = QueryProfile.Off;
+        private bool _autoExecute;
 
         public const string ForwardSlash = "/";
         public const string QueryOperator = "?";
@@ -99,6 +100,7 @@ namespace Couchbase.Services.Query
             public const string PipelineBatch = "pipeline_batch";
             public const string PipelineCapacity = "pipeline_cap";
             public const string Profile = "profile";
+            public const string AutoExecute = "auto_execute";
         }
 
         /// <summary>
@@ -258,16 +260,12 @@ namespace Couchbase.Services.Query
         /// <exception cref="ArgumentNullException"><paramref name="preparedPlan"/> is <see langword="null" />.</exception>
         public QueryOptions Prepared(QueryPlan preparedPlan, string originalStatement)
         {
-            if (preparedPlan == null || string.IsNullOrWhiteSpace(preparedPlan.EncodedPlan))
-            {
-                throw new ArgumentNullException(nameof(preparedPlan));
-            }
             if (string.IsNullOrWhiteSpace(originalStatement))
             {
                 throw new ArgumentNullException(nameof(originalStatement));
             }
             _statement = originalStatement;
-            _preparedPayload = preparedPlan;
+            _preparedPayload = preparedPlan ?? throw new ArgumentNullException(nameof(preparedPlan));
             _prepareEncoded = true;
             return this;
         }
@@ -665,6 +663,12 @@ namespace Couchbase.Services.Query
             return this;
         }
 
+        internal QueryOptions AutoExecute(bool autoExecute)
+        {
+            _autoExecute = autoExecute;
+            return this;
+        }
+
         public Uri GetBaseUri()
         {
             return _baseUri;
@@ -832,6 +836,11 @@ namespace Couchbase.Services.Query
             foreach (var parameter in _rawParameters)
             {
                 formValues.Add(parameter.Key, parameter.Value);
+            }
+
+            if (_autoExecute)
+            {
+                formValues.Add(QueryParameters.AutoExecute, true);
             }
 
             formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
