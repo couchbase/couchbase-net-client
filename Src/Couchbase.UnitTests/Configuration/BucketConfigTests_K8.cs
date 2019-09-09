@@ -10,6 +10,7 @@ namespace Couchbase.UnitTests.Configuration
     public class BucketConfigTestsK8
     {
         [Test]
+        [Ignore("The hostnames in the URI in the config file are not resolvable to IP.")]
         public void Test_Parse()
         {
             var json = ResourceHelper.ReadResource(@"Data\k8config2.json");
