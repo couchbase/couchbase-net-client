@@ -42,7 +42,7 @@ namespace Couchbase
             {
                 Log.LogDebug("Fetching scope {0}", name);
 
-                if (name == DefaultScope)
+                if (name == DefaultScopeName)
                     if (Scopes.TryGetValue(name, out var scope))
                         return Task.FromResult(scope);
 

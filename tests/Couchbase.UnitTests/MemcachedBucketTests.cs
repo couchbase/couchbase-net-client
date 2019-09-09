@@ -62,8 +62,8 @@ namespace Couchbase.UnitTests
             var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()), mockHttpClusterMap.Object);
             await bucket.Bootstrap(mockClusterNode.Object).ConfigureAwait(false);
 
-            var scope = await bucket[BucketBase.DefaultScope].ConfigureAwait(false);
-            Assert.Equal(BucketBase.DefaultScope, scope.Name);
+            var scope = await bucket[BucketBase.DefaultScopeName].ConfigureAwait(false);
+            Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
         }
 
         [Fact(Skip = "Will be enabled in later commit.")]
@@ -86,8 +86,8 @@ namespace Couchbase.UnitTests
             var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()), mockHttpClusterMap.Object);
             await bucket.Bootstrap(mockClusterNode.Object).ConfigureAwait(false);
 
-            var scope = await bucket.ScopeAsync(BucketBase.DefaultScope).ConfigureAwait(false);
-            Assert.Equal(BucketBase.DefaultScope, scope.Name);
+            var scope = await bucket.ScopeAsync(BucketBase.DefaultScopeName).ConfigureAwait(false);
+            Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
         }
 
         [Fact(Skip = "Will be enabled in later commit.")]

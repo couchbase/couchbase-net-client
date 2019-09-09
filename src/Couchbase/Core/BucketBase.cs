@@ -18,7 +18,7 @@ namespace Couchbase.Core
 {
     internal abstract class BucketBase : IBucket
     {
-        internal const string DefaultScope = "_default";
+        internal const string DefaultScopeName = "_default";
         private static readonly ILogger Log = LogManager.CreateLogger<BucketBase>();
         protected readonly ConcurrentDictionary<IPEndPoint, IClusterNode> BucketNodes = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
@@ -37,9 +37,14 @@ namespace Couchbase.Core
 
         public abstract Task<IScope> this[string name] { get; }
 
+        public Task<IScope> DefaultScopeAsync()
+        {
+            return Task.FromResult(Scopes[DefaultScopeName]);
+        }
+
         public Task<ICollection> DefaultCollectionAsync()
         {
-            return Task.FromResult(Scopes[DefaultScope][CouchbaseCollection.DefaultCollection]);
+            return Task.FromResult(Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName]);
         }
 
         public abstract Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName,

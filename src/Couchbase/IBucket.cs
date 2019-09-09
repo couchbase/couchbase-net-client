@@ -9,7 +9,10 @@ namespace Couchbase
     {
         string Name { get; }
 
+        /// NOTE: This is uncommitted functionality and may change at any time.
         Task<IScope> this[string name] { get; }
+
+        Task<IScope> DefaultScopeAsync();
 
         Task<ICollection> DefaultCollectionAsync();
 

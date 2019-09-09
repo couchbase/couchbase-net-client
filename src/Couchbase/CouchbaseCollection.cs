@@ -20,7 +20,7 @@ namespace Couchbase
 {
     public class CouchbaseCollection : ICollection, IBinaryCollection
     {
-        internal const string DefaultCollection = "_default";
+        internal const string DefaultCollectionName = "_default";
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseCollection>();
         private readonly BucketBase _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
