@@ -33,7 +33,7 @@ namespace Couchbase.Core.IO.Authentication
                 Completed = s =>
                 {
                     //Status will be AuthenticationError if auth failed otherwise false
-                    tcs.SetResult(s.Status == ResponseStatus.Success);
+                    tcs.TrySetResult(s.Status == ResponseStatus.Success);
                     return tcs.Task;
                 }
             })

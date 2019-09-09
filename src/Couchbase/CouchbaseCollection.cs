@@ -203,11 +203,11 @@ namespace Couchbase
             {
                 if (state.Status == ResponseStatus.Success)
                 {
-                    tcs.SetResult(state.ExtractData());
+                    tcs.TrySetResult(state.ExtractData());
                 }
                 else
                 {
-                    tcs.SetException(ThrowException(state));
+                    tcs.TrySetException(ThrowException(state));
                 }
 
                 return tcs.Task;
@@ -227,7 +227,7 @@ namespace Couchbase
                 {
                     if (tcs.Task.Status != TaskStatus.RanToCompletion)
                     {
-                        tcs.SetCanceled();
+                        tcs.TrySetCanceled();
                     }
                 }, useSynchronizationContext: false))
                 {

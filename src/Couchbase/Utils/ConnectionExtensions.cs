@@ -29,7 +29,7 @@ namespace Couchbase.Utils
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
-                    completionSource.SetResult(s.ExtractData());
+                    completionSource.TrySetResult(s.ExtractData());
                     return completionSource.Task;
                 }
             })
@@ -65,7 +65,7 @@ namespace Couchbase.Utils
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
-                    completionSource.SetResult(s.ExtractData());
+                    completionSource.TrySetResult(s.ExtractData());
                     return completionSource.Task;
                 }
             })
@@ -99,7 +99,7 @@ namespace Couchbase.Utils
                 Key = bucketName,
                 Completed = s =>
                 {
-                    completionSource.SetResult(s.Status == ResponseStatus.Success);
+                    completionSource.TrySetResult(s.Status == ResponseStatus.Success);
                     return completionSource.Task;
                 }
             })
@@ -118,7 +118,7 @@ namespace Couchbase.Utils
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
-                    completionSource.SetResult(s.ExtractData());
+                    completionSource.TrySetResult(s.ExtractData());
                     return completionSource.Task;
                 }
             })
@@ -145,18 +145,17 @@ namespace Couchbase.Utils
                 {
                     if (s.Status == ResponseStatus.Success)
                     {
-                        completionSource.SetResult(s.ExtractData());
+                        completionSource.TrySetResult(s.ExtractData());
                     }
                     else
                     {
                         if (s.Status == ResponseStatus.KeyNotFound || s.Status == ResponseStatus.BucketNotConnected)
                         {
-                            //completionSource.SetException(new KeyNotFoundException("CCCP or G3CP not supported."));
-                            completionSource.SetResult(s.ExtractData());
+                            completionSource.TrySetResult(s.ExtractData());
                         }
                         else
                         {
-                            completionSource.SetException(new KeyValueException(s.Status.ToString()));
+                            completionSource.TrySetException(new KeyValueException(s.Status.ToString()));
                         }
                     }
 
