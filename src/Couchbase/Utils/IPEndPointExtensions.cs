@@ -73,7 +73,7 @@ namespace Couchbase.Utils
         }
 
         //TODO: refactor into factory so IConnection impls can be used
-        public static IConnection GetConnection(this IPEndPoint endPoint)
+        public static IConnection GetConnection(this IPEndPoint endPoint, ClusterOptions options)
         {
             var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -101,7 +101,8 @@ namespace Couchbase.Utils
                 throw new SocketException((int)asyncEventArgs.SocketError);
             }
 
-            socket.SetKeepAlives(true, 2*60*60*1000, 1000);
+            socket.SetKeepAlives(options.EnableTcpKeepAlives, (uint) options.TcpKeepAliveTime.TotalMilliseconds,
+                (uint) options.TcpKeepAliveInterval.TotalMilliseconds);
 
             return new MultiplexingConnection(null, socket, new DefaultConverter());
         }

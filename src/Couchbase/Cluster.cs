@@ -111,7 +111,7 @@ namespace Couchbase
 
         private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint, Uri uri)
         {
-            var connection = endPoint.GetConnection();
+            var connection = endPoint.GetConnection(_clusterOptions);
 
             var serverFeatures = await connection.Hello().ConfigureAwait(false);
             var errorMap = await connection.GetErrorMap().ConfigureAwait(false);

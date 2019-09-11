@@ -68,7 +68,7 @@ namespace Couchbase.Core
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
 
-                var connection = endPoint.GetConnection();
+                var connection = endPoint.GetConnection(ClusterOptions);
                 await connection.Authenticate(ClusterOptions, Name).ConfigureAwait(false);
                 await connection.SelectBucket(Name).ConfigureAwait(false);
 
@@ -115,7 +115,7 @@ namespace Couchbase.Core
             if (connection.IsDead)
             {
                 //recreate the connection its been closed and disposed
-                connection = clusterNode.EndPoint.GetConnection();
+                connection = clusterNode.EndPoint.GetConnection(ClusterOptions);
                 clusterNode.ServerFeatures = await connection.Hello().ConfigureAwait(false);
                 clusterNode.ErrorMap = await connection.GetErrorMap().ConfigureAwait(false);
                 await connection.Authenticate(ClusterOptions, Name).ConfigureAwait(false);

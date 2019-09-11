@@ -82,6 +82,8 @@ namespace Couchbase
         public TimeSpan SearchTimeout { get; set; }
         public TimeSpan ManagementTimeout { get; set; }
         public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2500);
+        public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);
+        public TimeSpan TcpKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(1);
         public bool UseSsl { get; set; }
         public bool EnableTracing { get; set; }
         public bool EnableMutationTokens { get; set; }
@@ -93,6 +95,7 @@ namespace Couchbase
         public int MaxQueryConnectionsPerServer { get; set; } = 10;
         public bool OrphanedResponseLoggingEnabled { get; set; }
         public bool EnableConfigPolling { get; set; }
+        public bool EnableTcpKeepAlives { get; set; } = true;
     }
 
     public static class NetworkTypes
