@@ -35,6 +35,7 @@ namespace Couchbase
         private readonly Lazy<IUserManager> _lazyUserManager;
         private readonly Lazy<IBucketManager> _lazyBucketManager;
         private readonly Lazy<IQueryIndexes> _lazyQueryManager;
+        private readonly Lazy<ISearchIndexManager> _lazySearchManager;
 
         public Cluster(string connectionString, ClusterOptions clusterOptions)
         {
@@ -69,6 +70,7 @@ namespace Couchbase
             _lazyQueryManager = new Lazy<IQueryIndexes>(() => new QueryIndexes(_lazyQueryClient.Value));
             _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_clusterOptions));
             _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_clusterOptions));
+            _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_clusterOptions));
         }
 
         public Cluster(string connectionStr, string username, string password)
@@ -381,7 +383,7 @@ namespace Couchbase
         public IQueryIndexes QueryIndexes => _lazyQueryManager.Value;
 
         public IAnalyticsIndexes AnalyticsIndexes { get; }
-        public ISearchIndexes SearchIndexes { get; }
+        public ISearchIndexManager SearchIndexes => _lazySearchManager.Value;
 
         public IBucketManager Buckets => _lazyBucketManager.Value;
 

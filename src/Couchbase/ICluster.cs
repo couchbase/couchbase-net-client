@@ -30,7 +30,7 @@ namespace Couchbase
 
         IAnalyticsIndexes AnalyticsIndexes { get; }
 
-        ISearchIndexes SearchIndexes { get; }
+        ISearchIndexManager SearchIndexes { get; }
 
         IBucketManager Buckets { get; }
 
