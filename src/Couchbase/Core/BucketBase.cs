@@ -41,13 +41,11 @@ namespace Couchbase.Core
         {
             return Task.FromResult(Scopes[DefaultScopeName]);
         }
-
-        public Task<IScope> ScopeAsync(string scopeName)
+        public Task<ICollection> CollectionAsync(string scopeName, string connectionName, CollectionOptions options)
         {
-            return this[scopeName];
+            throw new NotImplementedException();
         }
-
-        public Task<ICollection> DefaultCollectionAsync()
+        public Task<ICollection> DefaultCollectionAsync(CollectionOptions options)
         {
             return Task.FromResult(Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName]);
         }

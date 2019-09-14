@@ -13,10 +13,8 @@ namespace Couchbase
         Task<IScope> this[string name] { get; }
 
         Task<IScope> DefaultScopeAsync();
-
-        Task<IScope> ScopeAsync(string scopeName);
-
-        Task<ICollection> DefaultCollectionAsync();
+        Task<ICollection> DefaultCollectionAsync(CollectionOptions options);
+        Task<ICollection> CollectionAsync(string scopeName, string connectionName, CollectionOptions options);
 
         Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default);
 

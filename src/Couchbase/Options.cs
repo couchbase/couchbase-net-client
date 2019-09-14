@@ -1036,4 +1036,19 @@ namespace Couchbase
     }
 
     #endregion
+
+    #region Collection Options
+
+    public class CollectionOptions
+    {
+        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+
+        public CollectionOptions WithTimeout(CancellationToken cancellationToken)
+        {
+            CancellationToken = cancellationToken;
+            return this;
+        }
+    }
+
+    #endregion
 }
