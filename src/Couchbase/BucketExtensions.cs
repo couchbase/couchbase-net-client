@@ -6,11 +6,6 @@ namespace Couchbase
 {
     public static class BucketExtensions
     {
-        public static Task<IScope> ScopeAsync(this IBucket bucket, string name)
-        {
-            return bucket[name];
-        }
-
         public static Task<IViewResult<T>> ViewQueryAsync<T>(this IBucket bucket, string designDocument,
             string viewName, Action<ViewOptions> configureOptions)
         {

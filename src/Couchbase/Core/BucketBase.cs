@@ -42,6 +42,11 @@ namespace Couchbase.Core
             return Task.FromResult(Scopes[DefaultScopeName]);
         }
 
+        public Task<IScope> ScopeAsync(string scopeName)
+        {
+            return this[scopeName];
+        }
+
         public Task<ICollection> DefaultCollectionAsync()
         {
             return Task.FromResult(Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName]);
