@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -35,6 +36,11 @@ namespace Couchbase
                 };
                 throw new CollectionMissingException("Cannot find collection {name}");
             }
+        }
+
+        public Task<ICollection> CollectionAsync(string collectionName, CollectionOptions options)
+        {
+            return Task.FromResult(this[collectionName]);
         }
     }
 }
