@@ -15,6 +15,7 @@ using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
+using Couchbase.Core.Sharding;
 
 namespace Couchbase
 {
@@ -646,6 +647,91 @@ namespace Couchbase
             {
                 await ExecuteOp(op, options.Token, options.Timeout);
                 return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
+            }
+        }
+
+        #endregion
+
+        #region GetAnyReplica / GetAllReplicas
+
+        public async Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions options)
+        {
+            var vBucket = (VBucket) _bucket.KeyMapper.MapKey(id);
+            if (!vBucket.HasReplicas)
+            {
+                Log.LogWarning($"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
+            }
+
+            var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
+
+            // get primary
+            tasks.Add(GetPrimary(id, options.CancellationToken));
+
+            // get replicas
+            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, options.CancellationToken)));
+
+            return await Task.WhenAny(tasks).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions options)
+        {
+            var vBucket = (VBucket) _bucket.KeyMapper.MapKey(id);
+            if (!vBucket.HasReplicas)
+            {
+                Log.LogWarning($"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
+            }
+
+            var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
+
+            // get primary
+            tasks.Add(GetPrimary(id, options.CancellationToken));
+
+            // get replicas
+            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, options.CancellationToken)));
+
+            return tasks;
+        }
+
+        private async Task<IGetReplicaResult> GetPrimary(string id, CancellationToken cancellationToken)
+        {
+            using (var getOp = new Get<object>
+            {
+                Key = id,
+                Cid = Cid
+            })
+            {
+                await ExecuteOp(getOp, cancellationToken).ConfigureAwait(false);
+                return new GetReplicaResult(getOp.ExtractData(), _transcoder)
+                {
+                    Id = getOp.Key,
+                    Cas = getOp.Cas,
+                    OpCode = getOp.OpCode,
+                    Flags = getOp.Flags,
+                    Header = getOp.Header,
+                    IsMaster = true
+                };
+            }
+        }
+
+        private async Task<IGetReplicaResult> GetReplica(string id, short index, CancellationToken cancellationToken)
+        {
+            using (var getOp = new ReplicaRead<object>
+            {
+                Key = id,
+                Cid = Cid,
+                VBucketId = index
+            })
+            {
+                await ExecuteOp(getOp, cancellationToken).ConfigureAwait(false);
+                return new GetReplicaResult(getOp.ExtractData(), _transcoder)
+                {
+                    Id = getOp.Key,
+                    Cas = getOp.Cas,
+                    OpCode = getOp.OpCode,
+                    Flags = getOp.Flags,
+                    Header = getOp.Header,
+                    IsMaster = false
+                };
             }
         }
 

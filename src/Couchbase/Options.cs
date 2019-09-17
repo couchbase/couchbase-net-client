@@ -51,6 +51,40 @@ namespace Couchbase
 
     #endregion
 
+    #region GetAnyReplicaOptions
+
+    public class GetAllReplicasOptions
+    {
+        public CancellationToken CancellationToken { get; set; }
+
+        public  GetAllReplicasOptions WithCancellationToken(CancellationToken cancellationToken)
+        {
+            CancellationToken = cancellationToken;
+            return this;
+        }
+
+        public static GetAllReplicasOptions Default => new GetAllReplicasOptions();
+    }
+
+    #endregion
+
+    #region GetAllReplicaOptions
+
+    public class GetAnyReplicaOptions
+    {
+        public CancellationToken CancellationToken { get; set; }
+
+        public GetAnyReplicaOptions WithCancellationToken(CancellationToken cancellationToken)
+        {
+            CancellationToken = cancellationToken;
+            return this;
+        }
+
+        public static GetAnyReplicaOptions Default => new GetAnyReplicaOptions();
+    }
+
+    #endregion
+
     #region Exists Options
 
     public class ExistsOptions

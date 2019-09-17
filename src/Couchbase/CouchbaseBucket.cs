@@ -171,9 +171,11 @@ namespace Couchbase
         internal override async Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
         {
             var vBucket = (VBucket) KeyMapper.MapKey(op.Key);
+            var endPoint = op.VBucketId.HasValue ?
+                vBucket.LocateReplica(op.VBucketId.Value) :
+                vBucket.LocatePrimary();
             op.VBucketId = vBucket.Index;
 
-            var endPoint = vBucket.LocatePrimary();
             var clusterNode = BucketNodes[endPoint];
             await CheckConnection(clusterNode).ConfigureAwait(false);
             await op.SendAsync(clusterNode.Connection).ConfigureAwait(false);

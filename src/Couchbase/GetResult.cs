@@ -64,7 +64,7 @@ namespace Couchbase
             EnsureNotDisposed();
 
             //basic GET operation
-            if (OpCode == OpCode.Get)
+            if (OpCode == OpCode.Get || OpCode == OpCode.ReplicaRead)
             {
                 return _transcoder.Decode<T>(_contentBytes.Memory.Slice(Header.BodyOffset), Flags, OpCode);
             }

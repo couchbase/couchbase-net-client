@@ -25,6 +25,40 @@ namespace Couchbase
 
         #endregion
 
+        #region GetAnyReplica
+
+        public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICollection collection, string id)
+        {
+            return collection.GetAnyReplicaAsync(id, GetAnyReplicaOptions.Default);
+        }
+
+        public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICollection collection, string id, Action<GetAnyReplicaOptions> configureOptions)
+        {
+            var options = new GetAnyReplicaOptions();
+            configureOptions(options);
+
+            return collection.GetAnyReplicaAsync(id, options);
+        }
+
+        #endregion
+
+        #region GetAllReplicas
+
+        public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICollection collection, string id)
+        {
+            return collection.GetAllReplicasAsync(id, GetAllReplicasOptions.Default);
+        }
+
+        public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICollection collection, string id, Action<GetAllReplicasOptions> configureOptions)
+        {
+            var options = new GetAllReplicasOptions();
+            configureOptions(options);
+
+            return collection.GetAllReplicasAsync(id, options);
+        }
+
+        #endregion
+
         #region Exists
 
         public static Task<IExistsResult> ExistsAsync(this ICollection collection, string id)

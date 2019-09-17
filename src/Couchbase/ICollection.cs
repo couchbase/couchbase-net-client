@@ -35,6 +35,10 @@ namespace Couchbase
 
         Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions options);
 
+        Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions options);
+
+        IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions options);
+
         #endregion
 
         #region Subdoc

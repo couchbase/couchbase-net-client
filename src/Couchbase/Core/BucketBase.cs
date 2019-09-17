@@ -27,7 +27,7 @@ namespace Couchbase.Core
 
         protected BucketConfig BucketConfig;
         protected Manifest Manifest;
-        protected IKeyMapper KeyMapper;
+        internal IKeyMapper KeyMapper;
         protected ClusterOptions ClusterOptions;
         protected bool SupportsCollections;
         protected ConfigContext CouchbaseContext;
