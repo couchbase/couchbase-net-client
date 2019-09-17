@@ -8,6 +8,12 @@ namespace Couchbase
         private static OperationSpec CreateSpec(OpCode opCode, string path, object value, bool createPath, bool isXattr, bool removeBrackets)
         {
             var pathFlags = SubdocPathFlags.None;
+            if (value is IMutationMacro)
+            {
+                pathFlags ^= SubdocPathFlags.ExpandMacroValues;
+                pathFlags ^=SubdocPathFlags.Xattr;
+                value = value.ToString();
+            }
             if (createPath)
             {
                 pathFlags ^= SubdocPathFlags.CreatePath;
