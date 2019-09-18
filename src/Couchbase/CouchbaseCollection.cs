@@ -259,49 +259,67 @@ namespace Couchbase
 
         public async Task<IGetResult> GetAsync(string id, GetOptions options)
         {
-            //A projection operation
-            var enumerable = options.ProjectList ?? new List<string>();
-            if (enumerable.Any() && enumerable.Count <= 16)
+            var specs = new List<OperationSpec>();
+            if (options.IncludeExpiration)
             {
-                var specs = enumerable.Select(path => new OperationSpec
+                specs.Add(new OperationSpec
                 {
                     OpCode = OpCode.SubGet,
-                    Path = path
-                }).ToList();
+                    Path = VirtualXttrs.DocExpiryTime,
+                    PathFlags = SubdocPathFlags.Xattr
+                });
+            }
+            if (!options.Timeout.HasValue)
+            {
+                options.Timeout = DefaultTimeout;
+            }
 
-                if (!options.Timeout.HasValue)
+            var projectList = options.ProjectList;
+            if (projectList.Any())
+            {
+                //we have succeeded the max #fields returnable by sub-doc so fetch the whole doc
+                if (projectList.Count + specs.Count > 16)
                 {
-                    options.Timeout = DefaultTimeout;
+                    specs.Add(new OperationSpec
+                    {
+                        Path = "",
+                        OpCode = OpCode.Get,
+                        DocFlags = SubdocDocFlags.None
+                    });
                 }
-
-                var lookupOp = await ExecuteLookupIn(id, specs, new LookupInOptions().WithTimeout(options.Timeout.Value));
-                return new GetResult(lookupOp.ExtractData(), _transcoder, specs)
+                else
                 {
-                    Id = lookupOp.Key,
-                    Cas = lookupOp.Cas,
-                    OpCode = lookupOp.OpCode,
-                    Flags = lookupOp.Flags,
-                    Header = lookupOp.Header
-                };
+                    //Add the projections for fetching
+                    projectList.ForEach(path=>specs.Add(new OperationSpec
+                    {
+                        OpCode = OpCode.SubGet,
+                        Path = path
+                    }));
+                }
+            }
+            else
+            {
+                //Project list is empty so fetch the whole doc
+                specs.Add(new OperationSpec
+                {
+                    Path = "",
+                    OpCode = OpCode.Get,
+                    DocFlags = SubdocDocFlags.None
+                });
             }
 
-            //A regular get operation
-            using (var getOp = new Get<object>
+            var lookupOp = await ExecuteLookupIn(id,
+                    specs, new LookupInOptions().WithTimeout(options.Timeout.Value))
+                .ConfigureAwait(false);
+
+            return new GetResult(lookupOp.ExtractData(), _transcoder, specs)
             {
-                Key = id,
-                Cid = Cid
-            })
-            {
-                await ExecuteOp(getOp, options.Token, options.Timeout).ConfigureAwait(false);
-                return new GetResult(getOp.ExtractData(), _transcoder)
-                {
-                    Id = getOp.Key,
-                    Cas = getOp.Cas,
-                    OpCode = getOp.OpCode,
-                    Flags = getOp.Flags,
-                    Header = getOp.Header
-                };
-            }
+                Id = lookupOp.Key,
+                Cas = lookupOp.Cas,
+                OpCode = lookupOp.OpCode,
+                Flags = lookupOp.Flags,
+                Header = lookupOp.Header
+            };
         }
 
         #endregion
@@ -513,6 +531,12 @@ namespace Couchbase
         {
             // convert new style specs into old style builder
             var builder = new LookupInBuilder<byte[]>(null, null, id, specs);
+
+            //add the virtual xttar attribute to get the doc expiration time
+            if (options.Expiry)
+            {
+                builder.Get(VirtualXttrs.DocExpiryTime, SubdocPathFlags.Xattr);
+            }
 
             var lookup = new MultiLookup<byte[]>
             {

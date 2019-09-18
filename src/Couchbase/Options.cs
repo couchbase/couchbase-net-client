@@ -12,7 +12,7 @@ namespace Couchbase
 
         public bool CreatePath { get; set; }
 
-        public List<string> ProjectList { get; set; }
+        public List<string> ProjectList { get; set; } = new List<string>();
 
         public TimeSpan? Timeout { get; set; }
 
@@ -32,11 +32,6 @@ namespace Couchbase
 
         public GetOptions WithProjection(params string[] fields)
         {
-            if (ProjectList == null)
-            {
-                ProjectList = new List<string>();
-            }
-
             ProjectList.AddRange(fields);
             return this;
         }
@@ -697,6 +692,8 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
+        public bool Expiry { get; set; }
+
         public LookupInOptions WithTimeout(TimeSpan timeout)
         {
             Timeout = timeout;
@@ -706,6 +703,12 @@ namespace Couchbase
         public LookupInOptions WithToken(CancellationToken token)
         {
             Token = token;
+            return this;
+        }
+
+        public LookupInOptions WithExpiry(bool expiry)
+        {
+            Expiry = expiry;
             return this;
         }
     }

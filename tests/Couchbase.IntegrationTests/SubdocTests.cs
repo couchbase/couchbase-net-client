@@ -17,6 +17,16 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
+        public async Task Can_Return_Expiration()
+        {
+            var collection = await _fixture.GetDefaultCollection();
+            await collection.UpsertAsync("Can_Return_Expiration()", new {foo = "bar", bar = "foo"}, options =>options.WithExpiration(TimeSpan.FromHours(1)));
+
+            var result = await collection.GetAsync("Can_Return_Expiration()", options=>options.WithExpiration());
+            Assert.NotNull(result.Expiration);
+        }
+
+        [Fact]
         public async Task Can_perform_lookup_in()
         {
             var collection = await _fixture.GetDefaultCollection();

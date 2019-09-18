@@ -19,6 +19,8 @@ namespace Couchbase
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer _serializer;
         private readonly IByteConverter _converter;
+        private bool _isParsed;
+        private TimeSpan? _expiry;
 
         internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, List<OperationSpec> specs = null)
         {
@@ -35,7 +37,27 @@ namespace Couchbase
 
         public string Id { get; internal set; }
         public ulong Cas { get; internal set; }
-        public TimeSpan? Expiration { get; set; }
+
+        public TimeSpan? Expiration
+        {
+            get
+            {
+                ParseSpecs();
+                if (_expiry.HasValue)
+                {
+                    return _expiry;
+                }
+
+                var spec = _specs.Find(x => x.Path == VirtualXttrs.DocExpiryTime);
+                if (spec != null)
+                {
+                    var ms = _serializer.Deserialize<long>(spec.Bytes);
+                    _expiry = TimeSpan.FromMilliseconds(ms);
+                }
+
+                return _expiry;
+            }
+        }
 
         public T ContentAs<T>()
         {
@@ -78,6 +100,9 @@ namespace Couchbase
 
         private void ParseSpecs()
         {
+            //we already parsed the response from the server but not each element
+            if(_isParsed) return;
+
             var response = _contentBytes.Memory.Slice(Header.BodyOffset);
             var commandIndex = 0;
 
@@ -95,6 +120,8 @@ namespace Couchbase
 
                 if (response.Length <= 0) break;
             }
+
+            _isParsed = true;
         }
 
         void BuildPath(JToken token, string name, JToken content =  null)
