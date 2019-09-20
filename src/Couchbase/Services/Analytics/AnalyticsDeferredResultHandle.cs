@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core.DataMapping;
+using Couchbase.Services.Query;
 
 namespace Couchbase.Services.Analytics
 {

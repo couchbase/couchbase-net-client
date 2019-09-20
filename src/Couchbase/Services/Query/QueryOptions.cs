@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
-using Couchbase.Services.Query.Couchbase.N1QL;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Encoding = Couchbase.Services.Query.Couchbase.N1QL.Encoding;

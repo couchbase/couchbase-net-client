@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Services.KeyValue;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument

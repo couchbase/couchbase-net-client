@@ -1,5 +1,6 @@
-﻿using System.Buffers;
+using System.Buffers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Services.KeyValue;
 
 namespace Couchbase
 {

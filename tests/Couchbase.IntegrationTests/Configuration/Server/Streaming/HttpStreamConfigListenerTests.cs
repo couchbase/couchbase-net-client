@@ -10,6 +10,7 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Services.KeyValue;
 using Couchbase.Services.Views;
 using Xunit;
 

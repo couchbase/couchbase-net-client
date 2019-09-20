@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Services.KeyValue;
 
 namespace Couchbase.Services.Analytics
 {

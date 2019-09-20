@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Couchbase.Services.KeyValue;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests

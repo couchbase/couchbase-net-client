@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Services.Query;
 
 namespace Couchbase.Services.Analytics
 {

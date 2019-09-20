@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using Couchbase.Services.Query;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenTracing;

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.LoadTests.Fixtures;
 using Couchbase.LoadTests.Helpers;
+using Couchbase.Services.KeyValue;
 using Xunit;
 using Xunit.Abstractions;
 

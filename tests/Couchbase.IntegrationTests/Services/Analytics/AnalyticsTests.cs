@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Services.Analytics;
+using Couchbase.Services.Query;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;

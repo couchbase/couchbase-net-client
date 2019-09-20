@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Couchbase.Services.Query;
 using Couchbase.Services.Search;
 using Couchbase.Services.Search.Queries.Simple;
 using Couchbase.Services.Search.Sort;

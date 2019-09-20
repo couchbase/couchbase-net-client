@@ -7,6 +7,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Services.KeyValue;
 using Couchbase.Services.Views;
 using Xunit;
 using Xunit.Abstractions;

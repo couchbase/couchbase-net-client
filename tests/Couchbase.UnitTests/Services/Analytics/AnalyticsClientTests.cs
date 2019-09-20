@@ -8,6 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Services.Analytics;
+using Couchbase.Services.Query;
 using Couchbase.UnitTests.Utils;
 using Newtonsoft.Json;
 using Xunit;

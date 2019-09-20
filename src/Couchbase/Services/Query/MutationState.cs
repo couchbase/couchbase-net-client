@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Core;
+using Couchbase.Services.KeyValue;
 
 namespace Couchbase.Services.Query
 {

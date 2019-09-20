@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.TestData;
+using Couchbase.Services.KeyValue;
 using Xunit;
 
 namespace Couchbase.IntegrationTests

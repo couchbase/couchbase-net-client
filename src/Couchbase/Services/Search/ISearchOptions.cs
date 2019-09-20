@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Services.Query;
 using Couchbase.Services.Search.Sort;
 using Newtonsoft.Json.Linq;
 

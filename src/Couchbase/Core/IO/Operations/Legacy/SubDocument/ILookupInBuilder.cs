@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Services.KeyValue;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {

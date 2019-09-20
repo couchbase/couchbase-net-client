@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Services.Query;
 using Newtonsoft.Json;
 
 namespace Couchbase.Services.Search

@@ -1,4 +1,5 @@
 using System.Linq;
+using Couchbase.Services.KeyValue;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument

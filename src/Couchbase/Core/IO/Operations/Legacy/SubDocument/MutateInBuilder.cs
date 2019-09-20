@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Services.KeyValue;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument

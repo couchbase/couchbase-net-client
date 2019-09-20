@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
+using Couchbase.Services.KeyValue;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.DataStructures

@@ -9,9 +9,11 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Services.KeyValue;
 using Couchbase.Services.Views;
 using Moq;
 using Xunit;
+using KeyNotFoundException = Couchbase.Services.KeyValue.KeyNotFoundException;
 
 namespace Couchbase.UnitTests
 {

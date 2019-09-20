@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core.Sharding;
+using Couchbase.Services.KeyValue;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
