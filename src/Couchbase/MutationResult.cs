@@ -5,15 +5,15 @@ namespace Couchbase
 {
     public class MutationResult : IMutationResult
     {
-        internal MutationResult(ulong cas, TimeSpan? expiration, MutationToken token)
+        internal MutationResult(ulong cas, TimeSpan? expiry, MutationToken token)
         {
             Cas = cas;
-            Expiration = expiration;
+            Expiry = expiry;
             MutationToken = token;
         }
 
         public ulong Cas { get; }
-        public TimeSpan? Expiration { get; }
+        public TimeSpan? Expiry { get; }
         public MutationToken MutationToken { get; set; }
     }
 }

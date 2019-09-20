@@ -8,7 +8,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[4];
-            Converter.FromUInt32(Expiration, extras);
+            Converter.FromUInt32(Expiry, extras);
             builder.Write(extras);
         }
 
@@ -16,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         {
         }
 
-        public uint Expiration { get; set; }
+        public uint Expiry { get; set; }
 
         public override OpCode OpCode => OpCode.GetL;
 

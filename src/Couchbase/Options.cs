@@ -8,7 +8,7 @@ namespace Couchbase
 
     public class GetOptions
     {
-        public bool IncludeExpiration { get; set; }
+        public bool IncludeExpiry { get; set; }
 
         public bool CreatePath { get; set; }
 
@@ -18,9 +18,9 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
-        public GetOptions WithExpiration()
+        public GetOptions WithExpiry()
         {
-            IncludeExpiration = true;
+            IncludeExpiry = true;
             return this;
         }
 
@@ -78,7 +78,7 @@ namespace Couchbase
 
     public class UpsertOptions
     {
-        public TimeSpan Expiration { get; set; }
+        public TimeSpan Expiry { get; set; }
 
         public ulong Cas { get; set; }
 
@@ -92,9 +92,9 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
-        public UpsertOptions WithExpiration(TimeSpan expiration)
+        public UpsertOptions WithExpiry(TimeSpan expiry)
         {
-            Expiration = expiration;
+            Expiry = expiry;
             return this;
         }
 
@@ -136,7 +136,7 @@ namespace Couchbase
 
     public class InsertOptions
     {
-        public TimeSpan Expiration { get; set; }
+        public TimeSpan Expiry { get; set; }
 
         public ulong Cas { get; set; }
 
@@ -150,9 +150,9 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
-        public InsertOptions WithExpiration(TimeSpan expiration)
+        public InsertOptions WithExpiry(TimeSpan expiry)
         {
-            Expiration = expiration;
+            Expiry = expiry;
             return this;
         }
 
@@ -194,7 +194,7 @@ namespace Couchbase
 
     public class ReplaceOptions
     {
-        public TimeSpan Expiration { get; set; }
+        public TimeSpan Expiry { get; set; }
 
         public ulong Cas { get; set; }
 
@@ -208,9 +208,9 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
-        public ReplaceOptions WithExpiration(TimeSpan expiration)
+        public ReplaceOptions WithExpiry(TimeSpan expiry)
         {
-            Expiration = expiration;
+            Expiry = expiry;
             return this;
         }
 
@@ -719,7 +719,7 @@ namespace Couchbase
 
     public class MutateInOptions
     {
-        public TimeSpan Expiration { get; set; }
+        public TimeSpan expiry { get; set; }
 
         public SubdocDocFlags Flags { get; set; }
 
@@ -733,15 +733,15 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
-        public MutateInOptions WithExpiration(TimeSpan expiration)
+        public MutateInOptions WithExpiry(TimeSpan expiry)
         {
-            Expiration = expiration;
+            this.expiry = expiry;
             return this;
         }
 
-        public MutateInOptions WithExpiration(int days = 0, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds=0)
+        public MutateInOptions WithExpiry(int days = 0, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds=0)
         {
-            return WithExpiration(new TimeSpan(days, hours, minutes, seconds, milliseconds));
+            return WithExpiry(new TimeSpan(days, hours, minutes, seconds, milliseconds));
         }
 
         public MutateInOptions WithCreateDoc(bool createDoc)

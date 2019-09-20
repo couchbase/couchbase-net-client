@@ -29,11 +29,11 @@ namespace Couchbase
 
         Task UnlockAsync<T>(string id, UnlockOptions options);
 
-        Task TouchAsync(string id, TimeSpan expiration, TouchOptions options);
+        Task TouchAsync(string id, TimeSpan expiry, TouchOptions options);
 
-        Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiration, GetAndTouchOptions options);
+        Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions options);
 
-        Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiration, GetAndLockOptions options);
+        Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions options);
 
         #endregion
 

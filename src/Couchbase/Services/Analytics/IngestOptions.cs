@@ -8,14 +8,14 @@ namespace Couchbase.Services.Analytics
         public IngestOptions()
         {
             IdGenerator = doc => Guid.NewGuid().ToString();
-            Expiration = TimeSpan.Zero;
+            Expiry = TimeSpan.Zero;
             Timeout = TimeSpan.FromSeconds(75);
             IngestMethod = IngestMethod.Upsert;
             CancellationToken = default;
         }
 
         public TimeSpan Timeout { get; set; }
-        public TimeSpan Expiration { get; set; }
+        public TimeSpan Expiry { get; set; }
         public IngestMethod IngestMethod { get; set; }
         public Func<dynamic, string> IdGenerator { get; set; }
         public CancellationToken CancellationToken { get; set; }
@@ -45,11 +45,11 @@ namespace Couchbase.Services.Analytics
         /// <summary>
         /// The lifetime of the documents ingested by Couchbase. Overrides the default of zero (0) or infinite lifespan.
         /// </summary>
-        /// <param name="expiration"></param>
+        /// <param name="expiry"></param>
         /// <returns></returns>
-        public IngestOptions WithExpiration(TimeSpan expiration)
+        public IngestOptions WithExpiry(TimeSpan expiry)
         {
-            Expiration = expiration;
+            Expiry = expiry;
             return this;
         }
 

@@ -133,54 +133,54 @@ namespace Couchbase
 
         #region Touch
 
-        public static Task TouchAsync(this ICollection collection, string id, TimeSpan expiration)
+        public static Task TouchAsync(this ICollection collection, string id, TimeSpan expiry)
         {
-            return collection.TouchAsync(id, expiration, new TouchOptions());
+            return collection.TouchAsync(id, expiry, new TouchOptions());
         }
 
-        public static Task TouchAsync(this ICollection collection, string id, TimeSpan expiration,
+        public static Task TouchAsync(this ICollection collection, string id, TimeSpan expiry,
             Action<TouchOptions> configureOptions)
         {
             var options = new TouchOptions();
             configureOptions(options);
 
-            return collection.TouchAsync(id, expiration, options);
+            return collection.TouchAsync(id, expiry, options);
         }
 
         #endregion
 
         #region GetAndTouch
 
-        public static Task<IGetResult> GetAndTouchAsync(this ICollection collection, string id, TimeSpan expiration)
+        public static Task<IGetResult> GetAndTouchAsync(this ICollection collection, string id, TimeSpan expiry)
         {
-            return collection.GetAndTouchAsync(id, expiration, new GetAndTouchOptions());
+            return collection.GetAndTouchAsync(id, expiry, new GetAndTouchOptions());
         }
 
-        public static Task<IGetResult> GetAndTouchAsync(this ICollection collection, string id, TimeSpan expiration,
+        public static Task<IGetResult> GetAndTouchAsync(this ICollection collection, string id, TimeSpan expiry,
             Action<GetAndTouchOptions> configureOptions)
         {
             var options = new GetAndTouchOptions();
             configureOptions(options);
 
-            return collection.GetAndTouchAsync(id, expiration, options);
+            return collection.GetAndTouchAsync(id, expiry, options);
         }
 
         #endregion
 
         #region GetAndLock
 
-        public static Task<IGetResult> GetAndLockAsync(this ICollection collection, string id, TimeSpan expiration)
+        public static Task<IGetResult> GetAndLockAsync(this ICollection collection, string id, TimeSpan expiry)
         {
-            return collection.GetAndLockAsync(id, expiration, new GetAndLockOptions());
+            return collection.GetAndLockAsync(id, expiry, new GetAndLockOptions());
         }
 
-        public static Task<IGetResult> GetAndLockAsync(this ICollection collection, string id, TimeSpan expiration,
+        public static Task<IGetResult> GetAndLockAsync(this ICollection collection, string id, TimeSpan expiry,
             Action<GetAndLockOptions> configureOptions)
         {
             var options = new GetAndLockOptions();
             configureOptions(options);
 
-            return collection.GetAndLockAsync(id, expiration, options);
+            return collection.GetAndLockAsync(id, expiry, options);
         }
 
         #endregion

@@ -260,7 +260,7 @@ namespace Couchbase
         public async Task<IGetResult> GetAsync(string id, GetOptions options)
         {
             var specs = new List<OperationSpec>();
-            if (options.IncludeExpiration)
+            if (options.IncludeExpiry)
             {
                 specs.Add(new OperationSpec
                 {
@@ -343,7 +343,7 @@ namespace Couchbase
                         Exists = existsOp.Success && value.KeyState != KeyState.NotFound &&
                                  value.KeyState != KeyState.LogicalDeleted,
                         Cas = value.Cas,
-                        Expiration = TimeSpan.FromMilliseconds(existsOp.Expires)
+                        Expiry = TimeSpan.FromMilliseconds(existsOp.Expires)
                     };
                 }
                 catch (KeyNotFoundException)
@@ -368,7 +368,7 @@ namespace Couchbase
                 Content = content,
                 Cas = options.Cas,
                 Cid = Cid,
-                Expires = options.Expiration.ToTtl(),
+                Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             })
@@ -390,7 +390,7 @@ namespace Couchbase
                 Content = content,
                 Cas = options.Cas,
                 Cid = Cid,
-                Expires = options.Expiration.ToTtl(),
+                Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             })
@@ -412,7 +412,7 @@ namespace Couchbase
                 Content = content,
                 Cas = options.Cas,
                 Cid = Cid,
-                Expires = options.Expiration.ToTtl(),
+                Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             })
@@ -462,13 +462,13 @@ namespace Couchbase
 
         #region Touch
 
-        public async Task TouchAsync(string id, TimeSpan expiration, TouchOptions options)
+        public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions options)
         {
             using (var touchOp = new Touch
             {
                 Key = id,
                 Cid = Cid,
-                Expires = expiration.ToTtl(),
+                Expires = expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             })
@@ -481,13 +481,13 @@ namespace Couchbase
 
         #region GetAndTouch
 
-        public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiration, GetAndTouchOptions options)
+        public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions options)
         {
             using (var getAndTouchOp = new GetT<byte[]>
             {
                 Key = id,
                 Cid = Cid,
-                Expires = expiration.ToTtl(),
+                Expires = expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             })
@@ -501,13 +501,13 @@ namespace Couchbase
 
         #region GetAndLock
 
-        public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiration, GetAndLockOptions options)
+        public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions options)
         {
             using (var getAndLockOp = new GetL<byte[]>
             {
                 Key = id,
                 Cid = Cid,
-                Expiration = expiration.ToTtl()
+                Expiry = expiry.ToTtl()
             })
             {
                 await ExecuteOp(getAndLockOp, options.Token, options.Timeout);

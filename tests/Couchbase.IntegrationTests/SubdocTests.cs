@@ -20,10 +20,10 @@ namespace Couchbase.IntegrationTests
         public async Task Can_Return_Expiration()
         {
             var collection = await _fixture.GetDefaultCollection();
-            await collection.UpsertAsync("Can_Return_Expiration()", new {foo = "bar", bar = "foo"}, options =>options.WithExpiration(TimeSpan.FromHours(1)));
+            await collection.UpsertAsync("Can_Return_Expiry()", new {foo = "bar", bar = "foo"}, options =>options.WithExpiry(TimeSpan.FromHours(1)));
 
-            var result = await collection.GetAsync("Can_Return_Expiration()", options=>options.WithExpiration());
-            Assert.NotNull(result.Expiration);
+            var result = await collection.GetAsync("Can_Return_Expiry()", options=>options.WithExpiry());
+            Assert.NotNull(result.Expiry);
         }
 
         [Fact]

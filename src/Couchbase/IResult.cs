@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Couchbase
 {
@@ -6,6 +6,6 @@ namespace Couchbase
     {
         ulong Cas { get; }
 
-        TimeSpan? Expiration { get; }
+        TimeSpan? Expiry { get; }
     }
 }

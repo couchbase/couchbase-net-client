@@ -8,6 +8,6 @@ namespace Couchbase
 
         public ulong Cas { get; set; }
 
-        public TimeSpan? Expiration { get; set; }
+        public TimeSpan? Expiry { get; set; }
     }
 }

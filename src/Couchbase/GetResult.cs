@@ -38,7 +38,7 @@ namespace Couchbase
         public string Id { get; internal set; }
         public ulong Cas { get; internal set; }
 
-        public TimeSpan? Expiration
+        public TimeSpan? Expiry
         {
             get
             {

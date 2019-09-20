@@ -16,15 +16,15 @@ namespace Couchbase
         private IByteConverter _converter = new DefaultConverter();
         private ITypeSerializer _serializer = new DefaultSerializer();
 
-        internal LookupInResult(IMemoryOwner<byte> bytes, ulong cas, TimeSpan? expiration)
+        internal LookupInResult(IMemoryOwner<byte> bytes, ulong cas, TimeSpan? expiry)
         {
             _bytes = bytes;
             Cas = cas;
-            Expiration = expiration;
+            Expiry = expiry;
         }
 
         public ulong Cas { get; }
-        public TimeSpan? Expiration { get; }
+        public TimeSpan? Expiry { get; }
 
         public T ContentAs<T>(int index)
         {

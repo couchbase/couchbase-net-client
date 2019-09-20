@@ -5,8 +5,8 @@ namespace Couchbase
 {
     public class CounterResult : MutationResult, ICounterResult
     {
-        internal CounterResult(ulong value, ulong cas, TimeSpan? expiration, MutationToken token)
-            : base(cas, expiration, token)
+        internal CounterResult(ulong value, ulong cas, TimeSpan? expiry, MutationToken token)
+            : base(cas, expiry, token)
         {
             Content = value;
         }

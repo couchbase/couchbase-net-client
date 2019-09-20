@@ -81,7 +81,7 @@ namespace Couchbase.Services.Analytics
                             row,
                             options =>
                             {
-                                options.WithExpiration(ingestOptions.Expiration);
+                                options.WithExpiry(ingestOptions.Expiry);
                                 options.WithTimeout(ingestOptions.Timeout);
                             });
                         break;
@@ -91,7 +91,7 @@ namespace Couchbase.Services.Analytics
                             row,
                             options =>
                             {
-                                options.WithExpiration(ingestOptions.Expiration);
+                                options.WithExpiry(ingestOptions.Expiry);
                                 options.WithTimeout(ingestOptions.Timeout);
                             });
                         break;
@@ -101,7 +101,7 @@ namespace Couchbase.Services.Analytics
                             row,
                             options =>
                             {
-                                options.WithExpiration(ingestOptions.Expiration);
+                                options.WithExpiry(ingestOptions.Expiry);
                                 options.WithTimeout(ingestOptions.Timeout);
                             });
                         break;

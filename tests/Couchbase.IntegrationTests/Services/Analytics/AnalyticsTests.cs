@@ -103,7 +103,7 @@ namespace Couchbase.IntegrationTests.Services.Analytics
                 options =>
                 {
                     options.WithTimeout(TimeSpan.FromSeconds(75));
-                    options.WithExpiration(TimeSpan.FromDays(1));
+                    options.WithExpiry(TimeSpan.FromDays(1));
                 }
             ).ConfigureAwait(false);
 

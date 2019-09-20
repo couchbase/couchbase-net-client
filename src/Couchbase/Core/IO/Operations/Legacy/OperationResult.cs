@@ -36,8 +36,6 @@ namespace Couchbase.Core.IO.Operations.Legacy
         /// </summary>
         public ulong Cas { get; set; }
 
-        public TimeSpan? Expiration { get; }
-
         /// <summary>
         /// The status returned from the Couchbase Server after an operation.
         /// </summary>
