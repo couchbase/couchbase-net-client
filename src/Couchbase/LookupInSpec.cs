@@ -35,5 +35,10 @@ namespace Couchbase
         {
             return CreateSpec(OpCode.SubGetCount, path, isXattr);
         }
+
+        public static OperationSpec GetFull()
+        {
+            return CreateSpec(OpCode.Get, "");
+        }
     }
 }

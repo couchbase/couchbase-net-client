@@ -29,6 +29,13 @@ namespace Couchbase
             return this;
         }
 
+        public LookupInSpecBuilder GetFull()
+        {
+            Validate("GetFull", "");
+            Specs.Add(LookupInSpec.GetFull());
+            return this;
+        }
+
         private void Validate(string op, string path)
         {
             if (Specs.Exists(x => x.PathFlags == SubdocPathFlags.Xattr))
