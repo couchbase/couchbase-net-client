@@ -22,7 +22,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase
 {
-    public class Cluster : ICluster
+    internal class Cluster : ICluster
     {
         private static readonly ILogger Log = LogManager.CreateLogger<Cluster>();
         private bool _disposed;
