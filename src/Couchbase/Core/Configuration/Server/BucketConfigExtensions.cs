@@ -10,8 +10,8 @@ namespace Couchbase.Core.Configuration.Server
         public static List<NodeAdapter> GetNodes(this BucketConfig bucketConfig)
         {
             var nodeAdapters = new List<NodeAdapter>();
-            var nodes = bucketConfig.GetNodesOrderedToServerList();
-            var nodesExt = bucketConfig.GetNodesExtOrderedToServerList();
+            var nodes = bucketConfig.Nodes;
+            var nodesExt = bucketConfig.NodesExt;
 
             if (nodesExt == null)
                 nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null, bucketConfig)));
@@ -89,66 +89,6 @@ namespace Couchbase.Core.Configuration.Server
                     servers[i] = servers[i].Replace(hostPlaceHolder, bootStrapUri.Host);
                 }
             }
-        }
-
-        public static List<Node> GetNodesOrderedToServerList(this BucketConfig config)
-        {
-            var nodes = config.Nodes;
-            var serverMap = config.VBucketServerMap;
-
-            var reordered = new List<Node>(nodes.Count);
-            var serversList = serverMap.ServerList;
-
-            if (serversList == null || serversList.Length == 0)
-                reordered = nodes;
-            else
-                for (var i = 0; i < serversList.Length; i++)
-                {
-                    var host = serversList[i].Split(':')[0];
-                    foreach (var n in nodes.Where(n => n.Hostname.Split(':')[0].Equals(host)))
-                    {
-                        reordered.Insert(i, n);
-                        break;
-                    }
-                }
-
-            return reordered;
-        }
-
-        public static List<NodesExt> GetNodesExtOrderedToServerList(this BucketConfig config)
-        {
-            var nodes = config.NodesExt;
-            var serverMap = config.VBucketServerMap;
-
-            if (nodes == null) return null;
-            var reordered = new List<NodesExt>(nodes.Count);
-            var serversList = serverMap.ServerList;
-
-            if (serversList == null || serversList.Length == 0)
-            {
-                reordered = nodes;
-            }
-            else
-            {
-                for (var i = 0; i < serversList.Length; i++)
-                {
-                    var host = serversList[i].Split(':')[0];
-                    foreach (var n in nodes.Where(n => n.Hostname != null &&
-                                                       n.Hostname.Split(':')[0].Equals(host)))
-                    {
-                        reordered.Insert(i, n);
-                        break;
-                    }
-                }
-
-                for (var i = 0; i < nodes.Count; i++)
-                {
-                    var cur = nodes[i];
-                    if (!reordered.Contains(cur)) reordered[i] = cur;
-                }
-            }
-
-            return reordered;
         }
     }
 }
