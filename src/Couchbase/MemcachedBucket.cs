@@ -12,6 +12,7 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Management;
+using Couchbase.Management.Collections;
 using Couchbase.Services.Views;
 using Microsoft.Extensions.Logging;
 

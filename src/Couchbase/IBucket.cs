@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Management;
+using Couchbase.Management.Collections;
 using Couchbase.Services.Views;
 
 namespace Couchbase

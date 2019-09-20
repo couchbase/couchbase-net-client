@@ -8,6 +8,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Management;
+using Couchbase.Management.Collections;
 using Couchbase.Services.Views;
 using Moq;
 using Xunit;

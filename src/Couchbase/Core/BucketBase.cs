@@ -10,6 +10,8 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Management;
+using Couchbase.Management.Buckets;
+using Couchbase.Management.Collections;
 using Couchbase.Services.Views;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
