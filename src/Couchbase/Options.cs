@@ -1126,4 +1126,50 @@ namespace Couchbase
     }
 
     #endregion
+
+    #region MutateIn Options
+
+    public abstract class MutateInXattrOperation
+    {
+        public bool XAttr { get; set; }
+
+        public MutateInXattrOperation WithXAttr()
+        {
+            XAttr = true;
+            return this;
+        }
+    }
+
+    public abstract class MutateInOperationOptions :  MutateInXattrOperation
+    {
+        public bool CreatePath { get; set; }
+
+        public MutateInOperationOptions WithCreatePath()
+        {
+            CreatePath = true;
+            return this;
+        }
+    }
+
+    public sealed class MutateInInsertOptions : MutateInOperationOptions {}
+
+    public sealed class MutateInUpsertOptions : MutateInOperationOptions {}
+
+    public sealed class MutateInReplaceOptions : MutateInXattrOperation {}
+
+    public sealed class MutateInRemoveOptions : MutateInXattrOperation {}
+
+    public sealed class MutateInArrayAppendOptions : MutateInOperationOptions {}
+
+    public sealed class MutateInArrayPrependOptions :MutateInOperationOptions {}
+
+    public sealed class MutateInArrayInsertOptions : MutateInOperationOptions {}
+
+    public sealed class MutateInArrayAddUniqueOptions : MutateInOperationOptions {}
+
+    public sealed class MutateInIncrementOptions : MutateInOperationOptions {}
+
+    public sealed class MutateInDecrementOptions : MutateInOperationOptions {}
+
+    #endregion
 }
