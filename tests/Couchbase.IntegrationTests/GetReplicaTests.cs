@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.TestData;
@@ -30,7 +29,6 @@ namespace Couchbase.IntegrationTests
 
                 var result = await collection.GetAnyReplicaAsync(key);
                 Assert.NotEqual(ulong.MinValue, result.Cas);
-                Assert.True(result.HasValue);
                 Assert.Null(result.Expiry);
 
                 var retrievedPerson = result.ContentAs<Person>();
@@ -60,7 +58,6 @@ namespace Couchbase.IntegrationTests
                 foreach (var p in result)
                 {
                     Assert.NotEqual(ulong.MinValue, p.Cas);
-                    Assert.True(p.HasValue);
                     Assert.Null(p.Expiry);
 
                     var retrievedPerson = p.ContentAs<Person>();

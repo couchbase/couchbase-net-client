@@ -7,6 +7,6 @@ namespace Couchbase.Services.KeyValue
     {
         T ContentAs<T>();
 
-        bool HasValue { get; }
+        TimeSpan? Expiry { get; }
     }
 }

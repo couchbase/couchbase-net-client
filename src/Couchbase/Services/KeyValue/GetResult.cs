@@ -91,8 +91,6 @@ namespace Couchbase.Services.KeyValue
             return root.ToObject<T>();
         }
 
-        public bool HasValue => _contentBytes.Memory.Length > 24;
-
         private void ParseSpecs()
         {
             //we already parsed the response from the server but not each element
