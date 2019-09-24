@@ -470,7 +470,6 @@ namespace Couchbase.Services.KeyValue
                 Key = id,
                 Cid = Cid,
                 Expires = expiry.ToTtl(),
-                DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             })
             {
@@ -489,7 +488,6 @@ namespace Couchbase.Services.KeyValue
                 Key = id,
                 Cid = Cid,
                 Expires = expiry.ToTtl(),
-                DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
             })
             {

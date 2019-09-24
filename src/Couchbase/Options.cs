@@ -374,8 +374,6 @@ namespace Couchbase
 
         public PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
-
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
@@ -383,19 +381,6 @@ namespace Couchbase
         public TouchOptions WithCas(ulong cas)
         {
             Cas = cas;
-            return this;
-        }
-
-        public TouchOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
-        {
-            PersistTo = persistTo;
-            ReplicateTo = replicateTo;
-            return this;
-        }
-
-        public TouchOptions WithDurability(DurabilityLevel durabilityLevel)
-        {
-            DurabilityLevel = durabilityLevel;
             return this;
         }
 
@@ -679,8 +664,6 @@ namespace Couchbase
 
         public PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
-
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
@@ -688,19 +671,6 @@ namespace Couchbase
         public GetAndTouchOptions WithCas(ulong cas)
         {
             Cas = cas;
-            return this;
-        }
-
-        public GetAndTouchOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
-        {
-            PersistTo = persistTo;
-            ReplicateTo = replicateTo;
-            return this;
-        }
-
-        public GetAndTouchOptions WithDurability(DurabilityLevel durabilityLevel)
-        {
-            DurabilityLevel = durabilityLevel;
             return this;
         }
 
