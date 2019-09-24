@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Couchbase.Core.IO;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Services.KeyValue;
 
 namespace Couchbase
@@ -18,6 +21,14 @@ namespace Couchbase
         public TimeSpan? Timeout { get; set; }
 
         public CancellationToken Token { get; set; }
+
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public GetOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
 
         public GetOptions WithExpiry()
         {
@@ -58,6 +69,14 @@ namespace Couchbase
     {
         public CancellationToken CancellationToken { get; set; }
 
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public GetAllReplicasOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
+
         public  GetAllReplicasOptions WithCancellationToken(CancellationToken cancellationToken)
         {
             CancellationToken = cancellationToken;
@@ -73,6 +92,14 @@ namespace Couchbase
 
     public class GetAnyReplicaOptions
     {
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public GetAnyReplicaOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
+
         public CancellationToken CancellationToken { get; set; }
 
         public GetAnyReplicaOptions WithCancellationToken(CancellationToken cancellationToken)
@@ -126,6 +153,13 @@ namespace Couchbase
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public UpsertOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
 
         public UpsertOptions WithExpiry(TimeSpan expiry)
         {
@@ -185,6 +219,14 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public InsertOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
+
         public InsertOptions WithExpiry(TimeSpan expiry)
         {
             Expiry = expiry;
@@ -243,6 +285,14 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public ReplaceOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
+
         public ReplaceOptions WithExpiry(TimeSpan expiry)
         {
             Expiry = expiry;
@@ -298,7 +348,7 @@ namespace Couchbase
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
-        
+
         public RemoveOptions WithCas(ulong cas)
         {
             Cas = cas;
@@ -342,7 +392,7 @@ namespace Couchbase
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
-        
+
         public UnlockOptions WithCas(ulong cas)
         {
             Cas = cas;
@@ -639,6 +689,14 @@ namespace Couchbase
 
         public CancellationToken Token { get; set; }
 
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public GetAndLockOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
+
         public GetAndLockOptions WithTimeout(TimeSpan timeout)
         {
             Timeout = timeout;
@@ -667,6 +725,14 @@ namespace Couchbase
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
+
+        public ITypeTranscoder Transcoder { get; set; }
+
+        public GetAndTouchOptions WithTranscoder(ITypeTranscoder transcoder)
+        {
+            Transcoder = transcoder;
+            return this;
+        }
         
         public GetAndTouchOptions WithCas(ulong cas)
         {
@@ -698,6 +764,14 @@ namespace Couchbase
         public CancellationToken Token { get; set; }
 
         public bool Expiry { get; set; }
+
+        public ITypeSerializer Serializer { get; set; }
+
+        public LookupInOptions WithSerializer(ITypeSerializer serializer)
+        {
+            Serializer = serializer;
+            return this;
+        }
 
         public LookupInOptions WithTimeout(TimeSpan timeout)
         {
@@ -737,6 +811,14 @@ namespace Couchbase
         public TimeSpan Timeout { get; set; }
 
         public CancellationToken Token { get; set; }
+
+        public ITypeSerializer Serializer { get; set; }
+
+        public MutateInOptions WithSerializer(ITypeSerializer serializer)
+        {
+            Serializer = serializer;
+            return this;
+        }
 
         public MutateInOptions WithExpiry(TimeSpan expiry)
         {

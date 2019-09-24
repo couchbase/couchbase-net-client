@@ -313,7 +313,8 @@ namespace Couchbase.Services.KeyValue
                     specs, new LookupInOptions().WithTimeout(options.Timeout.Value))
                 .ConfigureAwait(false);
 
-            return new GetResult(lookupOp.ExtractData(), _transcoder, specs)
+            var transcoder = options.Transcoder ?? _transcoder;
+            return new GetResult(lookupOp.ExtractData(), transcoder, specs)
             {
                 Id = lookupOp.Key,
                 Cas = lookupOp.Cas,
@@ -332,7 +333,8 @@ namespace Couchbase.Services.KeyValue
             using (var existsOp = new Observe
             {
                 Key = id,
-                Cid = Cid
+                Cid = Cid,
+                Transcoder = _transcoder
             })
             {
                 try
@@ -363,6 +365,7 @@ namespace Couchbase.Services.KeyValue
 
         public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions options)
         {
+            var transcoder = options.Transcoder ?? _transcoder;
             using (var upsertOp = new Set<T>
             {
                 Key = id,
@@ -371,7 +374,8 @@ namespace Couchbase.Services.KeyValue
                 Cid = Cid,
                 Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
+                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
+                Transcoder = transcoder
             })
             {
                 await ExecuteOp(upsertOp, options.Token, options.Timeout).ConfigureAwait(false);
@@ -385,6 +389,7 @@ namespace Couchbase.Services.KeyValue
 
         public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions options)
         {
+            var transcoder = options.Transcoder ?? _transcoder;
             using (var insertOp = new Add<T>
             {
                 Key = id,
@@ -393,7 +398,8 @@ namespace Couchbase.Services.KeyValue
                 Cid = Cid,
                 Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
+                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
+                Transcoder = transcoder
             })
             {
                 await ExecuteOp(insertOp, options.Token, options.Timeout).ConfigureAwait(false);
@@ -407,6 +413,8 @@ namespace Couchbase.Services.KeyValue
 
         public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions options)
         {
+            var transcoder = options.Transcoder ?? _transcoder;
+
             using (var replaceOp = new Replace<T>
             {
                 Key = id,
@@ -415,7 +423,8 @@ namespace Couchbase.Services.KeyValue
                 Cid = Cid,
                 Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
+                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
+                Transcoder = transcoder
             })
             {
                 await ExecuteOp(replaceOp, options.Token, options.Timeout).ConfigureAwait(false);
@@ -435,7 +444,8 @@ namespace Couchbase.Services.KeyValue
                 Cas = options.Cas,
                 Cid = Cid,
                 DurabilityLevel = options.DurabilityLevel,
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
+                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(removeOp, options.Token, options.Timeout).ConfigureAwait(false);
@@ -452,7 +462,8 @@ namespace Couchbase.Services.KeyValue
             {
                 Key = id,
                 Cid = Cid,
-                Cas = options.Cas
+                Cas = options.Cas,
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(unlockOp, options.Token, options.Timeout).ConfigureAwait(false);
@@ -470,7 +481,8 @@ namespace Couchbase.Services.KeyValue
                 Key = id,
                 Cid = Cid,
                 Expires = expiry.ToTtl(),
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
+                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(touchOp, options.Token, options.Timeout).ConfigureAwait(false);
@@ -483,16 +495,19 @@ namespace Couchbase.Services.KeyValue
 
         public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions options)
         {
+            var transcoder = options.Transcoder ?? _transcoder;
+
             using (var getAndTouchOp = new GetT<byte[]>
             {
                 Key = id,
                 Cid = Cid,
                 Expires = expiry.ToTtl(),
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500)
+                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
+                Transcoder = transcoder
             })
             {
                 await ExecuteOp(getAndTouchOp, options.Token, options.Timeout);
-                return new GetResult(getAndTouchOp.ExtractData(), _transcoder);
+                return new GetResult(getAndTouchOp.ExtractData(), transcoder);
             }
         }
 
@@ -502,15 +517,18 @@ namespace Couchbase.Services.KeyValue
 
         public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions options)
         {
+            var transcoder = options.Transcoder ?? _transcoder;
+
             using (var getAndLockOp = new GetL<byte[]>
             {
                 Key = id,
                 Cid = Cid,
-                Expiry = expiry.ToTtl()
+                Expiry = expiry.ToTtl(),
+                Transcoder = transcoder
             })
             {
                 await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
-                return new GetResult(getAndLockOp.ExtractData(), _transcoder);
+                return new GetResult(getAndLockOp.ExtractData(), transcoder);
             }
         }
 
@@ -541,7 +559,8 @@ namespace Couchbase.Services.KeyValue
             {
                 Key = id,
                 Builder = builder,
-                Cid = Cid
+                Cid = Cid,
+                Transcoder = _transcoder
             };
 
             await ExecuteOp(lookup, options.Token, options.Timeout);
@@ -562,7 +581,8 @@ namespace Couchbase.Services.KeyValue
                 Key = id,
                 Builder = builder,
                 Cid = Cid,
-                DurabilityLevel = options.DurabilityLevel
+                DurabilityLevel = options.DurabilityLevel,
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(mutation, options.Token, options.Timeout);
@@ -581,7 +601,8 @@ namespace Couchbase.Services.KeyValue
                 Cid = Cid,
                 Key = id,
                 Content = value,
-                DurabilityLevel = options.DurabilityLevel
+                DurabilityLevel = options.DurabilityLevel,
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(op, options.Token, options.Timeout);
@@ -600,7 +621,8 @@ namespace Couchbase.Services.KeyValue
                 Cid = Cid,
                 Key = id,
                 Content = value,
-                DurabilityLevel = options.DurabilityLevel
+                DurabilityLevel = options.DurabilityLevel,
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(op, options.Token, options.Timeout);
@@ -620,7 +642,8 @@ namespace Couchbase.Services.KeyValue
                 Key = id,
                 Delta = options.Delta,
                 Initial = options.Initial,
-                DurabilityLevel = options.DurabilityLevel
+                DurabilityLevel = options.DurabilityLevel,
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(op, options.Token, options.Timeout);
@@ -640,7 +663,8 @@ namespace Couchbase.Services.KeyValue
                 Key = id,
                 Delta = options.Delta,
                 Initial = options.Initial,
-                DurabilityLevel = options.DurabilityLevel
+                DurabilityLevel = options.DurabilityLevel,
+                Transcoder = _transcoder
             })
             {
                 await ExecuteOp(op, options.Token, options.Timeout);
@@ -662,11 +686,13 @@ namespace Couchbase.Services.KeyValue
 
             var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
 
+            var transcoder = options.Transcoder ?? _transcoder;
+
             // get primary
-            tasks.Add(GetPrimary(id, options.CancellationToken));
+            tasks.Add(GetPrimary(id, options.CancellationToken, transcoder));
 
             // get replicas
-            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, options.CancellationToken)));
+            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, options.CancellationToken, transcoder)));
 
             return await Task.WhenAny(tasks).ConfigureAwait(false).GetAwaiter().GetResult();
         }
@@ -681,25 +707,28 @@ namespace Couchbase.Services.KeyValue
 
             var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
 
+            var transcoder = options.Transcoder ?? _transcoder;
+
             // get primary
-            tasks.Add(GetPrimary(id, options.CancellationToken));
+            tasks.Add(GetPrimary(id, options.CancellationToken, transcoder));
 
             // get replicas
-            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, options.CancellationToken)));
+            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, options.CancellationToken, transcoder)));
 
             return tasks;
         }
 
-        private async Task<IGetReplicaResult> GetPrimary(string id, CancellationToken cancellationToken)
+        private async Task<IGetReplicaResult> GetPrimary(string id, CancellationToken cancellationToken, ITypeTranscoder transcoder)
         {
             using (var getOp = new Get<object>
             {
                 Key = id,
-                Cid = Cid
+                Cid = Cid,
+                Transcoder = transcoder
             })
             {
                 await ExecuteOp(getOp, cancellationToken).ConfigureAwait(false);
-                return new GetReplicaResult(getOp.ExtractData(), _transcoder)
+                return new GetReplicaResult(getOp.ExtractData(), transcoder)
                 {
                     Id = getOp.Key,
                     Cas = getOp.Cas,
@@ -711,17 +740,18 @@ namespace Couchbase.Services.KeyValue
             }
         }
 
-        private async Task<IGetReplicaResult> GetReplica(string id, short index, CancellationToken cancellationToken)
+        private async Task<IGetReplicaResult> GetReplica(string id, short index, CancellationToken cancellationToken, ITypeTranscoder transcoder)
         {
             using (var getOp = new ReplicaRead<object>
             {
                 Key = id,
                 Cid = Cid,
-                VBucketId = index
+                VBucketId = index,
+                Transcoder = transcoder
             })
             {
                 await ExecuteOp(getOp, cancellationToken).ConfigureAwait(false);
-                return new GetReplicaResult(getOp.ExtractData(), _transcoder)
+                return new GetReplicaResult(getOp.ExtractData(), transcoder)
                 {
                     Id = getOp.Key,
                     Cas = getOp.Cas,
