@@ -91,11 +91,6 @@ namespace Couchbase.Services.KeyValue
             return root.ToObject<T>();
         }
 
-        public T ContentAs<T>(ITypeSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
         public bool HasValue => _contentBytes.Memory.Length > 24;
 
         private void ParseSpecs()

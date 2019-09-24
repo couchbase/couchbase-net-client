@@ -7,8 +7,6 @@ namespace Couchbase.Services.KeyValue
     {
         T ContentAs<T>();
 
-        T ContentAs<T>(ITypeSerializer serializer);
-
         bool HasValue { get; }
     }
 }
