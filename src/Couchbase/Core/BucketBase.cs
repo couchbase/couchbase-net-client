@@ -44,13 +44,13 @@ namespace Couchbase.Core
         {
             return Task.FromResult(Scopes[DefaultScopeName]);
         }
-        public Task<ICollection> CollectionAsync(string scopeName, string connectionName, CollectionOptions options)
+        public ICollection Collection(string scopeName, string connectionName)
         {
             throw new NotImplementedException();
         }
-        public Task<ICollection> DefaultCollectionAsync(CollectionOptions options)
+        public ICollection DefaultCollection()
         {
-            return Task.FromResult(Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName]);
+            return Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName];
         }
 
         public abstract Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName,

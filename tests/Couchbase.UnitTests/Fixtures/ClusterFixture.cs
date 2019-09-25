@@ -26,7 +26,7 @@ namespace Couchbase.UnitTests.Fixtures
         public async Task<ICollection> GetDefaultCollection()
         {
             var bucket = await GetDefaultBucket();
-            return await bucket.DefaultCollectionAsync();
+            return bucket.DefaultCollection();
         }
 
         public void Dispose()

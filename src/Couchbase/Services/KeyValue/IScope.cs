@@ -10,6 +10,6 @@ namespace Couchbase.Services.KeyValue
 
         ICollection this[string name] { get; }
 
-        Task<ICollection> CollectionAsync(string collectionName, CollectionOptions options);
+        ICollection Collection(string collectionName);
     }
 }

@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -38,9 +37,9 @@ namespace Couchbase.Services.KeyValue
             }
         }
 
-        public Task<ICollection> CollectionAsync(string collectionName, CollectionOptions options)
+        public ICollection Collection(string collectionName)
         {
-            return Task.FromResult(this[collectionName]);
+            return this[collectionName];
         }
     }
 }
