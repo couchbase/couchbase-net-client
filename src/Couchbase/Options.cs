@@ -5,6 +5,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Services.KeyValue;
+using Couchbase.Services.Query;
 
 namespace Couchbase
 {
@@ -903,7 +904,8 @@ namespace Couchbase
 
     public class ViewOptions
     {
-        public StaleState StaleState { get; set; } = StaleState.None;
+        public ViewScanConsistency ScanConsistency { get; set; }
+
         public int? Skip { get; set; }
         public int? Limit { get; set; }
         public object StartKey { get; set; }
@@ -922,9 +924,9 @@ namespace Couchbase
         public bool? ContinueOnError { get; set; }
         public int? ConnectionTimeout { get; set; }
 
-        public ViewOptions WithStaleState(StaleState staleState)
+        public ViewOptions WithScanConsistency(ViewScanConsistency scanConsistency)
         {
-            StaleState = staleState;
+            ScanConsistency = scanConsistency;
             return this;
         }
 

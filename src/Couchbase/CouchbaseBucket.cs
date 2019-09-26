@@ -14,6 +14,7 @@ using Couchbase.Core.Sharding;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
 using Couchbase.Services.KeyValue;
+using Couchbase.Services.Query;
 using Couchbase.Services.Views;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -113,9 +114,25 @@ namespace Couchbase
             {
                 UseSsl = ClusterOptions.UseSsl
             };
+
+            //Normalize to new naming convention for public API RFC#51
+            var staleState = StaleState.None;
+            if (options.ScanConsistency == ViewScanConsistency.RequestPlus)
+            {
+                staleState = StaleState.False;
+            }
+            if (options.ScanConsistency == ViewScanConsistency.UpdateAfter)
+            {
+                staleState = StaleState.UpdateAfter;
+            }
+            if (options.ScanConsistency == ViewScanConsistency.RequestPlus)
+            {
+                staleState = StaleState.Ok;
+            }
+
             query.Bucket(Name);
             query.From(designDocument, viewName);
-            query.Stale(options.StaleState);
+            query.Stale(staleState);
             query.Limit(options.Limit);
             query.Skip(options.Skip);
             query.StartKey(options.StartKey);
