@@ -21,7 +21,7 @@ namespace Couchbase.Core.Configuration.Server
 
             if (node != null)
             {
-                CouchbaseApiBase = node.CouchApiBase.Replace("$HOST", Hostname);
+                CouchbaseApiBase = node.CouchApiBase.Replace(ConstantsString.HostPlaceHolder, Hostname);
                 CouchbaseApiBaseHttps = node.CouchApiBaseHttps;
             }
 
@@ -69,7 +69,7 @@ namespace Couchbase.Core.Configuration.Server
                 hostname = node.Hostname;
             }
 
-            if (hostname.Contains("$HOST"))
+            if (hostname.Contains(ConstantsString.HostPlaceHolder))
             {
                 return "localhost";
             }

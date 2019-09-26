@@ -10,7 +10,7 @@ namespace Couchbase.Core.Configuration.Server
 
         public static string GetHostName(this Node node)
         {
-            return node.Hostname.Contains("$HOST") ? "localhost" : node.Hostname.Split(':')[0];
+            return node.Hostname.Contains(ConstantsString.HostPlaceHolder) ? "localhost" : node.Hostname.Split(':')[0];
         }
 
         public static int GetKeyValuePort(this Node node, ClusterOptions clusterOptions)

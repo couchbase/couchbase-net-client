@@ -27,7 +27,7 @@ namespace Couchbase.Core.Configuration.Server
         public static string GetHostName(this NodesExt nodesExt)
         {
             //TODO add support using AlternateAddress hostname
-            return nodesExt.Hostname.Contains("$HOST") ? "localhost" : nodesExt.Hostname;
+            return nodesExt.Hostname.Contains(ConstantsString.HostPlaceHolder) ? "localhost" : nodesExt.Hostname;
         }
 
         public static int GetKeyValuePort(this NodesExt nodesExt, ClusterOptions clusterOptions)

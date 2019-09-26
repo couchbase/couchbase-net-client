@@ -50,9 +50,13 @@ namespace Couchbase.Core.Configuration.Server
         }
     }
 
-    public class Node : IEquatable<Node>
+    public interface INode
     {
+        string Hostname { get; set; }
+    }
 
+    public class Node : INode, IEquatable<Node>
+    {
         const string LocalHost = "127.0.0.1";
         private const string HostToken = "$HOST";
         private const string ViewPort = "8091";
@@ -190,7 +194,7 @@ namespace Couchbase.Core.Configuration.Server
         }
     }
 
-    public class NodesExt : IEquatable<NodesExt>
+    public class NodesExt : INode, IEquatable<NodesExt>
     {
         public NodesExt()
         {
