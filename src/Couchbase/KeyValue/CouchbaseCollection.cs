@@ -314,7 +314,7 @@ namespace Couchbase.KeyValue
                 .ConfigureAwait(false);
 
             var transcoder = options.Transcoder ?? _transcoder;
-            return new GetResult(lookupOp.ExtractData(), transcoder, specs)
+            return new GetResult(lookupOp.ExtractData(), transcoder, specs, projectList)
             {
                 Id = lookupOp.Key,
                 Cas = lookupOp.Cas,

@@ -7,35 +7,44 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.KeyValue
 {
     public class GetResult : IGetResult
     {
+        private static readonly ILogger Log = LogManager.CreateLogger<GetResult>();
         private readonly IMemoryOwner<byte> _contentBytes;
         private readonly List<OperationSpec> _specs;
+        private readonly List<string> _projectList;
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer _serializer;
         private readonly IByteConverter _converter;
         private bool _isParsed;
         private TimeSpan? _expiry;
 
-        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, List<OperationSpec> specs = null)
+        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, List<OperationSpec> specs = null,
+            List<string> projectList = null)
         {
             _contentBytes = contentBytes;
             _transcoder = transcoder;
             _serializer = transcoder.Serializer;
             _converter = transcoder.Converter;
             _specs = specs;
+            _projectList = projectList;
         }
 
         internal OperationHeader Header { get; set; }
+
         internal OpCode OpCode { get; set; }
+
         internal Flags Flags { get; set; }
 
         public string Id { get; internal set; }
+
         public ulong Cas { get; internal set; }
 
         public TimeSpan? Expiry
@@ -76,16 +85,35 @@ namespace Couchbase.KeyValue
             foreach (var spec in _specs)
             {
                 var content = _serializer.Deserialize<JToken>(spec.Bytes);
+                if (spec.OpCode == OpCode.Get)
+                {
+                    //a full doc is returned if the projection count exceeds the server limit
+                    //so we remove any non-requested fields from the content returned.
+                    if (_projectList?.Count > 16)
+                    {
+                        foreach (var child in content.Children())
+                        {
+                            if (_projectList.Contains(child.Path))
+                            {
+                                root.Add(child);
+                            }
+                        }
+
+                        //root projection for empty path
+                        return root.ToObject<T>();
+                    }
+                }
                 var projection = CreateProjection(spec.Path, content);
 
                 try
                 {
-                    root.Add(projection.First); //hacky should be improved later
+                    root.Add(projection.First);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    //ignore for now - these are cases where a root attribute is already mapped
+                    //these are cases where a root attribute is already mapped
                     //for example "attributes" and "attributes.hair" will cause exceptions
+                    Log.LogInformation(e, "Deserialization failed.");
                 }
             }
             return root.ToObject<T>();
@@ -121,9 +149,8 @@ namespace Couchbase.KeyValue
         {
             foreach (var child in token.Children())
             {
-                if (child is JValue)
+                if (child is JValue value)
                 {
-                    var value = child as JValue;
                     value.Replace(new JObject(new JProperty(name, content)));
                     break;
                 }
