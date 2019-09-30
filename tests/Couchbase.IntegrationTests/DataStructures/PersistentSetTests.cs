@@ -35,6 +35,11 @@ namespace Couchbase.IntegrationTests.DataStructures
                 if (obj.GetType() != this.GetType()) return false;
                 return Equals((Foo) obj);
             }
+
+            public override int GetHashCode()
+            {
+                return base.GetHashCode();
+            }
         }
 
         private async Task<IPersistentSet<Foo>> GetPersistentSet(string id)

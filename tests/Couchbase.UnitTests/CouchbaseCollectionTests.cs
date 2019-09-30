@@ -37,7 +37,7 @@ namespace Couchbase.UnitTests
             var mockBucket = new Mock<FakeBucket>();
             var collection = new CouchbaseCollection(mockBucket.Object, 0, "_default");
 
-            Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
                 await collection.LookupInAsync("docId", builder =>
                 {

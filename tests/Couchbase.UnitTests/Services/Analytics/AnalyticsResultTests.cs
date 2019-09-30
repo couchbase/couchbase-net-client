@@ -26,7 +26,7 @@ namespace Couchbase.UnitTests.Services.Analytics
             {
                 MetaData = new MetaData
                 {
-                    Status = QueryStatus.Fatal,
+                    Status = status,
                     Errors = new List<Error> {new Error {Code = errorCode}}
                 }
             };

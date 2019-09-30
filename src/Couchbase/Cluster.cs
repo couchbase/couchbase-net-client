@@ -211,7 +211,7 @@ namespace Couchbase
                     bucket = await BootstrapBucketAsync(name, server, BucketType.Couchbase)
                         .ConfigureAwait(false);
                 }
-                catch (Exception e)
+                catch
                 {
                     bucket = await BootstrapBucketAsync(name, server, BucketType.Memcached)
                         .ConfigureAwait(false);

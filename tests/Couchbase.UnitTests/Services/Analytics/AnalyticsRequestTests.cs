@@ -187,7 +187,7 @@ namespace Couchbase.UnitTests.Services.Analytics
             formValues = request.GetFormValues();
 
             var creds = (List<dynamic>) formValues["creds"];
-            Assert.Equal(1, creds.Count);
+            Assert.Single(creds);
 
             var expected = $"{{ user = {expectedUser}, pass = {password} }}";
             foreach (var cred in creds)
