@@ -6,82 +6,82 @@ namespace Couchbase.Management.Buckets
 {
     public static class BucketManagerExtensions
     {
-        public static Task CreateAsync(this IBucketManager bucketManager, BucketSettings settings)
+        public static Task CreateBucketAsync(this IBucketManager bucketManager, BucketSettings settings)
         {
-            return bucketManager.CreateAsync(settings, CreateBucketOptions.Default);
+            return bucketManager.CreateBucketAsync(settings, CreateBucketOptions.Default);
         }
 
-        public static Task CreateAsync(this IBucketManager bucketManager, BucketSettings settings, Action<CreateBucketOptions> configureOptions)
+        public static Task CreateBucketAsync(this IBucketManager bucketManager, BucketSettings settings, Action<CreateBucketOptions> configureOptions)
         {
             var options = new CreateBucketOptions();
             configureOptions(options);
 
-            return bucketManager.CreateAsync(settings, options);
+            return bucketManager.CreateBucketAsync(settings, options);
         }
 
-        public static Task UpsertAsync(this IBucketManager bucketManager, BucketSettings settings)
+        public static Task UpsertBucketAsync(this IBucketManager bucketManager, BucketSettings settings)
         {
-            return bucketManager.UpsertAsync(settings, UpsertBucketOptions.Default);
+            return bucketManager.UpsertBucketAsync(settings, UpsertBucketOptions.Default);
         }
 
-        public static Task UpsertAsync(this IBucketManager bucketManager, BucketSettings settings, Action<UpsertBucketOptions> configureOptions)
+        public static Task UpsertBucketAsync(this IBucketManager bucketManager, BucketSettings settings, Action<UpsertBucketOptions> configureOptions)
         {
             var options = new UpsertBucketOptions();
             configureOptions(options);
 
-            return bucketManager.UpsertAsync(settings, options);
+            return bucketManager.UpsertBucketAsync(settings, options);
         }
 
-        public static Task DropAsync(this IBucketManager bucketManager, string bucketName)
+        public static Task DropBucketAsync(this IBucketManager bucketManager, string bucketName)
         {
-            return bucketManager.DropAsync(bucketName, DropBucketOptions.Default);
+            return bucketManager.DropBucketAsync(bucketName, DropBucketOptions.Default);
         }
 
-        public static Task DropAsync(this IBucketManager bucketManager, string bucketName, Action<DropBucketOptions> configureOptions)
+        public static Task DropBucketAsync(this IBucketManager bucketManager, string bucketName, Action<DropBucketOptions> configureOptions)
         {
             var options = new DropBucketOptions();
             configureOptions(options);
 
-            return bucketManager.DropAsync(bucketName, options);
+            return bucketManager.DropBucketAsync(bucketName, options);
         }
 
-        public static Task<BucketSettings> GetAsync(this IBucketManager bucketManager, string bucketName)
+        public static Task<BucketSettings> GetBucketAsync(this IBucketManager bucketManager, string bucketName)
         {
-            return bucketManager.GetAsync(bucketName, GetBucketOptions.Default);
+            return bucketManager.GetBucketAsync(bucketName, GetBucketOptions.Default);
         }
 
-        public static Task<BucketSettings> GetAsync(this IBucketManager bucketManager, string bucketName, Action<GetBucketOptions> configureOptions)
+        public static Task<BucketSettings> GetBucketAsync(this IBucketManager bucketManager, string bucketName, Action<GetBucketOptions> configureOptions)
         {
             var options = new GetBucketOptions();
             configureOptions(options);
 
-            return bucketManager.GetAsync(bucketName, options);
+            return bucketManager.GetBucketAsync(bucketName, options);
         }
 
-        public static Task<Dictionary<string, BucketSettings>> GetAllAsync(this IBucketManager bucketManager)
+        public static Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(this IBucketManager bucketManager)
         {
-            return bucketManager.GetAllAsync(GetAllBucketOptions.Default);
+            return bucketManager.GetAllBucketsAsync(GetAllBucketsOptions.Default);
         }
 
-        public static Task<Dictionary<string, BucketSettings>> GetAllAsync(this IBucketManager bucketManager, Action<GetAllBucketOptions> configureOptions)
+        public static Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(this IBucketManager bucketManager, Action<GetAllBucketsOptions> configureOptions)
         {
-            var options = new GetAllBucketOptions();
+            var options = new GetAllBucketsOptions();
             configureOptions(options);
 
-            return bucketManager.GetAllAsync(options);
+            return bucketManager.GetAllBucketsAsync(options);
         }
 
-        public static Task FlushAsync(this IBucketManager bucketManager, string bucketName)
+        public static Task FlushBucketAsync(this IBucketManager bucketManager, string bucketName)
         {
-            return bucketManager.Flush(bucketName, FlushBucketOptions.Default);
+            return bucketManager.FlushBucketAsync(bucketName, FlushBucketOptions.Default);
         }
 
-        public static Task FlushAsync(this IBucketManager bucketManager, string bucketName, Action<FlushBucketOptions> configureOptions)
+        public static Task FlushBucketAsync(this IBucketManager bucketManager, string bucketName, Action<FlushBucketOptions> configureOptions)
         {
             var options= new FlushBucketOptions();
             configureOptions(options);
 
-            return bucketManager.Flush(bucketName, options);
+            return bucketManager.FlushBucketAsync(bucketName, options);
         }
     }
 }

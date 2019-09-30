@@ -5,16 +5,16 @@ namespace Couchbase.Management.Buckets
 {
     public interface IBucketManager
     {
-        Task CreateAsync(BucketSettings settings, CreateBucketOptions options);
+        Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions options);
 
-        Task UpsertAsync(BucketSettings settings, UpsertBucketOptions options);
+        Task UpsertBucketAsync(BucketSettings settings, UpsertBucketOptions options);
 
-        Task DropAsync(string bucketName, DropBucketOptions options);
+        Task DropBucketAsync(string bucketName, DropBucketOptions options);
 
-        Task<BucketSettings> GetAsync(string bucketName, GetBucketOptions options);
+        Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions options);
 
-        Task<Dictionary<string, BucketSettings>> GetAllAsync(GetAllBucketOptions options);
+        Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions options);
 
-        Task Flush(string bucketName, FlushBucketOptions options);
+        Task FlushBucketAsync(string bucketName, FlushBucketOptions options);
     }
 }

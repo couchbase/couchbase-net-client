@@ -121,7 +121,7 @@ namespace Couchbase.Management.Buckets
             return values;
         }
 
-        public async Task CreateAsync(BucketSettings settings, CreateBucketOptions options)
+        public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions options)
         {
             var uri = GetUri();
             Logger.LogInformation($"Attempting to create bucket with name {settings.Name} - {uri}");
@@ -129,7 +129,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // check if bucket already exists, throw BucketAlreadyExistsException if it does
-                await GetAsync(settings.Name, GetBucketOptions.Default).ConfigureAwait(false);
+                await GetBucketAsync(settings.Name, GetBucketOptions.Default).ConfigureAwait(false);
                 throw new BucketAlreadyExistsException(settings.Name);
             }
             catch (BucketNotFoundException)
@@ -156,7 +156,7 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task UpsertAsync(BucketSettings settings, UpsertBucketOptions options)
+        public async Task UpsertBucketAsync(BucketSettings settings, UpsertBucketOptions options)
         {
             var uri = GetUri(settings.Name);
             Logger.LogInformation($"Attempting to upsert bucket with name {settings.Name} - {uri}");
@@ -175,7 +175,7 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task DropAsync(string bucketName, DropBucketOptions options)
+        public async Task DropBucketAsync(string bucketName, DropBucketOptions options)
         {
             var uri = GetUri(bucketName);
             Logger.LogInformation($"Attempting to drop bucket with name {bucketName} - {uri}");
@@ -183,7 +183,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // try get bucket, throws BucketNotFoundException if it doesn't exist
-                await GetAsync(bucketName, GetBucketOptions.Default).ConfigureAwait(false);
+                await GetBucketAsync(bucketName, GetBucketOptions.Default).ConfigureAwait(false);
 
                 // perform drop
                 var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
@@ -200,7 +200,7 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task Flush(string bucketName, FlushBucketOptions options)
+        public async Task FlushBucketAsync(string bucketName, FlushBucketOptions options)
         {
             // get uri and amend path to flush endpoint
             var builder = new UriBuilder(GetUri(bucketName));
@@ -212,7 +212,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // try get bucket, throws BucketNotFoundException if it doesn't exist
-                var settings = await GetAsync(bucketName, GetBucketOptions.Default);
+                var settings = await GetBucketAsync(bucketName, GetBucketOptions.Default);
                 if (!settings.FlushEnabled)
                 {
                     // does not support flush
@@ -240,7 +240,7 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task<Dictionary<string, BucketSettings>> GetAllAsync(GetAllBucketOptions options)
+        public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions options)
         {
             var uri = GetUri();
             Logger.LogInformation($"Attempting to get all buckets - {uri}");
@@ -269,7 +269,7 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task<BucketSettings> GetAsync(string bucketName, GetBucketOptions options)
+        public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions options)
         {
             var uri = GetUri(bucketName);
             Logger.LogInformation($"Attempting to get bucket with name {bucketName} - {uri}");
