@@ -39,7 +39,7 @@ namespace Couchbase
         private readonly Lazy<IAnalyticsClient> _lazyAnalyticsClient;
         private readonly Lazy<IUserManager> _lazyUserManager;
         private readonly Lazy<IBucketManager> _lazyBucketManager;
-        private readonly Lazy<IQueryIndexes> _lazyQueryManager;
+        private readonly Lazy<IQueryIndexManager> _lazyQueryManager;
         private readonly Lazy<ISearchIndexManager> _lazySearchManager;
 
         public Cluster(string connectionString, ClusterOptions clusterOptions)
@@ -72,7 +72,7 @@ namespace Couchbase
             _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_clusterOptions));
             _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_clusterOptions));
             _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_clusterOptions));
-            _lazyQueryManager = new Lazy<IQueryIndexes>(() => new QueryIndexes(_lazyQueryClient.Value));
+            _lazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(_lazyQueryClient.Value));
             _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_clusterOptions));
             _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_clusterOptions));
             _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_clusterOptions));
@@ -101,7 +101,7 @@ namespace Couchbase
             _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_clusterOptions));
             _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_clusterOptions));
             _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_clusterOptions));
-            _lazyQueryManager = new Lazy<IQueryIndexes>(() => new QueryIndexes(_lazyQueryClient.Value));
+            _lazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(_lazyQueryClient.Value));
             _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_clusterOptions));
             _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_clusterOptions));
         }
@@ -385,7 +385,7 @@ namespace Couchbase
 
         #endregion
 
-        public IQueryIndexes QueryIndexes => _lazyQueryManager.Value;
+        public IQueryIndexManager QueryIndexes => _lazyQueryManager.Value;
 
         public IAnalyticsIndexes AnalyticsIndexes { get; }
         public ISearchIndexManager SearchIndexes => _lazySearchManager.Value;

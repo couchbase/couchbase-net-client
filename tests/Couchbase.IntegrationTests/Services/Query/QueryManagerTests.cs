@@ -24,13 +24,13 @@ namespace Couchbase.IntegrationTests.Services.Query
             try
             {
                 // create primary
-                await queryManager.CreatePrimaryAsync("default");
+                await queryManager.CreatePrimaryIndexAsync("default");
 
                 // create deferred custom index
-                await queryManager.CreateAsync("default", "custom", new [] { "test" }, options => options.WithDeferred(true));
+                await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.WithDeferred(true));
 
                 // get all
-                var queryIndexes = await queryManager.GetAllAsync("default");
+                var queryIndexes = await queryManager.GetAllIndexesAsync("default");
                 Assert.True(queryIndexes.Any());
 
                 var primaryIndex = queryIndexes.Single(index => index.Name == "#primary");
@@ -42,18 +42,18 @@ namespace Couchbase.IntegrationTests.Services.Query
                 Assert.Equal("deferred", customIndex.State);
 
                 // build deferred
-                await queryManager.BuildDeferredAsync("default");
+                await queryManager.BuildDeferredIndexesAsync("default");
 
                 // watch deferred index
-                await queryManager.WatchAsync("default", new[] {"custom"});
+                await queryManager.WatchIndexesAsync("default", new[] {"custom"});
             }
             finally
             {
                 // drop primary
-                await queryManager.DropPrimaryAsync("default");
+                await queryManager.DropPrimaryIndexAsync("default");
 
                 // drop custom
-                await queryManager.DropAsync("default", "custom");
+                await queryManager.DropIndexAsync("default", "custom");
             }
         }
     }

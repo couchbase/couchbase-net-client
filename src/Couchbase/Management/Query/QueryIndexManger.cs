@@ -8,25 +8,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Management.Query
 {
-    internal class QueryIndexes : IQueryIndexes
+    internal class QueryIndexManager : IQueryIndexManager
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<QueryIndexes>();
+        private static readonly ILogger Logger = LogManager.CreateLogger<QueryIndexManager>();
         private static readonly TimeSpan WatchIndexSleepDuration = TimeSpan.FromMilliseconds(50);
 
         private readonly IQueryClient _queryClient;
 
-        public QueryIndexes(IQueryClient queryClient)
+        public QueryIndexManager(IQueryClient queryClient)
         {
             _queryClient = queryClient;
         }
 
-        public async Task BuildDeferredAsync(string bucketName, BuildDeferredQueryIndexOptions options)
+        public async Task BuildDeferredIndexesAsync(string bucketName, BuildDeferredQueryIndexOptions options)
         {
             Logger.LogInformation($"Attempting to build deferred query indexes on bucket {bucketName}");
 
             try
             {
-                var indexes = await this.GetAllAsync(bucketName,
+                var indexes = await this.GetAllIndexesAsync(bucketName,
                     queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
                 );
 
@@ -48,7 +48,7 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task CreateAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options)
+        public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options)
         {
             Logger.LogInformation($"Attempting to create query index {indexName} on bucket {bucketName}");
 
@@ -66,7 +66,7 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task CreatePrimaryAsync(string bucketName, CreatePrimaryQueryIndexOptions options)
+        public async Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions options)
         {
             Logger.LogInformation($"Attempting to create primary query index on bucket {bucketName}");
 
@@ -84,7 +84,7 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task DropAsync(string bucketName, string indexName, DropQueryIndexOptions options)
+        public async Task DropIndexAsync(string bucketName, string indexName, DropQueryIndexOptions options)
         {
             Logger.LogInformation($"Attempting to drop query index {indexName} on bucket {bucketName}");
 
@@ -102,7 +102,7 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task DropPrimaryAsync(string bucketName, DropPrimaryQueryIndexOptions options)
+        public async Task DropPrimaryIndexAsync(string bucketName, DropPrimaryQueryIndexOptions options)
         {
             Logger.LogInformation($"Attempting to drop primary query index on bucket {bucketName}");
 
@@ -120,7 +120,7 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task<IEnumerable<QueryIndex>> GetAllAsync(string bucketName, GetAllQueryIndexOptions options)
+        public async Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions options)
         {
             Logger.LogInformation($"Attempting to get query indexes for bucket {bucketName}");
 
@@ -146,7 +146,7 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task WatchAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions options)
+        public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions options)
         {
             var indexesToWatch = string.Join(", ", indexNames.ToList());
             Logger.LogInformation($"Attempting to watch pending indexes ({indexesToWatch}) for bucket {bucketName}");
@@ -155,7 +155,7 @@ namespace Couchbase.Management.Query
             {
                 while (!options.CancellationToken.IsCancellationRequested)
                 {
-                    var indexes = await this.GetAllAsync(bucketName,
+                    var indexes = await this.GetAllIndexesAsync(bucketName,
                         queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
                     );
 

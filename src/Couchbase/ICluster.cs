@@ -31,7 +31,7 @@ namespace Couchbase
 
         #endregion
 
-        IQueryIndexes QueryIndexes { get; }
+        IQueryIndexManager QueryIndexes { get; }
 
         IAnalyticsIndexes AnalyticsIndexes { get; }
 
