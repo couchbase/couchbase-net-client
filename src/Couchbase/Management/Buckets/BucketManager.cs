@@ -128,20 +128,18 @@ namespace Couchbase.Management.Buckets
 
             try
             {
-                // check if bucket already exists, throw BucketAlreadyExistsException if it does
-                await GetBucketAsync(settings.Name, GetBucketOptions.Default).ConfigureAwait(false);
-                throw new BucketAlreadyExistsException(settings.Name);
-            }
-            catch (BucketNotFoundException)
-            {
-                // expected
-            }
-
-            try
-            {
                 // create bucket
                 var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings));
                 var result = await _client.PostAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                if (result.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (json.IndexOf("Bucket with given name already exists", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    {
+                        throw new BucketAlreadyExistsException(settings.Name);
+                    }
+                }
+
                 result.EnsureSuccessStatusCode();
             }
             catch (BucketAlreadyExistsException)
@@ -182,11 +180,13 @@ namespace Couchbase.Management.Buckets
 
             try
             {
-                // try get bucket, throws BucketNotFoundException if it doesn't exist
-                await GetBucketAsync(bucketName, GetBucketOptions.Default).ConfigureAwait(false);
-
                 // perform drop
                 var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                if (result.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new BucketNotFoundException(bucketName);
+                }
+
                 result.EnsureSuccessStatusCode();
             }
             catch (BucketNotFoundException)
@@ -211,16 +211,22 @@ namespace Couchbase.Management.Buckets
 
             try
             {
-                // try get bucket, throws BucketNotFoundException if it doesn't exist
-                var settings = await GetBucketAsync(bucketName, GetBucketOptions.Default);
-                if (!settings.FlushEnabled)
+                // try do flush
+                var result = await _client.PostAsync(uri, null, options.CancellationToken).ConfigureAwait(false);
+                if (result.StatusCode == HttpStatusCode.NotFound)
                 {
-                    // does not support flush
-                    throw new BucketIsNotFlushableException(bucketName);
+                    throw new BucketNotFoundException(bucketName);
                 }
 
-                // do flush
-                var result = await _client.PostAsync(uri, null, options.CancellationToken).ConfigureAwait(false);
+                if (result.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (json.IndexOf("Flush is disabled for the bucket", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    {
+                        throw new BucketIsNotFlushableException(bucketName);
+                    }
+                }
+
                 result.EnsureSuccessStatusCode();
             }
             catch (BucketNotFoundException)
