@@ -7,13 +7,13 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.KeyValue;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
-using Couchbase.Services.KeyValue;
-using Couchbase.Services.Views;
+using Couchbase.Views;
 using Moq;
 using Xunit;
-using KeyNotFoundException = Couchbase.Services.KeyValue.KeyNotFoundException;
+using KeyNotFoundException = Couchbase.KeyValue.KeyNotFoundException;
 
 namespace Couchbase.UnitTests
 {

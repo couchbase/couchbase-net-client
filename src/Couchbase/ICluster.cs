@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Management;
 using Couchbase.Management.Analytics;
@@ -7,9 +8,8 @@ using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
-using Couchbase.Services.Analytics;
-using Couchbase.Services.Query;
-using Couchbase.Services.Search;
+using Couchbase.Query;
+using Couchbase.Search;
 
 namespace Couchbase
 {

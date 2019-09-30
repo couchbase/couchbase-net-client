@@ -1,5 +1,5 @@
 using System.Net;
-using Couchbase.Services.Views;
+using Couchbase.Views;
 using Xunit;
 
 namespace Couchbase.UnitTests.Services.Views

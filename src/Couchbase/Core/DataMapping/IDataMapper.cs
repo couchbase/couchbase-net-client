@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Couchbase.Services.Views;
+using Couchbase.Views;
 
 namespace Couchbase.Core.DataMapping
 {

@@ -1,6 +1,6 @@
 using System;
 using System.Collections;
-using Couchbase.Services.KeyValue;
+using Couchbase.KeyValue;
 using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations.SubDocument

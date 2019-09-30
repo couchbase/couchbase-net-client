@@ -1,9 +1,9 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
-using Couchbase.Services.KeyValue;
-using Couchbase.Services.Views;
+using Couchbase.Views;
 
 namespace Couchbase
 {

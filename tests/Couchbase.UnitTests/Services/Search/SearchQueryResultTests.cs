@@ -1,5 +1,5 @@
 using System.Net;
-using Couchbase.Services.Search;
+using Couchbase.Search;
 using Xunit;
 
 namespace Couchbase.UnitTests.Services.Search

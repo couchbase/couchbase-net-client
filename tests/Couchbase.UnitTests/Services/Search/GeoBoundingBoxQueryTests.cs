@@ -1,5 +1,5 @@
 using System;
-using Couchbase.Services.Search.Queries.Geo;
+using Couchbase.Search.Queries.Geo;
 using Newtonsoft.Json;
 using Xunit;
 

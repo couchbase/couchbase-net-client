@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
-using Couchbase.Services.KeyValue;
+using Couchbase.KeyValue;
 using Xunit;
 
 namespace Couchbase.IntegrationTests

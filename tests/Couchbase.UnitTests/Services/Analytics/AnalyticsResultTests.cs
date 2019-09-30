@@ -1,6 +1,6 @@
-using Couchbase.Services.Analytics;
-using Couchbase.Services.Query;
 using System.Collections.Generic;
+using Couchbase.Analytics;
+using Couchbase.Query;
 using Xunit;
 
 namespace Couchbase.UnitTests.Services.Analytics

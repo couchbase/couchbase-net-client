@@ -1,6 +1,6 @@
 using System;
 using System.Net.Sockets;
-using Couchbase.Services.KeyValue;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

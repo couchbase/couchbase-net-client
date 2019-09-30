@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using Couchbase.Services.Query;
-using Couchbase.Services.Search;
-using Couchbase.Services.Search.Queries.Simple;
-using Couchbase.Services.Search.Sort;
+using Couchbase.Query;
+using Couchbase.Search;
+using Couchbase.Search.Queries.Simple;
+using Couchbase.Search.Sort;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;

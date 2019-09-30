@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.KeyValue;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
-using Couchbase.Services.KeyValue;
-using Couchbase.Services.Views;
+using Couchbase.Views;
 using Xunit;
 using Xunit.Abstractions;
 

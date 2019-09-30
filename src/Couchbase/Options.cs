@@ -4,8 +4,8 @@ using System.Threading;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Services.KeyValue;
-using Couchbase.Services.Query;
+using Couchbase.KeyValue;
+using Couchbase.Views;
 
 namespace Couchbase
 {

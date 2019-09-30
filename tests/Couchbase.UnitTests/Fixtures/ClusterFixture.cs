@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Couchbase.Services.KeyValue;
+using Couchbase.KeyValue;
 
 namespace Couchbase.UnitTests.Fixtures
 {

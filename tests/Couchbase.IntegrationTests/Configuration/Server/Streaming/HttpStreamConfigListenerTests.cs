@@ -8,10 +8,10 @@ using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.KeyValue;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
-using Couchbase.Services.KeyValue;
-using Couchbase.Services.Views;
+using Couchbase.Views;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Configuration.Server.Streaming

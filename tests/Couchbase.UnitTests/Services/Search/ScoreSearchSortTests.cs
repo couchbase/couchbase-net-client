@@ -1,4 +1,4 @@
-using Couchbase.Services.Search.Sort;
+using Couchbase.Search.Sort;
 using Newtonsoft.Json;
 using Xunit;
 

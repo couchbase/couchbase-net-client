@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
-using Couchbase.Services.Query.Couchbase.N1QL;
+using Couchbase.Query.Couchbase.N1QL;
 using Xunit;
 
 namespace Couchbase.IntegrationTests

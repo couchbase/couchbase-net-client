@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
-using Couchbase.Services.Search;
-using Couchbase.Services.Search.Queries.Simple;
+using Couchbase.Search;
+using Couchbase.Search.Queries.Simple;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Services.Search

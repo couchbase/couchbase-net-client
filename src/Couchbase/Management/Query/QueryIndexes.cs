@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
-using Couchbase.Services.Query;
+using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Management.Query

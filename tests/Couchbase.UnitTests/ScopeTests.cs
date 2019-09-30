@@ -1,4 +1,4 @@
-﻿using Couchbase.Services.KeyValue;
+﻿using Couchbase.KeyValue;
 using Moq;
 using Xunit;
 

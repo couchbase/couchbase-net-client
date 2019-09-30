@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
-using Couchbase.Services.Views;
+using Couchbase.Views;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Services.Views

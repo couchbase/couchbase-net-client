@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using Couchbase.Services.Search;
+using Couchbase.Search;
 using Couchbase.UnitTests.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;

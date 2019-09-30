@@ -11,12 +11,11 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
+using Couchbase.KeyValue;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
-using Couchbase.Services.KeyValue;
-using Couchbase.Services.Query;
-using Couchbase.Services.Views;
 using Couchbase.Utils;
+using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase

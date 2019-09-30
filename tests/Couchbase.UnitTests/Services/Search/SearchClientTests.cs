@@ -4,9 +4,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Services.Query;
-using Couchbase.Services.Search;
-using Couchbase.Services.Search.Queries.Simple;
 using Newtonsoft.Json;
 using Xunit;
 

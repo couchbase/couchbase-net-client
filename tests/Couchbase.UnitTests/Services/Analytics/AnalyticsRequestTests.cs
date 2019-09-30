@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Couchbase.Services.Analytics;
+using Couchbase.Analytics;
 using Newtonsoft.Json;
 using Xunit;
 

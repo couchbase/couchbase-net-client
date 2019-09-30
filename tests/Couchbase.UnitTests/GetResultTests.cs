@@ -4,7 +4,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Legacy.SubDocument;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Services.KeyValue;
+using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
 using Newtonsoft.Json;
 using Xunit;

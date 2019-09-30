@@ -1,4 +1,4 @@
-﻿using Couchbase.Services.Query;
+﻿using Couchbase.Query;
 using Xunit;
 
 namespace Couchbase.UnitTests.Services.Query

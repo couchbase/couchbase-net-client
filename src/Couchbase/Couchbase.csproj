@@ -70,7 +70,6 @@
     <Folder Include="Core\Converters\" />
     <Folder Include="Core\Exceptions\Services\" />
     <Folder Include="Management\Users\" />
-    <Folder Include="Services\Collections\" />
   </ItemGroup>
 
   <ItemGroup>

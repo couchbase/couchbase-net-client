@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Services.Views;
 
 namespace Couchbase.Core.DataMapping
 {

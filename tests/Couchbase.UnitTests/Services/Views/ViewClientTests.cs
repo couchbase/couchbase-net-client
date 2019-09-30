@@ -4,9 +4,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Services.Query;
-using Couchbase.Services.Views;
+using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
+using Couchbase.Views;
 using Newtonsoft.Json;
 using Xunit;
 

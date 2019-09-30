@@ -1,5 +1,5 @@
 ﻿using System;
-using Couchbase.Services.KeyValue;
+using Couchbase.KeyValue;
 
 namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 {

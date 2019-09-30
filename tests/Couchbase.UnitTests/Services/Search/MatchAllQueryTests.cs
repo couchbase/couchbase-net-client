@@ -1,4 +1,4 @@
-using Couchbase.Services.Search.Queries.Simple;
+using Couchbase.Search.Queries.Simple;
 using Newtonsoft.Json;
 using Xunit;
 

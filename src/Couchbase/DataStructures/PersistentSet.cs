@@ -3,9 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
-using Couchbase.Services.KeyValue;
+using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
-using ICollection = Couchbase.Services.KeyValue.ICollection;
+using ICollection = Couchbase.KeyValue.ICollection;
 
 namespace Couchbase.DataStructures
 {

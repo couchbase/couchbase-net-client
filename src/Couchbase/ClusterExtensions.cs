@@ -1,9 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics;
-using Couchbase.Services.Analytics;
-using Couchbase.Services.Query;
-using Couchbase.Services.Search;
+using Couchbase.Query;
+using Couchbase.Search;
+using QueryParameter = Couchbase.Query.QueryParameter;
 
 namespace Couchbase
 {
@@ -14,7 +15,7 @@ namespace Couchbase
             throw new NotImplementedException();
         }
 
-        public static Task<IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,
+        public static Task<Query.IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,
             Action<QueryParameter> configureParameters = null, Action<QueryOptions> configureOptions = null)
         {
             var parameters = new QueryParameter();

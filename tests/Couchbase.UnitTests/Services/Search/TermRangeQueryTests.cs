@@ -1,5 +1,5 @@
 using System;
-using Couchbase.Services.Search.Queries.Range;
+using Couchbase.Search.Queries.Range;
 using Newtonsoft.Json;
 using Xunit;
 

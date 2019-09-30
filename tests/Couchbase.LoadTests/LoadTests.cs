@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 using Couchbase.LoadTests.Fixtures;
 using Couchbase.LoadTests.Helpers;
-using Couchbase.Services.KeyValue;
 using Xunit;
 using Xunit.Abstractions;
 
