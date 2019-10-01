@@ -387,7 +387,7 @@ namespace Couchbase
 
         public IQueryIndexManager QueryIndexes => _lazyQueryManager.Value;
 
-        public IAnalyticsIndexes AnalyticsIndexes { get; }
+        public IAnalyticsIndexManager AnalyticsIndexes { get; }
         public ISearchIndexManager SearchIndexes => _lazySearchManager.Value;
 
         public IBucketManager Buckets => _lazyBucketManager.Value;

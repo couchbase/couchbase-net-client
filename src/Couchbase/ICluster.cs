@@ -33,7 +33,7 @@ namespace Couchbase
 
         IQueryIndexManager QueryIndexes { get; }
 
-        IAnalyticsIndexes AnalyticsIndexes { get; }
+        IAnalyticsIndexManager AnalyticsIndexes { get; }
 
         ISearchIndexManager SearchIndexes { get; }
 
