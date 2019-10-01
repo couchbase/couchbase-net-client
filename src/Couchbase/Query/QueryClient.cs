@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -100,7 +101,7 @@ namespace Couchbase.Query
 
             // older style, prepare then execute
             var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanDataMapper).ConfigureAwait(false);
-            queryPlan = preparedResult.First();
+            queryPlan = await preparedResult.FirstAsync().ConfigureAwait(false);
 
             // add plan to cache and execute
             _queryCache.TryAdd(statement, queryPlan);
@@ -130,16 +131,14 @@ namespace Couchbase.Query
                         Success = response.StatusCode == HttpStatusCode.OK
                     };
 
-                    if (response.StatusCode != HttpStatusCode.OK)
+                    //read the header and stop when we reach the queried rows
+                    await queryResult.ReadToRowsAsync(options.CancellationToken).ConfigureAwait(false);
+
+                    if (response.StatusCode != HttpStatusCode.OK || queryResult.Status != QueryStatus.Success)
                     {
-                        //read the header and stop when we reach the queried rows
-                        queryResult.ReadToRows();
-                        if (response.StatusCode != HttpStatusCode.OK || queryResult.Status != QueryStatus.Success)
-                        {
-                            throw new QueryException(queryResult.Message,
-                                queryResult.Status,
-                                queryResult.Errors);
-                        }
+                        throw new QueryException(queryResult.Message,
+                            queryResult.Status,
+                            queryResult.Errors);
                     }
                 }
                 catch (TaskCanceledException e)

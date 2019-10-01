@@ -8,6 +8,7 @@ namespace Couchbase.IntegrationTests.Fixtures
     public class ClusterFixture : IDisposable
     {
         private readonly TestSettings _settings;
+        private bool _bucketOpened;
 
         public ClusterOptions ClusterOptions { get; }
 
@@ -24,9 +25,24 @@ namespace Couchbase.IntegrationTests.Fixtures
             );
         }
 
+        public async ValueTask<ICluster> GetCluster()
+        {
+            if (_bucketOpened)
+            {
+                return Cluster;
+            }
+
+            await GetDefaultBucket();
+            return Cluster;
+        }
+
         public async Task<IBucket> GetDefaultBucket()
         {
-            return await Cluster.BucketAsync(_settings.BucketName);
+            var bucket = await Cluster.BucketAsync(_settings.BucketName);
+
+            _bucketOpened = true;
+
+            return bucket;
         }
 
         public async Task<ICollection> GetDefaultCollection()

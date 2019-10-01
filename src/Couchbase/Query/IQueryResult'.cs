@@ -7,17 +7,9 @@ namespace Couchbase.Query
     /// Interface for the results of a N1QL query.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface IQueryResult<T> : IEnumerable<T>, IDisposable
+    public interface IQueryResult<out T> : IDisposable, IAsyncEnumerable<T>
     {
         /// <summary>
-        /// Gets a list of all the objects returned by the query. An object can be any JSON value.
-        /// </summary>
-        /// <value>
-        /// A a list of all the objects returned by the query.
-        /// </value>
-        List<T> Rows { get; }
-
-         /// <summary>
         /// Gets A unique identifier for the response.
         /// </summary>
         /// <value>

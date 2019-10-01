@@ -17,7 +17,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Query()
         {
-            var cluster = _fixture.Cluster;
+            var cluster = await _fixture.GetCluster();;
             var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=0",
                 options =>
                 {
@@ -29,7 +29,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Query2()
         {
-            var cluster = _fixture.Cluster;
+            var cluster = await _fixture.GetCluster();
 
             var result = await cluster.QueryAsync<dynamic>("SELECT * FROM `default` WHERE type=$name;",
                 options =>
@@ -37,7 +37,7 @@ namespace Couchbase.IntegrationTests
                 options.AddNamedParameter("name", "person");
             }).ConfigureAwait(false);
 
-            foreach (var o in result)
+            await foreach (var o in result)
             {
             }
             result.Dispose();

@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenTracing;
@@ -13,62 +14,27 @@ namespace Couchbase.Query
 {
     /// <summary>
     /// Represents a streaming N1QL response for reading each item as they become available over the network.
-    /// Note that unless <see cref="ForceRead"/> is called, there is no underlying collection of representing
-    /// the response. If <see cref="ForceRead"/> is called, then the entire response will be read into a temporary
-    /// collection. This has the ramification of increasing memory usage and negates the benefits of streaming.
     /// </summary>
-    /// <typeparam name="T">A POCO that matches each row of the reponse.</typeparam>
+    /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
     /// <seealso cref="IQueryResult{T}" />
     public class StreamingQueryResult<T> : IQueryResult<T>
     {
         private JsonTextReader _reader;
-        private bool _success;
-        private Guid _requestId;
-        private string _clientContextId;
-        private dynamic _signature;
         private string _preparedPlanName;
-        private QueryStatus _status;
-        private List<Error> _errors = new List<Error>();
-        private List<Warning> _warnings = new List<Warning>();
-        private Metrics _metrics = new Metrics();
-        private dynamic _profile;
-        private volatile bool _isHeaderRead;
-        private volatile bool _hasReadResults;
-        private volatile bool _hasFinishedReading;
-        private volatile bool _forcedRead;
-
-        /// <summary>
-        /// Checks if the stream has been read. If not, begins reading the attributes until
-        /// rows are encountered.
-        /// </summary>
-        private void CheckRead()
-        {
-            if (!_isHeaderRead && ResponseStream != null)
-            {
-                ReadToRows();
-            }
-        }
+        private IAsyncEnumerable<T> _enumerator;
 
         internal ISpan DecodeSpan { get; set; }
 
         /// <summary>
-        /// Returns true if the operation was succesful.
+        /// Returns true if the operation was successful.
         /// </summary>
         /// <remarks>
         /// If Success is false, use the Message property to help determine the reason.
         /// </remarks>
-        public bool Success
-        {
-            get
-            {
-                CheckRead();
-                return _success;
-            }
-            internal set => _success = value;
-        }
+        public bool Success { get; internal set; }
 
         /// <summary>
-        /// If the operation wasn't succesful, a message indicating why it was not succesful.
+        /// If the operation wasn't successful, a message indicating why it was not successful.
         /// </summary>
         public string Message { get; internal set; }
 
@@ -114,15 +80,7 @@ namespace Couchbase.Query
         /// <value>
         /// The unique identifier for the response.
         /// </value>
-        public Guid RequestId
-        {
-            get
-            {
-                CheckRead();
-                return _requestId;
-            }
-            private set => _requestId = value;
-        }
+        public Guid RequestId { get; private set; }
 
         /// <summary>
         /// Gets the clientContextID of the request, if one was supplied. Used for debugging.
@@ -130,15 +88,7 @@ namespace Couchbase.Query
         /// <value>
         /// The client context identifier.
         /// </value>
-        public string ClientContextId
-        {
-            get
-            {
-                CheckRead();
-                return _clientContextId;
-            }
-            private set => _clientContextId = value;
-        }
+        public string ClientContextId { get; private set; }
 
         /// <summary>
         /// Gets the schema of the results. Present only when the query completes successfully.
@@ -146,36 +96,16 @@ namespace Couchbase.Query
         /// <value>
         /// The signature of the schema of the request.
         /// </value>
-        public dynamic Signature
-        {
-            get
-            {
-                CheckRead();
-                return _signature;
-            }
-            private set => _signature = value;
-        }
+        public dynamic Signature { get; private set; }
 
         /// <summary>
         /// Get the prepared query plan name stored in the cluster.
         /// </summary>
         public string PreparedPlanName
         {
-            get
-            {
-                CheckRead();
-                return _preparedPlanName;
-            }
+            get => _preparedPlanName;
             set => _preparedPlanName = value;
         }
-
-        /// <summary>
-        /// Gets a list of all the objects returned by the query. An object can be any JSON value.
-        /// </summary>
-        /// <value>
-        /// A a list of all the objects returned by the query.
-        /// </value>
-        public List<T> Rows { get; private set; }
 
         /// <summary>
         /// Gets the status of the request; possible values are: success, running, errors, completed, stopped, timeout, fatal.
@@ -183,15 +113,7 @@ namespace Couchbase.Query
         /// <value>
         /// The status of the request.
         /// </value>
-        public QueryStatus Status
-        {
-            get
-            {
-                CheckRead();
-                return _status;
-            }
-            internal set => _status = value;
-        }
+        public QueryStatus Status { get; internal set; }
 
         /// <summary>
         /// Gets a list of 0 or more error objects; if an error occurred during processing of the request, it will be represented by an error object in this list.
@@ -199,15 +121,7 @@ namespace Couchbase.Query
         /// <value>
         /// The errors.
         /// </value>
-        public List<Error> Errors
-        {
-            get
-            {
-                CheckRead();
-                return _errors;
-            }
-            private set => _errors = value;
-        }
+        public List<Error> Errors { get; } = new List<Error>();
 
         /// <summary>
         /// Gets a list of 0 or more warning objects; if a warning occurred during processing of the request, it will be represented by a warning object in this list.
@@ -215,15 +129,7 @@ namespace Couchbase.Query
         /// <value>
         /// The warnings.
         /// </value>
-        public List<Warning> Warnings
-        {
-            get
-            {
-                CheckRead();
-                return _warnings;
-            }
-            private set => _warnings = value;
-        }
+        public List<Warning> Warnings { get; } = new List<Warning>();
 
         /// <summary>
         /// Gets an object containing metrics about the request.
@@ -231,15 +137,7 @@ namespace Couchbase.Query
         /// <value>
         /// The metrics.
         /// </value>
-        public Metrics Metrics
-        {
-            get
-            {
-                CheckRead();
-                return _metrics;
-            }
-            private set => _metrics = value;
-        }
+        public Metrics Metrics { get; } = new Metrics();
 
         /// <summary>
         /// Gets the requet N1QL query profile.
@@ -247,15 +145,7 @@ namespace Couchbase.Query
         /// <value>
         /// The profile.
         /// </value>
-        public dynamic Profile
-        {
-            get
-            {
-                CheckRead();
-                return _profile;
-            }
-            private set => _profile = value;
-        }
+        public dynamic Profile { get; private set; }
 
         /// <summary>
         /// Gets the HTTP status code.
@@ -275,99 +165,58 @@ namespace Couchbase.Query
         internal Stream ResponseStream { get; set; }
 
         /// <summary>
-        /// Forces the stream to be read storing the contents in a collection. For performance reasons
-        /// calling this is generally considered an anti-pattern.
+        /// Indicates that the query result has been completely read.
         /// </summary>
-        public void ForceRead()
-        {
-            Rows = this.ToList();
-            _forcedRead = true;
-        }
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>
-        /// An enumerator that can be used to iterate through the collection.
-        /// </returns>
-        public IEnumerator<T> GetEnumerator()
-        {
-            if (_forcedRead)
-            {
-                // Return the cached results from the previous call to ForceRead
-                foreach (var row in Rows)
-                {
-                    yield return row;
-                }
-
-                yield break;
-            }
-
-            if (_hasReadResults)
-            {
-                // Don't allow enumeration more than once, unless stream was force read into memory
-
-                throw new StreamAlreadyReadException();
-            }
-
-            // Ensure that reading has begun and we're ready to deserialize result rows
-            CheckRead();
-
-            if (!_hasFinishedReading)
-            {
-                // Read isn't complete, so the stream is currently waiting to deserialize the results
-
-                while (_reader.Read())
-                {
-                    if (_reader.Depth == 2)
-                    {
-                        yield return ReadItem<T>(_reader);
-                    }
-                    if (_reader.Path == "results" && _reader.TokenType == JsonToken.EndArray)
-                    {
-                        break;
-                    }
-                }
-
-                // Read any remaining attributes after the results
-                ReadResponseAttributes();
-            }
-
-            _hasReadResults = true;
-        }
+        internal bool HasFinishedReading { get; private set; }
 
         /// <summary>
         /// Initializes the reader, and reads all attributes until result rows are encountered.
+        /// This must be called before properties are valid.
         /// </summary>
-        internal void ReadToRows()
+        internal async Task ReadToRowsAsync(CancellationToken cancellationToken)
         {
             _reader = new JsonTextReader(new StreamReader(ResponseStream));
 
-            // We must set this first so we don't trigger multiple calls to ReadToRows
-            // As ReadResponseAttributes access properties
-            _isHeaderRead = true;
-
             // Read the attributes until we reach the end of the object or the "results" attribute
-            ReadResponseAttributes();
+            await ReadResponseAttributes(cancellationToken).ConfigureAwait(false);
 
-            if (!_hasFinishedReading)
+            if (!HasFinishedReading)
             {
                 // We encountered a results attribute, so we must be successful
                 // We'll assume so until we read otherwise later
 
                 Status = QueryStatus.Success;
                 Success = true;
+
+                _enumerator = new QueryResultRows<T>(this, _reader);
             }
+            else
+            {
+                _enumerator = AsyncEnumerable.Empty<T>();
+            }
+        }
+
+        /// <inheritdoc />
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
+        {
+            if (_enumerator == null)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(StreamingQueryResult<T>)} has not been initialized, call ReadToRowsAsync first");
+            }
+            return _enumerator.GetAsyncEnumerator(cancellationToken);
         }
 
         /// <summary>
         /// Reads and parses any response attributes, returning at the end of the response or
         /// once the "results" attribute is encountered.
         /// </summary>
-        private void ReadResponseAttributes()
+        internal async Task ReadResponseAttributes(CancellationToken cancellationToken)
         {
-            while (_reader.Read())
+            while (await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 switch (_reader.Path)
                 {
                     case "requestID" when _reader.TokenType == JsonToken.String:
@@ -394,22 +243,22 @@ namespace Couchbase.Query
                         Profile = JToken.ReadFrom(_reader);
                         break;
                     case "metrics.elapsedTime" when _reader.TokenType == JsonToken.String:
-                        _metrics.ElaspedTime = _reader.Value.ToString();
+                        Metrics.ElaspedTime = _reader.Value.ToString();
                         break;
                     case "metrics.executionTime" when _reader.TokenType == JsonToken.String:
-                        _metrics.ExecutionTime = _reader.Value.ToString();
+                        Metrics.ExecutionTime = _reader.Value.ToString();
                         break;
                     case "metrics.resultCount" when _reader.TokenType == JsonToken.Integer:
                         if (uint.TryParse(_reader.Value.ToString(), out var resultCount))
                         {
-                            _metrics.ResultCount = resultCount;
+                            Metrics.ResultCount = resultCount;
                         }
 
                         break;
                     case "metrics.resultSize" when _reader.TokenType == JsonToken.Integer:
                         if (uint.TryParse(_reader.Value.ToString(), out var resultSize))
                         {
-                            _metrics.ResultSize = resultSize;
+                            Metrics.ResultSize = resultSize;
                         }
 
                         break;
@@ -422,7 +271,8 @@ namespace Couchbase.Query
                         {
                             if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
                             {
-                                Warnings.Add(ReadItem<Warning>(_reader));
+                                Warnings.Add(await ReadItem<Warning>(_reader, cancellationToken)
+                                    .ConfigureAwait(false));
                             }
                             if (_reader.Path == "warnings" && _reader.TokenType == JsonToken.EndArray)
                             {
@@ -436,7 +286,8 @@ namespace Couchbase.Query
                         {
                             if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
                             {
-                                Errors.Add(ReadItem<Error>(_reader));
+                                Errors.Add(await ReadItem<Error>(_reader, cancellationToken)
+                                    .ConfigureAwait(false));
                             }
                             if (_reader.Path == "errors" && _reader.TokenType == JsonToken.EndArray)
                             {
@@ -449,7 +300,7 @@ namespace Couchbase.Query
             }
 
             // We've reached the end of the object, mark that entire read is complete
-            _hasFinishedReading = true;
+            HasFinishedReading = true;
         }
 
         /// <summary>
@@ -457,22 +308,13 @@ namespace Couchbase.Query
         /// </summary>
         /// <typeparam name="K"></typeparam>
         /// <param name="jtr">The JTR.</param>
+        /// <param name="cancellationToken">A cancellation token.</param>
         /// <returns></returns>
-        private K ReadItem<K>(JsonTextReader jtr)
+        private static async Task<K> ReadItem<K>(JsonTextReader jtr, CancellationToken cancellationToken)
         {
-            var jObject = JToken.ReadFrom(jtr);
+            var jObject = await JToken.ReadFromAsync(jtr, cancellationToken)
+                .ConfigureAwait(false);
             return jObject.ToObject<K>();
-        }
-
-        /// <summary>
-        /// Returns an enumerator that iterates through a collection.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="T:System.Collections.IEnumerator" /> object that can be used to iterate through the collection.
-        /// </returns>
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         /// <summary>

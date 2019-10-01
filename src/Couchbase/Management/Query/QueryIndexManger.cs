@@ -137,7 +137,7 @@ namespace Couchbase.Management.Query
                 );
 
                 var indexes = new List<QueryIndex>();
-                foreach (var row in result)
+                await foreach (var row in result.ConfigureAwait(false))
                 {
                     indexes.Add(row);
                 }
