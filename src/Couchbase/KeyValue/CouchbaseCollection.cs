@@ -590,13 +590,30 @@ namespace Couchbase.KeyValue
             // convert new style specs into old style builder
             var builder = new MutateInBuilder<byte[]>(null, null, id, specs);
 
+            //resolve StoreSemantics to SubdocDocFlags
+            var docFlags = SubdocDocFlags.None;
+            switch (options.StoreSemantics)
+            {
+                case StoreSemantics.Replace:
+                    break;
+                case StoreSemantics.Upsert:
+                    docFlags |= SubdocDocFlags.UpsertDocument;
+                    break;
+                case StoreSemantics.Insert:
+                    docFlags |= SubdocDocFlags.InsertDocument;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
             using (var mutation = new MultiMutation<byte[]>
             {
                 Key = id,
                 Builder = builder,
                 Cid = Cid,
                 DurabilityLevel = options.DurabilityLevel,
-                Transcoder = _transcoder
+                Transcoder = _transcoder,
+                DocFlags = docFlags
             })
             {
                 await ExecuteOp(mutation, options.Token, options.Timeout);

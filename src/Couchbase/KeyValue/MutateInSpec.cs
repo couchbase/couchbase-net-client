@@ -35,7 +35,7 @@ namespace Couchbase.KeyValue
 
         public static OperationSpec Insert<T>(string path, T value, bool createPath = false, bool isXattr = false, bool removeBrackets = false)
         {
-            return CreateSpec(OpCode.SubGet, path, value, createPath, isXattr, removeBrackets);
+            return CreateSpec(OpCode.SubDictAdd, path, value, createPath, isXattr, removeBrackets);
         }
 
         public static OperationSpec Upsert<T>(string path, T value, bool createPath = false, bool isXattr = false, bool removeBrackets = false)

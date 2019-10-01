@@ -14,18 +14,27 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
         private readonly IList<OperationSpec> _lookupCommands = new List<OperationSpec>();
 
         public DurabilityLevel DurabilityLevel { get; set; }
+
         public TimeSpan? DurabilityTimeout { get; set; }
+
+        public SubdocDocFlags DocFlags { get; set; }
 
         public override void WriteExtras(OperationBuilder builder)
         {
-            if (Expires <= 0)
+            if (Expires > 0)
             {
-                return;
+                Span<byte> buffer = stackalloc byte[sizeof(uint)];
+                Converter.FromUInt32(Expires, buffer);
+                builder.Write(buffer);
             }
 
-            Span<byte> buffer = stackalloc byte[sizeof(uint)];
-            Converter.FromUInt32(Expires, buffer);
-            builder.Write(buffer);
+            if (DocFlags != SubdocDocFlags.None)
+            {
+                //Add the doc flags
+                Span<byte> buffer = stackalloc byte[sizeof(byte)];
+                buffer[0] = (byte)DocFlags;
+                builder.Write(buffer);
+            }
         }
 
         public override void WriteFramingExtras(OperationBuilder builder)

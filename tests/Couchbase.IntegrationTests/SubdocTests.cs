@@ -146,5 +146,18 @@ namespace Couchbase.IntegrationTests
 
             await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"});;
         }
+
+        [Fact]
+        public async Task Test_MutateInAsync_Upsert_And_Xattr_Doc()
+        {
+            var collection = await _fixture.GetDefaultCollection();
+
+            var result = await collection.MutateInAsync("foo", specs =>
+                {
+                    specs.Upsert("key", "value", true, true);
+                    specs.Upsert("name", "mike");
+                },
+                options => options.WithStoreSemantics(StoreSemantics.Upsert));
+        }
     }
 }
