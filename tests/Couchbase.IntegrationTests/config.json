@@ -1,0 +1,10 @@
+{
+  "testSettings": {
+    "connectionString": "couchbase://localhost",
+    "bucketName": "default"
+  },
+  "couchbase": {
+    "username": "Administrator",
+    "password": "password"
+  }
+}

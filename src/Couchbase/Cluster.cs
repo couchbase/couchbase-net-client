@@ -18,6 +18,7 @@ using Couchbase.Management.Users;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase
@@ -114,6 +115,19 @@ namespace Couchbase
                 cluster.InitializeAsync().GetAwaiter().GetResult();
                 return cluster;
             }
+        }
+
+        public static ICluster Connect(string connectionString, Action<ConfigurationBuilder> configureBuilder)
+        {
+            var builder = new ConfigurationBuilder();
+            configureBuilder(builder);
+
+            var clusterOptions = builder
+                .Build()
+                .GetSection("couchbase")
+                .Get<ClusterOptions>();
+
+            return Connect(connectionString, clusterOptions);
         }
 
         private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint, Uri uri)
