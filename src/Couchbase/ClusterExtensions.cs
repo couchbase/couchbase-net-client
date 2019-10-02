@@ -4,7 +4,6 @@ using Couchbase.Analytics;
 using Couchbase.Core.Diagnostics;
 using Couchbase.Query;
 using Couchbase.Search;
-using QueryParameter = Couchbase.Query.QueryParameter;
 
 namespace Couchbase
 {
@@ -16,15 +15,17 @@ namespace Couchbase
         }
 
         public static Task<Query.IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,
-            Action<QueryParameter> configureParameters = null, Action<QueryOptions> configureOptions = null)
+            Action<QueryOptions> configureOptions)
         {
-            var parameters = new QueryParameter();
-            configureParameters?.Invoke(parameters);
-
             var options = new QueryOptions();
             configureOptions?.Invoke(options);
 
-            return cluster.QueryAsync<T>(statement, parameters, options);
+            return cluster.QueryAsync<T>(statement, options);
+        }
+
+        public static Task<Query.IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement)
+        {
+            return cluster.QueryAsync<T>(statement, QueryOptions.Create(statement));
         }
 
         #region Analytics

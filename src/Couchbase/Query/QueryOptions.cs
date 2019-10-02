@@ -382,6 +382,11 @@ namespace Couchbase.Query
         /// </remarks>
         public QueryOptions AddNamedParameter(params KeyValuePair<string, object>[] parameters)
         {
+            if (_arguments.Any())
+            {
+                throw new InvalidArgumentException("Cannot combine positional and named query parameters.");
+            }
+
             foreach (var parameter in parameters)
             {
                 _parameters.Add(parameter.Key, parameter.Value);
@@ -396,6 +401,11 @@ namespace Couchbase.Query
         /// <returns></returns>
         public QueryOptions AddPositionalParameter(params object[] parameters)
         {
+            if (_parameters.Any())
+            {
+                throw new InvalidArgumentException("Cannot combine positional and named query parameters.");
+            }
+
             foreach (var parameter in parameters)
             {
                 _arguments.Add(parameter);

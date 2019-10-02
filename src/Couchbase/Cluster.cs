@@ -320,13 +320,9 @@ namespace Couchbase
 
         #region Query
 
-        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryParameter parameters, QueryOptions options)
+        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
             await EnsureBootstrapped();
-
-            //re-use older API by mapping parameters to new API
-            options?.AddNamedParameter(parameters?.NamedParameters.ToArray());
-            options?.AddPositionalParameter(parameters?.PostionalParameters.ToArray());
 
             return await _lazyQueryClient.Value.QueryAsync<T>(statement, options);
         }
