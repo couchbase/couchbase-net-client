@@ -507,7 +507,14 @@ namespace Couchbase.KeyValue
             })
             {
                 await ExecuteOp(getAndTouchOp, options.Token, options.Timeout);
-                return new GetResult(getAndTouchOp.ExtractData(), transcoder);
+                return new GetResult(getAndTouchOp.ExtractData(), transcoder)
+                {
+                    Id = getAndTouchOp.Key,
+                    Cas = getAndTouchOp.Cas,
+                    Flags = getAndTouchOp.Flags,
+                    Header = getAndTouchOp.Header,
+                    OpCode = getAndTouchOp.OpCode
+                };
             }
         }
 
@@ -528,7 +535,14 @@ namespace Couchbase.KeyValue
             })
             {
                 await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
-                return new GetResult(getAndLockOp.ExtractData(), transcoder);
+                return new GetResult(getAndLockOp.ExtractData(), transcoder)
+                {
+                    Id = getAndLockOp.Key,
+                    Cas = getAndLockOp.Cas,
+                    Flags = getAndLockOp.Flags,
+                    Header = getAndLockOp.Header,
+                    OpCode = getAndLockOp.OpCode
+                };
             }
         }
 

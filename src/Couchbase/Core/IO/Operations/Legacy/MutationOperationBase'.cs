@@ -21,6 +21,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
         /// <param name="buffer">The memcached response buffer.</param>
         public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
+            base.ReadExtras(buffer);
             TryReadMutationToken(buffer);
         }
 

@@ -105,5 +105,24 @@ namespace Couchbase.IntegrationTests
                 await collection.RemoveAsync(key);
             }
         }
+
+        [Fact]
+        public async Task Can_GetAndTouch_Do_Something_Fabulous()
+        {
+            var collection = await _fixture.GetDefaultCollection();
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                await collection.InsertAsync(key, Person.Create());
+                var result = await collection.GetAndTouchAsync(key, TimeSpan.FromMilliseconds(10));
+                var content = result.ContentAs<Person>();
+                Assert.NotEqual(ulong.MinValue, result.Cas);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key);
+            }
+        }
     }
 }

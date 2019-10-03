@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Couchbase.Core;
 
 namespace Couchbase.KeyValue

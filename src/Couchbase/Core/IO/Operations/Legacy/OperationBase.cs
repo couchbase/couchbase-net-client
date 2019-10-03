@@ -106,6 +106,7 @@ namespace Couchbase.Core.IO.Operations.Legacy
             Cas = header.Cas;
             _data = buffer;
 
+            ReadExtras(_data.Memory.Span);
             return Task.CompletedTask;
         }
 

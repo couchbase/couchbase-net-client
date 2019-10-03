@@ -63,8 +63,8 @@ namespace Couchbase.KeyValue
         {
             EnsureNotDisposed();
 
-            //basic GET operation
-            if (OpCode == OpCode.Get || OpCode == OpCode.ReplicaRead)
+            //basic GET or other non-projection operation
+            if (OpCode == OpCode.Get || OpCode == OpCode.ReplicaRead || OpCode == OpCode.GetL || OpCode == OpCode.GAT)
             {
                 return _transcoder.Decode<T>(_contentBytes.Memory.Slice(Header.BodyOffset), Flags, OpCode);
             }
