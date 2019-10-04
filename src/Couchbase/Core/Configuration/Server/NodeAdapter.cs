@@ -113,8 +113,9 @@ namespace Couchbase.Core.Configuration.Server
                     // use alternate network if bucket config and nodeExt's hostname don't match
                     return string.Compare(nodeExt.Hostname, bucketConfig.SurrogateHost, StringComparison.Ordinal) != 0;
                 case NetworkTypes.External:
-                case NetworkTypes.Default:
                     return true;
+                case NetworkTypes.Default:
+                    return false;
                 default:
                     return false;
             }

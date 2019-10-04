@@ -144,7 +144,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             var bucketConfig = new BucketConfig
             {
-                NetworkType = NetworkTypes.Auto,
+                NetworkType = networkType,
                 SurrogateHost = expected
             };
 
@@ -205,7 +205,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             var bucketConfig = new BucketConfig
             {
-                NetworkType = NetworkTypes.Auto,
+                NetworkType = networkType,
                 SurrogateHost = expected
             };
 
@@ -215,8 +215,16 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
         private void VerifyServices(Couchbase.Core.Configuration.Server.Services services, NodeAdapter adapter)
         {
+            Assert.Equal(services.Cbas, adapter.Analytics);
+            Assert.Equal(services.CbasSsl, adapter.AnalyticsSsl);
+            Assert.Equal(services.Capi, adapter.Views);
+            Assert.Equal(services.CapiSsl, adapter.ViewsSsl);
+            Assert.Equal(services.Fts, adapter.Fts);
+            Assert.Equal(services.FtsSsl, adapter.FtsSsl);
             Assert.Equal(services.Kv, adapter.KeyValue);
             Assert.Equal(services.KvSsl, adapter.KeyValueSsl);
+            Assert.Equal(services.N1Ql, adapter.N1Ql);
+            Assert.Equal(services.N1QlSsl, adapter.N1QlSsl);
         }
     }
 }
