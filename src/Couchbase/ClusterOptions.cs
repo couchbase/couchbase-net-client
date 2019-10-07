@@ -81,7 +81,7 @@ namespace Couchbase
         public TimeSpan AnalyticsTimeout { get; set; }
         public TimeSpan SearchTimeout { get; set; }
         public TimeSpan ManagementTimeout { get; set; }
-        public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2500);
+        public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
         public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);
         public TimeSpan TcpKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(1);
         public bool UseSsl { get; set; }
