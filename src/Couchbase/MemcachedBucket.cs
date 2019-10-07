@@ -12,8 +12,8 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
-using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Management.Views;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
@@ -57,7 +57,7 @@ namespace Couchbase
             throw new NotSupportedException("Views are not supported by Memcached Buckets.");
         }
 
-        public override IViewManager ViewIndexes =>  throw new NotSupportedException("View Indexes are not supported by Memcached Buckets.");
+        public override IViewIndexManager Views =>  throw new NotSupportedException("View Indexes are not supported by Memcached Buckets.");
 
         public override ICollectionManager Collections =>  throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
 

@@ -1,4 +1,4 @@
-namespace Couchbase.Views
+namespace Couchbase.Management.Views
 {
     public class DesignDocumentNotFoundException : CouchbaseException
     {

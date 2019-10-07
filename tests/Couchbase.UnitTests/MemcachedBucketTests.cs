@@ -1,11 +1,9 @@
 using System;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
-using Couchbase.Core.IO;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Moq;
@@ -20,7 +18,7 @@ namespace Couchbase.UnitTests
         {
             var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()));
 
-            Assert.Throws<NotSupportedException>(() => bucket.ViewIndexes);
+            Assert.Throws<NotSupportedException>(() => bucket.Views);
         }
 
         [Fact]

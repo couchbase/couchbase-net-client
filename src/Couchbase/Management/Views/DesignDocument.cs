@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using Couchbase.Views;
 using Newtonsoft.Json;
 
-namespace Couchbase.Views
+namespace Couchbase.Management.Views
 {
     public class DesignDocument
     {

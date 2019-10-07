@@ -10,9 +10,9 @@ using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
-using Couchbase.Management;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
+using Couchbase.Management.Views;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
@@ -56,7 +56,7 @@ namespace Couchbase.Core
         public abstract Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName,
             ViewOptions options = default);
 
-        public abstract IViewManager ViewIndexes { get; }
+        public abstract IViewIndexManager Views { get; }
 
         public abstract ICollectionManager Collections { get; }
 

@@ -6,8 +6,8 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.KeyValue;
-using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Management.Views;
 using Couchbase.Views;
 using Xunit;
 using Xunit.Abstractions;
@@ -246,7 +246,7 @@ namespace Couchbase.UnitTests.Core.Configuration
                 _event = eventSlim;
             }
 
-            public override IViewManager ViewIndexes => throw new NotImplementedException();
+            public override IViewIndexManager Views => throw new NotImplementedException();
 
             public override ICollectionManager Collections => throw new NotImplementedException();
 

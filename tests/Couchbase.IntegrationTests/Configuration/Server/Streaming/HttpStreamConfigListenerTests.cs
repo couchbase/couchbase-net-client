@@ -9,8 +9,8 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.KeyValue;
-using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Management.Views;
 using Couchbase.Views;
 using Xunit;
 
@@ -62,7 +62,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
 
             public override Task<IScope> this[string name] => throw new NotImplementedException();
 
-            public override IViewManager ViewIndexes => throw new NotImplementedException();
+            public override IViewIndexManager Views => throw new NotImplementedException();
 
             public override ICollectionManager Collections => throw new NotImplementedException();
 

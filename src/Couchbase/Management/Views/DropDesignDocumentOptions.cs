@@ -11,5 +11,7 @@ namespace Couchbase.Management.Views
             CancellationToken = cancellationToken;
             return this;
         }
+
+        public static DropDesignDocumentOptions Default => new DropDesignDocumentOptions();
     }
 }

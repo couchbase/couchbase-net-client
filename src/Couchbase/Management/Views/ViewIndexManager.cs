@@ -7,52 +7,33 @@ using System.Threading.Tasks;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
+using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Couchbase.Views
+namespace Couchbase.Management.Views
 {
-    internal class ViewManager : IViewManager
+    internal class ViewIndexManager : IViewIndexManager
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<ViewManager>();
+        private static readonly ILogger Logger = LogManager.CreateLogger<ViewIndexManager>();
 
         private readonly string _bucketName;
         private readonly HttpClient _client;
         private readonly ClusterOptions _clusterOptions;
-        private readonly string _scheme;
-        private readonly int _port;
 
-        internal ViewManager(string bucketName, HttpClient client, ClusterOptions clusterOptions)
+        internal ViewIndexManager(string bucketName, HttpClient client, ClusterOptions clusterOptions)
         {
             _bucketName = bucketName;
             _client = client;
             _clusterOptions = clusterOptions;
-
-            //TODO: use configured ports
-            if (_clusterOptions.UseSsl)
-            {
-                _scheme = "https";
-                _port = 18092;
-            }
-            else
-            {
-                _scheme = "http";
-                _port = 8092;
-            }
         }
 
-        private Uri GetUri(string designDocName, bool isProduction)
+        private Uri GetUri(string designDocName, DesignDocumentNamespace @namespace)
         {
-            // TODO: should only get node with KV service enabled
-            var server = _clusterOptions.Servers.GetRandom();
-
             // {0}://{1}:{2}/{3}/_design
-            var builder = new UriBuilder
+            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom(node => node.HasViews()).ViewsUri)
             {
-                Scheme = _scheme,
-                Host = server.Host,
-                Port = _port,
                 Path = _bucketName
             };
 
@@ -60,7 +41,7 @@ namespace Couchbase.Views
             {
                 const string devPrefix = "dev_";
                 string name;
-                if (isProduction)
+                if (@namespace == DesignDocumentNamespace.Production)
                 {
                     name = designDocName.StartsWith(devPrefix) ? designDocName.Substring(devPrefix.Length) : designDocName;
                 }
@@ -75,9 +56,9 @@ namespace Couchbase.Views
             return builder.Uri;
         }
 
-        public async Task<DesignDocument> GetAsync(string designDocName, GetViewIndexOptions options)
+        public async Task<DesignDocument> GetDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, GetDesignDocumentOptions options)
         {
-            var uri = GetUri(designDocName, options.IsProduction);
+            var uri = GetUri(designDocName, @namespace);
             Logger.LogInformation($"Attempting to get design document {_bucketName}/{designDocName} - {uri}");
 
             try
@@ -103,13 +84,11 @@ namespace Couchbase.Views
             }
         }
 
-        public async Task<IEnumerable<DesignDocument>> GetAllAsync(GetAllViewIndexOptions options)
+        public async Task<IEnumerable<DesignDocument>> GetAllDesignDocumentsAsync(DesignDocumentNamespace @namespace, GetAllDesignDocumentsOptions options)
         {
-            var uri = new UriBuilder
+            var uri = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom(node => node.HasViews()).ViewsUri)
             {
-                Scheme = _scheme,
-                Host = _clusterOptions.Servers.GetRandom().Host,
-                Port = 8091,
+                Port = _clusterOptions.MgmtPort,
                 Path = $"pools/default/buckets/{_bucketName}/ddocs"
             }.Uri;
             Logger.LogInformation($"Attempting to get all design documents for bucket {_bucketName} - {uri}");
@@ -157,41 +136,10 @@ namespace Couchbase.Views
             }
         }
 
-        public async Task CreateAsync(DesignDocument designDocument, CreateViewIndexOptions options)
+        public async Task UpsertDesignDocumentAsync(DesignDocument designDocument, DesignDocumentNamespace @namespace, UpsertDesignDocumentOptions options)
         {
             var json = JsonConvert.SerializeObject(designDocument);
-            var uri = GetUri(designDocument.Name, options.IsProduction);
-            Logger.LogInformation($"Attempting to create design document {_bucketName}/{designDocument.Name} - {uri}");
-            Logger.LogDebug(json);
-
-            try
-            {
-                try
-                {
-                    // Check design document doesn't already exist - will throw if not
-                    await GetAsync(designDocument.Name, new GetViewIndexOptions { IsProduction = options.IsProduction}).ConfigureAwait(false);
-                    throw new DesignDocumentAlreadyExistsException(_bucketName, designDocument.Name);
-                }
-                catch (DesignDocumentNotFoundException)
-                {
-                    // we expect this exception
-                }
-
-                var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
-                var result = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
-                result.EnsureSuccessStatusCode();
-            }
-            catch (Exception exception)
-            {
-                Logger.LogError(exception, $"Failed to create design document {_bucketName}/{designDocument.Name} - {uri} - {json}");
-                throw;
-            }
-        }
-
-        public async Task UpsertAsync(DesignDocument designDocument, UpsertViewIndexOptions options)
-        {
-            var json = JsonConvert.SerializeObject(designDocument);
-            var uri = GetUri(designDocument.Name, options.IsProduction);
+            var uri = GetUri(designDocument.Name, @namespace);
             Logger.LogInformation($"Attempting to upsert design document {_bucketName}/{designDocument.Name} - {uri}");
             Logger.LogDebug(json);
 
@@ -209,9 +157,9 @@ namespace Couchbase.Views
             }
         }
 
-        public async Task DropAsync(string designDocName, DropViewIndexOptions options)
+        public async Task DropDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, DropDesignDocumentOptions options)
         {
-            var uri = GetUri(designDocName, options.IsProduction);
+            var uri = GetUri(designDocName, @namespace);
             Logger.LogInformation($"Attempting to drop design document {_bucketName}/{designDocName} - {uri}");
 
             try
@@ -232,15 +180,15 @@ namespace Couchbase.Views
             }
         }
 
-        public async Task PublishAsync(string designDocName, PublishIndexOptions options)
+        public async Task PublishDesignDocumentAsync(string designDocName, PublishDesignDocumentOptions options)
         {
-            var uri = GetUri(designDocName, true);
+            var uri = GetUri(designDocName, DesignDocumentNamespace.Production);
             Logger.LogInformation($"Attempting to publish design document {_bucketName}/{designDocName} - {uri}");
 
             try
             {
                 // get dev design document
-                var designDocument = await GetAsync(designDocName, GetViewIndexOptions.Default).ConfigureAwait(false);
+                var designDocument = await GetDesignDocumentAsync(designDocName, DesignDocumentNamespace.Development, GetDesignDocumentOptions.Default).ConfigureAwait(false);
                 var json = JsonConvert.SerializeObject(designDocument);
 
                 // publish design doc to production
@@ -249,7 +197,7 @@ namespace Couchbase.Views
                 publishResult.EnsureSuccessStatusCode();
 
                 // drop old dev design doc
-                await DropAsync(designDocName, DropViewIndexOptions.Default);
+                await DropDesignDocumentAsync(designDocName, DesignDocumentNamespace.Development, DropDesignDocumentOptions.Default);
             }
             catch (DesignDocumentNotFoundException)
             {

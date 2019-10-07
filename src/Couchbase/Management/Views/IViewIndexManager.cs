@@ -1,6 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Couchbase.Views;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Management.Views
 {
@@ -15,5 +21,5 @@ namespace Couchbase.Management.Views
         Task DropDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, DropDesignDocumentOptions options);
 
         Task PublishDesignDocumentAsync(string designDocName, PublishDesignDocumentOptions options);
-    }
+        }
 }

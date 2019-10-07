@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
-using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Management.Views;
 using Couchbase.Views;
 
 namespace Couchbase
@@ -20,7 +20,7 @@ namespace Couchbase
 
         Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default);
 
-        IViewManager ViewIndexes { get; }
+        IViewIndexManager Views { get; }
 
         ICollectionManager Collections { get; }
     }
