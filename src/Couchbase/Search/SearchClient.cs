@@ -61,6 +61,11 @@ namespace Couchbase.Search
                 throw new ServiceNotAvailableException(ServiceType.Search);
             }
 
+            var uri = new UriBuilder(node.SearchUri)
+            {
+                Path = $"api/index/{searchQuery.Index}/query"
+            };
+
             var searchResult = new SearchResult();
 
             string searchBody;

@@ -31,7 +31,7 @@ namespace Couchbase.UnitTests.Fixtures
 
         public void Dispose()
         {
-            //Cluster?.Dispose();
+            Cluster?.Dispose();
         }
     }
 }
