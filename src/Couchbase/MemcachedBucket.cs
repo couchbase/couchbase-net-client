@@ -70,7 +70,7 @@ namespace Couchbase
             }
 
             //build a fake scope and collection for Memcached buckets which do not support scopes or collections
-            var defaultCollection = new CouchbaseCollection(this, null, "_default");
+            var defaultCollection = new CouchbaseCollection(this, CouchbaseContext,null, "_default");
             var defaultScope = new Scope("_default", "0", new List<ICollection> {defaultCollection}, this);
             Scopes.TryAdd("_default", defaultScope);
         }

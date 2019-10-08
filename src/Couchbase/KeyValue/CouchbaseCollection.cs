@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
@@ -26,12 +27,14 @@ namespace Couchbase.KeyValue
         private readonly BucketBase _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
+        private readonly ConfigContext _context;
 
-        internal CouchbaseCollection(BucketBase bucket, uint? cid, string name)
+        internal CouchbaseCollection(BucketBase bucket, ConfigContext context,uint? cid, string name)
         {
             Cid = cid;
             Name = name;
             _bucket = bucket;
+            _context = context;
         }
 
         public uint? Cid { get; }
@@ -206,6 +209,11 @@ namespace Couchbase.KeyValue
                 {
                     tcs.TrySetResult(state.ExtractData());
                 }
+                else if
+                    (state.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                {
+                    tcs.TrySetResult(state.ExtractData());
+                }
                 else
                 {
                     tcs.TrySetException(ThrowException(state));
@@ -235,6 +243,13 @@ namespace Couchbase.KeyValue
                     await _bucket.Send(op, tcs).ConfigureAwait(false);
                     var bytes = await tcs.Task.ConfigureAwait(false);
                     await op.ReadAsync(bytes).ConfigureAwait(false);
+
+                    var status = op.Header.Status;
+                    if (status == ResponseStatus.VBucketBelongsToAnotherServer)
+                    {
+                        var config = op.GetConfig(_transcoder);
+                        _context.Publish(config);
+                    }
 
                     Log.LogDebug("Completed executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
                 }

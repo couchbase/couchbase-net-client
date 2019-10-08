@@ -25,16 +25,27 @@ namespace Couchbase.Core.Configuration.Server
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<ConfigContext>();
 
-        private readonly BlockingCollection<BucketConfig> _configQueue = new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
-        private readonly ConcurrentDictionary<string, BucketConfig> _configs = new ConcurrentDictionary<string, BucketConfig>();
+        private readonly BlockingCollection<BucketConfig> _configQueue =
+            new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
+
+        private readonly ConcurrentDictionary<string, BucketConfig> _configs =
+            new ConcurrentDictionary<string, BucketConfig>();
+
         public CancellationTokenSource TokenSource { get; set; } = new CancellationTokenSource();
         private readonly ClusterOptions _clusterOptions;
-        private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners = new ConcurrentDictionary<string, HttpStreamingConfigListener>();
+
+        private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners =
+            new ConcurrentDictionary<string, HttpStreamingConfigListener>();
+
         private readonly HttpClient _httpClient;
 
         internal delegate void BucketConfigHandler(object sender, BucketConfigEventArgs a);
 
         public event BucketConfigHandler ConfigChanged;
+
+        public ConfigContext() : this(new ClusterOptions())
+        {
+        }
 
         public ConfigContext(ClusterOptions clusterOptions)
         {
