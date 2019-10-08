@@ -11,5 +11,12 @@ namespace Couchbase.UnitTests
             var options =  new ClusterOptions();
             Assert.Equal(TimeSpan.FromSeconds(2.5), options.ConfigPollInterval);
         }
+
+        [Fact]
+        public void Test_EnableConfigPolling_Default_Is_True()
+        {
+            var options = new ClusterOptions();
+            Assert.True(options.EnableConfigPolling);
+        }
     }
 }

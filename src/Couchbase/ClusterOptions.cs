@@ -94,7 +94,7 @@ namespace Couchbase
         public bool IgnoreRemoteCertificateNameMismatch { get; set; }
         public int MaxQueryConnectionsPerServer { get; set; } = 10;
         public bool OrphanedResponseLoggingEnabled { get; set; }
-        public bool EnableConfigPolling { get; set; }
+        public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
     }
 
