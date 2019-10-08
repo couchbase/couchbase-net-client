@@ -39,9 +39,15 @@ namespace Couchbase.IntegrationTests
             public string Field18 { get; set; }
         }
 
-        public class InnerObject
+        public class InnerObject : IEquatable<InnerObject>
         {
             public string Name { get; set; }
+
+            public bool Equals(InnerObject other)
+            {
+                if (other == null) return false;
+                return this.Name == other.Name;
+            }
         }
 
         [Fact]
@@ -102,7 +108,23 @@ namespace Couchbase.IntegrationTests
                 {
                     var content = result.ContentAs<Poco>();
 
-                    Assert.Equal("Field1", content.Field1);
+                    Assert.Equal(poco.Field1, content.Field1);
+                    Assert.Equal(poco.Field2, content.Field2);
+                    Assert.Equal(poco.Field3, content.Field3);
+                    Assert.Equal(poco.Field4, content.Field4);
+                    Assert.Equal(poco.Field5, content.Field5);
+                    Assert.Equal(poco.Field6, content.Field6);
+                    Assert.Equal(poco.Field7, content.Field7);
+                    Assert.Equal(poco.Field8, content.Field8);
+                    Assert.Equal(poco.Field9, content.Field9);
+                    Assert.Equal(poco.Field10, content.Field10);
+                    Assert.Equal(poco.Field11, content.Field11);
+                    Assert.Equal(poco.Field12, content.Field12);
+                    Assert.Equal(poco.Field13, content.Field13);
+                    Assert.Equal(poco.Field14, content.Field14);
+                    Assert.Equal(poco.Field15, content.Field15);
+                    Assert.Equal(poco.Field16, content.Field16);
+                    Assert.Equal(poco.Field17, content.Field17);
                 }
             }
             finally
@@ -145,13 +167,28 @@ namespace Couchbase.IntegrationTests
 
                 using (var result = await collection.GetAsync(key,
                     options => options.WithProjection("field1", "field2", "field3", "field4", "field5", "field6",
-                        "field47", "field8", "field9", "field10", "field11", "field12",
+                        "field7", "field8", "field9", "field10", "field11", "field12",
                         "field13", "field14", "field15", "field16", "field17")))
                 {
                     var content = result.ContentAs<Poco>();
 
-                    Assert.Equal("Field1", content.Field1);
-                    Assert.Equal(2, content.Field3);
+                    Assert.Equal(poco.Field1, content.Field1);
+                    Assert.Equal(poco.Field2, content.Field2);
+                    Assert.Equal(poco.Field3, content.Field3);
+                    Assert.Equal(poco.Field4, content.Field4);
+                    Assert.Equal(poco.Field5, content.Field5);
+                    Assert.Equal(poco.Field6, content.Field6);
+                    Assert.Equal(poco.Field7, content.Field7);
+                    Assert.Equal(poco.Field8, content.Field8);
+                    Assert.Equal(poco.Field9, content.Field9);
+                    Assert.Equal(poco.Field10, content.Field10);
+                    Assert.Equal(poco.Field11, content.Field11);
+                    Assert.Equal(poco.Field12, content.Field12);
+                    Assert.Equal(poco.Field13, content.Field13);
+                    Assert.Equal(poco.Field14, content.Field14);
+                    Assert.Equal(poco.Field15, content.Field15);
+                    Assert.Equal(poco.Field16, content.Field16);
+                    Assert.Equal(poco.Field17, content.Field17);
                     Assert.Null(content.Field18);
                 }
             }

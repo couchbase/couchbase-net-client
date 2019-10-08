@@ -81,6 +81,13 @@ namespace Couchbase.KeyValue
             //oh mai, its a projection
             ParseSpecs();
 
+            // normal GET
+            if (_specs.Count == 1 && _projectList?.Count == 0)
+            {
+                var spec = _specs[0];
+                return _transcoder.Decode<T>(spec.Bytes, Flags, OpCode.Get);
+            }
+
             var root = new JObject();
             foreach (var spec in _specs)
             {
