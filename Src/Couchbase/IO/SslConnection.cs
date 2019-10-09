@@ -168,10 +168,6 @@ namespace Couchbase.IO
                 IsDead = true;
                 capturedException = ExceptionDispatchInfo.Capture(e);
             }
-            finally
-            {
-                ConnectionPool.Release(this);
-            }
 
             if (capturedException != null)
             {
