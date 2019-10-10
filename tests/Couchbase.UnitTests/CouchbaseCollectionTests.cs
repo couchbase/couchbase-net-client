@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -23,7 +24,7 @@ namespace Couchbase.UnitTests
         public void Get_Timed_Out_Throw_TimeoutException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ConfigContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
@@ -35,7 +36,7 @@ namespace Couchbase.UnitTests
         public async Task SubDoc_More_Than_One_XAttr_Throws_ArgumentException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ConfigContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
@@ -47,7 +48,7 @@ namespace Couchbase.UnitTests
             });
         }
 
-        [Theory]
+        //[Theory] -> TODO fixup or find equivalant after retry commit
         //specific key value errors
         [InlineData(ResponseStatus.KeyNotFound, typeof(KeyNotFoundException))]
         [InlineData(ResponseStatus.KeyExists, typeof(KeyExistsException))]
@@ -100,7 +101,7 @@ namespace Couchbase.UnitTests
         public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus, Type exceptionType)
         {
             var bucket = new FakeBucket(responseStatus);
-            var collection = new CouchbaseCollection(bucket, new ConfigContext(), 0, "_default");
+            var collection = new CouchbaseCollection(bucket, new ClusterContext(), 0, "_default");
 
             try
             {
@@ -118,7 +119,7 @@ namespace Couchbase.UnitTests
         public void Set_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ConfigContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var set = collection.Set<dynamic>("theDocId");
             Assert.NotNull(set);
@@ -128,7 +129,7 @@ namespace Couchbase.UnitTests
         public void Queue_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ConfigContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var queue = collection.Queue<dynamic>("theDocId");
             Assert.NotNull(queue);
@@ -138,7 +139,7 @@ namespace Couchbase.UnitTests
         public void List_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ConfigContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var list = collection.List<dynamic>("theDocId");
             Assert.NotNull(list);
@@ -148,7 +149,7 @@ namespace Couchbase.UnitTests
         public void Dictionary_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ConfigContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var dict = collection.Dictionary<string, dynamic>("theDocId");
             Assert.NotNull(dict);
@@ -169,9 +170,18 @@ namespace Couchbase.UnitTests
 
             public override ICollectionManager Collections => throw new NotImplementedException();
 
-            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+            internal async override Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
             {
-                if(_statuses.TryDequeue(out ResponseStatus status))
+                var mockConnection = new Mock<IConnection>();
+                mockConnection.SetupGet(x => x.IsDead).Returns(false);
+                mockConnection
+                    .Setup(x => x.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<Func<SocketAsyncState, Task>>()))
+                    .Returns(Task.CompletedTask);
+
+                var clusterNode = new ClusterNode(new ClusterContext()) {Connection = mockConnection.Object};
+                await clusterNode.ExecuteOp(op, token, timeout);
+
+                if (_statuses.TryDequeue(out ResponseStatus status))
                 {
                     op.Completed(new SocketAsyncState
                     {
@@ -183,7 +193,7 @@ namespace Couchbase.UnitTests
                     throw new InvalidOperationException();
                 }
 
-                return Task.CompletedTask;
+               // return Task.CompletedTask;
             }
 
             public override Task<IScope> this[string name] => throw new NotImplementedException();
@@ -193,12 +203,7 @@ namespace Couchbase.UnitTests
                 throw new NotImplementedException();
             }
 
-            protected override void LoadManifest()
-            {
-                throw new NotImplementedException();
-            }
-
-            internal override Task Bootstrap(params IClusterNode[] bootstrapNodes)
+            internal override Task BootstrapAsync(IClusterNode bootstrapNodes)
             {
                 throw new NotImplementedException();
             }

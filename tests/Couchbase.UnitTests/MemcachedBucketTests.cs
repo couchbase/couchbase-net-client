@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void ViewIndexes_Throws_NotSupportedException()
         {
-            var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()));
+            var bucket = new MemcachedBucket("default", new ClusterContext());
 
             Assert.Throws<NotSupportedException>(() => bucket.Views);
         }
@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task ViewQueryAsync_Throws_NotSupportedException()
         {
-            var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()));
+            var bucket = new MemcachedBucket("default", new ClusterContext());
 
             await Assert.ThrowsAsync<NotSupportedException>(async () =>
             {
@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task Indexer_Throws_NotSupportedException_When_Name_Is_Not_Default()
         {
-            var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()));
+            var bucket = new MemcachedBucket("default", new ClusterContext());
 
             await Assert.ThrowsAsync<NotSupportedException>(async () => { await bucket["xxxxx"].ConfigureAwait(false); }).ConfigureAwait(false);
         }
@@ -57,8 +57,8 @@ namespace Couchbase.UnitTests
                 x.GetClusterMapAsync("default", localhost, CancellationToken.None)).
                 Returns(Task.FromResult(bucketConfig));
 
-            var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()), mockHttpClusterMap.Object);
-            await bucket.Bootstrap(mockClusterNode.Object).ConfigureAwait(false);
+            var bucket = new MemcachedBucket("default", new ClusterContext(), mockHttpClusterMap.Object);
+            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
             var scope = await bucket[BucketBase.DefaultScopeName].ConfigureAwait(false);
             Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
@@ -81,8 +81,8 @@ namespace Couchbase.UnitTests
                     x.GetClusterMapAsync("default", localhost, CancellationToken.None)).
                 Returns(Task.FromResult(bucketConfig));
 
-            var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()), mockHttpClusterMap.Object);
-            await bucket.Bootstrap(mockClusterNode.Object).ConfigureAwait(false);
+            var bucket = new MemcachedBucket("default", new ClusterContext(), mockHttpClusterMap.Object);
+            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
             var scope = await bucket.ScopeAsync(BucketBase.DefaultScopeName).ConfigureAwait(false);
             Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
@@ -105,8 +105,8 @@ namespace Couchbase.UnitTests
                     x.GetClusterMapAsync("default", localhost, CancellationToken.None)).
                 Returns(Task.FromResult(bucketConfig));
 
-            var bucket = new MemcachedBucket("default", new ClusterOptions(), new ConfigContext(new ClusterOptions()), mockHttpClusterMap.Object);
-            await bucket.Bootstrap(mockClusterNode.Object).ConfigureAwait(false);
+            var bucket = new MemcachedBucket("default", new ClusterContext(), mockHttpClusterMap.Object);
+            await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
             await Assert.ThrowsAsync<NotSupportedException>(async () =>
             {

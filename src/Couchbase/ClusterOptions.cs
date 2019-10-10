@@ -13,7 +13,6 @@ namespace Couchbase
     {
         private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
-        internal ConcurrentBag<IClusterNode> GlobalNodes { get; set; } = new ConcurrentBag<IClusterNode>();
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 
@@ -96,6 +95,8 @@ namespace Couchbase
         public bool OrphanedResponseLoggingEnabled { get; set; }
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
+        public bool EnableIPV6Addressing { get; set; }
+        public int KvPort { get; set; } = 11210;
     }
 
     public static class NetworkTypes

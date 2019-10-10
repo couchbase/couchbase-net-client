@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -15,19 +16,18 @@ namespace Couchbase.Management.Users
     internal class UserManager : IUserManager
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<UserManager>();
-
         private readonly HttpClient _client;
-        private readonly ClusterOptions _clusterOptions;
+        private readonly ClusterContext _context;
 
-        public UserManager(ClusterOptions clusterOptions)
+        public UserManager(ClusterContext context)
         {
-            _clusterOptions = clusterOptions;
-            _client = new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password));
+            _context = context;
+            _client = new HttpClient(new AuthenticatingHttpClientHandler(_context));
         }
 
         private Uri GetUsersUri(string domain, string username = null)
         {
-            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom().ManagementUri)
+            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
             {
                 Path = $"settings/rbac/users/{domain}"
             };
@@ -42,7 +42,7 @@ namespace Couchbase.Management.Users
 
         private Uri GetRolesUri()
         {
-            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom().ManagementUri)
+            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
             {
                 Path = "settings/rbac/roles"
             };
@@ -52,7 +52,7 @@ namespace Couchbase.Management.Users
 
         private Uri GetGroupsUri(string groupName = null)
         {
-            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom().ManagementUri)
+            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
             {
                 Path = "settings/rbac/groups"
             };

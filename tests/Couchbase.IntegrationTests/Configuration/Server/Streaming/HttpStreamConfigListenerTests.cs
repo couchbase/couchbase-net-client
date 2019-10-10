@@ -34,12 +34,13 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             var tokenSource = new CancellationTokenSource();
             tokenSource.CancelAfter(TimeSpan.FromSeconds(10));
 
-            var context = new ConfigContext(_fixture.ClusterOptions);
-            context.Start(tokenSource);
-            context.Subscribe(_bucket);
+            var context = new ClusterContext(tokenSource, _fixture.ClusterOptions);
+            var handler = new ConfigHandler(context);
+            handler.Start(tokenSource);
+            handler.Subscribe(_bucket);
 
-            var httpClient = new CouchbaseHttpClient(_fixture.ClusterOptions);
-            var listener = new HttpStreamingConfigListener("default", _fixture.ClusterOptions, httpClient, context, tokenSource.Token);
+            var httpClient = new CouchbaseHttpClient(context);
+            var listener = new HttpStreamingConfigListener("default", _fixture.ClusterOptions, httpClient, handler, tokenSource.Token);
 
             listener.StartListening();
             Assert.True(_autoResetEvent.WaitOne(TimeSpan.FromSeconds(1)));
@@ -71,12 +72,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
                 throw new NotImplementedException();
             }
 
-            protected override void LoadManifest()
-            {
-                throw new NotImplementedException();
-            }
-
-            internal override Task Bootstrap(params IClusterNode[] bootstrapNodes)
+            internal override Task BootstrapAsync(IClusterNode node)
             {
                 throw new NotImplementedException();
             }
@@ -86,7 +82,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
                 _event.Set();
             }
 
-            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+            internal override Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
             {
                 throw new NotImplementedException();
             }

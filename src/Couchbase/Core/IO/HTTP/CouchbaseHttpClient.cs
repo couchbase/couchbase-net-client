@@ -12,17 +12,15 @@ namespace Couchbase.Core.IO.HTTP
     public class CouchbaseHttpClient : HttpClient
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<CouchbaseHttpClient>();
-
         private const string UserAgentHeaderName = "User-Agent";
-
-        private ClusterOptions ClusterOptions { get; set; }
+        private readonly ClusterContext _context;
 
         //used by all http services
-        internal CouchbaseHttpClient(ClusterOptions clusterOptions)
-            : this (CreateClientHandler(clusterOptions.UserName, clusterOptions.Password, clusterOptions))
+        internal CouchbaseHttpClient(ClusterContext context)
+            : this (CreateClientHandler(context))
         {
-            ClusterOptions = clusterOptions;
-            DefaultRequestHeaders.ExpectContinue = clusterOptions.Expect100Continue;
+            _context = context;
+            DefaultRequestHeaders.ExpectContinue = _context.ClusterOptions.Expect100Continue;
         }
 
         internal CouchbaseHttpClient(HttpClientHandler handler)
@@ -31,12 +29,12 @@ namespace Couchbase.Core.IO.HTTP
             DefaultRequestHeaders.Add(UserAgentHeaderName, ClientIdentifier.GetClientDescription());
         }
 
-        private static HttpClientHandler CreateClientHandler(string username, string password, ClusterOptions clusterOptions)
+        private static HttpClientHandler CreateClientHandler(ClusterContext context)
         {
             HttpClientHandler handler;
 
             //for x509 cert authentication
-            if (clusterOptions != null && clusterOptions.EnableCertificateAuthentication)
+            if (context.ClusterOptions.EnableCertificateAuthentication)
             {
                 handler = new NonAuthenticatingHttpClientHandler
                 {
@@ -48,12 +46,12 @@ namespace Couchbase.Core.IO.HTTP
             }
             else
             {
-                handler = new AuthenticatingHttpClientHandler(username, password);
+                handler = new AuthenticatingHttpClientHandler(context);
             }
 
             try
             {
-                handler.CheckCertificateRevocationList = clusterOptions.EnableCertificateRevocation;
+                handler.CheckCertificateRevocationList = context.ClusterOptions.EnableCertificateRevocation;
                 //handler.ServerCertificateCustomValidationCallback = config?.HttpServerCertificateValidationCallback ??
                                                                   //  OnCertificateValidation;
             }
@@ -62,23 +60,21 @@ namespace Couchbase.Core.IO.HTTP
                 Logger.LogDebug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
             }
 
-            if (clusterOptions != null)
+            try
             {
-                try
-                {
-                    handler.MaxConnectionsPerServer = clusterOptions.MaxQueryConnectionsPerServer;
-                }
-                catch (PlatformNotSupportedException e)
-                {
-                   Logger.LogDebug("Cannot set MaxConnectionsPerServer, not supported on this platform", e);
-                }
+                handler.MaxConnectionsPerServer = context.ClusterOptions.MaxQueryConnectionsPerServer;
             }
+            catch (PlatformNotSupportedException e)
+            {
+               Logger.LogDebug("Cannot set MaxConnectionsPerServer, not supported on this platform", e);
+            }
+
             return handler;
         }
 
         private bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (ClusterOptions.IgnoreRemoteCertificateNameMismatch)
+            if (_context.ClusterOptions.IgnoreRemoteCertificateNameMismatch)
             {
                 if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
                 {

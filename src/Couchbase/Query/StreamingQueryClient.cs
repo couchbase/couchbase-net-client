@@ -1,11 +1,13 @@
 using System.Net.Http;
+using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 
 namespace Couchbase.Query
 {
     internal class StreamingQueryClient : QueryClient
     {
-        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, ClusterOptions clusterOptions) : base(httpClient, dataMapper, clusterOptions)
+        public StreamingQueryClient(HttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
+            : base(httpClient, dataMapper, context)
         {
         }
     }

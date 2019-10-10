@@ -15,11 +15,11 @@ namespace Couchbase.Core.IO.HTTP
     {
         private const string ConnectionIdHeaderName = "cb-client-id";
 
-        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClusterOptions clusterOptions)
+        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
-            ClusterOptions = clusterOptions;
+            Context = context;
 
             // set custom header for client / connection ID
             httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));
@@ -28,7 +28,7 @@ namespace Couchbase.Core.IO.HTTP
         /// <summary>
         /// Gets the client clusterOptions.
         /// </summary>
-        protected ClusterOptions ClusterOptions { get; set; }
+        protected ClusterContext Context { get; set; }
 
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
@@ -53,7 +53,7 @@ namespace Couchbase.Core.IO.HTTP
         /// <summary>
         /// The clusterOptions context for this instance.
         /// </summary>
-       // protected ConfigContextBase Context { get; set; }
+       // protected ConfigHandlerBase Context { get; set; }
 
         public void Dispose()
         {

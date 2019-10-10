@@ -18,11 +18,11 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         private readonly ClusterOptions _clusterOptions;
         private readonly HttpClient _httpClient;
         private CancellationToken _cancellationToken;
-        private readonly ConfigContext _couchbaseContext;
+        private readonly ConfigHandler _couchbaseContext;
         private readonly string _bucketName;
 
         public HttpStreamingConfigListener(string bucketName, ClusterOptions clusterOptions, HttpClient httpClient,
-            ConfigContext couchbaseContext, CancellationToken cancellationToken)
+            ConfigHandler couchbaseContext, CancellationToken cancellationToken)
         {
             _bucketName = bucketName;
             _clusterOptions = clusterOptions;

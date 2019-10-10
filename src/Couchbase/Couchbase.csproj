@@ -43,6 +43,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Core\Configuration\Server\ConfigContext.cs" />
     <Compile Remove="Core\Diagnostics\Tracing\TracerExtensions.cs" />
     <Compile Remove="Core\Diagnostics\Tracing\TracerFactory.cs" />
     <Compile Remove="Core\IO\Compression.cs" />
@@ -59,6 +60,11 @@
     <Compile Remove="Core\IO\Operations\ServerFeatures.cs" />
     <Compile Remove="Core\IO\Operations\Set.cs" />
     <Compile Remove="Core\IO\Operations\Upsert.cs" />
+    <Compile Remove="Core\Retry\BestEffortRetryStrategy.cs" />
+    <Compile Remove="Core\Retry\FailFastRetryStrategy.cs" />
+    <Compile Remove="Core\Retry\IRetryStrategy.cs" />
+    <Compile Remove="Core\Retry\RetryAction.cs" />
+    <Compile Remove="Core\Retry\RetryReason.cs" />
     <Compile Remove="IConfiguration.cs" />
     <Compile Remove="IDocument %282%29.cs" />
     <Compile Remove="IDocument_T.cs" />
@@ -69,6 +75,7 @@
     <Folder Include="Core\Diagnostics\Logging\" />
     <Folder Include="Core\Converters\" />
     <Folder Include="Core\Exceptions\Services\" />
+    <Folder Include="Core\Retry\" />
     <Folder Include="Management\Users\" />
   </ItemGroup>
 

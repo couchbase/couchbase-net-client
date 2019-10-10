@@ -3,10 +3,10 @@ using System.Threading;
 
 namespace Couchbase.Core.Configuration.Server
 {
-    internal interface IConfigContext : IDisposable
+    internal interface IConfigHandler : IDisposable
     {
         CancellationTokenSource TokenSource { get; set; }
-        event ConfigContext.BucketConfigHandler ConfigChanged;
+        event ConfigHandler.BucketConfigHandler ConfigChanged;
         void Start(CancellationTokenSource tokenSource);
         void Stop();
         void Poll(CancellationToken token = default(CancellationToken));

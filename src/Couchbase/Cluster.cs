@@ -27,10 +27,8 @@ namespace Couchbase
     {
         private static readonly ILogger Log = LogManager.CreateLogger<Cluster>();
         private bool _disposed;
-        private readonly ClusterOptions _clusterOptions;
-        private CancellationTokenSource _configTokenSource;
+        private readonly ClusterContext _context;
         private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
-        private readonly ConfigContext _couchbaseContext;
         private BucketConfig _clusterConfig;
         private bool _hasBootStrapped;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
@@ -61,22 +59,17 @@ namespace Couchbase
             //TODO make connectionString function per the RFC: https://github.com/couchbaselabs/sdk-rfcs/blob/master/rfc/0011-connection-string.md
             clusterOptions.WithServers(connectionString);
 
-            _configTokenSource = new CancellationTokenSource();
-            _clusterOptions = clusterOptions;
-            _couchbaseContext = new ConfigContext(_clusterOptions);
-            _couchbaseContext.Start(_configTokenSource);
-            if (_clusterOptions.EnableConfigPolling)
-            {
-                _couchbaseContext.Poll(_configTokenSource.Token);
-            }
+            var configTokenSource = new CancellationTokenSource();
+            _context = new ClusterContext(configTokenSource, clusterOptions);
+            _context.StartConfigListening();
 
-            _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_clusterOptions));
-            _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_clusterOptions));
-            _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_clusterOptions));
+            _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_context));
+            _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_context));
+            _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_context));
             _lazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(_lazyQueryClient.Value));
-            _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_clusterOptions));
-            _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_clusterOptions));
-            _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_clusterOptions));
+            _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_context));
+            _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_context));
+            _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
         }
 
         public static ICluster Connect(string connectionString, ClusterOptions options)
@@ -111,165 +104,27 @@ namespace Couchbase
             return Connect(connectionString, clusterOptions);
         }
 
-        private async Task<ClusterNode> GetClusterNode(IPEndPoint endPoint, Uri uri)
-        {
-            var connection = endPoint.GetConnection(_clusterOptions);
-
-            var serverFeatures = await connection.Hello().ConfigureAwait(false);
-            var errorMap = await connection.GetErrorMap().ConfigureAwait(false);
-            await connection.Authenticate(_clusterOptions, null).ConfigureAwait(false);
-
-            var clusterNode = new ClusterNode
-            {
-                EndPoint = endPoint,
-                Connection = connection,
-                ServerFeatures = serverFeatures,
-                ErrorMap = errorMap,
-                ClusterOptions = _clusterOptions,
-                BootstrapUri = uri
-            };
-
-            return clusterNode;
-        }
-
         internal async Task InitializeAsync()
         {
-            //try to connect via GCCP
-            foreach (var uri in _clusterOptions.Servers)
+            try
             {
-                try
-                {
-                    var endPoint = uri.GetIpEndPoint(11210, false);
-                    var bootstrapNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
+                await _context.InitializeAsync();
+                UpdateClusterCapabilities();
+                _hasBootStrapped = true;
+            }
+            catch (AuthenticationException e)
+            {
+                //auth failed so bubble up exception and clean up resources
+                Log.LogError(e, @"Could not authenticate user {_clusterOptions.UserName}");
 
-                    //note this returns bucketConfig, but clusterConfig will be returned once server supports GCCP
-                    _clusterConfig = await bootstrapNode.GetClusterMap().ConfigureAwait(false);
-                    if (_clusterConfig == null)//TODO fix bug NCBC-1966 - hiding XError when no error map (and others)
-                    {
-                        //No GCCP but we connected - save connections and info for connecting later
-                        _clusterOptions.GlobalNodes.Add(bootstrapNode);
-                    }
-                    else
-                    {
-                        foreach (var nodesExt in _clusterConfig.GetNodes())
-                        {
-                            //This is the bootstrap node so we update it
-                            if (uri.Host == nodesExt.Hostname)
-                            {
-                                bootstrapNode.NodesAdapter = nodesExt;
-                                bootstrapNode.BuildServiceUris();
-                                _clusterOptions.GlobalNodes.Add(bootstrapNode);
-                            }
-                            else
-                            {
-                                endPoint = IpEndPointExtensions.GetEndPoint(nodesExt.Hostname, 11210);
-                                var clusterNode = await GetClusterNode(endPoint, uri).ConfigureAwait(false);
-                                clusterNode.NodesAdapter = nodesExt;
-                                clusterNode.BuildServiceUris();
-                                _clusterOptions.GlobalNodes.Add(clusterNode);
-                            }
-                        }
-
-                        // get cluster capabilities
-                        UpdateClusterCapabilities(_clusterConfig.GetClusterCapabilities());
-                        _hasBootStrapped = true;
-                    }
-                }
-                catch (AuthenticationException e)
-                {
-                    //auth failed so bubble up exception and clean up resources
-                    Log.LogError(e, @"Could not authenticate user {_clusterOptions.UserName}");
-
-                    while (_clusterOptions.GlobalNodes.TryTake(out IClusterNode clusterNode))
-                    {
-                        clusterNode.Dispose();
-                    }
-
-                    throw;
-                }
+                _context.RemoveNodes();
+                throw;
             }
         }
 
         public async Task<IBucket> BucketAsync(string name)
         {
-            //fetching a bucket that has already been opened and cached
-            if (_bucketRefs.TryGetValue(name, out var bucket))
-            {
-                return bucket;
-            }
-
-            //Loop through configured list of bootstrap servers
-            foreach (var server in _clusterOptions.Servers)
-            {
-                try
-                {
-                    bucket = await BootstrapBucketAsync(name, server, BucketType.Couchbase)
-                        .ConfigureAwait(false);
-                }
-                catch
-                {
-                    bucket = await BootstrapBucketAsync(name, server, BucketType.Memcached)
-                        .ConfigureAwait(false);
-                }
-
-            }
-
-            //TODO add 3rd state when connected and have GCCP
-            if (bucket == null)
-            {
-                throw new BucketMissingException(@"{name} Bucket not found!");
-            }
-
-            _hasBootStrapped = true;
-            return bucket;
-        }
-
-        private async Task<IBucket> BootstrapBucketAsync(string bucketName, Uri bootstrapUri, BucketType bucketType)
-        {
-            //Check for any available GC3P connections
-            var bootstrapNode = _clusterOptions.GlobalNodes.FirstOrDefault(x =>
-                x.Owner == null && x.EndPoint.Address.Equals(bootstrapUri.GetIpAddress(false)));
-
-            //If not create a new connection but don't add to list until it has an owner
-            if (bootstrapNode == null)
-            {
-                var endPoint = bootstrapUri.GetIpEndPoint(11210, false);
-                bootstrapNode = await GetClusterNode(endPoint, bootstrapUri).ConfigureAwait(false);
-
-                //Add to global nodes but its no longer a GC3P node since it has an owner
-                if (!_clusterOptions.GlobalNodes.Contains(bootstrapNode))
-                {
-                    _clusterOptions.GlobalNodes.Add(bootstrapNode);
-                }
-            }
-
-            BucketBase bucket;
-            switch (bucketType)
-            {
-                case BucketType.Couchbase:
-                case BucketType.Ephemeral:
-                    bucket = new CouchbaseBucket(bucketName, _clusterOptions, _couchbaseContext);
-                    break;
-                case BucketType.Memcached:
-                    bucket = new MemcachedBucket(bucketName, _clusterOptions, _couchbaseContext);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(bucketType), bucketType, null);
-            }
-
-            try
-            {
-                await bucket.Bootstrap(bootstrapNode).ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                _couchbaseContext.Unsubscribe(bucket);
-                throw;
-            }
-
-            _bucketRefs.TryAdd(bucketName, bucket);
-
-            return bucket;
+            return await _context.GetOrCreateBucketAsync(name);
         }
 
         public Task<IDiagnosticsReport> DiagnosticsAsync(string reportId)
@@ -290,7 +145,7 @@ namespace Couchbase
             }
 
             // if no buckets registered in cluster, throw exception
-            if (!_clusterOptions.Buckets.Any())
+            if (!_context.ClusterOptions.Buckets.Any())
             {
                 throw new CouchbaseException("Unable to bootstrap - please open a bucket or add a bucket name to the clusterOptions.");
             }
@@ -305,7 +160,7 @@ namespace Couchbase
                 }
 
                 // try to bootstrap first bucket in cluster
-                await BucketAsync(_clusterOptions.Buckets.First());
+                await BucketAsync(_context.ClusterOptions.Buckets.First());
             }
             finally
             {
@@ -413,11 +268,14 @@ namespace Couchbase
             return _lazyAnalyticsClient.Value.ImportDeferredQueryHandle<T>(encodedHandle);
         }
 
-        internal void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
+        internal void UpdateClusterCapabilities()
         {
             if (_lazyQueryClient.Value is QueryClient client)
             {
-                client.UpdateClusterCapabilities(clusterCapabilities);
+                if (_context.GlobalConfig != null)
+                {
+                    client.UpdateClusterCapabilities(_context.GlobalConfig.GetClusterCapabilities());
+                }
             }
         }
     }

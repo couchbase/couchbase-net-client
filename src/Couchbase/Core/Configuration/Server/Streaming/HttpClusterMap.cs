@@ -19,14 +19,12 @@ namespace Couchbase.Core.Configuration.Server.Streaming
     {
         private readonly HttpClient _httpClient;
         public const string Path = "/pools/default/b/";
-        private ConfigContext _ctx;
-        private readonly ClusterOptions _clusterOptions;
+        private readonly ClusterContext _context;
 
-        public HttpClusterMap(HttpClient httpClient, ConfigContext ctx, ClusterOptions clusterOptions)
+        public HttpClusterMap(HttpClient httpClient, ClusterContext context)
         {
             _httpClient = httpClient;
-            _ctx = ctx;
-            _clusterOptions = clusterOptions;
+            _context = context;
         }
 
         public override async Task<BucketConfig> GetClusterMapAsync(string bucketName, Uri hostUri,
@@ -34,8 +32,8 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         {
             var uri = new UriBuilder(hostUri)
             {
-                Scheme = _clusterOptions.UseSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
-                Port = _clusterOptions.MgmtPort, //TODO add ssl/tls support
+                Scheme = _context.ClusterOptions.UseSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
+                Port = _context.ClusterOptions.MgmtPort, //TODO add ssl/tls support
                 Path = Path + bucketName
             };
 

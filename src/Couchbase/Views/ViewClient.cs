@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
@@ -18,10 +19,10 @@ namespace Couchbase.Views
         //private static readonly ILog Log = LogManager.GetLogger<StreamingViewClient>();
         private readonly uint? _viewTimeout;
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper, ClusterOptions clusterOptions)
-            : base(httpClient, mapper, clusterOptions)
+        public ViewClient(HttpClient httpClient, IDataMapper mapper, ClusterContext context)
+            : base(httpClient, mapper, context)
         {
-            _viewTimeout = (uint) clusterOptions.ViewTimeout.TotalMilliseconds * 1000; // convert millis to micros
+            _viewTimeout = (uint) Context.ClusterOptions.ViewTimeout.TotalMilliseconds * 1000; // convert millis to micros
 
             // set timeout to infinite so we can stream results without the connection
             // closing part way through

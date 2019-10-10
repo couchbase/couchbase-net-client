@@ -27,9 +27,9 @@ namespace Couchbase.KeyValue
         private readonly BucketBase _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
-        private readonly ConfigContext _context;
+        private readonly ClusterContext _context;
 
-        internal CouchbaseCollection(BucketBase bucket, ConfigContext context,uint? cid, string name)
+        internal CouchbaseCollection(BucketBase bucket, ClusterContext context,uint? cid, string name)
         {
             Cid = cid;
             Name = name;
@@ -42,234 +42,6 @@ namespace Couchbase.KeyValue
         public string Name { get; }
 
         public IBinaryCollection Binary => this;
-
-        private static Exception ThrowException(SocketAsyncState state)
-        {
-            var statusName = Enum.GetName(typeof(ResponseStatus), state.Status);
-            switch (state.Status)
-            {
-                case ResponseStatus.KeyNotFound:
-                    return new KeyNotFoundException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.KeyExists:
-                    return new KeyExistsException(statusName,new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.ValueTooLarge:
-                    return new ValueTooLargeException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.InvalidArguments:
-                    return new InvalidArgumentException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.TemporaryFailure:
-                case ResponseStatus.OutOfMemory:
-                case ResponseStatus.Busy:
-                    return new TempFailException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.OperationTimeout:
-                    return new TimeoutException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.Locked:
-                    return new KeyLockedException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.DocumentMutationLost:
-                case ResponseStatus.DocumentMutationDetected:
-                case ResponseStatus.NoReplicasFound:
-                case ResponseStatus.DurabilityInvalidLevel:
-                case ResponseStatus.DurabilityImpossible:
-                case ResponseStatus.SyncWriteInProgress:
-                case ResponseStatus.SyncWriteAmbiguous:
-                    return new DurabilityException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.Eaccess:
-                case ResponseStatus.AuthenticationError:
-                    return new AuthenticationException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                //internal errors handled by the app?
-                case ResponseStatus.Rollback:
-                case ResponseStatus.VBucketBelongsToAnotherServer:
-                case ResponseStatus.AuthenticationContinue:
-                case ResponseStatus.AuthStale:
-                case ResponseStatus.InternalError:
-                case ResponseStatus.UnknownCommand:
-                case ResponseStatus.BucketNotConnected:
-                case ResponseStatus.UnknownError:
-                case ResponseStatus.NotInitialized:
-                case ResponseStatus.NotSupported:
-                case ResponseStatus.SubdocXattrUnknownVattr:
-                case ResponseStatus.SubDocMultiPathFailure:
-                case ResponseStatus.SubDocXattrInvalidFlagCombo:
-                case ResponseStatus.SubDocXattrInvalidKeyCombo:
-                case ResponseStatus.SubdocXattrCantModifyVattr:
-                case ResponseStatus.SubdocMultiPathFailureDeleted:
-                case ResponseStatus.SubdocInvalidXattrOrder:
-                    return new InternalErrorException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.InvalidRange:
-                case ResponseStatus.ItemNotStored:
-                case ResponseStatus.IncrDecrOnNonNumericValue:
-                    return new KeyValueException //hmm?
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    };
-                //sub doc errors
-                case ResponseStatus.SubDocPathNotFound:
-                    return new PathNotFoundException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.SubDocPathMismatch:
-                    return new PathMismatchException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.SubDocPathInvalid:
-                    return new PathInvalidException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.SubDocPathTooBig:
-                    return new PathTooBigException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    });
-                case ResponseStatus.SubDocDocTooDeep:
-                case ResponseStatus.SubDocCannotInsert:
-                case ResponseStatus.SubDocDocNotJson:
-                case ResponseStatus.SubDocNumRange:
-                case ResponseStatus.SubDocDeltaRange:
-                case ResponseStatus.SubDocPathExists:
-                case ResponseStatus.SubDocValueTooDeep:
-                case ResponseStatus.SubDocInvalidCombo:
-                case ResponseStatus.SubdocXattrUnknownMacro:
-                    return new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorMap = state.ErrorMap
-                    };
-                //remove these ones
-                case ResponseStatus.Failure:
-                case ResponseStatus.ClientFailure:
-                    break;
-                case ResponseStatus.NodeUnavailable:
-                    break;
-                case ResponseStatus.TransportFailure:
-                    return state.Exception;
-                default:
-                    return new ArgumentOutOfRangeException();
-            }
-            return new Exception("oh me oh mai...");
-        }
-
-        #region ExecuteOp Helper
-
-        private async Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken), TimeSpan? timeout = null)
-        {
-            Log.LogDebug("Executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
-
-            // wire up op's completed function
-            var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
-            op.Completed = state =>
-            {
-                if (state.Status == ResponseStatus.Success)
-                {
-                    tcs.TrySetResult(state.ExtractData());
-                }
-                else if
-                    (state.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-                {
-                    tcs.TrySetResult(state.ExtractData());
-                }
-                else
-                {
-                    tcs.TrySetException(ThrowException(state));
-                }
-
-                return tcs.Task;
-            };
-
-            CancellationTokenSource cts = null;
-            try
-            {
-                if (token == CancellationToken.None)
-                {
-                    cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                    cts.CancelAfter(timeout.HasValue && timeout != TimeSpan.Zero ? timeout.Value : DefaultTimeout);
-                    token = cts.Token;
-                }
-
-                using (token.Register(() =>
-                {
-                    if (tcs.Task.Status != TaskStatus.RanToCompletion)
-                    {
-                        tcs.TrySetCanceled();
-                    }
-                }, useSynchronizationContext: false))
-                {
-                    await _bucket.Send(op, tcs).ConfigureAwait(false);
-                    var bytes = await tcs.Task.ConfigureAwait(false);
-                    await op.ReadAsync(bytes).ConfigureAwait(false);
-
-                    var status = op.Header.Status;
-                    if (status == ResponseStatus.VBucketBelongsToAnotherServer)
-                    {
-                        var config = op.GetConfig(_transcoder);
-                        _context.Publish(config);
-                    }
-
-                    Log.LogDebug("Completed executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
-                }
-            }
-            catch (OperationCanceledException e)
-            {
-                if (!e.CancellationToken.IsCancellationRequested)
-                {
-                    //oddly IsCancellationRequested is false when timed out
-                    throw new TimeoutException();
-                }
-            }
-            finally
-            {
-                //clean up the token if we used a default token
-                cts?.Dispose();
-            }
-        }
-
-        #endregion
 
         #region Get
 
@@ -354,7 +126,7 @@ namespace Couchbase.KeyValue
             {
                 try
                 {
-                    await ExecuteOp(existsOp, options.Token, options.Timeout);
+                    await _bucket.SendAsync(existsOp, options.Token, options.Timeout);
                     var value = existsOp.GetValue();
                     return new ExistsResult
                     {
@@ -393,7 +165,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await ExecuteOp(upsertOp, options.Token, options.Timeout).ConfigureAwait(false);
+                await _bucket.SendAsync(upsertOp, options.Token, options.Timeout).ConfigureAwait(false);
                 return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
             }
         }
@@ -417,7 +189,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await ExecuteOp(insertOp, options.Token, options.Timeout).ConfigureAwait(false);
+                await _bucket.SendAsync(insertOp, options.Token, options.Timeout).ConfigureAwait(false);
                 return new MutationResult(insertOp.Cas, null, insertOp.MutationToken);
             }
         }
@@ -442,7 +214,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await ExecuteOp(replaceOp, options.Token, options.Timeout).ConfigureAwait(false);
+                await _bucket.SendAsync(replaceOp, options.Token, options.Timeout).ConfigureAwait(false);
                 return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken);
             }
         }
@@ -463,7 +235,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             })
             {
-                await ExecuteOp(removeOp, options.Token, options.Timeout).ConfigureAwait(false);
+                await _bucket.SendAsync(removeOp, options.Token, options.Timeout).ConfigureAwait(false);
             }
         }
 
@@ -481,7 +253,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             })
             {
-                await ExecuteOp(unlockOp, options.Token, options.Timeout).ConfigureAwait(false);
+                await _bucket.SendAsync(unlockOp, options.Token, options.Timeout).ConfigureAwait(false);
             }
         }
 
@@ -500,7 +272,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             })
             {
-                await ExecuteOp(touchOp, options.Token, options.Timeout).ConfigureAwait(false);
+                await _bucket.SendAsync(touchOp, options.Token, options.Timeout).ConfigureAwait(false);
             }
         }
 
@@ -521,7 +293,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await ExecuteOp(getAndTouchOp, options.Token, options.Timeout);
+                await _bucket.SendAsync(getAndTouchOp, options.Token, options.Timeout);
                 return new GetResult(getAndTouchOp.ExtractData(), transcoder)
                 {
                     Id = getAndTouchOp.Key,
@@ -549,7 +321,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await ExecuteOp(getAndLockOp, options.Token, options.Timeout);
+                await _bucket.SendAsync(getAndLockOp, options.Token, options.Timeout);
                 return new GetResult(getAndLockOp.ExtractData(), transcoder)
                 {
                     Id = getAndLockOp.Key,
@@ -592,7 +364,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             };
 
-            await ExecuteOp(lookup, options.Token, options.Timeout);
+            await _bucket.SendAsync(lookup, options.Token, options.Timeout);
             return lookup;
         }
 
@@ -631,7 +403,7 @@ namespace Couchbase.KeyValue
                 DocFlags = docFlags
             })
             {
-                await ExecuteOp(mutation, options.Token, options.Timeout);
+                await _bucket.SendAsync(mutation, options.Token, options.Timeout);
                 return new MutationResult(mutation.Cas, null, mutation.MutationToken);
             }
         }
@@ -651,7 +423,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             })
             {
-                await ExecuteOp(op, options.Token, options.Timeout);
+                await _bucket.SendAsync(op, options.Token, options.Timeout);
                 return new MutationResult(op.Cas, null, op.MutationToken);
             }
         }
@@ -671,7 +443,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             })
             {
-                await ExecuteOp(op, options.Token, options.Timeout);
+                await _bucket.SendAsync(op, options.Token, options.Timeout);
                 return new MutationResult(op.Cas, null, op.MutationToken);
             }
         }
@@ -692,7 +464,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             })
             {
-                await ExecuteOp(op, options.Token, options.Timeout);
+                await _bucket.SendAsync(op, options.Token, options.Timeout);
                 return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
             }
         }
@@ -713,7 +485,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             })
             {
-                await ExecuteOp(op, options.Token, options.Timeout);
+                await _bucket.SendAsync(op, options.Token, options.Timeout);
                 return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
             }
         }
@@ -773,7 +545,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await ExecuteOp(getOp, cancellationToken).ConfigureAwait(false);
+                await _bucket.SendAsync(getOp, cancellationToken).ConfigureAwait(false);
                 return new GetReplicaResult(getOp.ExtractData(), transcoder)
                 {
                     Id = getOp.Key,
@@ -796,7 +568,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await ExecuteOp(getOp, cancellationToken).ConfigureAwait(false);
+                await _bucket.SendAsync(getOp, cancellationToken).ConfigureAwait(false);
                 return new GetReplicaResult(getOp.ExtractData(), transcoder)
                 {
                     Id = getOp.Key,

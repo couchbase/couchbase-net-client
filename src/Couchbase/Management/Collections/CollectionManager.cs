@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
@@ -16,19 +17,19 @@ namespace Couchbase.Management.Collections
         private static readonly ILogger Logger = LogManager.CreateLogger<CollectionManager>();
 
         private readonly string _bucketName;
-        private readonly ClusterOptions _clusterOptions;
+        private readonly ClusterContext _context;
         private readonly HttpClient _client;
 
-        public CollectionManager(string bucketName, ClusterOptions clusterOptions, HttpClient client)
+        public CollectionManager(string bucketName, ClusterContext context, HttpClient client)
         {
             _bucketName = bucketName;
-            _clusterOptions = clusterOptions;
+            _context = context;
             _client = client;
         }
 
         private Uri GetUri(string scopeName = null, string collectionName = null)
         {
-            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom().ManagementUri)
+            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
             {
                 Path = $"pools/default/buckets/{_bucketName}/collections"
             };

@@ -43,9 +43,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", new ClusterNode {ViewsUri = new Uri("http://127.0.0.1:8092")}},
-                {"127.0.0.2", new ClusterNode {ViewsUri = new Uri("http://127.0.0.2:0")}},
-                {"127.0.0.3", new ClusterNode {ViewsUri = new Uri("http://127.0.0.3:8092")}}
+                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {ViewsUri = new Uri("http://127.0.0.1:8092")}},
+                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  { ViewsUri = new Uri("http://127.0.0.2:0")}},
+                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) { ViewsUri = new Uri("http://127.0.0.3:8092")}}
             };
 
             var node = dict.GetRandom(x => x.Value.HasViews());
@@ -58,9 +58,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", new ClusterNode {ViewsUri = new Uri("http://127.0.0.1:0")}},
-                {"127.0.0.2", new ClusterNode {ViewsUri = new Uri("http://127.0.0.2:0")}},
-                {"127.0.0.3", new ClusterNode {ViewsUri = new Uri("http://127.0.0.3:0")}}
+                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) { ViewsUri = new Uri("http://127.0.0.1:0")}},
+                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  {ViewsUri = new Uri("http://127.0.0.2:0")}},
+                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  {ViewsUri = new Uri("http://127.0.0.3:0")}}
             };
 
             var node = dict.GetRandom(x => x.Value.HasViews());

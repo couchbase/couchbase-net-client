@@ -4,8 +4,10 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Services;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
@@ -20,19 +22,19 @@ namespace Couchbase.Management.Views
 
         private readonly string _bucketName;
         private readonly HttpClient _client;
-        private readonly ClusterOptions _clusterOptions;
+        private readonly ClusterContext _context;
 
-        internal ViewIndexManager(string bucketName, HttpClient client, ClusterOptions clusterOptions)
+        internal ViewIndexManager(string bucketName, HttpClient client, ClusterContext context)
         {
             _bucketName = bucketName;
             _client = client;
-            _clusterOptions = clusterOptions;
+            _context = context;
         }
 
         private Uri GetUri(string designDocName, DesignDocumentNamespace @namespace)
         {
             // {0}://{1}:{2}/{3}/_design
-            var builder = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom(node => node.HasViews()).ViewsUri)
+            var builder = new UriBuilder(_context.GetRandomNodeForService(ServiceType.KeyValue, _bucketName).ViewsUri)
             {
                 Path = _bucketName
             };
@@ -86,9 +88,9 @@ namespace Couchbase.Management.Views
 
         public async Task<IEnumerable<DesignDocument>> GetAllDesignDocumentsAsync(DesignDocumentNamespace @namespace, GetAllDesignDocumentsOptions options)
         {
-            var uri = new UriBuilder(_clusterOptions.GlobalNodes.GetRandom(node => node.HasViews()).ViewsUri)
+            var uri = new UriBuilder(_context.GetRandomNodeForService(ServiceType.KeyValue, _bucketName).ViewsUri)
             {
-                Port = _clusterOptions.MgmtPort,
+                Port = _context.ClusterOptions.MgmtPort,
                 Path = $"pools/default/buckets/{_bucketName}/ddocs"
             }.Uri;
             Logger.LogInformation($"Attempting to get all design documents for bucket {_bucketName} - {uri}");

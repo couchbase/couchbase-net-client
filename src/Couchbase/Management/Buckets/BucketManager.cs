@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -15,17 +16,16 @@ namespace Couchbase.Management.Buckets
     internal class BucketManager : IBucketManager
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<BucketManager>();
-
-        private readonly ClusterOptions _clusterOptions;
+        private readonly ClusterContext _context;
         private readonly HttpClient _client;
 
-        public BucketManager(ClusterOptions clusterOptions)
-            : this(clusterOptions, new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)))
+        public BucketManager(ClusterContext context)
+            : this(context, new HttpClient(new AuthenticatingHttpClientHandler(context)))
         { }
 
-        public BucketManager(ClusterOptions clusterOptions, HttpClient client)
+        public BucketManager(ClusterContext context, HttpClient client)
         {
-            _clusterOptions = clusterOptions;
+            _context = context;
             _client = client;
         }
 
@@ -33,9 +33,9 @@ namespace Couchbase.Management.Buckets
         {
             var builder = new UriBuilder
             {
-                Scheme = _clusterOptions.UseSsl ? "https" : "http",
-                Host = _clusterOptions.Servers.GetRandom().Host,
-                Port = _clusterOptions.UseSsl ? 18091 : 8091,
+                Scheme = _context.ClusterOptions.UseSsl ? "https" : "http",
+                Host = _context.ClusterOptions.Servers.GetRandom().Host,
+                Port = _context.ClusterOptions.UseSsl ? 18091 : 8091,
                 Path = "pools/default/buckets"
             };
 

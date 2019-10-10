@@ -50,10 +50,11 @@ namespace Couchbase.UnitTests.Services.Query
                 {
                     BaseAddress = new Uri("http://localhost:8091")
                 };
-                var config = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901");
-                var clusterNode = new ClusterNode
+                var options = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901");
+                var context = new ClusterContext(null, options);
+
+                var clusterNode = new ClusterNode(context)
                 {
-                    ClusterOptions = config,
                     EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
                     NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
                         new NodesExt {Hostname = "127.0.0.1", Services = new Couchbase.Core.Configuration.Server.Services
@@ -62,10 +63,9 @@ namespace Couchbase.UnitTests.Services.Query
                         }}, new BucketConfig())
                 };
                 clusterNode.BuildServiceUris();
+                context.AddNode(clusterNode);
 
-                config.GlobalNodes = new ConcurrentBag<IClusterNode> {clusterNode};
-
-                var client = new QueryClient(httpClient, new JsonDataMapper(new DefaultSerializer()), config);
+                var client = new QueryClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
 
                 try
                 {
@@ -81,14 +81,16 @@ namespace Couchbase.UnitTests.Services.Query
         [Fact]
         public void EnhancedPreparedStatements_defaults_to_false()
         {
-            var client = new QueryClient(new ClusterOptions());
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            var client = new QueryClient(context);
             Assert.False(client.EnhancedPreparedStatementsEnabled);
         }
 
         [Fact]
         public void EnhancedPreparedStatements_is_set_to_true_if_enabled_in_cluster_caps()
         {
-            var client = new QueryClient(new ClusterOptions());
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            var client = new QueryClient(context);
             Assert.False(client.EnhancedPreparedStatementsEnabled);
 
             var clusterCapabilities = new ClusterCapabilities();

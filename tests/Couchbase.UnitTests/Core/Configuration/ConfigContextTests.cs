@@ -14,13 +14,13 @@ using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.Configuration
 {
-    public class ConfigContextTests
+    public class ConfigHandlerTests
     {
         private static SemaphoreSlim _event;
         private readonly ITestOutputHelper _output;
         private readonly FakeBucket _bucket;
 
-        public ConfigContextTests(ITestOutputHelper output)
+        public ConfigHandlerTests(ITestOutputHelper output)
         {
             _event = new SemaphoreSlim(0,1);
             _output = output;
@@ -32,10 +32,11 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
+            var handler = new ConfigHandler(context);
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
 
             var config1 = new BucketConfig
             {
@@ -50,16 +51,16 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             //act
-            context.Publish(config1);
+            handler.Publish(config1);
 
             _event.Wait(cts.Token);
 
-            context.Publish(config2);
+            handler.Publish(config2);
 
             _event.Wait(cts.Token);
 
             //assert
-            Assert.Equal(config2.Rev, context.Get("default").Rev);
+            Assert.Equal(config2.Rev, handler.Get("default").Rev);
         }
 
         private void Context_ConfigChanged(object sender, BucketConfigEventArgs a)
@@ -72,10 +73,11 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(cts, new ClusterOptions());
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
+            var handler = new ConfigHandler(context);
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
 
             var config = new BucketConfig
             {
@@ -84,11 +86,11 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             //act
-            context.Publish(config);
+            handler.Publish(config);
             _event.Wait(cts.Token);
 
             //assert
-            Assert.Equal(1u, context.Get("default").Rev);
+            Assert.Equal(1u, handler.Get("default").Rev);
         }
 
         [Fact]
@@ -96,15 +98,16 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
+            var handler = new ConfigHandler(context);
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
 
-            context.Stop();
+            handler.Stop();
 
             cts = new CancellationTokenSource();
-            context.Start(cts);
+            handler.Start(cts);
 
             var config = new BucketConfig
             {
@@ -112,21 +115,22 @@ namespace Couchbase.UnitTests.Core.Configuration
                 Rev = 1
             };
 
-            context.Publish(config);
+            handler.Publish(config);
             _event.Wait(cts.Token);
 
             //assert
-            Assert.Equal(1u, context.Get("default").Rev);
+            Assert.Equal(1u, handler.Get("default").Rev);
         }
         [Fact]
         public void Publish_LesserRevisionIgnored()
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            var handler = new ConfigHandler(context);
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
 
             //act
             var config1 = new BucketConfig
@@ -141,14 +145,14 @@ namespace Couchbase.UnitTests.Core.Configuration
                 Rev = 3
             };
 
-            context.Publish(config1);
+            handler.Publish(config1);
             _event.Wait(cts.Token);
 
-            context.Publish(config2);
+            handler.Publish(config2);
             _event.Wait(cts.Token);
 
             //assert
-            Assert.Equal(config1.Rev, context.Get("default").Rev);
+            Assert.Equal(config1.Rev, handler.Get("default").Rev);
         }
 
         [Fact]
@@ -156,10 +160,11 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(cts, new ClusterOptions());
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
+            var handler = new ConfigHandler(context);
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
 
             var config1 = new BucketConfig
             {
@@ -174,13 +179,13 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             //act
-            context.Publish(config1);
+            handler.Publish(config1);
             _event.Wait(cts.Token);
 
-            context.Publish(config2);
+            handler.Publish(config2);
 
             //assert
-            Assert.Equal(config1.Rev, context.Get("default").Rev);
+            Assert.Equal(config1.Rev, handler.Get("default").Rev);
         }
 
         [Fact]
@@ -188,12 +193,14 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(cts, new ClusterOptions());
+            var handler = new ConfigHandler(context);
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
+            //act
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
 
-            Assert.Throws<BucketMissingException>(() => context.Get("default"));
+            Assert.Throws<BucketMissingException>(() => handler.Get("default"));
         }
 
         [Fact]
@@ -201,11 +208,13 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(cts, new ClusterOptions());
+            var handler = new ConfigHandler(context);
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
-            context.Stop();
+            //act
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
+            handler.Stop();
 
             var config = new BucketConfig
             {
@@ -216,7 +225,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             //act
             Assert.Throws<ObjectDisposedException>(() =>
             {
-                context.Publish(config);
+                handler.Publish(config);
                 _event.Wait(cts.Token);
             });
         }
@@ -226,13 +235,14 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
             var cts = new CancellationTokenSource();
+            var context = new ClusterContext(cts, new ClusterOptions());
+            var handler = new ConfigHandler(context);
 
-            var context = new ConfigContext(new ClusterOptions());
-            context.Start(cts);
-            context.Subscribe(_bucket);
+            handler.Start(cts);
+            handler.Subscribe(_bucket);
 
             //act/assert
-            Assert.Throws<BucketMissingException>(() => context.Get("default"));
+            Assert.Throws<BucketMissingException>(() => handler.Get("default"));
         }
 
         internal class FakeBucket : BucketBase
@@ -257,17 +267,12 @@ namespace Couchbase.UnitTests.Core.Configuration
                 throw new NotImplementedException();
             }
 
-            protected override void LoadManifest()
+            internal override Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
             {
                 throw new NotImplementedException();
             }
 
-            internal override Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
-            {
-                throw new NotImplementedException();
-            }
-
-            internal override Task Bootstrap(params IClusterNode[] bootstrapNodes)
+            internal override Task BootstrapAsync(IClusterNode bootstrapNode)
             {
                 throw new NotImplementedException();
             }

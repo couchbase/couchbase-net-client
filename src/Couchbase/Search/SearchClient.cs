@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Services;
@@ -25,13 +26,14 @@ namespace Couchbase.Search
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
 
-        public SearchClient(ClusterOptions clusterOptions) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)),
-            new SearchDataMapper(), clusterOptions)
-        { }
+        public SearchClient(ClusterContext context) : this(
+            new HttpClient(new AuthenticatingHttpClientHandler(context)),
+            new SearchDataMapper(), context)
+        {
+        }
 
-        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, ClusterOptions clusterOptions)
-            : base(httpClient, dataMapper, clusterOptions)
+        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
+            : base(httpClient, dataMapper, context)
         { }
 
         /// <summary>
@@ -54,13 +56,7 @@ namespace Couchbase.Search
         public async Task<ISearchResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken = default)
         {
             // try get Search node
-            if (!ClusterOptions.GlobalNodes.TryGetRandom(x => x.HasSearch(), out var node))
-            {
-                //const string noNodeAvailableMessage = "Unable to locate search node to submit query to.";
-                //Logger.LogError(noNodeAvailableMessage);
-                throw new ServiceNotAvailableException(ServiceType.Search);
-            }
-
+            var node = Context.GetRandomNodeForService(ServiceType.Search);
             var uri = new UriBuilder(node.SearchUri)
             {
                 Path = $"api/index/{searchQuery.Index}/query"

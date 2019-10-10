@@ -4,8 +4,10 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Services;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -16,23 +18,23 @@ namespace Couchbase.Management.Search
     internal class SearchIndexManager : ISearchIndexManager
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<SearchIndexManager>();
-        private readonly ClusterOptions _clusterOptions;
+        private readonly ClusterContext _context;
         private readonly HttpClient _client;
 
-        internal SearchIndexManager(ClusterOptions clusterOptions)
-            : this (clusterOptions, new CouchbaseHttpClient(clusterOptions))
-        { }
-
-        internal SearchIndexManager(ClusterOptions clusterOptions, HttpClient httpClient)
+        internal SearchIndexManager(ClusterContext context)
+            : this(new CouchbaseHttpClient(context))
         {
-            _clusterOptions = clusterOptions;
+            _context = context;
+        }
+
+        internal SearchIndexManager(HttpClient httpClient)
+        {
             _client = httpClient;
         }
 
         private Uri GetIndexUri(string indexName = null)
         {
-            var node = _clusterOptions.GlobalNodes.GetRandom(x => x.HasSearch());
-
+            var node = _context.GetRandomNodeForService(ServiceType.Search);
             var builder = new UriBuilder(node.SearchUri)
             {
                 Path = "api/index"

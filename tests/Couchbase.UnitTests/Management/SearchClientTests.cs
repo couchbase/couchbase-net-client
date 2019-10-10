@@ -28,10 +28,13 @@ namespace Couchbase.UnitTests.Management
             var mockClusterNode = new Mock<IClusterNode>();
             mockClusterNode.Setup(node => node.HasSearch()).Returns(true);
             mockClusterNode.Setup(node => node.SearchUri).Returns(new Uri("http://localhost:8094"));
+            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Any, 8091));
 
-            var clusterOptions = new ClusterOptions();
-            clusterOptions.GlobalNodes.Add(mockClusterNode.Object);
-            var client = new SearchClient(httpClient, new SearchDataMapper(), clusterOptions);
+            var options = new ClusterOptions();
+            var context = new ClusterContext(null, options);
+
+            context.AddNode(mockClusterNode.Object);
+            var client = new SearchClient(context);
 
             await client.QueryAsync(new SearchQuery { Index = indexName });
         }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
@@ -21,22 +22,19 @@ namespace Couchbase.Query
     internal class QueryClient : HttpServiceBase, IQueryClient
     {
         internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
-
         private static readonly ILogger Logger = LogManager.CreateLogger<QueryClient>();
-
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
         private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
-
         internal bool EnhancedPreparedStatementsEnabled;
 
-        internal QueryClient(ClusterOptions clusterOptions) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)),
-            new JsonDataMapper(new DefaultSerializer()), clusterOptions)
+        internal QueryClient(ClusterContext context) : this(
+            new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
+            new JsonDataMapper(new DefaultSerializer()), context)
         {
         }
 
-        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClusterOptions clusterOptions)
-            : base(httpClient, dataMapper, clusterOptions)
+        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
+            : base(httpClient, dataMapper, context)
         {
         }
 
@@ -116,13 +114,7 @@ namespace Couchbase.Query
         private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, IDataMapper dataMapper)
         {
             // try get Query node
-            if (!ClusterOptions.GlobalNodes.TryGetRandom(x => x.HasQuery(), out var node))
-            {
-                const string noNodeAvailableMessage = "Unable to locate query node to submit query to.";
-                Logger.LogError(noNodeAvailableMessage);
-                throw new ServiceNotAvailableException(ServiceType.Query);
-            }
-
+            var node = Context.GetRandomNodeForService(ServiceType.Query);
             var body = options.GetFormValuesAsJson();
 
             StreamingQueryResult<T> queryResult;

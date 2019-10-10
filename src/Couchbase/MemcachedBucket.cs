@@ -24,18 +24,16 @@ namespace Couchbase
         private static readonly ILogger Log = LogManager.CreateLogger<MemcachedBucket>();
         private readonly HttpClusterMapBase _httpClusterMap;
 
-        internal MemcachedBucket(string name, ClusterOptions clusterOptions, ConfigContext couchbaseContext) :
-            this (name, clusterOptions, couchbaseContext, new HttpClusterMap(new CouchbaseHttpClient(clusterOptions), couchbaseContext, clusterOptions))
+        internal MemcachedBucket(string name, ClusterContext context) :
+            this(name, context, new HttpClusterMap(new CouchbaseHttpClient(context), context))
         {
         }
 
-        internal MemcachedBucket(string name, ClusterOptions clusterOptions, ConfigContext couchbaseContext, HttpClusterMapBase httpClusterMap)
+        internal MemcachedBucket(string name, ClusterContext context, HttpClusterMapBase httpClusterMap)
         {
             Name = name;
-            CouchbaseContext = couchbaseContext;
-            ClusterOptions = clusterOptions;
-            CouchbaseContext.Subscribe(this);
             _httpClusterMap = httpClusterMap;
+            SupportsCollections = false;
         }
 
         public override Task<IScope> this[string name]
@@ -61,64 +59,49 @@ namespace Couchbase
 
         public override ICollectionManager Collections =>  throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
 
-        protected override void LoadManifest()
-        {
-            //this condition should never be hit
-            if (SupportsCollections)
-            {
-                throw new NotSupportedException("Only the default collection is supported by Memcached buckets.");
-            }
-
-            //build a fake scope and collection for Memcached buckets which do not support scopes or collections
-            var defaultCollection = new CouchbaseCollection(this, CouchbaseContext,null, "_default");
-            var defaultScope = new Scope("_default", "0", new List<ICollection> {defaultCollection}, this);
-            Scopes.TryAdd("_default", defaultScope);
-        }
-
         internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
         {
             if (e.Config.Name == Name && e.Config.Rev > BucketConfig.Rev)
             {
                 BucketConfig = e.Config;
-                KeyMapper = new KetamaKeyMapper(BucketConfig, ClusterOptions);
+                KeyMapper = new KetamaKeyMapper(BucketConfig, Context.ClusterOptions);
 
                 if (BucketConfig.ClusterNodesChanged)
                 {
-                    LoadClusterMap(BucketConfig.GetNodes()).ConfigureAwait(false).GetAwaiter().GetResult();
-                    Prune(BucketConfig);
+                    Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig));
                 }
             }
         }
 
-        internal override async Task Send(IOperation op, TaskCompletionSource<IMemoryOwner<byte>> tcs)
+        internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
         {
             var bucket = KeyMapper.MapKey(op.Key);
             var endPoint = bucket.LocatePrimary();
-            var clusterNode = BucketNodes[endPoint];
-            await CheckConnection(clusterNode).ConfigureAwait(false);
-            await op.SendAsync(clusterNode.Connection).ConfigureAwait(false);
+
+            if (Context.TryGetNode(endPoint, out var clusterNode))
+            {
+                await clusterNode.ExecuteOp(op, token, timeout);
+            }
+            else
+            {
+                //raise exceptin that node is not found
+            }
         }
 
-        internal override async Task Bootstrap(params IClusterNode[] bootstrapNodes)
+        internal override async Task BootstrapAsync(IClusterNode node)
         {
-            var bootstrapNode = bootstrapNodes.FirstOrDefault();
-
+            node.Owner = this;
             //fetch the cluster map to avoid race condition with streaming http
             BucketConfig = await _httpClusterMap.GetClusterMapAsync(
-                Name, bootstrapNode.BootstrapUri, CancellationToken.None).ConfigureAwait(false);
+                Name, node.BootstrapUri, CancellationToken.None).ConfigureAwait(false);
 
-            KeyMapper = new KetamaKeyMapper(BucketConfig, ClusterOptions);
-
-            //reuse the bootstrapNode
-            BucketNodes.AddOrUpdate(bootstrapNode.EndPoint, bootstrapNode, (key, node) => bootstrapNode);
-            bootstrapNode.ClusterOptions = ClusterOptions;
+            KeyMapper = new KetamaKeyMapper(BucketConfig, Context.ClusterOptions);
 
             //the initial bootstrapping endpoint;
-            await bootstrapNode.SelectBucket(Name).ConfigureAwait(false);
+            await node.SelectBucket(Name).ConfigureAwait(false);
 
             LoadManifest();
-            LoadClusterMap(BucketConfig.GetNodes()).ConfigureAwait(false).GetAwaiter().GetResult();
-            bootstrapNode.Owner = this;
+            await Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig));
         }
     }
 }

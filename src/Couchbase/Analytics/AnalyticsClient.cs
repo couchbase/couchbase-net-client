@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
@@ -19,14 +20,14 @@ namespace Couchbase.Analytics
         //private static readonly ILog Log = LogManager.GetLogger(typeof(AnalyticsClient));
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
-        public AnalyticsClient(ClusterOptions clusterOptions) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(clusterOptions.UserName, clusterOptions.Password)),
-            new JsonDataMapper(new DefaultSerializer()), clusterOptions
-        )
-        { }
+        public AnalyticsClient(ClusterContext context) : this(
+            new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
+            new JsonDataMapper(new DefaultSerializer()), context)
+        {
+        }
 
-        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ClusterOptions clusterOptions)
-            : base(client, dataMapper, clusterOptions)
+        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ClusterContext context)
+            : base(client, dataMapper, context)
         { }
 
         /// <summary>
@@ -53,13 +54,7 @@ namespace Couchbase.Analytics
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token)
         {
             // try get Analytics node
-            if (!ClusterOptions.GlobalNodes.TryGetRandom(x => x.HasAnalytics(), out var node))
-            {
-                //const string noNodeAvailableMessage = "Unable to locate analytics node to submit query to.";
-                //Logger.LogError(noNodeAvailableMessage);
-                throw new ServiceNotAvailableException(ServiceType.Analytics);
-            }
-
+            var node = Context.GetRandomNodeForService(ServiceType.Analytics);
             var result = new AnalyticsResult<T>();
 
             string body;

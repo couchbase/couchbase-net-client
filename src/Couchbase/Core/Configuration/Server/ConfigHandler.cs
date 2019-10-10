@@ -21,9 +21,9 @@ namespace Couchbase.Core.Configuration.Server
         public BucketConfig Config { get; }
     }
 
-    internal class ConfigContext : IConfigContext
+    internal class ConfigHandler : IConfigHandler
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<ConfigContext>();
+        private static readonly ILogger Logger = LogManager.CreateLogger<ConfigHandler>();
 
         private readonly BlockingCollection<BucketConfig> _configQueue =
             new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
@@ -32,7 +32,7 @@ namespace Couchbase.Core.Configuration.Server
             new ConcurrentDictionary<string, BucketConfig>();
 
         public CancellationTokenSource TokenSource { get; set; } = new CancellationTokenSource();
-        private readonly ClusterOptions _clusterOptions;
+        private readonly ClusterContext _context;
 
         private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners =
             new ConcurrentDictionary<string, HttpStreamingConfigListener>();
@@ -43,14 +43,10 @@ namespace Couchbase.Core.Configuration.Server
 
         public event BucketConfigHandler ConfigChanged;
 
-        public ConfigContext() : this(new ClusterOptions())
+        public ConfigHandler(ClusterContext context)
         {
-        }
-
-        public ConfigContext(ClusterOptions clusterOptions)
-        {
-            _clusterOptions = clusterOptions;
-            _httpClient = new CouchbaseHttpClient(_clusterOptions);
+            _context = context;
+            _httpClient = new CouchbaseHttpClient(_context);
         }
 
         public void Start(CancellationTokenSource tokenSource)
@@ -72,14 +68,17 @@ namespace Couchbase.Core.Configuration.Server
                 Thread.CurrentThread.Name = "cnfg";
                 while (!TokenSource.IsCancellationRequested)
                 {
-                    await Task.Delay(_clusterOptions.ConfigPollInterval, TokenSource.Token).ConfigureAwait(false);
+                    await Task.Delay(_context.ClusterOptions.ConfigPollInterval, TokenSource.Token).ConfigureAwait(false);
 
-                    foreach (var clusterNode in _clusterOptions.GlobalNodes.Where(x=>x.Connection != null))
+                    foreach (var clusterNode in _context.Nodes)
                     {
                         try
                         {
-                            var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
-                            Publish(config);
+                            var config = await clusterNode.Value.GetClusterMap().ConfigureAwait(false);
+                            if (config != null)
+                            {
+                                Publish(config);
+                            }
                         }
                         catch (Exception e)
                         {
@@ -131,7 +130,7 @@ namespace Couchbase.Core.Configuration.Server
             }
             catch (ObjectDisposedException e)
             {
-                throw new ContextStoppedException("ConfigContext is in stopped mode.", e);
+                throw new ContextStoppedException("ConfigHandler is in stopped mode.", e);
             }
         }
 
@@ -141,7 +140,7 @@ namespace Couchbase.Core.Configuration.Server
 
             if (bucket is MemcachedBucket)
             {
-                var httpListener = new HttpStreamingConfigListener(bucket.Name, _clusterOptions, _httpClient, this, TokenSource.Token);
+                var httpListener = new HttpStreamingConfigListener(bucket.Name, _context.ClusterOptions, _httpClient, this, TokenSource.Token);
                 if (_httpConfigListeners.TryAdd(bucket.Name, httpListener))
                 {
                     httpListener.StartListening();
@@ -173,7 +172,7 @@ namespace Couchbase.Core.Configuration.Server
             }
             catch (ObjectDisposedException e)
             {
-                throw new ContextStoppedException("ConfigContext is in stopped mode.", e);
+                throw new ContextStoppedException("ConfigHandler is in stopped mode.", e);
             }
 
             throw new BucketMissingException(@"Cannot find bucket: " + bucketName);
@@ -187,7 +186,7 @@ namespace Couchbase.Core.Configuration.Server
             }
             catch (ObjectDisposedException e)
             {
-                throw new ContextStoppedException("ConfigContext is in stopped mode.", e);
+                throw new ContextStoppedException("ConfigHandler is in stopped mode.", e);
             }
         }
 

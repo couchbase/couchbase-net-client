@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -14,6 +14,11 @@ namespace Couchbase.Core.IO.HTTP
 
         public AuthenticatingHttpClientHandler()
             : this("default", string.Empty)
+        {
+        }
+
+        public AuthenticatingHttpClientHandler(ClusterContext context)
+            : this(context.ClusterOptions.UserName, context.ClusterOptions.Password)
         {
         }
 
