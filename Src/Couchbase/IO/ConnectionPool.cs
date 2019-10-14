@@ -7,6 +7,7 @@ using System.Threading;
 using Couchbase.Logging;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
+using System.Threading.Tasks;
 
 namespace Couchbase.IO
 {
@@ -83,30 +84,31 @@ namespace Couchbase.IO
                     EnableEnhancedAuthentication(connection);
                 }
 
-                // create and configure connections to minsize
-                while (_refs.Count < Configuration.MinSize)
-                {
-                    try
+                Task.WhenAll(
+                    Enumerable.Range(1, Configuration.MaxSize - _refs.Count).Select(i => Task.Factory.StartNew(() =>
                     {
-                        var connection = Factory(this, Converter, BufferAllocator);
+                        try
+                        {
+                            var connection = Factory(this, Converter, BufferAllocator);
 
-                        Authenticate(connection);
-                        EnableEnhancedAuthentication(connection);
+                            Authenticate(connection);
+                            EnableEnhancedAuthentication(connection);
 
-                        Log.Info("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
-                            EndPoint, connection.Identity, Identity, _disposed);
+                            Log.Info("Initializing connection on [{0} | {1}] - {2} - Disposed: {3}",
+                                EndPoint, connection.Identity, Identity, _disposed);
 
-                        _store.Enqueue(connection);
-                        _refs.TryAdd(connection.Identity, connection);
-                        Interlocked.Increment(ref _count);
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Info("Node {0} failed to initialize, reason: {1}", EndPoint, e);
-                        InitializationFailed = true;
-                        return;
-                    }
-                }
+                            _store.Enqueue(connection);
+                            _refs.TryAdd(connection.Identity, connection);
+                            Interlocked.Increment(ref _count);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Info("Node {0} failed to initialize, reason: {1}", EndPoint, e);
+                            InitializationFailed = true;
+                        }
+                        return Task.FromResult(true);
+                    }, TaskCreationOptions.LongRunning))
+                ).ConfigureAwait(false).GetAwaiter().GetResult();
             }
         }
 
