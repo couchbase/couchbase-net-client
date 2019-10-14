@@ -79,34 +79,6 @@ namespace Couchbase
             _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_clusterOptions));
         }
 
-        public Cluster(string connectionStr, string username, string password)
-        {
-            var connectionString = ConnectionString.Parse(connectionStr);
-
-            _clusterOptions = new ClusterOptions()
-                .WithServers(connectionString.Hosts.ToArray())
-                .WithCredentials(username, password);
-
-            if (!_clusterOptions.Servers.Any())
-            {
-                _clusterOptions = _clusterOptions.WithServers("couchbase://localhost");
-            }
-            _couchbaseContext = new ConfigContext(_clusterOptions);
-            _couchbaseContext.Start(_configTokenSource);
-
-            if (_clusterOptions.EnableConfigPolling)
-            {
-                _couchbaseContext.Poll(_configTokenSource.Token);
-            }
-
-            _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_clusterOptions));
-            _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_clusterOptions));
-            _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_clusterOptions));
-            _lazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(_lazyQueryClient.Value));
-            _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_clusterOptions));
-            _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_clusterOptions));
-        }
-
         public static ICluster Connect(string connectionString, ClusterOptions options)
         {
             using (new SynchronizationContextExclusion())
@@ -115,6 +87,15 @@ namespace Couchbase
                 cluster.InitializeAsync().GetAwaiter().GetResult();
                 return cluster;
             }
+        }
+
+        public static ICluster Connect(string connectionString, string username, string password)
+        {
+            return Connect(connectionString, new ClusterOptions
+            {
+                UserName = username,
+                Password = password
+            });
         }
 
         public static ICluster Connect(string connectionString, Action<ConfigurationBuilder> configureBuilder)
