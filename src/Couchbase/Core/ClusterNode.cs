@@ -24,6 +24,10 @@ namespace Couchbase.Core
         private readonly ClusterContext _context;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0, 0, 0, 0, 2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
+        private Uri _queryUri;
+        private Uri _analyticsUri;
+        private Uri _searchUri;
+        private Uri _viewsUri;
 
         public ClusterNode(ClusterContext context)
         {
@@ -35,20 +39,57 @@ namespace Couchbase.Core
         public NodeAdapter NodesAdapter { get; set; }
         public Uri BootstrapUri { get; set; }
         public IPEndPoint EndPoint { get; set; }
-        public Uri QueryUri { get; set; }
-        public Uri AnalyticsUri { get; set; }
-        public Uri SearchUri { get; set; }
-        public Uri ViewsUri { get; set; }
+
+        public Uri QueryUri
+        {
+            get
+            {
+                LastQueryActivity = DateTime.UtcNow;
+                return _queryUri;
+            }
+            set => _queryUri = value;
+        }
+
+        public Uri AnalyticsUri
+        {
+            get
+            {
+                LastAnalyticsActivity = DateTime.UtcNow;
+                return _analyticsUri;
+            }
+            set => _analyticsUri = value;
+        }
+
+        public Uri SearchUri
+        {
+            get
+            {
+                LastSearchActivity = DateTime.UtcNow;
+                return _searchUri;
+            }
+            set => _searchUri = value;
+        }
+
+        public Uri ViewsUri
+        {
+            get
+            {
+                LastViewActivity = DateTime.UtcNow;
+                return _viewsUri;
+            }
+            set => _viewsUri = value;
+        }
+
         public Uri ManagementUri { get; set; }
         public ErrorMap ErrorMap { get; set; }
         public short[] ServerFeatures { get; set; }
         public IConnection Connection { get; set; }//TODO this will be a connection pool later NOTE: group these by IBucket!
         public List<Exception> Exceptions { get; set; }//TODO catch and hold until first operation per RFC
-        public bool HasViews() => NodesAdapter.IsViewNode;
-        public bool HasAnalytics() => NodesAdapter.IsAnalyticsNode;
-        public bool HasQuery() => NodesAdapter.IsQueryNode;
-        public bool HasSearch() => NodesAdapter.IsSearchNode;
-        public bool HasData() => NodesAdapter.IsDataNode;
+        public bool HasViews => NodesAdapter.IsViewNode;
+        public bool HasAnalytics => NodesAdapter.IsAnalyticsNode;
+        public bool HasQuery => NodesAdapter.IsQueryNode;
+        public bool HasSearch => NodesAdapter.IsSearchNode;
+        public bool HasKv => NodesAdapter.IsKvNode;
 
         public ConcurrentDictionary<IBucket, IConnection> Connections = new ConcurrentDictionary<IBucket, IConnection>();
 
@@ -56,6 +97,12 @@ namespace Couchbase.Core
         {
             return ServerFeatures.Contains((short) feature);
         }
+
+        public DateTime? LastViewActivity { get; private set; }
+        public DateTime? LastQueryActivity { get; private set; }
+        public DateTime? LastSearchActivity { get; private set; }
+        public DateTime? LastAnalyticsActivity { get; private set; }
+        public DateTime? LastKvActivity { get; private set; }
 
         //TODO these methods will be more complex once we have a cpool
         public Task<Manifest> GetManifest()
@@ -85,7 +132,7 @@ namespace Couchbase.Core
             }
         }
 
-        public async Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken),
+        public async Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
             Log.LogDebug("Executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
@@ -130,8 +177,8 @@ namespace Couchbase.Core
                     }
                 }, useSynchronizationContext: false))
                 {
-                    await CheckConnectionAsync();
-                    await op.SendAsync(Connection).ConfigureAwait(false);
+                    await CheckConnectionAsync(connection);
+                    await op.SendAsync(connection).ConfigureAwait(false);
                     var bytes = await tcs.Task.ConfigureAwait(false);
                     await op.ReadAsync(bytes).ConfigureAwait(false);
 
@@ -161,10 +208,14 @@ namespace Couchbase.Core
             }
         }
 
-        protected async Task CheckConnectionAsync()
+        public Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken),
+            TimeSpan? timeout = null)
         {
-            //TODO temp fix for recreating dead connections - in future use CP to manage them
-            var connection = Connection;
+            return ExecuteOp(Connection, op, token);
+        }
+
+        protected async Task CheckConnectionAsync(IConnection connection)
+        {
             if (connection.IsDead)
             {
                 //recreate the connection its been closed and disposed

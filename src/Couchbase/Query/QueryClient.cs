@@ -10,7 +10,6 @@ using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
-using Couchbase.Services;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 

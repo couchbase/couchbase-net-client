@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -14,7 +13,6 @@ using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
-using Couchbase.Services;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 

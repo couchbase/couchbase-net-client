@@ -170,7 +170,7 @@ namespace Couchbase.UnitTests
 
             public override ICollectionManager Collections => throw new NotImplementedException();
 
-            internal async override Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
+            internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
             {
                 var mockConnection = new Mock<IConnection>();
                 mockConnection.SetupGet(x => x.IsDead).Returns(false);

@@ -32,7 +32,7 @@ namespace Couchbase.Core.Sharding
         {
             var ipEndPoints = new List<IPEndPoint>();
             foreach (var node in config.GetNodes())
-                if (node.IsDataNode)
+                if (node.IsKvNode)
                     ipEndPoints.Add(node.GetIpEndPoint());
 
             return ipEndPoints;

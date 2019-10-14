@@ -26,7 +26,7 @@ namespace Couchbase.UnitTests.Management
             var httpClient = new HttpClient(hander);
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(node => node.HasSearch()).Returns(true);
+            mockClusterNode.Setup(node => node.HasSearch).Returns(true);
             mockClusterNode.Setup(node => node.SearchUri).Returns(new Uri("http://localhost:8094"));
             mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Any, 8091));
 

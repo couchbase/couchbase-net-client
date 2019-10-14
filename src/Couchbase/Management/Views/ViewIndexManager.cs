@@ -7,8 +7,6 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
-using Couchbase.Services;
-using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;

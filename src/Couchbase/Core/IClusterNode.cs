@@ -27,17 +27,26 @@ namespace Couchbase.Core
         IConnection Connection { get; set; } //TODO this will be a connection pool later
         List<Exception> Exceptions { get; set; } //TODO catch and hold until first operation per RFC
         bool IsAssigned { get; }
-        bool HasViews();
-        bool HasAnalytics();
-        bool HasQuery();
-        bool HasSearch();
+        bool HasViews { get; }
+        bool HasAnalytics { get; }
+        bool HasQuery { get; }
+        bool HasSearch { get; }
+        bool HasKv { get; }
         bool Supports(ServerFeatures feature);
+        DateTime? LastViewActivity { get; }
+        DateTime? LastQueryActivity { get; }
+        DateTime? LastSearchActivity { get; }
+        DateTime? LastAnalyticsActivity { get; }
+        DateTime? LastKvActivity { get; }
         Task<Manifest> GetManifest();
         Task SelectBucket(string name);
         Task<BucketConfig> GetClusterMap();
         void BuildServiceUris();
 
         Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken),
+            TimeSpan? timeout = null);
+
+        Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null);
     }
 }

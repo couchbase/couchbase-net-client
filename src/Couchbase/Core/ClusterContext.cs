@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -7,7 +8,6 @@ using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
-using Couchbase.Services;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -22,12 +22,18 @@ namespace Couchbase.Core
         private bool _disposed;
 
         //For testing
-        public ClusterContext() : this(new CancellationTokenSource(), new ClusterOptions())
+        public ClusterContext() : this(null, new CancellationTokenSource(), new ClusterOptions())
         {
         }
 
         public ClusterContext(CancellationTokenSource tokenSource, ClusterOptions options)
+            : this(null, tokenSource, options)
         {
+        }
+
+        public ClusterContext(ICluster cluster, CancellationTokenSource tokenSource, ClusterOptions options)
+        {
+            Cluster = cluster;
             ClusterOptions = options;
             _tokenSource = tokenSource;
             _configHandler = new ConfigHandler(this);//TODO make injectable
@@ -38,6 +44,8 @@ namespace Couchbase.Core
         public ClusterOptions ClusterOptions { get; }
 
         public BucketConfig GlobalConfig { get; set; }
+
+        public ICluster Cluster { get; private set; }
 
         public void StartConfigListening()
         {
@@ -69,21 +77,20 @@ namespace Couchbase.Core
 
         public IClusterNode GetRandomNodeForService(ServiceType service, string bucketName = null)
         {
-            //TODO refactor this selection
             IClusterNode node;
             switch (service)
             {
                 case ServiceType.KeyValue:
-                    node = Nodes.Values.GetRandom(x => x.HasViews() && x.Owner.Name.Equals(bucketName));
+                    node = Nodes.Values.GetRandom(x => x.HasViews && x.Owner.Name.Equals(bucketName));
                     break;
                 case ServiceType.Query:
-                    node = Nodes.Values.GetRandom(x => x.HasQuery());
+                    node = Nodes.Values.GetRandom(x => x.HasQuery);
                     break;
                 case ServiceType.Search:
-                    node = Nodes.Values.GetRandom(x => x.HasSearch());
+                    node = Nodes.Values.GetRandom(x => x.HasSearch);
                     break;
                 case ServiceType.Analytics:
-                    node = Nodes.Values.GetRandom(x => x.HasAnalytics());
+                    node = Nodes.Values.GetRandom(x => x.HasAnalytics);
                     break;
                 default:
                     throw new ServiceNotAvailableException(service);
@@ -106,6 +113,13 @@ namespace Couchbase.Core
             {
                 RemoveNode(node.Value);
             }
+        }
+
+        public IEnumerable<IClusterNode> GetNodes(string bucketName)
+        {
+            return Nodes.Values.Where(x => x.Owner != null &&
+                                           x.Owner.Name.Equals(bucketName))
+                .Select(node => node);
         }
 
         public IClusterNode GetRandomNode()
@@ -300,6 +314,7 @@ namespace Couchbase.Core
                 node.BuildServiceUris();
                 AddNode(node);
             }
+
             PruneNodes(config);
         }
 

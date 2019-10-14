@@ -264,7 +264,7 @@ namespace Couchbase.Core.Configuration.Server
         /// <value>
         ///     <c>true</c> if this instance is data node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsDataNode => KeyValue > 0 || KeyValueSsl > 0;
+        public bool IsKvNode => KeyValue > 0 || KeyValueSsl > 0;
 
         /// <summary>
         /// Gets a value indicating whether this instance is index node.

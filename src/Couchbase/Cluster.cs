@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics;
 using Couchbase.Core.Logging;
+using Couchbase.Diagnostics;
 using Couchbase.Management;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
@@ -124,9 +124,9 @@ namespace Couchbase
             return bucket;
         }
 
-        public Task<IDiagnosticsReport> DiagnosticsAsync(string reportId)
+        public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null)
         {
-            throw new NotImplementedException();
+            return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options?.ReportId ?? Guid.NewGuid().ToString()));
         }
 
         public Task<IClusterManager> ClusterManagerAsync()

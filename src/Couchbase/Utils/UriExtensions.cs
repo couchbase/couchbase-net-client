@@ -76,7 +76,7 @@ namespace Couchbase.Utils
 
         internal static Uri GetViewsUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodesAdapter)
         {
-            if (nodesAdapter.IsDataNode)
+            if (nodesAdapter.IsKvNode)
             {
                 return new UriBuilder
                 {

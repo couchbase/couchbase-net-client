@@ -7,6 +7,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
+using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
@@ -22,8 +23,8 @@ namespace Couchbase.Core
         private static readonly ILogger Log = LogManager.CreateLogger<BucketBase>();
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
 
-        protected ClusterContext Context;
-        protected BucketConfig BucketConfig;
+        public ClusterContext Context;
+        public BucketConfig BucketConfig;
         protected Manifest Manifest;
         internal IKeyMapper KeyMapper;
         protected bool SupportsCollections;
@@ -55,6 +56,11 @@ namespace Couchbase.Core
         public abstract IViewIndexManager Views { get; }
 
         public abstract ICollectionManager Collections { get; }
+
+        public Task<IPingReport> PingAsync(PingOptions options)
+        {
+            return Task.Run(()=> DiagnosticsReportProvider.CreatePingReport(Context, BucketConfig, options));
+        }
 
         internal abstract Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null);
 

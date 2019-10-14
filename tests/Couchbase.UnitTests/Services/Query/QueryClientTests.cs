@@ -11,7 +11,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
-using Couchbase.Services;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Moq;

@@ -1,9 +1,12 @@
 using System;
+using System.Net.NetworkInformation;
 using System.Threading.Tasks;
+using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
+using PingOptions = Couchbase.Diagnostics.PingOptions;
 
 namespace Couchbase
 {
@@ -25,5 +28,7 @@ namespace Couchbase
         IViewIndexManager Views { get; }
 
         ICollectionManager Collections { get; }
+
+        Task<IPingReport> PingAsync(PingOptions options);
     }
 }

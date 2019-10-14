@@ -1,5 +1,4 @@
 using System;
-using Couchbase.Services;
 using Couchbase.Utils;
 
 namespace Couchbase

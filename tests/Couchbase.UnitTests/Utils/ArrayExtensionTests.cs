@@ -49,9 +49,9 @@ namespace Couchbase.UnitTests.Utils
                 {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
             };
 
-            var node = dict.GetRandom(x => x.Value.HasViews());
+            var node = dict.GetRandom(x => x.Value.HasViews);
 
-            Assert.True(node.Value.HasViews());
+            Assert.True(node.Value.HasViews);
         }
 
         [Fact]
@@ -64,7 +64,7 @@ namespace Couchbase.UnitTests.Utils
                 {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
             };
 
-            var node = dict.GetRandom(x => x.Value.HasData());
+            var node = dict.GetRandom(x => x.Value.HasKv);
 
             Assert.Null(node.Value);
         }

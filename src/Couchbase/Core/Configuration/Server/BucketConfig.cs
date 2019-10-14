@@ -3,7 +3,6 @@ using Couchbase.Core.Sharding;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using Couchbase.Services;
 using Newtonsoft.Json;
 using Couchbase.Utils;
 

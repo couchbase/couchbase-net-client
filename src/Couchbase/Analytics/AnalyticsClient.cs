@@ -8,7 +8,6 @@ using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
-using Couchbase.Services;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;

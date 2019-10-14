@@ -118,7 +118,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             var adapter = new NodeAdapter(null, nodeExt, null);
             Assert.Equal(adapter.Hostname, hostname);
-            Assert.False(adapter.IsDataNode);
+            Assert.False(adapter.IsKvNode);
         }
 
         [Theory]

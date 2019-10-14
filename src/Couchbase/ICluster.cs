@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
-using Couchbase.Core.Diagnostics;
+using Couchbase.Diagnostics;
 using Couchbase.Management;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
@@ -17,7 +17,7 @@ namespace Couchbase
     {
         Task<IBucket> BucketAsync(string name);
 
-        Task<IDiagnosticsReport> DiagnosticsAsync(string reportId);
+        Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null);
 
         Task<IClusterManager> ClusterManagerAsync();
 

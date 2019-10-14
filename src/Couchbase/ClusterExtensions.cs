@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
-using Couchbase.Core.Diagnostics;
+using Couchbase.Diagnostics;
 using Couchbase.Query;
 using Couchbase.Search;
 
@@ -9,9 +9,12 @@ namespace Couchbase
 {
     public static class ClusterExtensions
     {
-        public static Task<IDiagnosticsReport> Diagnostics(this ICluster cluster)
+        public static Task<IDiagnosticsReport> DiagnosticsAsync(this ICluster cluster, Action<DiagnosticsOptions> configureOptions)
         {
-            throw new NotImplementedException();
+            var options = new DiagnosticsOptions();
+            configureOptions?.Invoke(options);
+
+            return cluster.DiagnosticsAsync(options);
         }
 
         public static Task<Query.IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,

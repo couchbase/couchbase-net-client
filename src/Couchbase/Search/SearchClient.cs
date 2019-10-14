@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Services;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 

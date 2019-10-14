@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
 using Couchbase.Views;
 
@@ -25,5 +26,28 @@ namespace Couchbase
 
             return bucket.ViewQueryAsync(designDocument, viewName, options);
         }
+
+        #region PingAsync
+
+        public static Task<IPingReport> PingAsync(this IBucket bucket, params ServiceType[] serviceTypes)
+        {
+            return PingAsync(bucket, Guid.NewGuid().ToString(), serviceTypes);
+        }
+
+        public static Task<IPingReport> PingAsync(this IBucket bucket, Action<PingOptions> configureOptions)
+        {
+            var options = new PingOptions();
+            configureOptions(options);
+
+            return bucket.PingAsync(options);
+        }
+
+        public static Task<IPingReport> PingAsync(this IBucket bucket, string reportId, params ServiceType[] serviceTypes)
+        {
+            return bucket.PingAsync(new PingOptions {ReportId = reportId, ServiceTypes = serviceTypes});
+        }
+
+        #endregion
+
     }
 }
