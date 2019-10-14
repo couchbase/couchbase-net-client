@@ -277,7 +277,9 @@ namespace Couchbase.IO
         public override void Dispose()
         {
             Dispose(true);
+#if DEBUG
             GC.SuppressFinalize(this);
+#endif
         }
 
         public void Dispose(bool disposing)
