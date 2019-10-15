@@ -13,12 +13,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core
 {
-    internal class ClusterContext
+    internal class ClusterContext : IDisposable
     {
         private static readonly ILogger Log = LogManager.CreateLogger<ClusterContext>();
         private readonly ConfigHandler _configHandler;
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, IBucket> Buckets = new ConcurrentDictionary<string, IBucket>();
+        private bool _disposed;
 
         //For testing
         public ClusterContext() : this(new CancellationTokenSource(), new ClusterOptions())
@@ -277,6 +278,30 @@ namespace Couchbase.Core
                 AddNode(node);
             }
             PruneNodes(config);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _configHandler?.Dispose();
+            _tokenSource?.Dispose();
+
+            foreach (var bucketName in Buckets.Keys)
+            {
+                if (Buckets.TryRemove(bucketName, out var bucket))
+                {
+                    bucket.Dispose();
+                }
+            }
+
+            foreach (var endpoint in Nodes.Keys)
+            {
+                if (Nodes.TryRemove(endpoint, out var node))
+                {
+                    node.Dispose();
+                }
+            }
         }
     }
 }

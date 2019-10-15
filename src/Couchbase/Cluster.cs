@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
@@ -26,10 +24,9 @@ namespace Couchbase
     public class Cluster : ICluster
     {
         private static readonly ILogger Log = LogManager.CreateLogger<Cluster>();
+        private readonly object _syncObject = new object();
         private bool _disposed;
         private readonly ClusterContext _context;
-        private readonly ConcurrentDictionary<string, IBucket> _bucketRefs = new ConcurrentDictionary<string, IBucket>();
-        private BucketConfig _clusterConfig;
         private bool _hasBootStrapped;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
 
@@ -234,6 +231,7 @@ namespace Couchbase
         public IQueryIndexManager QueryIndexes => _lazyQueryManager.Value;
 
         public IAnalyticsIndexManager AnalyticsIndexes { get; }
+
         public ISearchIndexManager SearchIndexes => _lazySearchManager.Value;
 
         public IBucketManager Buckets => _lazyBucketManager.Value;
@@ -242,18 +240,13 @@ namespace Couchbase
 
         public void Dispose()
         {
-            if (_disposed)
+            if (_disposed) return;
+            lock (_syncObject)
             {
-                return;
+                if(_disposed) return;
+                _disposed = true;
+                _context.Dispose();
             }
-
-            foreach (var bucket in _bucketRefs.Values)
-            {
-                // maybe this should be an internal Close instead of Dispose to prevent external calls
-                bucket.Dispose();
-            }
-
-            _disposed = true;
         }
 
         /// <inheritdoc />
