@@ -67,6 +67,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override OpCode OpCode => OpCode.Observe;
 
+        public override bool Idempotent { get; } = true;
+
         public override IOperation Clone()
         {
             var cloned = new Observe

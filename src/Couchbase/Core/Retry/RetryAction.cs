@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace RetryExample
+namespace Couchbase.Core.Retry
 {
     public class RetryAction
     {

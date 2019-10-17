@@ -48,7 +48,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Errors
         /// </summary>
         /// <param name="attempts">The attempts.</param>
         /// <returns>The next interval to wait before the next</returns>
-        public int GetNextInterval(int attempts)
+        public int GetNextInterval(uint attempts)
         {
             var adjustedAttempts = attempts - 1;
 
@@ -64,7 +64,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Errors
                     nextInterval += Interval;
                     break;
                 case RetryStrategy.Linear:
-                    nextInterval += adjustedAttempts * Interval;
+                    nextInterval += (int)adjustedAttempts * Interval;
                     break;
                 case RetryStrategy.Exponential:
                     nextInterval += (int) Math.Pow(Interval, adjustedAttempts);

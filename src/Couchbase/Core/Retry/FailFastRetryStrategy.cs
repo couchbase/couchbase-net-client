@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using Couchbase.Core.IO.Operations.Legacy;
 
-namespace RetryExample
+namespace Couchbase.Core.Retry
 {
     public class FailFastRetryStrategy : IRetryStrategy
     {
-        public RetryAction RetryAfter(IOperation operation, RetryReason reason)
+        public RetryAction RetryAfter(IOperation ret, RetryReason reason)
         {
             return RetryAction.WithDuration(null);
         }

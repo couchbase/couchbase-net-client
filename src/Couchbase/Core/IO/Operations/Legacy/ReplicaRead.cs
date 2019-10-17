@@ -38,6 +38,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
         }
 
         public override bool RequiresKey => true;
+
+        public override bool Idempotent { get; } = true;
     }
 }
 

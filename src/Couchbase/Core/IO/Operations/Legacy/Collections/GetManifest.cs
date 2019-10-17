@@ -7,6 +7,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.Collections
     {
         public override OpCode OpCode  => OpCode.GetCollectionsManifest;
 
+        public override bool Idempotent { get; } = true;
+
         protected override void BeginSend()
         {
             Format = DataFormat.Json;

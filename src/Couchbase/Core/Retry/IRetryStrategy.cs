@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using Couchbase.Core.IO.Operations.Legacy;
 
-namespace RetryExample
+namespace Couchbase.Core.Retry
 {
     public interface IRetryStrategy
     {

@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -48,7 +50,16 @@ namespace Couchbase.Core.IO.Operations.Legacy
         public int TotalLength => Header.TotalLength;
         public virtual bool Success => GetSuccess();
         public uint Expires { get; set; }
-        public int Attempts { get; set; }
+
+        #region RetryAsync SDK-3
+
+        public uint Attempts { get; set; }
+        public virtual bool Idempotent { get; } = false;
+        public List<RetryReason> RetryReasons { get; set; }
+        public IRetryStrategy RetryStrategy { get; set; }
+
+        #endregion
+
         public int MaxRetries { get; set; }
         public DateTime CreationTime { get; set; }
         public Func<SocketAsyncState, Task> Completed { get; set; }
@@ -389,7 +400,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         internal bool ErrorMapRequestsRetry()
         {
-            return ErrorCode?.Retry != null && ErrorCode.Retry.Strategy != RetryStrategy.None;
+            //TODO make work with retry handling
+            return false;// return ErrorCode?.RetryAsync != null && ErrorCode.RetryAsync.Strategy != RetryStrategy.None;
         }
 
         public ITypeTranscoder Transcoder { get; set; }

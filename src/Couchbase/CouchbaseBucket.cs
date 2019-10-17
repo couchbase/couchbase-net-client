@@ -168,7 +168,7 @@ namespace Couchbase
             }
             else
             {
-                //throw node not found
+               throw new NodeNotAvailableException($"Cannot find a Couchbase Server node for {endPoint}.");
             }
         }
 

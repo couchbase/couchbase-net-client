@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.KeyValue
 {
@@ -10,6 +11,8 @@ namespace Couchbase.KeyValue
 
     public class GetOptions
     {
+        public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy();
+
         public bool IncludeExpiry { get; set; }
 
         public bool CreatePath { get; set; }

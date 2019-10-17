@@ -42,6 +42,8 @@ namespace Couchbase.Core.IO.Operations.Legacy.SubDocument
 
         public override OpCode OpCode => OpCode.MultiLookup;
 
+        public override bool Idempotent { get; } = true;
+
         public override T GetValue()
         {
             var responseSpan = Data.Span.Slice(Header.BodyOffset);

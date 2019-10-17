@@ -1,11 +1,13 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations.Legacy.Errors;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.IO.Operations.Legacy
 {
@@ -35,7 +37,17 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         int TotalLength { get; }
 
-        int Attempts { get; set; }
+        #region RetryAsync
+
+        uint Attempts { get; set; }
+
+        bool Idempotent { get; }
+
+        List<RetryReason> RetryReasons { get; set; }
+
+        IRetryStrategy RetryStrategy { get; set; }
+
+        #endregion
 
         int MaxRetries { get; }
 

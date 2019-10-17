@@ -12,7 +12,7 @@ namespace Couchbase.UnitTests
             var mockBucket = new Mock<IBucket>();
             var scope = new Scope("_default", "0", new ICollection[]{}, mockBucket.Object);
 
-            Assert.Throws<CollectionMissingException>(() =>
+            Assert.Throws<CollectionOutdatedException>(() =>
             {
                 var collection = scope["doesnotexist"];
             });
@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests
             var mockBucket = new Mock<IBucket>();
             var scope = new Scope("_default", "0", new ICollection[]{}, mockBucket.Object);
 
-            Assert.Throws<CollectionMissingException>(() =>
+            Assert.Throws<CollectionOutdatedException>(() =>
             {
                 var collection = scope.Collection("doesnotexist");
             });

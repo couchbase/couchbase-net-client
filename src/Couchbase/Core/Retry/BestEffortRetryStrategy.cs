@@ -1,39 +1,30 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Couchbase.Core.IO.Operations.Legacy;
 
-namespace RetryExample
-{  
+namespace Couchbase.Core.Retry
+{
     public class BestEffortRetryStrategy : IRetryStrategy
     {
+        private readonly IBackoffCalculator _backoffCalculator;
+
+        public BestEffortRetryStrategy() :
+            this(ExponentialBackoff.Create(10, 1, 500))
+        {
+        }
+
+        public BestEffortRetryStrategy(IBackoffCalculator calculator)
+        {
+            _backoffCalculator = calculator;
+        }
+
         public RetryAction RetryAfter(IOperation operation, RetryReason reason)
         {
             if (operation.Idempotent || reason.AllowsNonIdempotentRetries())
             {
-                return RetryAction.WithDuration(CalculateDuration(operation.Attempts));
+                var backoffDuration = _backoffCalculator.CalculateBackoff(operation);
+                return RetryAction.WithDuration(backoffDuration);
             }
 
             return RetryAction.WithDuration(null);
-        }
-
-        public TimeSpan CalculateDuration(uint retryAttempts)
-        {
-            switch (retryAttempts)
-            {
-                case 0:
-                    return TimeSpan.FromMilliseconds(1);
-                case 1:
-                    return TimeSpan.FromMilliseconds(10);
-                case 2:
-                    return TimeSpan.FromMilliseconds(50);
-                case 3:
-                    return TimeSpan.FromMilliseconds(100);
-                case 4:
-                    return TimeSpan.FromMilliseconds(500);
-                default:
-                    return TimeSpan.FromMilliseconds(1000);
-            }
         }
     }
 }

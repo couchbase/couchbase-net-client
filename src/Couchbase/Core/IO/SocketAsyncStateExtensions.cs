@@ -75,14 +75,24 @@ namespace Couchbase.Core.IO
                         ErrorMap = state.ErrorMap
                     });
                 //internal errors handled by the app?
-                case ResponseStatus.Rollback:
                 case ResponseStatus.VBucketBelongsToAnotherServer:
+                    return new NotMyVBucketException(statusName, new KeyValueException
+                    {
+                        Status = state.Status,
+                        ErrorMap = state.ErrorMap
+                    });
+                case ResponseStatus.UnknownError:
+                    return new UnknownErrorException(statusName, new KeyValueException
+                    {
+                        Status = state.Status,
+                        ErrorMap = state.ErrorMap
+                    });
+                case ResponseStatus.Rollback:
                 case ResponseStatus.AuthenticationContinue:
                 case ResponseStatus.AuthStale:
                 case ResponseStatus.InternalError:
                 case ResponseStatus.UnknownCommand:
                 case ResponseStatus.BucketNotConnected:
-                case ResponseStatus.UnknownError:
                 case ResponseStatus.NotInitialized:
                 case ResponseStatus.NotSupported:
                 case ResponseStatus.SubdocXattrUnknownVattr:

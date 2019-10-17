@@ -33,7 +33,7 @@ namespace Couchbase.KeyValue
                 {
                     return collection;
                 };
-                throw new CollectionMissingException("Cannot find collection {name}");
+                throw new CollectionOutdatedException("Cannot find collection {name}");
             }
         }
 

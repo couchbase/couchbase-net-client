@@ -1,8 +1,9 @@
 using System;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.KeyValue
 {
-    public class KeyLockedException: CouchbaseException
+    public class KeyLockedException: CouchbaseException, IRetryable
     {
         public KeyLockedException()
         {

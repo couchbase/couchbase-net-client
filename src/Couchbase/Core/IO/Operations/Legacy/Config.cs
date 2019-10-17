@@ -37,6 +37,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override OpCode OpCode => OpCode.GetClusterConfig;
 
+        public override bool Idempotent { get; } = true;
+
         public override BucketConfig GetValue()
         {
             BucketConfig bucketConfig = null;

@@ -60,6 +60,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
             return cloned;
         }
 
+        public override bool Idempotent { get; } = true;
+
         public override bool CanRetry()
         {
             return ErrorCode == null || ErrorMapRequestsRetry();

@@ -2,7 +2,7 @@ using System;
 
 namespace Couchbase
 {
-    public class ServiceMissingException : Exception
+    public class ServiceMissingException : CouchbaseException
     {
         public ServiceMissingException()
         {

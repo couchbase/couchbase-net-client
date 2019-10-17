@@ -20,6 +20,8 @@ namespace Couchbase.Core.IO.Operations.Legacy
 
         public override OpCode OpCode => OpCode.GetL;
 
+        public override bool Idempotent { get; } = false;
+
         public override IOperation Clone()
         {
             var cloned = new GetL<T>

@@ -14,6 +14,7 @@ using Couchbase.Core.IO.Operations.Legacy.SubDocument;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -364,7 +365,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             };
 
-            await _bucket.SendAsync(lookup, options.Token, options.Timeout);
+            await _bucket.RetryAsync(lookup, options.Token, options.Timeout);
             return lookup;
         }
 
@@ -545,7 +546,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await _bucket.SendAsync(getOp, cancellationToken).ConfigureAwait(false);
+                await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
                 return new GetReplicaResult(getOp.ExtractData(), transcoder)
                 {
                     Id = getOp.Key,
@@ -568,7 +569,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             })
             {
-                await _bucket.SendAsync(getOp, cancellationToken).ConfigureAwait(false);
+                await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
                 return new GetReplicaResult(getOp.ExtractData(), transcoder)
                 {
                     Id = getOp.Key,

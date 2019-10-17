@@ -7,10 +7,11 @@ namespace Couchbase.Core.IO.Operations.Legacy
     {
         public override OpCode OpCode => OpCode.NoOp;
 
+        public override bool Idempotent { get; } = true;
+
         public override void WriteKey(OperationBuilder builder)
         {
         }
-
         public override bool RequiresKey => false;
     }
 }

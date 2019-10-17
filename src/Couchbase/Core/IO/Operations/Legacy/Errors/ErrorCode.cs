@@ -68,7 +68,7 @@ namespace Couchbase.Core.IO.Operations.Legacy.Errors
         /// <param name="attempts">The number of attempts.</param>
         /// <param name="defaultTimeout">The default timeout.</param>
         /// <returns>The next interval in ms.</returns>
-        public int GetNextInterval(int attempts, int defaultTimeout)
+        public int GetNextInterval(uint attempts, int defaultTimeout)
         {
             if (Retry != null && Attrs.Contains("auto-retry"))
             {

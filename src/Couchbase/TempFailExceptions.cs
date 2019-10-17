@@ -1,11 +1,12 @@
 using System;
+using Couchbase.Core.Retry;
 
 namespace Couchbase
 {
     /// <summary>
-    /// A generic error raised when a path exists for a given resource.
+    /// An error returned by the server when it temporarily cannot process an operation.
     /// </summary>
-    public class TempFailException : CouchbaseException
+    public class TempFailException : CouchbaseException, IRetryable
     {
         public  TempFailException()
         {
