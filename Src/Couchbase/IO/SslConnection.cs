@@ -200,11 +200,10 @@ namespace Couchbase.IO
 
                 try
                 {
-                    var task = SendAsync(buffer, cancellationTokenSource.Token);
-
-                    task.Wait(cancellationTokenSource.Token);
-
-                    return task.Result;
+                    return SendAsync(buffer, cancellationTokenSource.Token)
+                        .ContinueOnAnyContext()
+                        .GetAwaiter()
+                        .GetResult();
                 }
                 catch (AggregateException ex)
                 {
