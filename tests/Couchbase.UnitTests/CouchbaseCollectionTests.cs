@@ -183,7 +183,7 @@ namespace Couchbase.UnitTests
 
                 if (_statuses.TryDequeue(out ResponseStatus status))
                 {
-                    op.Completed(new SocketAsyncState
+                    await op.Completed(new SocketAsyncState
                     {
                         Status = status
                     });
