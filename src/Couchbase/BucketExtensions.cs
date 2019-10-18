@@ -12,13 +12,18 @@ namespace Couchbase
             return bucket[name];
         }
 
-        public static Task<IViewResult<T>> ViewQueryAsync<T>(this IBucket bucket, string designDocument,
+        public static Task<IViewResult> ViewQueryAsync(this IBucket bucket, string designDocument, string viewName)
+        {
+            return bucket.ViewQueryAsync(designDocument, viewName, ViewOptions.Default);
+        }
+
+        public static Task<IViewResult> ViewQueryAsync(this IBucket bucket, string designDocument,
             string viewName, Action<ViewOptions> configureOptions)
         {
             var options = new ViewOptions();
             configureOptions(options);
 
-            return bucket.ViewQueryAsync<T>(designDocument, viewName, options);
+            return bucket.ViewQueryAsync(designDocument, viewName, options);
         }
     }
 }

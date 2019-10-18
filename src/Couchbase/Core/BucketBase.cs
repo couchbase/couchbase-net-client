@@ -48,7 +48,7 @@ namespace Couchbase.Core
             return Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName];
         }
 
-        public abstract Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName,
+        public abstract Task<IViewResult> ViewQueryAsync(string designDocument, string viewName,
             ViewOptions options = default);
 
         public abstract IViewIndexManager Views { get; }

@@ -19,15 +19,7 @@ namespace Couchbase.Views
         /// <typeparam name="T">The Type parameter of the result returned by the query.</typeparam>
         /// <param name="query">The <see cref="IViewQueryable"/> to execute on.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IViewResult<T>> ExecuteAsync<T>(IViewQueryable query);
-
-        /// <summary>
-        /// Executes a <see cref="IViewQuery"/> synchronously against a View.
-        /// </summary>
-        /// <typeparam name="T">The Type parameter of the result returned by the query.</typeparam>
-        /// <param name="query">The <see cref="IViewQueryable"/> to execute on.</param>
-        /// <returns>The <see cref="IViewResult{T}"/> instance which is the results of the query.</returns>
-        IViewResult<T> Execute<T>(IViewQueryable query);
+        Task<IViewResult> ExecuteAsync(IViewQueryable query);
     }
 }
 

@@ -87,13 +87,8 @@ namespace Couchbase
             return clusterNode.ViewsUri;
         }
 
-        public override Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default)
+        public override Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options)
         {
-            if (options == default)
-            {
-                options = new ViewOptions();
-            }
-
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
             {
@@ -129,21 +124,20 @@ namespace Couchbase
             query.GroupLevel(options.GroupLevel);
             query.Key(options.Key);
             query.Keys(options.Keys);
-            query.GroupLevel(options.GroupLevel);
             query.Reduce(options.Reduce);
             query.Development(options.Development);
             query.ConnectionTimeout(options.ConnectionTimeout);
+            query.Debug(options.Debug);
+            query.Namespace(options.Namespace);
+            query.OnError(options.OnError == ViewErrorMode.Stop);
 
-            if (options.Descending.HasValue)
+            if (options.ViewOrdering == ViewOrdering.Decesending)
             {
-                if (options.Descending.Value)
-                {
-                    query.Desc();
-                }
-                else
-                {
-                    query.Asc();
-                }
+                query.Desc();
+            }
+            else
+            {
+                query.Asc();
             }
 
             if (options.FullSet.HasValue && options.FullSet.Value)
@@ -151,7 +145,12 @@ namespace Couchbase
                 query.FullSet();
             }
 
-            return _viewClientLazy.Value.ExecuteAsync<T>(query);
+            foreach (var kvp in options.RawParameters)
+            {
+                query.Raw(kvp.Key, kvp.Value);
+            }
+
+            return _viewClientLazy.Value.ExecuteAsync(query);
         }
 
         internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
@@ -184,7 +183,7 @@ namespace Couchbase
             }
             //we still need to add a default collection
             LoadManifest();
-     
+
             BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
             KeyMapper = new VBucketKeyMapper(BucketConfig);
 

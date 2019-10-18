@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Moq;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Services.Views
@@ -14,6 +15,26 @@ namespace Couchbase.IntegrationTests.Services.Views
         public CouchbaseBucketViewQueryTests(ClusterFixture fixture)
         {
             _fixture = fixture;
+        }
+
+        [Fact]
+        public async Task Test_ViewQuery()
+        {
+            var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
+            var result = await bucket.ViewQueryAsync("beer", "brewery_beers", options =>
+            {
+                options.WithLimit(10);
+            });
+
+            var count = 0;
+            foreach (var row in result.Rows)
+            {
+                Assert.NotNull(row.Key<string[]>());
+                Assert.NotNull(row.Value<Beer>());
+                count++;
+            }
+
+            Assert.Equal(10, count);
         }
 
         [Fact]
@@ -33,7 +54,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             SynchronizationContext.SetSynchronizationContext(context.Object);
             try
             {
-                bucket.ViewQueryAsync<dynamic>("beer", "brewery_beers", options => options.WithLimit(1))
+                bucket.ViewQueryAsync("beer", "brewery_beers", options => options.WithLimit(1))
                     .Wait();
 
                 // If view queries are incorrectly awaiting on the current SynchronizationContext
@@ -52,7 +73,7 @@ namespace Couchbase.IntegrationTests.Services.Views
         public async Task Use_Streaming()
         {
             var bucket = await _fixture.Cluster.BucketAsync("beer-sample").ConfigureAwait(false);
-            var result = await bucket.ViewQueryAsync<dynamic>("beer", "brewery_beers", options =>
+            var result = await bucket.ViewQueryAsync("beer", "brewery_beers", options =>
             {
                 options.WithLimit(10);
             }).ConfigureAwait(false);
@@ -73,12 +94,50 @@ namespace Couchbase.IntegrationTests.Services.Views
         public async Task Can_Submit_Lots_of_Keys()
         {
             var bucket = await _fixture.Cluster.BucketAsync("beer-sample").ConfigureAwait(false);
-            await bucket.ViewQueryAsync<dynamic>("beer", "brewery_beers",
+            await bucket.ViewQueryAsync("beer", "brewery_beers",
                 options =>
                 {
                     options.WithKeys(Enumerable.Range(1, 1000).Select(i => $"key-{i}"));
 
                 }).ConfigureAwait(false);
+        }
+    }
+
+    public class Beer
+    {
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("abv")]
+        public decimal Abv { get; set; }
+
+        [JsonProperty("ibu")]
+        public decimal Ibu { get; set; }
+
+        [JsonProperty("srm")]
+        public decimal Srm { get; set; }
+
+        [JsonProperty("upc")]
+        public int Upc { get; set; }
+
+        [JsonProperty("type")]
+        public string Type { get; set; }
+
+        [JsonProperty("brewery_id")]
+        public string BreweryId { get; set; }
+
+        [JsonProperty("description")]
+        public string Description { get; set; }
+
+        [JsonProperty("style")]
+        public string Style { get; set; }
+
+        [JsonProperty("category")]
+        public string Category { get; set; }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this);
         }
     }
 }

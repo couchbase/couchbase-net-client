@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests.Services.Views
         [InlineData(HttpStatusCode.InternalServerError, "error - {not_found, missing_named_view}", false)]
         public void Failed_ViewResult_Should_Retry_Based_On_StatusCode_And_Message(HttpStatusCode statusCode, string message, bool expected)
         {
-            var viewResult = new ViewResult<dynamic>(statusCode, message);
+            var viewResult = new ViewResult(statusCode, message);
             Assert.Equal(expected, viewResult.ShouldRetry());
         }
     }

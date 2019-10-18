@@ -7,12 +7,12 @@ namespace Couchbase.Views
     /// </summary>
     /// <typeparam name="T">The Type parameter to be used for deserialization by the <see cref="IDataMapper"/>
     /// implementation.</typeparam>
-    public interface IViewResult<out T>
+    public interface IViewResult
     {
         /// <summary>
         /// The results of the query if successful as a <see cref="IEnumerable{T}"/>.
         /// </summary>
-        IEnumerable<IViewRow<T>> Rows { get; }
+        IEnumerable<IViewRow> Rows { get; }
 
         /// <summary>
         /// Gets the query meta data.

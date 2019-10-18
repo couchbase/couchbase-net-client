@@ -20,7 +20,7 @@ namespace Couchbase
 
         ICollection Collection(string scopeName, string connectionName);
 
-        Task<IViewResult<T>> ViewQueryAsync<T>(string designDocument, string viewName, ViewOptions options = default);
+        Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options);
 
         IViewIndexManager Views { get; }
 

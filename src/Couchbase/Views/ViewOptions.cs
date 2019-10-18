@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Management.Views;
+
 namespace Couchbase.Views
 {
 
@@ -16,12 +20,16 @@ namespace Couchbase.Views
         public int? GroupLevel { get; set; }
         public object Key { get; set; }
         public object[] Keys { get; set; }
-        public bool? Descending { get; set; }
+        public ViewOrdering ViewOrdering { get; set; } = ViewOrdering.Decesending;
         public bool? Reduce { get; set; }
         public bool? Development { get; set; }
         public bool? FullSet { get; set; }
-        public bool? ContinueOnError { get; set; }
+        public bool? Debug { get; set; }
         public int? ConnectionTimeout { get; set; }
+        public ViewErrorMode OnError { get; set; } = ViewErrorMode.Stop;
+        internal Dictionary<string, string> RawParameters = new Dictionary<string, string>();
+        public DesignDocumentNamespace @Namespace { get; set; } = DesignDocumentNamespace.Production;
+        public ITypeSerializer Serializer { get; set; } = new DefaultSerializer();
 
         public ViewOptions WithScanConsistency(ViewScanConsistency scanConsistency)
         {
@@ -83,9 +91,9 @@ namespace Couchbase.Views
             return this;
         }
 
-        public ViewOptions WithAscending(bool ascending)
+        public ViewOptions WithOrdering(ViewOrdering viewOrdering)
         {
-            Descending = !ascending;
+            ViewOrdering = viewOrdering;
             return this;
         }
 
@@ -119,9 +127,27 @@ namespace Couchbase.Views
             return this;
         }
 
-        public ViewOptions WithContinueOnError(bool continueOnError)
+        public ViewOptions WithOnError(ViewErrorMode errorMode)
         {
-            ContinueOnError = continueOnError;
+            OnError = errorMode;
+            return this;
+        }
+
+        public ViewOptions WithDebug(bool debug)
+        {
+            Debug = debug;
+            return this;
+        }
+
+        public ViewOptions WithRaw(string key, string value)
+        {
+            RawParameters[key] = value;
+            return this;
+        }
+
+        public ViewOptions WithNamespace(DesignDocumentNamespace @namespace)
+        {
+            @Namespace = @namespace;
             return this;
         }
 
@@ -130,5 +156,13 @@ namespace Couchbase.Views
             ConnectionTimeout = connectionTimeout;
             return this;
         }
+
+        public ViewOptions WithSerializer(ITypeSerializer serializer)
+        {
+            Serializer = serializer;
+            return this;
+        }
+
+        public static ViewOptions Default => new ViewOptions();
     }
 }

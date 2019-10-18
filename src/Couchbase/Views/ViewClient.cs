@@ -9,6 +9,8 @@ using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Views
 {
@@ -16,7 +18,7 @@ namespace Couchbase.Views
     {
         protected const string Success = "Success";
 
-        //private static readonly ILog Log = LogManager.GetLogger<StreamingViewClient>();
+        private static readonly ILogger Log = LogManager.CreateLogger<ViewClient>();
         private readonly uint? _viewTimeout;
 
         public ViewClient(HttpClient httpClient, IDataMapper mapper, ClusterContext context)
@@ -29,21 +31,16 @@ namespace Couchbase.Views
             httpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
-        public IViewResult<T> Execute<T>(IViewQueryable query)
-        {
-            return ExecuteAsync<T>(query).ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-
         /// <summary>
         /// Executes a <see cref="IViewQuery"/> asynchronously against a View.
         /// </summary>
         /// <typeparam name="T">The Type parameter of the result returned by the query.</typeparam>
         /// <param name="query">The <see cref="IViewQuery"/> to execute on.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        public async Task<IViewResult<T>> ExecuteAsync<T>(IViewQueryable query)
+        public async Task<IViewResult> ExecuteAsync(IViewQueryable query)
         {
             var uri = query.RawUri();
-            ViewResult<T> viewResult = null;
+            ViewResult viewResult = null;
 
             string body;
             //using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).StartActive())
@@ -53,7 +50,7 @@ namespace Couchbase.Views
 
             try
             {
-                //Log.Debug("Sending view request to: {0}", uri.ToString());
+                Log.LogDebug("Sending view request to: {0}", uri.ToString());
 
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
 
@@ -65,7 +62,7 @@ namespace Couchbase.Views
 
                 if (response.IsSuccessStatusCode)
                 {
-                    viewResult = new ViewResult<T>(
+                    viewResult = new ViewResult(
                         response.StatusCode,
                         Success,
                         await response.Content.ReadAsStreamAsync().ConfigureAwait(false)
@@ -74,15 +71,15 @@ namespace Couchbase.Views
                 }
                 else
                 {
-                    viewResult = new ViewResult<T>(response.StatusCode, response.ReasonPhrase);
+                    viewResult = new ViewResult(response.StatusCode, response.ReasonPhrase);
                 }
             }
             catch (AggregateException ae)
             {
                 ae.Flatten().Handle(e =>
                 {
-                    viewResult = CreateErrorResult<T>(e);
-                    //Log.Error(uri.ToString(), e);
+                    viewResult = CreateErrorResult(e);
+                    Log.LogError(e, uri.ToString());
                     return true;
                 });
             }
@@ -94,13 +91,13 @@ namespace Couchbase.Views
                     operationContext.TimeoutMicroseconds = _viewTimeout.Value;
                 }
 
-                viewResult = CreateErrorResult<T>(e, operationContext.ToString());
-                //Log.Error(uri.ToString(), e);
+                viewResult = CreateErrorResult(e, operationContext.ToString());
+                Log.LogError(e, uri.ToString());
             }
             catch (HttpRequestException e)
             {
-                viewResult = CreateErrorResult<T>(e);
-                //Log.Error(uri.ToString(), e);
+                viewResult = CreateErrorResult(e);
+                Log.LogError(e, uri.ToString());
             }
 
             UpdateLastActivity();
@@ -108,10 +105,10 @@ namespace Couchbase.Views
             return viewResult;
         }
 
-        protected static ViewResult<T> CreateErrorResult<T>(Exception ex, string errorMessage = null)
+        protected static ViewResult CreateErrorResult(Exception ex, string errorMessage = null)
         {
             var statusCode = GetStatusCode(ex.Message);
-            return new ViewResult<T>(statusCode, errorMessage ?? ex.Message);
+            return new ViewResult(statusCode, errorMessage ?? ex.Message);
         }
 
         protected static HttpStatusCode GetStatusCode(string message)

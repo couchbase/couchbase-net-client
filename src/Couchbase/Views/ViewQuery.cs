@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
+using Couchbase.Management.Views;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -44,6 +46,9 @@ namespace Couchbase.Views
         private object _startKey;
         private object _startKeyDocId;
         private int? _connectionTimeout;
+        private bool? _debug;
+        private Dictionary<string, string> _rawParams = new Dictionary<string, string>();
+        private DesignDocumentNamespace _namesapce = DesignDocumentNamespace.Production;
 
         /// <summary>
         /// Gets the name of the design document.
@@ -80,6 +85,7 @@ namespace Couchbase.Views
             public const string StartKey = "startkey";
             public const string StartKeyDocId = "startkey_docid";
             public const string ConnectionTimeout = "connection_timeout";
+            public const string Debug = "debug";
         }
 
         public ViewQuery()
@@ -141,6 +147,12 @@ namespace Couchbase.Views
         public IViewQuery DesignDoc(string name)
         {
             DesignDocName = name;
+            return this;
+        }
+
+        public IViewQuery Debug(bool? debug)
+        {
+            _debug = debug;
             return this;
         }
 
@@ -417,6 +429,18 @@ namespace Couchbase.Views
             return this;
         }
 
+        public IViewQuery Raw(string key, string value)
+        {
+            _rawParams[key] = value;
+            return this;
+        }
+
+        public ViewQuery Namespace(DesignDocumentNamespace @namespace)
+        {
+            _namesapce = @namespace;
+            return this;
+        }
+
         /// <summary>
         /// Sets the base uri for the query if it's not set in the constructor.
         /// </summary>
@@ -509,7 +533,23 @@ namespace Couchbase.Views
                 relativeUri.Append(DevelopmentViewPrefix);
             }
 
-            relativeUri.Append(DesignDocName);
+            var designDocName = DesignDocName;
+            if (_namesapce == DesignDocumentNamespace.Production)
+            {
+                if (designDocName.StartsWith(DevelopmentViewPrefix))
+                {
+                    designDocName = designDocName.Substring(4);
+                }
+            }
+            else
+            {
+                if (!designDocName.StartsWith(DevelopmentViewPrefix))
+                {
+                    designDocName = string.Concat(DevelopmentViewPrefix, designDocName);
+                }
+            }
+            relativeUri.Append(designDocName);
+
             relativeUri.Append(ForwardSlash);
             relativeUri.Append(ViewMethod);
             relativeUri.Append(ForwardSlash);
@@ -591,6 +631,15 @@ namespace Couchbase.Views
             if (_connectionTimeout.HasValue)
             {
                 queryParams.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _connectionTimeout);
+            }
+            if (_debug.HasValue)
+            {
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.Debug, _debug.ToLowerString());
+            }
+
+            foreach (var kvp in _rawParams)
+            {
+                queryParams.AppendFormat(QueryArgPattern, kvp.Key, kvp.Value);
             }
 
             return queryParams.ToString().TrimEnd('&');

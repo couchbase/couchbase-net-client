@@ -50,29 +50,7 @@ namespace Couchbase.UnitTests.Services.Views
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
 
-            await queryClient.ExecuteAsync<dynamic>(query).ConfigureAwait(false);
-        }
-
-        [Fact]
-        public void Execute_Sets_LastActivity()
-        {
-            var handler = FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent("{ }")
-            });
-
-            var httpClient = new HttpClient(handler);
-            var queryClient = new ViewClient(httpClient,
-                new JsonDataMapper(new DefaultSerializer()),
-                new ClusterContext(null, new ClusterOptions()));
-            Assert.Null(queryClient.LastActivity);
-
-            var query = new ViewQuery("bucket-name", "http://localhost");
-            query.Keys("test-key");
-            query.UseStreaming(true);
-
-            queryClient.Execute<dynamic>(query);
-            Assert.NotNull(queryClient.LastActivity);
+            await queryClient.ExecuteAsync(query).ConfigureAwait(false);
         }
 
         [Fact]
@@ -94,7 +72,7 @@ namespace Couchbase.UnitTests.Services.Views
             query.Keys("test-key");
             query.UseStreaming(true);
 
-            await queryClient.ExecuteAsync<dynamic>(query);
+            await queryClient.ExecuteAsync(query);
             Assert.NotNull(queryClient.LastActivity);
         }
 
@@ -102,7 +80,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_Count()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             Assert.Equal(10, response.Rows.Count());
         }
@@ -111,7 +89,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_Any()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             Assert.True(response.Rows.Any());
         }
@@ -120,7 +98,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_First()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             var first = response.Rows.First();
             Assert.NotNull(first);
@@ -130,7 +108,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_Enumeration()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             //read the results
             var count = 0;
@@ -145,7 +123,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_Repeat_Enumeration()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             Assert.Equal(10, response.Rows.ToList().Count);
             Assert.Throws<StreamAlreadyReadException>(() => response.Rows.ToList());
@@ -155,7 +133,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_Values()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             Assert.Equal(10, response.Rows.Count());
         }
@@ -164,7 +142,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_Success()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
@@ -174,7 +152,7 @@ namespace Couchbase.UnitTests.Services.Views
         {
             const HttpStatusCode statusCode = HttpStatusCode.Accepted;
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(statusCode, string.Empty, stream);
+            var response = new ViewResult(statusCode, string.Empty, stream);
 
             Assert.Equal(statusCode, response.StatusCode);
         }
@@ -184,7 +162,7 @@ namespace Couchbase.UnitTests.Services.Views
         {
             const string message = "message";
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, message, stream);
+            var response = new ViewResult(HttpStatusCode.OK, message, stream);
 
             Assert.Equal(message, response.Message);
         }
@@ -193,7 +171,7 @@ namespace Couchbase.UnitTests.Services.Views
         public void Test_TotalRows()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult<Beer>(HttpStatusCode.OK, string.Empty, stream);
+            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             foreach (var row in response.Rows)
             {

@@ -20,7 +20,7 @@ namespace Couchbase.Views
     /// </summary>
     /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
     /// <seealso cref="IViewResult{T}" />
-    internal class ViewResult<T> : IViewResult<T>
+    internal class ViewResult : IViewResult
     {
         private readonly Result _result;
 
@@ -60,7 +60,7 @@ namespace Couchbase.Views
             }
         }
 
-        public IEnumerable<IViewRow<T>> Rows => _result;
+        public IEnumerable<IViewRow> Rows => _result;
 
         /// <summary>
         /// If the response indicates the request is retryable, returns true.
@@ -101,7 +101,7 @@ namespace Couchbase.Views
             }
         }
 
-        private class Result : IEnumerable<ViewRow<T>>, IDisposable
+        private class Result : IEnumerable<ViewRow>, IDisposable
         {
             private static readonly JsonSerializer _jsonSerializer = new JsonSerializer
             {
@@ -130,7 +130,7 @@ namespace Couchbase.Views
                 }
             }
 
-            public IEnumerator<ViewRow<T>> GetEnumerator()
+            public IEnumerator<ViewRow> GetEnumerator()
             {
                 if (HasFinishedReading)
                 {
@@ -144,7 +144,13 @@ namespace Couchbase.Views
                     {
                         if (_reader.TokenType == JsonToken.StartObject)
                         {
-                            yield return JToken.ReadFrom(_reader).ToObject<ViewRow<T>>(_jsonSerializer);
+                            var json = JToken.ReadFrom(_reader);
+                            yield return new ViewRow
+                            {
+                                Id = json.Value<string>("id"),
+                                KeyToken = json["key"],
+                                ValueToken = json["value"]
+                            };
                         }
                     }
                 }

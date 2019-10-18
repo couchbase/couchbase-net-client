@@ -199,6 +199,7 @@ namespace Couchbase.Core
                         {
                             node.BootstrapUri = server;
                             node.NodesAdapter = nodeAdapter;
+                            node.BuildServiceUris();
                             AddNode(node);
                         }
                         else
@@ -207,6 +208,7 @@ namespace Couchbase.Core
                             var newNode = await ClusterNode.CreateAsync(this, endpoint);
                             newNode.BootstrapUri = server;
                             newNode.NodesAdapter = nodeAdapter;
+                            newNode.BuildServiceUris();
                             AddNode(newNode);
                         }
                     }
