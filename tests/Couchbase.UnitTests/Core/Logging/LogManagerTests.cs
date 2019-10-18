@@ -22,6 +22,9 @@ namespace Couchbase.UnitTests.Core.Logging
             //act
             poco.DebugLogSomething();
 
+            // wait to make sure the log entry is added to the logger
+            Thread.Sleep(50);
+
             //assert
             Assert.Contains("Something happened.", loggerProvider.Logs["Couchbase.UnitTests.Core.Logging.LogManagerTests.Poco"][0]);
         }
@@ -32,7 +35,7 @@ namespace Couchbase.UnitTests.Core.Logging
 
             public void DebugLogSomething()
             {
-                Logger.Log(LogLevel.Debug, "Something happened. {0}", "whooh");
+                Logger.LogDebug("Something happened. {0}", "whooh");
             }
         }
 
@@ -73,7 +76,7 @@ namespace Couchbase.UnitTests.Core.Logging
 
             public void Dispose()
             {
-               Loggers.Clear();
+                Loggers.Clear();
             }
 
             public ILogger CreateLogger(string categoryName)
