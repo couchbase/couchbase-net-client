@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Couchbase.Core;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -13,8 +12,15 @@ namespace Couchbase
     {
         private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
+        internal ConnectionString ConnectionString { get; set; }
 
         public static bool UseInterNetworkV6Addresses { get; set; }
+
+        public ClusterOptions WithConnectionString(string connectionString)
+        {
+            ConnectionString = ConnectionString.Parse(connectionString);
+            return this;
+        }
 
         public ClusterOptions WithServers(params string[] servers)
         {
@@ -25,6 +31,18 @@ namespace Couchbase
 
             //for now just copy over - later ensure only new nodes are added
             _servers = new ConcurrentBag<Uri>(servers.Select(x => new Uri(x)));
+            return this;
+        }
+
+        internal ClusterOptions WithServers(IEnumerable<Uri> servers)
+        {
+            if (!servers?.Any() ?? true)
+            {
+                throw new ArgumentException($"{nameof(servers)} cannot be null or empty.");
+            }
+
+            //for now just copy over - later ensure only new nodes are added
+            _servers = new ConcurrentBag<Uri>(servers.ToList());
             return this;
         }
 
@@ -97,6 +115,28 @@ namespace Couchbase
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableIPV6Addressing { get; set; }
         public int KvPort { get; set; } = 11210;
+        public bool EnableDnsSrveResolution { get; set; } = true;
+        public IDnsResolver DnsResolver { get; set; } = new DnsClientDnsResolver();
+
+        internal bool IsValidDnsSrv()
+        {
+            if (!EnableDnsSrveResolution || DnsResolver == null)
+            {
+                return false;
+            }
+
+            if (ConnectionString.Scheme != Scheme.Couchbase && ConnectionString.Scheme != Scheme.Couchbases)
+            {
+                return false;
+            }
+
+            if (ConnectionString.Hosts.Count > 1)
+            {
+                return false;
+            }
+
+            return ConnectionString.Hosts.Single().IndexOf(":") == -1;
+        }
     }
 
     public static class NetworkTypes

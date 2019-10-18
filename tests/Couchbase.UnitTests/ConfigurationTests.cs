@@ -40,7 +40,8 @@ namespace Couchbase.UnitTests
             var config = new ClusterOptions();
 
             Assert.Throws<ArgumentException>(() => config.WithServers());
-            Assert.Throws<ArgumentException>(() => config.WithServers(null));
+            Assert.Throws<ArgumentException>(() => config.WithServers((string[])null));
+            Assert.Throws<ArgumentException>(() => config.WithServers((Uri[])null));
             Assert.Throws<ArgumentException>(() => config.WithServers(new string[0]));
         }
 

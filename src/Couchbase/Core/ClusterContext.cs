@@ -161,6 +161,25 @@ namespace Couchbase.Core
 
         public async Task InitializeAsync()
         {
+            // DNS-SRV
+            if (ClusterOptions.IsValidDnsSrv())
+            {
+                try
+                {
+                    var bootstrapUri = ClusterOptions.ConnectionString.GetDnsBootStrapUri();
+                    var servers = await ClusterOptions.DnsResolver.GetDnsSrvEntriesAsync(bootstrapUri);
+                    if (servers.Any())
+                    {
+                        Log.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
+                        ClusterOptions.WithServers(servers);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Log.LogInformation(exception, "Error trying to retrieve DNS SRV entries.");
+                }
+            }
+
             foreach (var server in ClusterOptions.Servers)
             {
                 var bsEndpoint = server.GetIpEndPoint(ClusterOptions.KvPort, ClusterOptions.EnableIPV6Addressing);

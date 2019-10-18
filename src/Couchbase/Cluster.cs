@@ -53,8 +53,7 @@ namespace Couchbase
                 throw new InvalidConfigurationException("Username and password are required.");
             }
 
-            //TODO make connectionString function per the RFC: https://github.com/couchbaselabs/sdk-rfcs/blob/master/rfc/0011-connection-string.md
-            clusterOptions.WithServers(connectionString);
+            clusterOptions.WithConnectionString(connectionString);
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(configTokenSource, clusterOptions);

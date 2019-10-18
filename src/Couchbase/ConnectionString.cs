@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Text.RegularExpressions;
 
 namespace Couchbase
@@ -75,6 +74,15 @@ namespace Couchbase
             }
 
             return connectionString;
+        }
+
+        internal Uri GetDnsBootStrapUri()
+        {
+            return new UriBuilder
+            {
+                Scheme = Scheme.ToString(),
+                Host = Hosts.First()
+            }.Uri;
         }
     }
 
