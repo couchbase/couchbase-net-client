@@ -197,9 +197,6 @@ namespace Couchbase.Management.Views
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
                 var publishResult = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
                 publishResult.EnsureSuccessStatusCode();
-
-                // drop old dev design doc
-                await DropDesignDocumentAsync(designDocName, DesignDocumentNamespace.Development, DropDesignDocumentOptions.Default);
             }
             catch (DesignDocumentNotFoundException)
             {
