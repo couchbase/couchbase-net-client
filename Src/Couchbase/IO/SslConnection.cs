@@ -191,83 +191,46 @@ namespace Couchbase.IO
             }
         }
 
-        public override byte[] Send(byte[] buffer)
+        public override byte[] Send(byte[] request)
         {
-            using (new SynchronizationContextExclusion())
+            try
             {
-                // Token will cancel automatically after timeout
-                var cancellationTokenSource = new CancellationTokenSource(Configuration.SendTimeout);
-
-                try
+                var opaque = Converter.ToUInt32(request, HeaderIndexFor.Opaque);
+                var state = new SocketAsyncState
                 {
-                    return SendAsync(buffer, cancellationTokenSource.Token)
-                        .ContinueOnAnyContext()
-                        .GetAwaiter()
-                        .GetResult();
-                }
-                catch (AggregateException ex)
-                {
-                    //TODO refactor logic
-                    IsDead = true;
+                    Data = MemoryStreamFactory.GetMemoryStream(),
+                    Opaque = opaque,
+                    ConnectionId = ContextId,
+                    LocalEndpoint = LocalEndPoint.ToString(),
+                    Timeout = Configuration.SendTimeout
+                };
 
-                    if (ex.InnerException is TaskCanceledException)
-                    {
-                        // Timeout expired and cancellation token source was triggered
-                        var opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque);
-                        throw CreateTimeoutException(opaque);
-                    }
-                    else
-                    {
-                        // Rethrow the aggregate exception
-                        throw;
-                    }
+                _sslStream.Write(request, 0, request.Length);
+
+                state.SetIOBuffer(_buffer);
+                state.BytesReceived = _sslStream.Read(state.Buffer, state.BufferOffset, state.BufferLength);
+
+                //write the received buffer to the state obj
+                state.Data.Write(state.Buffer, state.BufferOffset, state.BytesReceived);
+
+                state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.BodyLength);
+                while (state.BytesReceived < state.BodyLength + OperationHeader.Length)
+                {
+                    var bufferLength = state.BufferLength - state.BytesSent < state.BufferLength
+                        ? state.BufferLength - state.BytesSent
+                        : state.BufferLength;
+
+                    state.BytesReceived += _sslStream.Read(state.Buffer, state.BufferOffset, bufferLength);
+                    state.Data.Write(state.Buffer, state.BufferOffset, state.BytesReceived - (int)state.Data.Length);
                 }
+
+                return state.Data.ToArray();
             }
-        }
-
-        private async Task<byte[]> SendAsync(byte[] buffer, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var opaque = Converter.ToUInt32(buffer, HeaderIndexFor.Opaque);
-            var state = new SocketAsyncState
+            catch (Exception)
             {
-                Data = MemoryStreamFactory.GetMemoryStream(),
-                Opaque = opaque,
-                ConnectionId = ContextId,
-                LocalEndpoint = LocalEndPoint.ToString(),
-                Timeout = Configuration.SendTimeout
-            };
-
-            await _sslStream.WriteAsync(buffer, 0, buffer.Length, cancellationToken).ContinueOnAnyContext();
-
-            state.SetIOBuffer(_buffer);
-
-            while (state.BytesReceived < state.BodyLength + OperationHeader.Length)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var bytesReceived = await _sslStream
-                    .ReadAsync(state.Buffer, state.BufferOffset, state.BufferLength, cancellationToken)
-                    .ContinueOnAnyContext();
-                state.BytesReceived += bytesReceived;
-
-                if (state.BytesReceived == 0)
-                {
-                    // No more bytes were received, go ahead and exit the loop
-                    break;
-                }
-
-                if (state.BodyLength == 0)
-                {
-                    // Reading header, so get the BodyLength
-                    state.BodyLength = Converter.ToInt32(state.Buffer, state.BufferOffset + HeaderIndexFor.Body);
-                }
-
-                state.Data.Write(state.Buffer, state.BufferOffset, bytesReceived);
+                IsDead = true;
+                throw;
             }
-
-            return state.Data.ToArray();
         }
 
         /// <summary>
