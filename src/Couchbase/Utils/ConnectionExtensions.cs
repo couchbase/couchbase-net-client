@@ -172,7 +172,7 @@ namespace Couchbase.Utils
                 var configResult = configOp.GetResultWithValue();
                 var config = configResult.Content;
 
-                if (config != null)
+                if (config != null && bootstrapUri != null)
                 {
                     config.ReplacePlaceholderWithBootstrapHost(bootstrapUri);
                 }
