@@ -106,7 +106,6 @@ namespace Couchbase
             {
                 await _context.InitializeAsync();
                 UpdateClusterCapabilities();
-                _hasBootStrapped = true;
             }
             catch (AuthenticationException e)
             {
@@ -120,7 +119,9 @@ namespace Couchbase
 
         public async Task<IBucket> BucketAsync(string name)
         {
-            return await _context.GetOrCreateBucketAsync(name);
+            var bucket = await _context.GetOrCreateBucketAsync(name);
+            _hasBootStrapped = true;
+            return bucket;
         }
 
         public Task<IDiagnosticsReport> DiagnosticsAsync(string reportId)
@@ -157,6 +158,7 @@ namespace Couchbase
 
                 // try to bootstrap first bucket in cluster
                 await BucketAsync(_context.ClusterOptions.Buckets.First());
+                UpdateClusterCapabilities();
             }
             finally
             {

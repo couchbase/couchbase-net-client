@@ -46,10 +46,12 @@ namespace Couchbase.Core
         public short[] ServerFeatures { get; set; }
         public IConnection Connection { get; set; }//TODO this will be a connection pool later NOTE: group these by IBucket!
         public List<Exception> Exceptions { get; set; }//TODO catch and hold until first operation per RFC
-        public bool HasViews() => ViewsUri != null && ViewsUri.Port != 0;
-        public bool HasAnalytics() => AnalyticsUri != null && AnalyticsUri.Port != 0;
-        public bool HasQuery() => QueryUri != null && QueryUri.Port != 0;
-        public bool HasSearch() => SearchUri != null && SearchUri.Port != 0;
+        public bool HasViews() => NodesAdapter.IsViewNode;
+        public bool HasAnalytics() => NodesAdapter.IsAnalyticsNode;
+        public bool HasQuery() => NodesAdapter.IsQueryNode;
+        public bool HasSearch() => NodesAdapter.IsSearchNode;
+        public bool HasData() => NodesAdapter.IsDataNode;
+
         public ConcurrentDictionary<IBucket, IConnection> Connections = new ConcurrentDictionary<IBucket, IConnection>();
 
         public bool Supports(ServerFeatures feature)

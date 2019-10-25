@@ -9,8 +9,14 @@ namespace Couchbase.Core.Configuration.Server
 {
     internal class NodeAdapter
     {
-        private readonly ConcurrentDictionary<string, IPEndPoint> _cachedEndPoints = new ConcurrentDictionary<string, IPEndPoint>();
+        private readonly ConcurrentDictionary<string, IPEndPoint> _cachedEndPoints =
+            new ConcurrentDictionary<string, IPEndPoint>();
+
         private IPAddress _cachedIpAddress;
+
+        public NodeAdapter()
+        {
+        }
 
         public NodeAdapter(Node node, NodesExt nodeExt, BucketConfig bucketConfig)
         {
@@ -93,6 +99,7 @@ namespace Couchbase.Core.Configuration.Server
                     {
                         hostname = string.Join(":", parts);
                     }
+
                     break;
             }
 
@@ -218,6 +225,7 @@ namespace Couchbase.Core.Configuration.Server
                 IsIPv6 = endPoint.AddressFamily == AddressFamily.InterNetworkV6;
                 _cachedEndPoints.TryAdd(key, endPoint);
             }
+
             return endPoint;
         }
 
@@ -243,10 +251,18 @@ namespace Couchbase.Core.Configuration.Server
         }
 
         /// <summary>
+        /// Gets a value indicating whether this instance is view node.
+        /// </summary>
+        /// <value>
+        ///     <c>true</c> if this instance is view node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsViewNode => Views > 0 || ViewsSsl > 0;
+
+        /// <summary>
         /// Gets a value indicating whether this instance is data node.
         /// </summary>
         /// <value>
-        /// 	<c>true</c> if this instance is data node; otherwise, <c>false</c>.
+        ///     <c>true</c> if this instance is data node; otherwise, <c>false</c>.
         /// </value>
         public bool IsDataNode => KeyValue > 0 || KeyValueSsl > 0;
 

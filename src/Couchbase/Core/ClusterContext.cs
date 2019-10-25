@@ -290,12 +290,14 @@ namespace Couchbase.Core
                 {
                     await bootstrapNode.SelectBucket(bucket.Name);
                     bootstrapNode.NodesAdapter = nodeAdapter;
+                    bootstrapNode.BuildServiceUris();
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
 
                 var node = await ClusterNode.CreateAsync(this, endPoint);
                 await node.SelectBucket(bucket.Name);
                 node.NodesAdapter = nodeAdapter;
+                node.BuildServiceUris();
                 AddNode(node);
             }
             PruneNodes(config);

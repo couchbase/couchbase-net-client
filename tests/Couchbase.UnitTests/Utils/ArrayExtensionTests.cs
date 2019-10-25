@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Utils;
 using Xunit;
 
@@ -43,9 +44,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {ViewsUri = new Uri("http://127.0.0.1:8092")}},
-                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  { ViewsUri = new Uri("http://127.0.0.2:0")}},
-                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) { ViewsUri = new Uri("http://127.0.0.3:8092")}}
+                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
+                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
+                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
             };
 
             var node = dict.GetRandom(x => x.Value.HasViews());
@@ -58,12 +59,12 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) { ViewsUri = new Uri("http://127.0.0.1:0")}},
-                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  {ViewsUri = new Uri("http://127.0.0.2:0")}},
-                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  {ViewsUri = new Uri("http://127.0.0.3:0")}}
+                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
+                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
+                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
             };
 
-            var node = dict.GetRandom(x => x.Value.HasViews());
+            var node = dict.GetRandom(x => x.Value.HasData());
 
             Assert.Null(node.Value);
         }

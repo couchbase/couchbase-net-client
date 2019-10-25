@@ -59,7 +59,7 @@ namespace Couchbase.Utils
         {
             var item = default(T);
 
-            var list = enumerable as IList<T> ?? enumerable.Where(whereClause).ToList();
+            var list = enumerable.Where(whereClause).ToList();
             if (list.Any())
             {
                 var index = Random.Next(list.Count);
@@ -85,7 +85,7 @@ namespace Couchbase.Utils
 
         public static bool TryGetRandom<T>(this IEnumerable<T> enumerable, Func<T, bool> whereClause, out T item)
         {
-            var list = enumerable as IList<T> ?? enumerable.Where(whereClause).ToList();
+            var list = enumerable.Where(whereClause).ToList();
             if (list.Any())
             {
                 var index = Random.Next(list.Count);
