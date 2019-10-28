@@ -14,11 +14,11 @@ namespace Couchbase
         /// NOTE: This is uncommitted functionality and may change at any time.
         Task<IScope> this[string name] { get; }
 
-        Task<IScope> DefaultScopeAsync();
+        IScope DefaultScope();
 
         ICollection DefaultCollection();
 
-        ICollection Collection(string scopeName, string connectionName);
+        ICollection Collection(string collectionName);
 
         Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options);
 

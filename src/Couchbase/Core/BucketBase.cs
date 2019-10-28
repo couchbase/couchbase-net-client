@@ -35,13 +35,14 @@ namespace Couchbase.Core
 
         public abstract Task<IScope> this[string name] { get; }
 
-        public Task<IScope> DefaultScopeAsync()
+        public IScope DefaultScope()
         {
-            return Task.FromResult(Scopes[DefaultScopeName]);
+            return Scopes[DefaultScopeName];
         }
-        public ICollection Collection(string scopeName, string connectionName)
+
+        public ICollection Collection(string collectionName)
         {
-            throw new NotImplementedException();
+            return Scopes[DefaultScopeName][collectionName];
         }
         public ICollection DefaultCollection()
         {
