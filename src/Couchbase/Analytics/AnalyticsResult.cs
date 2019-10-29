@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Retry;
 using Couchbase.Query;
 
 namespace Couchbase.Analytics
@@ -33,6 +36,8 @@ namespace Couchbase.Analytics
             return Rows.ToAsyncEnumerable().GetAsyncEnumerator(cancellationToken);
         }
 
+        internal HttpStatusCode HttpStatusCode { get; set; }
+
         /// <summary>
         /// If the response indicates the request is retryable, returns true.
         /// </summary>
@@ -42,21 +47,35 @@ namespace Couchbase.Analytics
         /// </remarks>
         internal bool ShouldRetry()
         {
-            switch (MetaData.Status)
+            SetRetryReasonIfFailed();
+            return ((IServiceResult)this).RetryReason != RetryReason.NoRetry;
+        }
+
+        internal void SetRetryReasonIfFailed()
+        {
+            if (HttpStatusCode == HttpStatusCode.OK)
+                ((IServiceResult) this).RetryReason = RetryReason.NoRetry;
+            else
             {
-                case AnalyticsStatus.Errors:
-                case AnalyticsStatus.Timeout:
-                case AnalyticsStatus.Fatal:
-                    return Errors != null && Errors.Any(error =>
-                                   error.Code == 21002 || // Request timed out and will be cancelled
-                                   error.Code == 23000 || // Analytics Service is temporarily unavailable
-                                   error.Code == 23003 || // Operation cannot be performed during rebalance
-                                   error.Code == 23007    // Job queue is full with [string] jobs
-                           );
-                default:
-                    return false;
+                foreach (var error in Errors)
+                {
+                    switch (error.Code)
+                    {
+                        case 21002:
+                            throw new AmbiguousTimeoutException("Analytics query timed out.");
+                        case 23000:
+                        case 23003:
+                        case 23007:
+                            ((IServiceResult) this).RetryReason = RetryReason.AnalyticsTemporaryFailure;
+                            return;
+                        default:
+                            throw new CouchbaseException($"Analytics query failed: {error.Code}");
+                    }
+                }
             }
         }
+
+        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
     }
 
     internal class AnalyticsResultData<T>

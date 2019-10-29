@@ -4,9 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
-using Couchbase.Core;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Encoding = Couchbase.Query.Couchbase.N1QL.Encoding;
@@ -52,18 +50,19 @@ namespace Couchbase.Query
 
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
 
+
         public QueryOptions()
         {
         }
 
-        public QueryOptions(string statement):this()
+        public QueryOptions(string statement) : this()
         {
             _statement = statement;
             _preparedPayload = null;
             _prepareEncoded = false;
         }
 
-        public QueryOptions(QueryPlan plan, string originalStatement):this()
+        public QueryOptions(QueryPlan plan, string originalStatement) : this()
         {
             _statement = originalStatement;
             _preparedPayload = plan;
@@ -79,8 +78,10 @@ namespace Couchbase.Query
             public const string Readonly = "readonly";
             public const string Metrics = "metrics";
             public const string Args = "args";
+
             // ReSharper disable once UnusedMember.Local
             public const string BatchArgs = "batch_args";
+
             // ReSharper disable once UnusedMember.Local
             public const string BatchNamedArgs = "batch_named_args";
             public const string Format = "format";
@@ -157,7 +158,7 @@ namespace Couchbase.Query
                     var bucketId = token.VBucketId.ToString();
                     if (vector.TryGetValue(bucketId, out var bucketRef))
                     {
-                        if ((long)bucketRef.First() < token.SequenceNumber)
+                        if ((long) bucketRef.First() < token.SequenceNumber)
                         {
                             vector[bucketId] = new List<object>
                             {
@@ -191,6 +192,7 @@ namespace Couchbase.Query
                     });
                 }
             }
+
             return this;
         }
 
@@ -234,7 +236,7 @@ namespace Couchbase.Query
         /// <param name="preparedPlan">The <see cref="QueryPlan"/> that was prepared beforehand.</param>
         /// <param name="originalStatement">The original statement (eg. SELECT * FROM default) that the user attempted to optimize</param>
         /// <returns>A reference to the current <see cref="QueryOptions"/> for method chaining.</returns>
-        /// <remarks>Required if statement not provided, will erase a previously set Statement.</remarks>
+        /// <remarks>Required if statement not provided, will erase a previously set WithStatement.</remarks>
         /// <exception cref="ArgumentNullException"><paramref name="preparedPlan"/> is <see langword="null" />.</exception>
         public QueryOptions Prepared(QueryPlan preparedPlan, string originalStatement)
         {
@@ -242,6 +244,7 @@ namespace Couchbase.Query
             {
                 throw new ArgumentNullException(nameof(originalStatement));
             }
+
             _statement = originalStatement;
             _preparedPayload = preparedPlan ?? throw new ArgumentNullException(nameof(preparedPlan));
             _prepareEncoded = true;
@@ -299,6 +302,8 @@ namespace Couchbase.Query
             _readOnly = readOnly;
             return this;
         }
+
+        internal bool IsReadOnly => _readOnly.HasValue && _readOnly.Value;
 
         /// <summary>
         /// Specifies that metrics should be returned with query results.
@@ -370,6 +375,7 @@ namespace Couchbase.Query
             {
                 _parameters.Add(parameter.Key, parameter.Value);
             }
+
             return this;
         }
 
@@ -389,6 +395,7 @@ namespace Couchbase.Query
             {
                 _arguments.Add(parameter);
             }
+
             return this;
         }
 
@@ -476,6 +483,7 @@ namespace Couchbase.Query
                 throw new NotSupportedException(
                     "AtPlus and StatementPlus are not currently supported by CouchbaseServer.");
             }
+
             _scanConsistency = scanConsistency;
             return this;
         }
@@ -530,16 +538,19 @@ namespace Couchbase.Query
             if (string.IsNullOrWhiteSpace(username))
             {
                 const string usernameParameter = "username";
-                throw new ArgumentOutOfRangeException(username, ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
+                throw new ArgumentOutOfRangeException(username,
+                    ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
             }
+
             if (isAdmin && !username.StartsWith("admin:"))
             {
                 username = "admin:" + username;
             }
-            else if(!username.StartsWith("local:"))
+            else if (!username.StartsWith("local:"))
             {
                 username = "local:" + username;
             }
+
             _credentials[username] = password;
             return this;
         }
@@ -558,6 +569,7 @@ namespace Couchbase.Query
             {
                 _clientContextId = clientContextId;
             }
+
             return this;
         }
 
@@ -696,6 +708,7 @@ namespace Couchbase.Query
             {
                 formValues.Add(QueryParameters.MaxServerParallelism, _maxServerParallelism.Value.ToString());
             }
+
             if (_prepareEncoded)
             {
                 formValues.Add(QueryParameters.Prepared, _preparedPayload.Name);
@@ -719,14 +732,17 @@ namespace Couchbase.Query
             {
                 formValues.Add(QueryParameters.Timeout, string.Concat(TimeoutDefault, "ms"));
             }
+
             if (_readOnly.HasValue)
             {
                 formValues.Add(QueryParameters.Readonly, _readOnly.Value);
             }
+
             if (_includeMetrics.HasValue)
             {
                 formValues.Add(QueryParameters.Metrics, _includeMetrics);
             }
+
             if (_parameters.Count > 0)
             {
                 foreach (var parameter in _parameters)
@@ -736,30 +752,37 @@ namespace Couchbase.Query
                         parameter.Value);
                 }
             }
+
             if (_arguments.Count > 0)
             {
                 formValues.Add(QueryParameters.Args, _arguments);
             }
+
             if (_format.HasValue)
             {
                 formValues.Add(QueryParameters.Format, _format.Value.ToString());
             }
+
             if (_encoding.HasValue)
             {
                 formValues.Add(QueryParameters.Encoding, _encoding.Value.GetDescription());
             }
+
             if (_compression.HasValue)
             {
                 formValues.Add(QueryParameters.Compression, _compression.Value.ToString());
             }
+
             if (_includeSignature.HasValue)
             {
                 formValues.Add(QueryParameters.Signature, _includeSignature.Value);
             }
+
             if (_scanConsistency.HasValue)
             {
                 formValues.Add(QueryParameters.ScanConsistency, _scanConsistency.GetDescription());
             }
+
             if (_scanVectors != null)
             {
 #pragma warning disable 618
@@ -768,41 +791,52 @@ namespace Couchbase.Query
                 {
                     throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");
                 }
+
                 formValues.Add(QueryParameters.ScanVectors, _scanVectors);
             }
+
             if (_scanWait.HasValue)
             {
-                formValues.Add(QueryParameters.ScanWait, string.Format("{0}ms", (uint) _scanWait.Value.TotalMilliseconds));
+                formValues.Add(QueryParameters.ScanWait,
+                    string.Format("{0}ms", (uint) _scanWait.Value.TotalMilliseconds));
             }
+
             if (_pretty != null)
             {
                 formValues.Add(QueryParameters.Pretty, _pretty.Value);
             }
+
             if (_credentials.Count > 0)
             {
                 var creds = new List<dynamic>();
                 foreach (var credential in _credentials)
                 {
-                    creds.Add(new { user = credential.Key, pass = credential.Value });
+                    creds.Add(new {user = credential.Key, pass = credential.Value});
                 }
+
                 formValues.Add(QueryParameters.Creds, creds);
             }
+
             if (_scanCapacity.HasValue)
             {
                 formValues.Add(QueryParameters.ScanCapacity, _scanCapacity.Value.ToString());
             }
+
             if (_pipelineBatch.HasValue)
             {
                 formValues.Add(QueryParameters.PipelineBatch, _pipelineBatch.Value.ToString());
             }
+
             if (_pipelineCapacity.HasValue)
             {
                 formValues.Add(QueryParameters.PipelineCapacity, _pipelineCapacity.Value.ToString());
             }
+
             if (_profile != QueryProfile.Off)
             {
                 formValues.Add(QueryParameters.Profile, _profile.ToString().ToLowerInvariant());
             }
+
             foreach (var parameter in _rawParameters)
             {
                 formValues.Add(parameter.Key, parameter.Value);
@@ -833,10 +867,12 @@ namespace Couchbase.Query
                     WebUtility.UrlEncode(formValue.Key),
                     WebUtility.UrlEncode(formValue.Value.ToString()));
             }
+
             if (formValues.Count > 0)
             {
                 sb.Remove(sb.Length - 1, 1);
             }
+
             return sb.ToString();
         }
 
@@ -897,36 +933,20 @@ namespace Couchbase.Query
             {
                 request = string.Empty;
             }
+
             return request;
         }
 
         /// <summary>
-        /// Sets the lifespan of the query request; used to check if the request exceeded the maximum time
-        /// configured for it in <see cref="ClusterOptions.QueryTimeout" />
+        /// For internal use only.
         /// </summary>
-        /// <value>
-        /// The lifespan.
-        /// </value>
-        public Lifespan Lifespan { get; set; }
-
-        /// <summary>
-        /// True if the request exceeded it's <see cref="ClusterOptions.QueryTimeout" />
-        /// </summary>
-        /// <returns></returns>
-        public bool TimedOut()
-        {
-            return Lifespan.TimedOut();
-        }
-
-        /// <summary>
-        /// Gets or sets the timeout value of the <see cref="QueryOptions"/> in microseconds.
-        /// </summary>
-        internal uint TimeoutValue
+        internal TimeSpan TimeoutValue
         {
             get
             {
-                var temp = this as QueryOptions;
-                return temp.Lifespan.Duration * 1000;
+                if (_timeOut == null || _timeOut == TimeSpan.Zero)
+                    return TimeSpan.FromMilliseconds(TimeoutDefault);
+                return _timeOut.Value;
             }
         }
     }

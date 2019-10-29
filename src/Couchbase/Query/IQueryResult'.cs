@@ -7,12 +7,12 @@ namespace Couchbase.Query
     /// Interface for the results of a N1QL query.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface IQueryResult<out T> : IDisposable, IAsyncEnumerable<T>
+    public interface IQueryResult<out T> : IDisposable, IAsyncEnumerable<T>, IServiceResult
     {
         /// <summary>
         /// Gets the meta data associated with the query result.
         /// </summary>
-        public QueryMetaData MetaData { get; }
+        QueryMetaData MetaData { get; }
 
         List<Error> Errors { get; }
     }

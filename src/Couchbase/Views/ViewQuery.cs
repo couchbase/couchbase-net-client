@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using Couchbase.Core.Retry;
 using Couchbase.Management.Views;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -646,12 +648,6 @@ namespace Couchbase.Views
         }
 
         /// <summary>
-        /// The number of times the view request was retried if it fails before succeeding or giving up.
-        /// </summary>
-        /// <remarks>Used internally.</remarks>
-        public int RetryAttempts { get; set; }
-
-        /// <summary>
         /// Builds a JSON string of the <see cref="IViewQueryable"/> used for posting the query to a Couchbase Server.
         /// </summary>
         public string CreateRequestBody()
@@ -664,6 +660,15 @@ namespace Couchbase.Views
 
             return json.ToString(Formatting.None);
         }
+
+        public uint Attempts { get; set; }
+        public bool Idempotent { get; } = true;
+        public List<RetryReason> RetryReasons { get; set; } = new List<RetryReason>();
+        public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy();
+        public TimeSpan Timeout { get; set; }
+        public CancellationToken Token { get; set; }
+        public string ClientContextId { get; set; }
+        public string Statement { get; set; }
     }
 }
 

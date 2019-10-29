@@ -8,6 +8,7 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
@@ -90,9 +91,9 @@ namespace Couchbase
             return clusterNode.ViewsUri;
         }
 
-        public override Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null)
+        public override async Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null)
         {
-            options = options ?? new ViewOptions();
+            options ??= new ViewOptions();
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
             {
@@ -154,7 +155,13 @@ namespace Couchbase
                 query.Raw(kvp.Key, kvp.Value);
             }
 
-            return _viewClientLazy.Value.ExecuteAsync(query);
+            async Task<IServiceResult> Func()
+            {
+                var client1 = _viewClientLazy.Value;
+                return await client1.ExecuteAsync(query);
+            }
+
+            return (IViewResult) RetryOrchestrator.RetryAsync(Func, query);
         }
 
         internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)

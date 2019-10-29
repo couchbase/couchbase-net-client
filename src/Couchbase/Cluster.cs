@@ -7,8 +7,9 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Logging;
 using Couchbase.Diagnostics;
-using Couchbase.KeyValue;
-using Couchbase.Management;
+using Couchbase.Core.Retry;
+using Couchbase.Core.Retry.Query;
+using Couchbase.Core.Retry.Search;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
@@ -42,7 +43,7 @@ namespace Couchbase
 
         internal Cluster(string connectionString, ClusterOptions clusterOptions = null)
         {
-            clusterOptions = clusterOptions ?? new ClusterOptions();
+            clusterOptions ??= new ClusterOptions();
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidConfigurationException("The connectionString cannot be null, empty or only be whitespace.");
@@ -130,7 +131,7 @@ namespace Couchbase
 
         public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null)
         {
-            options = options ?? new DiagnosticsOptions();
+            options ??= new DiagnosticsOptions();
             return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options?.ReportId ?? Guid.NewGuid().ToString()));
         }
 
@@ -157,7 +158,7 @@ namespace Couchbase
                 }
 
                 // try to bootstrap first bucket in cluster
-                await BucketAsync(_context.ClusterOptions.Buckets.First());
+                await BucketAsync(_context.ClusterOptions.Buckets.First()).ConfigureAwait(false); ;
                 UpdateClusterCapabilities();
             }
             finally
@@ -170,14 +171,29 @@ namespace Couchbase
 
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options = null)
         {
-            options = options ?? new QueryOptions();
+            options ??= new QueryOptions();
             await EnsureBootstrapped();
 
             if (options.CurrentContextId == null)
             {
                 options.ClientContextId(Guid.NewGuid().ToString());
             }
-            return await _lazyQueryClient.Value.QueryAsync<T>(statement, options);
+
+            async Task<IServiceResult> Func()
+            {
+                var client1 = _lazyQueryClient.Value;
+                var statement1 = statement;
+                var options1 = options;
+                return await client1.QueryAsync<dynamic>(statement1, options1).ConfigureAwait(false);
+            }
+
+            return (IQueryResult<T>)await RetryOrchestrator.RetryAsync(Func, new QueryRequest
+            {
+                Options = options,
+                Statement = statement,
+                Token = options.CancellationToken,
+                Timeout = options.TimeoutValue
+            }).ConfigureAwait(false); ;
         }
 
         #endregion
@@ -189,15 +205,25 @@ namespace Couchbase
             options ??= new AnalyticsOptions();
             await EnsureBootstrapped();
 
-            var query = new AnalyticsRequest(statement);
-            query.ClientContextId(options.ClientContextIdValue);
-            query.NamedParameters = options.NamedParameters;
-            query.PositionalArguments = options.PositionalParameters;
-            query.Timeout(options.TimeoutValue);
+            var query = new AnalyticsRequest(statement)
+            {
+                ClientContextId = options.ClientContextIdValue,
+                NamedParameters = options.NamedParameters,
+                PositionalArguments = options.PositionalParameters,
+                Timeout = options.TimeoutValue
+            };
             query.Priority(options.PriorityValue);
             query.ScanConsistency(options.ScanConsistencyValue);
 
-            return await _lazyAnalyticsClient.Value.QueryAsync<T>(query, options.Token);
+            async Task<IServiceResult> Func()
+            {
+                var client1 = _lazyAnalyticsClient.Value;
+                var query1 = query;
+                var options1 = options;
+                return await client1.QueryAsync<T>(query1, options1.Token).ConfigureAwait(false);
+            }
+
+            return (IAnalyticsResult<T>) await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false); ;
         }
 
         #endregion
@@ -206,14 +232,29 @@ namespace Couchbase
 
         public async Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default)
         {
-            options = options ?? new SearchOptions();
+            options ??= new SearchOptions();
 
             await EnsureBootstrapped();
 
             query.Index = indexName;
 
+            var searchRequest = new SearchRequest
+            {
+                Query = query,
+                Options = options,
+                Token = ((SearchOptions)options).Token,
+                Timeout = ((SearchOptions)options).TimeOut
+            };
+
             //TODO: convert options to params
-            return await _lazySearchClient.Value.QueryAsync(query);
+            async Task<IServiceResult> Func()
+            {
+                var client1 = _lazySearchClient.Value;
+                var request1 = searchRequest;
+                return await client1.QueryAsync(request1.Query, request1.Token).ConfigureAwait(false);
+            }
+
+            return (ISearchResult) await RetryOrchestrator.RetryAsync(Func, searchRequest).ConfigureAwait(false);
         }
 
         #endregion

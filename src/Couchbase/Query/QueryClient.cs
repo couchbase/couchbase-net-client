@@ -3,15 +3,15 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Query
@@ -122,7 +122,8 @@ namespace Couchbase.Query
             {
                 try
                 {
-                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.CancellationToken).ConfigureAwait(false);
+                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.CancellationToken)
+                        .ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                     queryResult = new StreamingQueryResult<T>
                     {
@@ -133,20 +134,53 @@ namespace Couchbase.Query
 
                     //read the header and stop when we reach the queried rows
                     await queryResult.ReadToRowsAsync(options.CancellationToken).ConfigureAwait(false);
-
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData.Status != QueryStatus.Success)
                     {
-                        throw new QueryException(queryResult.Message,
-                            queryResult.MetaData.Status,
-                            queryResult.Errors);
+                        Logger.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData.Status}.");
+                        if (queryResult.ShouldRetry())
+                        {
+                            return queryResult;
+                        }
+                        var context = new QueryErrorContext
+                        {
+                            Message = queryResult.Message,
+                            Errors = queryResult.Errors,
+                            HttpStatus = response.StatusCode,
+                            QueryStatus = queryResult.MetaData.Status
+                        };
+
+                        if (queryResult.MetaData.Status == QueryStatus.Timeout)
+                        {
+                            if (options.IsReadOnly)
+                            {
+                                throw new AmbiguousTimeoutException
+                                {
+                                    Context = context
+                                };
+                            }
+
+                            throw new UnambiguousTimeoutException
+                            {
+                                Context = context
+                            };
+                        }
+                        queryResult.ThrowExceptionOnError(context);
                     }
                 }
-                catch (TaskCanceledException e)
+                catch (OperationCanceledException e)
                 {
-                    throw new TimeoutException("The request has timed out.", e);
+                    if (options.IsReadOnly)
+                    {
+                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
+                    }
+                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
+                }
+                catch (HttpRequestException e)
+                {
+                    throw new RequestCanceledException("The query was canceled.", e);
                 }
             }
-
+            Logger.LogDebug($"Request {options.CurrentContextId} has succeeded.");
             return queryResult;
         }
 

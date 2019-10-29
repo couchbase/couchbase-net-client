@@ -1,0 +1,18 @@
+{
+  "requestID": "5c0a6a81-5fc8-4a33-a035-ed7fb1512710",
+  "errors": [
+    {
+      "code": 5000,
+      "msg": "Internal Error"
+    }],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "134.7944us",
+    "executionTime": "130.5518us",
+    "resultCount": 0,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}

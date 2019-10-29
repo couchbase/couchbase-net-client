@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -8,9 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Utils;
-using Newtonsoft.Json;
 
 namespace Couchbase.Search
 {
@@ -56,120 +54,48 @@ namespace Couchbase.Search
         {
             // try get Search node
             var node = Context.GetRandomNodeForService(ServiceType.Search);
-            var uri = new UriBuilder(node.SearchUri)
+            var uriBuilder = new UriBuilder(node.SearchUri)
             {
                 Path = $"api/index/{searchQuery.Index}/query"
             };
 
             var searchResult = new SearchResult();
-
-            string searchBody;
-            //using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.RequestEncoding).StartActive())
-            //{
-                searchBody = searchQuery.ToJson();
-            //}
+            var searchBody = searchQuery.ToJson();
 
             try
             {
-                using (var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json))
+                using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
+                var response = await HttpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
+                using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
-                    HttpResponseMessage response;
-                    //using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.DispatchToServer).StartActive())
-                    //{
-                        response = await HttpClient.PostAsync(node.SearchUri, content, cancellationToken).ConfigureAwait(false);
-                    //}
-
-                    //using (ClientConfiguration.Tracer.BuildSpan(searchQuery, CouchbaseOperationNames.ResponseDecoding).StartActive())
-                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    if (response.IsSuccessStatusCode)
                     {
-                        if (response.IsSuccessStatusCode)
-                        {
-                            searchResult = await DataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            string responseContent;
-                            using (var reader = new StreamReader(stream))
-                            {
-                                responseContent = await reader.ReadToEndAsync().ConfigureAwait(false);
-                            }
-
-                            if (response.Content.Headers.TryGetValues("Content-Type", out var values) &&
-                                values.Any(value => value.Contains(MediaType.Json)))
-                            {
-                                // server 5.5+ responds with JSON content
-                                var result = JsonConvert.DeserializeObject<FailedSearchQueryResult>(responseContent);
-                                ProcessError(new HttpRequestException(result.Message), searchResult);
-                                //searchResult.Errors.Add(result.Message);
-                            }
-                            else
-                            {
-                                // use response content as raw string
-                                // ReSharper disable once UseStringInterpolation
-                                var message = string.Format("{0}: {1}", (int)response.StatusCode, response.ReasonPhrase);
-                                ProcessError(new HttpRequestException(message), searchResult);
-                                //searchResult.Errors.Add(responseContent);
-                            }
-
-                            if (response.StatusCode == HttpStatusCode.NotFound)
-                            {
-                                //baseUri.IncrementFailed();
-                            }
-                        }
+                        searchResult = await DataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
                     }
-
-                    searchResult.HttpStatusCode = response.StatusCode;
+                    else
+                    {
+                        using var reader = new StreamReader(stream);
+                        var errorResult = await reader.ReadToEndAsync().ConfigureAwait(false);
+                    }
                 }
-                //baseUri.ClearFailed();
+
+                searchResult.HttpStatusCode = response.StatusCode;
+                if (searchResult.ShouldRetry())
+                {
+                    UpdateLastActivity();
+                    return searchResult;
+                }
             }
             catch (OperationCanceledException e)
             {
-                //var operationContext = OperationContext.CreateSearchContext(ClusterOptions.BucketName, baseUri?.Authority);
-                //operationContext.TimeoutMicroseconds = searchQuery.TimeoutValue;
-
-                //Log.Info(operationContext.ToString());
-                ProcessError(e, searchResult);
+                throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
             }
             catch (HttpRequestException e)
             {
-                //Log.Info("Search failed {0}: {1}{2}",  baseUri, Environment.NewLine, User(searchBody));
-                //baseUri.IncrementFailed();
-                ProcessError(e, searchResult);
-                //Log.Error(e);
+                throw new RequestCanceledException("The query was canceled.", e);
             }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
-                {
-                    //Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, User(searchBody));
-                    ProcessError(e, searchResult);
-                    return true;
-                });
-            }
-            catch (Exception e)
-            {
-                //Log.Info("Search failed {0}: {1}{2}", baseUri, Environment.NewLine, User(searchBody));
-                //Log.Info(e);
-                ProcessError(e, searchResult);
-            }
-
             UpdateLastActivity();
-
             return searchResult;
-        }
-
-        /// <summary>
-        /// Processes the error.
-        /// </summary>
-        /// <param name="e">The <see cref="Exception"/> that was raised.</param>
-        /// <param name="result">The <see cref="ISearchResult"/> that will returned back to the caller with the failure state.</param>
-        private static void ProcessError(Exception e, SearchResult result)
-        {
-            //result.Metrics.SuccessCount = 0;
-            //result.Metrics.ErrorCount = 1;
-            //result.Status = SearchStatus.Failed;
-            //result.Success = false;
-            //result.Exception = e;
         }
     }
 }

@@ -10,7 +10,7 @@ using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.IO.Operations
 {
-    public interface IOperation : IDisposable
+    public interface IOperation : IDisposable, IRequest
     {
         OpCode OpCode { get; }
 
@@ -35,20 +35,6 @@ namespace Couchbase.Core.IO.Operations
         string BucketName { get; set; }
 
         int TotalLength { get; }
-
-        #region RetryAsync
-
-        uint Attempts { get; set; }
-
-        bool Idempotent { get; }
-
-        List<RetryReason> RetryReasons { get; set; }
-
-        IRetryStrategy RetryStrategy { get; set; }
-
-        #endregion
-
-        int MaxRetries { get; }
 
         IPEndPoint CurrentHost { get; set; }
 
@@ -75,8 +61,6 @@ namespace Couchbase.Core.IO.Operations
         IOperationResult GetResult();
 
         IOperation Clone();
-
-        int GetRetryTimeout(int defaultTimeout);
 
         /// <summary>
         /// Extracts the data for this instance, if any. The data is removed, and ownership is transferred to the receiver.

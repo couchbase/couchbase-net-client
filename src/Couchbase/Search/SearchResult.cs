@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net;
+using Couchbase.Core.Retry;
 using Newtonsoft.Json;
 
 namespace Couchbase.Search
@@ -56,15 +57,21 @@ namespace Couchbase.Search
             Hits.Add(row);
         }
 
-        public bool ShouldRetry()
+        internal bool ShouldRetry()
+        {
+            SetRetryReasonIfFailed();
+            return ((IServiceResult) this).RetryReason != RetryReason.NoRetry;
+        }
+
+        internal void SetRetryReasonIfFailed()
         {
             if ((int) HttpStatusCode == 429) // 429 - TooManyRequests
             {
-                return true;
+                ((IServiceResult) this).RetryReason = RetryReason.SearchTooManyRequests;
             }
-
-            return false;
         }
+
+        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
 
         internal HttpStatusCode HttpStatusCode { get; set; }
 

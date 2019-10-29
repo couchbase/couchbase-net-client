@@ -1,7 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations;
-
 
 namespace Couchbase.Core.Retry
 {
@@ -20,19 +18,19 @@ namespace Couchbase.Core.Retry
             _power = 2;
         }
 
-        public Task Delay(IOperation op)
+        public Task Delay(IRequest request)
         {
-            return Task.Delay(CalculateBackoff(op));
+            return Task.Delay(CalculateBackoff(request));
         }
 
-        public TimeSpan CalculateBackoff(IOperation op)
+        public TimeSpan CalculateBackoff(IRequest request)
         {
-            if (op.Attempts == _maxRetries)
+            if (request.Attempts == _maxRetries)
             {
                 throw new OperationCanceledException();
             }
 
-            if (op.Attempts < 31)
+            if (request.Attempts < 31)
             {
                 _power <<= 1;
             }

@@ -7,7 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -42,23 +43,12 @@ namespace Couchbase.Views
             var uri = query.RawUri();
             ViewResult viewResult = null;
 
-            string body;
-            //using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.RequestEncoding).StartActive())
-            //{
-                body = query.CreateRequestBody();
-            //}
-
+            var body = query.CreateRequestBody();
             try
             {
                 Log.LogDebug("Sending view request to: {0}", uri.ToString());
-
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
-
-                HttpResponseMessage response;
-                //using (ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.DispatchToServer).StartActive())
-                //{
-                    response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
-                //}
+                var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -66,42 +56,36 @@ namespace Couchbase.Views
                         response.StatusCode,
                         Success,
                         await response.Content.ReadAsStreamAsync().ConfigureAwait(false)
-                        //ClientConfiguration.Tracer.BuildSpan(query, CouchbaseOperationNames.ResponseDecoding).StartActive().Span
                     );
                 }
                 else
                 {
-                    viewResult = new ViewResult(response.StatusCode, response.ReasonPhrase);
+                    viewResult = new ViewResult(
+                        response.StatusCode,
+                        await response.Content.ReadAsStringAsync().ConfigureAwait(false)
+                    );
+                    if (viewResult.ShouldRetry())
+                    {
+                        UpdateLastActivity();
+                        return viewResult;
+                    }
+
+                    if (viewResult.ViewNotFound())
+                    {
+                        throw new ViewNotFoundException(uri.ToString());
+                    }
                 }
-            }
-            catch (AggregateException ae)
-            {
-                ae.Flatten().Handle(e =>
-                {
-                    viewResult = CreateErrorResult(e);
-                    Log.LogError(e, uri.ToString());
-                    return true;
-                });
             }
             catch (OperationCanceledException e)
             {
-                var operationContext = OperationContext.CreateViewContext(query.BucketName, uri?.Authority);
-                if (_viewTimeout.HasValue)
-                {
-                    operationContext.TimeoutMicroseconds = _viewTimeout.Value;
-                }
-
-                viewResult = CreateErrorResult(e, operationContext.ToString());
-                Log.LogError(e, uri.ToString());
+                throw new AmbiguousTimeoutException("The view query was timed out via the Token.", e);
             }
             catch (HttpRequestException e)
             {
-                viewResult = CreateErrorResult(e);
-                Log.LogError(e, uri.ToString());
+                throw new RequestCanceledException("The view query was canceled.", e);
             }
 
             UpdateLastActivity();
-
             return viewResult;
         }
 

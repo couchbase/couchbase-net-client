@@ -438,7 +438,7 @@ namespace Couchbase.UnitTests.Services.Search
 
     //        public HttpContent Content { get; set; }
 
-    //        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    //        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, Token cancellationToken)
     //        {
     //            RequestMessage = request;
     //            var response = new HttpResponseMessage(StatusCode);

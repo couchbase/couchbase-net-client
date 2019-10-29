@@ -8,7 +8,7 @@ namespace Couchbase.Query
     /// <seealso cref="InvalidOperationException" />
     public class StreamAlreadyReadException : InvalidOperationException
     {
-        private const string DefaultMessage = "The underly stream has already been read and cannt be read again.";
+        private const string DefaultMessage = "The underlying stream has already been read and cannot be read again.";
 
         public StreamAlreadyReadException(string message = DefaultMessage, Exception exception = null)
             : base(message, exception)

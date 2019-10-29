@@ -34,7 +34,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.NotInitialized:
                     return new TemporaryFailureException();
                 case ResponseStatus.OperationTimeout:
-                    return new RequestTimeoutException();
+                    return new AmbiguousTimeoutException();
                 case ResponseStatus.Locked:
                     return new DocumentLockedException();
                 case ResponseStatus.DocumentMutationLost:

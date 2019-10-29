@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Couchbase.Query;
 using Couchbase.Search.Sort;
 using Couchbase.Utils;
@@ -21,9 +22,16 @@ namespace Couchbase.Search
         private readonly List<string> _fields = new List<string>();
         private List<string> _highLightFields;
         private List<ISearchFacet> _facets;
-        private TimeSpan _timeOut = new TimeSpan(0, 0, 0, 0, 75000);
-        private ScanConsistency?  _scanConsistency;
+        private SearchScanConsistency? _scanConsistency = SearchScanConsistency.NotBounded;
         private readonly JArray _sort = new JArray();
+        internal  CancellationToken Token { get; set; }
+        internal TimeSpan TimeOut { get; set; } = new TimeSpan(0, 0, 0, 0, 75000);
+
+        public ISearchOptions CancellationToken(CancellationToken token)
+        {
+            Token = token;
+            return this;
+        }
 
         /// <summary>
         /// Limits the number of matching results from a returned result-set.
@@ -63,7 +71,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
         /// <returns></returns>
-        public ISearchOptions Highlighting(HighLightStyle highLightStyle)
+        public ISearchOptions Highlight(HighLightStyle highLightStyle)
         {
             var name = Enum.GetName(typeof (HighLightStyle), highLightStyle);
             if (name != null)
@@ -79,7 +87,7 @@ namespace Couchbase.Search
         /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
         /// <param name="fields">The specific terms or fields to highlight.</param>
         /// <returns></returns>
-        public ISearchOptions Highlighting(HighLightStyle highLightStyle, params string[] fields)
+        public ISearchOptions Highlight(HighLightStyle highLightStyle, params string[] fields)
         {
             var name = Enum.GetName(typeof(HighLightStyle), highLightStyle);
             if (name != null)
@@ -136,7 +144,7 @@ namespace Couchbase.Search
         /// <returns></returns>
         public ISearchOptions Timeout(TimeSpan timeout)
         {
-            _timeOut = timeout;
+            TimeOut = timeout;
             return this;
         }
 
@@ -145,7 +153,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="consistency">The <see cref="ScanConsistency" /> for documents to be included in the query results.</param>
         /// <returns></returns>
-        public ISearchOptions WithConsistency(ScanConsistency consistency)
+        public ISearchOptions Consistency(SearchScanConsistency consistency)
         {
             _scanConsistency = consistency;
             return this;
@@ -196,18 +204,12 @@ namespace Couchbase.Search
 
         public JObject ToJson()
         {
-            var ctl = new JObject(new JProperty("timeout", (long) _timeOut.TotalMilliseconds));
+            var ctl = new JObject(new JProperty("timeout", (long) TimeOut.TotalMilliseconds));
             if (_scanConsistency.HasValue)
             {
                 var consistency = new JObject(
                         new JProperty("level", _scanConsistency.GetDescription()));
 
-#pragma warning disable 618
-                if (_scanConsistency == ScanConsistency.AtPlus)//needs resolution
-#pragma warning restore 618
-                {
-                    consistency.Add(new JProperty("vectors", new JObject()));//does nothing ATM!
-                }
                 ctl.Add("consistency", consistency);
             }
 

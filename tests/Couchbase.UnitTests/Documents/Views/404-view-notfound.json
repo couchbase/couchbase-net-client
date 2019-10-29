@@ -1,0 +1,4 @@
+{
+  "error": "not_found",
+  "reason": "Error opening view `brewery_beer`, from set `beer-sample`, design document `_design/beer`: {not_found,\n                                                                                            missing_named_view}"
+}

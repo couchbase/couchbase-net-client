@@ -1,11 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Retry;
 using Couchbase.Query;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -21,6 +20,8 @@ namespace Couchbase.Views
     /// A <see cref="StreamAlreadyReadException"/> will be thrown if the result is enumerated after it has reached
     /// the end of the stream.
     /// </summary>
+    /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
+    /// <seealso cref="IViewResult{T}" />
     internal class ViewResult : IViewResult
     {
         private readonly Result _result;
@@ -66,18 +67,14 @@ namespace Couchbase.Views
             return _result.GetAsyncEnumerator(cancellationToken);
         }
 
-        /// <summary>
-        /// If the response indicates the request is retryable, returns true.
-        /// </summary>
-        /// <returns></returns>
-        /// <remarks>Intended for internal use only.</remarks>
-        public bool ShouldRetry()
+        internal bool ShouldRetry()
         {
-            if (StatusCode == HttpStatusCode.OK)
-            {
-                return false;
-            }
+            SetRetryReasonIfFailed();
+            return ((IServiceResult)this).RetryReason != RetryReason.NoRetry;
+        }
 
+        internal void SetRetryReasonIfFailed()
+        {
             // View status code retry strategy
             // https://docs.google.com/document/d/1GhRxvPb7xakLL4g00FUi6fhZjiDaP33DTJZW7wfSxrI/edit
             switch (StatusCode)
@@ -85,25 +82,42 @@ namespace Couchbase.Views
                 case HttpStatusCode.MultipleChoices: // 300
                 case HttpStatusCode.MovedPermanently: // 301
                 case HttpStatusCode.Found: // 302
+                    ((IServiceResult)this).RetryReason = RetryReason.ViewsNoActivePartition;
+                    break;
                 case HttpStatusCode.SeeOther: // 303
                 case HttpStatusCode.TemporaryRedirect: //307
+                case HttpStatusCode.Gone: //401
                 case HttpStatusCode.RequestTimeout: // 408
                 case HttpStatusCode.Conflict: // 409
                 case HttpStatusCode.PreconditionFailed: // 412
                 case HttpStatusCode.RequestedRangeNotSatisfiable: // 416
                 case HttpStatusCode.ExpectationFailed: // 417
+                case HttpStatusCode.NotImplemented: //501
                 case HttpStatusCode.BadGateway: // 502
                 case HttpStatusCode.ServiceUnavailable: // 503
                 case HttpStatusCode.GatewayTimeout: // 504
-                    return true;
+                    ((IServiceResult)this).RetryReason = RetryReason.ViewsTemporaryFailure;
+                    break;
                 case HttpStatusCode.NotFound: // 404
-                    return !(Message.Contains("not_found") && (Message.Contains("missing") || Message.Contains("deleted")));
+                    if (Message.Contains("\"reason\":\"missing\""))
+                    {
+                        ((IServiceResult)this).RetryReason = RetryReason.ViewsTemporaryFailure;
+                    }
+                    break;
                 case HttpStatusCode.InternalServerError: // 500
-                    return !(Message.Contains("error") && Message.Contains("{not_found, missing_named_view}"));
+                    if(Message.Contains("error") && Message.Contains("{not_found, missing_named_view}") ||
+                       Message.Contains("badarg"))
+                    {
+                        ((IServiceResult) this).RetryReason = RetryReason.ViewsTemporaryFailure;
+                    }
+                    break;
                 default:
-                    return false;
+                    ((IServiceResult) this).RetryReason = RetryReason.NoRetry;
+                    return;
             }
         }
+
+        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
 
         private class Result : IAsyncEnumerable<IViewRow>, IDisposable
         {

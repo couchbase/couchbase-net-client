@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Converters;
@@ -53,12 +54,16 @@ namespace Couchbase.Core.IO.Operations
 
         public uint Attempts { get; set; }
         public virtual bool Idempotent { get; } = false;
-        public List<RetryReason> RetryReasons { get; set; }
-        public IRetryStrategy RetryStrategy { get; set; }
+        public Dictionary<RetryReason, Exception> Exceptions { get; set; }
+        public List<RetryReason> RetryReasons { get; set; } = new List<RetryReason>();
+        public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy(new ControlledBackoff());
+        public TimeSpan Timeout { get; set; }
+        public CancellationToken Token { get; set; }
+        public string ClientContextId { get; set; }
+        public string Statement { get; set; }
 
         #endregion
 
-        public int MaxRetries { get; set; }
         public DateTime CreationTime { get; set; }
         public Func<SocketAsyncState, Task> Completed { get; set; }
 
@@ -494,6 +499,7 @@ namespace Couchbase.Core.IO.Operations
         }
 
         private bool _disposed;
+        private Dictionary<RetryReason, Exception> _retryReasons;
 
         public void Dispose()
         {

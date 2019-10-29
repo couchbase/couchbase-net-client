@@ -16,6 +16,6 @@ namespace Couchbase.Core.Retry
             return new RetryAction(duration);
         }
 
-        public bool NoRetry => !Duration.HasValue;
+        public bool Retry => Duration.HasValue;
     }
 }

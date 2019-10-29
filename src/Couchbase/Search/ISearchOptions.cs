@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Couchbase.Query;
 using Couchbase.Search.Sort;
 using Newtonsoft.Json.Linq;
@@ -10,6 +11,8 @@ namespace Couchbase.Search
     /// </summary>
     public interface ISearchOptions
     {
+        ISearchOptions CancellationToken(CancellationToken token);
+
         /// <summary>
         /// Limits the number of matching results from a returned result-set.
         /// </summary>
@@ -36,7 +39,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="highLightStyle">The <see cref="HighLightStyle"/> to use.</param>
         /// <returns></returns>
-        ISearchOptions Highlighting(HighLightStyle highLightStyle);
+        ISearchOptions Highlight(HighLightStyle highLightStyle);
 
         /// <summary>
         /// Allows setting of additional highlighting on the result set of matching terms.
@@ -44,7 +47,7 @@ namespace Couchbase.Search
         /// <param name="highLightStyle">The <see cref="HighLightStyle"/> to use.</param>
         /// <param name="fields">The specific terms or fields to highlight.</param>
         /// <returns></returns>
-        ISearchOptions Highlighting(HighLightStyle highLightStyle, params string[] fields);
+        ISearchOptions Highlight(HighLightStyle highLightStyle, params string[] fields);
 
         /// <summary>
         /// List of fields values that should be returned in the result assuming that they were indexed.
@@ -72,7 +75,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="consistency">The <see cref="ScanConsistency"/> for documents to be included in the query results.</param>
         /// <returns></returns>
-        ISearchOptions WithConsistency(ScanConsistency consistency);
+        ISearchOptions Consistency(SearchScanConsistency consistency);
 
         /// <summary>
         /// Configures the list of fields which are used for sorting the search result. Fields with a prefix of "-" indicate a decending nature.

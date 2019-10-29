@@ -1,0 +1,25 @@
+{
+  "total_rows": 4,
+  "rows": [
+    {
+      "id": "21st_amendment_brewery_cafe",
+      "key": [ "21st_amendment_brewery_cafe" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-21a_ipa",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-21a_ipa" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-563_stout",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-563_stout" ],
+      "value": null
+    },
+    {
+      "id": "21st_amendment_brewery_cafe-amendment_pale_ale",
+      "key": [ "21st_amendment_brewery_cafe", "21st_amendment_brewery_cafe-amendment_pale_ale" ],
+      "value": null
+    }
+  ]
+}

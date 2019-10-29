@@ -6,7 +6,7 @@ namespace Couchbase.Search
     /// <summary>
     /// The result of a search query.
     /// </summary>
-    public interface ISearchResult : IEnumerable<ISearchQueryRow>
+    public interface ISearchResult : IEnumerable<ISearchQueryRow>, IServiceResult
     {
         /// <summary>
         /// The rows returned by the search request.

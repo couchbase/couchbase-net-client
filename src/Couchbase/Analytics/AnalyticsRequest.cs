@@ -1,15 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Couchbase.Core;
+using Couchbase.Core.Retry;
 using Newtonsoft.Json;
 
 namespace Couchbase.Analytics
 {
     internal class AnalyticsRequest : IAnalyticsRequest
     {
-        private string _clientContextId;
-        internal Dictionary<string, string> Credentials = new Dictionary<string, string>();
         internal Dictionary<string, object> NamedParameters = new Dictionary<string, object>();
         internal List<object> PositionalArguments = new List<object>();
         private TimeSpan _timeout = TimeSpan.FromMilliseconds(75000);
@@ -17,18 +17,22 @@ namespace Couchbase.Analytics
 
         public AnalyticsRequest()
         {
-            _clientContextId = Guid.NewGuid().ToString();
+            ClientContextId = Guid.NewGuid().ToString();
         }
 
-        public AnalyticsRequest(string statement) : this()
+        public AnalyticsRequest(string statement)
         {
-            Statement(statement);
+            WithStatement(statement);
         }
+
+        public bool ReadOnly { get; set; }
 
         /// <summary>
         /// Gets the original analytics statement.
         /// </summary>
         public string OriginalStatement { get; private set; }
+
+        public CancellationToken Token { get; set; }
 
         /// <summary>
         /// Gets the context identifier for the analytics request. Useful for debugging.
@@ -37,7 +41,7 @@ namespace Couchbase.Analytics
         /// <remarks>
         /// This value changes for every request.
         /// </remarks>
-        public string CurrentContextId => _clientContextId;
+        public string ClientContextId { get; set; }
 
         /// <summary>
         /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
@@ -63,7 +67,7 @@ namespace Couchbase.Analytics
             }
 
             formValues.Add("timeout", $"{_timeout.TotalMilliseconds}ms");
-            formValues.Add("client_context_id", CurrentContextId);
+            formValues.Add("client_context_id", ClientContextId ?? Guid.NewGuid().ToString());
 
             return formValues;
         }
@@ -86,7 +90,7 @@ namespace Couchbase.Analytics
         /// <returns>
         /// A reference to the current <see cref="IAnalyticsRequest" /> for method chaining.
         /// </returns>
-        public IAnalyticsRequest Statement(string statement)
+        public IAnalyticsRequest WithStatement(string statement)
         {
             if (string.IsNullOrWhiteSpace(statement))
             {
@@ -101,6 +105,12 @@ namespace Couchbase.Analytics
             return this;
         }
 
+        public string Statement
+        {
+            get => OriginalStatement;
+            set => OriginalStatement = value;
+        }
+
         /// <summary>
         /// A user supplied piece of data supplied with the request to the service. Any result will also contain the same data.
         /// </summary>
@@ -111,12 +121,13 @@ namespace Couchbase.Analytics
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public IAnalyticsRequest ClientContextId(string contextId)
+        public IAnalyticsRequest WithClientContextId(string contextId)
         {
-            if (!string.IsNullOrWhiteSpace(contextId))
+            if (string.IsNullOrWhiteSpace(contextId))
             {
-                _clientContextId = contextId;
+                contextId = Guid.NewGuid().ToString();
             }
+            ClientContextId = contextId;
             return this;
         }
 
@@ -154,10 +165,21 @@ namespace Couchbase.Analytics
         /// <returns>
         /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
         /// </returns>
-        public IAnalyticsRequest Timeout(TimeSpan timeout)
+        public IAnalyticsRequest WithTimeout(TimeSpan timeout)
         {
             _timeout = timeout;
             return this;
+        }
+
+        public uint Attempts { get; set; }
+        public bool Idempotent { get; set; }
+        public List<RetryReason> RetryReasons { get; set; } = new List<RetryReason>();
+        public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy();
+
+        public TimeSpan Timeout
+        {
+            get => _timeout;
+            set => _timeout = value;
         }
 
         /// <summary>

@@ -14,14 +14,6 @@ namespace Couchbase.Search
             SearchOptions = new SearchOptions();
         }
 
-        ///// <summary>
-        ///// Gets or sets the credentials.
-        ///// </summary>
-        ///// <value>
-        ///// The credentials.
-        ///// </value>
-        //internal IClusterCredentials Credentials { get; set; }
-
         /// <summary>
         /// The virtual path template for the API
         /// </summary>
@@ -50,24 +42,6 @@ namespace Couchbase.Search
         /// The query.
         /// </value>
         public IFtsQuery Query { get; set; }
-
-        /// <summary>
-        /// Gets the relative path for the FTS API service.
-        /// </summary>
-        /// <returns></returns>
-        internal string RelativeUri()
-        {
-            if (string.IsNullOrWhiteSpace(Index))
-            {
-                throw new InvalidOperationException("The index name must be provided.");
-            }
-            return string.Format(ApiPath, Index);
-        }
-
-        internal Uri GetSearchUri()
-        {
-            throw new NotImplementedException();
-        }
 
         /// <summary>
         /// Limits the number of matching results from a returned result-set.
@@ -107,9 +81,9 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
         /// <returns></returns>
-        public SearchQuery Highlighting(HighLightStyle highLightStyle)
+        public SearchQuery Highlight(HighLightStyle highLightStyle)
         {
-            SearchOptions.Highlighting(highLightStyle);
+            SearchOptions.Highlight(highLightStyle);
             return this;
         }
 
@@ -119,9 +93,9 @@ namespace Couchbase.Search
         /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
         /// <param name="fields">The specific terms or fields to highlight.</param>
         /// <returns></returns>
-        public SearchQuery Highlighting(HighLightStyle highLightStyle, params string[] fields)
+        public SearchQuery Highlight(HighLightStyle highLightStyle, params string[] fields)
         {
-            SearchOptions.Highlighting(highLightStyle, fields);
+            SearchOptions.Highlight(highLightStyle, fields);
             return this;
         }
 
@@ -164,9 +138,9 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="consistency">The <see cref="ScanConsistency" /> for documents to be included in the query results.</param>
         /// <returns></returns>
-        public SearchQuery WithConsistency(ScanConsistency consistency)
+        public SearchQuery Consistency(SearchScanConsistency consistency)
         {
-            SearchOptions.WithConsistency(consistency);
+            SearchOptions.Consistency(consistency);
             return this;
         }
 

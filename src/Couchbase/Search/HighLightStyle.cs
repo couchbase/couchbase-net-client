@@ -1,4 +1,4 @@
-﻿namespace Couchbase.Search
+namespace Couchbase.Search
 {
     /// <summary>
     /// The highlighting options available from the server.

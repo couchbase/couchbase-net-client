@@ -13,6 +13,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         public void Request_auto_generates_context_and_request_Ids()
         {
             var request = new AnalyticsRequest(Statement);
+            request.WithClientContextId(Guid.NewGuid().ToString());
 
             var formValues = request.GetFormValues();
             var requestId = formValues["client_context_id"].ToString();
@@ -24,28 +25,27 @@ namespace Couchbase.UnitTests.Services.Analytics
         public void Can_set_client_context_id()
         {
             var request = new AnalyticsRequest(Statement);
-            request.ClientContextId("testing");
+            request.WithClientContextId("testing");
+            request.WithClientContextId(Guid.NewGuid().ToString());
 
             var formValues = request.GetFormValues();
-            var conetextId = formValues["client_context_id"].ToString();
-            Assert.NotEmpty(conetextId);
+            var contextId = formValues["client_context_id"].ToString();
+            Assert.NotEmpty(contextId);
 
-            Assert.Equal("testing", conetextId);
+            Assert.True(Guid.TryParse(contextId, out Guid result));
         }
 
         [Fact]
         public void Request_ID_changes_on_each_request()
         {
             var request = new AnalyticsRequest(Statement);
-
             var formValues = request.GetFormValues();
             var clientContextId1 = formValues["client_context_id"].ToString();
-
 
             formValues = request.GetFormValues(); // re-trigger as if going to re-submited the query
             var clientContextId2 = formValues["client_context_id"].ToString();
 
-            Assert.Equal(clientContextId1, clientContextId2);
+            Assert.NotEqual(clientContextId1, clientContextId2);
         }
 
         [Fact]
@@ -64,7 +64,7 @@ namespace Couchbase.UnitTests.Services.Analytics
 
             // set statement using method
             const string statement = "SELECT 1 FROM `datset`;";
-            request.Statement(statement);
+            request.WithStatement(statement);
 
             formValues = request.GetFormValues();
             Assert.Equal(statement, formValues["statement"]);
@@ -99,7 +99,8 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public void Default_timeout_is_75_seconds()
         {
-            var request = new AnalyticsRequest(Statement);
+            // sets default timeout to 75 seconds
+            var request = new AnalyticsRequest(Statement) {Timeout = TimeSpan.FromSeconds(75)};
 
             var formValues = request.GetFormValues();
             Assert.Equal("75000ms", formValues["timeout"]);
@@ -113,8 +114,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public void Can_set_timeout()
         {
-            var request = new AnalyticsRequest(Statement);
-            request.Timeout(TimeSpan.FromSeconds(15));
+            var request = new AnalyticsRequest(Statement) {Timeout = TimeSpan.FromSeconds(15)};
 
             var formValues = request.GetFormValues();
             Assert.Equal("15000ms", formValues["timeout"]);

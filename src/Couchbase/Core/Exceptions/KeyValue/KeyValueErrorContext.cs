@@ -10,7 +10,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public string DocumentKey { get; internal set; } //op.Id
 
-        public string ContextId { get; internal set; } //state.opaque||op.opaque
+        public string ClientContextId { get; internal set; } //state.opaque||op.opaque
 
         public ulong Cas { get; internal set; } //op.Cas
 

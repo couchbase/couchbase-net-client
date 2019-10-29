@@ -5,7 +5,7 @@ namespace Couchbase.Views
     /// <summary>
     /// Represents the results of a View query.
     /// </summary>
-    public interface IViewResult : IAsyncEnumerable<IViewRow>
+    public interface IViewResult : IAsyncEnumerable<IViewRow>, IServiceResult
     {
         /// <summary>
         /// Gets the query meta data.

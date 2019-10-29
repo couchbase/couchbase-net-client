@@ -1,11 +1,11 @@
-using Couchbase.Core.IO.Operations;
-
-
 namespace Couchbase.Core.Retry
 {
-    public class FailFastRetryStrategy : IRetryStrategy
+    /// <summary>
+    /// Used internally to skip retries when specified. 
+    /// </summary>
+    internal class FailFastRetryStrategy : IRetryStrategy
     {
-        public RetryAction RetryAfter(IOperation ret, RetryReason reason)
+        public RetryAction RetryAfter(IRequest request, RetryReason reason)
         {
             return RetryAction.WithDuration(null);
         }

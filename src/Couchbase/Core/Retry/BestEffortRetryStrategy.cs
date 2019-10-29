@@ -1,6 +1,3 @@
-using Couchbase.Core.IO.Operations;
-
-
 namespace Couchbase.Core.Retry
 {
     public class BestEffortRetryStrategy : IRetryStrategy
@@ -17,11 +14,11 @@ namespace Couchbase.Core.Retry
             _backoffCalculator = calculator;
         }
 
-        public RetryAction RetryAfter(IOperation operation, RetryReason reason)
+        public RetryAction RetryAfter(IRequest request, RetryReason reason)
         {
-            if (operation.Idempotent || reason.AllowsNonIdempotentRetries())
+            if (request.Idempotent || reason.AllowsNonIdempotentRetries())
             {
-                var backoffDuration = _backoffCalculator.CalculateBackoff(operation);
+                var backoffDuration = _backoffCalculator.CalculateBackoff(request);
                 return RetryAction.WithDuration(backoffDuration);
             }
 

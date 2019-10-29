@@ -2,7 +2,7 @@ namespace Couchbase.Core.Retry
 {
     public enum RetryReason
     {
-        NoRetry,
+        NoRetry = -1,
         Unknown,
         SocketNotAvailable,
         ServiceNotAvailable,
@@ -15,6 +15,13 @@ namespace Couchbase.Core.Retry
         KvSyncWriteInProgress,
         KvSyncWriteReCommitInProgress,
         ServiceResponseCodeIndicated,
-        SocketClosedWhileInFlight
+        SocketClosedWhileInFlight,
+        CircuitBreakerOpen,
+        QueryPreparedStatementFailure,
+        QueryIndexNotFound,
+        AnalyticsTemporaryFailure,
+        SearchTooManyRequests,
+        ViewsTemporaryFailure,
+        ViewsNoActivePartition
     }
 }

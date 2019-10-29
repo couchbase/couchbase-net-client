@@ -11,7 +11,12 @@ namespace Couchbase
     /// </summary>
     public class CouchbaseException : Exception
     {
-        public CouchbaseException() {}
+        public CouchbaseException() { }
+
+        public CouchbaseException(IErrorContext context)
+        {
+            Context = context;
+        }
 
         public CouchbaseException(string message) : base(message) {}
 
@@ -45,5 +50,7 @@ namespace Couchbase
         }
 
         public IErrorContext Context { get; set; }
+
+        internal bool IsReadOnly { get; set; }
     }
 }

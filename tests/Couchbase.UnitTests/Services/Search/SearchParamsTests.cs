@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -15,16 +15,11 @@ namespace Couchbase.UnitTests.Services.Search
         [Fact]
         public void ToJson_JsonStringIsValid()
         {
-            var searchParams = new SearchQuery().
-                Skip(20).
-                Limit(10).Explain(true).
-                Timeout(TimeSpan.FromMilliseconds(10000)).
-#pragma warning disable 618
-                WithConsistency(ScanConsistency.AtPlus);
-#pragma warning restore 618
+            var searchParams = new SearchQuery().Skip(20).Limit(10).Explain(true)
+                .Timeout(TimeSpan.FromMilliseconds(10000));
 
-            //var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{\"customerIndex\":{\"0\":123,\"1/a0b1c2\":234}}}},\"query\":{\"query\":\"alice smith\",\"boost\": 1},\"size\": 10,\"from\":20,\"highlight\":{\"style\": null,\"fields\":null},\"fields\":[\"*\"],\"facets\":null,\"explain\":true}";
-            var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{}}},\"size\":10,\"from\":20,\"explain\":true}";
+                //var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{\"customerIndex\":{\"0\":123,\"1/a0b1c2\":234}}}},\"query\":{\"query\":\"alice smith\",\"boost\": 1},\"size\": 10,\"from\":20,\"highlight\":{\"style\": null,\"fields\":null},\"fields\":[\"*\"],\"facets\":null,\"explain\":true}";
+            var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"not_bounded\"}},\"size\":10,\"from\":20,\"explain\":true}";
             var actual = searchParams.ToJson().ToString().Replace("\r\n", "").Replace(" ", "");
             Console.WriteLine(actual);
             Console.WriteLine(expected);
@@ -48,7 +43,7 @@ namespace Couchbase.UnitTests.Services.Search
             //will not throw ArgumentNullException
             SearchQuery fc = new SearchQuery();
             fc.Index = "beer-ft";
-            fc.Highlighting(HighLightStyle.Html);
+            fc.Highlight(HighLightStyle.Html);
             fc.Fields("name", "style");
         }
 
@@ -57,7 +52,7 @@ namespace Couchbase.UnitTests.Services.Search
         {
             SearchQuery fc = new SearchQuery();
             fc.Index = "beer-ft";
-            fc.Highlighting(HighLightStyle.Html);
+            fc.Highlight(HighLightStyle.Html);
             Assert.Throws<ArgumentNullException>(() => fc.Fields(null));
         }
 
@@ -66,7 +61,7 @@ namespace Couchbase.UnitTests.Services.Search
         {
             SearchQuery fc = new SearchQuery();
             fc.Index = "beer-ft";
-            fc.Highlighting(HighLightStyle.Html);
+            fc.Highlight(HighLightStyle.Html);
             Assert.Throws<ArgumentNullException>(() => fc.Fields());
         }
 
@@ -77,14 +72,18 @@ namespace Couchbase.UnitTests.Services.Search
             {
                 Index = "idx_travel",
                 Query = new MatchQuery("inn")
-            }.Highlighting(HighLightStyle.Html, "inn");
+            }.Highlight(HighLightStyle.Html, "inn");
 
             var result = query.ToJson();
             var expected = JsonConvert.SerializeObject(new
             {
                 ctl = new
                 {
-                    timeout = 75000
+                    timeout = 75000,
+                    consistency = new
+                    {
+                        level = "not_bounded"
+                    }
                 },
                 highlight = new
                 {
@@ -111,7 +110,11 @@ namespace Couchbase.UnitTests.Services.Search
             {
                 ctl = new
                 {
-                    timeout = 75000
+                    timeout = 75000,
+                    consistency = new
+                    {
+                        level = "not_bounded"
+                    }
                 },
                 sort = fields
             }, Formatting.None);
@@ -133,7 +136,11 @@ namespace Couchbase.UnitTests.Services.Search
             {
                 ctl = new
                 {
-                    timeout = 75000
+                    timeout = 75000,
+                    consistency = new
+                    {
+                        level = "not_bounded"
+                    }
                 },
                 sort = new[]
                 {
@@ -164,7 +171,11 @@ namespace Couchbase.UnitTests.Services.Search
             {
                 ctl = new
                 {
-                    timeout = 75000
+                    timeout = 75000,
+                    consistency = new
+                    {
+                        level = "not_bounded"
+                    }
                 },
                 sort = new []
                 {

@@ -1,20 +1,18 @@
 using System;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations;
-
 
 namespace Couchbase.Core.Retry
 {
     public struct ControlledBackoff : IBackoffCalculator
     {
-        public Task Delay(IOperation operation)
+        public Task Delay(IRequest request)
         {
-            return Task.Delay(CalculateBackoff(operation));
+            return Task.Delay(CalculateBackoff(request), request.Token);
         }
 
-        public TimeSpan CalculateBackoff(IOperation operation)
+        public TimeSpan CalculateBackoff(IRequest request)
         {
-            switch (operation.Attempts)
+            switch (request.Attempts)
             {
                 case 0:
                     return TimeSpan.FromMilliseconds(1);

@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.Analytics
 {
-    public class DataverseNotFoundException
+    public class DataverseNotFoundException : CouchbaseException
     {
     }
 }

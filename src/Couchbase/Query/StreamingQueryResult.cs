@@ -6,6 +6,7 @@ using System.Net;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Retry;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenTracing;
@@ -17,7 +18,7 @@ namespace Couchbase.Query
     /// </summary>
     /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
     /// <seealso cref="IQueryResult{T}" />
-    public class StreamingQueryResult<T> : IQueryResult<T>
+    public class StreamingQueryResult<T> : IQueryResult<T>, IServiceResult
     {
         private JsonTextReader _reader;
         private string _preparedPlanName;
@@ -64,8 +65,6 @@ namespace Couchbase.Query
         /// </summary>
         public Exception Exception { get; internal set; }
 
-        
-
         /// <summary>
         /// If the response indicates the request is retryable, returns true.
         /// </summary>
@@ -73,29 +72,37 @@ namespace Couchbase.Query
         /// <remarks>
         /// Intended for internal use only.
         /// </remarks>
-        public bool ShouldRetry()
+        internal bool ShouldRetry()
         {
-            var retry = false;
-            switch (MetaData.Status)
-            {
-                case QueryStatus.Success:
-                case QueryStatus.Errors:
-                case QueryStatus.Running:
-                case QueryStatus.Completed:
-                case QueryStatus.Stopped:
-                    break;
-                case QueryStatus.Timeout:
-                case QueryStatus.Fatal:
-                    var status = (int)HttpStatusCode;
-                    if (status > 399)
-                    {
-                        break;
-                    }
-                    retry = true;
-                    break;
-            }
-            return retry;
+            SetRetryReasonIfFailed();
+            return ((IServiceResult)this).RetryReason != RetryReason.NoRetry;
         }
+
+        internal void SetRetryReasonIfFailed()
+        {
+            foreach (var error in Errors)
+            {
+                switch (error.Code)
+                {
+                    case 4040:
+                    case 4050:
+                    case 4070:
+                        ((IServiceResult) this).RetryReason = RetryReason.QueryPreparedStatementFailure;
+                        return;
+                    case 5000:
+                        if (error.Message != null
+                            && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
+                        {
+                            ((IServiceResult)this).RetryReason = RetryReason.QueryPreparedStatementFailure;
+                        }
+                        return;
+                    default:
+                        continue;
+                }
+            }
+        }
+
+        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
 
         /// <summary>
         /// Get the prepared query plan name stored in the cluster.

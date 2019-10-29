@@ -63,6 +63,7 @@
   <ItemGroup>
     <Folder Include="Core\Diagnostics\Logging\" />
     <Folder Include="Core\Converters\" />
+    <Folder Include="Core\Retry\Analytics\" />
     <Folder Include="Core\Version\" />
   </ItemGroup>
 

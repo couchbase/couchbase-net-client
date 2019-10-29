@@ -1,24 +1,16 @@
 using System;
 using System.Collections.Generic;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.Analytics
 {
-    internal interface IAnalyticsRequest
+    internal interface IAnalyticsRequest : IRequest
     {
         /// <summary>
         /// Gets the original analytics statement.
         /// </summary>
         /// <returns>The original statement as a <see cref="string"/></returns>
         string OriginalStatement { get; }
-
-        /// <summary>
-        /// Gets the context identifier for the analytics request. Useful for debugging.
-        /// </summary>
-        /// <returns>The unique request ID.</returns>.
-        /// <remarks>
-        /// This value changes for every request.
-        /// </remarks>
-        string CurrentContextId { get; }
 
         /// <summary>
         /// Gets a <see cref="IDictionary{K, V}"/> of the name/value pairs to be POSTed to the analytics service.
@@ -37,7 +29,7 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="statement">Any valid SQL++ statement for.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
-        IAnalyticsRequest Statement(string statement);
+        IAnalyticsRequest WithStatement(string statement);
 
         /// <summary>
         /// A user supplied piece of data supplied with the request to the sevice. Any result will also contain the same data.
@@ -46,7 +38,7 @@ namespace Couchbase.Analytics
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
         /// <remarks>Optional.</remarks>
         /// <remarks>Maximum allowed size is 64 characters. A clientContextID longer than 64 characters is cut off at 64 characters.</remarks>
-        IAnalyticsRequest ClientContextId(string contextId);
+        IAnalyticsRequest WithClientContextId(string contextId);
 
         /// <summary>
         /// Adds a named parameter to be used with the statement.
@@ -68,7 +60,7 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="timeout">The timeout.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
-        IAnalyticsRequest Timeout(TimeSpan timeout);
+        IAnalyticsRequest WithTimeout(TimeSpan timeout);
 
         /// <summary>
         /// Sets the query priority. Default is <c>false</c>.
@@ -86,6 +78,7 @@ namespace Couchbase.Analytics
 
         IAnalyticsRequest ScanConsistency(AnalyticsScanConsistency scanConsistency);
 
+        bool ReadOnly { get; set; }
     }
 }
 

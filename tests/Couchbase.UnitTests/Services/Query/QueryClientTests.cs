@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
@@ -22,12 +24,12 @@ namespace Couchbase.UnitTests.Services.Query
     public class QueryClientTests
     {
         [Theory]
-        [InlineData("query-badrequest-error-response-400.json", HttpStatusCode.BadRequest, typeof(QueryException))]
-        [InlineData("query-n1ql-error-response-400.json", HttpStatusCode.BadRequest, typeof(QueryException))]
-        [InlineData("query-notfound-response-404.json", HttpStatusCode.NotFound, typeof(QueryException))]
-        [InlineData("query-service-error-response-503.json", HttpStatusCode.ServiceUnavailable, typeof(QueryException))]
-        [InlineData("query-timeout-response-200.json", HttpStatusCode.OK, typeof(QueryException))]
-        [InlineData("query-unsupported-error-405.json", HttpStatusCode.MethodNotAllowed, typeof(QueryException))]
+        [InlineData("query-badrequest-error-response-400.json", HttpStatusCode.BadRequest, typeof(PlanningFailureException))]
+        [InlineData("query-n1ql-error-response-400.json", HttpStatusCode.BadRequest, typeof(PlanningFailureException))]
+        [InlineData("query-notfound-response-404.json", HttpStatusCode.NotFound, typeof(PreparedStatementException))]
+        [InlineData("query-service-error-response-503.json", HttpStatusCode.ServiceUnavailable, typeof(InternalServerFailureException))]
+        [InlineData("query-timeout-response-200.json", HttpStatusCode.OK, typeof(UnambiguousTimeoutException))]
+        [InlineData("query-unsupported-error-405.json", HttpStatusCode.MethodNotAllowed, typeof(PreparedStatementException))]
         public async Task Test(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
             using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\" + file))
@@ -72,7 +74,7 @@ namespace Couchbase.UnitTests.Services.Query
                 }
                 catch (Exception e)
                 {
-                    Assert.Equal(e.GetType(), errorType);
+                    Assert.Equal(errorType, e.GetType());
                 }
             }
         }

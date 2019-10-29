@@ -59,7 +59,7 @@ namespace Couchbase.Utils
         /// </summary>
         /// <param name="obj">The <see cref="object"/> to try and convert.</param>
         /// <param name="duration">The <see cref="long"/> duration of the object.</param>
-        /// <returns>A <see cref="bool"/> to indicate if a convertion was possible.</returns>
+        /// <returns>A <see cref="bool"/> to indicate if a conversion was possible.</returns>
         internal static bool TryConvertToMicros(object obj, out long duration)
         {
             duration = 0;

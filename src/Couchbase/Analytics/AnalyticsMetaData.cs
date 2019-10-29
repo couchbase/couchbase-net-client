@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
 
@@ -55,7 +55,6 @@ namespace Couchbase.Analytics
         /// The warnings.
         /// </value>
         public List<AnalyticsWarning> Warnings { get; set; }
-
     }
 }
 

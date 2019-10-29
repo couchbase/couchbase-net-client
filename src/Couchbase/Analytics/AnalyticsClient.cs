@@ -1,22 +1,23 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Query;
-using Couchbase.Utils;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Analytics
 {
     internal class AnalyticsClient : HttpServiceBase, IAnalyticsClient
     {
-        //private static readonly ILog Log = LogManager.GetLogger(typeof(AnalyticsClient));
+        private static readonly ILogger Log = LogManager.CreateLogger<AnalyticsClient>();
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(ClusterContext context) : this(
@@ -54,94 +55,69 @@ namespace Couchbase.Analytics
         {
             // try get Analytics node
             var node = Context.GetRandomNodeForService(ServiceType.Analytics);
-            var result = new AnalyticsResult<T>();
+            AnalyticsResult<T> result;
+            var body = queryRequest.GetFormValuesAsJson();
 
-            string body;
-            //using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.RequestEncoding).StartActive())
-            //{
-                body = queryRequest.GetFormValuesAsJson();
-            //}
-
-            using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
+            using (var content = new StringContent(body, Encoding.UTF8, MediaType.Json))
             {
                 try
                 {
-                    //Log.Trace("Sending analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
+                    var request = new HttpRequestMessage(HttpMethod.Post, node.AnalyticsUri)
+                    {
+                        Content = content
+                    };
 
-                    HttpResponseMessage response;
-                    //using (ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.DispatchToServer).StartActive())
-                    //{
-                        var request = new HttpRequestMessage(HttpMethod.Post, node.AnalyticsUri)
-                        {
-                            Content = content
-                        };
+                    if (queryRequest is AnalyticsRequest req && req.PriorityValue != 0)
+                    {
+                        request.Headers.Add(AnalyticsPriorityHeaderName, new[] {req.PriorityValue.ToString()});
+                    }
 
-                        if (queryRequest is AnalyticsRequest req && req.PriorityValue != 0)
+                    var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
+                    using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    result = (await DataMapper.MapAsync<AnalyticsResultData<T>>(stream, token).ConfigureAwait(false))
+                        .ToQueryResult(HttpClient, DataMapper);
+                    result.HttpStatusCode = response.StatusCode;
+
+                    if (response.StatusCode != HttpStatusCode.OK)
+                    {
+                        if (result.ShouldRetry())
                         {
-                            request.Headers.Add(AnalyticsPriorityHeaderName, new[] {req.PriorityValue.ToString()});
+                            UpdateLastActivity();
+                            return result;
                         }
 
-                        response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
-                    //}
-
-                    //using (var scope = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).StartActive())
-                    using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    {
-                        result = (await DataMapper.MapAsync<AnalyticsResultData<T>>(stream, token).ConfigureAwait(false))
-                            .ToQueryResult(HttpClient, DataMapper);
-                        //result.MetaData.Success = result.MetaData.Status == QueryStatus.Success || result.MetaData.Status == QueryStatus.Running;
-                        //result.MetaData.HttpStatusCode = response.StatusCode;
-                        //Log.Trace("Received analytics query cid{0}: {1}", result.ClientContextId, result.ToString());
-
-                        //scope.Span.SetPeerLatencyTag(result.Metrics.ElaspedTime);
+                        if (result.LinkNotFound()) throw new LinkNotFoundException();
+                        if (result.DataverseExists()) throw new DataverseExistsException();
+                        if (result.DatasetExists()) throw new DatasetExistsException();
+                        if (result.DataverseNotFound()) throw new DataverseNotFoundException();
+                        if (result.DataSetNotFound()) throw new DatasetNotFoundException();
+                        if (result.JobQueueFull()) throw new JobQueueFullException();
+                        if (result.CompilationFailure()) throw new CompilationFailureException();
+                        if (result.InternalServerFailure()) throw new InternalServerFailureException();
+                        if (result.AuthenticationFailure()) throw new AuthenticationFailureException();
+                        if (result.TemporaryFailure()) throw new TemporaryFailureException();
+                        if (result.ParsingFailure()) throw new ParsingFailureException();
+                        if (result.IndexNotFound()) throw new IndexNotFoundException();
+                        if (result.IndexExists()) throw new IndexExistsException();
                     }
-                    //uri.ClearFailed();analytu
                 }
                 catch (OperationCanceledException e)
                 {
-                    //var operationContext = OperationContext.CreateAnalyticsContext(queryRequest.CurrentContextId, Context.BucketName, uri?.Authority);
-                    //if (queryRequest is AnalyticsRequest request)
-                    //{
-                    //    operationContext.TimeoutMicroseconds = request.TimeoutValue;
-                    //}
+                    if (queryRequest.ReadOnly)
+                    {
+                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
+                    }
 
-                    //Log.Info(operationContext.ToString());
-                    ProcessError(e, result);
+                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
                 }
                 catch (HttpRequestException e)
                 {
-                    //Log.Info("Failed analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                    //uri.IncrementFailed();
-                    ProcessError(e, result);
-                    //Log.Error(e);
-                }
-                catch (AggregateException ae)
-                {
-                    ae.Flatten().Handle(e =>
-                    {
-                        //Log.Info("Failed analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                        //Log.Error(e);
-                        ProcessError(e, result);
-                        return true;
-                    });
-                }
-                catch (Exception e)
-                {
-                    //Log.Info("Failed analytics query cid{0}: {1}", queryRequest.CurrentContextId, baseUri);
-                    //Log.Info(e);
-                    ProcessError(e, result);
+                    throw new RequestCanceledException("The query was canceled.", e);
                 }
             }
 
             UpdateLastActivity();
-
             return result;
-        }
-
-        private static void ProcessError<T>(Exception exception, AnalyticsResult<T> queryResult)
-        {
-            queryResult.MetaData.Status = AnalyticsStatus.Fatal;
-            //queryResult.MetaData.HttpStatusCode = HttpStatusCode.BadRequest;
         }
     }
 }

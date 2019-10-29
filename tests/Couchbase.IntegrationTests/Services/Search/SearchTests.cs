@@ -53,7 +53,7 @@ namespace Couchbase.IntegrationTests.Services.Search
                 new SearchQuery
                 {
                     Query = new MatchQuery("inn")
-                }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Highlighting(HighLightStyle.Html, "inn")
+                }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Highlight(HighLightStyle.Html, "inn")
             );
 
             //Assert.Equal(SearchStatus.Success, results.Status);
@@ -67,7 +67,7 @@ namespace Couchbase.IntegrationTests.Services.Search
                 new SearchQuery
                 {
                     Query = new MatchQuery("inn")
-                }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Highlighting(HighLightStyle.Html, "inn")
+                }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Highlight(HighLightStyle.Html, "inn")
             ).ConfigureAwait(false);
 
             //Assert.Equal(SearchStatus.Success, results.Status);

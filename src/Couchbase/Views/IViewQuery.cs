@@ -1,4 +1,5 @@
 using System.Collections;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.Views
 {
@@ -6,7 +7,7 @@ namespace Couchbase.Views
     /// Implemented as an object that can query a Couchbase View.
     /// <remarks>This is a "Fluent" style interface and methods can be chained togather.</remarks>
     /// </summary>
-    internal interface IViewQuery : IViewQueryable
+    internal interface IViewQuery : IViewQueryable, IRequest
     {
         /// <summary>
         /// Return the documents in ascending by key order

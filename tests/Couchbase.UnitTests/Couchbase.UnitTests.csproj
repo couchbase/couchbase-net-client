@@ -15,20 +15,40 @@
   <ItemGroup>
     <None Remove="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
     <None Remove="Data\multi-getresponse-packet.txt" />
+    <None Remove="Documents\Analytics\good-request.json" />
+    <None Remove="Documents\Analytics\syntax-24000.json" />
+    <None Remove="Documents\Analytics\temp-23000.json" />
+    <None Remove="Documents\Analytics\temp-23003.json" />
+    <None Remove="Documents\Analytics\temp-23007.json" />
+    <None Remove="Documents\Analytics\timeout.json" />
     <None Remove="Documents\config.json" />
     <None Remove="Documents\Configs\bootstrap-config.json" />
+    <None Remove="Documents\Configs\cluster-level-config-rev51.json" />
+    <None Remove="Documents\Configs\cluster-level-config-rev69.json" />
     <None Remove="Documents\Configs\config-localhost.json" />
     <None Remove="Documents\Configs\config-nodes-and-serverslist-out-of-order.json" />
     <None Remove="Documents\Configs\config-with-ipv6.json" />
     <None Remove="Documents\Configs\config-with-negative-one-primary.json" />
     <None Remove="Documents\Configs\config-with-replicas-complete.json" />
     <None Remove="Documents\Configs\mycache.json" />
+    <None Remove="Documents\Configs\parse-fail.json" />
     <None Remove="Documents\Configs\rev92-single-node.json" />
     <None Remove="Documents\Configs\rev94.json" />
     <None Remove="Documents\Configs\rev96.json" />
     <None Remove="Documents\Configs\rev98-single-node.json" />
+    <None Remove="Documents\Configs\revXX-Copy.json" />
     <None Remove="Documents\emmy-lou.json" />
     <None Remove="Documents\kv-error-map.json" />
+    <None Remove="Documents\Query\Retrys\4040.json" />
+    <None Remove="Documents\Query\Retrys\4050.json" />
+    <None Remove="Documents\Query\Retrys\4070.json" />
+    <None Remove="Documents\Query\Retrys\5000.json" />
+    <None Remove="Documents\Search\query-error.json" />
+    <None Remove="Documents\Search\query-facets.json" />
+    <None Remove="Documents\Search\query-success.json" />
+    <None Remove="Documents\Views\200-success.json" />
+    <None Remove="Documents\Views\404-designdoc-notfound.json" />
+    <None Remove="Documents\Views\404-view-notfound.json" />
     <None Remove="Services\Views\view_result.json" />
     <None Remove="Services\Search\error-with-errors.js" />
     <None Remove="Services\Search\search-response-success.js" />
@@ -42,6 +62,26 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Documents\Analytics\good-request.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Analytics\syntax-24000.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Analytics\temp-23000.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Analytics\temp-23003.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Analytics\temp-23007.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Analytics\timeout.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Configs\cluster-level-config-rev51.json" />
+    <EmbeddedResource Include="Documents\Configs\cluster-level-config-rev69.json" />
     <EmbeddedResource Include="Documents\Configs\mycache.json" />
     <EmbeddedResource Include="Documents\Configs\config-localhost.json" />
   </ItemGroup>
@@ -58,56 +98,88 @@
     <EmbeddedResource Include="Documents\Configs\config-nodes-and-serverslist-out-of-order.json" />
     <EmbeddedResource Include="Documents\Configs\config-with-negative-one-primary.json" />
     <EmbeddedResource Include="Documents\Configs\config-with-replicas-complete.json" />
+    <EmbeddedResource Include="Documents\Configs\parse-fail.json" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Documents\Configs\rev98-single-node.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Configs\rev94.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Configs\rev92-single-node.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Configs\rev96.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Configs\revXX-Copy.json" />
     <EmbeddedResource Include="Documents\kv-error-map.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Documents\Query\query-badrequest-error-response-400.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Query\query-n1ql-error-response-400.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Query\query-notfound-response-404.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Query\query-service-error-response-503.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Query\query-timeout-response-200.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Query\query-unsupported-error-405.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Documents\emmy-lou.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Documents\config.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\Retrys\4050.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\Retrys\5000.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\Retrys\4070.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Query\Retrys\4040.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Search\query-error.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Search\query-facets.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Search\query-success.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Views\200-success.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Views\404-designdoc-notfound.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\Views\404-view-notfound.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="Services\Views\view_result.json" />
     <EmbeddedResource Include="Services\Search\error-with-errors.js" />
@@ -116,8 +188,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.0.0" />
-    <PackageReference Include="Moq" Version="4.10.0" />
+      <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.0" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.0" />
+      <PackageReference Include="Moq" Version="4.10.0" />
+    <PackageReference Include="Serilog.Extensions.Logging.File" Version="1.1.0" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0">
       <PrivateAssets>all</PrivateAssets>

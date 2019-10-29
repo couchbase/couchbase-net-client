@@ -1,0 +1,21 @@
+{
+  "requestID": "eb8a8d08-9e25-4473-81f8-6565c51a43d9",
+  "signature": {
+    "*": "*"
+  },
+  "errors": [
+    {
+      "code": 23003,
+      "msg": "Operation cannot be performed during rebalance "
+    }
+  ],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "161.673835ms",
+    "executionTime": "135.564047ms",
+    "resultCount": 0,
+    "resultSize": 0,
+    "processedObjects": 0,
+    "errorCount": 1
+  }
+}

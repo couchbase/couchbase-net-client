@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Couchbase.Analytics
 {
-    public interface IAnalyticsResult<T> : IAsyncEnumerable<T>
+    public interface IAnalyticsResult<T> : IAsyncEnumerable<T>, IServiceResult
     {
         /// <summary>
         /// Gets the meta data associated with the analytics result.

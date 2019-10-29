@@ -110,5 +110,11 @@ namespace Couchbase.Analytics
 
             return formValues;
         }
+
+        public AnalyticsOptions WithReadOnly(bool readOnly)
+        {
+            ReadOnlyValue = readOnly;
+            return this;
+        }
     }
 }
