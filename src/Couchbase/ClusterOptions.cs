@@ -13,12 +13,19 @@ namespace Couchbase
         private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
         internal ConnectionString ConnectionString { get; set; }
+        public string connectionString { get; set; }
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 
         public ClusterOptions WithConnectionString(string connectionString)
         {
             ConnectionString = ConnectionString.Parse(connectionString);
+            var uriBuilders = ConnectionString.Hosts.Select(x => new UriBuilder
+            {
+                Host = x,
+                Port = KvPort
+            }.Uri).ToArray();
+            WithServers(uriBuilders);
             return this;
         }
 
