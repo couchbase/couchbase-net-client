@@ -1,4 +1,5 @@
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
+
 using Xunit;
 
 namespace Couchbase.UnitTests

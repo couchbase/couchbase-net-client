@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
-using SaslStart = Couchbase.Core.IO.Operations.Legacy.Authentication.SaslStart;
-using SequenceGenerator = Couchbase.Core.IO.Operations.Legacy.SequenceGenerator;
+using SaslStart = Couchbase.Core.IO.Operations.Authentication.SaslStart;
+using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
 namespace Couchbase.Core.IO.Authentication
 {

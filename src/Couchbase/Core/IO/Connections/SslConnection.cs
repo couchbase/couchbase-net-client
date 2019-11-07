@@ -9,7 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -80,7 +80,6 @@ namespace Couchbase.Core.IO.Connections
                     Opaque = opaque,
                     EndPoint = (IPEndPoint) EndPoint,
                     ConnectionId = ConnectionId,
-                    ErrorMap = errorMap,
                     LocalEndpoint = LocalEndPoint.ToString()
                 };
 
@@ -109,7 +108,7 @@ namespace Couchbase.Core.IO.Connections
                     received += segmentLength;
                 }
 
-                // write resppnse to state and complete callback
+                // write response to state and complete callback
                 state.SetData(response);
                 await callback(state).ConfigureAwait(false);
             }
@@ -154,7 +153,7 @@ namespace Couchbase.Core.IO.Connections
         }
 
         /// <summary>
-        /// Shuts down, closes and disposes of the internal <see cref="_socket"/> instance.
+        /// Shuts down, closes and disposes of the internal <see cref="Socket"/> instance.
         /// </summary>
         public void Dispose()
         {

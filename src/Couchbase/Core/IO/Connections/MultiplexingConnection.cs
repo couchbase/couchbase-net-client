@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 

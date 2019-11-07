@@ -4,15 +4,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -107,7 +105,8 @@ namespace Couchbase.Core
                 }
                 else
                 {
-                    tcs.TrySetException(state.ThrowException());
+                    ErrorMap.TryGetGetErrorCode((short) state.Status, out ErrorCode errorCode);
+                    tcs.TrySetException(state.ThrowException(errorCode));
                 }
 
                 return tcs.Task;

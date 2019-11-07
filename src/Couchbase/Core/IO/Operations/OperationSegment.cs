@@ -1,5 +1,3 @@
-using System;
-
 namespace Couchbase.Core.IO.Operations
 {
     internal enum OperationSegment

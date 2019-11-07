@@ -27,6 +27,7 @@
     <None Remove="Documents\Configs\rev96.json" />
     <None Remove="Documents\Configs\rev98-single-node.json" />
     <None Remove="Documents\emmy-lou.json" />
+    <None Remove="Documents\kv-error-map.json" />
     <None Remove="Services\Views\view_result.json" />
     <None Remove="Services\Search\error-with-errors.js" />
     <None Remove="Services\Search\search-response-success.js" />
@@ -70,6 +71,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Documents\Configs\rev96.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Documents\kv-error-map.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
 

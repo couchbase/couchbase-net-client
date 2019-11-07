@@ -1,4 +1,5 @@
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
+
 
 namespace Couchbase.Core.Retry
 {

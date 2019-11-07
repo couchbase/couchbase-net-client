@@ -2,7 +2,6 @@ using System;
 using System.Buffers;
 using System.Net;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
 using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.Core.IO
@@ -24,8 +23,6 @@ namespace Couchbase.Core.IO
         public ulong ConnectionId { get; set; }
 
         public string LocalEndpoint { get; set; }
-
-        public ErrorMap ErrorMap { get; set; }
 
         public Exception Exception { get; set; }
 

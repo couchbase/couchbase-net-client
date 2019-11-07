@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy.SubDocument;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;

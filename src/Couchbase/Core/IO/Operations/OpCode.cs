@@ -1,4 +1,3 @@
-﻿
 namespace Couchbase.Core.IO.Operations
 {
     public enum OpCode : byte

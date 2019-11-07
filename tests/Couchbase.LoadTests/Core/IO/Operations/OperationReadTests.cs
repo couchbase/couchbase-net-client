@@ -6,7 +6,7 @@ using BenchmarkDotNet.Attributes;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy;
+
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.LoadTests.Helpers;

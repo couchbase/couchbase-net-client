@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 

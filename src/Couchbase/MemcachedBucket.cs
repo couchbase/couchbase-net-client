@@ -8,7 +8,8 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
+
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;

@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
+
 using Couchbase.Core.Retry;
 using Moq;
 using Xunit;

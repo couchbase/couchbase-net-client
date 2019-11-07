@@ -6,7 +6,8 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
+
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;

@@ -2,7 +2,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Core.IO.Operations.Errors;
 
 namespace Couchbase.Core.IO
 {

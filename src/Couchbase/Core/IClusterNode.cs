@@ -6,8 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
-using Couchbase.Core.IO.Operations.Legacy;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Errors;
 
 namespace Couchbase.Core
 {

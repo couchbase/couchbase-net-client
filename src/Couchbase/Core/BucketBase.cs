@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;

@@ -5,8 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO;
-using Couchbase.Core.IO.Operations.Legacy;
-using Couchbase.Core.IO.Operations.Legacy.SubDocument;
+using Couchbase.Core.IO.Operations;
+
+using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Moq;

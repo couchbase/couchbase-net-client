@@ -1,7 +1,7 @@
 using System;
 using System.Net.Http;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.HTTP

@@ -8,10 +8,10 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy;
-using Couchbase.Core.IO.Operations.Legacy.Authentication;
-using Couchbase.Core.IO.Operations.Legacy.Collections;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Core.IO.Operations.Authentication;
+using Couchbase.Core.IO.Operations.Collections;
+using Couchbase.Core.IO.Operations.Errors;
+
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
@@ -59,7 +59,7 @@ namespace Couchbase.Utils
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
             using (var heloOp = new Hello
             {
-                Key = Core.IO.Operations.Legacy.Hello.BuildHelloKey(connection.ConnectionId),
+                Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
                 Converter = new DefaultConverter(),
                 Transcoder = new DefaultTranscoder(new DefaultConverter()),

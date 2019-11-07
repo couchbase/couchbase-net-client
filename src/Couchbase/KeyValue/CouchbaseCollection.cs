@@ -1,16 +1,11 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy;
-using Couchbase.Core.IO.Operations.Legacy.SubDocument;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;

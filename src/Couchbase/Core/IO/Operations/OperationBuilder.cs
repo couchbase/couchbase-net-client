@@ -3,7 +3,6 @@ using System.Buffers;
 using System.ComponentModel;
 using System.IO;
 using Couchbase.Core.IO.Converters;
-using Couchbase.Core.IO.Operations.Legacy;
 using Couchbase.Core.IO.Operations.SubDocument;
 
 namespace Couchbase.Core.IO.Operations

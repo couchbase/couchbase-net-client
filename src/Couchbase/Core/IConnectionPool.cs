@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using Couchbase.Core.IO;
 
 namespace Couchbase.Core

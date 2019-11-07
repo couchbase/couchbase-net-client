@@ -1,6 +1,6 @@
 using System;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy.Errors;
+using Couchbase.Core.IO.Operations.Errors;
 using Newtonsoft.Json;
 
 namespace Couchbase.KeyValue
@@ -31,14 +31,14 @@ namespace Couchbase.KeyValue
         public string Context { get; internal set; }
 
         //TODO possibly remove - redundent with Context
-        public ErrorMap ErrorMap { get; internal set; }
+        public ErrorCode ErrorCode { get; internal set; }
 
-        public static KeyValueException Create(ResponseStatus status, Exception innerException = null, string message = null, ErrorMap errorMap = null, string Key = null) => new KeyValueException(message, innerException)
+        public static KeyValueException Create(ResponseStatus status, Exception innerException = null, string message = null, ErrorCode errorCode = null, string Key = null) => new KeyValueException(message, innerException)
         {
-            ErrorMap = errorMap,
+            ErrorCode = errorCode,
             Status = status,
             Key = Key,
-            Context = errorMap == null ? null : JsonConvert.SerializeObject(errorMap)
+            Context = errorCode == null ? null : JsonConvert.SerializeObject(errorCode)
         };
 
         public override string ToString()

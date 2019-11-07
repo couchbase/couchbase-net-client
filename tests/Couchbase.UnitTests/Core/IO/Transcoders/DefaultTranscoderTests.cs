@@ -5,7 +5,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Legacy;
+
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;

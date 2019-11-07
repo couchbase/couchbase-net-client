@@ -37,28 +37,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Core\IO\Errors\**" />
-    <EmbeddedResource Remove="Core\IO\Errors\**" />
-    <None Remove="Core\IO\Errors\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Remove="Core\Configuration\Server\ConfigContext.cs" />
     <Compile Remove="Core\Diagnostics\Tracing\TracerExtensions.cs" />
     <Compile Remove="Core\Diagnostics\Tracing\TracerFactory.cs" />
     <Compile Remove="Core\IO\Compression.cs" />
     <Compile Remove="Core\IO\DataFormat.cs" />
     <Compile Remove="Core\IO\Flags.cs" />
-    <Compile Remove="Core\IO\Operations\Config.cs" />
-    <Compile Remove="Core\IO\Operations\Get.cs" />
     <Compile Remove="Core\IO\Operations\Helo.cs" />
-    <Compile Remove="Core\IO\Operations\IOperation.cs" />
-    <Compile Remove="Core\IO\Operations\Legacy\OperationCode.cs" />
     <Compile Remove="Core\IO\Operations\Manifest.cs" />
     <Compile Remove="Core\IO\Operations\SaslStart.cs" />
     <Compile Remove="Core\IO\Operations\SelectBucket.cs" />
-    <Compile Remove="Core\IO\Operations\ServerFeatures.cs" />
-    <Compile Remove="Core\IO\Operations\Set.cs" />
     <Compile Remove="Core\IO\Operations\Upsert.cs" />
     <Compile Remove="IConfiguration.cs" />
     <Compile Remove="IDocument %282%29.cs" />

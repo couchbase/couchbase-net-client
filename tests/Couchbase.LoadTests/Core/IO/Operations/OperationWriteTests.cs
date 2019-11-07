@@ -2,7 +2,8 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using Couchbase.Core.IO.Operations.Legacy;
+using Couchbase.Core.IO.Operations;
+
 using Couchbase.LoadTests.Helpers;
 
 namespace Couchbase.LoadTests.Core.IO.Operations
