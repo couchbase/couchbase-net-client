@@ -86,6 +86,9 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override T GetValue()
         {
+            if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer) //Fix for NCBC-2179 Do not attempt to parse body if response is not my vbucket, submitted on behalf of United Parcel Service tdfarris@ups.com
+                return default(T);
+
             var response = Data.ToArray();
             var statusOffset = Header.BodyOffset;
             var valueLengthOffset = statusOffset + 2;
