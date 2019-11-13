@@ -86,6 +86,10 @@ namespace Couchbase.IO.Operations.SubDocument
 
         public override T GetValue()
         {
+            //Fix for NCBC-2179 Do not attempt to parse body if response is not my vbucket
+            if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                return default(T);
+
             var response = Data.ToArray();
             var statusOffset = Header.BodyOffset;
             var valueLengthOffset = statusOffset + 2;
@@ -102,7 +106,6 @@ namespace Couchbase.IO.Operations.SubDocument
                 command.Status = (ResponseStatus)Converter.ToUInt16(response, statusOffset);
                 command.ValueIsJson = payLoad.IsJson(0, bodyLength - 1);
                 command.Bytes = payLoad;
-
                 statusOffset = valueOffset + bodyLength;
                 valueLengthOffset = statusOffset + 2;
                 valueOffset = statusOffset + 6;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,8 +7,10 @@ using Couchbase.Core;
 using Couchbase.Core.IO.SubDocument;
 using Couchbase.Core.Serialization;
 using Couchbase.Core.Transcoders;
+using Couchbase.IO;
 using Couchbase.IO.Converters;
 using Couchbase.IO.Operations.SubDocument;
+using Couchbase.UnitTests.Data;
 using Moq;
 using NUnit.Framework;
 
@@ -54,9 +56,25 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             var result = op.GetResultWithValue();
         }
 
+        [Test]
+        public void When_NMVB_Do_Not_Read_OperationSpecs()
+        {
+            var response = ResponsePackets.GET_WITH_NMV;
+
+            var mockedInvoker = new Mock<ISubdocInvoker>();
+            var builder = new LookupInBuilder<MyDoc>(mockedInvoker.Object, () => new DefaultSerializer(), "mykey");
+
+            var op = new MultiLookup<MyDoc>(builder.Key, builder, new VBucket(null, 1, 1, null, 0, null, "default"),
+                new DefaultTranscoder(new DefaultConverter()), 10);
+
+            op.Read(response, null);
+            var result = op.GetResultWithValue();
+            Assert.AreEqual(ResponseStatus.VBucketBelongsToAnotherServer, result.Status);
+            Assert.Null(result.Value);
+        }
+
         public class MyDoc
         {
-
         }
     }
 }
