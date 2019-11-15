@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,7 @@ namespace Couchbase.DataStructures
                 Collection.InsertAsync(DocId, new Dictionary<TKey, TValue>()).GetAwaiter().GetResult();
                 BackingStoreChecked = true;
             }
-            catch (KeyExistsException e)
+            catch (DocumentExistsException e)
             {
                 //ignore - the doc already exists for this collection
                 Log.LogTrace(e, $"The PersistentList backing document already exists for ID {DocId}. Not an error.");

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Encoding = Couchbase.Query.Couchbase.N1QL.Encoding;
@@ -384,7 +385,7 @@ namespace Couchbase.Query
         {
             if (_arguments.Any())
             {
-                throw new InvalidArgumentException("Cannot combine positional and named query parameters.");
+                throw new ArgumentException("Cannot combine positional and named query parameters.");
             }
 
             foreach (var parameter in parameters)
@@ -403,7 +404,7 @@ namespace Couchbase.Query
         {
             if (_parameters.Any())
             {
-                throw new InvalidArgumentException("Cannot combine positional and named query parameters.");
+                throw new ArgumentException("Cannot combine positional and named query parameters.");
             }
 
             foreach (var parameter in parameters)

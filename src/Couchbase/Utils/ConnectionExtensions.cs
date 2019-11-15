@@ -156,7 +156,7 @@ namespace Couchbase.Utils
                         }
                         else
                         {
-                            completionSource.TrySetException(new KeyValueException(s.Status.ToString()));
+                            completionSource.TrySetException(new Exception("Cannot fetch cluster map."));//TODO change in later commit
                         }
                     }
 

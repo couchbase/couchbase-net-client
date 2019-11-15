@@ -1,20 +1,19 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
-
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
 using Moq;
 using Xunit;
-using KeyNotFoundException = Couchbase.KeyValue.KeyNotFoundException;
 
 namespace Couchbase.UnitTests
 {
@@ -24,7 +23,8 @@ namespace Couchbase.UnitTests
         public void Get_Timed_Out_Throw_TimeoutException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var mockScope = new Mock<IScope>();
+            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
 
             Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
@@ -36,7 +36,8 @@ namespace Couchbase.UnitTests
         public async Task SubDoc_More_Than_One_XAttr_Throws_ArgumentException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var mockScope = new Mock<IScope>();
+            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
 
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
@@ -48,60 +49,59 @@ namespace Couchbase.UnitTests
             });
         }
 
-        //[Theory] -> TODO fixup or find equivalant after retry commit
+        //[Theory] //-> TODO fixup or find equivalant after retry commit
         //specific key value errors
-        [InlineData(ResponseStatus.KeyNotFound, typeof(KeyNotFoundException))]
-        [InlineData(ResponseStatus.KeyExists, typeof(KeyExistsException))]
-        [InlineData(ResponseStatus.ValueTooLarge, typeof(ValueTooLargeException))]
+        [InlineData(ResponseStatus.KeyNotFound, typeof(DocumentNotFoundException))]
+        [InlineData(ResponseStatus.KeyExists, typeof(DocumentExistsException))]
+        [InlineData(ResponseStatus.ValueTooLarge, typeof(ValueToolargeException))]
         [InlineData(ResponseStatus.InvalidArguments, typeof(InvalidArgumentException))]
-        [InlineData(ResponseStatus.TemporaryFailure, typeof(TempFailException))]
+        [InlineData(ResponseStatus.TemporaryFailure, typeof(TemporaryFailureException))]
         [InlineData(ResponseStatus.OperationTimeout, typeof(TimeoutException))]
-        [InlineData(ResponseStatus.Locked, typeof(KeyLockedException))]
+        [InlineData(ResponseStatus.Locked, typeof(DocumentLockedException))]
         //durability errors
-        [InlineData(ResponseStatus.DurabilityInvalidLevel, typeof(DurabilityException))]
-        [InlineData(ResponseStatus.DurabilityImpossible, typeof(DurabilityException))]
-        [InlineData(ResponseStatus.SyncWriteInProgress, typeof(DurabilityException))]
-        [InlineData(ResponseStatus.SyncWriteAmbiguous, typeof(DurabilityException))]
+        [InlineData(ResponseStatus.DurabilityInvalidLevel, typeof(DurabilityLevelNotAvailableException))]
+        [InlineData(ResponseStatus.DurabilityImpossible, typeof(DurabilityImpossibleException))]
+        [InlineData(ResponseStatus.SyncWriteInProgress, typeof(DurableWriteInProgressException))]
+        [InlineData(ResponseStatus.SyncWriteAmbiguous, typeof(DurabilityAmbiguousException))]
         //auth errors
         [InlineData(ResponseStatus.AuthenticationError, typeof(AuthenticationException))]
         //internal errors
-        [InlineData(ResponseStatus.InternalError, typeof(InternalErrorException))]
+        //[InlineData(ResponseStatus.InternalError, typeof(InternalErrorException))]
         [InlineData(ResponseStatus.Eaccess, typeof(AuthenticationException))]
-        [InlineData(ResponseStatus.Rollback, typeof(InternalErrorException))]
+        //[InlineData(ResponseStatus.Rollback, typeof(InternalErrorException))]
         //[InlineData(ResponseStatus.VBucketBelongsToAnotherServer, typeof(InternalErrorException))]
-        [InlineData(ResponseStatus.AuthenticationContinue, typeof(InternalErrorException))]
-        [InlineData(ResponseStatus.AuthStale, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.AuthenticationContinue, typeof(AuthenticationException))]
+        [InlineData(ResponseStatus.AuthStale, typeof(AuthenticationException))]
         //generic key-value errors
-        [InlineData(ResponseStatus.InvalidRange, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.ItemNotStored, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.IncrDecrOnNonNumericValue, typeof(KeyValueException))]
+        [InlineData(ResponseStatus.InvalidRange, typeof(DeltaRangeException))]
+        //[InlineData(ResponseStatus.ItemNotStored, typeof(KeyValueException))]
+       // [InlineData(ResponseStatus.IncrDecrOnNonNumericValue, typeof(KeyValueException))]
         //sub doc errors
         [InlineData(ResponseStatus.SubDocPathNotFound, typeof(PathNotFoundException))]
         [InlineData(ResponseStatus.SubDocPathMismatch, typeof(PathMismatchException))]
         [InlineData(ResponseStatus.SubDocPathInvalid, typeof(PathInvalidException))]
-        [InlineData(ResponseStatus.SubDocPathTooBig, typeof(PathTooBigException))]
-        [InlineData(ResponseStatus.SubDocDocTooDeep, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.SubDocCannotInsert, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.SubDocDocNotJson, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.SubDocNumRange, typeof(KeyValueException))]
-        [InlineData( ResponseStatus.SubDocDeltaRange, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.SubDocPathExists, typeof(KeyValueException))]
-        [InlineData( ResponseStatus.SubDocValueTooDeep, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.SubDocInvalidCombo, typeof(KeyValueException))]
-        [InlineData(ResponseStatus.SubDocMultiPathFailure, typeof(InternalErrorException))]
-        [InlineData(ResponseStatus.SubDocXattrInvalidFlagCombo, typeof(InternalErrorException))]
-        [InlineData(ResponseStatus.SubDocXattrInvalidKeyCombo, typeof(InternalErrorException))]
-        [InlineData( ResponseStatus.SubdocXattrUnknownMacro, typeof(KeyValueException))]
-        [InlineData( ResponseStatus.SubdocXattrUnknownVattr, typeof(InternalErrorException))]
-        [InlineData( ResponseStatus.SubdocXattrCantModifyVattr, typeof(InternalErrorException))]
-        [InlineData(ResponseStatus.SubdocMultiPathFailureDeleted, typeof(InternalErrorException))]
-        [InlineData( ResponseStatus.SubdocInvalidXattrOrder, typeof(InternalErrorException))]
-        //[InlineData(ResponseStatus.CasMismatch)] TODO
-       // [InlineData(ResponseStatus.KeyDeleted)] TODO
+        [InlineData(ResponseStatus.SubDocPathTooBig, typeof(PathTooDeepException))]
+        [InlineData(ResponseStatus.SubDocDocTooDeep, typeof(DocumentTooDeepException))]
+        [InlineData(ResponseStatus.SubDocCannotInsert, typeof(CannotInsertValueException))]
+        [InlineData(ResponseStatus.SubDocDocNotJson, typeof(DocumentNotJsonException))]
+        [InlineData(ResponseStatus.SubDocNumRange, typeof(NumberTooBigException))]
+        [InlineData( ResponseStatus.SubDocDeltaRange, typeof(DeltaRangeException))]
+        [InlineData(ResponseStatus.SubDocPathExists, typeof(PathExistsException))]
+        [InlineData( ResponseStatus.SubDocValueTooDeep, typeof(ValueTooDeepException))]
+        [InlineData(ResponseStatus.SubDocInvalidCombo, typeof(InvalidArgumentException))]
+        //[InlineData(ResponseStatus.SubDocMultiPathFailure, typeof(InternalErrorException))]
+        [InlineData(ResponseStatus.SubDocXattrInvalidFlagCombo, typeof(XattrException))]
+        [InlineData(ResponseStatus.SubDocXattrInvalidKeyCombo, typeof(XattrException))]
+        [InlineData( ResponseStatus.SubdocXattrUnknownMacro, typeof(XattrException))]
+        [InlineData( ResponseStatus.SubdocXattrUnknownVattr, typeof(XattrException))]
+        [InlineData( ResponseStatus.SubdocXattrCantModifyVattr, typeof(XattrException))]
+        //[InlineData(ResponseStatus.SubdocMultiPathFailureDeleted, typeof(InternalErrorException))]
+        [InlineData( ResponseStatus.SubdocInvalidXattrOrder, typeof(XattrException))]
         public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus, Type exceptionType)
         {
             var bucket = new FakeBucket(responseStatus);
-            var collection = new CouchbaseCollection(bucket, new ClusterContext(), 0, "_default");
+            var mockScope = new Mock<IScope>();
+            var collection = new CouchbaseCollection(bucket, mockScope.Object, new ClusterContext(), 0, "_default");
 
             try
             {
@@ -119,7 +119,8 @@ namespace Couchbase.UnitTests
         public void Set_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var mockScope = new Mock<IScope>();
+            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
 
             var set = collection.Set<dynamic>("theDocId");
             Assert.NotNull(set);
@@ -129,7 +130,8 @@ namespace Couchbase.UnitTests
         public void Queue_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var mockScope = new Mock<IScope>();
+            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
 
             var queue = collection.Queue<dynamic>("theDocId");
             Assert.NotNull(queue);
@@ -139,7 +141,8 @@ namespace Couchbase.UnitTests
         public void List_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var mockScope = new Mock<IScope>();
+            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
 
             var list = collection.List<dynamic>("theDocId");
             Assert.NotNull(list);
@@ -149,7 +152,8 @@ namespace Couchbase.UnitTests
         public void Dictionary_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var mockScope = new Mock<IScope>();
+            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
 
             var dict = collection.Dictionary<string, dynamic>("theDocId");
             Assert.NotNull(dict);

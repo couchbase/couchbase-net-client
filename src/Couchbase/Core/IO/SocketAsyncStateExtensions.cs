@@ -1,4 +1,6 @@
 using System;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.KeyValue;
@@ -13,161 +15,92 @@ namespace Couchbase.Core.IO
             switch (state.Status)
             {
                 case ResponseStatus.KeyNotFound:
-                    return new KeyNotFoundException(statusName, new KeyValueException
+                    return new DocumentNotFoundException
                     {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                        Context = new KeyValueErrorContext
+                        {
+                            
+                        }
+                    };
                 case ResponseStatus.KeyExists:
-                    return new KeyExistsException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new DocumentExistsException();
                 case ResponseStatus.ValueTooLarge:
-                    return new ValueTooLargeException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new ValueToolargeException();
                 case ResponseStatus.InvalidArguments:
-                    return new InvalidArgumentException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new InvalidArgumentException();
                 case ResponseStatus.TemporaryFailure:
                 case ResponseStatus.OutOfMemory:
                 case ResponseStatus.Busy:
-                    return new TempFailException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                case ResponseStatus.NotInitialized:
+                    return new TemporaryFailureException();
                 case ResponseStatus.OperationTimeout:
-                    return new TimeoutException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new RequestTimeoutException();
                 case ResponseStatus.Locked:
-                    return new KeyLockedException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new DocumentLockedException();
                 case ResponseStatus.DocumentMutationLost:
-                case ResponseStatus.DocumentMutationDetected:
-                case ResponseStatus.NoReplicasFound:
+                    return new MutationLostException();
                 case ResponseStatus.DurabilityInvalidLevel:
+                    return new DurabilityLevelNotAvailableException();
                 case ResponseStatus.DurabilityImpossible:
+                    return new DurabilityImpossibleException();
                 case ResponseStatus.SyncWriteInProgress:
+                    return new DurableWriteInProgressException();
                 case ResponseStatus.SyncWriteAmbiguous:
-                    return new DurabilityException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new DurabilityAmbiguousException();
                 case ResponseStatus.Eaccess:
                 case ResponseStatus.AuthenticationError:
-                    return new AuthenticationException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
-                //internal errors handled by the app?
-                case ResponseStatus.VBucketBelongsToAnotherServer:
-                    return new NotMyVBucketException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
-                case ResponseStatus.UnknownError:
-                    return new UnknownErrorException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
-                case ResponseStatus.Rollback:
-                case ResponseStatus.AuthenticationContinue:
+                case ResponseStatus.AuthenticationContinue: //likely remove
                 case ResponseStatus.AuthStale:
-                case ResponseStatus.InternalError:
-                case ResponseStatus.UnknownCommand:
-                case ResponseStatus.BucketNotConnected:
-                case ResponseStatus.NotInitialized:
-                case ResponseStatus.NotSupported:
+                    return new AuthenticationException();
+                case ResponseStatus.VBucketBelongsToAnotherServer:
+                    return new NotMyVBucketException();
                 case ResponseStatus.SubdocXattrUnknownVattr:
+                    return new XattrException();
+                case ResponseStatus.SubdocXattrUnknownMacro:
                 case ResponseStatus.SubDocMultiPathFailure:
                 case ResponseStatus.SubDocXattrInvalidFlagCombo:
                 case ResponseStatus.SubDocXattrInvalidKeyCombo:
                 case ResponseStatus.SubdocXattrCantModifyVattr:
                 case ResponseStatus.SubdocMultiPathFailureDeleted:
                 case ResponseStatus.SubdocInvalidXattrOrder:
-                    return new InternalErrorException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
-                case ResponseStatus.InvalidRange:
-                case ResponseStatus.ItemNotStored:
-                case ResponseStatus.IncrDecrOnNonNumericValue:
-                    return new KeyValueException //hmm?
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    };
+                    return new XattrException();
                 //sub doc errors
                 case ResponseStatus.SubDocPathNotFound:
-                    return new PathNotFoundException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
                 case ResponseStatus.SubDocPathMismatch:
-                    return new PathMismatchException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
                 case ResponseStatus.SubDocPathInvalid:
-                    return new PathInvalidException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new PathInvalidException();
                 case ResponseStatus.SubDocPathTooBig:
-                    return new PathTooBigException(statusName, new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    });
+                    return new PathTooDeepException();
                 case ResponseStatus.SubDocDocTooDeep:
+                    return new DocumentTooDeepException();
                 case ResponseStatus.SubDocCannotInsert:
+                    return new CannotInsertValueException();
                 case ResponseStatus.SubDocDocNotJson:
+                    return new DocumentNotJsonException();
                 case ResponseStatus.SubDocNumRange:
+                    return new NumberTooBigException();
                 case ResponseStatus.SubDocDeltaRange:
+                    return new DeltaRangeException();
                 case ResponseStatus.SubDocPathExists:
+                    return new PathExistsException();
                 case ResponseStatus.SubDocValueTooDeep:
+                    return new DocumentTooDeepException();
                 case ResponseStatus.SubDocInvalidCombo:
-                case ResponseStatus.SubdocXattrUnknownMacro:
-                    return new KeyValueException
-                    {
-                        Status = state.Status,
-                        ErrorCode = errorCode
-                    };
-                //remove these ones
-                case ResponseStatus.Failure:
-                case ResponseStatus.ClientFailure:
-                    break;
-                case ResponseStatus.NodeUnavailable:
-                    break;
-                case ResponseStatus.TransportFailure:
-                    return state.Exception;
+                    return new InvalidArgumentException();
+                case ResponseStatus.DocumentMutationDetected: //maps to nothing
+                case ResponseStatus.NoReplicasFound: //maps to nothing
+                case ResponseStatus.InvalidRange: //maps to nothing
+                case ResponseStatus.ItemNotStored: //maps to nothing
+                case ResponseStatus.IncrDecrOnNonNumericValue: //maps to nothing
+                case ResponseStatus.Rollback: //maps to nothing
+                case ResponseStatus.InternalError: //maps to nothing
+                case ResponseStatus.UnknownCommand: //maps to nothing
+                case ResponseStatus.BucketNotConnected: //maps to nothing
+                case ResponseStatus.NotSupported: //maps to nothing
+                    return new CouchbaseException();
                 default:
                     return new ArgumentOutOfRangeException();
             }
-
-            return new Exception("oh me oh mai...");
         }
     }
 }

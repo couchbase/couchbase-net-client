@@ -1,5 +1,6 @@
 using System;
 using System.Net.Sockets;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -159,7 +160,7 @@ namespace Couchbase.Core.IO.Operations
                 case ResponseStatus.KeyExists:
                     if (OpCode != OpCode.Add)
                     {
-                        Exception = new KeyValueException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
+                        Exception = new DocumentExistsException();//(ExceptionUtil.CasMismatchMsg.WithParams(Id));
                     }
                     else
                     {
@@ -193,7 +194,7 @@ namespace Couchbase.Core.IO.Operations
                 case ResponseStatus.DocumentMutationLost:
                     break;
                 case ResponseStatus.DocumentMutationDetected:
-                    Exception = new KeyValueException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
+                    //Exception = new KeyValueException(ExceptionUtil.CasMismatchMsg.WithParams(Id));
                     break;
                 case ResponseStatus.SubDocPathNotFound:
                 case ResponseStatus.SubDocPathMismatch:
