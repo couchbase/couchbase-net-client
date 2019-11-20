@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
@@ -46,6 +47,8 @@ namespace Couchbase.Core
         public BucketConfig GlobalConfig { get; set; }
 
         public ICluster Cluster { get; private set; }
+
+        public bool SupportsCollections { get; private set; }
 
         public void StartConfigListening()
         {
@@ -214,6 +217,7 @@ namespace Couchbase.Core
                             node.BootstrapUri = server;
                             node.NodesAdapter = nodeAdapter;
                             node.BuildServiceUris();
+                            SupportsCollections = node.Supports(ServerFeatures.Collections);
                             AddNode(node);
                         }
                         else
@@ -223,6 +227,7 @@ namespace Couchbase.Core
                             newNode.BootstrapUri = server;
                             newNode.NodesAdapter = nodeAdapter;
                             newNode.BuildServiceUris();
+                            SupportsCollections = node.Supports(ServerFeatures.Collections);
                             AddNode(newNode);
                         }
                     }
@@ -305,6 +310,7 @@ namespace Couchbase.Core
                     await bootstrapNode.SelectBucket(bucket.Name);
                     bootstrapNode.NodesAdapter = nodeAdapter;
                     bootstrapNode.BuildServiceUris();
+                    SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
 
@@ -312,6 +318,7 @@ namespace Couchbase.Core
                 await node.SelectBucket(bucket.Name);
                 node.NodesAdapter = nodeAdapter;
                 node.BuildServiceUris();
+                SupportsCollections = node.Supports(ServerFeatures.Collections);
                 AddNode(node);
             }
 

@@ -71,7 +71,7 @@ namespace Couchbase.Core
         protected void LoadManifest()
         {
             //The server supports collections so build them from the manifest
-            if (SupportsCollections)
+            if (Context.SupportsCollections)
             {
                 //warmup the scopes/collections and cache them
                 foreach (var scopeDef in Manifest.scopes)
