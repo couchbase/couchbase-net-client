@@ -49,7 +49,7 @@ namespace Couchbase.IntegrationTests
             var cluster = _fixture.Cluster;
             var bucket = await cluster.BucketAsync("default");
 
-            var results = await bucket.ViewQueryAsync("test", "testView").ConfigureAwait(false);
+            var results = await bucket.ViewQueryAsync("dev_test_ddoc", "test_view").ConfigureAwait(false);
             foreach (var result in results.Rows)
             {
             }
