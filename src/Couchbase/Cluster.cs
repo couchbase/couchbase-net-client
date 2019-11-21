@@ -105,6 +105,7 @@ namespace Couchbase
             try
             {
                 await _context.InitializeAsync();
+                _hasBootStrapped = _context.GlobalConfig != null;
                 UpdateClusterCapabilities();
             }
             catch (AuthenticationException e)
