@@ -1806,6 +1806,28 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(useMutation, result.Token.IsSet);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task MutateInAsync_with_multimutate_remove_works(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            const string key = "MutateInAsync_with_multimutate_remove_works";
+
+            await bucket.UpsertAsync(key, new {
+                attr1 = "foo",
+                attr2 = "bar",
+                attr3 = "baz"
+            });
+
+            var result = await bucket.MutateIn<dynamic>(key)
+                .Upsert("attr2")
+                .Upsert("attr3")
+                .ExecuteAsync();
+
+            Assert.AreEqual(ResponseStatus.Success, result.Status);
+            Assert.AreEqual(useMutation, result.Token.IsSet);
+        }
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {

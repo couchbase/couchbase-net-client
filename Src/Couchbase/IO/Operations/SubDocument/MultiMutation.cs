@@ -106,6 +106,14 @@ namespace Couchbase.IO.Operations.SubDocument
 
         private byte[] GetBytes(OperationSpec spec)
         {
+            if (spec.OpCode == OperationCode.SubDelete)
+            {
+                // The sub-document delete command does not accept a value, and thus
+                // should not serialize anything for the byte value.  This prevents
+                // the case where a delete encodes a literal `null` into the value.
+                return new byte[0];
+            }
+
             var bytes = Transcoder.Serializer.Serialize(spec.Value);
             if (spec.RemoveBrackets)
             {
