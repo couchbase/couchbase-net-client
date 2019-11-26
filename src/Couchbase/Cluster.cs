@@ -42,7 +42,7 @@ namespace Couchbase
         {
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                throw new InvalidConfigurationException("The connectionString cannot be null, empty or only be whitesapce.");
+                throw new InvalidConfigurationException("The connectionString cannot be null, empty or only be whitespace.");
             }
             if (clusterOptions == null)
             {
