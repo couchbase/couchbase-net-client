@@ -48,7 +48,7 @@ namespace Couchbase.Views
         private int? _connectionTimeout;
         private bool? _debug;
         private Dictionary<string, string> _rawParams = new Dictionary<string, string>();
-        private DesignDocumentNamespace _namesapce = DesignDocumentNamespace.Production;
+        private DesignDocumentNamespace _namespace = DesignDocumentNamespace.Production;
 
         /// <summary>
         /// Gets the name of the design document.
@@ -437,7 +437,7 @@ namespace Couchbase.Views
 
         public ViewQuery Namespace(DesignDocumentNamespace @namespace)
         {
-            _namesapce = @namespace;
+            _namespace = @namespace;
             return this;
         }
 
@@ -534,7 +534,7 @@ namespace Couchbase.Views
             }
 
             var designDocName = DesignDocName;
-            if (_namesapce == DesignDocumentNamespace.Production)
+            if (_namespace == DesignDocumentNamespace.Production)
             {
                 if (designDocName.StartsWith(DevelopmentViewPrefix))
                 {
