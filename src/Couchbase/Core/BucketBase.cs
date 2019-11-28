@@ -80,7 +80,7 @@ namespace Couchbase.Core
                     var scope = new Scope(scopeDef.name, scopeDef.uid, collections, this);
                     foreach (var collectionDef in scopeDef.collections)
                     {
-                        collections.Add(new CouchbaseCollection(this, scope, Context,
+                        collections.Add(new CouchbaseCollection(this, Context,
                             Convert.ToUInt32(collectionDef.uid, 16), collectionDef.name));
                     }
 
@@ -90,11 +90,11 @@ namespace Couchbase.Core
             else
             {
                 //build a fake scope and collection for pre-6.5 clusters
-                var collections = new List<ICollection>();
-                var defaultScope = new Scope("_default", "0", collections, this);
-                var defaultCollection = new CouchbaseCollection(this, defaultScope, Context, null, "_default");
-                collections.Add(defaultCollection);
-                Scopes.TryAdd("_default", defaultScope);
+                var collections = new List<ICollection>
+                {
+                    new CouchbaseCollection(this, Context, null, "_default")
+                };
+                Scopes.TryAdd("_default", new Scope("_default", "0", collections, this));
             }
         }
 

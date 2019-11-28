@@ -24,14 +24,12 @@ namespace Couchbase.KeyValue
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
         private readonly ClusterContext _context;
-        private readonly IScope _scope;
 
-        internal CouchbaseCollection(BucketBase bucket, IScope scope, ClusterContext context, uint? cid, string name)
+        internal CouchbaseCollection(BucketBase bucket, ClusterContext context, uint? cid, string name)
         {
             Cid = cid;
             Name = name;
             _bucket = bucket;
-            _scope = scope;
             _context = context;
         }
 

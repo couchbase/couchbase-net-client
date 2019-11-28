@@ -23,8 +23,7 @@ namespace Couchbase.UnitTests
         public void Get_Timed_Out_Throw_TimeoutException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var mockScope = new Mock<IScope>();
-            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
@@ -36,8 +35,7 @@ namespace Couchbase.UnitTests
         public async Task SubDoc_More_Than_One_XAttr_Throws_ArgumentException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var mockScope = new Mock<IScope>();
-            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
@@ -100,8 +98,7 @@ namespace Couchbase.UnitTests
         public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus, Type exceptionType)
         {
             var bucket = new FakeBucket(responseStatus);
-            var mockScope = new Mock<IScope>();
-            var collection = new CouchbaseCollection(bucket, mockScope.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(bucket, new ClusterContext(), 0, "_default");
 
             try
             {
@@ -119,8 +116,7 @@ namespace Couchbase.UnitTests
         public void Set_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var mockScope = new Mock<IScope>();
-            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var set = collection.Set<dynamic>("theDocId");
             Assert.NotNull(set);
@@ -130,8 +126,7 @@ namespace Couchbase.UnitTests
         public void Queue_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var mockScope = new Mock<IScope>();
-            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var queue = collection.Queue<dynamic>("theDocId");
             Assert.NotNull(queue);
@@ -141,8 +136,7 @@ namespace Couchbase.UnitTests
         public void List_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var mockScope = new Mock<IScope>();
-            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var list = collection.List<dynamic>("theDocId");
             Assert.NotNull(list);
@@ -152,8 +146,7 @@ namespace Couchbase.UnitTests
         public void Dictionary_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var mockScope = new Mock<IScope>();
-            var collection = new CouchbaseCollection(mockBucket.Object, mockScope.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
 
             var dict = collection.Dictionary<string, dynamic>("theDocId");
             Assert.NotNull(dict);
@@ -196,8 +189,6 @@ namespace Couchbase.UnitTests
                 {
                     throw new InvalidOperationException();
                 }
-
-               // return Task.CompletedTask;
             }
 
             public override Task<IScope> this[string name] => throw new NotImplementedException();

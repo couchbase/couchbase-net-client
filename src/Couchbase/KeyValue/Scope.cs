@@ -27,13 +27,13 @@ namespace Couchbase.KeyValue
         {
             get
             {
-                Log.LogDebug("Fetching collection {0}", name);
+                Log.LogDebug($"Fetching collection {0}", name);
 
                 if(_collections.TryGetValue(name, out ICollection collection))
                 {
                     return collection;
                 };
-                throw new CollectionOutdatedException("Cannot find collection {name}");
+                throw new CollectionOutdatedException($"Cannot find collection {name}");
             }
         }
 
