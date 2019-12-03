@@ -137,7 +137,8 @@ namespace Couchbase.IO
 
             if (!didComplete)
             {
-                throw CreateTimeoutException(opaque);
+                var ex = CreateTimeoutException(opaque);
+                HandleDisconnect(ex);
             }
 
             return response;
