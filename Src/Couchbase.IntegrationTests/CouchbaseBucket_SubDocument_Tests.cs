@@ -1828,6 +1828,41 @@ namespace Couchbase.IntegrationTests
             Assert.AreEqual(useMutation, result.Token.IsSet);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task MutateInAsync_With_Nulls_Works(bool useMutation)
+        {
+            var bucket = GetBucket(useMutation);
+            string docId = "MutateInAsync_With_Nulls_Works_UseMutation-" + useMutation;
+
+            dynamic content = new
+            {
+                attr1 = "foo",
+                attr2 = "bar",
+                attr3 = "baz"
+            };
+
+            await bucket.InsertAsync(docId, content);
+
+            IDocumentFragment fragment = await bucket.MutateIn<dynamic>(docId).Remove("attr1").ExecuteAsync(); // ok
+            Assert.IsTrue(fragment.Success);
+
+            fragment = await bucket.MutateIn<dynamic>(docId) // success after NCBC-2038
+                .Remove("attr2")
+                .Remove("attr3")
+                .ExecuteAsync();
+            Assert.IsTrue(fragment.Success);
+
+            fragment = await bucket.MutateIn<dynamic>(docId).Insert("attr4", "qux").ExecuteAsync(); // ok
+            Assert.IsTrue(fragment.Success);
+
+            fragment = await bucket.MutateIn<dynamic>(docId) // ok
+                .Insert("attr5", "fooz")
+                .Insert("attr6", "barz")
+                .ExecuteAsync();
+            Assert.IsTrue(fragment.Success);
+        }
+
         [OneTimeTearDown]
         public void OneTimeTearDown()
         {
