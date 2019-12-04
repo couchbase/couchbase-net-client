@@ -78,7 +78,7 @@ namespace Couchbase
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though
         private Uri GetViewUri()
         {
-            var clusterNode = Context.GetRandomNodeForService(ServiceType.KeyValue, Name);
+            var clusterNode = Context.GetRandomNodeForService(ServiceType.Views, Name);
             if (clusterNode == null)
             {
                 throw new ServiceMissingException("Views Service cannot be located.");

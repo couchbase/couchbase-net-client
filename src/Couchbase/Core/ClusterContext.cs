@@ -83,8 +83,18 @@ namespace Couchbase.Core
             IClusterNode node;
             switch (service)
             {
-                case ServiceType.KeyValue:
-                    node = Nodes.Values.GetRandom(x => x.HasViews && x.Owner.Name.Equals(bucketName));
+                case ServiceType.Views:
+                    try
+                    {
+                        node = Nodes.Values.GetRandom(x => x.HasViews && x.Owner
+                                                           != null && x.Owner.Name == bucketName);
+                    }
+                    catch (NullReferenceException e)
+                    {
+                        throw new ServiceMissingException(
+                            $"No node with the Views service has been located for {bucketName}");
+                    }
+
                     break;
                 case ServiceType.Query:
                     node = Nodes.Values.GetRandom(x => x.HasQuery);
