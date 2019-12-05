@@ -86,8 +86,9 @@ namespace Couchbase
             return clusterNode.ViewsUri;
         }
 
-        public override Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options)
+        public override Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null)
         {
+            options = options ?? new ViewOptions();
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
             {

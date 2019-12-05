@@ -5,26 +5,26 @@ namespace Couchbase.Management.Analytics
 {
     public interface IAnalyticsIndexManager
     {
-        Task CreateDataverseAsync(string dataverseName, CreateAnalyticsDataverseOptions options);
+        Task CreateDataverseAsync(string dataverseName, CreateAnalyticsDataverseOptions options = null);
 
-        Task DropDataverseAsync(string dataverseName, DropAnalyticsDataverseOptions options);
+        Task DropDataverseAsync(string dataverseName, DropAnalyticsDataverseOptions options = null);
 
-        Task CreateDatasetAsync(string bucketName, string datasetName, CreateAnalyticsDatasetOptions options);
+        Task CreateDatasetAsync(string bucketName, string datasetName, CreateAnalyticsDatasetOptions options = null);
 
-        Task DropDatasetAsync(string datasetName, DropAnalyticsDatasetOptions options);
+        Task DropDatasetAsync(string datasetName, DropAnalyticsDatasetOptions options = null);
 
-        Task<IEnumerable<AnalyticsDataset>> GetAllDatasetsAsync(GetAllAnalyticsDatasetsOptions options);
+        Task<IEnumerable<AnalyticsDataset>> GetAllDatasetsAsync(GetAllAnalyticsDatasetsOptions options = null);
 
-        Task CreateIndexAsync(string indexName, Dictionary<string, string> fields, CreateAnalyticsIndexOptions options);
+        Task CreateIndexAsync(string indexName, Dictionary<string, string> fields, CreateAnalyticsIndexOptions options = null);
 
-        Task DropIndexAsync(string datasetName, string indexName, DropAnalyticsIndexOptions options);
+        Task DropIndexAsync(string datasetName, string indexName, DropAnalyticsIndexOptions options = null);
 
-        Task<IEnumerable<AnalyticsIndex>> GetAllIndexesAsync(GetAllAnalyticsIndexesOptions options);
+        Task<IEnumerable<AnalyticsIndex>> GetAllIndexesAsync(GetAllAnalyticsIndexesOptions options = null);
 
-        Task ConnectLinkAsync(string linkName, ConnectAnalyticsLinkOptions options);
+        Task ConnectLinkAsync(string linkName, ConnectAnalyticsLinkOptions options = null);
 
-        Task DisconnectLinkAsync(string linkName, DisconnectAnalyticsLinkOptions options);
+        Task DisconnectLinkAsync(string linkName, DisconnectAnalyticsLinkOptions options = null);
 
-        Task<Dictionary<string, int>> GetPendingMutationsAsync(GetPendingAnalyticsMutationsOptions options);
+        Task<Dictionary<string, int>> GetPendingMutationsAsync(GetPendingAnalyticsMutationsOptions options = null);
     }
 }

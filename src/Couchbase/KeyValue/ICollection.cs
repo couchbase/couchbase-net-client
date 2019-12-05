@@ -15,37 +15,37 @@ namespace Couchbase.KeyValue
 
         #region Basic
 
-        Task<IGetResult> GetAsync(string id, GetOptions options);
+        Task<IGetResult> GetAsync(string id, GetOptions options = null);
 
-        Task<IExistsResult> ExistsAsync(string id, ExistsOptions options);
+        Task<IExistsResult> ExistsAsync(string id, ExistsOptions options = null);
 
-        Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions options);
+        Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions options = null);
 
-        Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions options);
+        Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions options = null);
 
-        Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions options);
+        Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions options = null);
 
-        Task RemoveAsync(string id, RemoveOptions options);
+        Task RemoveAsync(string id, RemoveOptions options = null);
 
-        Task UnlockAsync<T>(string id, UnlockOptions options);
+        Task UnlockAsync<T>(string id, UnlockOptions options = null);
 
-        Task TouchAsync(string id, TimeSpan expiry, TouchOptions options);
+        Task TouchAsync(string id, TimeSpan expiry, TouchOptions options = null);
 
-        Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions options);
+        Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions options = null);
 
-        Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions options);
+        Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions options = null);
 
-        Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions options);
+        Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions options = null);
 
-        IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions options);
+        IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions options = null);
 
         #endregion
 
         #region Subdoc
 
-        Task<ILookupInResult> LookupInAsync(string id, IEnumerable<OperationSpec> specs, LookupInOptions options);
+        Task<ILookupInResult> LookupInAsync(string id, IEnumerable<OperationSpec> specs, LookupInOptions options = null);
 
-        Task<IMutationResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options);
+        Task<IMutationResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options = null);
 
         #endregion
     }

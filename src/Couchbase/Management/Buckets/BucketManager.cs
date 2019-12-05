@@ -121,8 +121,9 @@ namespace Couchbase.Management.Buckets
             return values;
         }
 
-        public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions options)
+        public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions options = null)
         {
+            options = options ?? new CreateBucketOptions();
             var uri = GetUri();
             Logger.LogInformation($"Attempting to create bucket with name {settings.Name} - {uri}");
 
@@ -154,8 +155,9 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task UpsertBucketAsync(BucketSettings settings, UpsertBucketOptions options)
+        public async Task UpsertBucketAsync(BucketSettings settings, UpsertBucketOptions options = null)
         {
+            options = options ?? new UpsertBucketOptions();
             var uri = GetUri(settings.Name);
             Logger.LogInformation($"Attempting to upsert bucket with name {settings.Name} - {uri}");
 
@@ -173,8 +175,9 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task DropBucketAsync(string bucketName, DropBucketOptions options)
+        public async Task DropBucketAsync(string bucketName, DropBucketOptions options = null)
         {
+            options = options ?? new DropBucketOptions();
             var uri = GetUri(bucketName);
             Logger.LogInformation($"Attempting to drop bucket with name {bucketName} - {uri}");
 
@@ -200,8 +203,9 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task FlushBucketAsync(string bucketName, FlushBucketOptions options)
+        public async Task FlushBucketAsync(string bucketName, FlushBucketOptions options = null)
         {
+            options = options ?? new FlushBucketOptions();
             // get uri and amend path to flush endpoint
             var builder = new UriBuilder(GetUri(bucketName));
             builder.Path = Path.Combine(builder.Path, "controller/doFlush");
@@ -246,8 +250,9 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions options)
+        public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions options = null)
         {
+            options = options ?? new GetAllBucketsOptions();
             var uri = GetUri();
             Logger.LogInformation($"Attempting to get all buckets - {uri}");
 
@@ -275,8 +280,9 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions options)
+        public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions options = null)
         {
+            options = options ?? new GetBucketOptions();
             var uri = GetUri(bucketName);
             Logger.LogInformation($"Attempting to get bucket with name {bucketName} - {uri}");
 

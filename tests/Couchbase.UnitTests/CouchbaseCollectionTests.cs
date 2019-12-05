@@ -152,6 +152,15 @@ namespace Couchbase.UnitTests
             Assert.NotNull(dict);
         }
 
+        [Fact]
+        public void GetAsync_Allows_No_GetOptions()
+        {
+            var mockBucket = new Mock<FakeBucket>();
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+
+            collection.GetAsync("key").GetAwaiter().GetResult();
+        }
+
         internal class FakeBucket : BucketBase
         {
             private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();

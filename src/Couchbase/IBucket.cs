@@ -23,12 +23,12 @@ namespace Couchbase
 
         ICollection Collection(string collectionName);
 
-        Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options);
+        Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null);
 
         IViewIndexManager Views { get; }
 
         ICollectionManager Collections { get; }
 
-        Task<IPingReport> PingAsync(PingOptions options);
+        Task<IPingReport> PingAsync(PingOptions options = null);
     }
 }

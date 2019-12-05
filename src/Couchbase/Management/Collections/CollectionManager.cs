@@ -47,8 +47,9 @@ namespace Couchbase.Management.Collections
             return builder.Uri;
         }
 
-        public async Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions options)
+        public async Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions options = null)
         {
+            options = options ?? CollectionExistsOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}");
 
@@ -71,8 +72,9 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions options)
+        public async Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions options = null)
         {
+            options = options ?? ScopeExistsOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
 
@@ -93,8 +95,9 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions options)
+        public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions options = null)
         {
+            options = options ?? GetScopeOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
 
@@ -122,8 +125,9 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions options)
+        public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions options = null)
         {
+            options = options ?? GetAllScopesOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to get all scopes - {uri}");
 
@@ -171,8 +175,9 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions options)
+        public async Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions options = null)
         {
+            options = options ?? CreateCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName);
             Logger.LogInformation($"Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}");
 
@@ -212,8 +217,9 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions options)
+        public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions options = null)
         {
+            options = options ?? DropCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName, spec.Name);
             Logger.LogInformation($"Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}");
 
@@ -239,8 +245,9 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions options)
+        public async Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions options = null)
         {
+            options = options ?? CreateScopeOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting create scope {spec.Name} - {uri}");
 
@@ -270,8 +277,9 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task DropScopeAsync(string scopeName, DropScopeOptions options)
+        public async Task DropScopeAsync(string scopeName, DropScopeOptions options = null)
         {
+            options = options ?? DropScopeOptions.Default;
             var uri = GetUri(scopeName);
             Logger.LogInformation($"Attempting drop scope {scopeName} - {uri}");
 

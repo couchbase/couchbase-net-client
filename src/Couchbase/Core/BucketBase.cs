@@ -57,8 +57,9 @@ namespace Couchbase.Core
 
         public abstract ICollectionManager Collections { get; }
 
-        public Task<IPingReport> PingAsync(PingOptions options)
+        public Task<IPingReport> PingAsync(PingOptions options = null)
         {
+            options = options ?? new PingOptions();
             return Task.Run(()=> DiagnosticsReportProvider.CreatePingReport(Context, BucketConfig, options));
         }
 

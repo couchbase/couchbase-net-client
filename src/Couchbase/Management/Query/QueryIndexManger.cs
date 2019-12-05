@@ -20,10 +20,10 @@ namespace Couchbase.Management.Query
             _queryClient = queryClient;
         }
 
-        public async Task BuildDeferredIndexesAsync(string bucketName, BuildDeferredQueryIndexOptions options)
+        public async Task BuildDeferredIndexesAsync(string bucketName, BuildDeferredQueryIndexOptions options = null)
         {
+            options = options ?? BuildDeferredQueryIndexOptions.Default;
             Logger.LogInformation($"Attempting to build deferred query indexes on bucket {bucketName}");
-
             try
             {
                 var indexes = await this.GetAllIndexesAsync(bucketName,
@@ -48,8 +48,9 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options)
+        public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options = null)
         {
+            options = options ?? CreateQueryIndexOptions.Default;
             Logger.LogInformation($"Attempting to create query index {indexName} on bucket {bucketName}");
 
             try
@@ -66,8 +67,9 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions options)
+        public async Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions options = null)
         {
+            options = options ?? CreatePrimaryQueryIndexOptions.Default;
             Logger.LogInformation($"Attempting to create primary query index on bucket {bucketName}");
 
             try
@@ -84,8 +86,9 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task DropIndexAsync(string bucketName, string indexName, DropQueryIndexOptions options)
+        public async Task DropIndexAsync(string bucketName, string indexName, DropQueryIndexOptions options = null)
         {
+            options = options ?? DropQueryIndexOptions.Default;
             Logger.LogInformation($"Attempting to drop query index {indexName} on bucket {bucketName}");
 
             try
@@ -102,8 +105,9 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task DropPrimaryIndexAsync(string bucketName, DropPrimaryQueryIndexOptions options)
+        public async Task DropPrimaryIndexAsync(string bucketName, DropPrimaryQueryIndexOptions options = null)
         {
+            options = options ?? DropPrimaryQueryIndexOptions.Default;
             Logger.LogInformation($"Attempting to drop primary query index on bucket {bucketName}");
 
             try
@@ -120,8 +124,9 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions options)
+        public async Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions options = null)
         {
+            options = options ?? GetAllQueryIndexOptions.Default;
             Logger.LogInformation($"Attempting to get query indexes for bucket {bucketName}");
 
             try
@@ -146,8 +151,9 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions options)
+        public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions options = null)
         {
+            options = options ?? WatchQueryIndexOptions.Default;
             var indexesToWatch = string.Join(", ", indexNames.ToList());
             Logger.LogInformation($"Attempting to watch pending indexes ({indexesToWatch}) for bucket {bucketName}");
 

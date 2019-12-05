@@ -88,8 +88,9 @@ namespace Couchbase.Management.Search
             }.Uri;
         }
 
-        public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions options)
+        public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions options = null)
         {
+            options = options ?? AllowQueryingSearchIndexOptions.Default;
             var baseUri = GetQueryControlUri(indexName, true);
             Logger.LogInformation($"Trying to allow querying for index with name {indexName} - {baseUri}");
 
@@ -110,8 +111,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions options)
+        public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions options = null)
         {
+            options = options ?? DisallowQueryingSearchIndexOptions.Default;
             var baseUri = GetQueryControlUri(indexName, false);
             Logger.LogInformation($"Trying to disallow querying for index with name {indexName} - {baseUri}");
 
@@ -132,8 +134,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task DropIndexAsync(string indexName, DropSearchIndexOptions options)
+        public async Task DropIndexAsync(string indexName, DropSearchIndexOptions options = null)
         {
+            options = options ?? DropSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexName);
             Logger.LogInformation($"Trying to drop index with name {indexName} - {baseUri}");
 
@@ -154,8 +157,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions options)
+        public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions options = null)
         {
+            options = options ?? FreezePlanSearchIndexOptions.Default;
             var baseUri = GetFreezeControlUri(indexName, true);
             Logger.LogInformation($"Trying to freeze index with name {indexName} - {baseUri}");
 
@@ -176,8 +180,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions options)
+        public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions options = null)
         {
+            options = options ?? GetAllSearchIndexesOptions.Default;
             var baseUri = GetIndexUri();
             Logger.LogInformation($"Trying to get all indexes - {baseUri}");
 
@@ -196,8 +201,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions options)
+        public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions options = null)
         {
+            options = options ?? GetSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexName);
             Logger.LogInformation($"Trying to get index with name {indexName} - {baseUri}");
 
@@ -216,8 +222,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions options)
+        public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions options = null)
         {
+            options = options ?? GetSearchIndexDocumentCountOptions.Default;
             var baseUri = GetIndexedDocumentCountUri(indexName);
             Logger.LogInformation($"Trying to get index document count with name {indexName} - {baseUri}");
 
@@ -239,8 +246,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions options)
+        public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions options = null)
         {
+            options = options ?? PauseIngestSearchIndexOptions.Default;
             var baseUri = GetIngestControlUri(indexName, true);
             Logger.LogInformation($"Trying to pause ingest for index with name {indexName} - {baseUri}");
 
@@ -261,8 +269,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions options)
+        public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions options = null)
         {
+            options = options ?? ResumeIngestSearchIndexOptions.Default;
             var baseUri = GetIngestControlUri(indexName, false);
             Logger.LogInformation($"Trying to resume ingest for index with name {indexName} - {baseUri}");
 
@@ -283,8 +292,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions options)
+        public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions options = null)
         {
+            options = options ?? UnfreezePlanSearchIndexOptions.Default;
             var baseUri = GetFreezeControlUri(indexName, false);
             Logger.LogInformation($"Trying to unfreeze index with name {indexName} - {baseUri}");
 
@@ -305,8 +315,9 @@ namespace Couchbase.Management.Search
             }
         }
 
-        public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions options)
+        public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions options = null)
         {
+            options = options ?? UpsertSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexDefinition.Name);
             Logger.LogInformation($"Trying to upsert index with name {indexDefinition.Name} - {baseUri}");
 

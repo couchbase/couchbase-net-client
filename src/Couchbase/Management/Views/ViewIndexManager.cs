@@ -56,8 +56,9 @@ namespace Couchbase.Management.Views
             return builder.Uri;
         }
 
-        public async Task<DesignDocument> GetDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, GetDesignDocumentOptions options)
+        public async Task<DesignDocument> GetDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, GetDesignDocumentOptions options = null)
         {
+            options = options ?? GetDesignDocumentOptions.Default;
             var uri = GetUri(designDocName, @namespace);
             Logger.LogInformation($"Attempting to get design document {_bucketName}/{designDocName} - {uri}");
 
@@ -84,8 +85,9 @@ namespace Couchbase.Management.Views
             }
         }
 
-        public async Task<IEnumerable<DesignDocument>> GetAllDesignDocumentsAsync(DesignDocumentNamespace @namespace, GetAllDesignDocumentsOptions options)
+        public async Task<IEnumerable<DesignDocument>> GetAllDesignDocumentsAsync(DesignDocumentNamespace @namespace, GetAllDesignDocumentsOptions options = null)
         {
+            options = options ?? GetAllDesignDocumentsOptions.Default;
             var uri = new UriBuilder(_context.GetRandomNodeForService(ServiceType.KeyValue, _bucketName).ViewsUri)
             {
                 Port = _context.ClusterOptions.MgmtPort,
@@ -136,8 +138,9 @@ namespace Couchbase.Management.Views
             }
         }
 
-        public async Task UpsertDesignDocumentAsync(DesignDocument designDocument, DesignDocumentNamespace @namespace, UpsertDesignDocumentOptions options)
+        public async Task UpsertDesignDocumentAsync(DesignDocument designDocument, DesignDocumentNamespace @namespace, UpsertDesignDocumentOptions options = null)
         {
+            options = options ?? UpsertDesignDocumentOptions.Default;
             var json = JsonConvert.SerializeObject(designDocument);
             var uri = GetUri(designDocument.Name, @namespace);
             Logger.LogInformation($"Attempting to upsert design document {_bucketName}/{designDocument.Name} - {uri}");
@@ -157,8 +160,9 @@ namespace Couchbase.Management.Views
             }
         }
 
-        public async Task DropDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, DropDesignDocumentOptions options)
+        public async Task DropDesignDocumentAsync(string designDocName, DesignDocumentNamespace @namespace, DropDesignDocumentOptions options = null)
         {
+            options = options ?? DropDesignDocumentOptions.Default;
             var uri = GetUri(designDocName, @namespace);
             Logger.LogInformation($"Attempting to drop design document {_bucketName}/{designDocName} - {uri}");
 
@@ -180,8 +184,9 @@ namespace Couchbase.Management.Views
             }
         }
 
-        public async Task PublishDesignDocumentAsync(string designDocName, PublishDesignDocumentOptions options)
+        public async Task PublishDesignDocumentAsync(string designDocName, PublishDesignDocumentOptions options = null)
         {
+            options = options ?? PublishDesignDocumentOptions.Default;
             var uri = GetUri(designDocName, DesignDocumentNamespace.Production);
             Logger.LogInformation($"Attempting to publish design document {_bucketName}/{designDocName} - {uri}");
 

@@ -38,8 +38,9 @@ namespace Couchbase
         private readonly Lazy<IQueryIndexManager> _lazyQueryManager;
         private readonly Lazy<ISearchIndexManager> _lazySearchManager;
 
-        public Cluster(string connectionString, ClusterOptions clusterOptions)
+        public Cluster(string connectionString, ClusterOptions clusterOptions = null)
         {
+            clusterOptions = clusterOptions ?? new ClusterOptions();
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidConfigurationException("The connectionString cannot be null, empty or only be whitespace.");
@@ -68,7 +69,7 @@ namespace Couchbase
             _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
         }
 
-        public static ICluster Connect(string connectionString, ClusterOptions options)
+        public static ICluster Connect(string connectionString, ClusterOptions options = null)
         {
             using (new SynchronizationContextExclusion())
             {
@@ -127,6 +128,7 @@ namespace Couchbase
 
         public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null)
         {
+            options = options ?? new DiagnosticsOptions();
             return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options?.ReportId ?? Guid.NewGuid().ToString()));
         }
 
@@ -169,8 +171,9 @@ namespace Couchbase
 
         #region Query
 
-        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
+        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options = null)
         {
+            options = options ?? new QueryOptions();
             await EnsureBootstrapped();
 
             return await _lazyQueryClient.Value.QueryAsync<T>(statement, options);
@@ -182,12 +185,8 @@ namespace Couchbase
 
         public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default)
         {
+            options = options ?? new AnalyticsOptions();
             await EnsureBootstrapped();
-
-            if (options == default)
-            {
-                options = new AnalyticsOptions();
-            }
 
             var query = new AnalyticsRequest(statement);
             query.ClientContextId(options.ClientContextId);
@@ -215,16 +214,13 @@ namespace Couchbase
 
         public async Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default)
         {
+            options = options ?? new SearchOptions();
+
             await EnsureBootstrapped();
 
             query.Index = indexName;
 
-            if (options == default)
-            {
-                options = new SearchOptions();
-            }
             //TODO: convert options to params
-
             return await _lazySearchClient.Value.QueryAsync(query);
         }
 
