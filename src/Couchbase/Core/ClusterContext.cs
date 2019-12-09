@@ -325,6 +325,7 @@ namespace Couchbase.Core
                 }
 
                 var node = await ClusterNode.CreateAsync(this, endPoint);
+                node.Owner = bucket;
                 await node.SelectBucket(bucket.Name);
                 node.NodesAdapter = nodeAdapter;
                 node.BuildServiceUris();
