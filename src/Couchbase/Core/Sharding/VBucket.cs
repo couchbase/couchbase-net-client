@@ -35,7 +35,7 @@ namespace Couchbase.Core.Sharding
         /// Gets a reference to the primary server for this VBucket.
         /// </summary>
         /// <returns>A <see cref="IServer"/> reference which is the primary server for this <see cref="VBucket"/></returns>
-        ///<remarks>If the VBucket doesn't have a master, it will return a random <see cref="IServer"/> to force a NMV and reconfig.</remarks>
+        ///<remarks>If the VBucket doesn't have a active, it will return a random <see cref="IServer"/> to force a NMV and reconfig.</remarks>
         public IPEndPoint LocatePrimary()
         {
             IPEndPoint endPoint = null;

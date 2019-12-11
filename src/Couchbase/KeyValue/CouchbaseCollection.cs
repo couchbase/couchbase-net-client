@@ -564,7 +564,7 @@ namespace Couchbase.KeyValue
                     OpCode = getOp.OpCode,
                     Flags = getOp.Flags,
                     Header = getOp.Header,
-                    IsMaster = true
+                    IsActive = true
                 };
             }
         }
@@ -587,7 +587,7 @@ namespace Couchbase.KeyValue
                     OpCode = getOp.OpCode,
                     Flags = getOp.Flags,
                     Header = getOp.Header,
-                    IsMaster = false
+                    IsActive = false
                 };
             }
         }

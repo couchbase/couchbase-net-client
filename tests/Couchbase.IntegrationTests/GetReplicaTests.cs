@@ -52,8 +52,8 @@ namespace Couchbase.IntegrationTests
                 await collection.InsertAsync(key, person);
 
                 var result = await Task.WhenAll(collection.GetAllReplicasAsync(key));
-                Assert.Contains(result, x => x.IsMaster);
-                Assert.Contains(result, x => !x.IsMaster);
+                Assert.Contains(result, x => x.IsActive);
+                Assert.Contains(result, x => !x.IsActive);
 
                 foreach (var p in result)
                 {

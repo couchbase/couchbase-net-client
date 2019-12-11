@@ -17,7 +17,7 @@ namespace Couchbase.IntegrationTests
         [Theory]
         [InlineData(DurabilityLevel.None)]
         [InlineData(DurabilityLevel.Majority)]
-        [InlineData(DurabilityLevel.MajorityAndPersistActive)]
+        [InlineData(DurabilityLevel.MajorityAndPersistToActive)]
         [InlineData(DurabilityLevel.PersistToMajority)]
         public async Task Upsert_with_durability(DurabilityLevel durabilityLevel)
         {

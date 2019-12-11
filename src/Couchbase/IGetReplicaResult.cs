@@ -4,6 +4,6 @@ namespace Couchbase
 {
     public interface IGetReplicaResult : IGetResult
     {
-        bool IsMaster { get; }
+        bool IsActive { get; }
     }
 }

@@ -18,7 +18,7 @@ namespace Couchbase.KeyValue
         /// <summary>
         /// Same as majority, but additionally persisted to the active node.
         /// </summary>
-        MajorityAndPersistActive = 0x02,
+        MajorityAndPersistToActive = 0x02,
 
         /// <summary>
         /// Mutation must be persisted to (i.e. written and fsync'd to disk) a majority of the configured nodes of the bucket.

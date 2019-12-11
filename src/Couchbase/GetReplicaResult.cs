@@ -6,7 +6,7 @@ namespace Couchbase
 {
     internal class GetReplicaResult : GetResult, IGetReplicaResult
     {
-        public bool IsMaster { get; internal set; }
+        public bool IsActive { get; internal set; }
 
         public GetReplicaResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder)
             : base(contentBytes, transcoder)
