@@ -115,9 +115,10 @@ namespace Couchbase.Core
             return Connection.SelectBucket(name);
         }
 
-        public Task<BucketConfig> GetClusterMap()
+        public async Task<BucketConfig> GetClusterMap()
         {
-            return Connection.GetClusterMap(EndPoint, BootstrapUri);
+            await CheckConnectionAsync(Connection);
+            return await Connection.GetClusterMap(EndPoint, BootstrapUri);
         }
 
         public void BuildServiceUris()

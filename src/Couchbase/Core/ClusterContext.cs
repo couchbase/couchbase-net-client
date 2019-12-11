@@ -317,6 +317,7 @@ namespace Couchbase.Core
                 var endPoint = nodeAdapter.GetIpEndPoint(ClusterOptions.UseSsl);
                 if (TryGetNode(endPoint, out IClusterNode bootstrapNode))
                 {
+                    Log.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
                     await bootstrapNode.SelectBucket(bucket.Name);
                     bootstrapNode.NodesAdapter = nodeAdapter;
                     bootstrapNode.BuildServiceUris();
@@ -324,6 +325,7 @@ namespace Couchbase.Core
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
 
+                Log.LogDebug($"Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
                 var node = await ClusterNode.CreateAsync(this, endPoint);
                 node.Owner = bucket;
                 await node.SelectBucket(bucket.Name);

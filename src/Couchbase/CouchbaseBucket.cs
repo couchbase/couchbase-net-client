@@ -70,7 +70,7 @@ namespace Couchbase
                 }
                 if (BucketConfig.ClusterNodesChanged)
                 {
-                    Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig));
+                    Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig)).GetAwaiter().GetResult();
                 }
             }
         }
