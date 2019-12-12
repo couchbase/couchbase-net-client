@@ -122,12 +122,12 @@ namespace Couchbase
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableIPV6Addressing { get; set; }
         public int KvPort { get; set; } = 11210;
-        public bool EnableDnsSrveResolution { get; set; } = true;
+        public bool EnableDnsSrvResolution { get; set; } = true;
         public IDnsResolver DnsResolver { get; set; } = new DnsClientDnsResolver();
 
         internal bool IsValidDnsSrv()
         {
-            if (!EnableDnsSrveResolution || DnsResolver == null)
+            if (!EnableDnsSrvResolution || DnsResolver == null)
             {
                 return false;
             }
