@@ -32,7 +32,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         {
             var uri = new UriBuilder(hostUri)
             {
-                Scheme = _context.ClusterOptions.UseSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
+                Scheme = _context.ClusterOptions.EnableTls ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
                 Port = _context.ClusterOptions.MgmtPort, //TODO add ssl/tls support
                 Path = Path + bucketName
             };

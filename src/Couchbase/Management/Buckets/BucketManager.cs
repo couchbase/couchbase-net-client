@@ -33,9 +33,9 @@ namespace Couchbase.Management.Buckets
         {
             var builder = new UriBuilder
             {
-                Scheme = _context.ClusterOptions.UseSsl ? "https" : "http",
+                Scheme = _context.ClusterOptions.EnableTls ? "https" : "http",
                 Host = _context.ClusterOptions.Servers.GetRandom().Host,
-                Port = _context.ClusterOptions.UseSsl ? 18091 : 8091,
+                Port = _context.ClusterOptions.EnableTls ? 18091 : 8091,
                 Path = "pools/default/buckets"
             };
 

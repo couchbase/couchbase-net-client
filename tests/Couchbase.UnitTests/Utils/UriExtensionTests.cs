@@ -17,7 +17,7 @@ namespace Couchbase.UnitTests.Utils
         [InlineData(false, "10.143.192.101", "http://10.143.192.101:8093/query")]
         public void GetQueryUri_Returns_Query_Uri(bool useSsl, string host, string expectedUri)
         {
-            var clusterOptions = new ClusterOptions {UseSsl = useSsl};
+            var clusterOptions = new ClusterOptions {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var endpoint = nodeAdapter.GetIpEndPoint();
@@ -33,7 +33,7 @@ namespace Couchbase.UnitTests.Utils
         [InlineData(false, "10.143.192.101", "http://10.143.192.101:8092/")]
         public void GetViewUri_Returns_Views_Uri(bool useSsl, string host, string expectedUri)
         {
-            var clusterOptions = new  ClusterOptions  {UseSsl = useSsl};
+            var clusterOptions = new  ClusterOptions  {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var endpoint = nodeAdapter.GetIpEndPoint();
@@ -49,7 +49,7 @@ namespace Couchbase.UnitTests.Utils
         [InlineData(false, "10.143.192.101", "http://10.143.192.101:8095/analytics/service")]
         public void GetAnalyticsUri_Returns_Analytics_Uri(bool useSsl, string host, string expectedUri)
         {
-            var clusterOptions = new ClusterOptions {UseSsl = useSsl};
+            var clusterOptions = new ClusterOptions {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var endpoint = nodeAdapter.GetIpEndPoint();
@@ -65,7 +65,7 @@ namespace Couchbase.UnitTests.Utils
         [InlineData(false, "10.143.192.101", "http://10.143.192.101:8094")]
         public void GetSearchUri_Returns_Search_Uri(bool useSsl, string host, string expectedUri)
         {
-            var clusterOptions = new ClusterOptions  {UseSsl = useSsl};
+            var clusterOptions = new ClusterOptions  {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var endpoint = nodeAdapter.GetIpEndPoint();
@@ -138,7 +138,7 @@ namespace Couchbase.UnitTests.Utils
             //arrange
             var config = new Configuration
             {
-                UseSsl = useSsl
+                EnableTLS = useSsl
             };
             var uri = new UriBuilder("couchbase", "localhost", 8091).Uri;
 
@@ -161,7 +161,7 @@ namespace Couchbase.UnitTests.Utils
                {
                    {"travel-sample", new BucketConfiguration
                    {
-                       UseSsl = useSsl
+                       EnableTLS = useSsl
                    } }
                }
             };

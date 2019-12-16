@@ -51,7 +51,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
                             var streamingUri = new UriBuilder(server)
                             {
-                                Scheme = _clusterOptions.UseSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
+                                Scheme = _clusterOptions.EnableTls ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
                                 Port = _clusterOptions.MgmtPort,
                                 Path = streamingUriPath
                             };

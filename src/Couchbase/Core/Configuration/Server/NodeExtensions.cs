@@ -15,7 +15,7 @@ namespace Couchbase.Core.Configuration.Server
 
         public static int GetKeyValuePort(this Node node, ClusterOptions clusterOptions)
         {
-            return clusterOptions.UseSsl ? node.Ports.Direct : node.Ports.SslDirect;
+            return clusterOptions.EnableTls ? node.Ports.Direct : node.Ports.SslDirect;
         }
     }
 }

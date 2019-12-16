@@ -21,16 +21,16 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.EnableTls ? Https : Http,
                     Host = nodeAdapter.Hostname,
-                    Port = clusterOptions.UseSsl ? nodeAdapter.N1QlSsl : nodeAdapter.N1Ql,
+                    Port = clusterOptions.EnableTls ? nodeAdapter.N1QlSsl : nodeAdapter.N1Ql,
                     Path = QueryPath
                 }.Uri;
             }
 
             return new UriBuilder
             {
-                Scheme = clusterOptions.UseSsl ? Https : Http,
+                Scheme = clusterOptions.EnableTls ? Https : Http,
                 Host = nodeAdapter.Hostname,
             }.Uri;
         }
@@ -41,15 +41,15 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.EnableTls ? Https : Http,
                     Host = nodesAdapter.Hostname,
-                    Port = clusterOptions.UseSsl ? nodesAdapter.AnalyticsSsl : nodesAdapter.Analytics,
+                    Port = clusterOptions.EnableTls ? nodesAdapter.AnalyticsSsl : nodesAdapter.Analytics,
                     Path = AnalyticsPath
                 }.Uri;
             }
             return new UriBuilder
             {
-                Scheme = clusterOptions.UseSsl ? Https : Http,
+                Scheme = clusterOptions.EnableTls ? Https : Http,
                 Host = nodesAdapter.Hostname,
             }.Uri;
 
@@ -61,15 +61,15 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.EnableTls ? Https : Http,
                     Host = nodeAdapter.Hostname,
-                    Port = clusterOptions.UseSsl ? nodeAdapter.FtsSsl : nodeAdapter.Fts
+                    Port = clusterOptions.EnableTls ? nodeAdapter.FtsSsl : nodeAdapter.Fts
                 }.Uri;
             }
 
             return new UriBuilder
             {
-                Scheme = clusterOptions.UseSsl ? Https : Http,
+                Scheme = clusterOptions.EnableTls ? Https : Http,
                 Host = nodeAdapter.Hostname,
             }.Uri;
         }
@@ -80,16 +80,16 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.UseSsl ? Https : Http,
+                    Scheme = clusterOptions.EnableTls ? Https : Http,
                     Host = nodesAdapter.Hostname,
-                    Port = clusterOptions.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
+                    Port = clusterOptions.EnableTls ? nodesAdapter.ViewsSsl : nodesAdapter.Views
                 }.Uri;
             }
             return new UriBuilder
             {
-                Scheme = clusterOptions.UseSsl ? Https : Http,
+                Scheme = clusterOptions.EnableTls ? Https : Http,
                 Host = nodesAdapter.Hostname,
-                Port = clusterOptions.UseSsl ? nodesAdapter.ViewsSsl : nodesAdapter.Views
+                Port = clusterOptions.EnableTls ? nodesAdapter.ViewsSsl : nodesAdapter.Views
             }.Uri;
         }
 
@@ -97,9 +97,9 @@ namespace Couchbase.Utils
         {
             return new UriBuilder
             {
-                Scheme = clusterOptions.UseSsl ? Https : Http,
+                Scheme = clusterOptions.EnableTls ? Https : Http,
                 Host = nodesAdapter.Hostname,
-                Port = clusterOptions.UseSsl ? nodesAdapter.MgmtApiSsl : nodesAdapter.MgmtApi
+                Port = clusterOptions.EnableTls ? nodesAdapter.MgmtApiSsl : nodesAdapter.MgmtApi
             }.Uri;
         }
 
@@ -107,7 +107,7 @@ namespace Couchbase.Utils
         {
             if (uri.Scheme == "couchbase")
             {
-                var useSsl = clusterOptions.UseSsl ? Https : Http;
+                var useSsl = clusterOptions.EnableTLS ? Https : Http;
                 var newUri = new UriBuilder(uri) {Scheme = useSsl ? "https" : "http", Port = clusterOptions.MgmtPort};
                 return newUri.Uri;
             }

@@ -104,7 +104,7 @@ namespace Couchbase.Utils
             socket.SetKeepAlives(options.EnableTcpKeepAlives, (uint) options.TcpKeepAliveTime.TotalMilliseconds,
                 (uint) options.TcpKeepAliveInterval.TotalMilliseconds);
 
-            if (options.UseSsl)
+            if (options.EnableTls)
             {
                 return new SslConnection(null, socket, new DefaultConverter());
             }

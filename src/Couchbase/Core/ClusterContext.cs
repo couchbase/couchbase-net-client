@@ -233,7 +233,7 @@ namespace Couchbase.Core
                         }
                         else
                         {
-                            var endpoint = nodeAdapter.GetIpEndPoint(ClusterOptions.UseSsl);
+                            var endpoint = nodeAdapter.GetIpEndPoint(ClusterOptions.EnableTls);
                             var newNode = await ClusterNode.CreateAsync(this, endpoint);
                             newNode.BootstrapUri = server;
                             newNode.NodesAdapter = nodeAdapter;
@@ -315,7 +315,7 @@ namespace Couchbase.Core
         {
             foreach (var nodeAdapter in config.GetNodes())
             {
-                var endPoint = nodeAdapter.GetIpEndPoint(ClusterOptions.UseSsl);
+                var endPoint = nodeAdapter.GetIpEndPoint(ClusterOptions.EnableTls);
                 if (TryGetNode(endPoint, out IClusterNode bootstrapNode))
                 {
                     Log.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");

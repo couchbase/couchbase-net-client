@@ -32,7 +32,7 @@ namespace Couchbase.Core.Configuration.Server
 
         public static int GetKeyValuePort(this NodesExt nodesExt, ClusterOptions clusterOptions)
         {
-            return clusterOptions.UseSsl ? nodesExt.Services.KvSsl : nodesExt.Services.Kv;
+            return clusterOptions.EnableTls ? nodesExt.Services.KvSsl : nodesExt.Services.Kv;
         }
     }
 }

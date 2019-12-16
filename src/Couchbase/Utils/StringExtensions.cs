@@ -56,7 +56,7 @@ namespace Couchbase.Utils
         //TODO refactor/harden/tests - perhaps move to different class
         public static IPEndPoint GetIpEndPoint(this NodesExt nodesExt, ClusterOptions clusterOptions)
         {
-            var useSsl = clusterOptions.UseSsl;
+            var useSsl = clusterOptions.EnableTls;
             var uriBuilder = new UriBuilder
             {
                 Scheme = useSsl ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,

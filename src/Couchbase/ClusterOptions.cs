@@ -2,9 +2,13 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using OpenTracing;
 
 namespace Couchbase
 {
@@ -102,25 +106,37 @@ namespace Couchbase
         public IEnumerable<string> Buckets => _buckets;
         public string UserName { get; set; }
         public string Password { get; set; }
-        public TimeSpan ConnectTimeout { get; set; }
-        public TimeSpan KvTimeout { get; set; }
-        public TimeSpan ViewTimeout { get; set; }
-        public TimeSpan QueryTimeout { get; set; }
-        public TimeSpan AnalyticsTimeout { get; set; }
-        public TimeSpan SearchTimeout { get; set; }
-        public TimeSpan ManagementTimeout { get; set; }
-        public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
+
+        //Foundation RFC conformance
+        public TimeSpan KvConnectTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan KvTimeout { get; set; } = TimeSpan.FromSeconds(2.5);
+        public TimeSpan KvDurabilityTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan ViewTimeout { get; set; } = TimeSpan.FromSeconds(75);
+        public TimeSpan QueryTimeout { get; set; } = TimeSpan.FromSeconds(75);
+        public TimeSpan AnalyticsTimeout { get; set; } = TimeSpan.FromSeconds(75);
+        public TimeSpan SearchTimeout { get; set; } = TimeSpan.FromSeconds(75);
+        public TimeSpan ManagementTimeout { get; set; } = TimeSpan.FromSeconds(75);
+        public bool EnableTls { get; set; }
+        public ITypeTranscoder Transcoder { get; set; } = new DefaultTranscoder();
+        public ITypeSerializer JsonSerializer { get; set; } = new DefaultSerializer();
+        public bool EnableMutationTokens { get; set; } = true;
+        public ITracer Tracer = new ThresholdLoggingTracer();
         public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);
         public TimeSpan TcpKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(1);
-        public bool UseSsl { get; set; }
-        public bool EnableTracing { get; set; }
-        public bool EnableMutationTokens { get; set; }
+        public bool ForceIPv4 { get; set; }
+        public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
+        public TimeSpan ConfigPollFloorInterval { get; set; } = TimeSpan.FromMilliseconds(50);
+        public TimeSpan ConfigIdleRedialTimeout { get; set; } = TimeSpan.FromMinutes(5);
+        public int NumKvConnections { get; set; } = 1;
+        public int MaxHttpConnection { get; set; } = 0;
+        public TimeSpan IdleHttpConnectionTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+        //Volatile or obsolete options
         public int MgmtPort { get; set; } = 8091;
         public bool Expect100Continue { get; set; }
         public bool EnableCertificateAuthentication { get; set; }
         public bool EnableCertificateRevocation { get; set; }
         public bool IgnoreRemoteCertificateNameMismatch { get; set; }
-        public int MaxQueryConnectionsPerServer { get; set; } = 10;
         public bool OrphanedResponseLoggingEnabled { get; set; }
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;

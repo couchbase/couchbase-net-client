@@ -62,7 +62,10 @@ namespace Couchbase.Core.IO.HTTP
 
             try
             {
-                handler.MaxConnectionsPerServer = context.ClusterOptions.MaxQueryConnectionsPerServer;
+                if (context.ClusterOptions.MaxHttpConnection > 0)
+                {
+                    handler.MaxConnectionsPerServer = context.ClusterOptions.MaxHttpConnection;
+                }
             }
             catch (PlatformNotSupportedException e)
             {
