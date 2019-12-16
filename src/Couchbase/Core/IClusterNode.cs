@@ -48,5 +48,8 @@ namespace Couchbase.Core
 
         Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null);
+
+        Task SendAsync(IOperation op, CancellationToken token = default(CancellationToken),
+            TimeSpan? timeout = null);
     }
 }

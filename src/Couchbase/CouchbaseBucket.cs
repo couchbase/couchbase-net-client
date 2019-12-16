@@ -164,7 +164,7 @@ namespace Couchbase
 
             if (Context.TryGetNode(endPoint, out var clusterNode))
             {
-                await clusterNode.ExecuteOp(op, token, timeout);
+                await clusterNode.SendAsync(op, token, timeout);
             }
             else
             {

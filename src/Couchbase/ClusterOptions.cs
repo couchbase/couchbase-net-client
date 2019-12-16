@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -130,6 +131,9 @@ namespace Couchbase
         public int NumKvConnections { get; set; } = 1;
         public int MaxHttpConnection { get; set; } = 0;
         public TimeSpan IdleHttpConnectionTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+        public CircuitBreakerConfiguration CircuitBreakerConfiguration { get; set; } =
+            CircuitBreakerConfiguration.Default;
 
         //Volatile or obsolete options
         public int MgmtPort { get; set; } = 8091;

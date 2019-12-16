@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
@@ -28,6 +29,7 @@ namespace Couchbase.Core
         private Uri _analyticsUri;
         private Uri _searchUri;
         private Uri _viewsUri;
+        private CircuitBreaker _circuitBreaker = new CircuitBreaker();//TODO integrate with configuration
 
         public ClusterNode(ClusterContext context)
         {
@@ -130,6 +132,67 @@ namespace Couchbase.Core
                 AnalyticsUri = EndPoint.GetAnalyticsUri(_context.ClusterOptions, NodesAdapter);
                 ViewsUri = EndPoint.GetViewsUri(_context.ClusterOptions, NodesAdapter); //TODO move to IBucket level?
                 ManagementUri = EndPoint.GetManagementUri(_context.ClusterOptions, NodesAdapter);
+            }
+        }
+
+        public async Task SendAsync(IOperation op,
+            CancellationToken token = default(CancellationToken),
+            TimeSpan? timeout = null)
+        {
+            Log.LogDebug($"CB: Current state is {_circuitBreaker.State}.");
+
+            if (_circuitBreaker.Enabled)
+            {
+                if (_circuitBreaker.AllowsRequest())
+                {
+                    _circuitBreaker.Track();
+                    try
+                    {
+                        Log.LogDebug($"CB: Sending {op.Opaque} to {Connection.EndPoint}.");
+                        await ExecuteOp(Connection, op, token);
+                        _circuitBreaker.MarkSuccess();
+                    }
+                    catch (Exception e)
+                    {
+                        if (_circuitBreaker.CompletionCallback(e))
+                        {
+                            Log.LogDebug($"CB: Marking a failure for {op.Opaque} to {Connection.EndPoint}.");
+                            _circuitBreaker.MarkFailure();
+                        }
+
+                        throw;
+                    }
+                }
+                else
+                {
+                    if (_circuitBreaker.State == CircuitBreakerState.HalfOpen)
+                    {
+                        try
+                        {
+                            Log.LogDebug($"CB: Sending a canary to {Connection.EndPoint}.");
+                            using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
+                            {
+                                await ExecuteOp(Connection, new Noop(), cts.Token);
+                            }
+
+                            _circuitBreaker.MarkSuccess();
+                        }
+                        catch (Exception e)
+                        {
+                            if (_circuitBreaker.CompletionCallback(e))
+                            {
+                                Log.LogDebug($"CB: Marking a failure for canary sent to {Connection.EndPoint}.");
+                                _circuitBreaker.MarkFailure();
+                            }
+                        }
+                    }
+
+                    throw new CircuitBreakerException();
+                }
+            }
+            else
+            {
+                await ExecuteOp(Connection, op, token);
             }
         }
 
