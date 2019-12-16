@@ -116,7 +116,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 }
             };
 
-            var adapter = new NodeAdapter(null, nodeExt, null);
+            var adapter = new NodeAdapter(null, nodeExt, new BucketConfig());
             Assert.Equal(adapter.Hostname, hostname);
             Assert.False(adapter.IsKvNode);
         }

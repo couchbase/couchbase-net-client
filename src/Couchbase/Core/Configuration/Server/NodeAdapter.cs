@@ -37,7 +37,7 @@ namespace Couchbase.Core.Configuration.Server
                 var services = GetServicePorts(nodeExt, bucketConfig);
 
                 // if not using alternate network and node is null
-                if (!UseAlternateNetwork(nodeExt, bucketConfig) && node == null)
+                if (!UseAlternateNetwork(nodeExt, bucketConfig) && node == null && !bucketConfig.IsGlobal)
                 {
                     // if using nodeExt and node is null, the KV service may not be available yet and should be disabled (set to 0)
                     // this prevents the server's data service being marked as active before it is ready

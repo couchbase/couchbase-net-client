@@ -77,6 +77,10 @@ namespace Couchbase.Core.Configuration.Server
                             var config = await clusterNode.Value.GetClusterMap().ConfigureAwait(false);
                             if (config != null)
                             {
+                                if (config.Name == null)
+                                {
+                                    config.Name = "CLUSTER";
+                                }
                                 Publish(config);
                             }
                         }
@@ -96,7 +100,6 @@ namespace Couchbase.Core.Configuration.Server
                 try
                 {
                     var isNewOrUpdate = false;
-
                     var stored = _configs.AddOrUpdate(newMap.Name, key =>
                         {
                             isNewOrUpdate = true;

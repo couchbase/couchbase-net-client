@@ -216,10 +216,11 @@ namespace Couchbase.Core
 
                 if (GlobalConfig == null) //TODO NCBC-1966 xerror info is being hidden, so on failure this will not be null
                 {
-                    AddNode(node); //GCCP is not supported - pre-6.5 server fall back to CCCP like SDK 2
+                    AddNode(node); //GCCCP is not supported - pre-6.5 server fall back to CCCP like SDK 2
                 }
                 else
                 {
+                    GlobalConfig.IsGlobal = true;
                     foreach (var nodeAdapter in GlobalConfig.GetNodes())//Initialize cluster nodes for global services
                     {
                         if (server.Host.Equals(nodeAdapter.Hostname))//this is the bootstrap node so update
