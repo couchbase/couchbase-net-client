@@ -1,6 +1,7 @@
 using System;
 using Couchbase.Core.Logging;
 using Couchbase.UnitTests.Core.Logging;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -28,7 +29,11 @@ namespace Couchbase.UnitTests
             var config = new ClusterOptions();
 
             //act
-            config.WithLogging(new LogManagerTests.InMemoryLoggerProvider());
+            config.WithLogging(new LoggerFactory(
+                new ILoggerProvider[]
+                {
+                    new LogManagerTests.InMemoryLoggerProvider()
+                }));
 
             //assert - no assertion because the actually NullLogger type is hidden by the implemention of wrappers
             var logger = LogManager.CreateLogger<ConfigurationTests>();

@@ -82,15 +82,19 @@ namespace Couchbase
             return this;
         }
 
-        public ClusterOptions WithLogging(ILoggerProvider provider = null)
+        public ClusterOptions WithLogging(ILoggerFactory loggerFactory = null)
         {
             //configure a null logger as the default
-            if (provider == null)
+            if (loggerFactory == null)
             {
-                provider = NullLoggerProvider.Instance;
+                LogManager.LoggerFactory = new LoggerFactory(new[]
+                {
+                    NullLoggerProvider.Instance
+                });
+                return this;
             }
 
-            LogManager.LoggerFactory.AddProvider(provider);
+            LogManager.LoggerFactory = loggerFactory;
             return this;
         }
 
