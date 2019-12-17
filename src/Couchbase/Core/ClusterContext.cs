@@ -269,7 +269,7 @@ namespace Couchbase.Core
                     }
                 }
             }
-            throw new AuthenticationException();
+            throw new AuthenticationFailureException();
         }
 
         public async Task<IBucket> BootstrapBucketAsync(string name, Uri uri, BucketType type)

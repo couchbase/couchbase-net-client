@@ -109,7 +109,7 @@ namespace Couchbase
                 _hasBootStrapped = _context.GlobalConfig != null;
                 UpdateClusterCapabilities();
             }
-            catch (AuthenticationException e)
+            catch (AuthenticationFailureException e)
             {
                 //auth failed so bubble up exception and clean up resources
                 Log.LogError(e, @"Could not authenticate user {_clusterOptions.UserName}");

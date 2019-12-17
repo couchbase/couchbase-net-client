@@ -64,7 +64,6 @@
     <Folder Include="Core\Diagnostics\Logging\" />
     <Folder Include="Core\Converters\" />
     <Folder Include="Core\Version\" />
-    <Folder Include="Management\Users\" />
   </ItemGroup>
 
   <ItemGroup>

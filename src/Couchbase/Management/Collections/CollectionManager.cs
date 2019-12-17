@@ -198,7 +198,7 @@ namespace Couchbase.Management.Collections
                         .ConfigureAwait(false);
                 if (collectionExists)
                 {
-                    throw new CollectionAlreadyExistsException(spec.ScopeName, spec.Name);
+                    throw new CollectionExistsException(spec.ScopeName, spec.Name);
                 }
 
                 // create collection
@@ -259,7 +259,7 @@ namespace Couchbase.Management.Collections
                         .ConfigureAwait(false);
                 if (scopeExists)
                 {
-                    throw new ScopeAlreadyExistsException(spec.Name);
+                    throw new ScopeExistsException(spec.Name);
                 }
 
                 // create scope

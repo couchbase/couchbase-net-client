@@ -137,13 +137,13 @@ namespace Couchbase.Management.Buckets
                     var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (json.IndexOf("Bucket with given name already exists", StringComparison.InvariantCultureIgnoreCase) >= 0)
                     {
-                        throw new BucketAlreadyExistsException(settings.Name);
+                        throw new BucketExistsException(settings.Name);
                     }
                 }
 
                 result.EnsureSuccessStatusCode();
             }
-            catch (BucketAlreadyExistsException)
+            catch (BucketExistsException)
             {
                 Logger.LogError($"Failed to create bucket with name {settings.Name} because it already exists");
                 throw;

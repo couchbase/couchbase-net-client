@@ -51,7 +51,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.AuthenticationError:
                 case ResponseStatus.AuthenticationContinue: //likely remove
                 case ResponseStatus.AuthStale:
-                    return new AuthenticationException();
+                    return new AuthenticationFailureException();
                 case ResponseStatus.VBucketBelongsToAnotherServer:
                     return new NotMyVBucketException();
                 case ResponseStatus.SubdocXattrUnknownVattr:
@@ -74,13 +74,13 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.SubDocDocTooDeep:
                     return new DocumentTooDeepException();
                 case ResponseStatus.SubDocCannotInsert:
-                    return new CannotInsertValueException();
+                    return new ValueNotJsonException();
                 case ResponseStatus.SubDocDocNotJson:
                     return new DocumentNotJsonException();
                 case ResponseStatus.SubDocNumRange:
                     return new NumberTooBigException();
                 case ResponseStatus.SubDocDeltaRange:
-                    return new DeltaRangeException();
+                    return new DeltaInvalidException();
                 case ResponseStatus.SubDocPathExists:
                     return new PathExistsException();
                 case ResponseStatus.SubDocValueTooDeep:

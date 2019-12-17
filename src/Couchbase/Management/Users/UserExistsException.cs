@@ -3,9 +3,9 @@ using System;
 namespace Couchbase.Management.Users
 {
     [Serializable]
-    internal class UserAlreadyExistsException : Exception
+    internal class UserExistsException : Exception
     {
-        public UserAlreadyExistsException(string username)
+        public UserExistsException(string username)
             : base($"User with username {username} already exists")
         {
 
