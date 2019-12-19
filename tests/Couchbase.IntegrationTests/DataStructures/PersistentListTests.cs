@@ -109,109 +109,110 @@ namespace Couchbase.IntegrationTests.DataStructures
             Assert.True(exists);
         }
 
-        [Fact]
+
+        [Fact(Skip = "Not Implemented")]
         public void Test_Clear()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_Contains()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_CopyTo()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_Remove()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_IndexOf()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_Insert()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_RemoveAt()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_Indexer()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_CopyToAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_AddAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_ClearAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public void Test_ContainsAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public Task Test_CopyToAsync_Array()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public Task Test_RemoveAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public Task Test_CountAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public Task Test_IndexOfAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public Task Test_InsertAsync()
         {
             throw new NotImplementedException();
         }
 
-        [Fact]
+        [Fact(Skip = "Not Implemented")]
         public Task Test_RemoveAtAsync()
         {
             throw new NotImplementedException();
