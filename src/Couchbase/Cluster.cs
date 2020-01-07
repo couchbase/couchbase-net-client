@@ -176,6 +176,10 @@ namespace Couchbase
             options = options ?? new QueryOptions();
             await EnsureBootstrapped();
 
+            if (options.CurrentContextId == null)
+            {
+                options.ClientContextId(Guid.NewGuid().ToString());
+            }
             return await _lazyQueryClient.Value.QueryAsync<T>(statement, options);
         }
 

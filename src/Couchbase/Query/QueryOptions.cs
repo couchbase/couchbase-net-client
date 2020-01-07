@@ -54,7 +54,6 @@ namespace Couchbase.Query
 
         public QueryOptions()
         {
-            _clientContextId = QuerySequenceGenerator.GetNextAsString();
         }
 
         public QueryOptions(string statement):this()
@@ -122,7 +121,7 @@ namespace Couchbase.Query
         /// <value>
         /// The context identifier.
         /// </value>
-        public string CurrentContextId => string.Format("{0}::{1}", _clientContextId, _requestContextId);
+        public string CurrentContextId => _clientContextId;
 
         /// <summary>
         /// Gets a value indicating whether this instance has been retried (if it's been optimized
@@ -546,10 +545,12 @@ namespace Couchbase.Query
         }
 
         /// <summary>
-        /// Clients the context identifier.
+        /// Client Context ID.
+        /// If no client context ID is provided on this option, a UUID is generated and sent
+        /// automatically so by default it is always possible to identify a query when debugging.
         /// </summary>
         /// <param name="clientContextId">The client context identifier.</param>
-        /// <returns></returns>
+        /// <returns>A reference to the current <see cref="QueryOptions" /> for method chaining.</returns>
         public QueryOptions ClientContextId(string clientContextId)
         {
             //this is seeded in the ctor
@@ -560,8 +561,9 @@ namespace Couchbase.Query
             return this;
         }
 
+        /// <summary>
         /// Adds a raw query parameter and value to the query.
-        /// NOTE: This is uncommited and may change in the future.
+        /// NOTE: This is uncommitted and may change in the future.
         /// </summary>
         /// <param name="name">The paramter name.</param>
         /// <param name="value">The parameter value.</param>
@@ -681,11 +683,6 @@ namespace Couchbase.Query
         /// (like ints, Lists, etc...) rather than only strings.</remarks>
         public IDictionary<string, object> GetFormValues()
         {
-            return GetFormValues(true);
-        }
-
-        private IDictionary<string, object> GetFormValues(bool generateNewId)
-        {
             if (string.IsNullOrWhiteSpace(_statement) ||
                 (_prepareEncoded && _preparedPayload == null))
             {
@@ -802,10 +799,6 @@ namespace Couchbase.Query
             {
                 formValues.Add(QueryParameters.PipelineCapacity, _pipelineCapacity.Value.ToString());
             }
-            if (generateNewId)
-            {
-                _requestContextId = QuerySequenceGenerator.GetNext();
-            }
             if (_profile != QueryProfile.Off)
             {
                 formValues.Add(QueryParameters.Profile, _profile.ToString().ToLowerInvariant());
@@ -853,12 +846,7 @@ namespace Couchbase.Query
         /// <returns>The form values as a JSON object.</returns>
         public string GetFormValuesAsJson()
         {
-            return GetFormValuesAsJson(true);
-        }
-
-        private string GetFormValuesAsJson(bool generateId)
-        {
-            var formValues = GetFormValues(generateId);
+            var formValues = GetFormValues();
             return JsonConvert.SerializeObject(formValues);
         }
 
@@ -903,7 +891,7 @@ namespace Couchbase.Query
             string request;
             try
             {
-                request = GetBaseUri() + "[" + GetFormValuesAsJson(false) + "]";
+                request = GetBaseUri() + "[" + GetFormValuesAsJson() + "]";
             }
             catch
             {
