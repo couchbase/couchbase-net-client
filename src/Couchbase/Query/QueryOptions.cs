@@ -581,18 +581,6 @@ namespace Couchbase.Query
             return this;
         }
 
-        /// <summary>
-        /// Bases the URI.
-        /// </summary>
-        /// <param name="baseUri">The base URI.</param>
-        /// <returns></returns>
-        public QueryOptions BaseUri(Uri baseUri)
-        {
-            _baseUri = baseUri;
-            return this;
-        }
-
-        /// <summary>
         /// Adds a raw query parameter and value to the query.
         /// NOTE: This is uncommited and may change in the future.
         /// </summary>
