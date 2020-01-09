@@ -84,11 +84,11 @@ namespace Couchbase.IO.Operations.SubDocument
             get { return OperationCode.MultiLookup; }
         }
 
-        public override T GetValue()
+        public IList<OperationSpec> GetMultiValues()
         {
             //Fix for NCBC-2179 Do not attempt to parse body if response is not my vbucket
             if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-                return default(T);
+                return null;
 
             var response = Data.ToArray();
             var statusOffset = Header.BodyOffset;
@@ -112,7 +112,8 @@ namespace Couchbase.IO.Operations.SubDocument
 
                 if (valueOffset > response.Length) break;
             }
-            return (T)_lookupCommands;
+
+            return _lookupCommands;
         }
 
         public override IOperationResult<T> GetResultWithValue()
@@ -126,7 +127,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = (IList<OperationSpec>) GetValue();
+                result.Value = GetMultiValues();
 
                 //clean up and set to null
                 if (!result.IsNmv())
