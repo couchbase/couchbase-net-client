@@ -115,6 +115,38 @@ namespace Couchbase.IO.Operations.SubDocument
             return (T)_lookupCommands;
         }
 
+        public IList<OperationSpec> GetMultiValues()
+        {
+            //Fix for NCBC-2179 Do not attempt to parse body if response is not my vbucket
+            if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)
+                return null;
+
+            var response = Data.ToArray();
+            var statusOffset = Header.BodyOffset;
+            var valueLengthOffset = statusOffset + 2;
+            var valueOffset = statusOffset + 6;
+            var commandIndex = 0;
+
+            for (;;)
+            {
+                var bodyLength = Converter.ToInt32(response, valueLengthOffset);
+                var payLoad = new byte[bodyLength];
+                System.Buffer.BlockCopy(response, valueOffset, payLoad, 0, bodyLength);
+
+                var command = _lookupCommands[commandIndex++];
+                command.Status = (ResponseStatus)Converter.ToUInt16(response, statusOffset);
+                command.ValueIsJson = payLoad.IsJson(0, bodyLength - 1);
+                command.Bytes = payLoad;
+                statusOffset = valueOffset + bodyLength;
+                valueLengthOffset = statusOffset + 2;
+                valueOffset = statusOffset + 6;
+
+                if (valueOffset > response.Length) break;
+            }
+
+            return _lookupCommands;
+        }
+
         public override IOperationResult<T> GetResultWithValue()
         {
             var result = new DocumentFragment<T>(_builder);
@@ -126,7 +158,7 @@ namespace Couchbase.IO.Operations.SubDocument
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = (IList<OperationSpec>) GetValue();
+                result.Value = (IList<OperationSpec>) GetMultiValues();
 
                 //clean up and set to null
                 if (!result.IsNmv())
