@@ -34,7 +34,6 @@ namespace Couchbase
         {
             Name = name;
             _httpClusterMap = httpClusterMap;
-            SupportsCollections = false;
         }
 
         public override Task<IScope> this[string name]

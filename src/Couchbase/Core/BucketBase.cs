@@ -27,7 +27,6 @@ namespace Couchbase.Core
         public BucketConfig BucketConfig;
         protected Manifest Manifest;
         internal IKeyMapper KeyMapper;
-        protected bool SupportsCollections;
         protected bool Disposed;
 
         public BucketType BucketType { get; protected set; }
@@ -78,13 +77,12 @@ namespace Couchbase.Core
                 foreach (var scopeDef in Manifest.scopes)
                 {
                     var collections = new List<ICollection>();
-                    var scope = new Scope(scopeDef.name, scopeDef.uid, collections, this);
                     foreach (var collectionDef in scopeDef.collections)
                     {
                         collections.Add(new CouchbaseCollection(this, Context,
                             Convert.ToUInt32(collectionDef.uid, 16), collectionDef.name));
                     }
-
+                    var scope = new Scope(scopeDef.name, scopeDef.uid, collections, this);
                     Scopes.TryAdd(scopeDef.name, scope);
                 }
             }

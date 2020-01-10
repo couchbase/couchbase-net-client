@@ -177,7 +177,7 @@ namespace Couchbase
             node.Owner = this;
             await node.SelectBucket(this.Name);
 
-            if (SupportsCollections)
+            if (Context.SupportsCollections)
             {
                 Manifest = await node.GetManifest().ConfigureAwait(false);
             }
