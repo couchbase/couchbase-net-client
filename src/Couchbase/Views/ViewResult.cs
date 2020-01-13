@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Query;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -18,8 +21,6 @@ namespace Couchbase.Views
     /// A <see cref="StreamAlreadyReadException"/> will be thrown if the result is enumerated after it has reached
     /// the end of the stream.
     /// </summary>
-    /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
-    /// <seealso cref="IViewResult{T}" />
     internal class ViewResult : IViewResult
     {
         private readonly Result _result;
@@ -60,7 +61,10 @@ namespace Couchbase.Views
             }
         }
 
-        public IEnumerable<IViewRow> Rows => _result;
+        public IAsyncEnumerator<IViewRow> GetAsyncEnumerator(CancellationToken cancellationToken)
+        {
+            return _result.GetAsyncEnumerator(cancellationToken);
+        }
 
         /// <summary>
         /// If the response indicates the request is retryable, returns true.
@@ -101,13 +105,8 @@ namespace Couchbase.Views
             }
         }
 
-        private class Result : IEnumerable<ViewRow>, IDisposable
+        private class Result : IAsyncEnumerable<IViewRow>, IDisposable
         {
-            private static readonly JsonSerializer _jsonSerializer = new JsonSerializer
-            {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-            };
-
             private readonly Stream _responseStream;
             private readonly ISpan _decodeSpan;
             private JsonTextReader _reader;
@@ -121,16 +120,11 @@ namespace Couchbase.Views
                 _decodeSpan = decodeSpan;
             }
 
-            public uint TotalRows
-            {
-                get
-                {
-                    ReadToRows();
-                    return _totalRows;
-                }
-            }
+            public uint TotalRows => _totalRows;
 
-            public IEnumerator<ViewRow> GetEnumerator()
+#pragma warning disable 8425
+            public async IAsyncEnumerator<IViewRow> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+#pragma warning restore 8425
             {
                 if (HasFinishedReading)
                 {
@@ -138,13 +132,14 @@ namespace Couchbase.Views
                 }
 
                 // make sure we're are the 'rows' element in the stream
-                if (ReadToRows())
+                if (await ReadToRowsAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    while (_reader.Read())
+                    while (await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
                         if (_reader.TokenType == JsonToken.StartObject)
                         {
-                            var json = JToken.ReadFrom(_reader);
+                            var json = await JToken.ReadFromAsync(_reader, cancellationToken).ConfigureAwait(false);
+
                             yield return new ViewRow
                             {
                                 Id = json.Value<string>("id"),
@@ -162,7 +157,7 @@ namespace Couchbase.Views
                 _decodeSpan?.Finish();
             }
 
-            private bool ReadToRows()
+            private async Task<bool> ReadToRowsAsync(CancellationToken cancellationToken)
             {
                 // if reader is not null, we've already started to read the stream
                 if (_reader != null)
@@ -171,7 +166,7 @@ namespace Couchbase.Views
                 }
 
                 _reader = new JsonTextReader(new StreamReader(_responseStream));
-                while (_reader.Read())
+                while (await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                 {
                     if (_reader.Path == "total_rows" && _reader.TokenType == JsonToken.Integer)
                     {
@@ -193,18 +188,10 @@ namespace Couchbase.Views
                 return false;
             }
 
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-
             public void Dispose()
             {
-                if (_reader != null)
-                {
-                    _reader.Close(); // also closes underlying stream
-                    _reader = null;
-                }
+                _reader?.Close(); // also closes underlying stream
+                _reader = null;
             }
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,7 @@ namespace Couchbase.IntegrationTests.Services.Views
         }
 
         [Fact]
-        public async Task Test_ViewQuery()
+        public async Task Test_ViewQuery_HasKeys()
         {
             var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
             var result = await bucket.ViewQueryAsync("beer", "brewery_beers", options =>
@@ -27,14 +28,29 @@ namespace Couchbase.IntegrationTests.Services.Views
             });
 
             var count = 0;
-            foreach (var row in result.Rows)
+            await foreach (var row in result)
             {
                 Assert.NotNull(row.Key<string[]>());
-                Assert.NotNull(row.Value<Beer>());
+
                 count++;
             }
 
             Assert.Equal(10, count);
+        }
+
+        [Fact]
+        public async Task Test_ViewQuery_HasValues()
+        {
+            var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
+            var result = await bucket.ViewQueryAsync("beer", "by_location", options =>
+            {
+                options.WithLimit(10);
+            });
+
+            await foreach (var row in result)
+            {
+                Assert.NotEqual(0, row.Value<int>());
+            }
         }
 
         [Fact]
@@ -79,7 +95,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             }).ConfigureAwait(false);
 
             var count = 0;
-            foreach (var row in result.Rows)
+            await foreach (var row in result)
             {
                 count++;
                 Assert.NotNull(row);
@@ -87,7 +103,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             }
 
             Assert.Equal(10, count);
-            Assert.Equal(7303u, result.MetaData.TotalRows);
+            Assert.InRange(result.MetaData.TotalRows, 7303u, 7500u);
         }
 
         [Fact]

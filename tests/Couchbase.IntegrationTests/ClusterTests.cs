@@ -50,7 +50,7 @@ namespace Couchbase.IntegrationTests
             var bucket = await cluster.BucketAsync("default");
 
             var results = await bucket.ViewQueryAsync("dev_test_ddoc", "test_view").ConfigureAwait(false);
-            foreach (var result in results.Rows)
+            await foreach (var result in results)
             {
             }
         }

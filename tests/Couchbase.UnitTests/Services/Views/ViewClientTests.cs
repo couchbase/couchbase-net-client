@@ -77,42 +77,46 @@ namespace Couchbase.UnitTests.Services.Views
         }
 
         [Fact]
-        public void Test_Count()
+        public async Task Test_Count()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
-            Assert.Equal(10, response.Rows.Count());
+            var result = await response.CountAsync();
+
+            Assert.Equal(10, result);
         }
 
         [Fact]
-        public void Test_Any()
+        public async Task Test_Any()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
-            Assert.True(response.Rows.Any());
+            var result = await response.AnyAsync();
+
+            Assert.True(result);
         }
 
         [Fact]
-        public void Test_First()
+        public async Task Test_First()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
-            var first = response.Rows.First();
+            var first = await response.FirstAsync();
             Assert.NotNull(first);
         }
 
         [Fact]
-        public void Test_Enumeration()
+        public async Task Test_Enumeration()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
             //read the results
             var count = 0;
-            foreach (var beer in response.Rows)
+            await foreach (var beer in response)
             {
                 count++;
             }
@@ -120,22 +124,22 @@ namespace Couchbase.UnitTests.Services.Views
         }
 
         [Fact]
-        public void Test_Repeat_Enumeration()
+        public async Task Test_Repeat_Enumeration()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
-            Assert.Equal(10, response.Rows.ToList().Count);
-            Assert.Throws<StreamAlreadyReadException>(() => response.Rows.ToList());
+            Assert.Equal(10, (await response.ToListAsync()).Count);
+            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => response.ToListAsync().AsTask());
         }
 
         [Fact]
-        public void Test_Values()
+        public async Task Test_Values()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
-            Assert.Equal(10, response.Rows.Count());
+            Assert.Equal(10, await response.CountAsync());
         }
 
         [Fact]
@@ -168,12 +172,12 @@ namespace Couchbase.UnitTests.Services.Views
         }
 
         [Fact]
-        public void Test_TotalRows()
+        public async Task Test_TotalRows()
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
 
-            foreach (var row in response.Rows)
+            await foreach (var row in response)
             {
                 // noop
             }
