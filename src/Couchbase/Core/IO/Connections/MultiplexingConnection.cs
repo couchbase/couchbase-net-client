@@ -105,7 +105,7 @@ namespace Couchbase.Core.IO.Connections
             {
                 try
                 {
-                    #if NETCOREAPP2_1
+                    #if NETCOREAPP2_1 || NETSTANDARD2_1
 
                     var requestSpan = request.Span;
                     while (requestSpan.Length > 0) {

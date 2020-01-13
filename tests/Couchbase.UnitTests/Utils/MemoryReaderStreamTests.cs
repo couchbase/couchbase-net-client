@@ -149,7 +149,7 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(expectedPosition, stream.Position);
         }
 
-#if NETCOREAPP2_1
+#if NETCOREAPP2_1 || NETCOREAPP3_0
 
         [Theory]
         [InlineData(0, new byte[] {0, 1, 2, 3, 4, 5, 6, 7})]

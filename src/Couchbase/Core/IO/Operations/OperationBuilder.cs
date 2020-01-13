@@ -163,7 +163,7 @@ namespace Couchbase.Core.IO.Operations
             Advance(count);
         }
 
-#if NETCOREAPP2_1
+#if NETCOREAPP2_1 || NETSTANDARD2_1
         /// <inheritdoc />
         public override void Write(ReadOnlySpan<byte> buffer)
         {

@@ -451,7 +451,7 @@ namespace Couchbase.Core.IO.Transcoders
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteHelper(Stream stream, ReadOnlySpan<byte> buffer)
         {
-#if NETCOREAPP2_1
+#if NETCOREAPP2_1 || NETSTANDARD2_1
             stream.Write(buffer);
 #else
             var array = ArrayPool<byte>.Shared.Rent(buffer.Length);
