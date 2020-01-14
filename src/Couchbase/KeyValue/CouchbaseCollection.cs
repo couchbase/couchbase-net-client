@@ -309,7 +309,7 @@ namespace Couchbase.KeyValue
 
         #region GetAndLock
 
-        public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions options = null)
+        public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan lockTime, GetAndLockOptions options = null)
         {
             options = options ?? new GetAndLockOptions();
             var transcoder = options.Transcoder ?? _transcoder;
@@ -317,7 +317,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
-                Expiry = expiry.ToTtl(),
+                Expiry = lockTime.ToTtl(),
                 Transcoder = transcoder
             })
             {
