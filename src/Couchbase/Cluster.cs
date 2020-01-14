@@ -251,18 +251,6 @@ namespace Couchbase
             }
         }
 
-        /// <inheritdoc />
-        public string ExportDeferredAnalyticsQueryHandle<T>(IAnalyticsDeferredResultHandle<T> handle)
-        {
-            return _lazyAnalyticsClient.Value.ExportDeferredQueryHandle(handle);
-        }
-
-        /// <inheritdoc />
-        public IAnalyticsDeferredResultHandle<T> ImportDeferredAnalyticsQueryHandle<T>(string encodedHandle)
-        {
-            return _lazyAnalyticsClient.Value.ImportDeferredQueryHandle<T>(encodedHandle);
-        }
-
         internal void UpdateClusterCapabilities()
         {
             if (_lazyQueryClient.Value is QueryClient client)
