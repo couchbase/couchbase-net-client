@@ -17,10 +17,10 @@ namespace Couchbase.Views
         /// <summary>
         /// Gets the query meta data.
         /// </summary>
-        MetaData MetaData { get; }
+        ViewMetaData MetaData { get; }
     }
 
-    public class MetaData
+    public class ViewMetaData
     {
         /// <summary>
         /// The total number of rows returned by the View request.

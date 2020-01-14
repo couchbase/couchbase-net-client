@@ -39,9 +39,9 @@ namespace Couchbase.Views
         public HttpStatusCode StatusCode { get; }
         public string Message { get; }
 
-        private MetaData _metaData;
+        private ViewMetaData _metaData;
 
-        public MetaData MetaData
+        public ViewMetaData MetaData
         {
             get
             {
@@ -53,7 +53,7 @@ namespace Couchbase.Views
 
                 if (_metaData == null)
                 {
-                    _metaData = new MetaData {TotalRows = _result.TotalRows};
+                    _metaData = new ViewMetaData {TotalRows = _result.TotalRows};
                 }
 
                 return _metaData;
