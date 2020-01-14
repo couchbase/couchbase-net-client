@@ -172,7 +172,7 @@ namespace Couchbase.UnitTests
                 }
             }
 
-            public override IViewIndexManager Views => throw new NotImplementedException();
+            public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
 
             public override ICollectionManager Collections => throw new NotImplementedException();
 

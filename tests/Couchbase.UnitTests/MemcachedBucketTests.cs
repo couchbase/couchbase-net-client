@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests
         {
             var bucket = new MemcachedBucket("default", new ClusterContext());
 
-            Assert.Throws<NotSupportedException>(() => bucket.Views);
+            Assert.Throws<NotSupportedException>(() => bucket.ViewIndexes);
         }
 
         [Fact]

@@ -52,7 +52,7 @@ namespace Couchbase.Core
         public abstract Task<IViewResult> ViewQueryAsync(string designDocument, string viewName,
             ViewOptions options = default);
 
-        public abstract IViewIndexManager Views { get; }
+        public abstract IViewIndexManager ViewIndexes { get; }
 
         public abstract ICollectionManager Collections { get; }
 

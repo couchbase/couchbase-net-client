@@ -22,7 +22,7 @@ namespace Couchbase.IntegrationTests.Management
         {
             var cluster = _fixture.Cluster;
             var bucket = await _fixture.GetDefaultBucket();
-            var manager = bucket.Views;
+            var manager = bucket.ViewIndexes;
 
             var designDoc = new DesignDocument
             {

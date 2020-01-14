@@ -25,7 +25,7 @@ namespace Couchbase
 
         Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null);
 
-        IViewIndexManager Views { get; }
+        IViewIndexManager ViewIndexes { get; }
 
         ICollectionManager Collections { get; }
 

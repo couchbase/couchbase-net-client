@@ -56,7 +56,7 @@ namespace Couchbase
             }
         }
 
-        public override IViewIndexManager Views => _viewManagerLazy.Value;
+        public override IViewIndexManager ViewIndexes => _viewManagerLazy.Value;
         public override ICollectionManager Collections => _collectionManagerLazy.Value;
 
         internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
