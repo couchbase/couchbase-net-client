@@ -150,17 +150,17 @@ namespace Couchbase.KeyValue
 
         #region Unlock
 
-        public static Task UnlockAsync<T>(this ICollection collection, string id)
+        public static Task UnlockAsync<T>(this ICollection collection, string id, ulong cas)
         {
-            return collection.UnlockAsync<T>(id, new UnlockOptions());
+            return collection.UnlockAsync<T>(id, cas, new UnlockOptions());
         }
 
-        public static Task UnlockAsync<T>(this ICollection collection, string id, Action<UnlockOptions> configureOptions)
+        public static Task UnlockAsync<T>(this ICollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
         {
             var options = new UnlockOptions();
             configureOptions(options);
 
-            return collection.UnlockAsync<T>(id, options);
+            return collection.UnlockAsync<T>(id, cas, options);
         }
 
         #endregion

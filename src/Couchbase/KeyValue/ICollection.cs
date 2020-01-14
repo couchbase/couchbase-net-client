@@ -27,7 +27,7 @@ namespace Couchbase.KeyValue
 
         Task RemoveAsync(string id, RemoveOptions options = null);
 
-        Task UnlockAsync<T>(string id, UnlockOptions options = null);
+        Task UnlockAsync<T>(string id, ulong cas, UnlockOptions options = null);
 
         Task TouchAsync(string id, TimeSpan expiry, TouchOptions options = null);
 

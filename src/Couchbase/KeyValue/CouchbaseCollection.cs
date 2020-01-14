@@ -242,13 +242,14 @@ namespace Couchbase.KeyValue
 
         #region Unlock
 
-        public async Task UnlockAsync<T>(string id, UnlockOptions options = null)
+        public async Task UnlockAsync<T>(string id, ulong cas, UnlockOptions options = null)
         {
             options = options ?? new UnlockOptions();
             using (var unlockOp = new Unlock
             {
                 Key = id,
                 Cid = Cid,
+                Cas = cas,
                 Transcoder = _transcoder
             })
             {
