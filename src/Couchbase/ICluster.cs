@@ -19,8 +19,6 @@ namespace Couchbase
 
         Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null);
 
-        Task<IClusterManager> ClusterManagerAsync();
-
         #region Query
 
         Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);

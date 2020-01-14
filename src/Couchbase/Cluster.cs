@@ -132,11 +132,6 @@ namespace Couchbase
             return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options?.ReportId ?? Guid.NewGuid().ToString()));
         }
 
-        public Task<IClusterManager> ClusterManagerAsync()
-        {
-            throw new NotImplementedException();
-        }
-
         private async Task EnsureBootstrapped()
         {
             if (_hasBootStrapped)
