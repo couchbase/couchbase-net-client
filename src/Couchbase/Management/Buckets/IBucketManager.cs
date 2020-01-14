@@ -7,7 +7,7 @@ namespace Couchbase.Management.Buckets
     {
         Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions options = null);
 
-        Task UpsertBucketAsync(BucketSettings settings, UpsertBucketOptions options = null);
+        Task UpdateBucketAsync(BucketSettings settings, UpdateBucketOptions options = null);
 
         Task DropBucketAsync(string bucketName, DropBucketOptions options = null);
 

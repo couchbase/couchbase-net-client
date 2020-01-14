@@ -2,16 +2,16 @@ using System.Threading;
 
 namespace Couchbase.Management.Buckets
 {
-    public class UpsertBucketOptions
+    public class UpdateBucketOptions
     {
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
 
-        public UpsertBucketOptions WithCancellationToken(CancellationToken cancellationToken)
+        public UpdateBucketOptions WithCancellationToken(CancellationToken cancellationToken)
         {
             CancellationToken = cancellationToken;
             return this;
         }
 
-        public static UpsertBucketOptions Default => new UpsertBucketOptions();
+        public static UpdateBucketOptions Default => new UpdateBucketOptions();
     }
 }

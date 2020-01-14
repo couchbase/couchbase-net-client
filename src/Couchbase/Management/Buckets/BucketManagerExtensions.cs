@@ -19,17 +19,17 @@ namespace Couchbase.Management.Buckets
             return bucketManager.CreateBucketAsync(settings, options);
         }
 
-        public static Task UpsertBucketAsync(this IBucketManager bucketManager, BucketSettings settings)
+        public static Task UpdateBucketAsync(this IBucketManager bucketManager, BucketSettings settings)
         {
-            return bucketManager.UpsertBucketAsync(settings, UpsertBucketOptions.Default);
+            return bucketManager.UpdateBucketAsync(settings, UpdateBucketOptions.Default);
         }
 
-        public static Task UpsertBucketAsync(this IBucketManager bucketManager, BucketSettings settings, Action<UpsertBucketOptions> configureOptions)
+        public static Task UpdateBucketAsync(this IBucketManager bucketManager, BucketSettings settings, Action<UpdateBucketOptions> configureOptions)
         {
-            var options = new UpsertBucketOptions();
+            var options = new UpdateBucketOptions();
             configureOptions(options);
 
-            return bucketManager.UpsertBucketAsync(settings, options);
+            return bucketManager.UpdateBucketAsync(settings, options);
         }
 
         public static Task DropBucketAsync(this IBucketManager bucketManager, string bucketName)

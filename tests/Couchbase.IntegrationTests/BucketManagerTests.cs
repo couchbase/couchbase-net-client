@@ -45,7 +45,7 @@ namespace Couchbase.IntegrationTests
 
                 // upsert
                 settings.ConflictResolutionType = null; // not allowed to edit on existing bucket
-                await bucketManager.UpsertBucketAsync(settings);
+                await bucketManager.UpdateBucketAsync(settings);
                 settings.ConflictResolutionType = ConflictResolutionType.Timestamp;
 
                 // get all

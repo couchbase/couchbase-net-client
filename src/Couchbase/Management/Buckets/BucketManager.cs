@@ -155,9 +155,9 @@ namespace Couchbase.Management.Buckets
             }
         }
 
-        public async Task UpsertBucketAsync(BucketSettings settings, UpsertBucketOptions options = null)
+        public async Task UpdateBucketAsync(BucketSettings settings, UpdateBucketOptions options = null)
         {
-            options = options ?? new UpsertBucketOptions();
+            options = options ?? new UpdateBucketOptions();
             var uri = GetUri(settings.Name);
             Logger.LogInformation($"Attempting to upsert bucket with name {settings.Name} - {uri}");
 
