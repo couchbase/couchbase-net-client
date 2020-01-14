@@ -15,8 +15,6 @@ namespace Couchbase.KeyValue
 
         public bool IncludeExpiry { get; set; }
 
-        public bool CreatePath { get; set; }
-
         public List<string> ProjectList { get; set; } = new List<string>();
 
         public TimeSpan? Timeout { get; set; }
@@ -34,12 +32,6 @@ namespace Couchbase.KeyValue
         public GetOptions WithExpiry()
         {
             IncludeExpiry = true;
-            return this;
-        }
-
-        public GetOptions WithCreatePath(bool createPath)
-        {
-            CreatePath = createPath;
             return this;
         }
 
