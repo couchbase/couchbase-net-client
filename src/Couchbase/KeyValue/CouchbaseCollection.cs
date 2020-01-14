@@ -156,7 +156,6 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Content = content,
-                Cas = options.Cas,
                 Cid = Cid,
                 Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
@@ -181,7 +180,6 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Content = content,
-                Cas = options.Cas,
                 Cid = Cid,
                 Expires = options.Expiry.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
@@ -251,7 +249,6 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
-                Cas = options.Cas,
                 Transcoder = _transcoder
             })
             {

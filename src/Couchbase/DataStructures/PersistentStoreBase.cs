@@ -84,7 +84,7 @@ namespace Couchbase.DataStructures
             {
                 var items = result.ContentAs<IList<TValue>>();
                 items.CopyTo(array, arrayIndex);
-                await Collection.UpsertAsync(Key, items, options=> options.Cas = result.Cas);
+                await Collection.UpsertAsync(Key, items);
             }
         }
 

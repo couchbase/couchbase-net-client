@@ -72,7 +72,7 @@ namespace Couchbase.DataStructures
                 var added = items.Add(item);
                 if (added)
                 {
-                    await Collection.UpsertAsync(Key, items, options => options.Cas = getResult.Cas);
+                    await Collection.UpsertAsync(Key, items);
                 }
 
                 return added;
@@ -158,7 +158,7 @@ namespace Couchbase.DataStructures
             {
                 var thisSet = getResult.ContentAs<HashSet<TValue>>();
                 thisSet.ExceptWith(other);
-                await Collection.UpsertAsync(Key, thisSet, options => options.Cas = getResult.Cas);
+                await Collection.UpsertAsync(Key, thisSet);
             }
         }
 
@@ -169,7 +169,7 @@ namespace Couchbase.DataStructures
             {
                 var thisSet = getResult.ContentAs<HashSet<TValue>>();
                 thisSet.IntersectWith(other);
-                await Collection.UpsertAsync(Key, thisSet, options => options.Cas = getResult.Cas);
+                await Collection.UpsertAsync(Key, thisSet);
             }
         }
 
@@ -240,7 +240,7 @@ namespace Couchbase.DataStructures
             {
                 var thisSet = getResult.ContentAs<HashSet<TValue>>();
                 thisSet.SymmetricExceptWith(other);
-                await Collection.UpsertAsync(Key, thisSet, options => options.Cas = getResult.Cas);
+                await Collection.UpsertAsync(Key, thisSet);
             }
         }
 
@@ -251,7 +251,7 @@ namespace Couchbase.DataStructures
             {
                 var thisSet = getResult.ContentAs<HashSet<TValue>>();
                 thisSet.UnionWith(other);
-                await Collection.UpsertAsync(Key, thisSet, options => options.Cas = getResult.Cas);
+                await Collection.UpsertAsync(Key, thisSet);
             }
         }
 
@@ -274,7 +274,7 @@ namespace Couchbase.DataStructures
                 var removed = thisSet.Remove(item);
                 if (removed)
                 {
-                    await Collection.UpsertAsync(Key, thisSet, options => options.Cas = getResult.Cas);
+                    await Collection.UpsertAsync(Key, thisSet);
                 }
 
                 return removed;

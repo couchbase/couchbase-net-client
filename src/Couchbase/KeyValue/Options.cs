@@ -143,8 +143,6 @@ namespace Couchbase.KeyValue
     {
         public TimeSpan Expiry { get; set; }
 
-        public ulong Cas { get; set; }
-
         public ReplicateTo ReplicateTo { get; set; }
 
         public PersistTo PersistTo { get; set; }
@@ -165,12 +163,6 @@ namespace Couchbase.KeyValue
         public UpsertOptions WithExpiry(TimeSpan expiry)
         {
             Expiry = expiry;
-            return this;
-        }
-
-        public UpsertOptions WithCas(ulong cas)
-        {
-            Cas = cas;
             return this;
         }
 
@@ -208,8 +200,6 @@ namespace Couchbase.KeyValue
     {
         public TimeSpan Expiry { get; set; }
 
-        public ulong Cas { get; set; }
-
         public ReplicateTo ReplicateTo { get; set; }
 
         public PersistTo PersistTo { get; set; }
@@ -231,12 +221,6 @@ namespace Couchbase.KeyValue
         public InsertOptions WithExpiry(TimeSpan expiry)
         {
             Expiry = expiry;
-            return this;
-        }
-
-        public InsertOptions WithCas(ulong cas)
-        {
-            Cas = cas;
             return this;
         }
 
@@ -388,17 +372,10 @@ namespace Couchbase.KeyValue
 
     public class UnlockOptions
     {
-        public ulong Cas { get; set; }
 
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
-
-        public UnlockOptions WithCas(ulong cas)
-        {
-            Cas = cas;
-            return this;
-        }
 
         public UnlockOptions WithTimeout(TimeSpan timeout)
         {
@@ -419,7 +396,6 @@ namespace Couchbase.KeyValue
 
     public class TouchOptions
     {
-        public ulong Cas { get; set; }
 
         public ReplicateTo ReplicateTo { get; set; }
 
@@ -428,12 +404,6 @@ namespace Couchbase.KeyValue
         public TimeSpan? Timeout { get;set; }
 
         public CancellationToken Token { get; set; }
-        
-        public TouchOptions WithCas(ulong cas)
-        {
-            Cas = cas;
-            return this;
-        }
 
         public TouchOptions WithTimeout(TimeSpan timeout)
         {
@@ -717,7 +687,6 @@ namespace Couchbase.KeyValue
 
     public class GetAndTouchOptions
     {
-        public ulong Cas { get; set; }
 
         public ReplicateTo ReplicateTo { get; set; }
 
@@ -732,12 +701,6 @@ namespace Couchbase.KeyValue
         public GetAndTouchOptions WithTranscoder(ITypeTranscoder transcoder)
         {
             Transcoder = transcoder;
-            return this;
-        }
-        
-        public GetAndTouchOptions WithCas(ulong cas)
-        {
-            Cas = cas;
             return this;
         }
 
