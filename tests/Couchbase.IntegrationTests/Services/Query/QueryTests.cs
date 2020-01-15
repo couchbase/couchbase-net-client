@@ -34,12 +34,12 @@ namespace Couchbase.IntegrationTests.Services.Query
             // execute prepare first time
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;",
                 options => options.AdHoc(false));
-            Assert.Equal(QueryStatus.Success, result.Status);
+            Assert.Equal(QueryStatus.Success, result.MetaData.Status);
 
             // should use prepared plan
             var preparedResult = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;",
                 options => options.AdHoc(false));
-            Assert.Equal(QueryStatus.Success, preparedResult.Status);
+            Assert.Equal(QueryStatus.Success, preparedResult.MetaData.Status);
         }
 
         [Fact]

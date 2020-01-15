@@ -134,10 +134,10 @@ namespace Couchbase.Query
                     //read the header and stop when we reach the queried rows
                     await queryResult.ReadToRowsAsync(options.CancellationToken).ConfigureAwait(false);
 
-                    if (response.StatusCode != HttpStatusCode.OK || queryResult.Status != QueryStatus.Success)
+                    if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData.Status != QueryStatus.Success)
                     {
                         throw new QueryException(queryResult.Message,
-                            queryResult.Status,
+                            queryResult.MetaData.Status,
                             queryResult.Errors);
                     }
                 }

@@ -26,6 +26,27 @@ namespace Couchbase.Query
         internal ISpan DecodeSpan { get; set; }
 
         /// <summary>
+        /// Gets the meta data associated with the analytics result.
+        /// </summary>
+        public QueryMetaData MetaData { get; internal set; }
+
+        /// <summary>
+        /// Gets or sets the HTTP status code.
+        /// </summary>
+        /// <value>
+        /// The HTTP status code.
+        /// </value>
+        internal HttpStatusCode HttpStatusCode { get; set; }
+
+        /// <summary>
+        /// Gets a list of 0 or more error objects; if an error occurred during processing of the request, it will be represented by an error object in this list.
+        /// </summary>
+        /// <value>
+        /// The errors.
+        /// </value>
+        public List<Error> Errors { get; } = new List<Error>();
+
+        /// <summary>
         /// Returns true if the operation was successful.
         /// </summary>
         /// <remarks>
@@ -43,6 +64,8 @@ namespace Couchbase.Query
         /// </summary>
         public Exception Exception { get; internal set; }
 
+        
+
         /// <summary>
         /// If the response indicates the request is retryable, returns true.
         /// </summary>
@@ -53,7 +76,7 @@ namespace Couchbase.Query
         public bool ShouldRetry()
         {
             var retry = false;
-            switch (Status)
+            switch (MetaData.Status)
             {
                 case QueryStatus.Success:
                 case QueryStatus.Errors:
@@ -75,30 +98,6 @@ namespace Couchbase.Query
         }
 
         /// <summary>
-        /// Gets A unique identifier for the response.
-        /// </summary>
-        /// <value>
-        /// The unique identifier for the response.
-        /// </value>
-        public Guid RequestId { get; private set; }
-
-        /// <summary>
-        /// Gets the clientContextID of the request, if one was supplied. Used for debugging.
-        /// </summary>
-        /// <value>
-        /// The client context identifier.
-        /// </value>
-        public string ClientContextId { get; private set; }
-
-        /// <summary>
-        /// Gets the schema of the results. Present only when the query completes successfully.
-        /// </summary>
-        /// <value>
-        /// The signature of the schema of the request.
-        /// </value>
-        public dynamic Signature { get; private set; }
-
-        /// <summary>
         /// Get the prepared query plan name stored in the cluster.
         /// </summary>
         public string PreparedPlanName
@@ -106,55 +105,6 @@ namespace Couchbase.Query
             get => _preparedPlanName;
             set => _preparedPlanName = value;
         }
-
-        /// <summary>
-        /// Gets the status of the request; possible values are: success, running, errors, completed, stopped, timeout, fatal.
-        /// </summary>
-        /// <value>
-        /// The status of the request.
-        /// </value>
-        public QueryStatus Status { get; internal set; }
-
-        /// <summary>
-        /// Gets a list of 0 or more error objects; if an error occurred during processing of the request, it will be represented by an error object in this list.
-        /// </summary>
-        /// <value>
-        /// The errors.
-        /// </value>
-        public List<Error> Errors { get; } = new List<Error>();
-
-        /// <summary>
-        /// Gets a list of 0 or more warning objects; if a warning occurred during processing of the request, it will be represented by a warning object in this list.
-        /// </summary>
-        /// <value>
-        /// The warnings.
-        /// </value>
-        public List<Warning> Warnings { get; } = new List<Warning>();
-
-        /// <summary>
-        /// Gets an object containing metrics about the request.
-        /// </summary>
-        /// <value>
-        /// The metrics.
-        /// </value>
-        public Metrics Metrics { get; } = new Metrics();
-
-        /// <summary>
-        /// Gets the requet N1QL query profile.
-        /// </summary>
-        /// <value>
-        /// The profile.
-        /// </value>
-        public dynamic Profile { get; private set; }
-
-        /// <summary>
-        /// Gets the HTTP status code.
-        /// </summary>
-        /// <value>
-        /// The HTTP status code.
-        /// </value>
-        [IgnoreDataMember]
-        public HttpStatusCode HttpStatusCode { get; internal set; }
 
         /// <summary>
         /// Gets or sets the response stream.
@@ -185,7 +135,6 @@ namespace Couchbase.Query
                 // We encountered a results attribute, so we must be successful
                 // We'll assume so until we read otherwise later
 
-                Status = QueryStatus.Success;
                 Success = true;
 
                 _enumerator = new QueryResultRows<T>(this, _reader);
@@ -213,6 +162,8 @@ namespace Couchbase.Query
         /// </summary>
         internal async Task ReadResponseAttributes(CancellationToken cancellationToken)
         {
+            MetaData = new QueryMetaData();
+
             while (await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -220,45 +171,45 @@ namespace Couchbase.Query
                 switch (_reader.Path)
                 {
                     case "requestID" when _reader.TokenType == JsonToken.String:
-                        RequestId = Guid.Parse(_reader.Value.ToString());
+                        MetaData.RequestId = Guid.Parse(_reader.Value.ToString());
                         break;
                     case "status" when _reader.TokenType == JsonToken.String:
                         if (Enum.TryParse(_reader.Value.ToString(), true, out QueryStatus status))
                         {
-                            Status = status;
+                            MetaData.Status = status;
                             Success = status == QueryStatus.Success;
                         }
 
                         break;
                     case "clientContextID" when _reader.TokenType == JsonToken.String:
-                        ClientContextId = _reader.Value.ToString();
+                        MetaData.ClientContextId = _reader.Value.ToString();
                         break;
                     case "signature":
-                        Signature = JToken.ReadFrom(_reader);
+                        MetaData.Signature = JToken.ReadFrom(_reader);
                         break;
                     case "prepared" when _reader.TokenType == JsonToken.String:
                         _preparedPlanName = _reader.Value.ToString();;
                         break;
                     case "profile":
-                        Profile = JToken.ReadFrom(_reader);
+                        MetaData.Profile = JToken.ReadFrom(_reader);
                         break;
                     case "metrics.elapsedTime" when _reader.TokenType == JsonToken.String:
-                        Metrics.ElaspedTime = _reader.Value.ToString();
+                        MetaData.Metrics.ElaspedTime = _reader.Value.ToString();
                         break;
                     case "metrics.executionTime" when _reader.TokenType == JsonToken.String:
-                        Metrics.ExecutionTime = _reader.Value.ToString();
+                        MetaData.Metrics.ExecutionTime = _reader.Value.ToString();
                         break;
                     case "metrics.resultCount" when _reader.TokenType == JsonToken.Integer:
                         if (uint.TryParse(_reader.Value.ToString(), out var resultCount))
                         {
-                            Metrics.ResultCount = resultCount;
+                            MetaData.Metrics.ResultCount = resultCount;
                         }
 
                         break;
                     case "metrics.resultSize" when _reader.TokenType == JsonToken.Integer:
                         if (uint.TryParse(_reader.Value.ToString(), out var resultSize))
                         {
-                            Metrics.ResultSize = resultSize;
+                            MetaData.Metrics.ResultSize = resultSize;
                         }
 
                         break;
@@ -271,7 +222,7 @@ namespace Couchbase.Query
                         {
                             if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
                             {
-                                Warnings.Add(await ReadItem<Warning>(_reader, cancellationToken)
+                                MetaData.Warnings.Add(await ReadItem<Warning>(_reader, cancellationToken)
                                     .ConfigureAwait(false));
                             }
                             if (_reader.Path == "warnings" && _reader.TokenType == JsonToken.EndArray)

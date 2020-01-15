@@ -72,7 +72,7 @@ namespace Couchbase.UnitTests.Services.Query
                 }
                 catch (Exception e)
                 {
-                    Assert.True(e.GetType() == errorType);
+                    Assert.Equal(e.GetType(), errorType);
                 }
             }
         }

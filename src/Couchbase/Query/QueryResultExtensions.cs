@@ -30,7 +30,7 @@ namespace Couchbase.Query
         /// </returns>
         public static bool IsQueryPlanStale<T>(this IQueryResult<T> queryResult)
         {
-            return StaleStatuses.Contains(queryResult.Status) &&
+            return StaleStatuses.Contains(queryResult.MetaData.Status) &&
                    queryResult.Errors.Any(error => StaleErrorCodes.Contains(error.Code));
         }
     }
