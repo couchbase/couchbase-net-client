@@ -15,7 +15,7 @@ namespace Couchbase.Analytics
         /// <summary>
         /// Gets the meta data associated with the analytics result.
         /// </summary>
-        MetaData MetaData { get; }
+        AnalyticsMetaData MetaData { get; }
 
         /// <summary>
         /// Gets the deferred query handle if requested.

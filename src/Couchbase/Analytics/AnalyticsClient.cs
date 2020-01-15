@@ -168,7 +168,7 @@ namespace Couchbase.Analytics
                 throw new ArgumentException("Invalid encoded handle.");
             }
 
-            var result = new AnalyticsResult<T> {MetaData = new MetaData {Status = QueryStatus.Running}}; // default to running
+            var result = new AnalyticsResult<T> {MetaData = new AnalyticsMetaData {Status = QueryStatus.Running}}; // default to running
             return new AnalyticsDeferredResultHandle<T>(result, HttpClient, DataMapper, uri);
         }
     }

@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         {
             var result = new AnalyticsResult<dynamic>
             {
-                MetaData = new MetaData
+                MetaData = new AnalyticsMetaData
                 {
                     Status = status,
                     Errors = new List<Error> {new Error {Code = errorCode}}

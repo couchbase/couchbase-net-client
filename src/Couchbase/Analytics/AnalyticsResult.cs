@@ -20,7 +20,7 @@ namespace Couchbase.Analytics
         /// <summary>
         /// Gets the meta data associated with the analytics result.
         /// </summary>
-        public MetaData MetaData { get; internal set; }
+        public AnalyticsMetaData MetaData { get; internal set; }
 
         /// <summary>
         /// Gets the deferred query handle if requested.
@@ -81,7 +81,7 @@ namespace Couchbase.Analytics
             var result = new AnalyticsResult<T>
             {
                 Rows = results.ToList(),
-                MetaData = new MetaData
+                MetaData = new AnalyticsMetaData
                 {
                     Status = status,
                     RequestId = requestID,

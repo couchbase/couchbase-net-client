@@ -5,7 +5,7 @@ using Couchbase.Query;
 
 namespace Couchbase.Analytics
 {
-    public class MetaData
+    public class AnalyticsMetaData
     {
         /// <summary>
         /// Gets or sets the HTTP status code.
