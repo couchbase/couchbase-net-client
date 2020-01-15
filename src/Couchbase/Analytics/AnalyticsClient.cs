@@ -89,7 +89,7 @@ namespace Couchbase.Analytics
                     {
                         result = DataMapper.Map<AnalyticsResultData<T>>(stream).ToQueryResult(HttpClient, DataMapper);
                         //result.MetaData.Success = result.MetaData.Status == QueryStatus.Success || result.MetaData.Status == QueryStatus.Running;
-                        result.MetaData.HttpStatusCode = response.StatusCode;
+                        //result.MetaData.HttpStatusCode = response.StatusCode;
                         //Log.Trace("Received analytics query cid{0}: {1}", result.ClientContextId, result.ToString());
 
                         //scope.Span.SetPeerLatencyTag(result.Metrics.ElaspedTime);
@@ -139,8 +139,8 @@ namespace Couchbase.Analytics
 
         private static void ProcessError<T>(Exception exception, AnalyticsResult<T> queryResult)
         {
-            queryResult.MetaData.Status = QueryStatus.Fatal;
-            queryResult.MetaData.HttpStatusCode = HttpStatusCode.BadRequest;
+            queryResult.MetaData.Status = AnalyticsStatus.Fatal;
+            //queryResult.MetaData.HttpStatusCode = HttpStatusCode.BadRequest;
         }
     }
 }

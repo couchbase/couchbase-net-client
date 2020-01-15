@@ -22,6 +22,8 @@ namespace Couchbase.Analytics
         /// </summary>
         public AnalyticsMetaData MetaData { get; internal set; }
 
+        internal List<Error> Errors { get; set; }
+
         /// <summary>
         /// If the response indicates the request is retryable, returns true.
         /// </summary>
@@ -33,10 +35,10 @@ namespace Couchbase.Analytics
         {
             switch (MetaData.Status)
             {
-                case QueryStatus.Errors:
-                case QueryStatus.Timeout:
-                case QueryStatus.Fatal:
-                    return MetaData.Errors != null && MetaData.Errors.Any(error =>
+                case AnalyticsStatus.Errors:
+                case AnalyticsStatus.Timeout:
+                case AnalyticsStatus.Fatal:
+                    return Errors != null && Errors.Any(error =>
                                    error.Code == 21002 || // Request timed out and will be cancelled
                                    error.Code == 23000 || // Analytics Service is temporarily unavailable
                                    error.Code == 23003 || // Operation cannot be performed during rebalance
@@ -50,11 +52,11 @@ namespace Couchbase.Analytics
 
     internal class AnalyticsResultData<T>
     {
-        public Guid requestID { get; set; }
+        public string requestID { get; set; }
         public string clientContextID { get; set; }
         public dynamic signature { get; set; }
         public IEnumerable<T> results { get; set; }
-        public QueryStatus status { get; set; }
+        public AnalyticsStatus status { get; set; }
         public IEnumerable<ErrorData> errors { get; set; }
         public IEnumerable<WarningData> warnings { get; set; }
         public MetricsData metrics { get; set; }
@@ -73,13 +75,13 @@ namespace Couchbase.Analytics
             var result = new AnalyticsResult<T>
             {
                 Rows = results.ToList(),
+                Errors = errors?.Select(e => e.ToError()).ToList(),
                 MetaData = new AnalyticsMetaData
                 {
                     Status = status,
                     RequestId = requestID,
                     ClientContextId = clientContextID,
                     Signature = signature,
-                    Errors = errors?.Select(e => e.ToError()).ToList(),
                     Warnings = warnings?.Select(w => w.ToWarning()).ToList(),
                     Metrics = metrics?.ToMetrics()
                 }

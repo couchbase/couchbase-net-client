@@ -19,6 +19,8 @@ namespace Couchbase.Analytics
 
         Fatal,
 
-        Failed
+        Failed,
+
+        Closed
     }
 }
