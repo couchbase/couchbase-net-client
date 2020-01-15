@@ -23,14 +23,6 @@ namespace Couchbase.Analytics
         public AnalyticsMetaData MetaData { get; internal set; }
 
         /// <summary>
-        /// Gets the deferred query handle if requested.
-        /// <para>
-        /// The handle can be used to retrieve a deferred query status and results.
-        /// </para>
-        /// </summary>
-        public IAnalyticsDeferredResultHandle<T> Handle { get; internal set; }
-
-        /// <summary>
         /// If the response indicates the request is retryable, returns true.
         /// </summary>
         /// <returns></returns>
@@ -92,11 +84,6 @@ namespace Couchbase.Analytics
                     Metrics = metrics?.ToMetrics()
                 }
             };
-
-            if (!string.IsNullOrWhiteSpace(handle))
-            {
-                result.Handle = new AnalyticsDeferredResultHandle<T>(result, client, dataMapper, handle);
-            }
 
             return result;
         }

@@ -16,14 +16,6 @@ namespace Couchbase.Analytics
         /// Gets the meta data associated with the analytics result.
         /// </summary>
         AnalyticsMetaData MetaData { get; }
-
-        /// <summary>
-        /// Gets the deferred query handle if requested.
-        /// <para>
-        /// The handle can be used to retrieve a deferred query status and results.
-        /// </para>
-        /// </summary>
-        IAnalyticsDeferredResultHandle<T> Handle { get; }
     }
 }
 

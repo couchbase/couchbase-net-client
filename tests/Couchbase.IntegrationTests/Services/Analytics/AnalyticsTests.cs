@@ -49,51 +49,6 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         }
 
         [Fact]
-        public void Can_execute_deferred_query()
-        {
-            const string statement = "SELECT \"hello\" as greeting;";
-
-            var token = default(CancellationToken);
-            Assert.Equal(CancellationToken.None, token);
-
-            var result = _fixture.Cluster.AnalyticsQuery<TestRequest>(statement,
-                options => { options.WithDeferred(true); }
-            );
-
-            Assert.Equal(QueryStatus.Running, result.MetaData.Status);
-
-            Assert.NotNull(result.Handle);
-
-            var status = result.Handle.GetStatus();
-            Assert.Equal(QueryStatus.Success, status);
-
-            var rows = result.Handle.GetRows();
-            Assert.NotEmpty(rows);
-            Assert.Equal("hello", rows.First().Greeting);
-        }
-
-        [Fact]
-        public async Task Can_execute_deferred_query_async()
-        {
-            const string statement = "SELECT \"hello\" as greeting;";
-
-            var result = await _fixture.Cluster.AnalyticsQueryAsync<TestRequest>(statement,
-                options => { options.WithDeferred(true); }
-            ).ConfigureAwait(false);
-
-            Assert.True(result.MetaData.Status == QueryStatus.Success || result.MetaData.Status == QueryStatus.Running);
-
-            Assert.NotNull(result.Handle);
-
-            var status = await result.Handle.GetStatusAsync().ConfigureAwait(false);
-            Assert.Equal(QueryStatus.Success, status);
-
-            var rows = await result.Handle.GetRowsAsync().ConfigureAwait(false);
-            Assert.NotEmpty(rows);
-            Assert.Equal("hello", rows.First().Greeting);
-        }
-
-        [Fact]
         public async Task Test_Ingest()
         {
             const string statement = "SELECT \"hello\" as greeting;";
