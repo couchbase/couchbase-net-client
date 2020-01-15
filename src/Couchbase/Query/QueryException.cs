@@ -54,6 +54,6 @@ namespace Couchbase.Query
         /// <summary>
         /// Query metrics for the query.
         /// </summary>
-        public Metrics Metrics { get; internal set; }
+        public QueryMetrics Metrics { get; internal set; }
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Couchbase.Query
 {
-    public class Metrics
+    public class QueryMetrics
     {
         public string ElaspedTime { get; set; }
 
@@ -30,9 +30,9 @@
         public uint warningCount { get; set; }
         public uint sortCount { get; set; }
 
-        internal Metrics ToMetrics()
+        internal QueryMetrics ToMetrics()
         {
-            return new Metrics
+            return new QueryMetrics
             {
                 ElaspedTime = elapsedTime,
                 ExecutionTime = executionTime,

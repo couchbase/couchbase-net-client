@@ -171,7 +171,7 @@ namespace Couchbase.Query
                 switch (_reader.Path)
                 {
                     case "requestID" when _reader.TokenType == JsonToken.String:
-                        MetaData.RequestId = Guid.Parse(_reader.Value.ToString());
+                        MetaData.RequestId = _reader.Value.ToString();
                         break;
                     case "status" when _reader.TokenType == JsonToken.String:
                         if (Enum.TryParse(_reader.Value.ToString(), true, out QueryStatus status))
@@ -222,7 +222,7 @@ namespace Couchbase.Query
                         {
                             if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
                             {
-                                MetaData.Warnings.Add(await ReadItem<Warning>(_reader, cancellationToken)
+                                MetaData.Warnings.Add(await ReadItem<QueryWarning>(_reader, cancellationToken)
                                     .ConfigureAwait(false));
                             }
                             if (_reader.Path == "warnings" && _reader.TokenType == JsonToken.EndArray)

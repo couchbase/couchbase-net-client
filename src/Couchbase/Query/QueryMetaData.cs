@@ -21,7 +21,7 @@ namespace Couchbase.Query
         /// <value>
         /// The metrics.
         /// </value>
-        public Metrics Metrics { get; set; } = new Metrics();
+        public QueryMetrics Metrics { get; set; } = new QueryMetrics();
 
         /// <summary>
         /// Gets the request N1QL query profile.
@@ -37,7 +37,7 @@ namespace Couchbase.Query
         /// <value>
         /// The unique identifier for the response.
         /// </value>
-        public Guid RequestId { get; set; }
+        public string RequestId { get; set; }
 
         /// <summary>
         /// Gets the schema of the results. Present only when the query completes successfully.
@@ -61,7 +61,7 @@ namespace Couchbase.Query
         /// <value>
         /// The warnings.
         /// </value>
-        public List<Warning> Warnings { get; set; } = new List<Warning>();
+        public List<QueryWarning> Warnings { get; set; } = new List<QueryWarning>();
     }
 }
 #region [ License information ]

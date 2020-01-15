@@ -1,6 +1,6 @@
 ﻿namespace Couchbase.Query
 {
-    public class Warning
+    public class QueryWarning
     {
         public string Message { get; set; }
 
@@ -12,9 +12,9 @@
         public string msg { get; set; }
         public int code { get; set; }
 
-        internal Warning ToWarning()
+        internal QueryWarning ToWarning()
         {
-            return new Warning
+            return new QueryWarning
             {
                 Message = msg,
                 Code = code,

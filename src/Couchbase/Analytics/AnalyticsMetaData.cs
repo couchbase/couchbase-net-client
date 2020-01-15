@@ -61,7 +61,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// The warnings.
         /// </value>
-        public List<Warning> Warnings { get; set; }
+        public List<AnalyticsWarning> Warnings { get; set; }
 
         /// <summary>
         /// Gets an object containing metrics about the request.
@@ -69,7 +69,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// The metrics.
         /// </value>
-        public Metrics Metrics { get; set; }
+        public AnalyticsMetrics Metrics { get; set; }
     }
 }
 
