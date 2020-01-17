@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.DataMapping;
 using Couchbase.Query;
 
@@ -15,7 +17,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// A a list of all the objects returned by the query.
         /// </value>
-        public List<T> Rows { get; internal set; }
+        internal List<T> Rows { get; set; }
 
         /// <summary>
         /// Gets the meta data associated with the analytics result.
@@ -23,6 +25,13 @@ namespace Couchbase.Analytics
         public AnalyticsMetaData MetaData { get; internal set; }
 
         internal List<Error> Errors { get; set; }
+
+        /// <inheritdoc />
+        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
+        {
+            // TODO: Implement actual streaming under the hood
+            return Rows.ToAsyncEnumerable().GetAsyncEnumerator(cancellationToken);
+        }
 
         /// <summary>
         /// If the response indicates the request is retryable, returns true.

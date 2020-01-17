@@ -27,14 +27,16 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         }
 
         [Fact]
-        public void Execute_Query()
+        public async Task Execute_Query()
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var result = _fixture.Cluster.AnalyticsQuery<TestRequest>(statement);
+            var cluster = await _fixture.GetCluster();
+            var result = await cluster.AnalyticsQuery<TestRequest>(statement)
+                .ToListAsync().ConfigureAwait(false);
 
-            Assert.Single(result.Rows);
-            Assert.Equal("hello", result.Rows.First().Greeting);
+            Assert.Single(result);
+            Assert.Equal("hello", result.First().Greeting);
         }
 
         [Fact]
@@ -42,10 +44,12 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var result = await _fixture.Cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+            var cluster = await _fixture.GetCluster();
+            var result = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+            var rows = await result.ToListAsync().ConfigureAwait(false);
 
-            Assert.Single(result.Rows);
-            Assert.Equal("hello", result.Rows.First().Greeting);
+            Assert.Single(rows);
+            Assert.Equal("hello", rows.First().Greeting);
         }
 
         [Fact]
@@ -53,7 +57,8 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var result = await _fixture.Cluster.IngestAsync<dynamic>(
+            var cluster = await _fixture.GetCluster();
+            var result = await cluster.IngestAsync<dynamic>(
                 statement,
                 await _fixture.GetDefaultCollection(),
                 options =>

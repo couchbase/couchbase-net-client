@@ -71,7 +71,7 @@ namespace Couchbase.Analytics
 
             // ingest result into collection
             var results = new ConcurrentBag<Task<IMutationResult>>();
-            foreach (var row in result.Rows)
+            await foreach (var row in result.WithCancellation(ingestOptions.CancellationToken).ConfigureAwait(false))
             {
                 Task<IMutationResult> op;
                 switch (ingestOptions.IngestMethod)

@@ -2,16 +2,8 @@ using System.Collections.Generic;
 
 namespace Couchbase.Analytics
 {
-    public interface IAnalyticsResult<T>
+    public interface IAnalyticsResult<T> : IAsyncEnumerable<T>
     {
-        /// <summary>
-        /// Gets a list of all the objects returned by the query. An object can be any JSON value.
-        /// </summary>
-        /// <value>
-        /// A a list of all the objects returned by the query.
-        /// </value>
-        List<T> Rows { get; }
-
         /// <summary>
         /// Gets the meta data associated with the analytics result.
         /// </summary>
