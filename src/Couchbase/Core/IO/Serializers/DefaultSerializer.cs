@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -162,6 +164,12 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
+        public ValueTask<T> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default)
+        {
+            return new ValueTask<T>(Deserialize<T>(stream));
+        }
+
+        /// <inheritdoc />
         public void Serialize(Stream stream, object obj)
         {
             using (var sw = new StreamWriter(stream, Utf8NoBomEncoding, 1024, true))
@@ -178,12 +186,15 @@ namespace Couchbase.Core.IO.Serializers
             }
         }
 
-        /// <summary>
-        /// Deserializes the specified stream into the <see cref="Type"/> T specified as a generic parameter.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="Type"/> specified as the type of the value.</typeparam>
-        /// <param name="stream">The stream.</param>
-        /// <returns>The <see cref="Type"/> instance representing the value of the key.</returns>
+        /// <inheritdoc />
+        public ValueTask SerializeAsync(Stream stream, object obj, CancellationToken cancellationToken = default)
+        {
+            Serialize(stream, obj);
+
+            return default;
+        }
+
+        /// <inheritdoc />
         public T Deserialize<T>(Stream stream)
         {
             using (var streamReader = new StreamReader(stream))

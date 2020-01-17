@@ -84,7 +84,7 @@ namespace Couchbase.Search
                     {
                         if (response.IsSuccessStatusCode)
                         {
-                            searchResult = DataMapper.Map<SearchResult>(stream);
+                            searchResult = await DataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
                         }
                         else
                         {

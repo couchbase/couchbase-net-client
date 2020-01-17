@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Views;
 
 namespace Couchbase.Core.DataMapping
@@ -18,5 +20,14 @@ namespace Couchbase.Core.DataMapping
         /// <param name="stream">The <see cref="Stream"/> results of the query.</param>
         /// <returns>An object deserialized to it's T type.</returns>
         T Map<T>(Stream stream) where T : class;
+
+        /// <summary>
+        /// Maps the entire results
+        /// </summary>
+        /// <typeparam name="T">The <see cref="IViewResult{T}"/>'s Type paramater.</typeparam>
+        /// <param name="stream">The <see cref="Stream"/> results of the query.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>An object deserialized to it's T type.</returns>
+        ValueTask<T> MapAsync<T>(Stream stream, CancellationToken cancellationToken = default) where T : class;
     }
 }

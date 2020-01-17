@@ -87,7 +87,8 @@ namespace Couchbase.Analytics
                     //using (var scope = ClientConfiguration.Tracer.BuildSpan(queryRequest, CouchbaseOperationNames.ResponseDecoding).StartActive())
                     using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                     {
-                        result = DataMapper.Map<AnalyticsResultData<T>>(stream).ToQueryResult(HttpClient, DataMapper);
+                        result = (await DataMapper.MapAsync<AnalyticsResultData<T>>(stream, token).ConfigureAwait(false))
+                            .ToQueryResult(HttpClient, DataMapper);
                         //result.MetaData.Success = result.MetaData.Status == QueryStatus.Success || result.MetaData.Status == QueryStatus.Running;
                         //result.MetaData.HttpStatusCode = response.StatusCode;
                         //Log.Trace("Received analytics query cid{0}: {1}", result.ClientContextId, result.ToString());

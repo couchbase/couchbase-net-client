@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Couchbase.Search;
 using Couchbase.UnitTests.Utils;
 using Newtonsoft.Json;
@@ -12,107 +13,107 @@ namespace Couchbase.UnitTests.Services.Search
     public class FtsDataMapperTests
     {
         [Fact]
-        public void Success_Is_False_When_Errors_Returned()
+        public async Task Success_Is_False_When_Errors_Returned()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("error-with-errors.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
                 Assert.Equal(6, result.MetaData.ErrorCount);
             }
         }
 
         [Fact]
-        public void Success_WhenSuccess_IsTrue()
+        public async Task Success_WhenSuccess_IsTrue()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
                 //Assert.True(result.Success);
             }
         }
 
         [Fact]
-        public void Count_WhenSuccess_Returns32()
+        public async Task Count_WhenSuccess_Returns32()
         {
             var mapper = new SearchDataMapper();
             var fileStream = OpenResource("search-response-success.js");
             using (var stream = fileStream)
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
                 Assert.Equal(32, result.MetaData.SuccessCount);
             }
         }
 
         [Fact]
-        public void MaxScore_WhenSuccess_ReturnsDouble()
+        public async Task MaxScore_WhenSuccess_ReturnsDouble()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
                 Assert.Equal(0.907210290772297, result.MetaData.MaxScore);
             }
         }
 
         [Fact]
-        public void Took_WhenSuccess_Returns123165714()
+        public async Task Took_WhenSuccess_Returns123165714()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
                 Assert.Equal(new TimeSpan(123165714), result.MetaData.TimeTook);
             }
         }
 
         [Fact]
-        public void TotalHits_WhenSuccess_Returns116()
+        public async Task TotalHits_WhenSuccess_Returns116()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
                 Assert.Equal(116, result.MetaData.TotalHits);
             }
         }
 
         [Fact]
-        public void ErrorCount_WhenSuccess_ReturnsZero()
+        public async Task ErrorCount_WhenSuccess_ReturnsZero()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
                 Assert.Equal(0, result.MetaData.ErrorCount);
             }
         }
 
         [Fact]
-        public void HitsCount_WhenSuccess_ReturnsPageSize()
+        public async Task HitsCount_WhenSuccess_ReturnsPageSize()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
                 Assert.Equal(10, result.Hits.Count);
             }
         }
 
         [Fact]
-        public void Hits_WhenSuccess_ReturnsValidData()
+        public async Task Hits_WhenSuccess_ReturnsValidData()
         {
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-success.js"))
             {
-                var result = mapper.Map(stream);
+                var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
                 var first = result.Hits.First();
                 Assert.Equal("travel_landmark_idx_699e0a42ee02c6b2_27184a97", first.Index);
@@ -123,13 +124,13 @@ namespace Couchbase.UnitTests.Services.Search
         }
 
         [Fact]
-        public void Facets_Are_Populated_When_Result_Contains_Facets()
+        public async Task Facets_Are_Populated_When_Result_Contains_Facets()
         {
             ISearchResult result;
             var mapper = new SearchDataMapper();
             using (var stream = OpenResource("search-response-with-facets.js"))
             {
-                result = mapper.Map(stream);
+                result = await mapper.MapAsync(stream).ConfigureAwait(false);
             }
 
             var expectedFacets = JsonConvert.SerializeObject(new

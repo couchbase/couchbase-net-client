@@ -34,7 +34,7 @@ namespace Couchbase.IntegrationTests.Services.Search
         [Fact]
         public async Task Test_Async()
         {
-            var cluster = _fixture.Cluster;
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new SearchQuery
                 {
@@ -62,7 +62,7 @@ namespace Couchbase.IntegrationTests.Services.Search
         [Fact]
         public async Task Test_Async_With_HighLightStyle_Html_And_Fields()
         {
-            var cluster = _fixture.Cluster;
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new SearchQuery
                 {
@@ -95,7 +95,7 @@ namespace Couchbase.IntegrationTests.Services.Search
         [Fact]
         public async Task Facets_Async_Success()
         {
-            var cluster = _fixture.Cluster;
+            var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
                 new SearchQuery
                 {

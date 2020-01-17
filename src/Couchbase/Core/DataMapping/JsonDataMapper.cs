@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
 
 namespace Couchbase.Core.DataMapping
@@ -19,15 +19,16 @@ namespace Couchbase.Core.DataMapping
             _serializer = serializer;
         }
 
-        /// <summary>
-        /// Maps a single row.
-        /// </summary>
-        /// <typeparam name="T">The <see cref="IViewResult"/>'s Type paramater.</typeparam>
-        /// <param name="stream">The <see cref="Stream"/> results of the query.</param>
-        /// <returns>An object deserialized to it's T type.</returns>
+        /// <inheritdoc />
         public T Map<T>(Stream stream) where T : class
         {
             return _serializer.Deserialize<T>(stream);
+        }
+
+        /// <inheritdoc />
+        public ValueTask<T> MapAsync<T>(Stream stream, CancellationToken cancellationToken = default) where T : class
+        {
+            return _serializer.DeserializeAsync<T>(stream, cancellationToken);
         }
     }
 }

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.DataMapping;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -24,23 +26,48 @@ namespace Couchbase.Search
             return response as T;
         }
 
+        public async ValueTask<T> MapAsync<T>(Stream stream, CancellationToken cancellationToken = default) where T : class
+        {
+            var response = new SearchResult();
+            using (var reader = new JsonTextReader(new StreamReader(stream)))
+            {
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    ReadStatus(reader, response);
+                    await ReadHitsAsync(reader, response, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            return response as T;
+        }
+
         private static void ReadHits(JsonTextReader reader, SearchResult response)
         {
             if (reader.TokenType == JsonToken.StartObject && reader.Path.Contains("hits["))
             {
                 var hit = JObject.Load(reader);
-                response.Add(new SearchQueryRow
-                {
-                    Index = hit["index"].Value<string>(),
-                    Id = hit["id"].Value<string>(),
-                    Score = hit["score"].Value<double>(),
-                    Explanation = ReadValue<dynamic>(hit, "explanation"),
-                    Locations = ReadValue<dynamic>(hit, "locations"),
-                    Fragments = ReadValue<Dictionary<string, List<string>>>(hit, "fragments"),
-                    Fields = ReadValue<Dictionary<string, dynamic>>(hit, "fields")
-                });
+                response.Add(ParseSearchQueryRow(hit));
             }
         }
+
+        private static async Task ReadHitsAsync(JsonTextReader reader, SearchResult response, CancellationToken cancellationToken)
+        {
+            if (reader.TokenType == JsonToken.StartObject && reader.Path.Contains("hits["))
+            {
+                var hit = await JObject.LoadAsync(reader, cancellationToken).ConfigureAwait(false);
+                response.Add(ParseSearchQueryRow(hit));
+            }
+        }
+
+        private static SearchQueryRow ParseSearchQueryRow(JObject hit) => new SearchQueryRow
+        {
+            Index = hit["index"].Value<string>(),
+            Id = hit["id"].Value<string>(),
+            Score = hit["score"].Value<double>(),
+            Explanation = ReadValue<dynamic>(hit, "explanation"),
+            Locations = ReadValue<dynamic>(hit, "locations"),
+            Fragments = ReadValue<Dictionary<string, List<string>>>(hit, "fragments"),
+            Fields = ReadValue<Dictionary<string, dynamic>>(hit, "fields")
+        };
 
         private static T ReadValue<T>(JObject hit, string field)
         {
@@ -162,9 +189,9 @@ namespace Couchbase.Search
             }
         }
 
-        public ISearchResult Map(Stream stream)
+        public ValueTask<ISearchResult> MapAsync(Stream stream, CancellationToken cancellationToken = default)
         {
-            return ((IDataMapper) this).Map<ISearchResult>(stream);
+            return ((IDataMapper) this).MapAsync<ISearchResult>(stream, cancellationToken);
         }
     }
 }
