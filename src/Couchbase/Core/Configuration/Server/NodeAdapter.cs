@@ -11,7 +11,6 @@ namespace Couchbase.Core.Configuration.Server
     {
         private readonly ConcurrentDictionary<string, IPEndPoint> _cachedEndPoints =
             new ConcurrentDictionary<string, IPEndPoint>();
-
         private IPAddress _cachedIpAddress;
 
         public NodeAdapter()
@@ -171,6 +170,13 @@ namespace Couchbase.Core.Configuration.Server
             FtsSsl = services.FtsSsl;
             Analytics = services.Cbas;
             AnalyticsSsl = services.CbasSsl;
+
+            if (KeyValue == 0 && KeyValueSsl == 0)
+            {
+                KeyValue = 11210;
+                KeyValueSsl = 11207;
+                IsKvNode = false;
+            }
         }
 
         public string Hostname { get; set; }
@@ -264,7 +270,7 @@ namespace Couchbase.Core.Configuration.Server
         /// <value>
         ///     <c>true</c> if this instance is data node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsKvNode => KeyValue > 0 || KeyValueSsl > 0;
+        public bool IsKvNode { get; private set; } = true;
 
         /// <summary>
         /// Gets a value indicating whether this instance is index node.

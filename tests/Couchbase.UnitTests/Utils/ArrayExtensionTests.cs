@@ -64,7 +64,7 @@ namespace Couchbase.UnitTests.Utils
                 {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
             };
 
-            var node = dict.GetRandom(x => x.Value.HasKv);
+            var node = dict.GetRandom(x => x.Value.HasAnalytics);
 
             Assert.Null(node.Value);
         }

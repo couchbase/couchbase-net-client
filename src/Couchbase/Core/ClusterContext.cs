@@ -234,6 +234,7 @@ namespace Couchbase.Core
                         else
                         {
                             var endpoint = nodeAdapter.GetIpEndPoint(ClusterOptions.EnableTls);
+                            if (endpoint.Port == 0) endpoint.Port = 11210;
                             var newNode = await ClusterNode.CreateAsync(this, endpoint);
                             newNode.BootstrapUri = server;
                             newNode.NodesAdapter = nodeAdapter;
@@ -265,7 +266,7 @@ namespace Couchbase.Core
                     }
                     catch (Exception e)
                     {
-                        Log.LogWarning(e, @"Could not bootstrap {type} {name}.");
+                        Log.LogWarning(e, $"Could not bootstrap {type} {name}.");
                     }
                 }
             }
@@ -305,7 +306,7 @@ namespace Couchbase.Core
             }
             catch(Exception e)
             {
-                Log.LogError(e, @"Could not bootstrap {name}");
+                Log.LogError(e, $"Could not bootstrap {name}");
                 UnRegisterBucket(bucket);
                 throw;
             }
