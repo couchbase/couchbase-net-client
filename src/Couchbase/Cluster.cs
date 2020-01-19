@@ -38,7 +38,7 @@ namespace Couchbase
         private readonly Lazy<IQueryIndexManager> _lazyQueryManager;
         private readonly Lazy<ISearchIndexManager> _lazySearchManager;
 
-        public Cluster(string connectionString, ClusterOptions clusterOptions = null)
+        internal Cluster(string connectionString, ClusterOptions clusterOptions = null)
         {
             clusterOptions = clusterOptions ?? new ClusterOptions();
             if (string.IsNullOrWhiteSpace(connectionString))
