@@ -61,7 +61,7 @@ namespace Couchbase.Analytics
             {
                 result = await cluster.AnalyticsQueryAsync<T>(
                     statement,
-                    options => options.WithCancellationToken(ingestOptions.CancellationToken)
+                    options => options.CancellationToken(ingestOptions.CancellationToken)
                 ).ConfigureAwait(false);
             }
             catch (Exception exception)

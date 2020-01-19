@@ -33,27 +33,11 @@ namespace Couchbase.Analytics
         string GetFormValuesAsJson();
 
         /// <summary>
-        /// True if the request exceeded it's <see cref="ClientConfiguration.AnalyticsRequestTimeout"/>.
-        /// </summary>
-        /// <returns><c>true</c> if the request times out; otherwise <c>false</c>.</returns>
-        bool TimedOut();
-
-        /// <summary>
         /// Sets a analytics statement to be executed.
         /// </summary>
         /// <param name="statement">Any valid SQL++ statement for.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
         IAnalyticsRequest Statement(string statement);
-
-        /// <summary>
-        /// Adds a set of credentials to the list of credentials, in the form of username/password.
-        /// </summary>
-        /// <param name="username">The bucket or username.</param>
-        /// <param name="password">The password of the bucket.</param>
-        /// <param name="isAdmin">True if connecting as an admin.</param>
-        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
-        /// <remarks>Optional.</remarks>
-        IAnalyticsRequest AddCredentials(string username, string password, bool isAdmin);
 
         /// <summary>
         /// A user supplied piece of data supplied with the request to the sevice. Any result will also contain the same data.
@@ -65,42 +49,12 @@ namespace Couchbase.Analytics
         IAnalyticsRequest ClientContextId(string contextId);
 
         /// <summary>
-        /// Sets whether the analytics query and result JSON formatting will be intended.
-        /// NOTE: Setting <see cref="Pretty"/> to true can have a negative performance impact due to larger payloads.
-        /// </summary>
-        /// <param name="pretty">if set to <c>true</c> [pretty].</param>
-        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
-        /// <remarks>Optional.</remarks>
-        IAnalyticsRequest Pretty(bool pretty);
-
-        /// <summary>
-        /// Specifies that metrics should be returned with query results.
-        /// </summary>
-        /// <param name="includeMetrics">True to return query metrics.</param>
-        /// <returns>
-        /// A reference to the current <see cref="IAnalyticsRequest" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// Optional.
-        /// </remarks>
-        IAnalyticsRequest IncludeMetrics(bool includeMetrics);
-
-        /// <summary>
         /// Adds a named parameter to be used with the statement.
         /// </summary>
         /// <param name="key">The paramemeter name.</param>
         /// <param name="value">The parameter value.</param>
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
         IAnalyticsRequest AddNamedParameter(string key, object value);
-
-        /// <summary>
-        /// Adds a named parameter to be used with the statement.
-        /// </summary>
-        /// <param name="key">The paramemeter name.</param>
-        /// <param name="value">The parameter value.</param>
-        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
-        [Obsolete("Please use AddNamedParameter(key, value) instead. This method may be removed in a future version.")]
-        IAnalyticsRequest AddNamedParamter(string key, object value);
 
         /// <summary>
         /// Adds a positional parameter to be used with the statement.
@@ -130,22 +84,8 @@ namespace Couchbase.Analytics
         /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
         IAnalyticsRequest Priority(int priority);
 
-        /// <summary>
-        /// Gets a value indicating whether the query is deferred.
-        /// NOTE: This is an experimental API and may change in the future.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the query was deferred; otherwise, <c>false</c>.
-        /// </value>
-        bool IsDeferred { get; }
+        IAnalyticsRequest ScanConsistency(AnalyticsScanConsistency scanConsistency);
 
-        /// <summary>
-        /// Sets the query as deferred.
-        /// NOTE: This is an experimental API and may change in the future.
-        /// </summary>
-        /// <param name="deferred">if set to <c>true</c> the query will be executed in a deferred method.</param>
-        /// <returns>A reference to the current <see cref="IAnalyticsRequest"/> for method chaining.</returns>
-        IAnalyticsRequest Deferred(bool deferred);
     }
 }
 

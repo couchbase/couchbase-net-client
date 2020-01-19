@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core;
-using Couchbase.Utils;
 using Newtonsoft.Json;
 
 namespace Couchbase.Analytics
@@ -10,18 +9,15 @@ namespace Couchbase.Analytics
     internal class AnalyticsRequest : IAnalyticsRequest
     {
         private string _clientContextId;
-        private string _requestContextId;
-        private bool _pretty;
-        private bool _includeMetrics;
         internal Dictionary<string, string> Credentials = new Dictionary<string, string>();
         internal Dictionary<string, object> NamedParameters = new Dictionary<string, object>();
         internal List<object> PositionalArguments = new List<object>();
-        private TimeSpan? _timeout;
+        private TimeSpan _timeout = TimeSpan.FromMilliseconds(75000);
+        private AnalyticsScanConsistency _scanConsistency = AnalyticsScanConsistency.NotBounded;
 
         public AnalyticsRequest()
         {
             _clientContextId = Guid.NewGuid().ToString();
-            _requestContextId = Guid.NewGuid().ToString();
         }
 
         public AnalyticsRequest(string statement) : this()
@@ -41,7 +37,7 @@ namespace Couchbase.Analytics
         /// <remarks>
         /// This value changes for every request.
         /// </remarks>
-        public string CurrentContextId => string.Format("{0}::{1}", _clientContextId, _requestContextId);
+        public string CurrentContextId => _clientContextId;
 
         /// <summary>
         /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
@@ -53,20 +49,8 @@ namespace Couchbase.Analytics
         {
             var formValues = new Dictionary<string, object>
             {
-                {"statement", OriginalStatement},
-                {"pretty", _pretty},
-                {"metrics", _includeMetrics}
+                {"statement", OriginalStatement}
             };
-
-            if (Credentials.Any())
-            {
-                var creds = new List<dynamic>();
-                foreach (var credential in Credentials)
-                {
-                    creds.Add(new { user = credential.Key, pass = credential.Value });
-                }
-                formValues.Add("creds", creds);
-            }
 
             foreach (var parameter in NamedParameters)
             {
@@ -78,15 +62,8 @@ namespace Couchbase.Analytics
                 formValues.Add("args", PositionalArguments.ToArray());
             }
 
-            formValues.Add("timeout", $"{Lifespan.Duration * 1000}ms");
-
-            _requestContextId = Guid.NewGuid().ToString();
+            formValues.Add("timeout", $"{_timeout.TotalMilliseconds}ms");
             formValues.Add("client_context_id", CurrentContextId);
-
-            if (IsDeferred)
-            {
-                formValues.Add("mode", "async");
-            }
 
             return formValues;
         }
@@ -100,29 +77,6 @@ namespace Couchbase.Analytics
         public string GetFormValuesAsJson()
         {
             return JsonConvert.SerializeObject(GetFormValues());
-        }
-
-        /// <summary>
-        /// True if the request exceeded it's <see cref="ClientConfiguration.AnalyticsRequestTimeout" />.
-        /// </summary>
-        /// <returns>
-        /// <c>true</c> if the request times out; otherwise <c>false</c>.
-        /// </returns>
-        public bool TimedOut()
-        {
-            // BUG: will throw exception if called before Lifespan has been set
-            return Lifespan.TimedOut();
-        }
-
-        internal Lifespan Lifespan { get; private set; }
-
-        internal void ConfigureLifespan(uint defaultDuration)
-        {
-            Lifespan = new Lifespan
-            {
-                CreationTime = DateTime.UtcNow,
-                Duration = _timeout.HasValue ? (uint) _timeout.Value.TotalSeconds : defaultDuration
-            };
         }
 
         /// <summary>
@@ -148,43 +102,7 @@ namespace Couchbase.Analytics
         }
 
         /// <summary>
-        /// Adds a set of credentials to the list of credentials, in the form of username/password.
-        /// </summary>
-        /// <param name="username">The bucket or username.</param>
-        /// <param name="password">The password of the bucket.</param>
-        /// <param name="isAdmin">True if connecting as an admin.</param>
-        /// <returns>
-        /// A reference to the current <see cref="IAnalyticsRequest" /> for method chaining.
-        /// </returns>
-        /// <exception cref="System.ArgumentOutOfRangeException">username - cannot be null, empty or whitespace.</exception>
-        /// <remarks>
-        /// Optional.
-        /// </remarks>
-        public IAnalyticsRequest AddCredentials(string username, string password, bool isAdmin)
-        {
-            if (string.IsNullOrWhiteSpace(username))
-            {
-                const string usernameParameter = "username";
-                throw new ArgumentOutOfRangeException(username, ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
-            }
-
-            if (isAdmin)
-            {
-                if (!username.StartsWith("admin:"))
-                {
-                    username = "admin:" + username;
-                }
-            }
-            else if (!username.StartsWith("local:"))
-            {
-                username = "local:" + username;
-            }
-            Credentials.Add(username, password);
-            return this;
-        }
-
-        /// <summary>
-        /// A user supplied piece of data supplied with the request to the sevice. Any result will also contain the same data.
+        /// A user supplied piece of data supplied with the request to the service. Any result will also contain the same data.
         /// </summary>
         /// <param name="contextId"></param>
         /// <returns>
@@ -203,62 +121,14 @@ namespace Couchbase.Analytics
         }
 
         /// <summary>
-        /// Sets whether the analytics query and result JSON formatting will be intended.
-        /// NOTE: Setting <see cref="Pretty" /> to true can have a negative performance impact due to larger payloads.
-        /// </summary>
-        /// <param name="pretty">if set to <c>true</c> [pretty].</param>
-        /// <returns>
-        /// A reference to the current <see cref="IAnalyticsRequest" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// Optional.
-        /// </remarks>
-        public IAnalyticsRequest Pretty(bool pretty)
-        {
-            _pretty = pretty;
-            return this;
-        }
-
-        /// <summary>
-        /// Specifies that metrics should be returned with query results.
-        /// </summary>
-        /// <param name="includeMetrics">True to return query metrics.</param>
-        /// <returns>
-        /// A reference to the current <see cref="IAnalyticsRequest" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// Optional.
-        /// </remarks>
-        public IAnalyticsRequest IncludeMetrics(bool includeMetrics)
-        {
-            _includeMetrics = includeMetrics;
-            return this;
-        }
-
-        /// <summary>
         /// Adds a named parameter to be used with the statement.
         /// </summary>
-        /// <param name="key">The paramemeter name.</param>
+        /// <param name="key">The parameter name.</param>
         /// <param name="value">The parameter value.</param>
         /// <returns>
         /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
         /// </returns>
         public IAnalyticsRequest AddNamedParameter(string key, object value)
-        {
-            NamedParameters[key] = value;
-            return this;
-        }
-
-        /// <summary>
-        /// Adds a named parameter to be used with the statement.
-        /// </summary>
-        /// <param name="key">The paramemeter name.</param>
-        /// <param name="value">The parameter value.</param>
-        /// <returns>
-        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
-        /// </returns>
-        [Obsolete("Please use AddNamedParameter(key, value) instead. This method may be removed in a future version.")]
-        public IAnalyticsRequest AddNamedParamter(string key, object value)
         {
             NamedParameters[key] = value;
             return this;
@@ -318,29 +188,9 @@ namespace Couchbase.Analytics
 
         internal int PriorityValue { get; private set; }
 
-        /// <summary>
-        /// Gets or sets the timeout value of the <see cref="AnalyticsRequest"/>.
-        /// </summary>
-        internal uint TimeoutValue => Lifespan.Duration * 1000;
-
-        /// <summary>
-        /// Gets a value indicating whether the query is deferred.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the query was deferred; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsDeferred { get; private set;}
-
-        /// <summary>
-        /// Sets the query as deferred.
-        /// </summary>
-        /// <param name="deferred">if set to <c>true</c> the query will be executed in a deferred method.</param>
-        /// <returns>
-        /// A reference to the current <see cref="T:Couchbase.Analytics.IAnalyticsRequest" /> for method chaining.
-        /// </returns>
-        public IAnalyticsRequest Deferred(bool deferred)
+        public IAnalyticsRequest ScanConsistency(AnalyticsScanConsistency scanConsistency)
         {
-            IsDeferred = deferred;
+            _scanConsistency = scanConsistency;
             return this;
         }
     }

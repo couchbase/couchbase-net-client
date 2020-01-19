@@ -7,6 +7,7 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Logging;
 using Couchbase.Diagnostics;
+using Couchbase.KeyValue;
 using Couchbase.Management;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
@@ -18,6 +19,7 @@ using Couchbase.Search;
 using Couchbase.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 
 namespace Couchbase
 {
@@ -184,27 +186,18 @@ namespace Couchbase
 
         public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default)
         {
-            options = options ?? new AnalyticsOptions();
+            options ??= new AnalyticsOptions();
             await EnsureBootstrapped();
 
             var query = new AnalyticsRequest(statement);
-            query.ClientContextId(options.ClientContextId);
-            query.Pretty(options.Pretty);
-            query.IncludeMetrics(options.IncludeMetrics);
+            query.ClientContextId(options.ClientContextIdValue);
             query.NamedParameters = options.NamedParameters;
             query.PositionalArguments = options.PositionalParameters;
+            query.Timeout(options.TimeoutValue);
+            query.Priority(options.PriorityValue);
+            query.ScanConsistency(options.ScanConsistencyValue);
 
-            if (options.Timeout.HasValue)
-            {
-                query.Timeout(options.Timeout.Value);
-            }
-
-            query.Priority(options.Priority);
-            query.Deferred(options.Deferred);
-
-            query.ConfigureLifespan(30); //TODO: use clusterOptions.AnalyticsTimeout
-
-            return await _lazyAnalyticsClient.Value.QueryAsync<T>(query, options.CancellationToken);
+            return await _lazyAnalyticsClient.Value.QueryAsync<T>(query, options.Token);
         }
 
         #endregion

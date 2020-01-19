@@ -1,47 +1,48 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace Couchbase.Analytics
 {
     public class AnalyticsOptions
     {
-        public string ClientContextId { get; set; }
-        public bool Pretty { get; set; }
-        public bool IncludeMetrics { get; set; }
-        public List<Tuple<string, string, bool>> Credentials { get; set; } = new List<Tuple<string, string, bool>>();
-        public Dictionary<string, object> NamedParameters { get; set; } = new Dictionary<string, object>();
-        public List<object> PositionalParameters { get; set; } = new List<object>();
-        public TimeSpan? Timeout { get; set; }
-        public int Priority { get; set; }
-        public bool Deferred { get; set; }
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        //note in a future commit this will be private and AnalyticsOptions will be sent to AnalyticsClient instead of AnalyticsRequest (legacy)
+        internal string ClientContextIdValue;
+        internal Dictionary<string, object> NamedParameters  = new Dictionary<string, object>();
+        internal List<object> PositionalParameters = new List<object>();
+        internal TimeSpan TimeoutValue = TimeSpan.FromMilliseconds(75000);
+        internal CancellationToken Token = System.Threading.CancellationToken.None;
+        internal AnalyticsScanConsistency ScanConsistencyValue = Analytics.AnalyticsScanConsistency.NotBounded;
+        internal bool ReadOnlyValue;
+        internal int PriorityValue { get; set; } = 0;
 
-        public AnalyticsOptions WithClientContextId(string clientContextId)
+        public AnalyticsOptions ScanConsistency(
+            AnalyticsScanConsistency scanConsistency)
         {
-            ClientContextId = clientContextId;
+            ScanConsistencyValue = scanConsistency;
             return this;
         }
 
-        public AnalyticsOptions WithPretty(bool pretty)
+        public AnalyticsOptions Readonly(bool readOnly)
         {
-            Pretty = pretty;
+            ReadOnlyValue = readOnly;
             return this;
         }
 
-        public AnalyticsOptions WithIncludeMetrics(bool includeMetrics)
+        public AnalyticsOptions Raw(string key, object value)
         {
-            IncludeMetrics = includeMetrics;
+            NamedParameters.Add(key, value);
             return this;
         }
 
-        public AnalyticsOptions WithCredential(string username, string password, bool isAdmin)
+        public AnalyticsOptions ClientContextId(string clientContextId)
         {
-            Credentials.Add(Tuple.Create(username, password, isAdmin));
+            ClientContextIdValue = clientContextId;
             return this;
         }
 
-        public AnalyticsOptions WithNamedParameter(string parameterName, object value)
+        public AnalyticsOptions Parameter(string parameterName, object value)
         {
             if (NamedParameters == null)
             {
@@ -52,7 +53,7 @@ namespace Couchbase.Analytics
             return this;
         }
 
-        public AnalyticsOptions WithPositionalParameter(object value)
+        public AnalyticsOptions Parameter(object value)
         {
             if (PositionalParameters == null)
             {
@@ -63,34 +64,51 @@ namespace Couchbase.Analytics
             return this;
         }
 
-        public AnalyticsOptions WithTimeout(TimeSpan timeout)
+        public AnalyticsOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public AnalyticsOptions WithPriority(bool priority)
+        public AnalyticsOptions Priority(bool priority)
         {
-            Priority = priority ? -1 : 0;
+            PriorityValue = priority ? -1 : 0;
             return this;
         }
 
-        public AnalyticsOptions WithPriority(int priority)
+        public AnalyticsOptions CancellationToken(CancellationToken cancellationToken)
         {
-            Priority = priority;
+            Token = cancellationToken;
             return this;
         }
 
-        public AnalyticsOptions WithDeferred(bool deferred)
+        /// <summary>
+        /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
+        /// </summary>
+        /// <returns>
+        /// The <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
+        /// </returns>
+        internal IDictionary<string, object> GetFormValues(string statement)
         {
-            Deferred = deferred;
-            return this;
-        }
+            var formValues = new Dictionary<string, object>
+            {
+                {"statement", statement}
+            };
 
-        public AnalyticsOptions WithCancellationToken(CancellationToken cancellationToken)
-        {
-            CancellationToken = cancellationToken;
-            return this;
+            foreach (var parameter in NamedParameters)
+            {
+                formValues.Add(parameter.Key, parameter.Value);
+            }
+
+            if (PositionalParameters.Any())
+            {
+                formValues.Add("args", PositionalParameters.ToArray());
+            }
+
+            formValues.Add("timeout", $"{TimeoutValue.TotalMilliseconds}ms");
+            formValues.Add("client_context_id", ClientContextIdValue);
+
+            return formValues;
         }
     }
 }
