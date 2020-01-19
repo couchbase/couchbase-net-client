@@ -10,7 +10,7 @@ namespace Couchbase.Search
     /// The result of a search query.
     /// </summary>
     /// <seealso cref="ISearchResult" />
-    public class SearchResult : ISearchResult, IDisposable
+    internal class SearchResult : ISearchResult, IDisposable
     {
         internal SearchResult()
         {

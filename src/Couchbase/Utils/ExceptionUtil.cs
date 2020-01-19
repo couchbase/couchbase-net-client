@@ -3,7 +3,7 @@ using System.Net;
 
 namespace Couchbase.Utils
 {
-    public static class ExceptionUtil
+    internal static class ExceptionUtil
     {
         public static string ServiceNotSupportedMsg =
             "A request has been made for a service that is not configured or supported by the cluster. " +

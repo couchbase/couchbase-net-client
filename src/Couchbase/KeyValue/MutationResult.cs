@@ -3,7 +3,7 @@ using Couchbase.Core;
 
 namespace Couchbase.KeyValue
 {
-    public class MutationResult : IMutationResult
+    internal class MutationResult : IMutationResult
     {
         internal MutationResult(ulong cas, TimeSpan? expiry, MutationToken token)
         {

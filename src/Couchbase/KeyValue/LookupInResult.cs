@@ -10,7 +10,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    public class LookupInResult : ILookupInResult
+    internal class LookupInResult : ILookupInResult
     {
         private readonly IMemoryOwner<byte> _bytes;
         private IByteConverter _converter = new DefaultConverter();

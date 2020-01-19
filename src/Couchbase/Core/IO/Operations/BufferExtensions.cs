@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    public static class BufferExtensions
+    internal static class BufferExtensions
     {
         /// <summary>
         /// Converts a <see cref="byte"/> to an <see cref="OpCode"/>
@@ -11,21 +11,6 @@ namespace Couchbase.Core.IO.Operations
         public static OpCode ToOpCode(this byte value)
         {
             return (OpCode)value;
-        }
-
-        /// <summary>
-        /// Gets the length of a buffer.
-        /// </summary>
-        /// <param name="buffer"></param>
-        /// <returns>0 if the buffer is null, otherwise the length of the buffer.</returns>
-        public static int GetLengthSafe(this byte[] buffer)
-        {
-            var length = 0;
-            if (buffer != null)
-            {
-                length = buffer.Length;
-            }
-            return length;
         }
     }
 }

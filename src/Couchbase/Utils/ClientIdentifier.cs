@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
 namespace Couchbase.Utils
 {
-    public static class ClientIdentifier
+    internal static class ClientIdentifier
     {
         private static readonly Random Random = new Random();
         private const string DescriptionFormat = "couchbase-net-sdk/{0} (clr/{1}) (os/{2})";

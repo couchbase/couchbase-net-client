@@ -13,7 +13,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.KeyValue
 {
-    public class GetResult : IGetResult
+    internal class GetResult : IGetResult
     {
         private static readonly ILogger Log = LogManager.CreateLogger<GetResult>();
         private readonly IMemoryOwner<byte> _contentBytes;

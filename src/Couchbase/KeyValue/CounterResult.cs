@@ -3,7 +3,7 @@ using Couchbase.Core;
 
 namespace Couchbase.KeyValue
 {
-    public class CounterResult : MutationResult, ICounterResult
+    internal class CounterResult : MutationResult, ICounterResult
     {
         internal CounterResult(ulong value, ulong cas, TimeSpan? expiry, MutationToken token)
             : base(cas, expiry, token)

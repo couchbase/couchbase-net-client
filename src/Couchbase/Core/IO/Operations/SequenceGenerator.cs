@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Couchbase.Core.IO.Operations
 {
-    public static class SequenceGenerator
+    internal static class SequenceGenerator
     {
         private static readonly Random Random = new Random();
         private static int _sequenceId;

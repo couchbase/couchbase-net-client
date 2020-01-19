@@ -6,7 +6,7 @@ using Couchbase.Core.Configuration.Server;
 
 namespace Couchbase.Utils
 {
-    public static class UriExtensions
+    internal static class UriExtensions
     {
         public static string Http = "http";
         public static string Https = "https";

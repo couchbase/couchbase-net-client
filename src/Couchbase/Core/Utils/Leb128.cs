@@ -2,7 +2,7 @@ using System;
 
 namespace Couchbase.Core.Utils
 {
-    public static class Leb128
+    internal static class Leb128
     {
         /// <summary>
         /// Maximum length, in bytes, when encoding a 32-bit integer.
@@ -37,7 +37,7 @@ namespace Couchbase.Core.Utils
             return index;
         }
 
-        public static uint Read(Span<byte> bytes)
+        public static uint Read(ReadOnlySpan<byte> bytes)
         {
             var result = 0u;
             uint current;
