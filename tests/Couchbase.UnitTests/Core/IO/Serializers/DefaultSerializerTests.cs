@@ -239,6 +239,34 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
         #endregion
 
+        #region CreateStreamingDeserializer
+
+        [Fact]
+        public void CreateJsonStreamReader_UsesDeserializerSettings()
+        {
+            // Arrange
+
+            var serializer = new DefaultSerializer(new JsonSerializerSettings
+            {
+                DateFormatHandling = DateFormatHandling.MicrosoftDateFormat
+            }, new JsonSerializerSettings
+            {
+                DateFormatHandling = DateFormatHandling.IsoDateFormat
+            });
+
+            using var stream = new MemoryStream();
+
+            // Act
+
+            var result = (DefaultJsonStreamReader) serializer.CreateJsonStreamReader(stream);
+
+            // Assert
+
+            Assert.Equal(DateFormatHandling.MicrosoftDateFormat, result.Deserializer.DateFormatHandling);
+        }
+
+        #endregion
+
         #region Helpers
 
         private class JsonDocument

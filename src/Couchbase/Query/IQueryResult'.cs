@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+#nullable enable
+
 namespace Couchbase.Query
 {
     /// <summary>
@@ -12,7 +14,7 @@ namespace Couchbase.Query
         /// <summary>
         /// Gets the meta data associated with the query result.
         /// </summary>
-        QueryMetaData MetaData { get; }
+        QueryMetaData? MetaData { get; }
 
         List<Error> Errors { get; }
     }

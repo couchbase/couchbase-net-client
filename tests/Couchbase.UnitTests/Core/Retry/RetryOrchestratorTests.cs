@@ -429,7 +429,8 @@ namespace Couchbase.UnitTests.Core.Retry
             clusterNode.BuildServiceUris();
             context.AddNode(clusterNode);
 
-            return new QueryClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
+            var serializer = new DefaultSerializer();
+            return new QueryClient(httpClient, new JsonDataMapper(serializer), serializer, context);
         }
     }
 }

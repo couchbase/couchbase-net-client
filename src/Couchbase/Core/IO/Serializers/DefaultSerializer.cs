@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.Serializers
      /// <summary>
     /// The default serializer for the Couchbase.NET SDK. Uses Newtonsoft.JSON as the the serializer.
     /// </summary>
-    public class DefaultSerializer : IExtendedTypeSerializer
+    public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer
     {
         #region Constructors
 
@@ -210,14 +210,7 @@ namespace Couchbase.Core.IO.Serializers
             }
         }
 
-        /// <summary>
-        /// Get the name which will be used for a given member during serialization/deserialization.
-        /// </summary>
-        /// <param name="member">Returns the name of this member.</param>
-        /// <returns>
-        /// The name which will be used for a given member during serialization/deserialization,
-        /// or null if if will not be serialized.
-        /// </returns>
+        /// <inheritdoc />
         /// <remarks>
         /// DefaultSerializer uses <see cref="JsonSerializerSettings.ContractResolver"/> from <see cref="SerializerSettings"/>
         /// to determine the member name.
@@ -244,6 +237,12 @@ namespace Couchbase.Core.IO.Serializers
 
             // No match found, or property is ignored
             return null;
+        }
+
+        /// <inheritdoc />
+        public IJsonStreamReader CreateJsonStreamReader(Stream stream)
+        {
+            return new DefaultJsonStreamReader(stream, JsonSerializer.Create(EffectiveDeserializationSettings));
         }
 
         protected internal virtual JsonSerializerSettings GetDeserializationSettings(JsonSerializerSettings baseSettings, DeserializationOptions options)

@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using OpenTracing;
+
+#nullable enable
 
 namespace Couchbase.Query
 {
@@ -20,16 +19,19 @@ namespace Couchbase.Query
     /// <seealso cref="IQueryResult{T}" />
     public class StreamingQueryResult<T> : IQueryResult<T>, IServiceResult
     {
-        private JsonTextReader _reader;
-        private string _preparedPlanName;
-        private IAsyncEnumerable<T> _enumerator;
+        private readonly Stream _responseStream;
+        private readonly IStreamingTypeDeserializer _deserializer;
+        private IJsonStreamReader? _reader;
+        private bool _hasReadToResult;
+        private bool _hasReadResult;
+        private bool _hasFinishedReading;
 
-        internal ISpan DecodeSpan { get; set; }
+        internal ISpan? DecodeSpan { get; set; }
 
         /// <summary>
         /// Gets the meta data associated with the analytics result.
         /// </summary>
-        public QueryMetaData MetaData { get; internal set; }
+        public QueryMetaData? MetaData { get; internal set; }
 
         /// <summary>
         /// Gets or sets the HTTP status code.
@@ -58,12 +60,12 @@ namespace Couchbase.Query
         /// <summary>
         /// If the operation wasn't successful, a message indicating why it was not successful.
         /// </summary>
-        public string Message { get; internal set; }
+        public string? Message { get; internal set; }
 
         /// <summary>
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
-        public Exception Exception { get; internal set; }
+        public Exception? Exception { get; internal set; }
 
         /// <summary>
         /// If the response indicates the request is retryable, returns true.
@@ -107,24 +109,18 @@ namespace Couchbase.Query
         /// <summary>
         /// Get the prepared query plan name stored in the cluster.
         /// </summary>
-        public string PreparedPlanName
+        public string? PreparedPlanName { get; set; }
+
+        /// <summary>
+        /// Creates a new StreamingQueryResult.
+        /// </summary>
+        /// <param name="responseStream"><see cref="Stream"/> to read.</param>
+        /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
+        public StreamingQueryResult(Stream responseStream, IStreamingTypeDeserializer deserializer)
         {
-            get => _preparedPlanName;
-            set => _preparedPlanName = value;
+            _responseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
+            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
         }
-
-        /// <summary>
-        /// Gets or sets the response stream.
-        /// </summary>
-        /// <value>
-        /// The response stream.
-        /// </value>
-        internal Stream ResponseStream { get; set; }
-
-        /// <summary>
-        /// Indicates that the query result has been completely read.
-        /// </summary>
-        internal bool HasFinishedReading { get; private set; }
 
         /// <summary>
         /// Initializes the reader, and reads all attributes until result rows are encountered.
@@ -132,35 +128,65 @@ namespace Couchbase.Query
         /// </summary>
         internal async Task ReadToRowsAsync(CancellationToken cancellationToken)
         {
-            _reader = new JsonTextReader(new StreamReader(ResponseStream));
+            _reader = _deserializer.CreateJsonStreamReader(_responseStream);
+
+            if (!await _reader.InitializeAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return;
+            }
 
             // Read the attributes until we reach the end of the object or the "results" attribute
             await ReadResponseAttributes(cancellationToken).ConfigureAwait(false);
 
-            if (!HasFinishedReading)
+            if (!_hasFinishedReading)
             {
                 // We encountered a results attribute, so we must be successful
                 // We'll assume so until we read otherwise later
 
                 Success = true;
-
-                _enumerator = new QueryResultRows<T>(this, _reader);
-            }
-            else
-            {
-                _enumerator = AsyncEnumerable.Empty<T>();
             }
         }
 
         /// <inheritdoc />
-        public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
+#pragma warning disable 8425
+        public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+#pragma warning restore 8425
         {
-            if (_enumerator == null)
+            if (_hasReadResult)
+            {
+                // Don't allow enumeration more than once
+
+                throw new StreamAlreadyReadException();
+            }
+            if (_hasFinishedReading)
+            {
+                // empty collection
+                _hasReadResult = true;
+                yield break;
+            }
+            if (!_hasReadToResult)
             {
                 throw new InvalidOperationException(
                     $"{nameof(StreamingQueryResult<T>)} has not been initialized, call ReadToRowsAsync first");
             }
-            return _enumerator.GetAsyncEnumerator(cancellationToken);
+
+            if (_reader == null)
+            {
+                // Should not be possible
+                throw new InvalidOperationException("_reader is null");
+            }
+
+            // Read isn't complete, so the stream is currently waiting to deserialize the results
+
+            await foreach (var result in _reader.ReadArrayAsync<T>(cancellationToken).ConfigureAwait(false))
+            {
+                yield return result;
+            }
+
+            _hasReadResult = true;
+
+            // Read any remaining attributes after the results
+            await ReadResponseAttributes(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -169,88 +195,74 @@ namespace Couchbase.Query
         /// </summary>
         internal async Task ReadResponseAttributes(CancellationToken cancellationToken)
         {
-            MetaData = new QueryMetaData();
+            if (_reader == null)
+            {
+                // Should not be possible
+                throw new InvalidOperationException("_reader is null");
+            }
 
-            while (await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            MetaData = new QueryMetaData();
+            _hasReadToResult = false;
+
+            while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                switch (_reader.Path)
+                var path = await _reader!.ReadToNextAttributeAsync(cancellationToken).ConfigureAwait(false);
+                if (path == null)
                 {
-                    case "requestID" when _reader.TokenType == JsonToken.String:
-                        MetaData.RequestId = _reader.Value.ToString();
+                    // Reached the end
+                    break;
+                }
+
+                switch (path)
+                {
+                    case "requestID" when _reader.ValueType == typeof(string):
+                        MetaData.RequestId = _reader.Value?.ToString();
                         break;
-                    case "status" when _reader.TokenType == JsonToken.String:
-                        if (Enum.TryParse(_reader.Value.ToString(), true, out QueryStatus status))
+                    case "status" when _reader.ValueType == typeof(string):
+                        if (Enum.TryParse(_reader.Value?.ToString(), true, out QueryStatus status))
                         {
                             MetaData.Status = status;
                             Success = status == QueryStatus.Success;
                         }
 
                         break;
-                    case "clientContextID" when _reader.TokenType == JsonToken.String:
-                        MetaData.ClientContextId = _reader.Value.ToString();
+                    case "clientContextID" when _reader.ValueType == typeof(string):
+                        MetaData.ClientContextId = _reader.Value?.ToString();
                         break;
                     case "signature":
-                        MetaData.Signature = JToken.ReadFrom(_reader);
+                        MetaData.Signature = await _reader.ReadTokenAsync(cancellationToken).ConfigureAwait(false);
                         break;
-                    case "prepared" when _reader.TokenType == JsonToken.String:
-                        _preparedPlanName = _reader.Value.ToString();;
+                    case "prepared" when _reader.ValueType == typeof(string):
+                        PreparedPlanName = _reader.Value?.ToString();;
                         break;
                     case "profile":
-                        MetaData.Profile = JToken.ReadFrom(_reader);
+                        MetaData.Profile = await _reader.ReadTokenAsync(cancellationToken).ConfigureAwait(false);
                         break;
-                    case "metrics.elapsedTime" when _reader.TokenType == JsonToken.String:
-                        MetaData.Metrics.ElaspedTime = _reader.Value.ToString();
-                        break;
-                    case "metrics.executionTime" when _reader.TokenType == JsonToken.String:
-                        MetaData.Metrics.ExecutionTime = _reader.Value.ToString();
-                        break;
-                    case "metrics.resultCount" when _reader.TokenType == JsonToken.Integer:
-                        if (uint.TryParse(_reader.Value.ToString(), out var resultCount))
-                        {
-                            MetaData.Metrics.ResultCount = resultCount;
-                        }
-
-                        break;
-                    case "metrics.resultSize" when _reader.TokenType == JsonToken.Integer:
-                        if (uint.TryParse(_reader.Value.ToString(), out var resultSize))
-                        {
-                            MetaData.Metrics.ResultSize = resultSize;
-                        }
-
+                    case "metrics":
+                        MetaData.Metrics =
+                            (await _reader.ReadObjectAsync<MetricsData>(cancellationToken).ConfigureAwait(false))
+                            .ToMetrics();
                         break;
                     case "results":
                         // We've reached the result rows, return now
+                        _hasReadToResult = true;
 
                         return;
                     case "warnings":
-                        while (_reader.Read())
+                        await foreach (var warning in _reader.ReadArrayAsync<QueryWarning>(cancellationToken)
+                            .ConfigureAwait(false))
                         {
-                            if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
-                            {
-                                MetaData.Warnings.Add(await ReadItem<QueryWarning>(_reader, cancellationToken)
-                                    .ConfigureAwait(false));
-                            }
-                            if (_reader.Path == "warnings" && _reader.TokenType == JsonToken.EndArray)
-                            {
-                                break;
-                            }
+                            MetaData.Warnings.Add(warning);
                         }
 
                         break;
                     case "errors":
-                        while (_reader.Read())
+                        await foreach (var error in _reader.ReadArrayAsync<Error>(cancellationToken)
+                            .ConfigureAwait(false))
                         {
-                            if (_reader.Depth == 2 && _reader.TokenType == JsonToken.StartObject)
-                            {
-                                Errors.Add(await ReadItem<Error>(_reader, cancellationToken)
-                                    .ConfigureAwait(false));
-                            }
-                            if (_reader.Path == "errors" && _reader.TokenType == JsonToken.EndArray)
-                            {
-                                break;
-                            }
+                            Errors.Add(error);
                         }
 
                         break;
@@ -258,21 +270,7 @@ namespace Couchbase.Query
             }
 
             // We've reached the end of the object, mark that entire read is complete
-            HasFinishedReading = true;
-        }
-
-        /// <summary>
-        /// Reads the object at the current index within the reader.
-        /// </summary>
-        /// <typeparam name="K"></typeparam>
-        /// <param name="jtr">The JTR.</param>
-        /// <param name="cancellationToken">A cancellation token.</param>
-        /// <returns></returns>
-        private static async Task<K> ReadItem<K>(JsonTextReader jtr, CancellationToken cancellationToken)
-        {
-            var jObject = await JToken.ReadFromAsync(jtr, cancellationToken)
-                .ConfigureAwait(false);
-            return jObject.ToObject<K>();
+            _hasFinishedReading = true;
         }
 
         /// <summary>
@@ -280,7 +278,7 @@ namespace Couchbase.Query
         /// </summary>
         public void Dispose()
         {
-            _reader?.Close(); // also closes underlying stream
+            _reader?.Dispose(); // also closes underlying stream
             _reader = null;
         }
     }

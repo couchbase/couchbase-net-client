@@ -66,7 +66,8 @@ namespace Couchbase.UnitTests.Services.Query
                 clusterNode.BuildServiceUris();
                 context.AddNode(clusterNode);
 
-                var client = new QueryClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
+                var serializer = new DefaultSerializer();
+                var client = new QueryClient(httpClient, new JsonDataMapper(serializer), serializer, context);
 
                 try
                 {

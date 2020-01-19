@@ -25,17 +25,19 @@ namespace Couchbase.Query
         private static readonly ILogger Logger = LogManager.CreateLogger<QueryClient>();
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
         private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
+        private readonly ITypeSerializer _serializer;
         internal bool EnhancedPreparedStatementsEnabled;
 
         internal QueryClient(ClusterContext context) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
-            new JsonDataMapper(new DefaultSerializer()), context)
+            new JsonDataMapper(new DefaultSerializer()), context.ClusterOptions.JsonSerializer, context)
         {
         }
 
-        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
+        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, ITypeSerializer serializer, ClusterContext context)
             : base(httpClient, dataMapper, context)
         {
+            _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 
         /// <inheritdoc />
@@ -124,9 +126,9 @@ namespace Couchbase.Query
                 {
                     var response = await HttpClient.PostAsync(node.QueryUri, content, options.Token).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    queryResult = new StreamingQueryResult<T>
+                    queryResult = new StreamingQueryResult<T>(stream,
+                        _serializer as IStreamingTypeDeserializer ?? new DefaultSerializer())
                     {
-                        ResponseStream = stream,
                         HttpStatusCode = response.StatusCode,
                         Success = response.StatusCode == HttpStatusCode.OK
                     };
