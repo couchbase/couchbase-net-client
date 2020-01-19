@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.KeyValue
 {
+    /// <remarks>Volatile</remarks>
     public class Scope : IScope
     {
         private static readonly ILogger Log =  LogManager.CreateLogger<Scope>();
@@ -37,6 +38,12 @@ namespace Couchbase.KeyValue
             }
         }
 
+        /// <summary>
+        /// Returns a given collection by name.
+        /// </summary>
+        /// <param name="collectionName"></param>
+        /// <returns></returns>
+        /// <remarks>Volatile</remarks>
         public ICollection Collection(string collectionName)
         {
             return this[collectionName];

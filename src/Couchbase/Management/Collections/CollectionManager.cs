@@ -12,6 +12,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Collections
 {
+    /// <remarks>Volatile</remarks>
     internal class CollectionManager : ICollectionManager
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<CollectionManager>();

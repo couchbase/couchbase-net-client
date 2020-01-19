@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.KeyValue
 {
+    /// <remarks>Volatile</remarks>
     public class CouchbaseCollection : ICollection, IBinaryCollection
     {
         internal const string DefaultCollectionName = "_default";

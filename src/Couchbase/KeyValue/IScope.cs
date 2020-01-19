@@ -1,5 +1,6 @@
 namespace Couchbase.KeyValue
 {
+    /// <remarks>Volatile</remarks>
     public interface IScope
     {
         string Id { get; }

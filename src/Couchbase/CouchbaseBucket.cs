@@ -6,7 +6,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
-
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
@@ -57,6 +56,11 @@ namespace Couchbase
         }
 
         public override IViewIndexManager ViewIndexes => _viewManagerLazy.Value;
+
+        /// <summary>
+        /// The Collection Management API.
+        /// </summary>
+        /// <remarks>Volatile</remarks>
         public override ICollectionManager Collections => _collectionManagerLazy.Value;
 
         internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)

@@ -35,11 +35,13 @@ namespace Couchbase.Core
 
         public abstract Task<IScope> this[string name] { get; }
 
+        /// <remarks>Volatile</remarks>
         public IScope DefaultScope()
         {
             return Scopes[DefaultScopeName];
         }
 
+        /// <remarks>Volatile</remarks>
         public ICollection Collection(string collectionName)
         {
             return Scopes[DefaultScopeName][collectionName];
@@ -58,7 +60,7 @@ namespace Couchbase.Core
 
         public Task<IPingReport> PingAsync(PingOptions options = null)
         {
-            options = options ?? new PingOptions();
+            options ??= new PingOptions();
             return Task.Run(()=> DiagnosticsReportProvider.CreatePingReport(Context, BucketConfig, options));
         }
 

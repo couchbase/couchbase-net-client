@@ -4,6 +4,7 @@ using Couchbase.Management.Buckets;
 
 namespace Couchbase.Management.Collections
 {
+    /// <remarks>Volatile</remarks>
     public interface ICollectionManager
     {
         Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions options = null);
