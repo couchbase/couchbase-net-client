@@ -50,7 +50,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
             {
-                parameter.AddNamedParameter("name", "person");
+                parameter.Parameter("name", "person");
             }).ConfigureAwait(false);
 
             // Non-streaming approach in C# 7
@@ -69,7 +69,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
                 {
-                    parameter.AddNamedParameter("name", "person");
+                    parameter.Parameter("name", "person");
                 }).ConfigureAwait(false);
 
             // Async streaming approach in C# 7
@@ -97,7 +97,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
                 {
-                    parameter.AddNamedParameter("name", "person");
+                    parameter.Parameter("name", "person");
                 }).ConfigureAwait(false);
 
             await foreach (var o in result.ConfigureAwait(false))

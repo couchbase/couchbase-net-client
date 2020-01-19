@@ -4,7 +4,6 @@ using Couchbase.Management.Views;
 
 namespace Couchbase.Views
 {
-
     public class ViewOptions
     {
         public ViewScanConsistency ScanConsistency { get; set; }

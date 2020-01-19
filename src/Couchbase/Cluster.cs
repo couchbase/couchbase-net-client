@@ -191,7 +191,7 @@ namespace Couchbase
             {
                 Options = options,
                 Statement = statement,
-                Token = options.CancellationToken,
+                Token = options.Token,
                 Timeout = options.TimeoutValue
             }).ConfigureAwait(false); ;
         }

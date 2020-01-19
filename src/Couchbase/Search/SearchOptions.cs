@@ -149,9 +149,9 @@ namespace Couchbase.Search
         }
 
         /// <summary>
-        /// The <see cref="ScanConsistency" /> you require for you <see cref="ISearchResult" />s.
+        /// The <see cref="SearchScanConsistency" /> you require for you <see cref="ISearchResult" />s.
         /// </summary>
-        /// <param name="consistency">The <see cref="ScanConsistency" /> for documents to be included in the query results.</param>
+        /// <param name="consistency">The <see cref="SearchScanConsistency" /> for documents to be included in the query results.</param>
         /// <returns></returns>
         public ISearchOptions Consistency(SearchScanConsistency consistency)
         {

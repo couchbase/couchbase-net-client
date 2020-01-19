@@ -122,8 +122,7 @@ namespace Couchbase.Query
             {
                 try
                 {
-                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.CancellationToken)
-                        .ConfigureAwait(false);
+                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.Token).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                     queryResult = new StreamingQueryResult<T>
                     {
@@ -133,7 +132,8 @@ namespace Couchbase.Query
                     };
 
                     //read the header and stop when we reach the queried rows
-                    await queryResult.ReadToRowsAsync(options.CancellationToken).ConfigureAwait(false);
+                    await queryResult.ReadToRowsAsync(options.Token).ConfigureAwait(false);
+
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData.Status != QueryStatus.Success)
                     {
                         Logger.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData.Status}.");

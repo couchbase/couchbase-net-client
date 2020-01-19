@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading;
 using Couchbase.Core.DataMapping;
 using Couchbase.Utils;
 using Newtonsoft.Json;
-using Encoding = Couchbase.Query.Couchbase.N1QL.Encoding;
 
 namespace Couchbase.Query
 {
@@ -15,25 +12,17 @@ namespace Couchbase.Query
     {
         private string _statement;
         private QueryPlan _preparedPayload;
-        private TimeSpan? _timeOut = TimeSpan.Zero;
+        private TimeSpan _timeOut = TimeSpan.FromMilliseconds(75000);
         private bool? _readOnly;
         private bool? _includeMetrics;
         private readonly Dictionary<string, object> _parameters = new Dictionary<string, object>();
         private readonly List<object> _arguments = new List<object>();
-        private Format? _format;
-        private Encoding? _encoding;
-        private Compression? _compression;
-        private ScanConsistency? _scanConsistency;
-        private bool? _includeSignature;
+        private QueryScanConsistency? _scanConsistency;
         private TimeSpan? _scanWait;
-        private bool? _pretty;
-        private readonly Dictionary<string, string> _credentials = new Dictionary<string, string>();
         private string _clientContextId;
-        private Uri _baseUri;
         private bool _prepareEncoded;
         private bool _adHoc = true;
         private int? _maxServerParallelism;
-        private volatile uint _requestContextId;
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors;
         private int? _scanCapacity;
         private int? _pipelineBatch;
@@ -46,10 +35,9 @@ namespace Couchbase.Query
         public const string QueryOperator = "?";
         private const string QueryArgPattern = "{0}={1}&";
         public const string TimeoutArgPattern = "{0}={1}ms&";
-        public const uint TimeoutDefault = 75000;
 
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
-
+        internal CancellationToken Token { get; set; } = System.Threading.CancellationToken.None;
+        internal TimeSpan TimeoutValue => _timeOut;
 
         public QueryOptions()
         {
@@ -125,13 +113,6 @@ namespace Couchbase.Query
         public string CurrentContextId => _clientContextId;
 
         /// <summary>
-        /// Gets a value indicating whether this instance has been retried (if it's been optimized
-        /// and prepared then the server marked it as stale/not runnable).
-        /// </summary>
-        /// <value><c>true</c> if this instance has been retried once, otherwise <c>false</c>.</value>
-        public bool HasBeenRetried { get; set; }
-
-        /// <summary>
         /// Custom <see cref="IDataMapper"/> to use when deserializing query results.
         /// </summary>
         /// <remarks>Null will use the default <see cref="IDataMapper"/>.</remarks>
@@ -148,7 +129,7 @@ namespace Couchbase.Query
         public QueryOptions ConsistentWith(MutationState mutationState)
         {
 #pragma warning disable 618
-            WithScanConsistency(ScanConsistency.AtPlus);
+            ScanConsistency(QueryScanConsistency.AtPlus);
 #pragma warning restore 618
             _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
             foreach (var token in mutationState)
@@ -222,7 +203,7 @@ namespace Couchbase.Query
         /// <returns></returns>
         /// <remarks>
         /// The default is <c>true</c>; the query will executed in an ad-hoc manner,
-        /// without special optomizations.
+        /// without special optimizations.
         /// </remarks>
         public QueryOptions AdHoc(bool adHoc)
         {
@@ -233,7 +214,7 @@ namespace Couchbase.Query
         /// <summary>
         ///  Sets a N1QL statement to be executed in an optimized way using the given queryPlan.
         /// </summary>
-        /// <param name="preparedPlan">The <see cref="QueryPlan"/> that was prepared beforehand.</param>
+        /// <param name="preparedPlan">The <see cref="Query.QueryPlan"/> that was prepared beforehand.</param>
         /// <param name="originalStatement">The original statement (eg. SELECT * FROM default) that the user attempted to optimize</param>
         /// <returns>A reference to the current <see cref="QueryOptions"/> for method chaining.</returns>
         /// <remarks>Required if statement not provided, will erase a previously set WithStatement.</remarks>
@@ -262,7 +243,7 @@ namespace Couchbase.Query
         /// <remarks>
         /// Will erase a previous optimization of a statement using Prepared.
         /// </remarks>
-        public QueryOptions Statement(string statement)
+        internal QueryOptions Statement(string statement)
         {
             if (string.IsNullOrWhiteSpace(statement)) throw new ArgumentNullException(nameof(statement));
             _statement = statement;
@@ -332,7 +313,7 @@ namespace Couchbase.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public QueryOptions AddNamedParameter(string name, object value)
+        public QueryOptions Parameter(string name, object value)
         {
             _parameters.Add(name, value);
             return this;
@@ -348,7 +329,7 @@ namespace Couchbase.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public QueryOptions AddPositionalParameter(object value)
+        public QueryOptions Parameter(object value)
         {
             _arguments.Add(value);
             return this;
@@ -364,7 +345,7 @@ namespace Couchbase.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public QueryOptions AddNamedParameter(params KeyValuePair<string, object>[] parameters)
+        public QueryOptions Parameter(params KeyValuePair<string, object>[] parameters)
         {
             if (_arguments.Any())
             {
@@ -384,7 +365,7 @@ namespace Couchbase.Query
         /// </summary>
         /// <param name="parameters">A list of positional parameters.</param>
         /// <returns></returns>
-        public QueryOptions AddPositionalParameter(params object[] parameters)
+        public QueryOptions Parameter(params object[] parameters)
         {
             if (_parameters.Any())
             {
@@ -400,70 +381,6 @@ namespace Couchbase.Query
         }
 
         /// <summary>
-        /// Desired format for the query results.
-        /// </summary>
-        /// <param name="format">An <see cref="Format" /> enum.</param>
-        /// <returns>
-        /// A reference to the current <see cref="QueryOptions" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// Optional.
-        /// </remarks>
-        public QueryOptions Format(Format format)
-        {
-            _format = format;
-            return this;
-        }
-
-        /// <summary>
-        /// Specifies the desired character encoding for the query results.
-        /// </summary>
-        /// <param name="encoding">An <see cref="Encoding" /> enum.</param>
-        /// <returns>
-        /// A reference to the current <see cref="QueryOptions" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// Optional.
-        /// </remarks>
-        public QueryOptions Encoding(Encoding encoding)
-        {
-            _encoding = encoding;
-            return this;
-        }
-
-        /// <summary>
-        /// Compression format to use for response data on the wire. Possible values are ZIP, RLE, LZMA, LZO, NONE.
-        /// </summary>
-        /// <param name="compression"></param>
-        /// <returns>
-        /// A reference to the current <see cref="QueryOptions" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// Optional. The default is NONE.
-        /// </remarks>
-        public QueryOptions Compression(Compression compression)
-        {
-            _compression = compression;
-            return this;
-        }
-
-        /// <summary>
-        /// Includes a header for the results schema in the response.
-        /// </summary>
-        /// <param name="includeSignature">True to include a header for the results schema in the response.</param>
-        /// <returns>
-        /// A reference to the current <see cref="QueryOptions" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// The default is true.
-        /// </remarks>
-        public QueryOptions Signature(bool includeSignature)
-        {
-            _includeSignature = includeSignature;
-            return this;
-        }
-
-        /// <summary>
         /// Specifies the consistency guarantee/constraint for index scanning.
         /// </summary>
         /// <param name="scanConsistency">Specify the consistency guarantee/constraint for index scanning.</param>
@@ -474,10 +391,10 @@ namespace Couchbase.Query
         /// <remarks>
         /// Optional.
         /// </remarks>
-        public QueryOptions WithScanConsistency(ScanConsistency scanConsistency)
+        public QueryOptions ScanConsistency(QueryScanConsistency scanConsistency)
         {
 #pragma warning disable 618
-            if (scanConsistency == ScanConsistency.StatementPlus)
+            if (scanConsistency == QueryScanConsistency.StatementPlus)
 #pragma warning restore 618
             {
                 throw new NotSupportedException(
@@ -501,57 +418,6 @@ namespace Couchbase.Query
         public QueryOptions ScanWait(TimeSpan scanWait)
         {
             _scanWait = scanWait;
-            return this;
-        }
-
-        /// <summary>
-        /// Pretty print the output.
-        /// </summary>
-        /// <param name="pretty">True for the pretty.</param>
-        /// <returns>
-        /// A reference to the current <see cref="QueryOptions" /> for method chaining.
-        /// </returns>
-        /// <remarks>
-        /// True by default.
-        /// </remarks>
-        public QueryOptions Pretty(bool pretty)
-        {
-            _pretty = pretty;
-            return this;
-        }
-
-        /// <summary>
-        /// Adds a set of credentials to the list of credentials, in the form of user/password
-        /// </summary>
-        /// <param name="username">The bucket or username.</param>
-        /// <param name="password">The password of the bucket.</param>
-        /// <param name="isAdmin">True if connecting as an admin.</param>
-        /// <returns>
-        /// A reference to the current <see cref="QueryOptions" /> for method chaining.
-        /// </returns>
-        /// <exception cref="System.ArgumentOutOfRangeException">username;cannot be null, empty or whitespace.</exception>
-        /// <remarks>
-        /// Optional.
-        /// </remarks>
-        public QueryOptions AddCredentials(string username, string password, bool isAdmin)
-        {
-            if (string.IsNullOrWhiteSpace(username))
-            {
-                const string usernameParameter = "username";
-                throw new ArgumentOutOfRangeException(username,
-                    ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
-            }
-
-            if (isAdmin && !username.StartsWith("admin:"))
-            {
-                username = "admin:" + username;
-            }
-            else if (!username.StartsWith("local:"))
-            {
-                username = "local:" + username;
-            }
-
-            _credentials[username] = password;
             return this;
         }
 
@@ -580,7 +446,7 @@ namespace Couchbase.Query
         /// <param name="name">The paramter name.</param>
         /// <param name="value">The parameter value.</param>
         /// <returns>A reference to the current <see cref="QueryOptions" /> for method chaining.</returns>
-        public QueryOptions RawParameter(string name, object value)
+        public QueryOptions Raw(string name, object value)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -602,7 +468,7 @@ namespace Couchbase.Query
         /// <returns>
         /// A reference to the current <see cref="QueryOptions" /> for method chaining.
         /// </returns>
-        public QueryOptions ScanCapacity(int capacity)
+        public QueryOptions ScanCap(int capacity)
         {
             _scanCapacity = capacity;
             return this;
@@ -630,7 +496,7 @@ namespace Couchbase.Query
         /// <returns>
         /// A reference to the current <see cref="QueryOptions" /> for method chaining.
         /// </returns>
-        public QueryOptions PipelineCapacity(int capacity)
+        public QueryOptions PipelineCap(int capacity)
         {
             _pipelineCapacity = capacity;
             return this;
@@ -642,13 +508,13 @@ namespace Couchbase.Query
             return this;
         }
 
-        public QueryOptions WithCancellationToken(CancellationToken cancellationToken)
+        public QueryOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            Token = cancellationToken;
             return this;
         }
 
-        internal QueryOptions WithQueryPlan(QueryPlan queryPlan)
+        internal QueryOptions QueryPlan(QueryPlan queryPlan)
         {
             _preparedPayload = queryPlan;
             return this;
@@ -658,30 +524,6 @@ namespace Couchbase.Query
         {
             _autoExecute = autoExecute;
             return this;
-        }
-
-        public Uri GetBaseUri()
-        {
-            return _baseUri;
-        }
-
-        /// <summary>
-        /// Gets the raw, unprepared N1QL statement.
-        /// </summary>
-        /// <remarks>If the statement has been optimized using Prepared, this will still
-        /// return the original un-optimized statement.</remarks>
-        public string GetOriginalStatement()
-        {
-            return _statement;
-        }
-
-        /// <summary>
-        /// Gets the prepared payload for this N1QL statement if IsPrepared() is true,
-        /// null otherwise.
-        /// </summary>
-        public QueryPlan GetPreparedPayload()
-        {
-            return _preparedPayload;
         }
 
         /// <summary>
@@ -724,14 +566,7 @@ namespace Couchbase.Query
                 formValues.Add(QueryParameters.Statement, _statement);
             }
 
-            if (_timeOut.HasValue && _timeOut.Value > TimeSpan.Zero)
-            {
-                formValues.Add(QueryParameters.Timeout, (uint) _timeOut.Value.TotalMilliseconds + "ms");
-            }
-            else
-            {
-                formValues.Add(QueryParameters.Timeout, string.Concat(TimeoutDefault, "ms"));
-            }
+            formValues.Add(QueryParameters.Timeout, (uint) _timeOut.TotalMilliseconds + "ms");
 
             if (_readOnly.HasValue)
             {
@@ -758,26 +593,6 @@ namespace Couchbase.Query
                 formValues.Add(QueryParameters.Args, _arguments);
             }
 
-            if (_format.HasValue)
-            {
-                formValues.Add(QueryParameters.Format, _format.Value.ToString());
-            }
-
-            if (_encoding.HasValue)
-            {
-                formValues.Add(QueryParameters.Encoding, _encoding.Value.GetDescription());
-            }
-
-            if (_compression.HasValue)
-            {
-                formValues.Add(QueryParameters.Compression, _compression.Value.ToString());
-            }
-
-            if (_includeSignature.HasValue)
-            {
-                formValues.Add(QueryParameters.Signature, _includeSignature.Value);
-            }
-
             if (_scanConsistency.HasValue)
             {
                 formValues.Add(QueryParameters.ScanConsistency, _scanConsistency.GetDescription());
@@ -786,7 +601,7 @@ namespace Couchbase.Query
             if (_scanVectors != null)
             {
 #pragma warning disable 618
-                if (_scanConsistency != ScanConsistency.AtPlus)
+                if (_scanConsistency != QueryScanConsistency.AtPlus)
 #pragma warning restore 618
                 {
                     throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");
@@ -797,24 +612,7 @@ namespace Couchbase.Query
 
             if (_scanWait.HasValue)
             {
-                formValues.Add(QueryParameters.ScanWait,
-                    string.Format("{0}ms", (uint) _scanWait.Value.TotalMilliseconds));
-            }
-
-            if (_pretty != null)
-            {
-                formValues.Add(QueryParameters.Pretty, _pretty.Value);
-            }
-
-            if (_credentials.Count > 0)
-            {
-                var creds = new List<dynamic>();
-                foreach (var credential in _credentials)
-                {
-                    creds.Add(new {user = credential.Key, pass = credential.Value});
-                }
-
-                formValues.Add(QueryParameters.Creds, creds);
+                formValues.Add(QueryParameters.ScanWait, $"{(uint) _scanWait.Value.TotalMilliseconds}ms");
             }
 
             if (_scanCapacity.HasValue)
@@ -851,32 +649,6 @@ namespace Couchbase.Query
             return formValues;
         }
 
-        /// <summary>
-        /// Gets the query parameters for x-form-urlencoded content-type.
-        /// </summary>
-        /// <remarks>Each key and value from GetFormValues will be urlencoded</remarks>
-        /// <returns></returns>
-        [Obsolete("JSON method is used instead of x-form-urlencoded")]
-        public string GetQueryParametersAsFormUrlencoded()
-        {
-            var sb = new StringBuilder();
-            var formValues = GetFormValues();
-            foreach (var formValue in GetFormValues())
-            {
-                sb.AppendFormat(QueryArgPattern,
-                    WebUtility.UrlEncode(formValue.Key),
-                    WebUtility.UrlEncode(formValue.Value.ToString()));
-            }
-
-            if (formValues.Count > 0)
-            {
-                sb.Remove(sb.Length - 1, 1);
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>
         /// Gets the JSON representation of this query for execution in a POST.
         /// </summary>
         /// <returns>The form values as a JSON object.</returns>
@@ -927,7 +699,7 @@ namespace Couchbase.Query
             string request;
             try
             {
-                request = GetBaseUri() + "[" + GetFormValuesAsJson() + "]";
+                request = "[" + GetFormValuesAsJson() + "]";
             }
             catch
             {
@@ -935,19 +707,6 @@ namespace Couchbase.Query
             }
 
             return request;
-        }
-
-        /// <summary>
-        /// For internal use only.
-        /// </summary>
-        internal TimeSpan TimeoutValue
-        {
-            get
-            {
-                if (_timeOut == null || _timeOut == TimeSpan.Zero)
-                    return TimeSpan.FromMilliseconds(TimeoutDefault);
-                return _timeOut.Value;
-            }
         }
     }
 }

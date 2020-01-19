@@ -333,7 +333,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
                 var queryOptions = new QueryOptions().
                     ReadOnly(readOnly).
-                    WithCancellationToken(cts.Token).
+                    CancellationToken(cts.Token).
                     Timeout(TimeSpan.FromMilliseconds(100000));
 
                 var request = new QueryRequest

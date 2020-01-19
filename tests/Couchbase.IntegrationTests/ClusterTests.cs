@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
-using Couchbase.Query.Couchbase.N1QL;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -15,15 +14,19 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
-        public async Task Test_Query()
+        public async Task Test_Query_With_Positional_Parameters()
         {
             var cluster = await _fixture.GetCluster();;
-            var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=0",
+            var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=$1",
                 options =>
                 {
-                     options.Encoding(Encoding.Utf8);
-                     options.AddPositionalParameter("poo");
+                    options.Parameter("foo");
                 });
+
+            await foreach (var row in result)
+            {
+            }
+            result.Dispose();
         }
 
         [Fact]
@@ -34,7 +37,7 @@ namespace Couchbase.IntegrationTests
             var result = await cluster.QueryAsync<dynamic>("SELECT * FROM `default` WHERE type=$name;",
                 options =>
             {
-                options.AddNamedParameter("name", "person");
+                options.Parameter("name", "person");
             }).ConfigureAwait(false);
 
             await foreach (var o in result)

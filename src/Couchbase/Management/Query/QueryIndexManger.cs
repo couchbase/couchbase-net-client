@@ -35,7 +35,7 @@ namespace Couchbase.Management.Query
                 {
                     var statement = $"BUILD INDEX ON {bucketName}({index.Name}) USING GSI;";
                     tasks.Add(_queryClient.QueryAsync<dynamic>(statement,
-                        queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
+                        queryOptions => queryOptions.CancellationToken(options.CancellationToken)
                     ));
                 }
 
@@ -57,7 +57,7 @@ namespace Couchbase.Management.Query
             {
                 var statement = $"CREATE INDEX {indexName} ON {bucketName}({string.Join(",", fields)}) USING GSI WITH {{\"defer_build\":{options.Deferred}}};";
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
+                    queryOptions => queryOptions.CancellationToken(options.CancellationToken)
                 );
             }
             catch (Exception exception)
@@ -76,7 +76,7 @@ namespace Couchbase.Management.Query
             {
                 var statement = $"CREATE PRIMARY INDEX ON {bucketName} USING GSI WITH {{\"defer_build\":{options.Deferred}}};";
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
+                    queryOptions => queryOptions.CancellationToken(options.CancellationToken)
                 );
             }
             catch (Exception exception)
@@ -95,7 +95,7 @@ namespace Couchbase.Management.Query
             {
                 var statement = $"DROP INDEX {bucketName}.{indexName} USING GSI;";
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
+                    queryOptions => queryOptions.CancellationToken(options.CancellationToken)
                 );
             }
             catch (Exception exception)
@@ -114,7 +114,7 @@ namespace Couchbase.Management.Query
             {
                 var statement = $"DROP PRIMARY INDEX ON {bucketName} USING GSI;";
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
+                    queryOptions => queryOptions.CancellationToken(options.CancellationToken)
                 );
             }
             catch (Exception exception)
@@ -133,7 +133,7 @@ namespace Couchbase.Management.Query
             {
                 var statement = $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=\"{bucketName}\" AND `using`=\"gsi\";";
                 var result = await _queryClient.QueryAsync<QueryIndex>(statement,
-                    queryOptions => queryOptions.WithCancellationToken(options.CancellationToken)
+                    queryOptions => queryOptions.CancellationToken(options.CancellationToken)
                 );
 
                 var indexes = new List<QueryIndex>();

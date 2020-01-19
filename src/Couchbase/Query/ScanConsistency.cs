@@ -6,7 +6,7 @@ namespace Couchbase.Query
    /// <summary>
     /// Sets the desired index scan consistency for current N1QL query.
     /// </summary>
-    public enum ScanConsistency
+    public enum QueryScanConsistency
     {
         /// <summary>
         /// The default which means that the query can return data that is currently indexed
