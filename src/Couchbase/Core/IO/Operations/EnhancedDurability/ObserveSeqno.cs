@@ -44,12 +44,12 @@ namespace Couchbase.Core.IO.Operations.EnhancedDurability
                         result = new ObserveSeqnoResponse
                         {
                             IsHardFailover = true,
-                            VBucketId = Converter.ToInt16(buffer.Slice(1)),
-                            VBucketUuid = Converter.ToInt64(buffer.Slice(3)),
-                            LastPersistedSeqno = Converter.ToInt64(buffer.Slice(11)),
-                            CurrentSeqno = Converter.ToInt64(buffer.Slice(19)),
-                            OldVBucketUuid = Converter.ToInt64(buffer.Slice(27)),
-                            LastSeqnoReceived = Converter.ToInt64(buffer.Slice(35))
+                            VBucketId = ByteConverter.ToInt16(buffer.Slice(1)),
+                            VBucketUuid = ByteConverter.ToInt64(buffer.Slice(3)),
+                            LastPersistedSeqno = ByteConverter.ToInt64(buffer.Slice(11)),
+                            CurrentSeqno = ByteConverter.ToInt64(buffer.Slice(19)),
+                            OldVBucketUuid = ByteConverter.ToInt64(buffer.Slice(27)),
+                            LastSeqnoReceived = ByteConverter.ToInt64(buffer.Slice(35))
                         };
                     }
                     else
@@ -57,10 +57,10 @@ namespace Couchbase.Core.IO.Operations.EnhancedDurability
                         result = new ObserveSeqnoResponse
                         {
                             IsHardFailover = false,
-                            VBucketId = Converter.ToInt16(buffer.Slice(1)),
-                            VBucketUuid = Converter.ToInt64(buffer.Slice(3)),
-                            LastPersistedSeqno = Converter.ToInt64(buffer.Slice(11)),
-                            CurrentSeqno = Converter.ToInt64(buffer.Slice(19)),
+                            VBucketId = ByteConverter.ToInt16(buffer.Slice(1)),
+                            VBucketUuid = ByteConverter.ToInt64(buffer.Slice(3)),
+                            LastPersistedSeqno = ByteConverter.ToInt64(buffer.Slice(11)),
+                            CurrentSeqno = ByteConverter.ToInt64(buffer.Slice(19)),
                         };
                     }
                 }

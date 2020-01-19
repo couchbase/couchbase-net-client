@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 
@@ -43,10 +42,5 @@ namespace Couchbase.Core.IO.Transcoders
         /// Gets or sets the serializer used by the <see cref="ITypeTranscoder"/> implementation.
         /// </summary>
         ITypeSerializer Serializer { get; set; }
-
-        /// <summary>
-        /// Gets or sets the byte converter used by used by the <see cref="ITypeTranscoder"/> implementation.
-        /// </summary>
-        IByteConverter Converter { get; set; }
     }
 }

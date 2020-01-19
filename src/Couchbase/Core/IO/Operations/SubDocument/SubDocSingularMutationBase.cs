@@ -19,12 +19,12 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
             Span<byte> buffer = stackalloc byte[length];
 
-            Converter.FromInt16((short) Converter.GetStringByteCount(Path), buffer); //1-2
+            ByteConverter.FromInt16((short) ByteConverter.GetStringByteCount(Path), buffer); //1-2
             buffer[2] = (byte) CurrentSpec.PathFlags; //3
 
             if (hasExpiry)
             {
-                Converter.FromUInt32(Expires, buffer.Slice(3)); //4@27 Expiration time (if present, extras is 7)
+                ByteConverter.FromUInt32(Expires, buffer.Slice(3)); //4@27 Expiration time (if present, extras is 7)
             }
             if (CurrentSpec.DocFlags != SubdocDocFlags.None)
             {
@@ -41,7 +41,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             {
                 var buffer = bufferOwner.Memory.Span;
 
-                var pathLength = Converter.FromString(Path, buffer);
+                var pathLength = ByteConverter.FromString(Path, buffer);
 
                 builder.Write(bufferOwner.Memory.Slice(0, pathLength));
             }

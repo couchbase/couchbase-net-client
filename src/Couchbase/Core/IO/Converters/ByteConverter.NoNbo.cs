@@ -2,74 +2,68 @@ using System;
 
 namespace Couchbase.Core.IO.Converters
 {
-    public static class ByteConverterExtensions
+    public static partial class ByteConverter
     {
         #region ToXXX
 
         /// <summary>
         ///  Reads a <see cref="Int16"/> from a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        public static short ToInt16(this IByteConverter converter, ReadOnlySpan<byte> buffer)
+        public static short ToInt16(ReadOnlySpan<byte> buffer)
         {
-            return converter.ToInt16(buffer, true);
+            return ToInt16(buffer, true);
         }
 
         /// <summary>
         /// Reads a <see cref="UInt16"/> from a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        public static ushort ToUInt16(this IByteConverter converter, ReadOnlySpan<byte> buffer)
+        public static ushort ToUInt16(ReadOnlySpan<byte> buffer)
         {
-            return converter.ToUInt16(buffer, true);
+            return ToUInt16(buffer, true);
         }
 
         /// <summary>
         /// Reads a <see cref="Int32" /> from a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        public static int ToInt32(this IByteConverter converter, ReadOnlySpan<byte> buffer)
+        public static int ToInt32(ReadOnlySpan<byte> buffer)
         {
-            return converter.ToInt32(buffer, true);
+            return ToInt32(buffer, true);
         }
 
         /// <summary>
         /// Reads a <see cref="UInt32"/> from a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        public static uint ToUInt32(this IByteConverter converter, ReadOnlySpan<byte> buffer)
+        public static uint ToUInt32(ReadOnlySpan<byte> buffer)
         {
-            return converter.ToUInt32(buffer, true);
+            return ToUInt32(buffer, true);
         }
 
         /// <summary>
         /// Reads a <see cref="Int64"/> from a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        public static long ToInt64(this IByteConverter converter, ReadOnlySpan<byte> buffer)
+        public static long ToInt64(ReadOnlySpan<byte> buffer)
         {
-            return converter.ToInt64(buffer, true);
+            return ToInt64(buffer, true);
         }
 
         /// <summary>
         /// Reads a <see cref="UInt64"/> from a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        public static ulong ToUInt64(this IByteConverter converter, ReadOnlySpan<byte> buffer)
+        public static ulong ToUInt64(ReadOnlySpan<byte> buffer)
         {
-            return converter.ToUInt64(buffer, true);
+            return ToUInt64(buffer, true);
         }
 
         #endregion
@@ -79,67 +73,61 @@ namespace Couchbase.Core.IO.Converters
         /// <summary>
         /// Writes a <see cref="Int16"/> to a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
-        public static void FromInt16(this IByteConverter converter, short value, Span<byte> buffer)
+        public static void FromInt16(short value, Span<byte> buffer)
         {
-            converter.FromInt16(value, buffer, true);
+            FromInt16(value, buffer, true);
         }
 
         /// <summary>
         /// Writes a <see cref="UInt16"/> to a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
-        public static void FromUInt16(this IByteConverter converter, ushort value, Span<byte> buffer)
+        public static void FromUInt16(ushort value, Span<byte> buffer)
         {
-            converter.FromUInt16(value, buffer, true);
+            FromUInt16(value, buffer, true);
         }
 
         /// <summary>
         /// Writes a <see cref="Int32"/> to a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
-        public static void FromInt32(this IByteConverter converter, int value, Span<byte> buffer)
+        public static void FromInt32(int value, Span<byte> buffer)
         {
-            converter.FromInt32(value, buffer, true);
+            FromInt32(value, buffer, true);
         }
 
         /// <summary>
         /// Writes a <see cref="UInt32"/> to a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
-        public static void FromUInt32(this IByteConverter converter, uint value, Span<byte> buffer)
+        public static void FromUInt32(uint value, Span<byte> buffer)
         {
-            converter.FromUInt32(value, buffer, true);
+            FromUInt32(value, buffer, true);
         }
 
         /// <summary>
         /// Writes a <see cref="Int64"/> to a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
-        public static void FromInt64(this IByteConverter converter, long value, Span<byte> buffer)
+        public static void FromInt64(long value, Span<byte> buffer)
         {
-            converter.FromInt64(value, buffer, true);
+            FromInt64(value, buffer, true);
         }
 
         /// <summary>
         /// Writes a <see cref="UInt64"/> to a buffer, using network byte order.
         /// </summary>
-        /// <param name="converter">The converter.</param>
         /// <param name="value">The value.</param>
         /// <param name="buffer">The buffer.</param>
-        public static void FromUInt64(this IByteConverter converter, ulong value, Span<byte> buffer)
+        public static void FromUInt64(ulong value, Span<byte> buffer)
         {
-            converter.FromUInt64(value, buffer, true);
+            FromUInt64(value, buffer, true);
         }
 
         #endregion

@@ -13,7 +13,6 @@ namespace Couchbase.KeyValue
     internal class LookupInResult : ILookupInResult
     {
         private readonly IMemoryOwner<byte> _bytes;
-        private IByteConverter _converter = new DefaultConverter();
         private ITypeSerializer _serializer = new DefaultSerializer();
 
         internal LookupInResult(IMemoryOwner<byte> bytes, ulong cas, TimeSpan? expiry)
@@ -35,12 +34,12 @@ namespace Couchbase.KeyValue
             var operationSpecs = new List<OperationSpec>();
             for (;;)
             {
-                var bodyLength = _converter.ToInt32(response.Span.Slice(2));
+                var bodyLength = ByteConverter.ToInt32(response.Span.Slice(2));
                 var payLoad = response.Slice(6, bodyLength);
 
                 var command = new OperationSpec
                 {
-                    Status = (ResponseStatus) _converter.ToUInt16(response.Span),
+                    Status = (ResponseStatus) ByteConverter.ToUInt16(response.Span),
                     ValueIsJson = payLoad.Span.IsJson(),
                     Bytes = payLoad
                 };

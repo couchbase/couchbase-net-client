@@ -133,7 +133,7 @@ namespace Couchbase.UnitTests
             getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
-                new DefaultTranscoder(new DefaultConverter()),
+                new DefaultTranscoder(),
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,
@@ -152,7 +152,7 @@ namespace Couchbase.UnitTests
             getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
-                new DefaultTranscoder(new DefaultConverter()),
+                new DefaultTranscoder(),
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,
@@ -171,7 +171,7 @@ namespace Couchbase.UnitTests
             getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
-                new DefaultTranscoder(new DefaultConverter()),
+                new DefaultTranscoder(),
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,

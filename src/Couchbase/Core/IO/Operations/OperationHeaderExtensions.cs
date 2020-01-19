@@ -12,8 +12,6 @@ namespace Couchbase.Core.IO.Operations
         private static readonly HashSet<ResponseStatus> ValidResponseStatuses =
             new HashSet<ResponseStatus>((ResponseStatus[]) Enum.GetValues(typeof(ResponseStatus)));
 
-        private static readonly IByteConverter Converter = new DefaultConverter();
-
         internal static OperationHeader CreateHeader(this Span<byte> buffer, ErrorMap errorMap,
             out ErrorCode errorCode)
         {
@@ -41,10 +39,10 @@ namespace Couchbase.Core.IO.Operations
             else
             {
                 framingExtrasLength = 0;
-                keyLength = Converter.ToInt16(buffer.Slice(HeaderOffsets.KeyLength));
+                keyLength = ByteConverter.ToInt16(buffer.Slice(HeaderOffsets.KeyLength));
             }
 
-            var statusCode = Converter.ToInt16(buffer.Slice(HeaderOffsets.Status));
+            var statusCode = ByteConverter.ToInt16(buffer.Slice(HeaderOffsets.Status));
             var status = GetResponseStatus(statusCode, errorMap, out errorCode);
 
             return new OperationHeader
@@ -56,9 +54,9 @@ namespace Couchbase.Core.IO.Operations
                 ExtrasLength = buffer[HeaderOffsets.ExtrasLength],
                 DataType = (DataType) buffer[HeaderOffsets.Datatype],
                 Status = status,
-                BodyLength = Converter.ToInt32(buffer.Slice(HeaderOffsets.Body)),
-                Opaque = Converter.ToUInt32(buffer.Slice(HeaderOffsets.Opaque)),
-                Cas = Converter.ToUInt64(buffer.Slice(HeaderOffsets.Cas))
+                BodyLength = ByteConverter.ToInt32(buffer.Slice(HeaderOffsets.Body)),
+                Opaque = ByteConverter.ToUInt32(buffer.Slice(HeaderOffsets.Opaque)),
+                Cas = ByteConverter.ToUInt64(buffer.Slice(HeaderOffsets.Cas))
             };
         }
 
@@ -127,7 +125,7 @@ namespace Couchbase.Core.IO.Operations
                 if (type == ResponseFramingExtraType.ServerDuration)
                 {
                     // read encoded two byte server duration
-                    var encoded = Converter.ToUInt16(buffer.Slice(offset));
+                    var encoded = ByteConverter.ToUInt16(buffer.Slice(offset));
                     if (encoded > 0)
                     {
                         // decode into microseconds

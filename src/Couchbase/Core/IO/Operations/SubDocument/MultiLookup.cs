@@ -29,7 +29,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 {
                     builder.BeginOperationSpec(false);
 
-                    var pathLength = Converter.FromString(lookup.Path, buffer);
+                    var pathLength = ByteConverter.FromString(lookup.Path, buffer);
                     builder.Write(bufferOwner.Memory.Slice(0, pathLength));
 
                     builder.CompleteOperationSpec(lookup);
@@ -49,12 +49,12 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
             for (;;)
             {
-                var bodyLength = Converter.ToInt32(responseSpan.Slice(2));
+                var bodyLength = ByteConverter.ToInt32(responseSpan.Slice(2));
                 var payLoad = new byte[bodyLength];
                 responseSpan.Slice(6, bodyLength).CopyTo(payLoad);
 
                 var command = LookupCommands[commandIndex++];
-                command.Status = (ResponseStatus)Converter.ToUInt16(responseSpan);
+                command.Status = (ResponseStatus)ByteConverter.ToUInt16(responseSpan);
                 command.ValueIsJson = payLoad.AsSpan().IsJson();
                 command.Bytes = payLoad;
 

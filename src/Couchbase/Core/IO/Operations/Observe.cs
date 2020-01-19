@@ -29,8 +29,8 @@ namespace Couchbase.Core.IO.Operations
                 var keyLength = WriteKey(buffer.Slice(4));
 
                 // ReSharper disable once PossibleInvalidOperationException
-                Converter.FromInt16(VBucketId.Value, buffer);
-                Converter.FromInt16((short) keyLength, buffer.Slice(2));
+                ByteConverter.FromInt16(VBucketId.Value, buffer);
+                ByteConverter.FromInt16((short) keyLength, buffer.Slice(2));
 
                 builder.Write(bufferOwner.Memory.Slice(0, keyLength + 4));
             }
@@ -43,17 +43,17 @@ namespace Couchbase.Core.IO.Operations
                 try
                 {
                     var buffer = Data.Span;
-                    var keylength = Converter.ToInt16(buffer.Slice(26));
+                    var keylength = ByteConverter.ToInt16(buffer.Slice(26));
 
                     return new ObserveState
                     {
-                        PersistStat = Converter.ToUInt32(buffer.Slice(16)),
-                        ReplState = Converter.ToUInt32(buffer.Slice(20)),
-                        VBucket = Converter.ToInt16(buffer.Slice(24)),
+                        PersistStat = ByteConverter.ToUInt32(buffer.Slice(16)),
+                        ReplState = ByteConverter.ToUInt32(buffer.Slice(20)),
+                        VBucket = ByteConverter.ToInt16(buffer.Slice(24)),
                         KeyLength = keylength,
-                        Key = Converter.ToString(buffer.Slice(28, keylength)),
+                        Key = ByteConverter.ToString(buffer.Slice(28, keylength)),
                         KeyState = (KeyState) buffer[28 + keylength],
-                        Cas = Converter.ToUInt64(buffer.Slice(28 + keylength + 1))
+                        Cas = ByteConverter.ToUInt64(buffer.Slice(28 + keylength + 1))
                     };
                 }
                 catch (Exception e)

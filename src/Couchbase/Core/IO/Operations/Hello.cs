@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO.Operations
 
                 for (var i = 0; i < contentLength; i++)
                 {
-                    Converter.FromInt16(Content[i], body);
+                    ByteConverter.FromInt16(Content[i], body);
                     body = body.Slice(2);
                 }
 
@@ -44,7 +44,7 @@ namespace Couchbase.Core.IO.Operations
 
                     for (int i = 0; i < result.Length; i++)
                     {
-                        result[i] = Converter.ToInt16(buffer);
+                        result[i] = ByteConverter.ToInt16(buffer);
 
                         buffer = buffer.Slice(2);
                         if (buffer.Length <= 0) break;

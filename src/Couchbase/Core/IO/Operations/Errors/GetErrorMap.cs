@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO.Operations.Errors
         public override void WriteBody(OperationBuilder builder)
         {
             Span<byte> body = stackalloc byte[2];
-            Converter.FromInt16(DefaultVersion, body);
+            ByteConverter.FromInt16(DefaultVersion, body);
             builder.Write(body);
         }
 

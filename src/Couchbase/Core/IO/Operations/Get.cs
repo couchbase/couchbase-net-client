@@ -32,7 +32,7 @@ namespace Couchbase.Core.IO.Operations
                 BitUtils.SetBit(ref compression, 5, BitUtils.GetBit(flags, 5));
                 BitUtils.SetBit(ref compression, 6, BitUtils.GetBit(flags, 6));
 
-                var typeCode = (TypeCode)(Converter.ToUInt16(buffer.Slice(26)) & 0xff);
+                var typeCode = (TypeCode)(ByteConverter.ToUInt16(buffer.Slice(26)) & 0xff);
                 Format = (DataFormat)format;
                 Compression = (Compression)compression;
                 Flags.DataFormat = Format;

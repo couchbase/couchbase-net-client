@@ -25,10 +25,9 @@ namespace Couchbase.Core.IO.Connections
         protected volatile bool Disposed;
         protected ILogger Log;
 
-        public MultiplexingConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter)
+        public MultiplexingConnection(IConnectionPool connectionPool, Socket socket)
         {
             Socket = socket;
-            Converter = converter;
             LocalEndPoint = socket.LocalEndPoint;
             EndPoint = socket.RemoteEndPoint;
 
@@ -49,8 +48,6 @@ namespace Couchbase.Core.IO.Connections
         public ulong ConnectionId { get; }
 
         public IConnectionPool ConnectionPool { get; set; }
-
-        public IByteConverter Converter { get; set; }
 
         public Socket Socket { get; set; }
 
@@ -79,12 +76,11 @@ namespace Couchbase.Core.IO.Connections
 
         public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
         {
-            var opaque = Converter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
+            var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
             var state = new AsyncState
             {
                 Opaque = opaque,
                 Callback = callback,
-                Converter = Converter,
                 EndPoint = (IPEndPoint)EndPoint,
                 ConnectionId = ConnectionId,
                 ErrorMap = errorMap,
@@ -202,10 +198,10 @@ namespace Couchbase.Core.IO.Connections
             var parsedOffset = 0;
             while (parsedOffset + HeaderOffsets.BodyLength < _receiveBufferLength)
             {
-                var responseSize = Converter.ToInt32(_receiveBuffer.AsSpan(parsedOffset + HeaderOffsets.BodyLength)) + 24;
+                var responseSize = ByteConverter.ToInt32(_receiveBuffer.AsSpan(parsedOffset + HeaderOffsets.BodyLength)) + 24;
                 if (parsedOffset + responseSize > _receiveBufferLength) break;
 
-                var opaque = Converter.ToUInt32(_receiveBuffer.AsSpan(parsedOffset + HeaderOffsets.Opaque));
+                var opaque = ByteConverter.ToUInt32(_receiveBuffer.AsSpan(parsedOffset + HeaderOffsets.Opaque));
                 var response = MemoryPool<byte>.Shared.RentAndSlice(responseSize);
                 try
                 {

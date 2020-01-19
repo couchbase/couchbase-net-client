@@ -12,7 +12,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             Span<byte> buffer = stackalloc byte[CurrentSpec.DocFlags != SubdocDocFlags.None ? 4 : 3];
 
-            Converter.FromInt16((short) Converter.GetStringByteCount(Path), buffer); //1-2
+            ByteConverter.FromInt16((short) ByteConverter.GetStringByteCount(Path), buffer); //1-2
             buffer[2] = (byte) CurrentSpec.PathFlags; //3
 
             if (CurrentSpec.DocFlags != SubdocDocFlags.None)
@@ -29,7 +29,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             {
                 var buffer = bufferOwner.Memory.Span;
 
-                var pathLength = Converter.FromString(Path, buffer);
+                var pathLength = ByteConverter.FromString(Path, buffer);
 
                 builder.Write(bufferOwner.Memory.Slice(0, pathLength));
             }

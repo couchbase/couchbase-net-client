@@ -25,8 +25,7 @@ namespace Couchbase.Utils
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
             using (var manifestOp = new GetManifest
             {
-                Converter = new DefaultConverter(),
-                Transcoder = new DefaultTranscoder(new DefaultConverter()),
+                Transcoder = new DefaultTranscoder(),
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
@@ -61,8 +60,7 @@ namespace Couchbase.Utils
             {
                 Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
-                Converter = new DefaultConverter(),
-                Transcoder = new DefaultTranscoder(new DefaultConverter()),
+                Transcoder = new DefaultTranscoder(),
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
@@ -95,8 +93,7 @@ namespace Couchbase.Utils
             var completionSource = new TaskCompletionSource<bool>();
             using (var selectBucketOp = new SelectBucket
             {
-                Converter = new DefaultConverter(),
-                Transcoder = new DefaultTranscoder(new DefaultConverter()),
+                Transcoder = new DefaultTranscoder(),
                 Key = bucketName,
                 Completed = s =>
                 {
@@ -114,8 +111,7 @@ namespace Couchbase.Utils
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
             using (var errorMapOp = new GetErrorMap
             {
-                Converter = new DefaultConverter(),
-                Transcoder = new DefaultTranscoder(new DefaultConverter()),
+                Transcoder = new DefaultTranscoder(),
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
@@ -138,8 +134,7 @@ namespace Couchbase.Utils
             using (var configOp = new Config
             {
                 CurrentHost = endPoint,
-                Converter = new DefaultConverter(),
-                Transcoder = new DefaultTranscoder(new DefaultConverter()),
+                Transcoder = new DefaultTranscoder(),
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = endPoint,
                 Completed = s =>

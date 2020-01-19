@@ -28,8 +28,7 @@ namespace Couchbase.Core.IO.Authentication
                 Key = MechanismType,
                 Content = GetAuthData(Username, Password),
                 Opaque = SequenceGenerator.GetNext(),
-                Converter = new DefaultConverter(),
-                Transcoder = new DefaultTranscoder(new DefaultConverter()),
+                Transcoder = new DefaultTranscoder(),
                 Completed = s =>
                 {
                     //Status will be AuthenticationError if auth failed otherwise false

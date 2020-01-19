@@ -99,8 +99,8 @@ namespace Couchbase.Core.IO.Operations
             BitUtils.SetBit(ref extras[0], 7, BitUtils.GetBit(compression, 2));
 
             var typeCode = (ushort)Flags.TypeCode;
-            Converter.FromUInt16(typeCode, extras.Slice(2));
-            Converter.FromUInt32(Expires, extras.Slice(4));
+            ByteConverter.FromUInt16(typeCode, extras.Slice(2));
+            ByteConverter.FromUInt32(Expires, extras.Slice(4));
 
             builder.Write(extras);
         }

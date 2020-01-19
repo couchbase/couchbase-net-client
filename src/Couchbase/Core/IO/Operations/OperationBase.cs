@@ -21,8 +21,7 @@ namespace Couchbase.Core.IO.Operations
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
         internal ErrorCode ErrorCode;
-        private static readonly IByteConverter DefaultConverter = new DefaultConverter();
-        private static readonly ITypeTranscoder DefaultTranscoder = new DefaultTranscoder(DefaultConverter);
+        private static readonly ITypeTranscoder DefaultTranscoder = new DefaultTranscoder();
         private IMemoryOwner<byte> _data;
 
         protected OperationBase()
@@ -32,7 +31,6 @@ namespace Couchbase.Core.IO.Operations
             Key = string.Empty;
 
             //temporarily make a static - later should be pluggable/set externally
-            Converter = DefaultConverter;
             Transcoder = DefaultTranscoder;
         }
 
@@ -153,13 +151,13 @@ namespace Couchbase.Core.IO.Operations
                 BitUtils.SetBit(ref compression, 5, BitUtils.GetBit(flags, 5));
                 BitUtils.SetBit(ref compression, 6, BitUtils.GetBit(flags, 6));
 
-                var typeCode = (TypeCode)(Converter.ToUInt16(buffer.Slice(26)) & 0xff);
+                var typeCode = (TypeCode)(ByteConverter.ToUInt16(buffer.Slice(26)) & 0xff);
                 Format = (DataFormat)format;
                 Compression = (Compression) compression;
                 Flags.DataFormat = Format;
                 Flags.Compression = Compression;
                 Flags.TypeCode = typeCode;
-                Expires = Converter.ToUInt32(buffer.Slice(25));
+                Expires = ByteConverter.ToUInt32(buffer.Slice(25));
             }
         }
 
@@ -182,7 +180,7 @@ namespace Couchbase.Core.IO.Operations
                 length += Leb128.Write(buffer, Cid.Value);
             }
 
-            length += Converter.FromString(Key, buffer.Slice(length));
+            length += ByteConverter.FromString(Key, buffer.Slice(length));
 
             return length;
         }
@@ -363,11 +361,11 @@ namespace Couchbase.Core.IO.Operations
             {
                 if (TotalLength == OperationHeader.Length)
                 {
-                    body = Converter.ToString(Data.Span);
+                    body = ByteConverter.ToString(Data.Span);
                 }
                 else
                 {
-                    body = Converter.ToString(Data.Span.Slice(OperationHeader.Length, Math.Min(Data.Length - OperationHeader.Length, TotalLength - OperationHeader.Length)));
+                    body = ByteConverter.ToString(Data.Span.Slice(OperationHeader.Length, Math.Min(Data.Length - OperationHeader.Length, TotalLength - OperationHeader.Length)));
                 }
             }
 
@@ -431,7 +429,7 @@ namespace Couchbase.Core.IO.Operations
         {
             BeginSend();
 
-            var builder = OperationBuilderPool.Instance.Rent(Converter);
+            var builder = OperationBuilderPool.Instance.Rent();
             try
             {
                 WriteFramingExtras(builder);
@@ -473,15 +471,13 @@ namespace Couchbase.Core.IO.Operations
 
             return ErrorCode.GetNextInterval(Attempts, defaultTimeout);
         }
-
-        public IByteConverter Converter { get; set; }
-
+        
         protected void TryReadMutationToken(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length >= 40 && VBucketId.HasValue)
             {
-                var uuid = Converter.ToInt64(buffer.Slice(Header.ExtrasOffset));
-                var seqno = Converter.ToInt64(buffer.Slice(Header.ExtrasOffset + 8));
+                var uuid = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset));
+                var seqno = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset + 8));
                 MutationToken = new MutationToken(BucketName, VBucketId.Value, uuid, seqno);
             }
         }

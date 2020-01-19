@@ -14,9 +14,9 @@ namespace Couchbase.Core.IO.Operations
         public override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[20];
-            Converter.FromUInt64(Delta, extras);
-            Converter.FromUInt64(Initial, extras.Slice(8));
-            Converter.FromUInt32(Expires, extras.Slice(16));
+            ByteConverter.FromUInt64(Delta, extras);
+            ByteConverter.FromUInt64(Initial, extras.Slice(8));
+            ByteConverter.FromUInt32(Expires, extras.Slice(16));
             builder.Write(extras);
         }
 

@@ -8,7 +8,7 @@ namespace Couchbase.Core.IO.Operations
         public override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[4];
-            Converter.FromUInt32(Expires, extras);
+            ByteConverter.FromUInt32(Expires, extras);
             builder.Write(extras);
         }
 

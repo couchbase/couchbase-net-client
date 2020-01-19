@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void DecodeString_Defaults_To_Null_When_Buffer_Is_Empty_And_Type_Is_String()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer());
+            var transcoder = new DefaultTranscoder(new DefaultSerializer());
 
             var bytes = new byte[0];
             var result = transcoder.Decode<string>(bytes.AsMemory(),
@@ -31,7 +31,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void DecodeString_Defaults_To_Null_When_Buffer_Is_Empty_And_Type_Is_JSON()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer());
+            var transcoder = new DefaultTranscoder(new DefaultSerializer());
 
             var bytes = new byte[0];
             var result = transcoder.Decode<string>(bytes.AsMemory(),
@@ -44,7 +44,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void DecodeString_Returns_String_When_Buffer_Is_Empty_And_Type_Is_String()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer());
+            var transcoder = new DefaultTranscoder(new DefaultSerializer());
 
             var bytes = new byte[0];
             var result = transcoder.Decode<string>(bytes.AsMemory(),
@@ -57,7 +57,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Serialize_Int16()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             Int16 data = 5;
 
             var flags = new Flags
@@ -80,7 +80,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Serialize_UInt16()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter(), new DefaultSerializer());
+            var transcoder = new DefaultTranscoder(new DefaultSerializer());
             UInt16 data = 5;
 
             var flags = new Flags
@@ -102,7 +102,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Serialize_Int32()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             Int32 data = 9;
 
             var flags = new Flags
@@ -124,7 +124,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Serialize_UInt32()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             UInt32 data = 9;
 
             var flags = new Flags
@@ -146,7 +146,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Serialize_Int64()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             Int64 data = 9;
 
             var flags = new Flags
@@ -168,7 +168,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Serialize_UInt64()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             UInt64 data = 9;
 
             var flags = new Flags
@@ -190,7 +190,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Serialize_String()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             string data = "Hello";
 
             var flags = new Flags
@@ -212,7 +212,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Null()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
 
             var flags = new Flags
             {
@@ -233,7 +233,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Char()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var value = 'o';
 
             var flags = new Flags
@@ -255,7 +255,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Poco()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var value = new Person { Name = "jeff" };
 
             var flags = new Flags
@@ -277,7 +277,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Deserialize_Int()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var five = 5;
 
             var flags = new Flags
@@ -299,7 +299,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Deserialize_Null()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             object value = null;
 
             var flags = new Flags
@@ -321,7 +321,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Deserialize_String()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var value = "astring";
 
             var flags = new Flags
@@ -342,7 +342,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Deserialize_Char()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var value = 'o';
 
             var flags = new Flags
@@ -360,7 +360,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Byte_Array()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var value = new byte[] { 0x00, 0x00, 0x01 };
 
             var flags = new Flags
@@ -388,7 +388,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Test_Json_Deserialize_Int()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             int value = 42;
 
             using (var stream = new MemoryStream())
@@ -404,7 +404,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         public void Should_Hydrate_Poco_In_PascalCase_Whatever_The_Case_In_Json()
         {
             byte[] jsonData = Encoding.UTF8.GetBytes("{ \"SomeProperty\": \"SOME\", \"someIntProperty\": 12345, \"haspAscalCASE\": true }");
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var hydrated = transcoder.DeserializeAsJson<Pascal>(jsonData.AsMemory());
 
             Assert.Equal("SOME", hydrated.SomeProperty);
@@ -415,7 +415,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         [Fact]
         public void Should_Convert_To_CamelCase_Json_With_Default_Serialization_Settings()
         {
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var data = new Pascal
             {
                 SomeProperty = "SOME",
@@ -438,7 +438,6 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         public void Should_Convert_To_PascalCase_Json_With_Altered_Serialization_Settings()
         {
             var transcoder = new DefaultTranscoder(
-                new DefaultConverter(),
                 new DefaultSerializer(
                     new JsonSerializerSettings(),
                     new JsonSerializerSettings
@@ -475,7 +474,6 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 0, 250, 82, 116, 101, 115, 116
             };
 
-            var converter = new DefaultConverter();
             var format = new byte();
 
             var temp = legacyByteArray[24];
@@ -493,10 +491,10 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             {
                 DataFormat = (DataFormat)format,
                 Compression = (Compression)compression,
-                TypeCode = (TypeCode)(converter.ToUInt16(legacyByteArray.AsSpan(26)) & 0xff),
+                TypeCode = (TypeCode)(ByteConverter.ToUInt16(legacyByteArray.AsSpan(26)) & 0xff),
             };
 
-            var transcoder = new DefaultTranscoder(new DefaultConverter());
+            var transcoder = new DefaultTranscoder();
             var result = transcoder.Decode<byte[]>(legacyByteArray.AsMemory(28, 4), flags, OpCode.Get);
             Assert.Equal("test", Encoding.UTF8.GetString(result));
         }

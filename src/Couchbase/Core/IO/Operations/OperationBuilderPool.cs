@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -31,19 +30,17 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Rents an <see cref="OperationBuilder"/> from the pool, creating a new one if none is available.
         /// </summary>
-        /// <param name="converter">The <see cref="IByteConverter"/> to assign to the builder.</param>
         /// <returns>The <see cref="OperationBuilder"/>.</returns>
         /// <exception cref="ArgumentNullException">Converter is null.</exception>
         [NotNull]
-        public OperationBuilder Rent([NotNull] IByteConverter converter)
+        public OperationBuilder Rent()
         {
             if (!_builders.TryTake(out var builder))
             {
                 Interlocked.Increment(ref _builderCount);
-                return new OperationBuilder(converter);
+                return new OperationBuilder();
             }
 
-            builder.Converter = converter;
             return builder;
         }
 

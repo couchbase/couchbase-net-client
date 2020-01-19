@@ -23,7 +23,7 @@ namespace Couchbase.KeyValue
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseCollection>();
         private readonly BucketBase _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
-        private readonly ITypeTranscoder _transcoder = new DefaultTranscoder(new DefaultConverter());
+        private readonly ITypeTranscoder _transcoder = new DefaultTranscoder();
         private readonly ClusterContext _context;
 
         internal CouchbaseCollection(BucketBase bucket, ClusterContext context, uint? cid, string name)

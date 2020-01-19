@@ -4,7 +4,6 @@ using System.Net.Sockets;
 using System.Threading;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
-using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Utils
 {
@@ -106,10 +105,10 @@ namespace Couchbase.Utils
 
             if (options.EnableTls)
             {
-                return new SslConnection(null, socket, new DefaultConverter());
+                return new SslConnection(null, socket);
             }
 
-            return new MultiplexingConnection(null, socket, new DefaultConverter());
+            return new MultiplexingConnection(null, socket);
         }
     }
 }

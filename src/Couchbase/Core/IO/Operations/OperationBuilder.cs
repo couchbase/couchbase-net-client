@@ -2,8 +2,8 @@ using System;
 using System.Buffers;
 using System.ComponentModel;
 using System.IO;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.SubDocument;
+using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -14,7 +14,6 @@ namespace Couchbase.Core.IO.Operations
     internal sealed class OperationBuilder : Stream
     {
         private readonly MemoryStream _stream;
-        private IByteConverter _converter;
 
         private int _framingExtrasLength;
         private int _extrasLength;
@@ -53,16 +52,6 @@ namespace Couchbase.Core.IO.Operations
         public long Capacity => _stream.Capacity;
 
         /// <summary>
-        /// The <see cref="IByteConverter"/> to use.
-        /// </summary>
-        [NotNull]
-        public IByteConverter Converter
-        {
-            get => _converter;
-            set => _converter = value ?? throw new ArgumentNullException(nameof(value));
-        }
-
-        /// <summary>
         /// The current segment being written.
         /// </summary>
         public OperationSegment CurrentSegment { get; private set; }
@@ -70,10 +59,8 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Creates a new OperationBuilder.
         /// </summary>
-        /// <param name="converter">The <see cref="IByteConverter"/> to use when writing the header.</param>
-        public OperationBuilder(IByteConverter converter)
+        public OperationBuilder()
         {
-            _converter = converter ?? throw new ArgumentNullException(nameof(converter));
             _stream = MemoryStreamFactory.GetMemoryStream();
 
             Reset();
@@ -228,7 +215,7 @@ namespace Couchbase.Core.IO.Operations
             else
             {
                 headerBytes[HeaderOffsets.Magic] = (byte) Magic.Request;
-                _converter.FromInt16((short) _keyLength, headerBytes.Slice(HeaderOffsets.KeyLength));
+                ByteConverter.FromInt16((short) _keyLength, headerBytes.Slice(HeaderOffsets.KeyLength));
             }
 
             headerBytes[HeaderOffsets.Opcode] = (byte) header.OpCode;
@@ -236,13 +223,13 @@ namespace Couchbase.Core.IO.Operations
 
             if (header.VBucketId.HasValue)
             {
-                _converter.FromInt16(header.VBucketId.Value, headerBytes.Slice(HeaderOffsets.VBucket));
+                ByteConverter.FromInt16(header.VBucketId.Value, headerBytes.Slice(HeaderOffsets.VBucket));
             }
 
             var totalLength = _framingExtrasLength + _extrasLength + _keyLength + _bodyLength;
-            _converter.FromInt32(totalLength, headerBytes.Slice(HeaderOffsets.BodyLength));
-            _converter.FromUInt32(header.Opaque, headerBytes.Slice(HeaderOffsets.Opaque));
-            _converter.FromUInt64(header.Cas, headerBytes.Slice(HeaderOffsets.Cas));
+            ByteConverter.FromInt32(totalLength, headerBytes.Slice(HeaderOffsets.BodyLength));
+            ByteConverter.FromUInt32(header.Opaque, headerBytes.Slice(HeaderOffsets.Opaque));
+            ByteConverter.FromUInt64(header.Cas, headerBytes.Slice(HeaderOffsets.Cas));
 
             _stream.Position = 0;
             Write(headerBytes);
@@ -316,11 +303,11 @@ namespace Couchbase.Core.IO.Operations
             Span<byte> buffer = stackalloc byte[_operationSpecIsMutation ? 8 : 4];
             buffer[0] = (byte) spec.OpCode;
             buffer[1] = (byte) spec.PathFlags;
-            _converter.FromUInt16((ushort) _operationSpecPathLength, buffer.Slice(2));
+            ByteConverter.FromUInt16((ushort) _operationSpecPathLength, buffer.Slice(2));
 
             if (_operationSpecIsMutation)
             {
-                _converter.FromUInt32((uint) _operationSpecFragmentLength, buffer.Slice(4));
+                ByteConverter.FromUInt32((uint) _operationSpecFragmentLength, buffer.Slice(4));
             }
 
             _stream.Position = _operationSpecStartPosition;

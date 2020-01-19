@@ -25,20 +25,18 @@ namespace Couchbase.Core.IO.Connections
         private volatile bool Disposed;
         private readonly byte[] _receiveBuffer = new byte[1024 * 16];
 
-        internal SslConnection(IConnectionPool connectionPool, Socket socket, IByteConverter converter)
-            : this (connectionPool, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback), converter)
+        internal SslConnection(IConnectionPool connectionPool, Socket socket)
+            : this (connectionPool, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback))
         { }
 
-        internal SslConnection(IConnectionPool connectionPool, SslStream sslStream, IByteConverter converter)
+        internal SslConnection(IConnectionPool connectionPool, SslStream sslStream)
         {
             // ConnectionPool = connectionPool;
             _sslStream = sslStream;
-            Converter = converter;
         }
 
         public ulong ConnectionId { get; }
         public IConnectionPool ConnectionPool { get; set; }
-        public IByteConverter Converter { get; set; }
         public Socket Socket { get; set; }
         public bool IsConnected { get; }
         public EndPoint EndPoint { get; set; }
@@ -74,7 +72,7 @@ namespace Couchbase.Core.IO.Connections
             SocketAsyncState state = null;
             try
             {
-                var opaque = Converter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
+                var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
                 state = new SocketAsyncState
                 {
                     Opaque = opaque,
@@ -94,7 +92,7 @@ namespace Couchbase.Core.IO.Connections
 
                 // wait for response
                 var received = await _sslStream.ReadAsync(_receiveBuffer, 0, _receiveBuffer.Length).ConfigureAwait(false);
-                var responseSize = Converter.ToInt32(_receiveBuffer.AsSpan(HeaderOffsets.BodyLength)) + HeaderOffsets.HeaderLength;
+                var responseSize = ByteConverter.ToInt32(_receiveBuffer.AsSpan(HeaderOffsets.BodyLength)) + HeaderOffsets.HeaderLength;
 
                 // create memory slice and copy first segment
                 var response = MemoryPool<byte>.Shared.RentAndSlice(responseSize);

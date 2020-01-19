@@ -23,7 +23,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             if (Expires > 0)
             {
                 Span<byte> buffer = stackalloc byte[sizeof(uint)];
-                Converter.FromUInt32(Expires, buffer);
+                ByteConverter.FromUInt32(Expires, buffer);
                 builder.Write(buffer);
             }
 
@@ -66,7 +66,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 {
                     builder.BeginOperationSpec(true);
 
-                    var pathLength = Converter.FromString(mutate.Path, buffer);
+                    var pathLength = ByteConverter.FromString(mutate.Path, buffer);
                     builder.Write(bufferOwner.Memory.Slice(0, pathLength));
 
                     if (mutate.Value != null)
@@ -160,12 +160,12 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             {
                 var index = responseSpan[0];
                 var command = _lookupCommands[index];
-                command.Status = (ResponseStatus) Converter.ToUInt16(responseSpan.Slice(1));
+                command.Status = (ResponseStatus) ByteConverter.ToUInt16(responseSpan.Slice(1));
 
                 //if success read value and loop to next result - otherwise terminate loop here
                 if (command.Status == ResponseStatus.Success)
                 {
-                    var valueLength = Converter.ToInt32(responseSpan.Slice(3));
+                    var valueLength = ByteConverter.ToInt32(responseSpan.Slice(3));
                     if (valueLength > 0)
                     {
                         var payLoad = new byte[valueLength];

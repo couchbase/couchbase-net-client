@@ -21,7 +21,6 @@ namespace Couchbase.KeyValue
         private readonly List<string> _projectList;
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer _serializer;
-        private readonly IByteConverter _converter;
         private bool _isParsed;
         private TimeSpan? _expiry;
 
@@ -31,7 +30,6 @@ namespace Couchbase.KeyValue
             _contentBytes = contentBytes;
             _transcoder = transcoder;
             _serializer = transcoder.Serializer;
-            _converter = transcoder.Converter;
             _specs = specs;
             _projectList = projectList;
         }
@@ -135,11 +133,11 @@ namespace Couchbase.KeyValue
 
             for (;;)
             {
-                var bodyLength = _converter.ToInt32(response.Span.Slice(2));
+                var bodyLength = ByteConverter.ToInt32(response.Span.Slice(2));
                 var payLoad = response.Slice(6, bodyLength);
 
                 var command = _specs[commandIndex++];
-                command.Status = (ResponseStatus)_converter.ToUInt16(response.Span);
+                command.Status = (ResponseStatus)ByteConverter.ToUInt16(response.Span);
                 command.ValueIsJson = payLoad.Span.IsJson();
                 command.Bytes = payLoad;
 

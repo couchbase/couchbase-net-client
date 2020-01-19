@@ -17,7 +17,6 @@ namespace Couchbase.Core.IO
     {
         public IPEndPoint EndPoint { get; set; }
         public Func<SocketAsyncState, Task> Callback { get; set; }
-        public IByteConverter Converter { get; set; }
         public uint Opaque { get; set; }
         public Timer Timer;
         public ulong ConnectionId { get; set; }
@@ -32,7 +31,7 @@ namespace Couchbase.Core.IO
             Timer?.Dispose();
 
             var response = MemoryPool<byte>.Shared.RentAndSlice(24);
-            Converter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
+            ByteConverter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
 
             var state = new SocketAsyncState
             {
@@ -62,14 +61,14 @@ namespace Couchbase.Core.IO
             {
                 //this means the request never completed - assume a transport failure
                 response = MemoryPool<byte>.Shared.RentAndSlice(24);
-                Converter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
+                ByteConverter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
                 e = new NetworkErrorException("The socket connection was closed.");
                 status = ResponseStatus.TransportFailure;
             }
             else
             {
                 //defaults
-                status = (ResponseStatus) Converter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status));
+                status = (ResponseStatus) ByteConverter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status));
             }
 
             var state = new SocketAsyncState

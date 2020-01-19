@@ -3,10 +3,10 @@ using System.Buffers;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Utils;
+using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
 namespace Couchbase.Core.IO.Transcoders
 {
@@ -16,30 +16,19 @@ namespace Couchbase.Core.IO.Transcoders
     public class DefaultTranscoder : ITypeTranscoder
      {
         public DefaultTranscoder()
-            : this(new DefaultConverter())
+            : this(new DefaultSerializer())
         {
         }
 
-        public DefaultTranscoder(IByteConverter converter)
-            : this(converter, new DefaultSerializer())
-        {
-        }
-
-        public DefaultTranscoder(IByteConverter converter, ITypeSerializer serializer)
+        public DefaultTranscoder(ITypeSerializer serializer)
         {
             Serializer = serializer;
-            Converter = converter;
         }
 
         /// <summary>
         /// Gets or sets the serializer used by the <see cref="ITypeTranscoder" /> implementation.
         /// </summary>
         public ITypeSerializer Serializer { get; set; }
-
-        /// <summary>
-        /// Gets or sets the byte converter used by used by the <see cref="ITypeTranscoder" /> implementation.
-        /// </summary>
-        public IByteConverter Converter { get; set; }
 
         public virtual Flags GetFormat<T>(T value)
         {
@@ -131,9 +120,9 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.String:
                 case TypeCode.Char:
                     var str = Convert.ToString(value);
-                    using (var bufferOwner = MemoryPool<byte>.Shared.Rent(Converter.GetStringByteCount(str)))
+                    using (var bufferOwner = MemoryPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str)))
                     {
-                        var length = Converter.FromString(str, bufferOwner.Memory.Span);
+                        var length = ByteConverter.FromString(str, bufferOwner.Memory.Span);
                         stream.Write(bufferOwner.Memory.Slice(0, length));
                     }
                     break;
@@ -141,7 +130,7 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.Int16:
                 {
                     Span<byte> bytes = stackalloc byte[sizeof(short)];
-                    Converter.FromInt16(Convert.ToInt16(value), bytes, false);
+                    ByteConverter.FromInt16(Convert.ToInt16(value), bytes, false);
                     WriteHelper(stream, bytes);
                     break;
                 }
@@ -149,7 +138,7 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.UInt16:
                 {
                     Span<byte> bytes = stackalloc byte[sizeof(ushort)];
-                    Converter.FromUInt16(Convert.ToUInt16(value), bytes, false);
+                    ByteConverter.FromUInt16(Convert.ToUInt16(value), bytes, false);
                     WriteHelper(stream, bytes);
                     break;
                 }
@@ -157,7 +146,7 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.Int32:
                 {
                     Span<byte> bytes = stackalloc byte[sizeof(int)];
-                    Converter.FromInt32(Convert.ToInt32(value), bytes, false);
+                    ByteConverter.FromInt32(Convert.ToInt32(value), bytes, false);
                     WriteHelper(stream, bytes);
                     break;
                 }
@@ -165,7 +154,7 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.UInt32:
                 {
                     Span<byte> bytes = stackalloc byte[sizeof(uint)];
-                    Converter.FromUInt32(Convert.ToUInt32(value), bytes, false);
+                    ByteConverter.FromUInt32(Convert.ToUInt32(value), bytes, false);
                     WriteHelper(stream, bytes);
                     break;
                 }
@@ -173,7 +162,7 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.Int64:
                 {
                     Span<byte> bytes = stackalloc byte[sizeof(long)];
-                    Converter.FromInt64(Convert.ToInt64(value), bytes, false);
+                    ByteConverter.FromInt64(Convert.ToInt64(value), bytes, false);
                     WriteHelper(stream, bytes);
                     break;
                 }
@@ -183,11 +172,11 @@ namespace Couchbase.Core.IO.Transcoders
                     Span<byte> bytes = stackalloc byte[sizeof(ulong)];
                     if (opcode == OpCode.Increment || opcode == OpCode.Decrement)
                     {
-                        Converter.FromUInt64(Convert.ToUInt64(value), bytes, true);
+                        ByteConverter.FromUInt64(Convert.ToUInt64(value), bytes, true);
                     }
                     else
                     {
-                        Converter.FromUInt64(Convert.ToUInt64(value), bytes, false);
+                        ByteConverter.FromUInt64(Convert.ToUInt64(value), bytes, false);
                     }
                     WriteHelper(stream, bytes);
                     break;
@@ -298,35 +287,35 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.Int16:
                     if (buffer.Length > 0)
                     {
-                        value = Converter.ToInt16(buffer.Span, false);
+                        value = ByteConverter.ToInt16(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.UInt16:
                     if (buffer.Length > 0)
                     {
-                        value = Converter.ToUInt16(buffer.Span, false);
+                        value = ByteConverter.ToUInt16(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.Int32:
                     if (buffer.Length > 0)
                     {
-                        value = Converter.ToInt32(buffer.Span, false);
+                        value = ByteConverter.ToInt32(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.UInt32:
                     if (buffer.Length > 0)
                     {
-                        value = Converter.ToUInt32(buffer.Span, false);
+                        value = ByteConverter.ToUInt32(buffer.Span, false);
                     }
                     break;
 
                 case TypeCode.Int64:
                     if (buffer.Length > 0)
                     {
-                        value = Converter.ToInt64(buffer.Span, false);
+                        value = ByteConverter.ToInt64(buffer.Span, false);
                     }
                     break;
 
@@ -335,11 +324,11 @@ namespace Couchbase.Core.IO.Transcoders
                     {
                         if (opcode == OpCode.Increment || opcode == OpCode.Decrement)
                         {
-                            value = Converter.ToUInt64(buffer.Span, true);
+                            value = ByteConverter.ToUInt64(buffer.Span, true);
                         }
                         else
                         {
-                            value = Converter.ToUInt64(buffer.Span, false);
+                            value = ByteConverter.ToUInt64(buffer.Span, false);
                         }
                     }
                     break;
@@ -407,7 +396,7 @@ namespace Couchbase.Core.IO.Transcoders
             string result = null;
             if (buffer.Length > 0)
             {
-                result = Converter.ToString(buffer);
+                result = ByteConverter.ToString(buffer);
             }
             return result;
         }
@@ -422,7 +411,7 @@ namespace Couchbase.Core.IO.Transcoders
             char result = default(char);
             if (buffer.Length > 0)
             {
-                var str = Converter.ToString(buffer);
+                var str = ByteConverter.ToString(buffer);
                 if (str.Length == 1)
                 {
                     result = str[0];

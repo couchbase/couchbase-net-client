@@ -17,7 +17,6 @@ namespace Couchbase.LoadTests.Core.IO.Operations
     [MemoryDiagnoser]
     public class OperationReadTests
     {
-        private IByteConverter _converter;
         private ITypeTranscoder _transcoder;
         private byte[] _response;
 
@@ -27,9 +26,8 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         [GlobalSetup]
         public void Setup()
         {
-            _converter = new DefaultConverter();
-            _transcoder = new DefaultTranscoder(_converter, new DefaultSerializer());
-            _response = CreateResponse(_converter, _transcoder, DocSize);
+            _transcoder = new DefaultTranscoder(new DefaultSerializer());
+            _response = CreateResponse(_transcoder, DocSize);
         }
 
         [Benchmark]
@@ -37,7 +35,6 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         {
             using (var operation = new Get<Dictionary<string, object>>
             {
-                Converter = _converter,
                 Transcoder = _transcoder
             })
             {
@@ -48,7 +45,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
 
         #region Helpers
 
-        private byte[] CreateResponse(IByteConverter converter, ITypeTranscoder transcoder, int size)
+        private byte[] CreateResponse(ITypeTranscoder transcoder, int size)
         {
             var docGenerator = new JsonDocumentGenerator(size, size);
             var keyGenerator = new GuidKeyGenerator();
@@ -59,7 +56,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
                 .Select(p =>
                 {
                     var body = transcoder.Serializer.Serialize(p.Value);
-                    var header = CreateHeader(converter, extras.Length, body.Length);
+                    var header = CreateHeader(extras.Length, body.Length);
 
                     var operation = new byte[header.Length + extras.Length + body.Length];
                     Buffer.BlockCopy(header, 0, operation, 0, header.Length);
@@ -70,16 +67,16 @@ namespace Couchbase.LoadTests.Core.IO.Operations
                 .First();
         }
 
-        private byte[] CreateHeader(IByteConverter converter, int extrasLength, int bodyLength)
+        private byte[] CreateHeader(int extrasLength, int bodyLength)
         {
             var header = new byte[OperationHeader.Length];
             var headerSpan = header.AsSpan();
 
             headerSpan[HeaderOffsets.Magic] = (byte) Magic.Response;
-            converter.FromInt16((short) ResponseStatus.Success, headerSpan.Slice(HeaderOffsets.Status));
+            ByteConverter.FromInt16((short) ResponseStatus.Success, headerSpan.Slice(HeaderOffsets.Status));
             headerSpan[HeaderOffsets.Opcode] = (byte) OpCode.Get;
             headerSpan[HeaderOffsets.ExtrasLength] = (byte) extrasLength;
-            converter.FromInt32(bodyLength + extrasLength, headerSpan.Slice(HeaderOffsets.BodyLength));
+            ByteConverter.FromInt32(bodyLength + extrasLength, headerSpan.Slice(HeaderOffsets.BodyLength));
             headerSpan[HeaderOffsets.Datatype] = (byte) DataType.Json;
 
             return header;
