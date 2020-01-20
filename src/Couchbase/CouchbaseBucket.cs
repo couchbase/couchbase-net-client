@@ -105,7 +105,7 @@ namespace Couchbase
             {
                 staleState = StaleState.UpdateAfter;
             }
-            if (options.ScanConsistency == ViewScanConsistency.RequestPlus)
+            if (options.ScanConsistency == ViewScanConsistency.NotBounded)
             {
                 staleState = StaleState.Ok;
             }
