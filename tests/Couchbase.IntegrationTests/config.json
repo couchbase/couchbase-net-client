@@ -1,6 +1,6 @@
 {
   "testSettings": {
-    "connectionString": "couchbase://localhost",
+    "connectionString": "couchbase://10.143.194.101",
     "bucketName": "default"
   },
   "couchbase": {

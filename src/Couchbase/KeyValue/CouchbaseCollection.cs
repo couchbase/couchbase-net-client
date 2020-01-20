@@ -375,7 +375,7 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
-        public async Task<IMutationResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options = null)
+        public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options = null)
         {
             options = options ?? new MutateInOptions();
             // convert new style specs into old style builder
@@ -408,7 +408,7 @@ namespace Couchbase.KeyValue
             })
             {
                 await _bucket.SendAsync(mutation, options.Token, options.Timeout);
-                return new MutationResult(mutation.Cas, null, mutation.MutationToken);
+                return new MutateInResult(mutation.Cas, mutation.MutationToken, mutation.GetCommandValues());
             }
         }
 

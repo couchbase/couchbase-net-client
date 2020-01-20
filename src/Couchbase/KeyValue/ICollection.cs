@@ -45,7 +45,7 @@ namespace Couchbase.KeyValue
 
         Task<ILookupInResult> LookupInAsync(string id, IEnumerable<OperationSpec> specs, LookupInOptions options = null);
 
-        Task<IMutationResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options = null);
+        Task<IMutateInResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options = null);
 
         #endregion
     }

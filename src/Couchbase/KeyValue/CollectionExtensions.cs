@@ -270,7 +270,7 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
-        public static Task<IMutationResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder)
         {
             var builder = new MutateInSpecBuilder();
@@ -279,7 +279,7 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, builder.Specs, new MutateInOptions());
         }
 
-        public static Task<IMutationResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder, Action<MutateInOptions> configureOptions)
         {
             var builder = new MutateInSpecBuilder();
@@ -291,7 +291,7 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, builder.Specs, options);
         }
 
-        public static Task<IMutationResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder, MutateInOptions options)
         {
             var mutateInSpec = new MutateInSpecBuilder();
@@ -300,13 +300,13 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, mutateInSpec.Specs, options);
         }
 
-        public static Task<IMutationResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
             IEnumerable<OperationSpec> specs)
         {
             return collection.MutateInAsync(id, specs, new MutateInOptions());
         }
 
-        public static Task<IMutationResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
             IEnumerable<OperationSpec> specs, Action<MutateInOptions> configureOptions)
         {
             var options = new MutateInOptions();
