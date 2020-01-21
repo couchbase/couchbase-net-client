@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Couchbase.Core.IO.Operations.Errors
 {
-    public enum ErrorAttribute
+    internal enum ErrorAttribute
     {
         /// <summary>
         /// This attribute means that the error is related to a constraint failure regarding the item itself,
