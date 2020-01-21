@@ -17,7 +17,6 @@ using Couchbase.Management.Search;
 using Couchbase.Management.Users;
 using Couchbase.Query;
 using Couchbase.Search;
-using Couchbase.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
@@ -72,26 +71,23 @@ namespace Couchbase
             _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
         }
 
-        public static ICluster Connect(string connectionString, ClusterOptions options = null)
+        public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions options = null)
         {
-            using (new SynchronizationContextExclusion())
-            {
-                var cluster = new Cluster(connectionString, options);
-                cluster.InitializeAsync().GetAwaiter().GetResult();
-                return cluster;
-            }
+            var cluster = new Cluster(connectionString, options);
+            await cluster.InitializeAsync().ConfigureAwait(false);
+            return cluster;
         }
 
-        public static ICluster Connect(string connectionString, string username, string password)
+        public static Task<ICluster> ConnectAsync(string connectionString, string username, string password)
         {
-            return Connect(connectionString, new ClusterOptions
+            return ConnectAsync(connectionString, new ClusterOptions
             {
                 UserName = username,
                 Password = password
             });
         }
 
-        public static ICluster Connect(string connectionString, Action<ConfigurationBuilder> configureBuilder)
+        public static Task<ICluster> ConnectAsync(string connectionString, Action<ConfigurationBuilder> configureBuilder)
         {
             var builder = new ConfigurationBuilder();
             configureBuilder(builder);
@@ -101,7 +97,7 @@ namespace Couchbase
                 .GetSection("couchbase")
                 .Get<ClusterOptions>();
 
-            return Connect(connectionString, clusterOptions);
+            return ConnectAsync(connectionString, clusterOptions);
         }
 
         internal async Task InitializeAsync()

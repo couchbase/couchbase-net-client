@@ -2,27 +2,23 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Configuration;
+using Xunit;
 
 namespace Couchbase.IntegrationTests.Fixtures
 {
-    public class ClusterFixture : IDisposable
+    public class ClusterFixture : IAsyncLifetime
     {
         private readonly TestSettings _settings;
         private bool _bucketOpened;
 
         public ClusterOptions ClusterOptions { get; }
 
-        public ICluster Cluster { get; }
+        public ICluster Cluster { get; private set; }
 
         public ClusterFixture()
         {
             _settings = GetSettings();
             ClusterOptions = GetClusterOptions();
-
-            Cluster = Couchbase.Cluster.Connect(
-                _settings.ConnectionString,
-                builder => builder.AddJsonFile("config.json")
-            );
         }
 
         public async ValueTask<ICluster> GetCluster()
@@ -69,9 +65,19 @@ namespace Couchbase.IntegrationTests.Fixtures
                 .Get<ClusterOptions>();
         }
 
-        public void Dispose()
+        public async Task InitializeAsync()
+        {
+            Cluster = await Couchbase.Cluster.ConnectAsync(
+                    _settings.ConnectionString,
+                    builder => builder.AddJsonFile("config.json"))
+                .ConfigureAwait(false);
+        }
+
+        public Task DisposeAsync()
         {
             Cluster?.Dispose();
+
+            return Task.CompletedTask;
         }
     }
 }

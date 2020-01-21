@@ -50,7 +50,6 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
         internal void Dispose()
         {
             _bucket.Dispose();
-            _fixture?.Dispose();
         }
 
         internal class FakeBucket : BucketBase
