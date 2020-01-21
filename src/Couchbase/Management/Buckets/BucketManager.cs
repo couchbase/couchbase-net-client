@@ -49,13 +49,15 @@ namespace Couchbase.Management.Buckets
 
         private BucketSettings GetBucketSettings(JToken json)
         {
-            var settings = new BucketSettings();
-            settings.Name = json.SelectToken("name").Value<string>();
-            settings.MaxTtl = json.SelectToken("maxTTL").Value<int>();
-            settings.NumReplicas = json.SelectToken("replicaNumber").Value<int>();
-            settings.ReplicaIndexes = json.SelectToken("replicaIndex").Value<bool>();
-            settings.RamQuotaMB = json.SelectToken("quota.rawRAM").Value<int>();
-            settings.FlushEnabled = json.SelectToken("controllers.flush") != null;
+            var settings = new BucketSettings
+            {
+                Name = json.SelectToken("name").Value<string>(),
+                MaxTtl = json.SelectToken("maxTTL").Value<int>(),
+                NumReplicas = json.SelectToken("replicaNumber").Value<int>(),
+                ReplicaIndexes = json.SelectToken("replicaIndex").Value<bool>(),
+                RamQuotaMB = json.SelectToken("quota.rawRAM").Value<int>(),
+                FlushEnabled = json.SelectToken("controllers.flush") != null
+            };
 
             var bucketTypeToken = json.SelectToken("bucketType");
             if (bucketTypeToken != null &&
@@ -90,13 +92,15 @@ namespace Couchbase.Management.Buckets
 
         private IEnumerable<KeyValuePair<string, string>> GetBucketSettingAsFormValues(BucketSettings settings)
         {
-            var values = new Dictionary<string, string>();
-            values.Add("name", settings.Name);
-            values.Add("bucketType", settings.BucketType.GetDescription());
-            values.Add("ramQuotaMB", settings.RamQuotaMB.ToString());
-            values.Add("replicaIndex", settings.ReplicaIndexes ? "1" : "0");
-            values.Add("replicaNumber", settings.NumReplicas.ToString());
-            values.Add("flushEnabled", settings.FlushEnabled ? "1" : "0");
+            var values = new Dictionary<string, string>
+            {
+                {"name", settings.Name},
+                {"bucketType", settings.BucketType.GetDescription()},
+                {"ramQuotaMB", settings.RamQuotaMB.ToString()},
+                {"replicaIndex", settings.ReplicaIndexes ? "1" : "0"},
+                {"replicaNumber", settings.NumReplicas.ToString()},
+                {"flushEnabled", settings.FlushEnabled ? "1" : "0"}
+            };
 
             if (settings.ConflictResolutionType.HasValue)
             {
@@ -123,7 +127,7 @@ namespace Couchbase.Management.Buckets
 
         public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions options = null)
         {
-            options = options ?? new CreateBucketOptions();
+            options ??= new CreateBucketOptions();
             var uri = GetUri();
             Logger.LogInformation($"Attempting to create bucket with name {settings.Name} - {uri}");
 
@@ -157,7 +161,7 @@ namespace Couchbase.Management.Buckets
 
         public async Task UpdateBucketAsync(BucketSettings settings, UpdateBucketOptions options = null)
         {
-            options = options ?? new UpdateBucketOptions();
+            options ??= new UpdateBucketOptions();
             var uri = GetUri(settings.Name);
             Logger.LogInformation($"Attempting to upsert bucket with name {settings.Name} - {uri}");
 
@@ -177,7 +181,7 @@ namespace Couchbase.Management.Buckets
 
         public async Task DropBucketAsync(string bucketName, DropBucketOptions options = null)
         {
-            options = options ?? new DropBucketOptions();
+            options ??= new DropBucketOptions();
             var uri = GetUri(bucketName);
             Logger.LogInformation($"Attempting to drop bucket with name {bucketName} - {uri}");
 
@@ -205,7 +209,7 @@ namespace Couchbase.Management.Buckets
 
         public async Task FlushBucketAsync(string bucketName, FlushBucketOptions options = null)
         {
-            options = options ?? new FlushBucketOptions();
+            options ??= new FlushBucketOptions();
             // get uri and amend path to flush endpoint
             var builder = new UriBuilder(GetUri(bucketName));
             builder.Path = Path.Combine(builder.Path, "controller/doFlush");
@@ -252,7 +256,7 @@ namespace Couchbase.Management.Buckets
 
         public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions options = null)
         {
-            options = options ?? new GetAllBucketsOptions();
+            options ??= new GetAllBucketsOptions();
             var uri = GetUri();
             Logger.LogInformation($"Attempting to get all buckets - {uri}");
 
@@ -282,7 +286,7 @@ namespace Couchbase.Management.Buckets
 
         public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions options = null)
         {
-            options = options ?? new GetBucketOptions();
+            options ??= new GetBucketOptions();
             var uri = GetUri(bucketName);
             Logger.LogInformation($"Attempting to get bucket with name {bucketName} - {uri}");
 
