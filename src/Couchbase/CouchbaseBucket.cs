@@ -161,7 +161,7 @@ namespace Couchbase
                 return await client1.ExecuteAsync(query);
             }
 
-            return (IViewResult) RetryOrchestrator.RetryAsync(Func, query);
+            return (IViewResult) await RetryOrchestrator.RetryAsync(Func, query);
         }
 
         internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)

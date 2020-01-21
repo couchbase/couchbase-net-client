@@ -14,7 +14,7 @@ namespace Couchbase.Core.Retry
     {
         private static readonly ILogger Log = LogManager.CreateLogger<BucketBase>();
 
-        internal static async Task<IServiceResult> RetryAsync(Func<Task<IServiceResult>> send, IRequest request)
+        internal static async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
         {
             var token = request.Token;
             if (token == CancellationToken.None)

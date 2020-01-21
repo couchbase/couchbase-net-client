@@ -50,9 +50,9 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Views()
         {
             var cluster = _fixture.Cluster;
-            var bucket = await cluster.BucketAsync("default");
+            var bucket = await cluster.BucketAsync("beer-sample");
 
-            var results = await bucket.ViewQueryAsync("dev_test_ddoc", "test_view").ConfigureAwait(false);
+            var results = await bucket.ViewQueryAsync("beer", "brewery_beers").ConfigureAwait(false);
             await foreach (var result in results)
             {
             }
