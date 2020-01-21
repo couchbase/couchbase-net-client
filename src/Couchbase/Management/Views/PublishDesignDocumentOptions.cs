@@ -4,11 +4,11 @@ namespace Couchbase.Management.Views
 {
     public class PublishDesignDocumentOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public PublishDesignDocumentOptions WithCancellationToken(CancellationToken cancellationToken)
+        public PublishDesignDocumentOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

@@ -4,11 +4,11 @@ namespace Couchbase.Management.Collections
 {
     public class CreateCollectionOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public CreateCollectionOptions WithCancellationToken(CancellationToken cancellationToken)
+        public CreateCollectionOptions CancellationToken(CancellationToken token)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = token;
             return this;
         }
 

@@ -16,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     /// <typeparam name="TDocument">The type of the document.</typeparam>
     /// <seealso cref="IMutateInBuilder{TDocument}" />
     /// <seealso cref="ITypeSerializerProvider" />
-    public class MutateInBuilder<TDocument> : IMutateInBuilder<TDocument>,  IEnumerable<OperationSpec>, IEquatable<MutateInBuilder<TDocument>>
+    internal class MutateInBuilder<TDocument> : IMutateInBuilder<TDocument>,  IEnumerable<OperationSpec>, IEquatable<MutateInBuilder<TDocument>>
     {
         private readonly ISubdocInvoker _invoker;
         private readonly ConcurrentQueue<OperationSpec> _commands = new ConcurrentQueue<OperationSpec>();

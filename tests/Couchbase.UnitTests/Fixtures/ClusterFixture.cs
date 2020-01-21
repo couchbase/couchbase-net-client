@@ -11,9 +11,9 @@ namespace Couchbase.UnitTests.Fixtures
         public ClusterFixture()
         {
             var cluster = new Cluster("couchbase://localhost", new ClusterOptions()
-                .WithServers("couchbase://localhost")
-                .WithBucket("default")
-                .WithCredentials("Administrator", "password")
+                .Servers("couchbase://localhost")
+                .Bucket("default")
+                .Credentials("Administrator", "password")
             );
             Cluster = cluster;
         }

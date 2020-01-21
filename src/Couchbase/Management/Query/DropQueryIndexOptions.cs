@@ -1,21 +1,22 @@
 using System.Threading;
+using CancellationTokenCls = System.Threading.CancellationToken;
 
 namespace Couchbase.Management.Query
 {
     public class DropQueryIndexOptions
     {
-        public bool IgnoreIfExists { get; set; }
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        internal bool IgnoreIfExistsValue { get; set; }
+        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
 
-        public DropQueryIndexOptions WithIgnoreIfExists(bool ignoreIfExists)
+        public DropQueryIndexOptions IgnoreIfExists(bool ignoreIfExists)
         {
-            IgnoreIfExists = ignoreIfExists;
+            IgnoreIfExistsValue = ignoreIfExists;
             return this;
         }
 
-        public DropQueryIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public DropQueryIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

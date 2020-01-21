@@ -4,18 +4,18 @@ namespace Couchbase.Management.Analytics
 {
     public class DropAnalyticsDataverseOptions
     {
-        public bool IgnoreIfNotExists { get; set; }
-        public CancellationToken CancellationToken { get; set; }
+        internal bool IgnoreIfNotExistsValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public DropAnalyticsDataverseOptions WithIgnoreIfNotExists(bool ignoreIfNotExists)
+        public DropAnalyticsDataverseOptions IgnoreIfNotExists(bool ignoreIfNotExists)
         {
-            IgnoreIfNotExists = ignoreIfNotExists;
+            IgnoreIfNotExistsValue = ignoreIfNotExists;
             return this;
         }
 
-        public DropAnalyticsDataverseOptions WithCancellationToken(CancellationToken cancellationToken)
+        public DropAnalyticsDataverseOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
     }

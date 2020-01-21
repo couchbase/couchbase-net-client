@@ -1,14 +1,17 @@
 using System.Threading;
 
+using CancellationTokenCls = System.Threading.CancellationToken;
+
+
 namespace Couchbase.Management.Buckets
 {
     public class GetBucketOptions
     {
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
 
-        public GetBucketOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetBucketOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

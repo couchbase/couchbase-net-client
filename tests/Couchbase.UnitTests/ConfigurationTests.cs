@@ -15,7 +15,7 @@ namespace Couchbase.UnitTests
             var config = new ClusterOptions();
 
             //act
-            config.WithLogging();
+            config.Logging();
 
 
             //assert - no assertion because the actually NullLogger type is hidden by the implemention of wrappers
@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests
             var config = new ClusterOptions();
 
             //act
-            config.WithLogging(new LoggerFactory(
+            config.Logging(new LoggerFactory(
                 new ILoggerProvider[]
                 {
                     new LogManagerTests.InMemoryLoggerProvider()
@@ -44,10 +44,10 @@ namespace Couchbase.UnitTests
         {
             var config = new ClusterOptions();
 
-            Assert.Throws<ArgumentException>(() => config.WithServers());
-            Assert.Throws<ArgumentException>(() => config.WithServers((string[])null));
-            Assert.Throws<ArgumentException>(() => config.WithServers((Uri[])null));
-            Assert.Throws<ArgumentException>(() => config.WithServers(new string[0]));
+            Assert.Throws<ArgumentException>(() => config.Servers());
+            Assert.Throws<ArgumentException>(() => config.Servers((string[])null));
+            Assert.Throws<ArgumentException>(() => config.Servers((Uri[])null));
+            Assert.Throws<ArgumentException>(() => config.Servers(new string[0]));
         }
 
         [Fact]
@@ -55,9 +55,9 @@ namespace Couchbase.UnitTests
         {
             var config = new ClusterOptions();
 
-            Assert.Throws<ArgumentException>(() => config.WithBucket());
-            Assert.Throws<ArgumentException>(() => config.WithBucket(null));
-            Assert.Throws<ArgumentException>(() => config.WithBucket(new string[0]));
+            Assert.Throws<ArgumentException>(() => config.Bucket());
+            Assert.Throws<ArgumentException>(() => config.Bucket(null));
+            Assert.Throws<ArgumentException>(() => config.Bucket(new string[0]));
         }
 
         [Fact]
@@ -65,10 +65,10 @@ namespace Couchbase.UnitTests
         {
             var config = new ClusterOptions();
 
-            Assert.Throws<ArgumentException>(() => config.WithCredentials(null, null));
-            Assert.Throws<ArgumentException>(() => config.WithCredentials(string.Empty, null));
-            Assert.Throws<ArgumentException>(() => config.WithCredentials(null, string.Empty));
-            Assert.Throws<ArgumentException>(() => config.WithCredentials(string.Empty, string.Empty));
+            Assert.Throws<ArgumentException>(() => config.Credentials(null, null));
+            Assert.Throws<ArgumentException>(() => config.Credentials(string.Empty, null));
+            Assert.Throws<ArgumentException>(() => config.Credentials(null, string.Empty));
+            Assert.Throws<ArgumentException>(() => config.Credentials(string.Empty, string.Empty));
         }
     }
 }

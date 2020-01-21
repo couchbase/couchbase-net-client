@@ -42,7 +42,7 @@ namespace Couchbase.IntegrationTests.Diagnostics
         public async Task Can_Create_DiagnosticsReport_With_ReportId()
         {
             const string reportId = "my-report";
-            var report = await _cluster.DiagnosticsAsync(new DiagnosticsOptions().WithReportId(reportId));
+            var report = await _cluster.DiagnosticsAsync(new DiagnosticsOptions().ReportId(reportId));
 
             Assert.NotNull(report);
             Assert.Equal(reportId, report.Id);

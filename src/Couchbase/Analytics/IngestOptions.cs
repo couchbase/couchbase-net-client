@@ -1,33 +1,35 @@
 using System;
 using System.Threading;
 
+using IngestMethodCls = Couchbase.Analytics.IngestMethod;
+
 namespace Couchbase.Analytics
 {
     public class IngestOptions
     {
         public IngestOptions()
         {
-            IdGenerator = doc => Guid.NewGuid().ToString();
-            Expiry = TimeSpan.Zero;
-            Timeout = TimeSpan.FromSeconds(75);
-            IngestMethod = IngestMethod.Upsert;
-            CancellationToken = default;
+            IdGeneratorValue = doc => Guid.NewGuid().ToString();
+            ExpiryValue = TimeSpan.Zero;
+            TimeoutValue = TimeSpan.FromSeconds(75);
+            IngestMethodValue = IngestMethodCls.Upsert;
+            TokenValue = default;
         }
 
-        public TimeSpan Timeout { get; set; }
-        public TimeSpan Expiry { get; set; }
-        public IngestMethod IngestMethod { get; set; }
-        public Func<dynamic, string> IdGenerator { get; set; }
-        public CancellationToken CancellationToken { get; set; }
+        internal TimeSpan TimeoutValue { get; set; }
+        internal TimeSpan ExpiryValue { get; set; }
+        internal IngestMethod IngestMethodValue { get; set; }
+        internal Func<dynamic, string> IdGeneratorValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
         /// <summary>
         /// Overrides the default Guid based key generator.
         /// </summary>
         /// <param name="idGenerator">A Func{string} that generates a valid Couchbase server key.</param>
         /// <returns></returns>
-        public IngestOptions WithIdGenerator(Func<dynamic, string> idGenerator)
+        public IngestOptions IdGenerator(Func<dynamic, string> idGenerator)
         {
-            IdGenerator = idGenerator;
+            IdGeneratorValue = idGenerator;
             return this;
         }
 
@@ -36,9 +38,9 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="timeout"></param>
         /// <returns></returns>
-        public IngestOptions WithTimeout(TimeSpan timeout)
+        public IngestOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
@@ -47,9 +49,9 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="expiry"></param>
         /// <returns></returns>
-        public IngestOptions WithExpiry(TimeSpan expiry)
+        public IngestOptions Expiry(TimeSpan expiry)
         {
-            Expiry = expiry;
+            ExpiryValue = expiry;
             return this;
         }
 
@@ -58,9 +60,9 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="ingestMethod"></param>
         /// <returns></returns>
-        public IngestOptions WithIngestMethod(IngestMethod ingestMethod)
+        public IngestOptions IngestMethod(IngestMethod ingestMethod)
         {
-            IngestMethod = ingestMethod;
+            IngestMethodValue = ingestMethod;
             return this;
         }
 
@@ -69,9 +71,9 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public IngestOptions WithCancellationToken(CancellationToken token)
+        public IngestOptions CancellationToken(CancellationToken token)
         {
-            CancellationToken = token;
+            TokenValue = token;
             return this;
         }
     }

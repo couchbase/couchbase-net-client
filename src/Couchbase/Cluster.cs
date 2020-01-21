@@ -56,7 +56,7 @@ namespace Couchbase
                 throw new InvalidConfigurationException("Username and password are required.");
             }
 
-            clusterOptions.WithConnectionString(connectionString);
+            clusterOptions.ConnectionString(connectionString);
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(configTokenSource, clusterOptions);
@@ -128,7 +128,7 @@ namespace Couchbase
         public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null)
         {
             options ??= new DiagnosticsOptions();
-            return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options?.ReportId ?? Guid.NewGuid().ToString()));
+            return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options?.ReportIdValue ?? Guid.NewGuid().ToString()));
         }
 
         private async Task EnsureBootstrapped()

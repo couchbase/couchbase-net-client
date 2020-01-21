@@ -116,13 +116,13 @@ namespace Couchbase.Management.Users
         public async Task<UserAndMetaData> GetUserAsync(string username, GetUserOptions options = null)
         {
             options = options ?? GetUserOptions.Default;
-            var uri = GetUsersUri(options.DomainName, username);
+            var uri = GetUsersUri(options.DomainNameValue, username);
             Logger.LogInformation($"Attempting to get user with username {username} - {uri}");
 
             try
             {
                 // check user exists before trying to read content
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
@@ -144,13 +144,13 @@ namespace Couchbase.Management.Users
         public async Task<IEnumerable<UserAndMetaData>> GetAllUsersAsync(GetAllUsersOptions options = null)
         {
             options = options ?? GetAllUsersOptions.Default;
-            var uri = GetUsersUri(options.DomainName);
+            var uri = GetUsersUri(options.DomainNameValue);
             Logger.LogInformation($"Attempting to get all users - {uri}");
 
             try
             {
                 // get all users
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get users from result
@@ -167,14 +167,14 @@ namespace Couchbase.Management.Users
         public async Task UpsertUserAsync(User user, UpsertUserOptions options = null)
         {
             options = options ?? UpsertUserOptions.Default;
-            var uri = GetUsersUri(options.DomainName, user.Username);
+            var uri = GetUsersUri(options.DomainNameValue, user.Username);
             Logger.LogInformation($"Attempting to create user with username {user.Username} - {uri}");
 
             try
             {
                 // upsert user
                 var content = new FormUrlEncodedContent(GetUserFormValues(user));
-                var result = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -187,13 +187,13 @@ namespace Couchbase.Management.Users
         public async Task DropUserAsync(string username, DropUserOptions options = null)
         {
             options = options ?? DropUserOptions.Default;
-            var uri = GetUsersUri(options.DomainName, username);
+            var uri = GetUsersUri(options.DomainNameValue, username);
             Logger.LogInformation($"Attempting to drop user with username {username} - {uri}");
 
             try
             {
                 // drop user
-                var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
@@ -217,7 +217,7 @@ namespace Couchbase.Management.Users
             try
             {
                 // get roles
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get roles from result
@@ -240,7 +240,7 @@ namespace Couchbase.Management.Users
             try
             {
                 // get group
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);
@@ -268,7 +268,7 @@ namespace Couchbase.Management.Users
             try
             {
                 // get group
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get groups from results
@@ -292,7 +292,7 @@ namespace Couchbase.Management.Users
             {
                 // upsert group
                 var content = new FormUrlEncodedContent(GetGroupFormValues(group));
-                var result = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -311,7 +311,7 @@ namespace Couchbase.Management.Users
             try
             {
                 // drop group
-                var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);

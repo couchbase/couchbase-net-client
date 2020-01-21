@@ -27,7 +27,7 @@ namespace Couchbase.IntegrationTests.Services.Query
                 await queryManager.CreatePrimaryIndexAsync("default");
 
                 // create deferred custom index
-                await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.WithDeferred(true));
+                await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true));
 
                 // get all
                 var queryIndexes = await queryManager.GetAllIndexesAsync("default");

@@ -64,7 +64,7 @@ namespace Couchbase.Management.Views
 
             try
             {
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new DesignDocumentNotFoundException(_bucketName, designDocName);
@@ -97,7 +97,7 @@ namespace Couchbase.Management.Views
 
             try
             {
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -149,7 +149,7 @@ namespace Couchbase.Management.Views
             try
             {
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
-                var result = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
 
                 result.EnsureSuccessStatusCode();
             }
@@ -168,7 +168,7 @@ namespace Couchbase.Management.Views
 
             try
             {
-                var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     Logger.LogError($"Failed to drop design document {_bucketName}/{designDocName} because it does not exist - {uri}");
@@ -198,7 +198,7 @@ namespace Couchbase.Management.Views
 
                 // publish design doc to production
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
-                var publishResult = await _client.PutAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var publishResult = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 publishResult.EnsureSuccessStatusCode();
             }
             catch (DesignDocumentNotFoundException)

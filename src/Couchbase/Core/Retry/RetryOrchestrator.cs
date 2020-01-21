@@ -62,7 +62,7 @@ namespace Couchbase.Core.Retry
                         Log.LogDebug(LoggingEvents.QueryEvent,
                             $"Retrying query {request.ClientContextId}/{request.Statement} because {reason}.");
 
-                        var duration = action.Duration;
+                        var duration = action.DurationValue;
                         if (duration.HasValue)
                         {
                             Log.LogDebug($"Timeout for {request.ClientContextId} is {request.Timeout.TotalMilliseconds} and duration is {duration.Value.TotalMilliseconds} and elasped is {stopwatch.ElapsedMilliseconds}");
@@ -142,10 +142,10 @@ namespace Couchbase.Core.Retry
                             var strategy = operation.RetryStrategy;
                             var action = strategy.RetryAfter(operation, reason);
 
-                            if (action.Duration.HasValue)
+                            if (action.DurationValue.HasValue)
                             {
                                 Log.LogDebug($"Retrying op {operation.Opaque}/{operation.Key} because {reason}.");
-                                await Task.Delay(action.Duration.Value, token).ConfigureAwait(false);
+                                await Task.Delay(action.DurationValue.Value, token).ConfigureAwait(false);
                             }
                             else
                             {

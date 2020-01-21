@@ -1,14 +1,16 @@
 using System.Threading;
 
+using CancellationTokenCls = System.Threading.CancellationToken;
+
 namespace Couchbase.Management.Buckets
 {
     public class DropBucketOptions
     {
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
 
-        public DropBucketOptions WithCancellationToken(CancellationToken cancellationToken)
+        public DropBucketOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

@@ -14,7 +14,7 @@ namespace Couchbase.Analytics
         internal TimeSpan TimeoutValue = TimeSpan.FromMilliseconds(75000);
         internal CancellationToken Token = System.Threading.CancellationToken.None;
         internal AnalyticsScanConsistency ScanConsistencyValue = Analytics.AnalyticsScanConsistency.NotBounded;
-        internal bool ReadOnlyValue;
+        internal bool ReadonlyValue;
         internal int PriorityValue { get; set; } = 0;
 
         public AnalyticsOptions ScanConsistency(
@@ -26,7 +26,7 @@ namespace Couchbase.Analytics
 
         public AnalyticsOptions Readonly(bool readOnly)
         {
-            ReadOnlyValue = readOnly;
+            ReadonlyValue = readOnly;
             return this;
         }
 
@@ -111,10 +111,5 @@ namespace Couchbase.Analytics
             return formValues;
         }
 
-        public AnalyticsOptions WithReadOnly(bool readOnly)
-        {
-            ReadOnlyValue = readOnly;
-            return this;
-        }
     }
 }

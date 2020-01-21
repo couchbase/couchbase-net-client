@@ -4,11 +4,11 @@ namespace Couchbase.Management.Search
 {
     public class PauseIngestSearchIndexOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public PauseIngestSearchIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public PauseIngestSearchIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

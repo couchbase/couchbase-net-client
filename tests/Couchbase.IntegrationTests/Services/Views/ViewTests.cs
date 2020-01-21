@@ -24,7 +24,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
             var result = await bucket.ViewQueryAsync("beer", "brewery_beers", options =>
             {
-                options.WithLimit(10);
+                options.Limit(10);
             });
 
             var count = 0;
@@ -44,7 +44,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
             var result = await bucket.ViewQueryAsync("beer", "by_location", options =>
             {
-                options.WithLimit(10);
+                options.Limit(10);
             });
 
             await foreach (var row in result)
@@ -70,7 +70,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             SynchronizationContext.SetSynchronizationContext(context.Object);
             try
             {
-                bucket.ViewQueryAsync("beer", "brewery_beers", options => options.WithLimit(1))
+                bucket.ViewQueryAsync("beer", "brewery_beers", options => options.Limit(1))
                     .Wait();
 
                 // If view queries are incorrectly awaiting on the current SynchronizationContext
@@ -91,7 +91,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             var bucket = await _fixture.Cluster.BucketAsync("beer-sample").ConfigureAwait(false);
             var result = await bucket.ViewQueryAsync("beer", "brewery_beers", options =>
             {
-                options.WithLimit(10);
+                options.Limit(10);
             }).ConfigureAwait(false);
 
             var count = 0;
@@ -113,7 +113,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             await bucket.ViewQueryAsync("beer", "brewery_beers",
                 options =>
                 {
-                    options.WithKeys(Enumerable.Range(1, 1000).Select(i => $"key-{i}"));
+                    options.Keys(Enumerable.Range(1, 1000).Select(i => $"key-{i}"));
 
                 }).ConfigureAwait(false);
         }

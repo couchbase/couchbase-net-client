@@ -63,8 +63,8 @@ namespace Couchbase.IntegrationTests.Services.Analytics
                 await _fixture.GetDefaultCollection(),
                 options =>
                 {
-                    options.WithTimeout(TimeSpan.FromSeconds(75));
-                    options.WithExpiry(TimeSpan.FromDays(1));
+                    options.Timeout(TimeSpan.FromSeconds(75));
+                    options.Expiry(TimeSpan.FromDays(1));
                 }
             ).ConfigureAwait(false);
 

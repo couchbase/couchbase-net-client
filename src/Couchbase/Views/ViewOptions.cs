@@ -6,159 +6,158 @@ namespace Couchbase.Views
 {
     public class ViewOptions
     {
-        public ViewScanConsistency ScanConsistency { get; set; }
-
-        public int? Skip { get; set; }
-        public int? Limit { get; set; }
-        public object StartKey { get; set; }
-        public object StartKeyDocId { get; set; }
-        public object EndKey { get; set; }
-        public object EndKeyDocId { get; set; }
-        public bool? InclusiveEnd { get; set; }
-        public bool? Group { get; set; }
-        public int? GroupLevel { get; set; }
-        public object Key { get; set; }
-        public object[] Keys { get; set; }
-        public ViewOrdering ViewOrdering { get; set; } = ViewOrdering.Decesending;
-        public bool? Reduce { get; set; }
-        public bool? Development { get; set; }
-        public bool? FullSet { get; set; }
-        public bool? Debug { get; set; }
-        public int? ConnectionTimeout { get; set; }
-        public ViewErrorMode OnError { get; set; } = ViewErrorMode.Stop;
+        internal ViewScanConsistency ScanConsistencyValue { get; set; }
+        internal int? SkipValue { get; set; }
+        internal int? LimitValue { get; set; }
+        internal object StartKeyValue { get; set; }
+        internal object StartKeyDocIdValue { get; set; }
+        internal object EndKeyValue { get; set; }
+        internal object EndKeyDocIdValue { get; set; }
+        internal bool? InclusiveEndValue { get; set; }
+        internal bool? GroupValue { get; set; }
+        internal int? GroupLevelValue { get; set; }
+        internal object KeyValue { get; set; }
+        internal object[] KeysValue { get; set; }
+        internal ViewOrdering ViewOrderingValue { get; set; } = ViewOrdering.Decesending;
+        internal bool? ReduceValue { get; set; }
+        internal bool? DevelopmentValue { get; set; }
+        internal bool? FullSetValue { get; set; }
+        internal bool? DebugValue { get; set; }
+        internal int? ConnectionTimeoutValue { get; set; }
+        internal ViewErrorMode OnErrorValue { get; set; } = ViewErrorMode.Stop;
         internal Dictionary<string, string> RawParameters = new Dictionary<string, string>();
-        public DesignDocumentNamespace @Namespace { get; set; } = DesignDocumentNamespace.Production;
-        public ITypeSerializer Serializer { get; set; } = new DefaultSerializer();
+        internal DesignDocumentNamespace @NamespaceValue { get; set; } = DesignDocumentNamespace.Production;
+        internal ITypeSerializer SerializerValue { get; set; } = new DefaultSerializer();
 
-        public ViewOptions WithScanConsistency(ViewScanConsistency scanConsistency)
+        public ViewOptions ScanConsistency(ViewScanConsistency scanConsistency)
         {
-            ScanConsistency = scanConsistency;
+            ScanConsistencyValue = scanConsistency;
             return this;
         }
 
-        public ViewOptions WithSkip(int skip)
+        public ViewOptions Skip(int skip)
         {
-            Skip = skip;
+            SkipValue = skip;
             return this;
         }
 
-        public ViewOptions WithLimit(int limit)
+        public ViewOptions Limit(int limit)
         {
-            Limit = limit;
+            LimitValue = limit;
             return this;
         }
 
-        public ViewOptions WithStartKey(object startKey)
+        public ViewOptions StartKey(object startKey)
         {
-            StartKey = startKey;
+            StartKeyValue = startKey;
             return this;
         }
 
-        public ViewOptions WithStartKeyDocId(object startKyDocId)
+        public ViewOptions StartKeyDocId(object startKyDocId)
         {
-            StartKeyDocId = startKyDocId;
+            StartKeyDocIdValue = startKyDocId;
             return this;
         }
 
-        public ViewOptions WithEndKey(object endKey)
+        public ViewOptions EndKey(object endKey)
         {
-            EndKey = endKey;
+            EndKeyValue = endKey;
             return this;
         }
 
-        public ViewOptions WithEndKeyDocId(object endKeyDocId)
+        public ViewOptions EndKeyDocId(object endKeyDocId)
         {
-            EndKeyDocId = endKeyDocId;
+            EndKeyDocIdValue = endKeyDocId;
             return this;
         }
 
-        public ViewOptions WithInclusiveEnd(bool inclusiveEnd)
+        public ViewOptions InclusiveEnd(bool inclusiveEnd)
         {
-            InclusiveEnd = inclusiveEnd;
+            InclusiveEndValue = inclusiveEnd;
             return this;
         }
 
-        public ViewOptions WithKey(object key)
+        public ViewOptions Key(object key)
         {
-            Key = key;
+            KeyValue = key;
             return this;
         }
 
-        public ViewOptions WithKeys(params object[] keys)
+        public ViewOptions Keys(params object[] keys)
         {
-            Keys = keys;
+            KeysValue = keys;
             return this;
         }
 
-        public ViewOptions WithOrdering(ViewOrdering viewOrdering)
+        public ViewOptions Ordering(ViewOrdering viewOrdering)
         {
-            ViewOrdering = viewOrdering;
+            ViewOrderingValue = viewOrdering;
             return this;
         }
 
-        public ViewOptions WithGroup(bool group)
+        public ViewOptions Group(bool group)
         {
-            Group = group;
+            GroupValue = group;
             return this;
         }
 
-        public ViewOptions WithGroupLevel(int groupLevel)
+        public ViewOptions GroupLevel(int groupLevel)
         {
-            GroupLevel = groupLevel;
+            GroupLevelValue = groupLevel;
             return this;
         }
 
-        public ViewOptions WithReduce(bool reduce)
+        public ViewOptions Reduce(bool reduce)
         {
-            Reduce = reduce;
+            ReduceValue = reduce;
             return this;
         }
 
-        public ViewOptions WithDevelopment(bool development)
+        public ViewOptions Development(bool development)
         {
-            Development = development;
+            DevelopmentValue = development;
             return this;
         }
 
-        public ViewOptions WithFullSet(bool fullSet)
+        public ViewOptions FullSet(bool fullSet)
         {
-            FullSet = fullSet;
+            FullSetValue = fullSet;
             return this;
         }
 
-        public ViewOptions WithOnError(ViewErrorMode errorMode)
+        public ViewOptions OnError(ViewErrorMode errorMode)
         {
-            OnError = errorMode;
+            OnErrorValue = errorMode;
             return this;
         }
 
-        public ViewOptions WithDebug(bool debug)
+        public ViewOptions Debug(bool debug)
         {
-            Debug = debug;
+            DebugValue = debug;
             return this;
         }
 
-        public ViewOptions WithRaw(string key, string value)
+        public ViewOptions Raw(string key, string value)
         {
             RawParameters[key] = value;
             return this;
         }
 
-        public ViewOptions WithNamespace(DesignDocumentNamespace @namespace)
+        public ViewOptions Namespace(DesignDocumentNamespace @namespace)
         {
-            @Namespace = @namespace;
+            @NamespaceValue = @namespace;
             return this;
         }
 
-        public ViewOptions WithConnectionTimeout(int connectionTimeout)
+        public ViewOptions ConnectionTimeout(int connectionTimeout)
         {
-            ConnectionTimeout = connectionTimeout;
+            ConnectionTimeoutValue = connectionTimeout;
             return this;
         }
 
-        public ViewOptions WithSerializer(ITypeSerializer serializer)
+        public ViewOptions Serializer(ITypeSerializer serializer)
         {
-            Serializer = serializer;
+            SerializerValue = serializer;
             return this;
         }
 

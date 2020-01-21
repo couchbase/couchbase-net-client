@@ -1,35 +1,37 @@
 using System.Threading;
 
+using CancellationTokenCls = System.Threading.CancellationToken;
+
 namespace Couchbase.Management.Query
 {
     public class CreatePrimaryQueryIndexOptions
     {
-        public  string IndexName { get; set; }
-        public bool IgnoreIfExists { get; set; }
-        public bool Deferred { get; set; }
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        internal  string IndexNameValue { get; set; }
+        internal bool IgnoreIfExistsValue { get; set; }
+        internal bool DeferredValue { get; set; }
+        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
 
-        public CreatePrimaryQueryIndexOptions WithIndexName(string indexName)
+        public CreatePrimaryQueryIndexOptions IndexName(string indexName)
         {
-            IndexName = indexName;
+            IndexNameValue = indexName;
             return this;
         }
 
-        public CreatePrimaryQueryIndexOptions WithIgnoreIfExists(bool ignoreIfExists)
+        public CreatePrimaryQueryIndexOptions IgnoreIfExists(bool ignoreIfExists)
         {
-            IgnoreIfExists = ignoreIfExists;
+            IgnoreIfExistsValue = ignoreIfExists;
             return this;
         }
 
-        public CreatePrimaryQueryIndexOptions WithDeferred(bool deferred)
+        public CreatePrimaryQueryIndexOptions Deferred(bool deferred)
         {
-            Deferred = deferred;
+            DeferredValue = deferred;
             return this;
         }
 
-        public CreatePrimaryQueryIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public CreatePrimaryQueryIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

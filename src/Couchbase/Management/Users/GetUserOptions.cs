@@ -4,18 +4,18 @@ namespace Couchbase.Management.Users
 {
     public class GetUserOptions
     {
-        public string DomainName { get; set; } = "local";
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        public string DomainNameValue { get; set; } = "local";
+        internal CancellationToken TokenValue { get; set; }
 
-        public GetUserOptions WithDomainName(string domainName)
+        public GetUserOptions DomainName(string domainName)
         {
-            DomainName = domainName;
+            DomainNameValue = domainName;
             return this;
         }
 
-        public GetUserOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetUserOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

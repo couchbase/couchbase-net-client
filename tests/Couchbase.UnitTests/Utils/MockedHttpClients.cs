@@ -42,8 +42,8 @@ namespace Couchbase.UnitTests.Utils
             var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
-            var options = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901")
-                .WithLogging(loggerFactory);
+            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901")
+                .Logging(loggerFactory);
             var context = new ClusterContext(null, options);
 
             var clusterNode = new ClusterNode(context)
@@ -85,8 +85,8 @@ namespace Couchbase.UnitTests.Utils
             var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
-            var options = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901")
-                .WithLogging(loggerFactory);
+            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901")
+                .Logging(loggerFactory);
             var context = new ClusterContext(null, options);
 
             var clusterNode = new ClusterNode(context)
@@ -128,8 +128,8 @@ namespace Couchbase.UnitTests.Utils
             var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
-            var options = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901")
-                .WithLogging(loggerFactory);
+            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901")
+                .Logging(loggerFactory);
             var context = new ClusterContext(null, options);
 
             var clusterNode = new ClusterNode(context)
@@ -171,8 +171,7 @@ namespace Couchbase.UnitTests.Utils
             var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
-            var options = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901")
-                .WithLogging(loggerFactory);
+            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901").Logging(loggerFactory);
             var context = new ClusterContext(null, options);
 
             var clusterNode = new ClusterNode(context)

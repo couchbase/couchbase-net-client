@@ -50,9 +50,9 @@ namespace Couchbase.Analytics
             //use defaults if not options not explicitly passed
             ingestOptions = ingestOptions ?? new IngestOptions();
 
-            if (ingestOptions.CancellationToken.IsCancellationRequested)
+            if (ingestOptions.TokenValue.IsCancellationRequested)
             {
-                ingestOptions.CancellationToken.ThrowIfCancellationRequested();
+                ingestOptions.TokenValue.ThrowIfCancellationRequested();
             }
 
             //execute the analytics query
@@ -61,7 +61,7 @@ namespace Couchbase.Analytics
             {
                 result = await cluster.AnalyticsQueryAsync<T>(
                     statement,
-                    options => options.CancellationToken(ingestOptions.CancellationToken)
+                    options => options.CancellationToken(ingestOptions.TokenValue)
                 ).ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -71,39 +71,39 @@ namespace Couchbase.Analytics
 
             // ingest result into collection
             var results = new ConcurrentBag<Task<IMutationResult>>();
-            await foreach (var row in result.WithCancellation(ingestOptions.CancellationToken).ConfigureAwait(false))
+            await foreach (var row in result.WithCancellation(ingestOptions.TokenValue).ConfigureAwait(false))
             {
                 Task<IMutationResult> op;
-                switch (ingestOptions.IngestMethod)
+                switch (ingestOptions.IngestMethodValue)
                 {
                     case IngestMethod.Insert:
                         op = collection.InsertAsync(
-                            ingestOptions.IdGenerator(row),
+                            ingestOptions.IdGeneratorValue(row),
                             row,
                             options =>
                             {
-                                options.WithExpiry(ingestOptions.Expiry);
-                                options.WithTimeout(ingestOptions.Timeout);
+                                options.Expiry(ingestOptions.ExpiryValue);
+                                options.Timeout(ingestOptions.TimeoutValue);
                             });
                         break;
                     case IngestMethod.Upsert:
                         op = collection.UpsertAsync(
-                            ingestOptions.IdGenerator(row),
+                            ingestOptions.IdGeneratorValue(row),
                             row,
                             options =>
                             {
-                                options.WithExpiry(ingestOptions.Expiry);
-                                options.WithTimeout(ingestOptions.Timeout);
+                                options.Expiry(ingestOptions.ExpiryValue);
+                                options.Timeout(ingestOptions.TimeoutValue);
                             });
                         break;
                     case IngestMethod.Replace:
                         op = collection.ReplaceAsync(
-                            ingestOptions.IdGenerator(row),
+                            ingestOptions.IdGeneratorValue(row),
                             row,
                             options =>
                             {
-                                options.WithExpiry(ingestOptions.Expiry);
-                                options.WithTimeout(ingestOptions.Timeout);
+                                options.Expiry(ingestOptions.ExpiryValue);
+                                options.Timeout(ingestOptions.TimeoutValue);
                             });
                         break;
                     default:

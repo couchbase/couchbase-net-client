@@ -11,8 +11,8 @@ namespace Couchbase.LoadTests.Fixtures
         public ClusterFixture()
         {
             Cluster = new Cluster("couchbase://localhost", new ClusterOptions()
-                .WithBucket("default")
-                .WithCredentials("Administrator", "password"));
+                .Bucket("default")
+                .Credentials("Administrator", "password"));
         }
 
         public async Task<IBucket> GetDefaultBucket()

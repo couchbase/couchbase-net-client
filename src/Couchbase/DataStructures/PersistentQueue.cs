@@ -26,7 +26,7 @@ namespace Couchbase.DataStructures
             var item = result.ContentAs<TValue>(0);
 
             var mutateResult = await Collection.MutateInAsync(Key, builder => builder.Remove("[0]"),
-                options => options.WithCas(result.Cas));
+                options => options.Cas(result.Cas));
 
             return item;
         }

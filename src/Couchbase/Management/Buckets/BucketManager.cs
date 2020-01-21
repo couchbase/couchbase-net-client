@@ -34,7 +34,7 @@ namespace Couchbase.Management.Buckets
             var builder = new UriBuilder
             {
                 Scheme = _context.ClusterOptions.EnableTls ? "https" : "http",
-                Host = _context.ClusterOptions.Servers.GetRandom().Host,
+                Host = _context.ClusterOptions.ServersValue.GetRandom().Host,
                 Port = _context.ClusterOptions.EnableTls ? 18091 : 8091,
                 Path = "pools/default/buckets"
             };
@@ -131,7 +131,7 @@ namespace Couchbase.Management.Buckets
             {
                 // create bucket
                 var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings));
-                var result = await _client.PostAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.BadRequest)
                 {
                     var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -165,7 +165,7 @@ namespace Couchbase.Management.Buckets
             {
                 // upsert bucket
                 var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings));
-                var result = await _client.PostAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -184,7 +184,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // perform drop
-                var result = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);
@@ -216,7 +216,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // try do flush
-                var result = await _client.PostAsync(uri, null, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.PostAsync(uri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);
@@ -258,7 +258,7 @@ namespace Couchbase.Management.Buckets
 
             try
             {
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -288,7 +288,7 @@ namespace Couchbase.Management.Buckets
 
             try
             {
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);

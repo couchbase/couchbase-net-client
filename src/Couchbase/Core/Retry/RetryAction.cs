@@ -6,16 +6,16 @@ namespace Couchbase.Core.Retry
     {
         public RetryAction(TimeSpan? duration)
         {
-            Duration = duration;
+            DurationValue = duration;
         }
 
-        public TimeSpan? Duration { get; }
+        public TimeSpan? DurationValue { get; }
 
-        public static RetryAction WithDuration(TimeSpan? duration)
+        public static RetryAction Duration(TimeSpan? duration)
         {
             return new RetryAction(duration);
         }
 
-        public bool Retry => Duration.HasValue;
+        public bool Retry => DurationValue.HasValue;
     }
 }

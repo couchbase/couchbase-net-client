@@ -58,7 +58,7 @@ namespace Couchbase.Management.Collections
             {
                 // get all scopes
                 var scopes =
-                    await GetAllScopesAsync(new GetAllScopesOptions {CancellationToken = options.CancellationToken})
+                    await GetAllScopesAsync(new GetAllScopesOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
 
                 // try find scope / collection
@@ -83,7 +83,7 @@ namespace Couchbase.Management.Collections
             {
                 // get all scopes
                 var scopes =
-                    await GetAllScopesAsync(new GetAllScopesOptions {CancellationToken = options.CancellationToken})
+                    await GetAllScopesAsync(new GetAllScopesOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
 
                 // try find scope
@@ -106,7 +106,7 @@ namespace Couchbase.Management.Collections
             {
                 // get all scopes
                 var scopes =
-                    await GetAllScopesAsync(new GetAllScopesOptions {CancellationToken = options.CancellationToken})
+                    await GetAllScopesAsync(new GetAllScopesOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
 
                 // try find scope
@@ -135,7 +135,7 @@ namespace Couchbase.Management.Collections
             try
             {
                 // get manifest
-                var result = await _client.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // check scope & collection exists in manifest
@@ -186,7 +186,7 @@ namespace Couchbase.Management.Collections
             {
                 // check scope exists
                 var scopeExists =
-                    await ScopeExistsAsync(spec.ScopeName, new ScopeExistsOptions {CancellationToken = options.CancellationToken})
+                    await ScopeExistsAsync(spec.ScopeName, new ScopeExistsOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
                 if (!scopeExists)
                 {
@@ -195,7 +195,7 @@ namespace Couchbase.Management.Collections
 
                 // check collection doesn't exist
                 var collectionExists =
-                    await CollectionExistsAsync(spec, new CollectionExistsOptions {CancellationToken = options.CancellationToken})
+                    await CollectionExistsAsync(spec, new CollectionExistsOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
                 if (collectionExists)
                 {
@@ -208,7 +208,7 @@ namespace Couchbase.Management.Collections
                     {"name", spec.Name}
                 };
                 var content = new FormUrlEncodedContent(keys);
-                var createResult = await _client.PostAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -228,7 +228,7 @@ namespace Couchbase.Management.Collections
             {
                 // check collection exists
                 var collectionExists =
-                    await CollectionExistsAsync(spec, new CollectionExistsOptions {CancellationToken = options.CancellationToken})
+                    await CollectionExistsAsync(spec, new CollectionExistsOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
                 if (!collectionExists)
                 {
@@ -236,7 +236,7 @@ namespace Couchbase.Management.Collections
                 }
 
                 // drop collection
-                var createResult = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -256,7 +256,7 @@ namespace Couchbase.Management.Collections
             {
                 // check scope doesn't exists
                 var scopeExists =
-                    await ScopeExistsAsync(spec.Name, new ScopeExistsOptions {CancellationToken = options.CancellationToken})
+                    await ScopeExistsAsync(spec.Name, new ScopeExistsOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
                 if (scopeExists)
                 {
@@ -268,7 +268,7 @@ namespace Couchbase.Management.Collections
                 {
                     {"name", spec.Name}
                 });
-                var createResult = await _client.PostAsync(uri, content, options.CancellationToken).ConfigureAwait(false);
+                var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -288,7 +288,7 @@ namespace Couchbase.Management.Collections
             {
                 // check scope exists
                 var scopeExists =
-                    await ScopeExistsAsync(scopeName, new ScopeExistsOptions {CancellationToken = options.CancellationToken})
+                    await ScopeExistsAsync(scopeName, new ScopeExistsOptions().CancellationToken(options.TokenValue))
                         .ConfigureAwait(false);
                 if (!scopeExists)
                 {
@@ -297,7 +297,7 @@ namespace Couchbase.Management.Collections
                 }
 
                 // drop scope
-                var createResult = await _client.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();
             }
             catch (Exception exception)

@@ -4,25 +4,25 @@ namespace Couchbase.Management.Analytics
 {
     public class DropAnalyticsIndexOptions
     {
-        public bool IgnoreIfNotExists { get; set; }
-        public string DataverseName { get; set; }
-        public CancellationToken CancellationToken { get; set; }
+        internal bool IgnoreIfNotExistsValue { get; set; }
+        internal string DataverseNameValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public DropAnalyticsIndexOptions WithIgnoreIfNotExists(bool ignoreIfNotExists)
+        public DropAnalyticsIndexOptions IgnoreIfNotExists(bool ignoreIfNotExists)
         {
-            IgnoreIfNotExists = ignoreIfNotExists;
+            IgnoreIfNotExistsValue = ignoreIfNotExists;
             return this;
         }
 
-        public DropAnalyticsIndexOptions WithDataverseName(string dataverseName)
+        public DropAnalyticsIndexOptions DataverseName(string dataverseName)
         {
-            DataverseName = dataverseName;
+            DataverseNameValue = dataverseName;
             return this;
         }
 
-        public DropAnalyticsIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public DropAnalyticsIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
     }

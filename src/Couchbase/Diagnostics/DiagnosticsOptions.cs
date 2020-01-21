@@ -2,11 +2,11 @@ namespace Couchbase.Diagnostics
 {
     public class DiagnosticsOptions
     {
-        public string ReportId { get; set; }
+        public string ReportIdValue { get; set; }
 
-        public DiagnosticsOptions WithReportId(string reportId)
+        public DiagnosticsOptions ReportId(string reportId)
         {
-            ReportId = reportId;
+            ReportIdValue = reportId;
             return this;
         }
     }

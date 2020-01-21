@@ -1,14 +1,16 @@
 using System.Threading;
 
+using CancellationTokenCls = System.Threading.CancellationToken;
+
 namespace Couchbase.Management.Query
 {
     public class BuildDeferredQueryIndexOptions
     {
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
 
-        public BuildDeferredQueryIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public BuildDeferredQueryIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

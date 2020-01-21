@@ -166,7 +166,7 @@ namespace Couchbase.IntegrationTests
                 await collection.InsertAsync(key, poco);
 
                 using (var result = await collection.GetAsync(key,
-                    options => options.WithProjection("field1", "field2", "field3", "field4", "field5", "field6",
+                    options => options.Projection("field1", "field2", "field3", "field4", "field5", "field6",
                         "field7", "field8", "field9", "field10", "field11", "field12",
                         "field13", "field14", "field15", "field16", "field17")))
                 {
@@ -208,7 +208,7 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.InsertAsync(key, Person.Create());
 
-                using (var result = await collection.GetAsync(key, options => options.WithProjection("name")))
+                using (var result = await collection.GetAsync(key, options => options.Projection("name")))
                 {
                     var content = result.ContentAs<Person>();
 
@@ -254,7 +254,7 @@ namespace Couchbase.IntegrationTests
                 await collection.InsertAsync(key, poco);
 
                 using (var result =
-                    await collection.GetAsync(key, options => options.WithProjection("field1", "field3")))
+                    await collection.GetAsync(key, options => options.Projection("field1", "field3")))
                 {
                     var content = result.ContentAs<Poco>();
 
@@ -278,7 +278,7 @@ namespace Couchbase.IntegrationTests
             {
                 await collection.InsertAsync(key, Person.Create());
 
-                using (var result = await collection.GetAsync(key, options => options.WithProjection("name", "age")))
+                using (var result = await collection.GetAsync(key, options => options.Projection("name", "age")))
                 {
                     var content = result.ContentAs<Person>();
 

@@ -182,7 +182,7 @@ namespace Couchbase.DataStructures
                 }
 
                 await Collection.MutateInAsync(DocId, builder => builder.Insert(DocId, value),
-                    options => options.Cas = exists.Cas);
+                    options => options.Cas(exists.Cas));
             }
         }
 

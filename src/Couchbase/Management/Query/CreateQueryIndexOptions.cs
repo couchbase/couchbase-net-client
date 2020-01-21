@@ -1,28 +1,29 @@
 using System.Threading;
+using CancellationTokenCls = System.Threading.CancellationToken;
 
 namespace Couchbase.Management.Query
 {
     public class CreateQueryIndexOptions
     {
-        public bool IgnoreIfExists { get; set; }
-        public bool Deferred { get; set; }
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        internal bool IgnoreIfExistsValue { get; set; }
+        internal bool DeferredValue { get; set; }
+        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
 
-        public CreateQueryIndexOptions WithIgnoreIfExists(bool ignoreIfExists)
+        public CreateQueryIndexOptions IgnoreIfExists(bool ignoreIfExists)
         {
-            IgnoreIfExists = ignoreIfExists;
+            IgnoreIfExistsValue = ignoreIfExists;
             return this;
         }
 
-        public CreateQueryIndexOptions WithDeferred(bool deferred)
+        public CreateQueryIndexOptions Deferred(bool deferred)
         {
-            Deferred = deferred;
+            DeferredValue = deferred;
             return this;
         }
 
-        public CreateQueryIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public CreateQueryIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

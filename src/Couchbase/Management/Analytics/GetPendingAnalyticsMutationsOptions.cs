@@ -4,11 +4,11 @@ namespace Couchbase.Management.Analytics
 {
     public class GetPendingAnalyticsMutationsOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public GetPendingAnalyticsMutationsOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetPendingAnalyticsMutationsOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
     }

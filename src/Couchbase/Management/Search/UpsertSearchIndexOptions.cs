@@ -4,11 +4,11 @@ namespace Couchbase.Management.Search
 {
     public class UpsertSearchIndexOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public UpsertSearchIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public UpsertSearchIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

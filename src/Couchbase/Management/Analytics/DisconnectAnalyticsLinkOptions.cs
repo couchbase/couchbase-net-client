@@ -4,18 +4,18 @@ namespace Couchbase.Management.Analytics
 {
     public class DisconnectAnalyticsLinkOptions
     {
-        public string LinkName { get; set; }
-        public CancellationToken CancellationToken { get; set; }
+        internal string LinkNameValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public DisconnectAnalyticsLinkOptions WithLinkName(string linkName)
+        public DisconnectAnalyticsLinkOptions LinkName(string linkName)
         {
-            LinkName = linkName;
+            LinkNameValue = linkName;
             return this;
         }
 
-        public DisconnectAnalyticsLinkOptions WithCancellationToken(CancellationToken cancellationToken)
+        public DisconnectAnalyticsLinkOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
     }

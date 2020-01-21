@@ -27,7 +27,7 @@ namespace Couchbase.UnitTests
 
             Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
-                options.WithTimeout(TimeSpan.FromMilliseconds(1d));
+                options.Timeout(TimeSpan.FromMilliseconds(1d));
             }));
         }
 
@@ -43,7 +43,7 @@ namespace Couchbase.UnitTests
                 {
                     builder.Get("doc.path", isXattr: true);
                     builder.Count("path", isXattr: true);
-                }, new LookupInOptions {Timeout = TimeSpan.FromHours(1)});
+                }, new LookupInOptions().Timeout(TimeSpan.FromHours(1)));
             });
         }
 

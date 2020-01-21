@@ -102,15 +102,15 @@ namespace Couchbase
 
             //Normalize to new naming convention for public API RFC#51
             var staleState = StaleState.None;
-            if (options.ScanConsistency == ViewScanConsistency.RequestPlus)
+            if (options.ScanConsistencyValue == ViewScanConsistency.RequestPlus)
             {
                 staleState = StaleState.False;
             }
-            if (options.ScanConsistency == ViewScanConsistency.UpdateAfter)
+            if (options.ScanConsistencyValue == ViewScanConsistency.UpdateAfter)
             {
                 staleState = StaleState.UpdateAfter;
             }
-            if (options.ScanConsistency == ViewScanConsistency.NotBounded)
+            if (options.ScanConsistencyValue == ViewScanConsistency.NotBounded)
             {
                 staleState = StaleState.Ok;
             }
@@ -118,25 +118,25 @@ namespace Couchbase
             query.Bucket(Name);
             query.From(designDocument, viewName);
             query.Stale(staleState);
-            query.Limit(options.Limit);
-            query.Skip(options.Skip);
-            query.StartKey(options.StartKey);
-            query.StartKeyDocId(options.StartKeyDocId);
-            query.EndKey(options.EndKey);
-            query.EndKeyDocId(options.EndKeyDocId);
-            query.InclusiveEnd(options.InclusiveEnd);
-            query.Group(options.Group);
-            query.GroupLevel(options.GroupLevel);
-            query.Key(options.Key);
-            query.Keys(options.Keys);
-            query.Reduce(options.Reduce);
-            query.Development(options.Development);
-            query.ConnectionTimeout(options.ConnectionTimeout);
-            query.Debug(options.Debug);
-            query.Namespace(options.Namespace);
-            query.OnError(options.OnError == ViewErrorMode.Stop);
+            query.Limit(options.LimitValue);
+            query.Skip(options.SkipValue);
+            query.StartKey(options.StartKeyValue);
+            query.StartKeyDocId(options.StartKeyDocIdValue);
+            query.EndKey(options.EndKeyValue);
+            query.EndKeyDocId(options.EndKeyDocIdValue);
+            query.InclusiveEnd(options.InclusiveEndValue);
+            query.Group(options.GroupValue);
+            query.GroupLevel(options.GroupLevelValue);
+            query.Key(options.KeyValue);
+            query.Keys(options.KeysValue);
+            query.Reduce(options.ReduceValue);
+            query.Development(options.DevelopmentValue);
+            query.ConnectionTimeout(options.ConnectionTimeoutValue);
+            query.Debug(options.DebugValue);
+            query.Namespace(options.NamespaceValue);
+            query.OnError(options.OnErrorValue == ViewErrorMode.Stop);
 
-            if (options.ViewOrdering == ViewOrdering.Decesending)
+            if (options.ViewOrderingValue == ViewOrdering.Decesending)
             {
                 query.Desc();
             }
@@ -145,7 +145,7 @@ namespace Couchbase
                 query.Asc();
             }
 
-            if (options.FullSet.HasValue && options.FullSet.Value)
+            if (options.FullSetValue.HasValue && options.FullSetValue.Value)
             {
                 query.FullSet();
             }

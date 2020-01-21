@@ -195,12 +195,12 @@ namespace Couchbase.Core
             {
                 try
                 {
-                    var bootstrapUri = ClusterOptions.ConnectionString.GetDnsBootStrapUri();
+                    var bootstrapUri = ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
                     var servers = await ClusterOptions.DnsResolver.GetDnsSrvEntriesAsync(bootstrapUri);
                     if (servers.Any())
                     {
                         Log.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
-                        ClusterOptions.WithServers(servers);
+                        ClusterOptions.Servers(servers);
                     }
                 }
                 catch (Exception exception)
@@ -209,7 +209,7 @@ namespace Couchbase.Core
                 }
             }
 
-            foreach (var server in ClusterOptions.Servers)
+            foreach (var server in ClusterOptions.ServersValue)
             {
                 var bsEndpoint = server.GetIpEndPoint(ClusterOptions.KvPort, ClusterOptions.EnableIPV6Addressing);
                 var node = await ClusterNode.CreateAsync(this, bsEndpoint);
@@ -256,7 +256,7 @@ namespace Couchbase.Core
                 return bucket;
             }
 
-            foreach (var server in ClusterOptions.Servers)
+            foreach (var server in ClusterOptions.ServersValue)
             {
                 foreach (var type in Enum.GetValues(typeof(BucketType)))
                 {

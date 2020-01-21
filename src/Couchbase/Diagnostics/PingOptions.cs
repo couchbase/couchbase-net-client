@@ -5,25 +5,25 @@ namespace Couchbase.Diagnostics
 {
     public class PingOptions
     {
-        public string ReportId { get; set; }
+        internal string ReportIdValue { get; set; }
 
-        public IList<ServiceType> ServiceTypes { get; set; } = new List<ServiceType>();
+        internal IList<ServiceType> ServiceTypesValue { get; set; } = new List<ServiceType>();
 
-        public CancellationToken Token { get; set; } = CancellationToken.None;
+        internal CancellationToken Token { get; set; } = System.Threading.CancellationToken.None;
 
-        public PingOptions WithReportId(string reportId)
+        public PingOptions ReportId(string reportId)
         {
-            ReportId = reportId;
+            ReportIdValue = reportId;
             return this;
         }
 
-        public PingOptions WithServiceTypes(params ServiceType[] serviceTypes)
+        public PingOptions ServiceTypes(params ServiceType[] serviceTypes)
         {
-            ServiceTypes = serviceTypes;
+            ServiceTypesValue = serviceTypes;
             return this;
         }
 
-        public PingOptions WithToken(CancellationToken token)
+        public PingOptions CancellationToken(CancellationToken token)
         {
             Token = token;
             return this;

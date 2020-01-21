@@ -4,32 +4,32 @@ namespace Couchbase.Management.Analytics
 {
     public class CreateAnalyticsDatasetOptions
     {
-        public bool IgnoreIfExists { get; set; }
-        public string Condition { get; set; }
-        public string DataverseName { get; set; }
-        public CancellationToken CancellationToken { get; set; }
+        internal bool IgnoreIfExistsValue { get; set; }
+        internal string ConditionValue { get; set; }
+        internal string DataverseNameValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public CreateAnalyticsDatasetOptions WithIgnoreIfExists(bool ignoreIfExists)
+        public CreateAnalyticsDatasetOptions IgnoreIfExists(bool ignoreIfExists)
         {
-            IgnoreIfExists = ignoreIfExists;
+            IgnoreIfExistsValue = ignoreIfExists;
             return this;
         }
 
-        public CreateAnalyticsDatasetOptions WithCondition(string condition)
+        public CreateAnalyticsDatasetOptions Condition(string condition)
         {
-            Condition = condition;
+            ConditionValue = condition;
             return this;
         }
 
-        public CreateAnalyticsDatasetOptions WithDataverseName(string dataverseName)
+        public CreateAnalyticsDatasetOptions DataverseName(string dataverseName)
         {
-            DataverseName = dataverseName;
+            DataverseNameValue = dataverseName;
             return this;
         }
 
-        public CreateAnalyticsDatasetOptions WithCancellationToken(CancellationToken cancellationToken)
+        public CreateAnalyticsDatasetOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
     }

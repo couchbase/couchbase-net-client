@@ -4,11 +4,11 @@ namespace Couchbase.Management.Views
 {
     public class UpsertDesignDocumentOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public UpsertDesignDocumentOptions WithCancellationToken(CancellationToken cancellationToken)
+        public UpsertDesignDocumentOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

@@ -1,21 +1,22 @@
 using System.Threading;
+using CancellationTokenCls = System.Threading.CancellationToken;
 
 namespace Couchbase.Management.Query
 {
     public class WatchQueryIndexOptions
     {
-        public bool WatchPrimary { get; set; }
-        public CancellationToken CancellationToken { get; set; }
+        internal bool WatchPrimaryValue { get; set; }
+        internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
 
-        public WatchQueryIndexOptions WithWatchPrimary(bool watchPrimary)
+        public WatchQueryIndexOptions WatchPrimary(bool watchPrimary)
         {
-            WatchPrimary = watchPrimary;
+            WatchPrimaryValue = watchPrimary;
             return this;
         }
 
-        public WatchQueryIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public WatchQueryIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

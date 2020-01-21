@@ -4,18 +4,18 @@ namespace Couchbase.Management.Analytics
 {
     public class CreateAnalyticsDataverseOptions
     {
-        public bool IgnoreIfExists { get; set; }
-        public CancellationToken CancellationToken { get; set; }
+        internal bool IgnoreIfExistsValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public CreateAnalyticsDataverseOptions WithIgnoreIfExists(bool ignoreIfExists)
+        public CreateAnalyticsDataverseOptions IgnoreIfExists(bool ignoreIfExists)
         {
-            IgnoreIfExists = ignoreIfExists;
+            IgnoreIfExistsValue = ignoreIfExists;
             return this;
         }
 
-        public CreateAnalyticsDataverseOptions WithCancellationToken(CancellationToken cancellationToken)
+        public CreateAnalyticsDataverseOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
     }

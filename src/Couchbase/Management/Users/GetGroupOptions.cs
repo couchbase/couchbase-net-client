@@ -4,11 +4,11 @@ namespace Couchbase.Management.Users
 {
     public class GetGroupOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public GetGroupOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetGroupOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

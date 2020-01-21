@@ -4,11 +4,11 @@ namespace Couchbase.Management.Users
 {
     public class AvailableRolesOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public AvailableRolesOptions WithCancellationToken(CancellationToken cancellationToken)
+        public AvailableRolesOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

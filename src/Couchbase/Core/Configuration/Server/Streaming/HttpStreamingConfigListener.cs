@@ -41,7 +41,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                 {
                     _httpClient.Timeout = Timeout.InfiniteTimeSpan;
 
-                    var servers = _clusterOptions.Servers.ToList().Shuffle();
+                    var servers = _clusterOptions.ServersValue.ToList().Shuffle();
                     while (servers.Any())
                     {
                         try

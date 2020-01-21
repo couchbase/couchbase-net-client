@@ -7,7 +7,7 @@ namespace Couchbase.Core.Retry
     {
         public RetryAction RetryAfter(IRequest request, RetryReason reason)
         {
-            return RetryAction.WithDuration(null);
+            return RetryAction.Duration(null);
         }
     }
 }

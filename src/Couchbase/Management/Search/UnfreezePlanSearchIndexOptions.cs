@@ -4,11 +4,11 @@ namespace Couchbase.Management.Search
 {
     public class UnfreezePlanSearchIndexOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public UnfreezePlanSearchIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public UnfreezePlanSearchIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

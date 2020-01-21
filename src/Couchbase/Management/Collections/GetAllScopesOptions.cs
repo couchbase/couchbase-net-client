@@ -4,11 +4,11 @@ namespace Couchbase.Management.Collections
 {
     public class GetAllScopesOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public GetAllScopesOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetAllScopesOptions CancellationToken(CancellationToken token)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = token;
             return this;
         }
 

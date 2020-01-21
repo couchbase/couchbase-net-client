@@ -19,10 +19,10 @@ namespace Couchbase.Core.Retry
             if (request.Idempotent || reason.AllowsNonIdempotentRetries())
             {
                 var backoffDuration = _backoffCalculator.CalculateBackoff(request);
-                return RetryAction.WithDuration(backoffDuration);
+                return RetryAction.Duration(backoffDuration);
             }
 
-            return RetryAction.WithDuration(null);
+            return RetryAction.Duration(null);
         }
     }
 }

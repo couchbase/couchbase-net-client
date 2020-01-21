@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests
             var connectionString = ConnectionString.Parse(connstr);
             var options = new ClusterOptions
             {
-                ConnectionString = connectionString
+                ConnectionStringValue = connectionString
             };
             Assert.Equal(expected, options.IsValidDnsSrv());
         }

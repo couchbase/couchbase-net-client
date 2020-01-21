@@ -23,7 +23,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [InlineData(false)]
         public void Client_sets_AnalyticsPriority_Header(bool priority)
         {
-            var options = new ClusterOptions().WithServers("http://localhost");
+            var options = new ClusterOptions().Servers("http://localhost");
             var context = new ClusterContext(null, options);
             context.AddNode(new ClusterNode(context)
             {
@@ -61,7 +61,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public void Query_Sets_LastActivity()
         {
-            var options = new ClusterOptions().WithServers("http://localhost");
+            var options = new ClusterOptions().Servers("http://localhost");
             var context = new ClusterContext(null, options);
 
             context.AddNode(new ClusterNode(new ClusterContext(null, new ClusterOptions()))
@@ -91,7 +91,7 @@ namespace Couchbase.UnitTests.Services.Analytics
         [Fact]
         public async Task QueryAsync_Sets_LastActivity()
         {
-            var options = new ClusterOptions().WithServers("http://localhost");
+            var options = new ClusterOptions().Servers("http://localhost");
             var context = new ClusterContext(null, options);
             context.AddNode(new ClusterNode(new ClusterContext(null, new ClusterOptions()))
             {

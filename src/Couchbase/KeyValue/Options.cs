@@ -11,45 +11,45 @@ namespace Couchbase.KeyValue
 
     public class GetOptions
     {
-        public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy();
+        internal IRetryStrategy RetryStrategyValue { get; set; } = new BestEffortRetryStrategy();
 
-        public bool IncludeExpiry { get; set; }
+        internal bool IncludeExpiryValue { get; set; }
 
-        public List<string> ProjectList { get; set; } = new List<string>();
+        internal List<string> ProjectListValue { get; set; } = new List<string>();
 
-        public TimeSpan? Timeout { get; set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ITypeTranscoder Transcoder { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public GetOptions WithTranscoder(ITypeTranscoder transcoder)
+        public GetOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public GetOptions WithExpiry()
+        public GetOptions Expiry()
         {
-            IncludeExpiry = true;
+            IncludeExpiryValue = true;
             return this;
         }
 
-        public GetOptions WithProjection(params string[] fields)
+        public GetOptions Projection(params string[] fields)
         {
-            ProjectList.AddRange(fields);
+            ProjectListValue.AddRange(fields);
             return this;
         }
 
-        public GetOptions WithTimeout(TimeSpan timeout)
+        public GetOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public GetOptions WithToken(CancellationToken token)
+        public GetOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -60,19 +60,19 @@ namespace Couchbase.KeyValue
 
     public class GetAllReplicasOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ITypeTranscoder Transcoder { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public GetAllReplicasOptions WithTranscoder(ITypeTranscoder transcoder)
+        public GetAllReplicasOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public  GetAllReplicasOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetAllReplicasOptions CancellationToken(CancellationToken token)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = token;
             return this;
         }
 
@@ -85,19 +85,19 @@ namespace Couchbase.KeyValue
 
     public class GetAnyReplicaOptions
     {
-        public ITypeTranscoder Transcoder { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public GetAnyReplicaOptions WithTranscoder(ITypeTranscoder transcoder)
+        public GetAnyReplicaOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public GetAnyReplicaOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetAnyReplicaOptions CancellationToken(CancellationToken token)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = token;
             return this;
         }
 
@@ -110,19 +110,19 @@ namespace Couchbase.KeyValue
 
     public class ExistsOptions
     {
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ExistsOptions WithTimeout(TimeSpan timeout)
+        public ExistsOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public ExistsOptions WithToken(CancellationToken token)
+        public ExistsOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -133,53 +133,53 @@ namespace Couchbase.KeyValue
 
     public class UpsertOptions
     {
-        public TimeSpan Expiry { get; set; }
+        internal TimeSpan ExpiryValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
-        public ITypeTranscoder Transcoder { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public UpsertOptions WithTranscoder(ITypeTranscoder transcoder)
+        public UpsertOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public UpsertOptions WithExpiry(TimeSpan expiry)
+        public UpsertOptions Expiry(TimeSpan expiry)
         {
-            Expiry = expiry;
+            ExpiryValue = expiry;
             return this;
         }
 
-        public UpsertOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public UpsertOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public UpsertOptions WithDurability(DurabilityLevel durabilityLevel)
+        public UpsertOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public UpsertOptions WithTimeout(TimeSpan timeout)
+        public UpsertOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public UpsertOptions WithToken(CancellationToken token)
+        public UpsertOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -190,54 +190,54 @@ namespace Couchbase.KeyValue
 
     public class InsertOptions
     {
-        public TimeSpan Expiry { get; set; }
+        internal TimeSpan ExpiryValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ITypeTranscoder Transcoder { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public InsertOptions WithTranscoder(ITypeTranscoder transcoder)
+        public InsertOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public InsertOptions WithExpiry(TimeSpan expiry)
+        public InsertOptions Expiry(TimeSpan expiry)
         {
-            Expiry = expiry;
+            ExpiryValue = expiry;
             return this;
         }
 
-        public InsertOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public InsertOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public InsertOptions WithDurability(DurabilityLevel durabilityLevel)
+        public InsertOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public InsertOptions WithTimeout(TimeSpan timeout)
+        public InsertOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public InsertOptions WithToken(CancellationToken token)
+        public InsertOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -248,62 +248,62 @@ namespace Couchbase.KeyValue
 
     public class ReplaceOptions
     {
-        public TimeSpan Expiry { get; set; }
+        internal TimeSpan ExpiryValue { get; set; }
 
-        public ulong Cas { get; set; }
+        internal ulong CasValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ITypeTranscoder Transcoder { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public ReplaceOptions WithTranscoder(ITypeTranscoder transcoder)
+        public ReplaceOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public ReplaceOptions WithExpiry(TimeSpan expiry)
+        public ReplaceOptions Expiry(TimeSpan expiry)
         {
-            Expiry = expiry;
+            ExpiryValue = expiry;
             return this;
         }
 
-        public ReplaceOptions WithCas(ulong cas)
+        public ReplaceOptions Cas(ulong cas)
         {
-            Cas = cas;
+            CasValue = cas;
             return this;
         }
 
-        public ReplaceOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public ReplaceOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public ReplaceOptions WithDurability(DurabilityLevel durabilityLevel)
+        public ReplaceOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public ReplaceOptions WithTimeout(TimeSpan timeout)
+        public ReplaceOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public ReplaceOptions WithToken(CancellationToken token)
+        public ReplaceOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -314,46 +314,46 @@ namespace Couchbase.KeyValue
 
     public class RemoveOptions
     {
-        public ulong Cas { get; set; }
+        internal ulong CasValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public RemoveOptions WithCas(ulong cas)
+        public RemoveOptions Cas(ulong cas)
         {
-            Cas = cas;
+            CasValue = cas;
             return this;
         }
 
-        public RemoveOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public RemoveOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public RemoveOptions WithDurability(DurabilityLevel durabilityLevel)
+        public RemoveOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public RemoveOptions WithTimeout(TimeSpan timeout)
+        public RemoveOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public RemoveOptions WithToken(CancellationToken token)
+        public RemoveOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -365,19 +365,19 @@ namespace Couchbase.KeyValue
     public class UnlockOptions
     {
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public UnlockOptions WithTimeout(TimeSpan timeout)
+        public UnlockOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public UnlockOptions WithToken(CancellationToken token)
+        public UnlockOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -389,23 +389,23 @@ namespace Couchbase.KeyValue
     public class TouchOptions
     {
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public TouchOptions WithTimeout(TimeSpan timeout)
+        public TouchOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public TouchOptions WithToken(CancellationToken token)
+        public TouchOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -416,62 +416,62 @@ namespace Couchbase.KeyValue
 
     public class IncrementOptions
     {
-        public ulong Initial { get; set; } = 1;
+        internal ulong InitialValue { get; set; } = 1;
 
-        public ulong Delta { get; set; } = 1;
+        internal ulong DeltaValue { get; set; } = 1;
 
-        public ulong Cas { get; set; }
+        internal ulong CasValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public IncrementOptions WithInitial(ulong initial)
+        public IncrementOptions Initial(ulong initial)
         {
-            Initial = initial;
+            InitialValue = initial;
             return this;
         }
 
-        public IncrementOptions WithDelta(ulong delta)
+        public IncrementOptions Delta(ulong delta)
         {
-            Delta = delta;
+            DeltaValue = delta;
             return this;
         }
 
-        public IncrementOptions WithCas(ulong cas)
+        public IncrementOptions Cas(ulong cas)
         {
-            Cas = cas;
+            CasValue = cas;
             return this;
         }
 
-        public IncrementOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public IncrementOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public IncrementOptions WithDurability(DurabilityLevel durabilityLevel)
+        public IncrementOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public IncrementOptions WithTimeout(TimeSpan timeout)
+        public IncrementOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public IncrementOptions WithToken(CancellationToken token)
+        public IncrementOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -482,62 +482,62 @@ namespace Couchbase.KeyValue
 
     public class DecrementOptions
     {
-        public ulong Initial { get; set; } = 1;
+        internal ulong InitialValue { get; set; } = 1;
 
-        public ulong Delta { get; set; } = 1;
+        internal ulong DeltaValue { get; set; } = 1;
 
-        public ulong Cas { get; set; }
+        internal ulong CasValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public DecrementOptions WithInitial(ulong initial)
+        public DecrementOptions Initial(ulong initial)
         {
-            Initial = initial;
+            InitialValue = initial;
             return this;
         }
 
-        public DecrementOptions WithDelta(ulong delta)
+        public DecrementOptions Delta(ulong delta)
         {
-            Delta = delta;
+            DeltaValue = delta;
             return this;
         }
 
-        public DecrementOptions WithCas(ulong cas)
+        public DecrementOptions Cas(ulong cas)
         {
-            Cas = cas;
+            CasValue = cas;
             return this;
         }
 
-        public DecrementOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public DecrementOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public DecrementOptions WithDurability(DurabilityLevel durabilityLevel)
+        public DecrementOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public DecrementOptions WithTimeout(TimeSpan timeout)
+        public DecrementOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public DecrementOptions WithToken(CancellationToken token)
+        public DecrementOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -548,46 +548,46 @@ namespace Couchbase.KeyValue
 
     public class AppendOptions
     {
-        public ulong Cas { get; set; }
+        internal ulong CasValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public AppendOptions WithCas(ulong cas)
+        public AppendOptions Cas(ulong cas)
         {
-            Cas = cas;
+            CasValue = cas;
             return this;
         }
 
-        public AppendOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public AppendOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public AppendOptions WithDurability(DurabilityLevel durabilityLevel)
+        public AppendOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public AppendOptions WithTimeout(TimeSpan timeout)
+        public AppendOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public AppendOptions WithToken(CancellationToken token)
+        public AppendOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -598,46 +598,47 @@ namespace Couchbase.KeyValue
 
     public class PrependOptions
     {
-        public ulong Cas { get; set; }
+        internal ulong CasValue { get; set; }
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
+       
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public PrependOptions WithCas(ulong cas)
+        public PrependOptions Cas(ulong cas)
         {
-            Cas = cas;
+            CasValue = cas;
             return this;
         }
 
-        public PrependOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public PrependOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
         }
 
-        public PrependOptions WithDurability(DurabilityLevel durabilityLevel)
+        public PrependOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public PrependOptions WithTimeout(TimeSpan timeout)
+        public PrependOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public PrependOptions WithToken(CancellationToken token)
+        public PrependOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -648,27 +649,27 @@ namespace Couchbase.KeyValue
 
     public class GetAndLockOptions
     {
-        public TimeSpan? Timeout { get; set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ITypeTranscoder Transcoder { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public GetAndLockOptions WithTranscoder(ITypeTranscoder transcoder)
+        public GetAndLockOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public GetAndLockOptions WithTimeout(TimeSpan timeout)
+        public GetAndLockOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public GetAndLockOptions WithToken(CancellationToken token)
+        public GetAndLockOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -680,31 +681,31 @@ namespace Couchbase.KeyValue
     public class GetAndTouchOptions
     {
 
-        public ReplicateTo ReplicateTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; set; }
 
-        public PersistTo PersistTo { get; set; }
+        internal PersistTo PersistTo { get; set; }
 
-        public TimeSpan? Timeout { get;set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ITypeTranscoder Transcoder { get; set; }
+        internal ITypeTranscoder TranscoderValue { get; set; }
 
-        public GetAndTouchOptions WithTranscoder(ITypeTranscoder transcoder)
+        public GetAndTouchOptions Transcoder(ITypeTranscoder transcoder)
         {
-            Transcoder = transcoder;
+            TranscoderValue = transcoder;
             return this;
         }
 
-        public GetAndTouchOptions WithTimeout(TimeSpan timeout)
+        public GetAndTouchOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public GetAndTouchOptions WithToken(CancellationToken token)
+        public GetAndTouchOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -715,35 +716,35 @@ namespace Couchbase.KeyValue
 
     public class LookupInOptions
     {
-        public TimeSpan Timeout { get; set; }
+        internal TimeSpan TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public bool Expiry { get; set; }
+        internal bool ExpiryValue { get; set; }
 
-        public ITypeSerializer Serializer { get; set; }
+        internal ITypeSerializer SerializerValue { get; set; }
 
-        public LookupInOptions WithSerializer(ITypeSerializer serializer)
+        public LookupInOptions Serializer(ITypeSerializer serializer)
         {
-            Serializer = serializer;
+            SerializerValue = serializer;
             return this;
         }
 
-        public LookupInOptions WithTimeout(TimeSpan timeout)
+        public LookupInOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public LookupInOptions WithToken(CancellationToken token)
+        public LookupInOptions CancellationToken(CancellationToken token)
         {
-            Token = token;
+            TokenValue = token;
             return this;
         }
 
-        public LookupInOptions WithExpiry(bool expiry)
+        public LookupInOptions Expiry(bool expiry)
         {
-            Expiry = expiry;
+            ExpiryValue = expiry;
             return this;
         }
     }
@@ -754,86 +755,67 @@ namespace Couchbase.KeyValue
 
     public class MutateInOptions
     {
-        public TimeSpan expiry { get; set; }
+        internal TimeSpan expiryValue { get; set; }
 
-        public StoreSemantics StoreSemantics { get; set; }
+        internal StoreSemantics StoreSemanticsValue { get; set; }
 
-        public ulong Cas { get; set; }
+        internal ulong CasValue { get; set; }
 
-        public Tuple<PersistTo, ReplicateTo> Durabilty { get; set; }
+        internal Tuple<PersistTo, ReplicateTo> Durabilty { get; set; }
 
-        public DurabilityLevel DurabilityLevel { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; set; }
 
-        public TimeSpan Timeout { get; set; }
+        internal TimeSpan TimeoutValue { get; set; }
 
-        public CancellationToken Token { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ITypeSerializer Serializer { get; set; }
+        internal ITypeSerializer SerializerValue { get; set; }
 
-        public MutateInOptions WithStoreSemantics(StoreSemantics storeSemantics)
+        public MutateInOptions StoreSemantics(StoreSemantics storeSemantics)
         {
-            StoreSemantics |= storeSemantics;
+            StoreSemanticsValue = storeSemantics;
             return this;
         }
 
-        public MutateInOptions WithSerializer(ITypeSerializer serializer)
+        public MutateInOptions Serializer(ITypeSerializer serializer)
         {
-            Serializer = serializer;
+            SerializerValue = serializer;
             return this;
         }
 
-        public MutateInOptions WithExpiry(TimeSpan expiry)
+        public MutateInOptions Expiry(TimeSpan expiry)
         {
-            this.expiry = expiry;
+            this.expiryValue = expiry;
             return this;
         }
 
-        public MutateInOptions WithExpiry(int days = 0, int hours = 0, int minutes = 0, int seconds = 0, int milliseconds=0)
+        public MutateInOptions Cas(ulong cas)
         {
-            return WithExpiry(new TimeSpan(days, hours, minutes, seconds, milliseconds));
-        }
-
-        public MutateInOptions WithCreateDoc(bool createDoc)
-        {
-            if (createDoc)
-            {
-                StoreSemantics |= StoreSemantics.Insert;
-            }
+            CasValue = cas;
             return this;
         }
 
-        public MutateInOptions WithCas(ulong cas)
-        {
-            Cas = cas;
-            return this;
-        }
-
-        public MutateInOptions WithDurability(PersistTo persistTo, ReplicateTo replicateTo)
+        public MutateInOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Durabilty = new Tuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
             return this;
         }
 
-        public MutateInOptions WithDurability(DurabilityLevel durabilityLevel)
+        public MutateInOptions Durability(DurabilityLevel durabilityLevel)
         {
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
-        public MutateInOptions WithTimeout(TimeSpan timeout)
+        public MutateInOptions Timeout(TimeSpan timeout)
         {
-            Timeout = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
-        public MutateInOptions WithTimeout(int minutes = 0, int seconds = 0, int milliseconds=0)
+        public MutateInOptions CancellationToken(CancellationToken token)
         {
-            return WithTimeout(new TimeSpan(0, 0, minutes, seconds, milliseconds));
-        }
-
-        public MutateInOptions WithToken(CancellationToken token)
-        {
-            Token = token;
+            TokenValue = token;
             return this;
         }
     }
@@ -844,22 +826,22 @@ namespace Couchbase.KeyValue
 
     public abstract class MutateInXattrOperation
     {
-        public bool XAttr { get; set; }
+        internal bool XAttrValue { get; set; }
 
-        public MutateInXattrOperation WithXAttr()
+        public MutateInXattrOperation XAttr()
         {
-            XAttr = true;
+            XAttrValue = true;
             return this;
         }
     }
 
     public abstract class MutateInOperationOptions :  MutateInXattrOperation
     {
-        public bool CreatePath { get; set; }
+        internal bool CreatePathValue { get; set; }
 
-        public MutateInOperationOptions WithCreatePath()
+        public MutateInOperationOptions CreatePath()
         {
-            CreatePath = true;
+            CreatePathValue = true;
             return this;
         }
     }

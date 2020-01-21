@@ -4,11 +4,11 @@ namespace Couchbase.Management.Search
 {
     public class ResumeIngestSearchIndexOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public ResumeIngestSearchIndexOptions WithCancellationToken(CancellationToken cancellationToken)
+        public ResumeIngestSearchIndexOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

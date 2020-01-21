@@ -4,11 +4,11 @@ namespace Couchbase.Management.Analytics
 {
     public class GetAllAnalyticsIndexesOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public GetAllAnalyticsIndexesOptions WithCancellationToken(CancellationToken cancellationToken)
+        public GetAllAnalyticsIndexesOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
     }

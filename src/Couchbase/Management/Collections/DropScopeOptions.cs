@@ -4,11 +4,11 @@ namespace Couchbase.Management.Collections
 {
     public class DropScopeOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public DropScopeOptions WithCancellationToken(CancellationToken cancellationToken)
+        public DropScopeOptions CancellationToken(CancellationToken token)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = token;
             return this;
         }
 

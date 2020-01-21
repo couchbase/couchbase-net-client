@@ -217,7 +217,7 @@ namespace Couchbase.Query
         /// <param name="preparedPlan">The <see cref="Query.QueryPlan"/> that was prepared beforehand.</param>
         /// <param name="originalStatement">The original statement (eg. SELECT * FROM default) that the user attempted to optimize</param>
         /// <returns>A reference to the current <see cref="QueryOptions"/> for method chaining.</returns>
-        /// <remarks>Required if statement not provided, will erase a previously set WithStatement.</remarks>
+        /// <remarks>Required if statement not provided, will erase a previously set Statement.</remarks>
         /// <exception cref="ArgumentNullException"><paramref name="preparedPlan"/> is <see langword="null" />.</exception>
         public QueryOptions Prepared(QueryPlan preparedPlan, string originalStatement)
         {

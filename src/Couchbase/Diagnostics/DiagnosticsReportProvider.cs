@@ -32,14 +32,14 @@ namespace Couchbase.Diagnostics
 
         internal static IPingReport CreatePingReport(ClusterContext context, BucketConfig config, PingOptions options)
         {
-            if (!options.ServiceTypes.Any())
+            if (!options.ServiceTypesValue.Any())
             {
-               options.WithServiceTypes(AllServiceTypes);
+               options.ServiceTypes(AllServiceTypes);
             }
 
             var clusterNodes = context.GetNodes(config.Name);
-            var endpoints = GetEndpointDiagnostics(context, clusterNodes,true, options.ServiceTypes, CancellationToken.None);
-            return new PingReport(options.ReportId, config.Rev, endpoints);
+            var endpoints = GetEndpointDiagnostics(context, clusterNodes,true, options.ServiceTypesValue, CancellationToken.None);
+            return new PingReport(options.ReportIdValue, config.Rev, endpoints);
         }
 
         internal static IDiagnosticsReport CreateDiagnosticsReport(ClusterContext context, string reportId)

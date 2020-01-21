@@ -277,15 +277,15 @@ namespace Couchbase.UnitTests.Core.Retry
                 cts.CancelAfter(1000);
 
                 var options = new AnalyticsOptions().
-                    Timeout(TimeSpan.FromSeconds(1000)).CancellationToken(cts.Token).WithReadOnly(readOnly);
+                    Timeout(TimeSpan.FromSeconds(1000)).CancellationToken(cts.Token).Readonly(readOnly);
 
                 var query = new AnalyticsRequest("SELECT * FROM `bar`;")
                 {
                     ClientContextId = options.ClientContextIdValue,
                     NamedParameters = options.NamedParameters,
                     PositionalArguments = options.PositionalParameters,
-                    ReadOnly = options.ReadOnlyValue,
-                    Idempotent = options.ReadOnlyValue
+                    ReadOnly = options.ReadonlyValue,
+                    Idempotent = options.ReadonlyValue
                 };
                 query.WithTimeout(options.TimeoutValue);
                 query.Priority(options.PriorityValue);
@@ -409,8 +409,8 @@ namespace Couchbase.UnitTests.Core.Retry
             var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
-            var options = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901")
-                .WithLogging(loggerFactory);
+            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901")
+                .Logging(loggerFactory);
             var context = new ClusterContext(null, options);
 
             var clusterNode = new ClusterNode(context)

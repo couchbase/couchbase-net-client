@@ -4,18 +4,18 @@ namespace Couchbase.Management.Users
 {
     public class UpsertUserOptions
     {
-        public string DomainName { get; set; } = "local";
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        internal string DomainNameValue { get; set; } = "local";
+        internal CancellationToken TokenValue { get; set; }
 
-        public UpsertUserOptions WithDomainName(string domainName)
+        public UpsertUserOptions DomainName(string domainName)
         {
-            DomainName = domainName;
+            DomainNameValue = domainName;
             return this;
         }
 
-        public UpsertUserOptions WithCancellationToken(CancellationToken cancellationToken)
+        public UpsertUserOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

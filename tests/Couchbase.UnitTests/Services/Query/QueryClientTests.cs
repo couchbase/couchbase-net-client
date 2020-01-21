@@ -51,7 +51,7 @@ namespace Couchbase.UnitTests.Services.Query
                 {
                     BaseAddress = new Uri("http://localhost:8091")
                 };
-                var options = new ClusterOptions().WithBucket("default").WithServers("http://localhost:8901");
+                var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901");
                 var context = new ClusterContext(null, options);
 
                 var clusterNode = new ClusterNode(context)

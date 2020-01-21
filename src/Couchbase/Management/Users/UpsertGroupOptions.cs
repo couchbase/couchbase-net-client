@@ -4,11 +4,11 @@ namespace Couchbase.Management.Users
 {
     public class UpsertGroupOptions
     {
-        public CancellationToken CancellationToken { get; set; }
+        internal CancellationToken TokenValue { get; set; }
 
-        public UpsertGroupOptions WithCancellationToken(CancellationToken cancellationToken)
+        public UpsertGroupOptions CancellationToken(CancellationToken cancellationToken)
         {
-            CancellationToken = cancellationToken;
+            TokenValue = cancellationToken;
             return this;
         }
 

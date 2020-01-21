@@ -21,9 +21,9 @@ namespace Couchbase.IntegrationTests
         public async Task Can_Return_Expiry()
         {
             var collection = await _fixture.GetDefaultCollection();
-            await collection.UpsertAsync("Can_Return_Expiry()", new {foo = "bar", bar = "foo"}, options =>options.WithExpiry(TimeSpan.FromHours(1)));
+            await collection.UpsertAsync("Can_Return_Expiry()", new {foo = "bar", bar = "foo"}, options =>options.Expiry(TimeSpan.FromHours(1)));
 
-            var result = await collection.GetAsync("Can_Return_Expiry()", options=>options.WithExpiry());
+            var result = await collection.GetAsync("Can_Return_Expiry()", options=>options.Expiry());
             Assert.NotNull(result.Expiry);
         }
 
@@ -31,7 +31,7 @@ namespace Couchbase.IntegrationTests
         public async Task LookupIn_Can_Return_FullDoc()
         {
             var collection = await _fixture.GetDefaultCollection();
-            await collection.UpsertAsync("LookupIn_Can_Return_FullDoc()", new {foo = "bar", bar = "foo"}, options =>options.WithExpiry(TimeSpan.FromHours(1)));
+            await collection.UpsertAsync("LookupIn_Can_Return_FullDoc()", new {foo = "bar", bar = "foo"}, options =>options.Expiry(TimeSpan.FromHours(1)));
 
             var result = await collection.LookupInAsync("LookupIn_Can_Return_FullDoc()", builder=>builder.GetFull());
             var doc = result.ContentAs<dynamic>(0);
@@ -157,7 +157,7 @@ namespace Couchbase.IntegrationTests
                     specs.Upsert("key", "value", true, true);
                     specs.Upsert("name", "mike");
                 },
-                options => options.WithStoreSemantics(StoreSemantics.Upsert));
+                options => options.StoreSemantics(StoreSemantics.Upsert));
         }
     }
 }

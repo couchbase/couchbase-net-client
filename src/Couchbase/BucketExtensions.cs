@@ -44,7 +44,7 @@ namespace Couchbase
 
         public static Task<IPingReport> PingAsync(this IBucket bucket, string reportId, params ServiceType[] serviceTypes)
         {
-            return bucket.PingAsync(new PingOptions {ReportId = reportId, ServiceTypes = serviceTypes});
+            return bucket.PingAsync(new PingOptions {ReportIdValue = reportId, ServiceTypesValue = serviceTypes});
         }
 
         #endregion

@@ -11,30 +11,32 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTracing;
 
+using ConnectionStringCls = Couchbase.ConnectionString;
+
 namespace Couchbase
 {
     public sealed class ClusterOptions
     {
         private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
-        internal ConnectionString ConnectionString { get; set; }
-        public string connectionString { get; set; }
+        internal ConnectionString ConnectionStringValue { get; set; }
+        internal string connectionString { get; set; }
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 
-        public ClusterOptions WithConnectionString(string connectionString)
+        public ClusterOptions ConnectionString(string connectionString)
         {
-            ConnectionString = ConnectionString.Parse(connectionString);
-            var uriBuilders = ConnectionString.Hosts.Select(x => new UriBuilder
+            ConnectionStringValue = ConnectionStringCls.Parse(connectionString);
+            var uriBuilders = ConnectionStringValue.Hosts.Select(x => new UriBuilder
             {
                 Host = x,
                 Port = KvPort
             }.Uri).ToArray();
-            WithServers(uriBuilders);
+            Servers(uriBuilders);
             return this;
         }
 
-        public ClusterOptions WithServers(params string[] servers)
+        public ClusterOptions Servers(params string[] servers)
         {
             if (!servers?.Any() ?? true)
             {
@@ -46,7 +48,7 @@ namespace Couchbase
             return this;
         }
 
-        internal ClusterOptions WithServers(IEnumerable<Uri> servers)
+        internal ClusterOptions Servers(IEnumerable<Uri> servers)
         {
             if (!servers?.Any() ?? true)
             {
@@ -58,7 +60,7 @@ namespace Couchbase
             return this;
         }
 
-        public ClusterOptions WithBucket(params string[] bucketNames)
+        public ClusterOptions Bucket(params string[] bucketNames)
         {
             if (!bucketNames?.Any() ?? true)
             {
@@ -70,7 +72,7 @@ namespace Couchbase
             return this;
         }
 
-        public ClusterOptions WithCredentials(string username, string password)
+        public ClusterOptions Credentials(string username, string password)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -87,7 +89,7 @@ namespace Couchbase
             return this;
         }
 
-        public ClusterOptions WithLogging(ILoggerFactory loggerFactory = null)
+        public ClusterOptions Logging(ILoggerFactory loggerFactory = null)
         {
             //configure a null logger as the default
             if (loggerFactory == null)
@@ -103,8 +105,8 @@ namespace Couchbase
             return this;
         }
 
-        public IEnumerable<Uri> Servers => _servers;
-        public IEnumerable<string> Buckets => _buckets;
+        internal IEnumerable<Uri> ServersValue => _servers;
+        internal IEnumerable<string> Buckets => _buckets;
         public string UserName { get; set; }
         public string Password { get; set; }
 
@@ -156,17 +158,17 @@ namespace Couchbase
                 return false;
             }
 
-            if (ConnectionString.Scheme != Scheme.Couchbase && ConnectionString.Scheme != Scheme.Couchbases)
+            if (ConnectionStringValue.Scheme != Scheme.Couchbase && ConnectionStringValue.Scheme != Scheme.Couchbases)
             {
                 return false;
             }
 
-            if (ConnectionString.Hosts.Count > 1)
+            if (ConnectionStringValue.Hosts.Count > 1)
             {
                 return false;
             }
 
-            return ConnectionString.Hosts.Single().IndexOf(":") == -1;
+            return ConnectionStringValue.Hosts.Single().IndexOf(":") == -1;
         }
     }
 
