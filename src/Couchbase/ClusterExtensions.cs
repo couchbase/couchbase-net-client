@@ -67,27 +67,6 @@ namespace Couchbase
 
         #region Search
 
-        public static ISearchResult SearchQuery(this ICluster cluster, string indexName, SearchQuery query,
-            Action<ISearchOptions> configureOptions)
-        {
-            var options = new SearchOptions();
-            configureOptions(options);
-
-            return cluster.SearchQueryAsync(indexName, query, options)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        public static ISearchResult SearchQuery(this ICluster cluster, string indexName, SearchQuery query,
-            ISearchOptions options = default)
-        {
-            return cluster.SearchQueryAsync(indexName, query, options)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
         public static Task<ISearchResult> SearchQueryAsync(this ICluster cluster, string indexName, SearchQuery query,
             Action<ISearchOptions> configureOptions)
         {
