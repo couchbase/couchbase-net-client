@@ -7,7 +7,7 @@ using Couchbase.KeyValue;
 
 namespace Couchbase.Core.IO
 {
-    public static class SocketAsyncStateExtensions
+    internal static class SocketAsyncStateExtensions
     {
         public static Exception ThrowException(this SocketAsyncState state, ErrorCode errorCode)
         {
@@ -19,7 +19,7 @@ namespace Couchbase.Core.IO
                     {
                         Context = new KeyValueErrorContext
                         {
-                            
+
                         }
                     };
                 case ResponseStatus.KeyExists:

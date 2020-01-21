@@ -7,7 +7,7 @@ using Couchbase.Core.IO.Operations.Errors;
 
 namespace Couchbase.LoadTests.Helpers
 {
-    public class MockConnection : IConnection
+    internal class MockConnection : IConnection
     {
         public void Dispose()
         {

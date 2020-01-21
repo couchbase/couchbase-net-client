@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    public struct OperationRequestHeader
+    internal struct OperationRequestHeader
     {
         public const int Length = 24;
 

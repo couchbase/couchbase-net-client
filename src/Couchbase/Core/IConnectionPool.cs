@@ -8,7 +8,7 @@ namespace Couchbase.Core
     /// <summary>
     /// Represents a pool of TCP connections to a Couchbase Server node.
     /// </summary>
-    public interface IConnectionPool : IDisposable
+    internal interface IConnectionPool : IDisposable
     {
         /// <summary>
         /// Returns a <see cref="IConnection"/> the pool, creating a new one if none are available

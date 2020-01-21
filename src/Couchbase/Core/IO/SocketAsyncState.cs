@@ -6,7 +6,7 @@ using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.Core.IO
 {
-    public sealed class SocketAsyncState : IDisposable
+    internal sealed class SocketAsyncState : IDisposable
     {
         private IMemoryOwner<byte> _data;
 

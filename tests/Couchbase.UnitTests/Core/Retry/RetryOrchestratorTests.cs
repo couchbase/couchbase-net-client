@@ -83,9 +83,9 @@ namespace Couchbase.UnitTests.Core.Retry
         [Theory]
         [ClassData(typeof(RetryTestData))]
         public async Task Operation_Throws_Timeout_After_N_Retries_Using_BestEffort_When_NotMyVBucket(
-            IOperation operation, Exception exception)
+            object operation, Exception exception)
         {
-            await AssertRetryAsync(operation, exception);
+            await AssertRetryAsync((IOperation) operation, exception);
         }
 
         private async Task AssertRetryAsync(IOperation op, Exception exp)
@@ -125,12 +125,12 @@ namespace Couchbase.UnitTests.Core.Retry
 
         [Theory]
         [ClassData(typeof(NotRetryTestData))]
-        public async Task Non_Idempotent_Fails_Without_Retry(IOperation operation, Exception exception)
+        public async Task Non_Idempotent_Fails_Without_Retry(object operation, Exception exception)
         {
-            await AssertDoesNotRetryAsync(operation, exception);
+            await AssertDoesNotRetryAsync((IOperation) operation, exception);
         }
 
-        public async Task AssertDoesNotRetryAsync(IOperation op, Exception exp)
+        private async Task AssertDoesNotRetryAsync(IOperation op, Exception exp)
         {
             var bucketMock = new Mock<BucketBase>();
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);

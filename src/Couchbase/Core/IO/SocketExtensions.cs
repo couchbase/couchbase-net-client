@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO
 {
-    public static class SocketExtensions
+    internal static class SocketExtensions
     {
         private static readonly ILogger Logger = LogManager.CreateLogger(typeof(SocketExtensions));
 

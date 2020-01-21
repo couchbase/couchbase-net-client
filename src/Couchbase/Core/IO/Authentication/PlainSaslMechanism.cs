@@ -11,7 +11,7 @@ using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
 namespace Couchbase.Core.IO.Authentication
 {
-    public class PlainSaslMechanism : ISaslMechanism
+    internal class PlainSaslMechanism : ISaslMechanism
     {
         public PlainSaslMechanism(string username, string password)
         {

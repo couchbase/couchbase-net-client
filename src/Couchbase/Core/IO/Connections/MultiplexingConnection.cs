@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.Connections
 {
-    public class MultiplexingConnection : IConnection
+    internal class MultiplexingConnection : IConnection
     {
         private readonly ConcurrentDictionary<uint, IState> _statesInFlight;
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable

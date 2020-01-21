@@ -6,10 +6,10 @@ using Couchbase.Core.IO.Operations.Errors;
 
 namespace Couchbase.Core.IO
 {
-     /// <summary>
+    /// <summary>
     /// Represents a TCP connection to a Couchbase Server instance.
     /// </summary>
-    public interface IConnection : IDisposable
+    internal interface IConnection : IDisposable
     {
         /// <summary>
         /// The Socket used for IO.

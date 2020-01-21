@@ -2,7 +2,7 @@ using Couchbase.Core.IO.Transcoders;
 
 namespace Couchbase.Core.IO.Operations
 {
-    public interface IOperation<out T> : IOperation
+    internal interface IOperation<out T> : IOperation
     {
         IOperationResult<T> GetResultWithValue();
 

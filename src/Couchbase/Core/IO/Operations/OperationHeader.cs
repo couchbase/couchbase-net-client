@@ -1,6 +1,6 @@
 namespace Couchbase.Core.IO.Operations
 {
-    public struct OperationHeader
+    internal struct OperationHeader
     {
         public const int Length = 24;
         public const int MaxKeyLength = 250;

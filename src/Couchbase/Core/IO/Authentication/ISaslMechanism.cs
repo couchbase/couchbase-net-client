@@ -8,7 +8,7 @@ namespace Couchbase.Core.IO.Authentication
     /// <summary>
     /// Provides and interface for implementing a SASL authentication mechanism (CRAM MD5 or PLAIN).
     /// </summary>
-    public interface ISaslMechanism
+    internal interface ISaslMechanism
     {
         /// <summary>
         /// The username or Bucket name.

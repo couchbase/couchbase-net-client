@@ -10,7 +10,7 @@ using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.IO.Operations
 {
-    public interface IOperation : IDisposable, IRequest
+    internal interface IOperation : IDisposable, IRequest
     {
         OpCode OpCode { get; }
 
