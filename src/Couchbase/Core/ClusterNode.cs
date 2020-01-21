@@ -297,7 +297,7 @@ namespace Couchbase.Core
             var connection = endPoint.GetConnection(context.ClusterOptions);
             var serverFeatures = await connection.Hello().ConfigureAwait(false);
             var errorMap = await connection.GetErrorMap().ConfigureAwait(false);
-            await connection.Authenticate(context.ClusterOptions, null).ConfigureAwait(false);
+            await connection.Authenticate(context.ClusterOptions, null, context.CancellationToken).ConfigureAwait(false);
 
             var clusterNode = new ClusterNode(context)
             {

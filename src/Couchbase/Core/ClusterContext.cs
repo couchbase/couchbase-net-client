@@ -50,6 +50,8 @@ namespace Couchbase.Core
 
         public bool SupportsCollections { get; private set; }
 
+        public CancellationToken CancellationToken => _tokenSource.Token;
+
         public void StartConfigListening()
         {
             _configHandler.Start(_tokenSource);

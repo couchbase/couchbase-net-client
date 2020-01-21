@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
@@ -78,10 +79,11 @@ namespace Couchbase.Utils
             }
         }
 
-        public static async Task Authenticate(this IConnection connection, ClusterOptions clusterOptions, string bucketName)
+        public static async Task Authenticate(this IConnection connection, ClusterOptions clusterOptions,
+            string bucketName, CancellationToken cancellationToken = default)
         {
             var sasl = new PlainSaslMechanism(clusterOptions.UserName, clusterOptions.Password);
-            var authenticated = await sasl.AuthenticateAsync(connection).ConfigureAwait(false);
+            var authenticated = await sasl.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
             if (!authenticated)
             {
                 throw new AuthenticationFailureException($"Cannot authenticate {bucketName}");

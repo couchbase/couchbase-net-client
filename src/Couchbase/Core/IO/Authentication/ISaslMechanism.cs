@@ -1,9 +1,12 @@
-﻿using System.Threading.Tasks;
+using System.Threading;
+using System.Threading.Tasks;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Authentication
-{ 
+{
     /// <summary>
-    /// Provides and interface for implementating a SASL authentication mechanism (CRAM MD5 or PLAIN).
+    /// Provides and interface for implementing a SASL authentication mechanism (CRAM MD5 or PLAIN).
     /// </summary>
     public interface ISaslMechanism
     {
@@ -26,7 +29,8 @@ namespace Couchbase.Core.IO.Authentication
         /// Authenticates a username and password.
         /// </summary>
         /// <param name="connection">An implementation of <see cref="IConnection"/> which represents a TCP connection to a Couchbase Server.</param>
-        /// <returns>True if succesful.</returns>
-        Task<bool> AuthenticateAsync(IConnection connection);
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>True if successful.</returns>
+        Task<bool> AuthenticateAsync(IConnection connection, CancellationToken cancellationToken = default);
     }
 }
