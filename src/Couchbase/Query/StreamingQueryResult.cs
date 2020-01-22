@@ -201,7 +201,11 @@ namespace Couchbase.Query
                 throw new InvalidOperationException("_reader is null");
             }
 
-            MetaData = new QueryMetaData();
+            if (MetaData == null)
+            {
+                MetaData = new QueryMetaData();
+            }
+
             _hasReadToResult = false;
 
             while (true)
