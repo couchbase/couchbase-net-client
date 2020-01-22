@@ -4,6 +4,7 @@ using Couchbase.Query;
 
 namespace Couchbase.Core.Exceptions.Query
 {
+    /// <remarks>Uncommitted</remarks>
     public class QueryErrorContext : IErrorContext
     {
         public string Statement { get; internal set; }

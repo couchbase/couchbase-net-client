@@ -3,6 +3,7 @@ using System.Net;
 
 namespace Couchbase.Core.Exceptions.View
 {
+    /// <remarks>Uncommitted</remarks>
     public class ViewContextError : IErrorContext
     {
         public string DesignDocumentName { get; internal set; }

@@ -2,6 +2,7 @@ using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.Core.Exceptions.KeyValue
 {
+    /// <remarks>Uncommitted</remarks>
     public class KeyValueErrorContext : IErrorContext
     {
         public string DispatchedFrom { get; internal set; } //state.localendpoint

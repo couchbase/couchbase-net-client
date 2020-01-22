@@ -3,6 +3,7 @@ using System.Net;
 
 namespace Couchbase.Core.Exceptions.Search
 {
+    /// <remarks>Uncommitted</remarks>
     public class SearchErrorContext : IErrorContext
     {
         public string IndexName{ get; internal set; }
