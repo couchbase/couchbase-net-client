@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
@@ -15,14 +13,14 @@ namespace Couchbase.UnitTests.Services.Query
         #region GetAsyncEnumerator
 
         [Fact]
-        public async Task GetAsyncEnumerator_HasReadToRows_GetsResults()
+        public async Task GetAsyncEnumerator_HasInitialized_GetsResults()
         {
             // Arrange
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
             using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
-            await streamingResult.ReadToRowsAsync(default);
+            await streamingResult.InitializeAsync();
 
             // Act
 
@@ -30,6 +28,8 @@ namespace Couchbase.UnitTests.Services.Query
 
             // Assert
 
+            Assert.True(streamingResult.Success);
+            Assert.Equal(QueryStatus.Success, streamingResult.MetaData.Status);
             Assert.NotEmpty(result);
         }
 
@@ -41,7 +41,7 @@ namespace Couchbase.UnitTests.Services.Query
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
 
             using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
-            await streamingResult.ReadToRowsAsync(default);
+            await streamingResult.InitializeAsync();
 
             // Act
 
@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Services.Query
         }
 
         [Fact]
-        public async Task GetAsyncEnumerator_HasNotReadToRows_InvalidOperationException()
+        public async Task GetAsyncEnumerator_HasNotInitialized_InvalidOperationException()
         {
             // Arrange
 
@@ -76,12 +76,37 @@ namespace Couchbase.UnitTests.Services.Query
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
             using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
-            await streamingResult.ReadToRowsAsync(default);
+            await streamingResult.InitializeAsync();
 
             // Act/Assert
 
             await streamingResult.ToListAsync();
             await Assert.ThrowsAsync<StreamAlreadyReadException>(() => streamingResult.ToListAsync().AsTask());
+        }
+
+        [Theory]
+        [InlineData(@"Documents\Query\query-n1ql-error-response-400.json", QueryStatus.Fatal)]
+        [InlineData(@"Documents\Query\query-service-error-response-503.json", QueryStatus.Errors)]
+        [InlineData(@"Documents\Query\query-timeout-response-200.json", QueryStatus.Timeout)]
+        public async Task GetAsyncEnumerator_AfterEnumeration_HasErrors(string filename, QueryStatus expectedStatus)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(filename);
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            await streamingResult.InitializeAsync();
+
+            // Act
+
+            await streamingResult.ToListAsync();
+            var result = streamingResult.MetaData.Status;
+
+            // Assert
+
+            Assert.False(streamingResult.Success);
+            Assert.Equal(expectedStatus, result);
+            Assert.NotEmpty(streamingResult.Errors);
         }
 
         [Fact]
@@ -92,7 +117,7 @@ namespace Couchbase.UnitTests.Services.Query
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
             using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
-            await streamingResult.ReadToRowsAsync(default);
+            await streamingResult.InitializeAsync();
 
             // Act
 
@@ -110,7 +135,7 @@ namespace Couchbase.UnitTests.Services.Query
         #region ReadToRowsAsync
 
         [Fact]
-        public async Task ReadToRowsAsync_Success_PreResultFieldsPresent()
+        public async Task InitializeAsync_Success_PreResultFieldsPresent()
         {
             // Arrange
 
@@ -120,7 +145,7 @@ namespace Couchbase.UnitTests.Services.Query
 
             // Act
 
-            await streamingResult.ReadToRowsAsync(default);
+            await streamingResult.InitializeAsync();
 
             // Assert
 
@@ -130,7 +155,7 @@ namespace Couchbase.UnitTests.Services.Query
         }
 
         [Fact]
-        public async Task ReadToRowsAsync_Error_AllResultFieldsPresent()
+        public async Task InitializeAsync_Error_AllResultFieldsPresent()
         {
             // Arrange
 
@@ -140,7 +165,7 @@ namespace Couchbase.UnitTests.Services.Query
 
             // Act
 
-            await streamingResult.ReadToRowsAsync(default);
+            await streamingResult.InitializeAsync();
 
             // Assert
 

@@ -119,22 +119,28 @@ namespace Couchbase.Query
             var node = Context.GetRandomNodeForService(ServiceType.Query);
             var body = options.GetFormValuesAsJson();
 
-            StreamingQueryResult<T> queryResult;
+            QueryResultBase<T> queryResult;
             using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
             {
                 try
                 {
                     var response = await HttpClient.PostAsync(node.QueryUri, content, options.Token).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    queryResult = new StreamingQueryResult<T>(stream,
-                        _serializer as IStreamingTypeDeserializer ?? new DefaultSerializer())
+
+                    if (_serializer is IStreamingTypeDeserializer streamingDeserializer)
                     {
-                        HttpStatusCode = response.StatusCode,
-                        Success = response.StatusCode == HttpStatusCode.OK
-                    };
+                        queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer);
+                    }
+                    else
+                    {
+                        queryResult = new BlockQueryResult<T>(stream, _serializer);
+                    }
+
+                    queryResult.HttpStatusCode = response.StatusCode;
+                    queryResult.Success = response.StatusCode == HttpStatusCode.OK;
 
                     //read the header and stop when we reach the queried rows
-                    await queryResult.ReadToRowsAsync(options.Token).ConfigureAwait(false);
+                    await queryResult.InitializeAsync(options.Token).ConfigureAwait(false);
 
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData.Status != QueryStatus.Success)
                     {

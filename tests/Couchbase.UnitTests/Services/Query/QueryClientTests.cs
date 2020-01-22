@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
@@ -13,6 +14,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Moq;
@@ -78,6 +80,53 @@ namespace Couchbase.UnitTests.Services.Query
                     Assert.Equal(errorType, e.GetType());
                 }
             }
+        }
+
+        [Theory]
+        [InlineData(typeof(DefaultSerializer))]
+        [InlineData(typeof(NonStreamingSerializer))]
+        public async Task TestSuccess(Type serializerType)
+        {
+            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+
+            var buffer = new byte[response.Length];
+            response.Read(buffer, 0, buffer.Length);
+
+            var handlerMock = new Mock<HttpMessageHandler>();
+            handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(buffer)
+            });
+
+            var httpClient = new HttpClient(handlerMock.Object)
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901");
+            var context = new ClusterContext(null, options);
+
+            var clusterNode = new ClusterNode(context)
+            {
+                EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
+                NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
+                    new NodesExt {Hostname = "127.0.0.1", Services = new Couchbase.Core.Configuration.Server.Services
+                    {
+                        N1Ql = 8093
+                    }}, new BucketConfig())
+            };
+            clusterNode.BuildServiceUris();
+            context.AddNode(clusterNode);
+
+            var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
+            var client = new QueryClient(httpClient, new JsonDataMapper(serializer), serializer, context);
+
+            var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions());
+
+            Assert.Equal(10, await result.CountAsync());
         }
 
         [Fact]

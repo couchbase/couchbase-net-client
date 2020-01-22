@@ -67,14 +67,14 @@ namespace Couchbase.Core.IO.Serializers
         {
             while (_reader.TokenType != JsonToken.PropertyName)
             {
-                if (!await _reader.ReadAsync(cancellationToken))
+                if (!await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                 {
                     return null;
                 }
             }
 
             // Read one more time to get to the beginning of the attribute value
-            if (!await _reader.ReadAsync(cancellationToken))
+            if (!await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 return null;
             }
@@ -123,7 +123,7 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         public async Task<dynamic> ReadTokenAsync(CancellationToken cancellationToken = default)
         {
-            return await JToken.ReadFromAsync(_reader, cancellationToken);
+            return await JToken.ReadFromAsync(_reader, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />

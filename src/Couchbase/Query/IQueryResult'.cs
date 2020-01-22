@@ -16,6 +16,9 @@ namespace Couchbase.Query
         /// </summary>
         QueryMetaData? MetaData { get; }
 
+        /// <summary>
+        /// Gets a list of 0 or more error objects; if an error occurred during processing of the request, it will be represented by an error object in this list.
+        /// </summary>
         List<Error> Errors { get; }
     }
 }

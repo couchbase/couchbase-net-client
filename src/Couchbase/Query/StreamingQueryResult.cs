@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Core.Retry;
 using OpenTracing;
 
 #nullable enable
@@ -17,99 +15,13 @@ namespace Couchbase.Query
     /// </summary>
     /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
     /// <seealso cref="IQueryResult{T}" />
-    public class StreamingQueryResult<T> : IQueryResult<T>, IServiceResult
+    public class StreamingQueryResult<T> : QueryResultBase<T>
     {
-        private readonly Stream _responseStream;
         private readonly IStreamingTypeDeserializer _deserializer;
         private IJsonStreamReader? _reader;
         private bool _hasReadToResult;
         private bool _hasReadResult;
         private bool _hasFinishedReading;
-
-        internal ISpan? DecodeSpan { get; set; }
-
-        /// <summary>
-        /// Gets the meta data associated with the analytics result.
-        /// </summary>
-        public QueryMetaData? MetaData { get; internal set; }
-
-        /// <summary>
-        /// Gets or sets the HTTP status code.
-        /// </summary>
-        /// <value>
-        /// The HTTP status code.
-        /// </value>
-        internal HttpStatusCode HttpStatusCode { get; set; }
-
-        /// <summary>
-        /// Gets a list of 0 or more error objects; if an error occurred during processing of the request, it will be represented by an error object in this list.
-        /// </summary>
-        /// <value>
-        /// The errors.
-        /// </value>
-        public List<Error> Errors { get; } = new List<Error>();
-
-        /// <summary>
-        /// Returns true if the operation was successful.
-        /// </summary>
-        /// <remarks>
-        /// If Success is false, use the Message property to help determine the reason.
-        /// </remarks>
-        public bool Success { get; internal set; }
-
-        /// <summary>
-        /// If the operation wasn't successful, a message indicating why it was not successful.
-        /// </summary>
-        public string? Message { get; internal set; }
-
-        /// <summary>
-        /// If Success is false and an exception has been caught internally, this field will contain the exception.
-        /// </summary>
-        public Exception? Exception { get; internal set; }
-
-        /// <summary>
-        /// If the response indicates the request is retryable, returns true.
-        /// </summary>
-        /// <returns></returns>
-        /// <remarks>
-        /// Intended for internal use only.
-        /// </remarks>
-        internal bool ShouldRetry()
-        {
-            SetRetryReasonIfFailed();
-            return ((IServiceResult)this).RetryReason != RetryReason.NoRetry;
-        }
-
-        internal void SetRetryReasonIfFailed()
-        {
-            foreach (var error in Errors)
-            {
-                switch (error.Code)
-                {
-                    case 4040:
-                    case 4050:
-                    case 4070:
-                        ((IServiceResult) this).RetryReason = RetryReason.QueryPreparedStatementFailure;
-                        return;
-                    case 5000:
-                        if (error.Message != null
-                            && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
-                        {
-                            ((IServiceResult)this).RetryReason = RetryReason.QueryPreparedStatementFailure;
-                        }
-                        return;
-                    default:
-                        continue;
-                }
-            }
-        }
-
-        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
-
-        /// <summary>
-        /// Get the prepared query plan name stored in the cluster.
-        /// </summary>
-        public string? PreparedPlanName { get; set; }
 
         /// <summary>
         /// Creates a new StreamingQueryResult.
@@ -117,18 +29,15 @@ namespace Couchbase.Query
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
         public StreamingQueryResult(Stream responseStream, IStreamingTypeDeserializer deserializer)
+            : base(responseStream)
         {
-            _responseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
             _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
         }
 
-        /// <summary>
-        /// Initializes the reader, and reads all attributes until result rows are encountered.
-        /// This must be called before properties are valid.
-        /// </summary>
-        internal async Task ReadToRowsAsync(CancellationToken cancellationToken)
+        /// <inheritdoc />
+        public override async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
-            _reader = _deserializer.CreateJsonStreamReader(_responseStream);
+            _reader = _deserializer.CreateJsonStreamReader(ResponseStream);
 
             if (!await _reader.InitializeAsync(cancellationToken).ConfigureAwait(false))
             {
@@ -149,7 +58,7 @@ namespace Couchbase.Query
 
         /// <inheritdoc />
 #pragma warning disable 8425
-        public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public override async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
 #pragma warning restore 8425
         {
             if (_hasReadResult)
@@ -167,7 +76,7 @@ namespace Couchbase.Query
             if (!_hasReadToResult)
             {
                 throw new InvalidOperationException(
-                    $"{nameof(StreamingQueryResult<T>)} has not been initialized, call ReadToRowsAsync first");
+                    $"{nameof(StreamingQueryResult<T>)} has not been initialized, call InitializeAsync first");
             }
 
             if (_reader == null)
@@ -277,13 +186,13 @@ namespace Couchbase.Query
             _hasFinishedReading = true;
         }
 
-        /// <summary>
-        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-        /// </summary>
-        public void Dispose()
+        /// <inheritdoc />
+        public override void Dispose()
         {
             _reader?.Dispose(); // also closes underlying stream
             _reader = null;
+
+            base.Dispose();
         }
     }
 }
