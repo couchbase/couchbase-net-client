@@ -13,7 +13,7 @@ namespace Couchbase.Management.Users
 
         Task DropUserAsync(string username, DropUserOptions options = null);
 
-        Task<IEnumerable<RoleAndDescription>> AvailableRolesAsync(AvailableRolesOptions options = null);
+        Task<IEnumerable<RoleAndDescription>> GetRolesAsync(AvailableRolesOptions options = null);
 
         Task<Group> GetGroupAsync(string groupName, GetGroupOptions options = null);
 

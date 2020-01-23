@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
@@ -115,7 +114,7 @@ namespace Couchbase.Management.Users
 
         public async Task<UserAndMetaData> GetUserAsync(string username, GetUserOptions options = null)
         {
-            options = options ?? GetUserOptions.Default;
+            options ??= GetUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, username);
             Logger.LogInformation($"Attempting to get user with username {username} - {uri}");
 
@@ -143,7 +142,7 @@ namespace Couchbase.Management.Users
 
         public async Task<IEnumerable<UserAndMetaData>> GetAllUsersAsync(GetAllUsersOptions options = null)
         {
-            options = options ?? GetAllUsersOptions.Default;
+            options ??= GetAllUsersOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue);
             Logger.LogInformation($"Attempting to get all users - {uri}");
 
@@ -166,7 +165,7 @@ namespace Couchbase.Management.Users
 
         public async Task UpsertUserAsync(User user, UpsertUserOptions options = null)
         {
-            options = options ?? UpsertUserOptions.Default;
+            options ??= UpsertUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, user.Username);
             Logger.LogInformation($"Attempting to create user with username {user.Username} - {uri}");
 
@@ -186,7 +185,7 @@ namespace Couchbase.Management.Users
 
         public async Task DropUserAsync(string username, DropUserOptions options = null)
         {
-            options = options ?? DropUserOptions.Default;
+            options ??= DropUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, username);
             Logger.LogInformation($"Attempting to drop user with username {username} - {uri}");
 
@@ -208,9 +207,9 @@ namespace Couchbase.Management.Users
             }
         }
 
-        public async Task<IEnumerable<RoleAndDescription>> AvailableRolesAsync(AvailableRolesOptions options = null)
+        public async Task<IEnumerable<RoleAndDescription>> GetRolesAsync(AvailableRolesOptions options = null)
         {
-            options = options ?? AvailableRolesOptions.Default;
+            options ??= AvailableRolesOptions.Default;
             var uri = GetRolesUri();
             Logger.LogInformation($"Attempting to get all available roles - {uri}");
 
@@ -233,7 +232,7 @@ namespace Couchbase.Management.Users
 
         public async Task<Group> GetGroupAsync(string groupName, GetGroupOptions options = null)
         {
-            options = options ?? GetGroupOptions.Default;
+            options ??= GetGroupOptions.Default;
             var uri = GetGroupsUri(groupName);
             Logger.LogInformation($"Attempting to get group with name {groupName} - {uri}");
 
@@ -261,7 +260,7 @@ namespace Couchbase.Management.Users
 
         public async Task<IEnumerable<Group>> GetAllGroupsAsync(GetAllGroupsOptions options = null)
         {
-            options = options ?? GetAllGroupsOptions.Default;
+            options ??= GetAllGroupsOptions.Default;
             var uri = GetGroupsUri();
             Logger.LogInformation($"Attempting to get all groups - {uri}");
 
@@ -284,7 +283,7 @@ namespace Couchbase.Management.Users
 
         public async Task UpsertGroupAsync(Group group, UpsertGroupOptions options = null)
         {
-            options = options ?? UpsertGroupOptions.Default;
+            options ??= UpsertGroupOptions.Default;
             var uri = GetGroupsUri(group.Name);
             Logger.LogInformation($"Attempting to upsert group with name {group.Name} - {uri}");
 
@@ -304,7 +303,7 @@ namespace Couchbase.Management.Users
 
         public async Task DropGroupAsync(string groupName, DropGroupOptions options = null)
         {
-            options = options ?? DropGroupOptions.Default;
+            options ??= DropGroupOptions.Default;
             var uri = GetGroupsUri(groupName);
             Logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}");
 

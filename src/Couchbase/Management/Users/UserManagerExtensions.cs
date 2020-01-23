@@ -60,7 +60,7 @@ namespace Couchbase.Management.Users
 
         public static Task<IEnumerable<RoleAndDescription>> AvailableRolesAsync(this IUserManager userManager)
         {
-            return userManager.AvailableRolesAsync(AvailableRolesOptions.Default);
+            return userManager.GetRolesAsync(AvailableRolesOptions.Default);
         }
 
         public static Task<IEnumerable<RoleAndDescription>> AvailableRolesAsync(this IUserManager userManager, Action<AvailableRolesOptions> configureOptions)
@@ -68,7 +68,7 @@ namespace Couchbase.Management.Users
             var options = new AvailableRolesOptions();
             configureOptions(options);
 
-            return userManager.AvailableRolesAsync(options);
+            return userManager.GetRolesAsync(options);
         }
 
         public static Task<Group> GetGroupAsync(this IUserManager userManager, string groupName)

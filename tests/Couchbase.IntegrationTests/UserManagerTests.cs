@@ -31,7 +31,7 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // available roles
-                var availableRoles = await userManager.AvailableRolesAsync();
+                var availableRoles = await userManager.GetRolesAsync();
                 Assert.Contains(availableRoles, role => role.Role.Name == "admin");
 
                 // upsert group
