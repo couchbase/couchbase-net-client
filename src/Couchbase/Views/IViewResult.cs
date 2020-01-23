@@ -1,11 +1,14 @@
+using System;
 using System.Collections.Generic;
+
+#nullable enable
 
 namespace Couchbase.Views
 {
     /// <summary>
     /// Represents the results of a View query.
     /// </summary>
-    public interface IViewResult : IAsyncEnumerable<IViewRow>, IServiceResult
+    public interface IViewResult : IDisposable, IAsyncEnumerable<IViewRow>, IServiceResult
     {
         /// <summary>
         /// The results of the query as a <see cref="IAsyncEnumerable{T}"/>.
@@ -20,7 +23,7 @@ namespace Couchbase.Views
         /// <summary>
         /// Gets the query meta data.
         /// </summary>
-        ViewMetaData MetaData { get; }
+        ViewMetaData? MetaData { get; }
     }
 
     public class ViewMetaData

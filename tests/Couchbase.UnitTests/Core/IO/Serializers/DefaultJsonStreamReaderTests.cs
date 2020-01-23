@@ -152,12 +152,12 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             await reader.ReadToNextAttributeAsync();
             await reader.ReadToNextAttributeAsync();
-            var result = await reader.ReadArrayAsync<dynamic>().ToListAsync();
+            var result = await reader.ReadObjectsAsync<dynamic>().ToListAsync();
 
             // Assert
 
             Assert.Equal(4, result.Count);
-            Assert.Equal("21st_amendment_brewery_cafe", (string) result[0].id);
+            Assert.Equal("21st_amendment_brewery_cafe", (string) result[0]["id"]);
         }
 
         [Fact]
@@ -175,7 +175,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             await reader.ReadToNextAttributeAsync();
             await reader.ReadToNextAttributeAsync();
-            await reader.ReadArrayAsync<dynamic>().ToListAsync();
+            await reader.ReadObjectsAsync<dynamic>().ToListAsync();
             var result = await reader.ReadToNextAttributeAsync();
 
             // Assert
@@ -197,7 +197,8 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             // Act/Assert
 
             await reader.ReadToNextAttributeAsync();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadArrayAsync<dynamic>().ToListAsync().AsTask());
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => reader.ReadObjectsAsync<dynamic>().ToListAsync().AsTask());
         }
 
         #endregion
@@ -219,7 +220,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             await reader.ReadToNextAttributeAsync();
             await reader.ReadToNextAttributeAsync();
-            await reader.ReadArrayAsync<dynamic>().ToListAsync();
+            await reader.ReadObjectsAsync<dynamic>().ToListAsync();
             await reader.ReadToNextAttributeAsync();
             await reader.ReadToNextAttributeAsync();
             var result = await reader.ReadObjectAsync<MetricsData>();
@@ -245,7 +246,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             await reader.ReadToNextAttributeAsync();
             await reader.ReadToNextAttributeAsync();
-            await reader.ReadArrayAsync<dynamic>().ToListAsync();
+            await reader.ReadObjectsAsync<dynamic>().ToListAsync();
             await reader.ReadToNextAttributeAsync();
             await reader.ReadToNextAttributeAsync();
             await reader.ReadObjectAsync<MetricsData>();

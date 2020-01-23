@@ -4,11 +4,12 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using OpenTracing;
+
+#nullable enable
 
 namespace Couchbase.Views
 {
@@ -23,18 +24,28 @@ namespace Couchbase.Views
     /// <seealso cref="IViewResult" />
     internal class ViewResult : IViewResult
     {
-        private readonly Result _result;
+        private readonly Stream? _responseStream;
+        private readonly IStreamingTypeDeserializer _deserializer;
+        private readonly ISpan? _decodeSpan;
 
-        public ViewResult(HttpStatusCode statusCode, string message)
+        private IJsonStreamReader? _reader;
+        private bool _hasReadToRows;
+        private bool _hasReadRows;
+        private bool _hasFinishedReading;
+
+        public ViewResult(HttpStatusCode statusCode, string message, IStreamingTypeDeserializer deserializer)
         {
             StatusCode = statusCode;
-            Message = message;
+            Message = message ?? throw new ArgumentNullException(nameof(message));
+            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
         }
 
-        public ViewResult(HttpStatusCode statusCode, string message, Stream responseStream, ISpan decodeSpan = null)
-            : this(statusCode, message)
+        public ViewResult(HttpStatusCode statusCode, string message, Stream responseStream, IStreamingTypeDeserializer deserializer,
+            ISpan? decodeSpan = null)
+            : this(statusCode, message, deserializer)
         {
-            _result = new Result(responseStream, decodeSpan);
+            _responseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
+            _decodeSpan = decodeSpan;
         }
 
         /// <inheritdoc />
@@ -43,32 +54,85 @@ namespace Couchbase.Views
         public HttpStatusCode StatusCode { get; }
         public string Message { get; }
 
-        private ViewMetaData _metaData;
-
         /// <inheritdoc />
-        public ViewMetaData MetaData
+        public ViewMetaData? MetaData { get; private set; }
+
+        /// <summary>
+        /// Initializes the reader, and reads all attributes until result rows are encountered.
+        /// This must be called before properties are valid.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task.</returns>
+        public async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
-            get
+            if (_responseStream == null)
             {
-                if (!_result.HasFinishedReading)
-                {
-                    // have to finish reading before using meta
-                    throw new InvalidOperationException();
-                }
-
-                if (_metaData == null)
-                {
-                    _metaData = new ViewMetaData {TotalRows = _result.TotalRows};
-                }
-
-                return _metaData;
+                _hasFinishedReading = true;
+                return;
             }
+            if (_reader != null)
+            {
+                throw new InvalidOperationException("Cannot initialize more than once.");
+            }
+
+            _reader = _deserializer.CreateJsonStreamReader(_responseStream);
+            if (!await _reader.InitializeAsync(cancellationToken).ConfigureAwait(false))
+            {
+                _hasFinishedReading = true;
+                return;
+            }
+
+            // Read the attributes until we reach the end of the object or the "rows" attribute
+            await ReadResponseAttributes(cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />
-        public IAsyncEnumerator<IViewRow> GetAsyncEnumerator(CancellationToken cancellationToken)
+#pragma warning disable 8425
+        public async IAsyncEnumerator<IViewRow> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+#pragma warning restore 8425
         {
-            return _result.GetAsyncEnumerator(cancellationToken);
+            if (_hasReadRows)
+            {
+                // Don't allow enumeration more than once
+
+                throw new StreamAlreadyReadException();
+            }
+            if (_hasFinishedReading)
+            {
+                // empty collection
+                _hasReadRows = true;
+                yield break;
+            }
+            if (!_hasReadToRows)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(ViewResult)} has not been initialized, call InitializeAsync first");
+            }
+
+            if (_reader == null)
+            {
+                // Should not be possible
+                throw new InvalidOperationException("_reader is null");
+            }
+
+            await foreach (var row in _reader.ReadTokensAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return new ViewRow
+                {
+                    Id = row["id"]?.Value<string>(),
+                    KeyToken = row["key"],
+                    ValueToken = row["value"]
+                };
+            }
+
+            // we've reached the end of the stream, so mark it as finished reading
+            _hasReadRows = true;
+
+            // Read any remaining attributes after the results
+            await ReadResponseAttributes(cancellationToken).ConfigureAwait(false);
+
+            // if we have a decode span, finish it
+            _decodeSpan?.Finish();
         }
 
         internal bool ShouldRetry()
@@ -123,94 +187,55 @@ namespace Couchbase.Views
 
         RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
 
-        private class Result : IAsyncEnumerable<IViewRow>, IDisposable
+        /// <summary>
+        /// Reads and parses any response attributes, returning at the end of the response or
+        /// once the "results" attribute is encountered.
+        /// </summary>
+        internal async Task ReadResponseAttributes(CancellationToken cancellationToken)
         {
-            private readonly Stream _responseStream;
-            private readonly ISpan _decodeSpan;
-            private JsonTextReader _reader;
-            private uint _totalRows;
-
-            internal volatile bool HasFinishedReading;
-
-            public Result(Stream responseStream, ISpan decodeSpan)
+            if (_reader == null)
             {
-                _responseStream = responseStream;
-                _decodeSpan = decodeSpan;
+                // Should not be possible
+                throw new InvalidOperationException("_reader is null");
             }
 
-            public uint TotalRows => _totalRows;
-
-#pragma warning disable 8425
-            public async IAsyncEnumerator<IViewRow> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-#pragma warning restore 8425
+            if (MetaData == null)
             {
-                if (HasFinishedReading)
-                {
-                    throw new StreamAlreadyReadException();
-                }
-
-                // make sure we're are the 'rows' element in the stream
-                if (await ReadToRowsAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    while (await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        if (_reader.TokenType == JsonToken.StartObject)
-                        {
-                            var json = await JToken.ReadFromAsync(_reader, cancellationToken).ConfigureAwait(false);
-
-                            yield return new ViewRow
-                            {
-                                Id = json.Value<string>("id"),
-                                KeyToken = json["key"],
-                                ValueToken = json["value"]
-                            };
-                        }
-                    }
-                }
-
-                // we've reached the end of the stream, so mark it as finished reading
-                HasFinishedReading = true;
-
-                // if we have a decode span, finish it
-                _decodeSpan?.Finish();
+                MetaData = new ViewMetaData();
             }
 
-            private async Task<bool> ReadToRowsAsync(CancellationToken cancellationToken)
+            while (true)
             {
-                // if reader is not null, we've already started to read the stream
-                if (_reader != null)
+                var path = await _reader.ReadToNextAttributeAsync(cancellationToken).ConfigureAwait(false);
+                if (path == null)
                 {
-                    return true;
+                    // End of stream
+                    break;
                 }
 
-                _reader = new JsonTextReader(new StreamReader(_responseStream));
-                while (await _reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                if (path == "total_rows" && _reader.Value != null && _reader.ValueType == typeof(long))
                 {
-                    if (_reader.Path == "total_rows" && _reader.TokenType == JsonToken.Integer)
-                    {
-                        uint totalRows;
-                        if (uint.TryParse(_reader.Value.ToString(), out totalRows))
-                        {
-                            _totalRows = totalRows;
-                        }
-                    }
-                    else if (_reader.Path == "rows" && _reader.TokenType == JsonToken.StartArray)
-                    {
-                        // we've reached the 'rows' element, return now so when we enumerate we start from here
-                        return true;
-                    }
+                    MetaData.TotalRows = (uint) (long) _reader.Value;
                 }
-
-                // if we got here, there was no 'rows' element in the stream
-                HasFinishedReading = true;
-                return false;
+                else if (path == "rows")
+                {
+                    // we've reached the 'rows' element, return now so when we enumerate we start from here
+                    _hasReadToRows = true;
+                    return;
+                }
             }
 
-            public void Dispose()
-            {
-                _reader?.Close(); // also closes underlying stream
-                _reader = null;
-            }
+            // if we got here, there was no 'rows' element in the stream
+            _hasFinishedReading = true;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            _reader?.Dispose(); // also closes underlying stream
+            _reader = null;
+
+            _responseStream?.Dispose();
         }
     }
 }

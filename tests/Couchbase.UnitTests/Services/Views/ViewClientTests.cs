@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Newtonsoft.Json;
@@ -15,8 +14,6 @@ namespace Couchbase.UnitTests.Services.Views
 {
     public class ViewClientTests
     {
-        private const string ViewResultResourceName = @"Services\Views\view_result.json";
-
         [Fact]
         public async Task ViewClient_Submits_ViewQuery_Using_Post()
         {
@@ -74,115 +71,6 @@ namespace Couchbase.UnitTests.Services.Views
 
             await queryClient.ExecuteAsync(query);
             Assert.NotNull(queryClient.LastActivity);
-        }
-
-        [Fact]
-        public async Task Test_Count()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            var result = await response.CountAsync();
-
-            Assert.Equal(10, result);
-        }
-
-        [Fact]
-        public async Task Test_Any()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            var result = await response.AnyAsync();
-
-            Assert.True(result);
-        }
-
-        [Fact]
-        public async Task Test_First()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            var first = await response.FirstAsync();
-            Assert.NotNull(first);
-        }
-
-        [Fact]
-        public async Task Test_Enumeration()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            //read the results
-            var count = 0;
-            await foreach (var beer in response)
-            {
-                count++;
-            }
-            Assert.Equal(10, count);
-        }
-
-        [Fact]
-        public async Task Test_Repeat_Enumeration()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            Assert.Equal(10, (await response.ToListAsync()).Count);
-            await Assert.ThrowsAsync<StreamAlreadyReadException>(() => response.ToListAsync().AsTask());
-        }
-
-        [Fact]
-        public async Task Test_Values()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            Assert.Equal(10, await response.CountAsync());
-        }
-
-        [Fact]
-        public void Test_Success()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        }
-
-        [Fact]
-        public void Test_StatusCode()
-        {
-            const HttpStatusCode statusCode = HttpStatusCode.Accepted;
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(statusCode, string.Empty, stream);
-
-            Assert.Equal(statusCode, response.StatusCode);
-        }
-
-        [Fact]
-        public void Test_Message()
-        {
-            const string message = "message";
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, message, stream);
-
-            Assert.Equal(message, response.Message);
-        }
-
-        [Fact]
-        public async Task Test_TotalRows()
-        {
-            var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream);
-
-            await foreach (var row in response)
-            {
-                // noop
-            }
-
-            Assert.Equal(7303u, response.MetaData.TotalRows);
         }
     }
 

@@ -10,6 +10,7 @@ using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,7 @@ namespace Couchbase.Views
 {
     internal class ViewClient : HttpServiceBase, IViewClient
     {
+        private readonly ITypeSerializer _serializer;
         protected const string Success = "Success";
 
         private static readonly ILogger Log = LogManager.CreateLogger<ViewClient>();
@@ -25,6 +27,7 @@ namespace Couchbase.Views
         public ViewClient(HttpClient httpClient, IDataMapper mapper, ClusterContext context)
             : base(httpClient, mapper, context)
         {
+            _serializer = context.ClusterOptions.JsonSerializer;
             _viewTimeout = (uint) Context.ClusterOptions.ViewTimeout.TotalMilliseconds * 1000; // convert millis to micros
 
             // set timeout to infinite so we can stream results without the connection
@@ -55,15 +58,22 @@ namespace Couchbase.Views
                     viewResult = new ViewResult(
                         response.StatusCode,
                         Success,
-                        await response.Content.ReadAsStreamAsync().ConfigureAwait(false)
+                        await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
+                        _serializer as IStreamingTypeDeserializer ?? new DefaultSerializer()
                     );
+
+                    await viewResult.InitializeAsync().ConfigureAwait(false);
                 }
                 else
                 {
                     viewResult = new ViewResult(
                         response.StatusCode,
-                        await response.Content.ReadAsStringAsync().ConfigureAwait(false)
+                        await response.Content.ReadAsStringAsync().ConfigureAwait(false),
+                        _serializer as IStreamingTypeDeserializer ?? new DefaultSerializer()
                     );
+
+                    await viewResult.InitializeAsync().ConfigureAwait(false);
+
                     if (viewResult.ShouldRetry())
                     {
                         UpdateLastActivity();
@@ -87,12 +97,6 @@ namespace Couchbase.Views
 
             UpdateLastActivity();
             return viewResult;
-        }
-
-        protected static ViewResult CreateErrorResult(Exception ex, string errorMessage = null)
-        {
-            var statusCode = GetStatusCode(ex.Message);
-            return new ViewResult(statusCode, errorMessage ?? ex.Message);
         }
 
         protected static HttpStatusCode GetStatusCode(string message)

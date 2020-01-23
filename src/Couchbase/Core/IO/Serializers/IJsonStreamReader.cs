@@ -57,18 +57,21 @@ namespace Couchbase.Core.IO.Serializers
         Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Reads an array of objects at the current point in the stream.
+        /// Reads an array of tokens at the current point in the stream.
         /// </summary>
-        /// <typeparam name="T">Type of the object to read.</typeparam>
+        /// <typeparam name="T">Type of elements returned.</typeparam>
+        /// <param name="readElement">Function which reads each element of the array.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>An <see cref="IAsyncEnumerable{T}"/> to read the array.</returns>
-        IAsyncEnumerable<T> ReadArrayAsync<T>(CancellationToken cancellationToken = default);
+        IAsyncEnumerable<T> ReadArrayAsync<T>(
+            Func<IJsonStreamReader, CancellationToken, Task<T>> readElement,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reads a dynamic token at the current point in the stream.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The dynamic object.</returns>
-        Task<dynamic> ReadTokenAsync(CancellationToken cancellationToken = default);
+        Task<IJsonToken> ReadTokenAsync(CancellationToken cancellationToken = default);
     }
 }

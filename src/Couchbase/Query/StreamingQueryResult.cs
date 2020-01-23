@@ -87,7 +87,7 @@ namespace Couchbase.Query
 
             // Read isn't complete, so the stream is currently waiting to deserialize the results
 
-            await foreach (var result in _reader.ReadArrayAsync<T>(cancellationToken).ConfigureAwait(false))
+            await foreach (var result in _reader.ReadObjectsAsync<T>(cancellationToken).ConfigureAwait(false))
             {
                 yield return result;
             }
@@ -145,13 +145,15 @@ namespace Couchbase.Query
                         MetaData.ClientContextId = _reader.Value?.ToString();
                         break;
                     case "signature":
-                        MetaData.Signature = await _reader.ReadTokenAsync(cancellationToken).ConfigureAwait(false);
+                        MetaData.Signature = (await _reader.ReadTokenAsync(cancellationToken).ConfigureAwait(false))
+                            .ToDynamic();
                         break;
                     case "prepared" when _reader.ValueType == typeof(string):
                         PreparedPlanName = _reader.Value?.ToString();;
                         break;
                     case "profile":
-                        MetaData.Profile = await _reader.ReadTokenAsync(cancellationToken).ConfigureAwait(false);
+                        MetaData.Profile = (await _reader.ReadTokenAsync(cancellationToken).ConfigureAwait(false))
+                            .ToDynamic();
                         break;
                     case "metrics":
                         MetaData.Metrics =
@@ -164,7 +166,7 @@ namespace Couchbase.Query
 
                         return;
                     case "warnings":
-                        await foreach (var warning in _reader.ReadArrayAsync<QueryWarning>(cancellationToken)
+                        await foreach (var warning in _reader.ReadObjectsAsync<QueryWarning>(cancellationToken)
                             .ConfigureAwait(false))
                         {
                             MetaData.Warnings.Add(warning);
@@ -172,7 +174,7 @@ namespace Couchbase.Query
 
                         break;
                     case "errors":
-                        await foreach (var error in _reader.ReadArrayAsync<Error>(cancellationToken)
+                        await foreach (var error in _reader.ReadObjectsAsync<Error>(cancellationToken)
                             .ConfigureAwait(false))
                         {
                             Errors.Add(error);

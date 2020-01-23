@@ -97,6 +97,7 @@ namespace Couchbase.Core.IO.Serializers
 
         /// <inheritdoc />
         public async IAsyncEnumerable<T> ReadArrayAsync<T>(
+            Func<IJsonStreamReader, CancellationToken, Task<T>> readElement,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (_reader.TokenType != JsonToken.StartArray)
@@ -110,8 +111,7 @@ namespace Couchbase.Core.IO.Serializers
             {
                 if (_reader.Depth > initialDepth)
                 {
-                    yield return await ReadObjectAsync<T>(cancellationToken)
-                        .ConfigureAwait(false);
+                    yield return await readElement(this, cancellationToken).ConfigureAwait(false);
                 }
                 else if (_reader.Depth == initialDepth && _reader.TokenType == JsonToken.EndArray)
                 {
@@ -121,9 +121,11 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
-        public async Task<dynamic> ReadTokenAsync(CancellationToken cancellationToken = default)
+        public async Task<IJsonToken> ReadTokenAsync(CancellationToken cancellationToken = default)
         {
-            return await JToken.ReadFromAsync(_reader, cancellationToken).ConfigureAwait(false);
+            return new NewtonsoftJsonToken(
+                await JToken.ReadFromAsync(_reader, cancellationToken).ConfigureAwait(false),
+                Deserializer);
         }
 
         /// <inheritdoc />

@@ -32,7 +32,7 @@ namespace Couchbase
 
             var httpClient = new CouchbaseHttpClient(Context);
             _viewClientLazy = new Lazy<IViewClient>(() =>
-                new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), Context)
+                new ViewClient(httpClient, new JsonDataMapper(Context.ClusterOptions.JsonSerializer), Context)
             );
             _viewManagerLazy = new Lazy<IViewIndexManager>(() =>
                 new ViewIndexManager(name, httpClient, context));
@@ -158,10 +158,10 @@ namespace Couchbase
             async Task<IViewResult> Func()
             {
                 var client1 = _viewClientLazy.Value;
-                return await client1.ExecuteAsync(query);
+                return await client1.ExecuteAsync(query).ConfigureAwait(false);
             }
 
-            return await RetryOrchestrator.RetryAsync(Func, query);
+            return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
         internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)

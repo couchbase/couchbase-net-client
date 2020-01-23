@@ -1,5 +1,7 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System;
+using Couchbase.Core.IO.Serializers;
+
+#nullable enable
 
 namespace Couchbase.Views
 {
@@ -8,7 +10,7 @@ namespace Couchbase.Views
         /// <summary>
         /// The identifier for the row
         /// </summary>
-        string Id { get; }
+        string? Id { get; }
 
         /// <summary>
         /// The key emitted by the View Map function
@@ -27,20 +29,25 @@ namespace Couchbase.Views
     /// <typeparam name="T"></typeparam>
     internal class ViewRow : IViewRow
     {
-        internal JToken KeyToken { get; set; }
-        internal JToken ValueToken { get; set; }
+        /// <inheritdoc />
+        public string? Id { get; set; }
 
         /// <summary>
-        /// The identifier for the row
+        /// Key for the row.
         /// </summary>
-        public string Id { get; set; }
+        public IJsonToken? KeyToken { get; set; }
+
+        /// <summary>
+        /// Value for the row.
+        /// </summary>
+        public IJsonToken? ValueToken { get; set; }
 
         /// <summary>
         /// The key emitted by the View Map function
         /// </summary>
         public TKey Key<TKey>()
         {
-            return KeyToken.ToObject<TKey>();
+            return KeyToken != null ? KeyToken.ToObject<TKey>() : default;
         }
 
         /// <summary>
@@ -48,7 +55,7 @@ namespace Couchbase.Views
         /// </summary>
         public TValue Value<TValue>()
         {
-            return ValueToken.ToObject<TValue>();
+            return ValueToken != null ? ValueToken.ToObject<TValue>() : default;
         }
     }
 }
