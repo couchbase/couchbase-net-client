@@ -7,10 +7,6 @@ namespace Couchbase.Management.Collections
     /// <remarks>Volatile</remarks>
     public interface ICollectionManager
     {
-        Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions options = null);
-
-        Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions options = null);
-
         Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions options = null);
 
         Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions options = null);

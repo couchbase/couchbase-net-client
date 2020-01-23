@@ -20,19 +20,6 @@ namespace Couchbase.Management.Collections
             return manager.CreateScopeAsync(scopeSpec, options);
         }
 
-        public static Task<bool> ScopeExistsAsync(this ICollectionManager manager, string scopeName)
-        {
-            return manager.ScopeExistsAsync(scopeName, ScopeExistsOptions.Default);
-        }
-
-        public static Task<bool> ScopeExistsAsync(this ICollectionManager manager, string scopeName, Action<ScopeExistsOptions> configureOptions)
-        {
-            var options = new ScopeExistsOptions();
-            configureOptions(options);
-
-            return manager.ScopeExistsAsync(scopeName, options);
-        }
-
         public static Task<ScopeSpec> GetScopeAsync(this ICollectionManager manager, string scopeName)
         {
             return manager.GetScopeAsync(scopeName, GetScopeOptions.Default);
@@ -70,19 +57,6 @@ namespace Couchbase.Management.Collections
             configureOptions(options);
 
             return manager.CreateCollectionAsync(spec, options);
-        }
-
-        public static Task<bool> CollectionExistsAsync(this ICollectionManager manager, CollectionSpec spec)
-        {
-            return manager.CollectionExistsAsync(spec, CollectionExistsOptions.Default);
-        }
-
-        public static Task<bool> CollectionExistsAsync(this ICollectionManager manager, CollectionSpec spec, Action<CollectionExistsOptions> configureOptions)
-        {
-            var options = new CollectionExistsOptions();
-            configureOptions(options);
-
-            return manager.CollectionExistsAsync(spec, options);
         }
 
         public static Task DropCollectionAsync(this ICollectionManager manager, CollectionSpec spec)

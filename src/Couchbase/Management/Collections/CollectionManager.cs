@@ -50,7 +50,7 @@ namespace Couchbase.Management.Collections
 
         public async Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions options = null)
         {
-            options = options ?? CollectionExistsOptions.Default;
+            options ??= CollectionExistsOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}");
 
@@ -75,7 +75,7 @@ namespace Couchbase.Management.Collections
 
         public async Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions options = null)
         {
-            options = options ?? ScopeExistsOptions.Default;
+            options ??= ScopeExistsOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
 
@@ -98,7 +98,7 @@ namespace Couchbase.Management.Collections
 
         public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions options = null)
         {
-            options = options ?? GetScopeOptions.Default;
+            options ??= GetScopeOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
 
@@ -128,7 +128,7 @@ namespace Couchbase.Management.Collections
 
         public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions options = null)
         {
-            options = options ?? GetAllScopesOptions.Default;
+            options ??= GetAllScopesOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting to get all scopes - {uri}");
 
@@ -178,30 +178,12 @@ namespace Couchbase.Management.Collections
 
         public async Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions options = null)
         {
-            options = options ?? CreateCollectionOptions.Default;
+            options ??= CreateCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName);
             Logger.LogInformation($"Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}");
 
             try
             {
-                // check scope exists
-                var scopeExists =
-                    await ScopeExistsAsync(spec.ScopeName, new ScopeExistsOptions().CancellationToken(options.TokenValue))
-                        .ConfigureAwait(false);
-                if (!scopeExists)
-                {
-                    throw new ScopeNotFoundException(spec.ScopeName);
-                }
-
-                // check collection doesn't exist
-                var collectionExists =
-                    await CollectionExistsAsync(spec, new CollectionExistsOptions().CancellationToken(options.TokenValue))
-                        .ConfigureAwait(false);
-                if (collectionExists)
-                {
-                    throw new CollectionExistsException(spec.ScopeName, spec.Name);
-                }
-
                 // create collection
                 var keys = new Dictionary<string, string>
                 {
@@ -220,21 +202,12 @@ namespace Couchbase.Management.Collections
 
         public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions options = null)
         {
-            options = options ?? DropCollectionOptions.Default;
+            options ??= DropCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName, spec.Name);
             Logger.LogInformation($"Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}");
 
             try
             {
-                // check collection exists
-                var collectionExists =
-                    await CollectionExistsAsync(spec, new CollectionExistsOptions().CancellationToken(options.TokenValue))
-                        .ConfigureAwait(false);
-                if (!collectionExists)
-                {
-                    throw new CollectionNotFoundException(spec.ScopeName, spec.Name);
-                }
-
                 // drop collection
                 var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();
@@ -248,21 +221,12 @@ namespace Couchbase.Management.Collections
 
         public async Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions options = null)
         {
-            options = options ?? CreateScopeOptions.Default;
+            options ??= CreateScopeOptions.Default;
             var uri = GetUri();
             Logger.LogInformation($"Attempting create scope {spec.Name} - {uri}");
 
             try
             {
-                // check scope doesn't exists
-                var scopeExists =
-                    await ScopeExistsAsync(spec.Name, new ScopeExistsOptions().CancellationToken(options.TokenValue))
-                        .ConfigureAwait(false);
-                if (scopeExists)
-                {
-                    throw new ScopeExistsException(spec.Name);
-                }
-
                 // create scope
                 var content = new FormUrlEncodedContent(new Dictionary<string, string>
                 {
@@ -280,22 +244,12 @@ namespace Couchbase.Management.Collections
 
         public async Task DropScopeAsync(string scopeName, DropScopeOptions options = null)
         {
-            options = options ?? DropScopeOptions.Default;
+            options ??= DropScopeOptions.Default;
             var uri = GetUri(scopeName);
             Logger.LogInformation($"Attempting drop scope {scopeName} - {uri}");
 
             try
             {
-                // check scope exists
-                var scopeExists =
-                    await ScopeExistsAsync(scopeName, new ScopeExistsOptions().CancellationToken(options.TokenValue))
-                        .ConfigureAwait(false);
-                if (!scopeExists)
-                {
-                    // throw not found
-                    throw new ScopeNotFoundException(scopeName);
-                }
-
                 // drop scope
                 var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();

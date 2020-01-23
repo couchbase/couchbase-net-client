@@ -20,7 +20,7 @@ namespace Couchbase.IntegrationTests
         public async Task Test_CollectionManager()
         {
             var bucket = await _fixture.Cluster.BucketAsync("default");
-            var collectionManager = bucket.Collections;
+            var collectionManager = (CollectionManager) bucket.Collections;
 
             const string scopeName = "test_scope", collectionName = "test_collection";
             var scopeSpec = new ScopeSpec(scopeName);
