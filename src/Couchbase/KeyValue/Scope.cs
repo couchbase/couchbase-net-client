@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -32,12 +33,18 @@ namespace Couchbase.KeyValue
         {
             get
             {
-                Log.LogDebug($"Fetching collection {0}", name);
+                Log.LogDebug($"Fetching collection {name}.");
 
                 if(_collections.TryGetValue(name, out ICollection collection))
                 {
                     return collection;
-                };
+                }
+
+                //return the default bucket which will fail on first op invocation
+                if (((BucketBase) _bucket).BootstrapErrors)
+                {
+                    return _bucket.DefaultCollection();
+                }
                 throw new CollectionOutdatedException($"Cannot find collection {name}");
             }
         }

@@ -51,7 +51,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.AuthenticationError:
                 case ResponseStatus.AuthenticationContinue: //likely remove
                 case ResponseStatus.AuthStale:
-                    return new AuthenticationFailureException();
+                    return new AuthenticationFailureException(errorCode?.Desc);
                 case ResponseStatus.VBucketBelongsToAnotherServer:
                     return new NotMyVBucketException();
                 case ResponseStatus.SubdocXattrUnknownVattr:

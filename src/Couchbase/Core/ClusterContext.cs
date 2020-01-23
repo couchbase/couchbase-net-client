@@ -271,22 +271,15 @@ namespace Couchbase.Core
             {
                 foreach (var type in Enum.GetValues(typeof(BucketType)))
                 {
-                    try
-                    {
-                        bucket = await BootstrapBucketAsync(name, server, (BucketType) type);
-                        RegisterBucket((BucketBase)bucket);
-                        return bucket;
-                    }
-                    catch (Exception e)
-                    {
-                        Log.LogWarning(e, $"Could not bootstrap {type} {name}.");
-                    }
+                    bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType) type);
+                    return bucket;
                 }
             }
-            throw new AuthenticationFailureException();
+
+            return bucket;
         }
 
-        public async Task<IBucket> BootstrapBucketAsync(string name, Uri uri, BucketType type)
+        public async Task<IBucket> CreateAndBootStrapBucketAsync(string name, Uri uri, BucketType type)
         {
             var node = GetUnassignedNode(uri, ClusterOptions.EnableIPV6Addressing);
             if (node == null)
@@ -304,14 +297,13 @@ namespace Couchbase.Core
             {
                 await bucket.BootstrapAsync(node);
                 RegisterBucket(bucket);
-                return bucket;
             }
             catch(Exception e)
             {
-                Log.LogError(e, $"Could not bootstrap {name}");
+                Log.LogError(e, $"Could not bootstrap bucket {type}/{name}");
                 UnRegisterBucket(bucket);
-                throw;
             }
+            return bucket;
         }
 
         public async Task ProcessClusterMapAsync(IBucket bucket, BucketConfig config)

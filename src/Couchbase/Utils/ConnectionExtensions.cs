@@ -93,7 +93,7 @@ namespace Couchbase.Utils
         public static async Task SelectBucket(this IConnection connection, string bucketName)
         {
             var completionSource = new TaskCompletionSource<bool>();
-            using (var selectBucketOp = new SelectBucket
+            using var selectBucketOp = new SelectBucket
             {
                 Transcoder = new DefaultTranscoder(),
                 Key = bucketName,
@@ -102,10 +102,8 @@ namespace Couchbase.Utils
                     completionSource.TrySetResult(s.Status == ResponseStatus.Success);
                     return completionSource.Task;
                 }
-            })
-            {
-                await selectBucketOp.SendAsync(connection).ConfigureAwait(false);
-            }
+            };
+            await selectBucketOp.SendAsync(connection).ConfigureAwait(false);
         }
 
         public static async Task<ErrorMap> GetErrorMap(this IConnection connection)

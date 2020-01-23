@@ -47,7 +47,7 @@ namespace Couchbase.IntegrationTests.Fixtures
             return bucket.DefaultCollection();
         }
 
-        private static TestSettings GetSettings()
+        internal static TestSettings GetSettings()
         {
             return new ConfigurationBuilder()
                 .AddJsonFile("config.json")
@@ -56,7 +56,7 @@ namespace Couchbase.IntegrationTests.Fixtures
                 .Get<TestSettings>();
         }
 
-        private static ClusterOptions GetClusterOptions()
+        internal static ClusterOptions GetClusterOptions()
         {
             return new ConfigurationBuilder()
                 .AddJsonFile("config.json")

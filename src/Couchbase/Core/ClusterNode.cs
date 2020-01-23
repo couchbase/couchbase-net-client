@@ -11,6 +11,8 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Authentication;
+using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -29,7 +31,7 @@ namespace Couchbase.Core
         private Uri _analyticsUri;
         private Uri _searchUri;
         private Uri _viewsUri;
-        private CircuitBreaker _circuitBreaker = new CircuitBreaker();//TODO integrate with configuration
+        private readonly CircuitBreaker _circuitBreaker = new CircuitBreaker();//TODO integrate with configuration
 
         public ClusterNode(ClusterContext context)
         {
@@ -107,14 +109,26 @@ namespace Couchbase.Core
         public DateTime? LastKvActivity { get; private set; }
 
         //TODO these methods will be more complex once we have a cpool
-        public Task<Manifest> GetManifest()
+        public async Task<Manifest> GetManifest()
         {
-           return Connection.GetManifest();
+            using var manifestOp = new GetManifest
+            {
+                Transcoder = new DefaultTranscoder(),
+                Opaque = SequenceGenerator.GetNext()
+            };
+            await ExecuteOp(manifestOp);
+            var manifestResult = manifestOp.GetResultWithValue();
+            return manifestResult.Content;
         }
 
         public Task SelectBucket(string name)
         {
-            return Connection.SelectBucket(name);
+            using var selectBucketOp = new SelectBucket
+            {
+                Transcoder = new DefaultTranscoder(),
+                Key = name
+            };
+            return ExecuteOp(selectBucketOp);
         }
 
         public async Task<BucketConfig> GetClusterMap()
@@ -124,14 +138,12 @@ namespace Couchbase.Core
                 CurrentHost = EndPoint,
                 Transcoder = new DefaultTranscoder(),
                 Opaque = SequenceGenerator.GetNext(),
-                EndPoint = EndPoint
+                EndPoint = EndPoint,
             };
-            await ExecuteOp(configOp);
-
             var configResult = configOp.GetResultWithValue();
             var config = configResult.Content;
 
-            if (config != null && BootstrapUri != null)
+            if (config != null && EndPoint!= null)
             {
                 config.ReplacePlaceholderWithBootstrapHost(BootstrapUri);
             }

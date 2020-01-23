@@ -93,6 +93,8 @@ namespace Couchbase
         /// <inheritdoc />
         public override async Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null)
         {
+            ThrowIfBootStrapFailed();
+
             options ??= new ViewOptions();
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
@@ -190,20 +192,28 @@ namespace Couchbase
 
         internal override async Task BootstrapAsync(IClusterNode node)
         {
-            node.Owner = this;
-            await node.SelectBucket(this.Name);
-
-            if (Context.SupportsCollections)
+            try
             {
-                Manifest = await node.GetManifest().ConfigureAwait(false);
+                node.Owner = this;
+                await node.SelectBucket(this.Name);
+
+                if (Context.SupportsCollections)
+                {
+                    Manifest = await node.GetManifest().ConfigureAwait(false);
+                }
+
+                //we still need to add a default collection
+                LoadManifest();
+
+                BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
+                KeyMapper = new VBucketKeyMapper(BucketConfig);
+
+                await Context.ProcessClusterMapAsync(this, BucketConfig);
             }
-            //we still need to add a default collection
-            LoadManifest();
-
-            BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
-            KeyMapper = new VBucketKeyMapper(BucketConfig);
-
-            await Context.ProcessClusterMapAsync(this, BucketConfig);
+            catch (Exception e)
+            {
+                CaptureException(e);
+            }
         }
     }
 }

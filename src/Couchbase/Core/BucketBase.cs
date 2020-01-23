@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Sharding;
@@ -13,6 +8,12 @@ using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 #nullable enable
 
@@ -22,6 +23,10 @@ namespace Couchbase.Core
     {
         internal const string DefaultScopeName = "_default";
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
+
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable. 
+        protected BucketBase() { }
+#pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
         protected BucketBase(string name, ClusterContext context, ILogger logger)
         {
@@ -37,6 +42,17 @@ namespace Couchbase.Core
         public IKeyMapper? KeyMapper { get; protected set; }
         protected bool Disposed { get; private set; }
 
+        //for propagating errors during bootstrapping
+        protected readonly List<Exception> DeferredExceptions = new List<Exception>();
+        internal bool BootstrapErrors => DeferredExceptions.Any();
+        internal void ThrowIfBootStrapFailed()
+        {
+            if (BootstrapErrors)
+            {
+                throw new AggregateException($"Bootstrapping for bucket {Name} as failed.", DeferredExceptions);
+            }
+        }
+
         public BucketType BucketType { get; protected set; }
 
         public string Name { get; protected set; }
@@ -46,16 +62,29 @@ namespace Couchbase.Core
         /// <remarks>Volatile</remarks>
         public IScope DefaultScope()
         {
+            if (!Scopes.ContainsKey(DefaultScopeName))
+            {
+                LoadManifest();
+            }
             return Scopes[DefaultScopeName];
         }
 
         /// <remarks>Volatile</remarks>
         public ICollection Collection(string collectionName)
         {
+            if (!Scopes.ContainsKey(DefaultScopeName))
+            {
+                LoadManifest();
+            }
             return Scopes[DefaultScopeName][collectionName];
         }
+
         public ICollection DefaultCollection()
         {
+            if (!Scopes.ContainsKey(DefaultScopeName))
+            {
+                LoadManifest();
+            }
             return Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName];
         }
 
@@ -69,6 +98,8 @@ namespace Couchbase.Core
 
         public Task<IPingReport> PingAsync(PingOptions? options = null)
         {
+            ThrowIfBootStrapFailed();
+
             options ??= new PingOptions();
             return Task.Run(()=> DiagnosticsReportProvider.CreatePingReport(Context, BucketConfig, options));
         }
@@ -82,7 +113,7 @@ namespace Couchbase.Core
         protected void LoadManifest()
         {
             //The server supports collections so build them from the manifest
-            if (Context.SupportsCollections && Manifest != null)
+            if (Context.SupportsCollections && !DeferredExceptions.Any())
             {
                 //warmup the scopes/collections and cache them
                 foreach (var scopeDef in Manifest.scopes)
@@ -99,13 +130,19 @@ namespace Couchbase.Core
             }
             else
             {
-                //build a fake scope and collection for pre-6.5 clusters
+                //build a fake scope and collection for pre-6.5 clusters or in the bootstrap failure case
+                //for deferred error handling
                 var collections = new List<ICollection>
                 {
                     new CouchbaseCollection(this, Context, null, "_default")
                 };
                 Scopes.TryAdd("_default", new Scope("_default", "0", collections, this));
             }
+        }
+
+        internal void CaptureException(Exception e)
+        {
+            DeferredExceptions.Add(e);
         }
 
         public virtual void Dispose()
