@@ -25,6 +25,9 @@ namespace Couchbase.Query
             ResponseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
         }
 
+        /// <inheritdoc />
+        public IAsyncEnumerable<T> Rows => this;
+
         /// <summary>
         /// Response stream being deserialized.
         /// </summary>

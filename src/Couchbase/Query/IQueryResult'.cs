@@ -8,11 +8,22 @@ namespace Couchbase.Query
     /// <summary>
     /// Interface for the results of a N1QL query.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">Type of row returned by the N1QL query.</typeparam>
     public interface IQueryResult<out T> : IDisposable, IAsyncEnumerable<T>, IServiceResult
     {
         /// <summary>
-        /// Gets the meta data associated with the query result.
+        /// The results of the query as a <see cref="IAsyncEnumerable{T}"/>.
+        /// </summary>
+        /// <remarks>
+        /// In most cases, the rows may be enumerated only once. If it's necessary to enumerate more than
+        /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
+        /// ToListAsync can also be used to enumerate with a synchronous foreach loop in C# 7.
+        /// </remarks>
+        IAsyncEnumerable<T> Rows { get; }
+
+        /// <summary>
+        /// Gets the meta data associated with the query result. May not be fully populated
+        /// until after the rows are enumerated.
         /// </summary>
         QueryMetaData? MetaData { get; }
 

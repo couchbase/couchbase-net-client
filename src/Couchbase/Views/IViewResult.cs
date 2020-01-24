@@ -8,6 +8,16 @@ namespace Couchbase.Views
     public interface IViewResult : IAsyncEnumerable<IViewRow>, IServiceResult
     {
         /// <summary>
+        /// The results of the query as a <see cref="IAsyncEnumerable{T}"/>.
+        /// </summary>
+        /// <remarks>
+        /// In most cases, the rows may be enumerated only once. If it's necessary to enumerate more than
+        /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
+        /// ToListAsync can also be used to enumerate with a synchronous foreach loop in C# 7.
+        /// </remarks>
+        IAsyncEnumerable<IViewRow> Rows { get; }
+
+        /// <summary>
         /// Gets the query meta data.
         /// </summary>
         ViewMetaData MetaData { get; }

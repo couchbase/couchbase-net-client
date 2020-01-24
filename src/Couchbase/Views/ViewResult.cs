@@ -15,13 +15,12 @@ namespace Couchbase.Views
     /// <summary>
     /// Represents a streaming View response for reading each row as it becomes available over the network.
     /// Note that unless there is no underlying collection representing the response, instead the rows are extracted
-    /// from the stream one at a time. If the Enumeration is evaluated, eg calling ToList(), then the entire response
+    /// from the stream one at a time. If the Enumeration is evaluated, eg calling ToListAsync(), then the entire response
     /// will be read. Once a row has been read from the stream, it is not available to be read again.
     /// A <see cref="StreamAlreadyReadException"/> will be thrown if the result is enumerated after it has reached
     /// the end of the stream.
     /// </summary>
-    /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
-    /// <seealso cref="IViewResult{T}" />
+    /// <seealso cref="IViewResult" />
     internal class ViewResult : IViewResult
     {
         private readonly Result _result;
@@ -38,11 +37,15 @@ namespace Couchbase.Views
             _result = new Result(responseStream, decodeSpan);
         }
 
+        /// <inheritdoc />
+        public IAsyncEnumerable<IViewRow> Rows => this;
+
         public HttpStatusCode StatusCode { get; }
         public string Message { get; }
 
         private ViewMetaData _metaData;
 
+        /// <inheritdoc />
         public ViewMetaData MetaData
         {
             get
@@ -62,6 +65,7 @@ namespace Couchbase.Views
             }
         }
 
+        /// <inheritdoc />
         public IAsyncEnumerator<IViewRow> GetAsyncEnumerator(CancellationToken cancellationToken)
         {
             return _result.GetAsyncEnumerator(cancellationToken);

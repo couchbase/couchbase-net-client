@@ -5,6 +5,16 @@ namespace Couchbase.Analytics
     public interface IAnalyticsResult<T> : IAsyncEnumerable<T>, IServiceResult
     {
         /// <summary>
+        /// The results of the query as a <see cref="IAsyncEnumerable{T}"/>.
+        /// </summary>
+        /// <remarks>
+        /// In most cases, the rows may be enumerated only once. If it's necessary to enumerate more than
+        /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
+        /// ToListAsync can also be used to enumerate with a synchronous foreach loop in C# 7.
+        /// </remarks>
+        IAsyncEnumerable<T> Rows { get; }
+
+        /// <summary>
         /// Gets the meta data associated with the analytics result.
         /// </summary>
         AnalyticsMetaData MetaData { get; }

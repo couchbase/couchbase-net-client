@@ -14,13 +14,10 @@ namespace Couchbase.Analytics
 {
     internal class AnalyticsResult<T> : IAnalyticsResult<T>
     {
-        /// <summary>
-        /// Gets a list of all the objects returned by the query. An object can be any JSON value.
-        /// </summary>
-        /// <value>
-        /// A a list of all the objects returned by the query.
-        /// </value>
-        internal List<T> Rows { get; set; }
+        internal List<T> RowList { get; set; }
+
+        /// <inheritdoc />
+        public IAsyncEnumerable<T> Rows => this;
 
         /// <summary>
         /// Gets the meta data associated with the analytics result.
@@ -33,7 +30,7 @@ namespace Couchbase.Analytics
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
         {
             // TODO: Implement actual streaming under the hood
-            return Rows.ToAsyncEnumerable().GetAsyncEnumerator(cancellationToken);
+            return RowList.ToAsyncEnumerable().GetAsyncEnumerator(cancellationToken);
         }
 
         internal HttpStatusCode HttpStatusCode { get; set; }
@@ -102,7 +99,7 @@ namespace Couchbase.Analytics
         {
             var result = new AnalyticsResult<T>
             {
-                Rows = results.ToList(),
+                RowList = results.ToList(),
                 Errors = errors?.Select(e => e.ToError()).ToList(),
                 MetaData = new AnalyticsMetaData
                 {
