@@ -15,7 +15,7 @@ namespace Couchbase.Query
     /// </summary>
     /// <typeparam name="T">The Type of each row returned.</typeparam>
     /// <seealso cref="IQueryResult{T}" />
-    public class BlockQueryResult<T> : QueryResultBase<T>
+    internal class BlockQueryResult<T> : QueryResultBase<T>
     {
         private readonly ITypeSerializer _deserializer;
 

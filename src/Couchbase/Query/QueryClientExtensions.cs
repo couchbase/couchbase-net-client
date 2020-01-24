@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Query
 {
-    public static class QueryClientExtensions
+    internal static class QueryClientExtensions
     {
         public static Task<IQueryResult<T>> QueryAsync<T>(this IQueryClient client, string statement, Action<QueryOptions> configureOptions)
         {

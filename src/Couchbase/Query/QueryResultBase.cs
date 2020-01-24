@@ -14,7 +14,7 @@ namespace Couchbase.Query
     /// Abstract base class for with shared implementations of <see cref="IQueryResult{T}"/>.
     /// </summary>
     /// <typeparam name="T">The Type of each row returned.</typeparam>
-    public abstract class QueryResultBase<T> : IQueryResult<T>
+    internal abstract class QueryResultBase<T> : IQueryResult<T>
     {
         /// <summary>
         /// Creates a new QueryResultBase.

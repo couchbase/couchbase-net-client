@@ -6,7 +6,7 @@ namespace Couchbase.Query
     /// <summary>
     /// An interface for client-side support for executing N1QL queries against a Couchbase Server.
     /// </summary>
-    public interface IQueryClient : IQueryCacheInvalidator
+    internal interface IQueryClient : IQueryCacheInvalidator
     {
         /// <summary>
         /// Gets the timestamp of the last activity.

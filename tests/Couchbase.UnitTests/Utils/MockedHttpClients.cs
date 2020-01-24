@@ -20,7 +20,7 @@ using Moq.Protected;
 
 namespace Couchbase.UnitTests.Utils
 {
-    public static class MockedHttpClients
+    internal static class MockedHttpClients
     {
         public static IQueryClient QueryClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
         {

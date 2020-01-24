@@ -15,7 +15,7 @@ namespace Couchbase.Query
     /// </summary>
     /// <typeparam name="T">A POCO that matches each row of the response.</typeparam>
     /// <seealso cref="IQueryResult{T}" />
-    public class StreamingQueryResult<T> : QueryResultBase<T>
+    internal class StreamingQueryResult<T> : QueryResultBase<T>
     {
         private readonly IStreamingTypeDeserializer _deserializer;
         private IJsonStreamReader? _reader;

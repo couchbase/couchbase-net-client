@@ -7,7 +7,7 @@ namespace Couchbase.Search
     /// <summary>
     /// A client for making FTS <see cref="IFtsQuery"/> requests and mapping the responses to <see cref="ISearchResult"/>'s.
     /// </summary>
-    public interface ISearchClient
+    internal interface ISearchClient
     {
         /// <summary>
         /// Gets the timestamp of the last activity.
