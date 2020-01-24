@@ -17,18 +17,21 @@ namespace Couchbase.Analytics
 {
     internal class AnalyticsClient : HttpServiceBase, IAnalyticsClient
     {
+        private readonly ITypeSerializer _typeSerializer;
         private static readonly ILogger Log = LogManager.CreateLogger<AnalyticsClient>();
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(ClusterContext context) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
-            new JsonDataMapper(new DefaultSerializer()), context)
+            new JsonDataMapper(new DefaultSerializer()), context.ClusterOptions.JsonSerializer, context)
         {
         }
 
-        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ClusterContext context)
+        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ITypeSerializer typeSerializer, ClusterContext context)
             : base(client, dataMapper, context)
-        { }
+        {
+            _typeSerializer = typeSerializer;
+        }
 
         /// <summary>
         /// Queries the specified request.
@@ -55,7 +58,7 @@ namespace Couchbase.Analytics
         {
             // try get Analytics node
             var node = Context.GetRandomNodeForService(ServiceType.Analytics);
-            AnalyticsResult<T> result;
+            AnalyticsResultBase<T> result;
             var body = queryRequest.GetFormValuesAsJson();
 
             using (var content = new StringContent(body, Encoding.UTF8, MediaType.Json))
@@ -73,10 +76,15 @@ namespace Couchbase.Analytics
                     }
 
                     var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
-                    using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                    result = (await DataMapper.MapAsync<AnalyticsResultData<T>>(stream, token).ConfigureAwait(false))
-                        .ToQueryResult(HttpClient, DataMapper);
-                    result.HttpStatusCode = response.StatusCode;
+                    var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+                    result = new StreamingAnalyticsResult<T>(stream,
+                        _typeSerializer as IStreamingTypeDeserializer ?? new DefaultSerializer())
+                    {
+                        HttpStatusCode = response.StatusCode
+                    };
+
+                    await result.InitializeAsync(token).ConfigureAwait(false);
 
                     if (response.StatusCode != HttpStatusCode.OK)
                     {

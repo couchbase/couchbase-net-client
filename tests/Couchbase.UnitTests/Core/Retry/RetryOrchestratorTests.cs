@@ -1,37 +1,26 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
-using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Retry.Search;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Couchbase.Search;
-using Couchbase.UnitTests.Services.Analytics;
 using Couchbase.UnitTests.Utils;
-using Couchbase.Utils;
 using Couchbase.Views;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Retry
@@ -156,7 +145,7 @@ namespace Couchbase.UnitTests.Core.Retry
             Assert.True(op.Attempts == 1);
         }
 
-        [Fact]
+        [Fact(Skip = "Test incomplete")]
         public async Task Add_DoesNot_Retry_When_KeyExists()
         {
             var op = new Add<dynamic> { RetryStrategy = new BestEffortRetryStrategy() };
@@ -176,7 +165,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 var responses = GetResponses(20, buffer, httpStatusCode);
                 var client = MockedHttpClients.SearchClient(responses);
 
-                var cts = new CancellationTokenSource();
+                using var cts = new CancellationTokenSource();
                 cts.CancelAfter(1000);
 
                 var searchQuery = new SearchQuery
@@ -194,22 +183,13 @@ namespace Couchbase.UnitTests.Core.Retry
                     Options = new SearchOptions()
                 };
 
-                async Task<IServiceResult> Func()
+                async Task<ISearchResult> Func()
                 {
                     var client1 = client;
-                    var query1 = searchQuery;
                     return await client1.QueryAsync(searchQuery, cts.Token);
                 }
 
-                try
-                {
-                    await RetryOrchestrator.RetryAsync(Func, searchRequest);
-                    Assert.Null(errorType);
-                }
-                catch (Exception e)
-                {
-                    Assert.Equal(errorType, e.GetType());
-                }
+                await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, searchRequest));
             }
         }
 
@@ -227,7 +207,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 var responses = GetResponses(20, buffer, httpStatusCode);
                 var client = MockedHttpClients.ViewClient(responses);
 
-                var cts = new CancellationTokenSource();
+                using var cts = new CancellationTokenSource();
                 cts.CancelAfter(1000);
 
                 var viewQuery = new ViewQuery("default", "beers", "brewery_beers")
@@ -235,21 +215,13 @@ namespace Couchbase.UnitTests.Core.Retry
                     Token = cts.Token
                 };
 
-                async Task<IServiceResult> Func()
+                async Task<IViewResult> Func()
                 {
                     var client1 = client;
                     return await client1.ExecuteAsync(viewQuery);
                 }
 
-                try
-                {
-                    await RetryOrchestrator.RetryAsync(Func, viewQuery);
-                    Assert.Null(errorType);
-                }
-                catch (Exception e)
-                {
-                    Assert.Equal(errorType, e.GetType());
-                }
+                await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, viewQuery));
             }
         }
 
@@ -273,7 +245,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 var responses = GetResponses(20, buffer, httpStatusCode);
                 var client = MockedHttpClients.AnalyticsClient(responses);
 
-                var cts = new CancellationTokenSource();
+                using var cts = new CancellationTokenSource();
                 cts.CancelAfter(1000);
 
                 var options = new AnalyticsOptions().
@@ -291,21 +263,13 @@ namespace Couchbase.UnitTests.Core.Retry
                 query.Priority(options.PriorityValue);
                 query.Token = options.Token;
 
-                async Task<IServiceResult> Send()
+                async Task<IAnalyticsResult<dynamic>> Send()
                 {
                     var client1 = client;
                     return await client1.QueryAsync<dynamic>(query, options.Token);
                 }
 
-                try
-                {
-                    var result = (AnalyticsResult<dynamic>)await RetryOrchestrator.RetryAsync(Send, query);
-                    Assert.Null(errorType);
-                }
-                catch (Exception e)
-                {
-                    Assert.Equal(errorType, e.GetType());
-                }
+                await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Send, query));
             }
         }
 
@@ -328,7 +292,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 var responses = GetResponses(20, buffer, httpStatusCode);
                 var client = MockedHttpClients.QueryClient(responses);
 
-                var cts = new CancellationTokenSource();
+                using var cts = new CancellationTokenSource();
                 cts.CancelAfter(100000);
 
                 var queryOptions = new QueryOptions().
@@ -344,18 +308,18 @@ namespace Couchbase.UnitTests.Core.Retry
                     Token = cts.Token
                 };
 
-                async Task<IServiceResult> Func()
+                async Task<IQueryResult<dynamic>> Func()
                 {
                     var client1 = client;
                     return await client1.QueryAsync<dynamic>(request.Statement, queryOptions);
                 }
 
-                try
+                var e = await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, request));
+
+                if (e != null)
                 {
-                    var result = await RetryOrchestrator.RetryAsync(Func, request);
-                }
-                catch (Exception e)
-                {
+                    // Did throw exception, as expected, now validate the exception
+
                     if (canRetry)
                     {
                         Assert.True(request.Attempts > 0);
@@ -369,6 +333,7 @@ namespace Couchbase.UnitTests.Core.Retry
                     {
                         throw new Exception($"Failed after {request.Attempts} retries.");
                     }
+
                     Assert.Equal(errorType, e.GetType());
                 }
             }
@@ -389,48 +354,18 @@ namespace Couchbase.UnitTests.Core.Retry
             return responses;
         }
 
-        private IQueryClient BuildMockedClient([NotNull]Queue<Task<HttpResponseMessage>> responses)
+        private static async Task<Exception> AssertThrowsIfExpectedAsync(Type exceptionType, Func<Task> action)
         {
-            var handlerMock = new Mock<HttpMessageHandler>();
-            handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()).Returns(() => responses.Dequeue());
-
-            var httpClient = new HttpClient(handlerMock.Object)
+            if (exceptionType != null)
             {
-                BaseAddress = new Uri("http://localhost:8091")
-            };
-
-            IServiceCollection serviceCollection = new ServiceCollection();
-            serviceCollection.AddLogging(builder => builder
-                .AddFilter(level => level >= LogLevel.Debug)
-            );
-            var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
-            loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
-
-            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901")
-                .Logging(loggerFactory);
-            var context = new ClusterContext(null, options);
-
-            var clusterNode = new ClusterNode(context)
+                return await Assert.ThrowsAsync(exceptionType, action);
+            }
+            else
             {
-                EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
-                NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
-                    new NodesExt
-                    {
-                        Hostname = "127.0.0.1",
-                        Services = new Couchbase.Core.Configuration.Server.Services
-                        {
-                            N1Ql = 8093
-                        }
-                    }, new BucketConfig())
-            };
-            clusterNode.BuildServiceUris();
-            context.AddNode(clusterNode);
+                await action();
 
-            var serializer = new DefaultSerializer();
-            return new QueryClient(httpClient, new JsonDataMapper(serializer), serializer, context);
+                return null;
+            }
         }
     }
 }

@@ -50,7 +50,8 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
+            var serializer = new DefaultSerializer();
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(serializer), serializer, context);
 
             var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
             queryRequest.Priority(priority);
@@ -78,7 +79,8 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
+            var serializer = new DefaultSerializer();
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(serializer), serializer, context);
 
             Assert.Null(client.LastActivity);
 
@@ -107,7 +109,8 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
+            var serializer = new DefaultSerializer();
+            var client = new AnalyticsClient(httpClient, new JsonDataMapper(serializer), serializer, context);
 
             Assert.Null(client.LastActivity);
 

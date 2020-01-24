@@ -40,19 +40,6 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         }
 
         [Fact]
-        public async Task Execute_Query_Async()
-        {
-            const string statement = "SELECT \"hello\" as greeting;";
-
-            var cluster = await _fixture.GetCluster();
-            var result = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
-            var rows = await result.ToListAsync().ConfigureAwait(false);
-
-            Assert.Single(rows);
-            Assert.Equal("hello", rows.First().Greeting);
-        }
-
-        [Fact]
         public async Task Test_Ingest()
         {
             const string statement = "SELECT \"hello\" as greeting;";

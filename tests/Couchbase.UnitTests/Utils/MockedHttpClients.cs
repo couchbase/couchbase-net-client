@@ -106,7 +106,8 @@ namespace Couchbase.UnitTests.Utils
             clusterNode.BuildServiceUris();
             context.AddNode(clusterNode);
 
-            return new AnalyticsClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
+            var serializer = new DefaultSerializer();
+            return new AnalyticsClient(httpClient, new JsonDataMapper(serializer), serializer, context);
         }
 
         internal static ISearchClient SearchClient([NotNull] Queue<Task<HttpResponseMessage>> responses)

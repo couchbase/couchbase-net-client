@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
+
+#nullable enable
 
 namespace Couchbase.Analytics
 {
-    public interface IAnalyticsResult<T> : IAsyncEnumerable<T>, IServiceResult
+    public interface IAnalyticsResult<out T> : IDisposable, IAsyncEnumerable<T>, IServiceResult
     {
         /// <summary>
         /// The results of the query as a <see cref="IAsyncEnumerable{T}"/>.
@@ -17,7 +20,7 @@ namespace Couchbase.Analytics
         /// <summary>
         /// Gets the meta data associated with the analytics result.
         /// </summary>
-        AnalyticsMetaData MetaData { get; }
+        AnalyticsMetaData? MetaData { get; }
     }
 }
 

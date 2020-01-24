@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
+
+#nullable enable
 
 namespace Couchbase.Analytics
 {
@@ -13,8 +14,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// The client context identifier.
         /// </value>
-        public string ClientContextId { get; set; }
-
+        public string? ClientContextId { get; set; }
 
         /// <summary>
         /// Gets an object containing metrics about the request.
@@ -22,7 +22,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// The metrics.
         /// </value>
-        public AnalyticsMetrics Metrics { get; set; }
+        public AnalyticsMetrics Metrics { get; set; } = new AnalyticsMetrics();
 
         /// <summary>
         /// Gets A unique identifier for the response.
@@ -30,7 +30,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// The unique identifier for the response.
         /// </value>
-        public string RequestId { get; set; }
+        public string? RequestId { get; set; }
 
         /// <summary>
         /// Gets the schema of the results. Present only when the query completes successfully.
@@ -38,7 +38,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// The signature of the schema of the request.
         /// </value>
-        public dynamic Signature { get; set; }
+        public dynamic? Signature { get; set; }
 
         /// <summary>
         /// Gets the status of the request; possible values are: success, running, errors, completed, stopped, timeout, fatal.
@@ -54,7 +54,7 @@ namespace Couchbase.Analytics
         /// <value>
         /// The warnings.
         /// </value>
-        public List<AnalyticsWarning> Warnings { get; set; }
+        public List<AnalyticsWarning> Warnings { get; set; } = new List<AnalyticsWarning>();
     }
 }
 
