@@ -21,6 +21,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 
+#nullable enable
+
 namespace Couchbase
 {
     public class Cluster : ICluster
@@ -32,15 +34,16 @@ namespace Couchbase
         private bool _hasBootStrapped;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
 
-        private readonly Lazy<IQueryClient> _lazyQueryClient;
-        private readonly Lazy<ISearchClient> _lazySearchClient;
-        private readonly Lazy<IAnalyticsClient> _lazyAnalyticsClient;
-        private readonly Lazy<IUserManager> _lazyUserManager;
-        private readonly Lazy<IBucketManager> _lazyBucketManager;
-        private readonly Lazy<IQueryIndexManager> _lazyQueryManager;
-        private readonly Lazy<ISearchIndexManager> _lazySearchManager;
+        // Internal is used to provide a seam for unit tests
+        internal Lazy<IQueryClient> LazyQueryClient;
+        internal Lazy<ISearchClient> LazySearchClient;
+        internal Lazy<IAnalyticsClient> LazyAnalyticsClient;
+        internal Lazy<IUserManager> LazyUserManager;
+        internal Lazy<IBucketManager> LazyBucketManager;
+        internal Lazy<IQueryIndexManager> LazyQueryManager;
+        internal Lazy<ISearchIndexManager> LazySearchManager;
 
-        internal Cluster(string connectionString, ClusterOptions clusterOptions = null)
+        internal Cluster(string connectionString, ClusterOptions? clusterOptions = null)
         {
             clusterOptions ??= new ClusterOptions();
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -62,16 +65,16 @@ namespace Couchbase
             _context = new ClusterContext(configTokenSource, clusterOptions);
             _context.StartConfigListening();
 
-            _lazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_context));
-            _lazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_context));
-            _lazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_context));
-            _lazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(_lazyQueryClient.Value));
-            _lazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_context));
-            _lazyUserManager = new Lazy<IUserManager>(() => new UserManager(_context));
-            _lazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
+            LazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_context));
+            LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_context));
+            LazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_context));
+            LazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(LazyQueryClient.Value));
+            LazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_context));
+            LazyUserManager = new Lazy<IUserManager>(() => new UserManager(_context));
+            LazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
         }
 
-        public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions options = null)
+        public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
         {
             var cluster = new Cluster(connectionString, options);
             await cluster.InitializeAsync().ConfigureAwait(false);
@@ -125,13 +128,16 @@ namespace Couchbase
             return bucket;
         }
 
-        public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null)
+        public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
         {
             options ??= new DiagnosticsOptions();
-            return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options?.ReportIdValue ?? Guid.NewGuid().ToString()));
+            return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options.ReportIdValue ?? Guid.NewGuid().ToString()));
         }
 
-        private async Task EnsureBootstrapped()
+        /// <summary>
+        /// Seam for unit tests.
+        /// </summary>
+        protected internal virtual async Task EnsureBootstrapped()
         {
             if (_hasBootStrapped)
             {
@@ -154,7 +160,7 @@ namespace Couchbase
                 }
 
                 // try to bootstrap first bucket in cluster
-                await BucketAsync(_context.ClusterOptions.Buckets.First()).ConfigureAwait(false); ;
+                await BucketAsync(_context.ClusterOptions.Buckets.First()).ConfigureAwait(false);
                 UpdateClusterCapabilities();
             }
             finally
@@ -165,7 +171,7 @@ namespace Couchbase
 
         #region Query
 
-        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options = null)
+        public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = null)
         {
             options ??= new QueryOptions();
             await EnsureBootstrapped();
@@ -175,28 +181,28 @@ namespace Couchbase
                 options.ClientContextId(Guid.NewGuid().ToString());
             }
 
-            async Task<IServiceResult> Func()
+            async Task<IQueryResult<T>> Func()
             {
-                var client1 = _lazyQueryClient.Value;
+                var client1 = LazyQueryClient.Value;
                 var statement1 = statement;
                 var options1 = options;
-                return await client1.QueryAsync<dynamic>(statement1, options1).ConfigureAwait(false);
+                return await client1.QueryAsync<T>(statement1, options1).ConfigureAwait(false);
             }
 
-            return (IQueryResult<T>)await RetryOrchestrator.RetryAsync(Func, new QueryRequest
+            return await RetryOrchestrator.RetryAsync(Func, new QueryRequest
             {
                 Options = options,
                 Statement = statement,
                 Token = options.Token,
                 Timeout = options.TimeoutValue
-            }).ConfigureAwait(false); ;
+            }).ConfigureAwait(false);
         }
 
         #endregion
 
         #region Analytics
 
-        public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default)
+        public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default)
         {
             options ??= new AnalyticsOptions();
             await EnsureBootstrapped();
@@ -211,22 +217,22 @@ namespace Couchbase
             query.Priority(options.PriorityValue);
             query.ScanConsistency(options.ScanConsistencyValue);
 
-            async Task<IServiceResult> Func()
+            async Task<IAnalyticsResult<T>> Func()
             {
-                var client1 = _lazyAnalyticsClient.Value;
+                var client1 = LazyAnalyticsClient.Value;
                 var query1 = query;
-                var options1 = options;
+                var options1 = options ?? new AnalyticsOptions();
                 return await client1.QueryAsync<T>(query1, options1.Token).ConfigureAwait(false);
             }
 
-            return (IAnalyticsResult<T>) await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false); ;
+            return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
         #endregion
 
         #region Search
 
-        public async Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default)
+        public async Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions? options = default)
         {
             options ??= new SearchOptions();
 
@@ -243,27 +249,27 @@ namespace Couchbase
             };
 
             //TODO: convert options to params
-            async Task<IServiceResult> Func()
+            async Task<ISearchResult> Func()
             {
-                var client1 = _lazySearchClient.Value;
+                var client1 = LazySearchClient.Value;
                 var request1 = searchRequest;
                 return await client1.QueryAsync(request1.Query, request1.Token).ConfigureAwait(false);
             }
 
-            return (ISearchResult) await RetryOrchestrator.RetryAsync(Func, searchRequest).ConfigureAwait(false);
+            return await RetryOrchestrator.RetryAsync(Func, searchRequest).ConfigureAwait(false);
         }
 
         #endregion
 
-        public IQueryIndexManager QueryIndexes => _lazyQueryManager.Value;
+        public IQueryIndexManager QueryIndexes => LazyQueryManager.Value;
 
-        public IAnalyticsIndexManager AnalyticsIndexes { get; }
+        public IAnalyticsIndexManager AnalyticsIndexes => throw new NotImplementedException();
 
-        public ISearchIndexManager SearchIndexes => _lazySearchManager.Value;
+        public ISearchIndexManager SearchIndexes => LazySearchManager.Value;
 
-        public IBucketManager Buckets => _lazyBucketManager.Value;
+        public IBucketManager Buckets => LazyBucketManager.Value;
 
-        public IUserManager Users => _lazyUserManager.Value;
+        public IUserManager Users => LazyUserManager.Value;
 
         public void Dispose()
         {
@@ -278,7 +284,7 @@ namespace Couchbase
 
         internal void UpdateClusterCapabilities()
         {
-            if (_lazyQueryClient.Value is QueryClient client)
+            if (LazyQueryClient.Value is QueryClient client)
             {
                 if (_context.GlobalConfig != null)
                 {

@@ -155,13 +155,13 @@ namespace Couchbase
                 query.Raw(kvp.Key, kvp.Value);
             }
 
-            async Task<IServiceResult> Func()
+            async Task<IViewResult> Func()
             {
                 var client1 = _viewClientLazy.Value;
                 return await client1.ExecuteAsync(query);
             }
 
-            return (IViewResult) await RetryOrchestrator.RetryAsync(Func, query);
+            return await RetryOrchestrator.RetryAsync(Func, query);
         }
 
         internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)

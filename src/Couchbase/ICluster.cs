@@ -11,21 +11,23 @@ using Couchbase.Management.Users;
 using Couchbase.Query;
 using Couchbase.Search;
 
+#nullable enable
+
 namespace Couchbase
 {
     public interface ICluster : IDisposable
     {
         Task<IBucket> BucketAsync(string name);
 
-        Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions options = null);
+        Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null);
 
         #region Query
 
-        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);
+        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options);
 
-        Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions options = default);
+        Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default);
 
-        Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions options = default);
+        Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions? options = default);
 
         #endregion
 

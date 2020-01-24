@@ -23,7 +23,7 @@ namespace Couchbase.IntegrationTests.Services.Query
         public async Task Test_Query()
         {
             var cluster = await _fixture.GetCluster();
-            await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;");
+            await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;");
         }
 
         [Fact]
@@ -107,5 +107,12 @@ namespace Couchbase.IntegrationTests.Services.Query
 
             result.Dispose();
         }
+
+        // ReSharper disable UnusedType.Local
+        private class Poco
+        {
+            public string Name { get; set; }
+        }
+        // ReSharper restore UnusedType.Local
     }
 }
