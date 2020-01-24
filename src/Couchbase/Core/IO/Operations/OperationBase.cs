@@ -49,6 +49,8 @@ namespace Couchbase.Core.IO.Operations
         public int TotalLength => Header.TotalLength;
         public virtual bool Success => GetSuccess();
         public uint Expires { get; set; }
+        public string CName { get; set; }
+        public string SName { get; set; }
 
         #region RetryAsync SDK-3
 

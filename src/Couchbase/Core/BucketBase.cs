@@ -57,35 +57,37 @@ namespace Couchbase.Core
 
         public string Name { get; protected set; }
 
-        public abstract Task<IScope> this[string name] { get; }
+        public abstract IScope this[string scopeName] { get; }
+
+        public virtual IScope Scope(string scopeName)
+        {
+            if (Scopes.TryGetValue(scopeName, out IScope scope))
+            {
+                return scope;
+            }
+            throw new ScopeNotFoundException($"Cannot find scope {DefaultScopeName}!");
+        }
 
         /// <remarks>Volatile</remarks>
         public IScope DefaultScope()
         {
-            if (!Scopes.ContainsKey(DefaultScopeName))
-            {
-                LoadManifest();
-            }
-            return Scopes[DefaultScopeName];
+            return Scope(DefaultScopeName);
         }
 
         /// <remarks>Volatile</remarks>
         public ICollection Collection(string collectionName)
         {
-            if (!Scopes.ContainsKey(DefaultScopeName))
+            if(Scopes.TryGetValue(DefaultScopeName, out IScope scope))
             {
-                LoadManifest();
+                return scope.Collection(collectionName);
             }
-            return Scopes[DefaultScopeName][collectionName];
+
+            throw new ScopeNotFoundException($"Cannot find scope {DefaultScopeName}!");
         }
 
         public ICollection DefaultCollection()
         {
-            if (!Scopes.ContainsKey(DefaultScopeName))
-            {
-                LoadManifest();
-            }
-            return Scopes[DefaultScopeName][CouchbaseCollection.DefaultCollectionName];
+            return Collection(CouchbaseCollection.DefaultCollectionName);
         }
 
         /// <inheritdoc />
@@ -122,7 +124,9 @@ namespace Couchbase.Core
                     foreach (var collectionDef in scopeDef.collections)
                     {
                         collections.Add(new CouchbaseCollection(this, Context,
-                            Convert.ToUInt32(collectionDef.uid, 16), collectionDef.name));
+                            Convert.ToUInt32(collectionDef.uid, 16),
+                            collectionDef.name,
+                            scopeDef.name));
                     }
                     var scope = new Scope(scopeDef.name, scopeDef.uid, collections, this);
                     Scopes.TryAdd(scopeDef.name, scope);
@@ -134,7 +138,7 @@ namespace Couchbase.Core
                 //for deferred error handling
                 var collections = new List<ICollection>
                 {
-                    new CouchbaseCollection(this, Context, null, "_default")
+                    new CouchbaseCollection(this, Context, null, "_default", "_default")
                 };
                 Scopes.TryAdd("_default", new Scope("_default", "0", collections, this));
             }

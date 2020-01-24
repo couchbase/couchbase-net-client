@@ -28,6 +28,10 @@ namespace Couchbase.Core.IO.Operations
 
         Exception Exception { get; set; }
 
+        string CName { get; set; }
+
+        string SName { get; set; }
+
         Memory<byte> Data { get; }
 
         uint LastConfigRevisionTried { get; set; }

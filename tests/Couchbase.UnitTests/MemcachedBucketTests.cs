@@ -34,11 +34,11 @@ namespace Couchbase.UnitTests
         }
 
         [Fact]
-        public async Task Indexer_Throws_NotSupportedException_When_Name_Is_Not_Default()
+        public void Indexer_Throws_NotSupportedException_When_Name_Is_Not_Default()
         {
             var bucket = new MemcachedBucket("default", new ClusterContext(), new Mock<ILogger<MemcachedBucket>>().Object);
 
-            await Assert.ThrowsAsync<NotSupportedException>(async () => { await bucket["xxxxx"].ConfigureAwait(false); }).ConfigureAwait(false);
+            Assert.Throws<NotSupportedException>(() => bucket["xxxxx"]);
         }
 
         [Fact(Skip = "Will be enabled in later commit.")]
@@ -61,7 +61,7 @@ namespace Couchbase.UnitTests
             var bucket = new MemcachedBucket("default", new ClusterContext(), new Mock<ILogger<MemcachedBucket>>().Object, mockHttpClusterMap.Object);
             await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
-            var scope = await bucket[BucketBase.DefaultScopeName].ConfigureAwait(false);
+            var scope = bucket[BucketBase.DefaultScopeName];
             Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
         }
 
@@ -85,7 +85,7 @@ namespace Couchbase.UnitTests
             var bucket = new MemcachedBucket("default", new ClusterContext(), new Mock<ILogger<MemcachedBucket>>().Object, mockHttpClusterMap.Object);
             await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
-            var scope = await bucket.ScopeAsync(BucketBase.DefaultScopeName).ConfigureAwait(false);
+            var scope = bucket.Scope(BucketBase.DefaultScopeName);
             Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
         }
 
@@ -109,10 +109,7 @@ namespace Couchbase.UnitTests
             var bucket = new MemcachedBucket("default", new ClusterContext(), new Mock<ILogger<MemcachedBucket>>().Object, mockHttpClusterMap.Object);
             await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
-            await Assert.ThrowsAsync<NotSupportedException>(async () =>
-            {
-                await bucket.ScopeAsync("xxxx").ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            Assert.Throws<NotSupportedException>(() => bucket.Scope("xxxx"));
         }
     }
 }

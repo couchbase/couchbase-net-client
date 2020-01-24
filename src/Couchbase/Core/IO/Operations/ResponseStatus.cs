@@ -295,7 +295,7 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Collection does not exist.
         /// </summary>
-        UnknownCollection = 0x8,
+        UnknownCollection = 0x88,
 
         /// <summary>
         /// Invalid request. Returned if an invalid durability level is specified.

@@ -1,26 +1,46 @@
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.IO;
+using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Authentication;
+using Couchbase.Core.IO.Operations.Collections;
+using Couchbase.Core.IO.Operations.Errors;
+using Couchbase.Core.IO.Transcoders;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.IO;
-using Couchbase.Core.IO.Authentication;
-using Couchbase.Core.IO.Converters;
-using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Authentication;
-using Couchbase.Core.IO.Operations.Collections;
-using Couchbase.Core.IO.Operations.Errors;
-
-using Couchbase.Core.IO.Transcoders;
-using Couchbase.KeyValue;
 using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
 namespace Couchbase.Utils
 {
     internal static class ConnectionExtensions
     {
+        internal static async Task<uint?> GetCid(this IConnection connection, string name)
+        {
+            var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
+            using var getCid = new GetCid
+            {
+                Key = name,
+                Transcoder = new DefaultTranscoder(),
+                Opaque = SequenceGenerator.GetNext(),
+                Content = null,
+                Completed = s =>
+                {
+                    completionSource.TrySetResult(s.ExtractData());
+                    return completionSource.Task;
+                }
+            };
+            await getCid.SendAsync(connection).ConfigureAwait(false);
+            var gitCidBytes = await completionSource.Task.ConfigureAwait(false);
+            await getCid.ReadAsync(gitCidBytes).ConfigureAwait(false);
+
+            var resultWithValue = getCid.GetResultWithValue();
+            return resultWithValue.Content;
+        }
+
         internal static async Task<Manifest> GetManifest(this IConnection connection)
         {
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();

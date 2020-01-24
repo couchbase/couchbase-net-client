@@ -13,6 +13,7 @@ using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
+using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
@@ -40,18 +41,18 @@ namespace Couchbase
             );
         }
 
-        public override Task<IScope> this[string name]
+        public override IScope this[string scopeName]
         {
             get
             {
-                Logger.LogDebug("Fetching scope {0}", name);
+                Logger.LogDebug("Fetching scope {scopeName}", scopeName);
 
-                if (Scopes.TryGetValue(name, out var scope))
+                if (Scopes.TryGetValue(scopeName, out var scope))
                 {
-                    return Task.FromResult(scope);
+                    return scope;
                 }
 
-                throw new ScopeMissingException("Cannot locate the scope {scopeName}");
+                throw new ScopeNotFoundException(scopeName);
             }
         }
 
@@ -182,12 +183,37 @@ namespace Couchbase
 
             if (Context.TryGetNode(endPoint, out var clusterNode))
             {
-                await clusterNode.SendAsync(op, token, timeout);
+                try
+                {
+                    await clusterNode.SendAsync(op, token, timeout);
+                }
+                catch (Exception e)
+                {
+                    if (e is CollectionOutdatedException)
+                    {
+                        Logger.LogInformation("Updating stale manifest for collection and retrying.", e);
+                        await RefreshCollectionId(op, clusterNode);
+                        await clusterNode.SendAsync(op, token, timeout);
+                    }
+                    else
+                    {
+                        throw;//propagate up
+                    }
+                }
             }
             else
             {
                throw new NodeNotAvailableException($"Cannot find a Couchbase Server node for {endPoint}.");
             }
+        }
+
+        private async Task RefreshCollectionId(IOperation op, IClusterNode node)
+        {
+            var scope = Scope(op.SName);
+            var collection = (CouchbaseCollection)scope.Collection(op.CName);
+            var newCid = await node.GetCid($"{op.SName}.{op.CName}");
+            collection.Cid = newCid;
+            op.Cid = collection.Cid;
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)

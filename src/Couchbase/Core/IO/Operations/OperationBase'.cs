@@ -55,7 +55,6 @@ namespace Couchbase.Core.IO.Operations
             return result;
         }
 
-
         public virtual T GetValue()
         {
             var result = default(T);

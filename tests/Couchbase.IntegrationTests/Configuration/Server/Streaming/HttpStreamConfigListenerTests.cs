@@ -64,7 +64,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
                 _event = @event;
             }
 
-            public override Task<IScope> this[string name] => throw new NotImplementedException();
+            public override IScope this[string name] => throw new NotImplementedException();
 
             public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
 

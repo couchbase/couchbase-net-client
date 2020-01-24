@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Diagnostics;
-using Couchbase.KeyValue;
 using Couchbase.Views;
 
 #nullable enable
@@ -10,11 +9,6 @@ namespace Couchbase
 {
     public static class BucketExtensions
     {
-        public static Task<IScope> ScopeAsync(this IBucket bucket, string name)
-        {
-            return bucket[name];
-        }
-
         /// <summary>
         /// Execute a view query.
         /// </summary>

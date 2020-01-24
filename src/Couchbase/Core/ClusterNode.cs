@@ -151,6 +151,11 @@ namespace Couchbase.Core
             return config;
         }
 
+        public Task<uint?> GetCid(string fullyQualifiedName)
+        {
+            return Connection.GetCid(fullyQualifiedName);
+        }
+
         public void BuildServiceUris()
         {
             if (NodesAdapter != null)

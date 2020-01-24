@@ -35,15 +35,21 @@ namespace Couchbase
             _httpClusterMap = httpClusterMap;
         }
 
-        public override Task<IScope> this[string name]
+        public override IScope Scope(string scopeName)
+        {
+            return this[scopeName];
+        }
+
+        public override IScope this[string scopeName]
         {
             get
             {
-                Logger.LogDebug("Fetching scope {0}", name);
 
-                if (name == DefaultScopeName)
-                    if (Scopes.TryGetValue(name, out var scope))
-                        return Task.FromResult(scope);
+                Logger.LogDebug("Fetching scope {0}", scopeName);
+
+                if (scopeName == DefaultScopeName)
+                    if (Scopes.TryGetValue(scopeName, out var scope))
+                        return scope;
 
                 throw new NotSupportedException("Only the default Scope is supported by Memcached Buckets");
             }
@@ -55,9 +61,9 @@ namespace Couchbase
             throw new NotSupportedException("Views are not supported by Memcached Buckets.");
         }
 
-        public override IViewIndexManager ViewIndexes =>  throw new NotSupportedException("View Indexes are not supported by Memcached Buckets.");
+        public override IViewIndexManager ViewIndexes => throw new NotSupportedException("View Indexes are not supported by Memcached Buckets.");
 
-        public override ICollectionManager Collections =>  throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
+        public override ICollectionManager Collections => throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
 
         internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
         {

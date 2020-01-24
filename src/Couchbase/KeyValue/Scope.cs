@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -45,7 +46,8 @@ namespace Couchbase.KeyValue
                 {
                     return _bucket.DefaultCollection();
                 }
-                throw new CollectionOutdatedException($"Cannot find collection {name}");
+
+                throw new CollectionNotFoundException($"Cannot find collection {name}");
             }
         }
 

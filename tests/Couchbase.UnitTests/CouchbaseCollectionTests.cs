@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests
         public void Get_Timed_Out_Throw_TimeoutException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
 
             Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests
         public async Task SubDoc_More_Than_One_XAttr_Throws_ArgumentException()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
 
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
@@ -99,7 +99,7 @@ namespace Couchbase.UnitTests
         public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus, Type exceptionType)
         {
             var bucket = new FakeBucket(responseStatus);
-            var collection = new CouchbaseCollection(bucket, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(bucket, new ClusterContext());
 
             try
             {
@@ -117,7 +117,7 @@ namespace Couchbase.UnitTests
         public void Set_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
 
             var set = collection.Set<dynamic>("theDocId");
             Assert.NotNull(set);
@@ -127,7 +127,7 @@ namespace Couchbase.UnitTests
         public void Queue_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
 
             var queue = collection.Queue<dynamic>("theDocId");
             Assert.NotNull(queue);
@@ -137,7 +137,7 @@ namespace Couchbase.UnitTests
         public void List_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
 
             var list = collection.List<dynamic>("theDocId");
             Assert.NotNull(list);
@@ -147,7 +147,7 @@ namespace Couchbase.UnitTests
         public void Dictionary_Factory_Test()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
 
             var dict = collection.Dictionary<string, dynamic>("theDocId");
             Assert.NotNull(dict);
@@ -157,7 +157,7 @@ namespace Couchbase.UnitTests
         public void GetAsync_Allows_No_GetOptions()
         {
             var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext(), 0, "_default");
+            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
 
             collection.GetAsync("key").GetAwaiter().GetResult();
         }
@@ -202,7 +202,7 @@ namespace Couchbase.UnitTests
                 }
             }
 
-            public override Task<IScope> this[string name] => throw new NotImplementedException();
+            public override IScope this[string name] => throw new NotImplementedException();
 
             public override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null)
             {

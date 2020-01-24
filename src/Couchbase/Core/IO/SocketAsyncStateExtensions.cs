@@ -98,6 +98,8 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.BucketNotConnected: //maps to nothing
                 case ResponseStatus.NotSupported: //maps to nothing
                     return new CouchbaseException();
+                case ResponseStatus.UnknownCollection:
+                    return new CollectionOutdatedException();
                 default:
                     return new ArgumentOutOfRangeException();
             }

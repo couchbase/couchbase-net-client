@@ -26,16 +26,24 @@ namespace Couchbase.KeyValue
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder();
         private readonly ClusterContext _context;
+        public string ScopeName { get; }
 
-        internal CouchbaseCollection(BucketBase bucket, ClusterContext context, uint? cid, string name)
+        internal CouchbaseCollection(BucketBase bucket, ClusterContext context)
+            : this(bucket, context, 0, "_default",
+            "_default")
+        {
+        }
+
+        internal CouchbaseCollection(BucketBase bucket, ClusterContext context, uint? cid, string name, string scopeName)
         {
             Cid = cid;
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            ScopeName = scopeName;
         }
 
-        public uint? Cid { get; }
+        public uint? Cid { get; internal set; }
 
         public string Name { get; }
 
@@ -127,6 +135,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                CName = Name,
                 Transcoder = _transcoder
             };
             try
@@ -165,6 +174,8 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Content = content,
+                CName = Name,
+                SName = ScopeName,
                 Cid = Cid,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
@@ -191,6 +202,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Content = content,
                 Cid = Cid,
+                CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
@@ -217,6 +229,7 @@ namespace Couchbase.KeyValue
                 Content = content,
                 Cas = options.CasValue,
                 Cid = Cid,
+                CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
@@ -241,6 +254,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cas = options.CasValue,
                 Cid = Cid,
+                CName = Name,
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Transcoder = _transcoder
@@ -262,6 +276,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                CName = Name,
                 Cas = cas,
                 Transcoder = _transcoder
             };
@@ -381,6 +396,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Builder = builder,
                 Cid = Cid,
+                CName = Name,
                 Transcoder = _transcoder
             };
 

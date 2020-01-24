@@ -1,4 +1,5 @@
 using Couchbase.Core;
+using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 using Moq;
 using Xunit;
@@ -13,7 +14,7 @@ namespace Couchbase.UnitTests
             var mockBucket = new Mock<BucketBase>();
             var scope = new Scope("_default", "0", new ICollection[]{}, mockBucket.Object);
 
-            Assert.Throws<CollectionOutdatedException>(() =>
+            Assert.Throws<CollectionNotFoundException>(() =>
             {
                 var collection = scope["doesnotexist"];
             });
@@ -25,7 +26,7 @@ namespace Couchbase.UnitTests
             var mockBucket = new Mock<BucketBase>();
             var scope = new Scope("_default", "0", new ICollection[]{}, mockBucket.Object);
 
-            Assert.Throws<CollectionOutdatedException>(() =>
+            Assert.Throws<CollectionNotFoundException>(() =>
             {
                 var collection = scope.Collection("doesnotexist");
             });
