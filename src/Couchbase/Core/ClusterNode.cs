@@ -119,8 +119,24 @@ namespace Couchbase.Core
 
         public async Task<BucketConfig> GetClusterMap()
         {
-            await CheckConnectionAsync(Connection);
-            return await Connection.GetClusterMap(EndPoint, BootstrapUri);
+            using var configOp = new Config
+            {
+                CurrentHost = EndPoint,
+                Transcoder = new DefaultTranscoder(),
+                Opaque = SequenceGenerator.GetNext(),
+                EndPoint = EndPoint
+            };
+            await ExecuteOp(configOp);
+
+            var configResult = configOp.GetResultWithValue();
+            var config = configResult.Content;
+
+            if (config != null && BootstrapUri != null)
+            {
+                config.ReplacePlaceholderWithBootstrapHost(BootstrapUri);
+            }
+
+            return config;
         }
 
         public void BuildServiceUris()
