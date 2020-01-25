@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Couchbase.Core.Retry;
 
@@ -185,13 +186,6 @@ namespace Couchbase.Views
         /// <param name="limit">The numeric limit</param>
         /// <returns>An IViewQuery object for chaining</returns>
         IViewQuery Limit(int? limit);
-
-        /// <summary>
-        /// The number of seconds before the request will be terminated if it has not completed.
-        /// </summary>
-        /// <param name="timeout">The period of time in seconds</param>
-        /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery ConnectionTimeout(int? timeout);
 
         /// <summary>
         /// Toggles the query between development or production dataset and View.

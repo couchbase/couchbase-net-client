@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Management.Views;
@@ -23,7 +24,7 @@ namespace Couchbase.Views
         internal bool? DevelopmentValue { get; set; }
         internal bool? FullSetValue { get; set; }
         internal bool? DebugValue { get; set; }
-        internal int? ConnectionTimeoutValue { get; set; }
+        internal TimeSpan? TimeoutValue { get; set; }
         internal ViewErrorMode OnErrorValue { get; set; } = ViewErrorMode.Stop;
         internal Dictionary<string, string> RawParameters = new Dictionary<string, string>();
         internal DesignDocumentNamespace @NamespaceValue { get; set; } = DesignDocumentNamespace.Production;
@@ -149,9 +150,9 @@ namespace Couchbase.Views
             return this;
         }
 
-        public ViewOptions ConnectionTimeout(int connectionTimeout)
+        public ViewOptions Timeout(TimeSpan timeout)
         {
-            ConnectionTimeoutValue = connectionTimeout;
+            TimeoutValue = timeout;
             return this;
         }
 

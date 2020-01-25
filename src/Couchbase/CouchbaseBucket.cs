@@ -132,10 +132,10 @@ namespace Couchbase
             query.Keys(options.KeysValue);
             query.Reduce(options.ReduceValue);
             query.Development(options.DevelopmentValue);
-            query.ConnectionTimeout(options.ConnectionTimeoutValue);
             query.Debug(options.DebugValue);
             query.Namespace(options.NamespaceValue);
             query.OnError(options.OnErrorValue == ViewErrorMode.Stop);
+            query.Timeout = options.TimeoutValue ?? Context.ClusterOptions.ViewTimeout;
 
             if (options.ViewOrderingValue == ViewOrdering.Decesending)
             {

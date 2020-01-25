@@ -47,7 +47,7 @@ namespace Couchbase.Views
         private bool? _reduce;
         private object _startKey;
         private object _startKeyDocId;
-        private int? _connectionTimeout;
+        private TimeSpan? _timeout;
         private bool? _debug;
         private Dictionary<string, string> _rawParams = new Dictionary<string, string>();
         private DesignDocumentNamespace _namespace = DesignDocumentNamespace.Production;
@@ -420,17 +420,6 @@ namespace Couchbase.Views
             return this;
         }
 
-        /// <summary>
-        /// The number of seconds before the request will be terminated if it has not completed.
-        /// </summary>
-        /// <param name="timeout">The period of time in seconds</param>
-        /// <returns></returns>
-        public IViewQuery ConnectionTimeout(int? timeout)
-        {
-            _connectionTimeout = timeout;
-            return this;
-        }
-
         public IViewQuery Raw(string key, string value)
         {
             _rawParams[key] = value;
@@ -630,9 +619,9 @@ namespace Couchbase.Views
             {
                 queryParams.AppendFormat(QueryArgPattern, QueryArguments.Skip, _skipCount);
             }
-            if (_connectionTimeout.HasValue)
+            if (_timeout.HasValue)
             {
-                queryParams.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _connectionTimeout);
+                queryParams.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _timeout);
             }
             if (_debug.HasValue)
             {
