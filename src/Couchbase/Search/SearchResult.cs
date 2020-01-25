@@ -60,18 +60,18 @@ namespace Couchbase.Search
         internal bool ShouldRetry()
         {
             SetRetryReasonIfFailed();
-            return ((IServiceResult) this).RetryReason != RetryReason.NoRetry;
+            return RetryReason != RetryReason.NoRetry;
         }
 
         internal void SetRetryReasonIfFailed()
         {
             if ((int) HttpStatusCode == 429) // 429 - TooManyRequests
             {
-                ((IServiceResult) this).RetryReason = RetryReason.SearchTooManyRequests;
+                RetryReason = RetryReason.SearchTooManyRequests;
             }
         }
 
-        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
+        public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
 
         internal HttpStatusCode HttpStatusCode { get; set; }
 

@@ -45,13 +45,13 @@ namespace Couchbase.Analytics
         internal bool ShouldRetry()
         {
             SetRetryReasonIfFailed();
-            return ((IServiceResult)this).RetryReason != RetryReason.NoRetry;
+            return RetryReason != RetryReason.NoRetry;
         }
 
         internal void SetRetryReasonIfFailed()
         {
             if (HttpStatusCode == HttpStatusCode.OK)
-                ((IServiceResult) this).RetryReason = RetryReason.NoRetry;
+                RetryReason = RetryReason.NoRetry;
             else
             {
                 foreach (var error in Errors)
@@ -63,7 +63,7 @@ namespace Couchbase.Analytics
                         case 23000:
                         case 23003:
                         case 23007:
-                            ((IServiceResult) this).RetryReason = RetryReason.AnalyticsTemporaryFailure;
+                            RetryReason = RetryReason.AnalyticsTemporaryFailure;
                             return;
                         default:
                             throw new CouchbaseException($"Analytics query failed: {error.Code}");
@@ -72,7 +72,7 @@ namespace Couchbase.Analytics
             }
         }
 
-        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
+        public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
     }
 
     internal class AnalyticsResultData<T>

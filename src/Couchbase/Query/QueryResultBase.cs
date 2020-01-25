@@ -67,7 +67,7 @@ namespace Couchbase.Query
         public bool ShouldRetry()
         {
             SetRetryReasonIfFailed();
-            return ((IServiceResult)this).RetryReason != RetryReason.NoRetry;
+            return RetryReason != RetryReason.NoRetry;
         }
 
         private void SetRetryReasonIfFailed()
@@ -79,13 +79,13 @@ namespace Couchbase.Query
                     case 4040:
                     case 4050:
                     case 4070:
-                        ((IServiceResult) this).RetryReason = RetryReason.QueryPreparedStatementFailure;
+                        RetryReason = RetryReason.QueryPreparedStatementFailure;
                         return;
                     case 5000:
                         if (error.Message != null
                             && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
                         {
-                            ((IServiceResult)this).RetryReason = RetryReason.QueryPreparedStatementFailure;
+                            RetryReason = RetryReason.QueryPreparedStatementFailure;
                         }
                         return;
                     default:
@@ -94,7 +94,7 @@ namespace Couchbase.Query
             }
         }
 
-        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
+        public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
 
         /// <summary>
         /// Get the prepared query plan name stored in the cluster.

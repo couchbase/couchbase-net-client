@@ -4,6 +4,6 @@ namespace Couchbase
 {
     public interface IServiceResult
     {
-        RetryReason RetryReason { get; set; }
+        RetryReason RetryReason { get; }
     }
 }

@@ -138,7 +138,7 @@ namespace Couchbase.Views
         internal bool ShouldRetry()
         {
             SetRetryReasonIfFailed();
-            return ((IServiceResult)this).RetryReason != RetryReason.NoRetry;
+            return RetryReason != RetryReason.NoRetry;
         }
 
         internal void SetRetryReasonIfFailed()
@@ -150,7 +150,7 @@ namespace Couchbase.Views
                 case HttpStatusCode.MultipleChoices: // 300
                 case HttpStatusCode.MovedPermanently: // 301
                 case HttpStatusCode.Found: // 302
-                    ((IServiceResult)this).RetryReason = RetryReason.ViewsNoActivePartition;
+                    RetryReason = RetryReason.ViewsNoActivePartition;
                     break;
                 case HttpStatusCode.SeeOther: // 303
                 case HttpStatusCode.TemporaryRedirect: //307
@@ -164,28 +164,28 @@ namespace Couchbase.Views
                 case HttpStatusCode.BadGateway: // 502
                 case HttpStatusCode.ServiceUnavailable: // 503
                 case HttpStatusCode.GatewayTimeout: // 504
-                    ((IServiceResult)this).RetryReason = RetryReason.ViewsTemporaryFailure;
+                    RetryReason = RetryReason.ViewsTemporaryFailure;
                     break;
                 case HttpStatusCode.NotFound: // 404
                     if (Message.Contains("\"reason\":\"missing\""))
                     {
-                        ((IServiceResult)this).RetryReason = RetryReason.ViewsTemporaryFailure;
+                        RetryReason = RetryReason.ViewsTemporaryFailure;
                     }
                     break;
                 case HttpStatusCode.InternalServerError: // 500
                     if(Message.Contains("error") && Message.Contains("{not_found, missing_named_view}") ||
                        Message.Contains("badarg"))
                     {
-                        ((IServiceResult) this).RetryReason = RetryReason.ViewsTemporaryFailure;
+                        RetryReason = RetryReason.ViewsTemporaryFailure;
                     }
                     break;
                 default:
-                    ((IServiceResult) this).RetryReason = RetryReason.NoRetry;
+                    RetryReason = RetryReason.NoRetry;
                     return;
             }
         }
 
-        RetryReason IServiceResult.RetryReason { get; set; } = RetryReason.NoRetry;
+        public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
 
         /// <summary>
         /// Reads and parses any response attributes, returning at the end of the response or
