@@ -106,6 +106,7 @@ namespace Couchbase.Analytics
                 }
                 catch (OperationCanceledException e)
                 {
+                    Log.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request timeout.");
                     if (queryRequest.ReadOnly)
                     {
                         throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
@@ -115,6 +116,7 @@ namespace Couchbase.Analytics
                 }
                 catch (HttpRequestException e)
                 {
+                    Log.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request cancelled.");
                     throw new RequestCanceledException("The query was canceled.", e);
                 }
             }

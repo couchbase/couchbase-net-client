@@ -22,7 +22,7 @@ namespace Couchbase.Query
     internal class QueryClient : HttpServiceBase, IQueryClient
     {
         internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
-        private static readonly ILogger Logger = LogManager.CreateLogger<QueryClient>();
+        private static readonly ILogger Log = LogManager.CreateLogger<QueryClient>();
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
         private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
         private readonly ITypeSerializer _serializer;
@@ -144,7 +144,7 @@ namespace Couchbase.Query
 
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData.Status != QueryStatus.Success)
                     {
-                        Logger.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData.Status}.");
+                        Log.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData.Status}.");
                         if (queryResult.ShouldRetry())
                         {
                             return queryResult;
@@ -177,6 +177,7 @@ namespace Couchbase.Query
                 }
                 catch (OperationCanceledException e)
                 {
+                    Log.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
                     if (options.IsReadOnly)
                     {
                         throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
@@ -185,10 +186,11 @@ namespace Couchbase.Query
                 }
                 catch (HttpRequestException e)
                 {
+                    Log.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
                     throw new RequestCanceledException("The query was canceled.", e);
                 }
             }
-            Logger.LogDebug($"Request {options.CurrentContextId} has succeeded.");
+            Log.LogDebug($"Request {options.CurrentContextId} has succeeded.");
             return queryResult;
         }
 
@@ -197,7 +199,7 @@ namespace Couchbase.Query
             if (!EnhancedPreparedStatementsEnabled && clusterCapabilities.EnhancedPreparedStatementsEnabled)
             {
                 EnhancedPreparedStatementsEnabled = true;
-                Logger.LogInformation("Enabling Enhanced Prepared Statements");
+                Log.LogInformation("Enabling Enhanced Prepared Statements");
             }
         }
     }

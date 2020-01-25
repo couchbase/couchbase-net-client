@@ -83,10 +83,12 @@ namespace Couchbase.Views
             }
             catch (OperationCanceledException e)
             {
+                Log.LogDebug(LoggingEvents.ViewEvent, e, "View request timeout.");
                 throw new AmbiguousTimeoutException("The view query was timed out via the Token.", e);
             }
             catch (HttpRequestException e)
             {
+                Log.LogDebug(LoggingEvents.QueryEvent, e, "View request cancelled.");
                 throw new RequestCanceledException("The view query was canceled.", e);
             }
 

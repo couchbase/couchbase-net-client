@@ -9,6 +9,8 @@ using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Search
 {
@@ -18,7 +20,7 @@ namespace Couchbase.Search
     /// <seealso cref="ISearchClient" />
     internal class SearchClient : HttpServiceBase, ISearchClient
     {
-        //private static readonly ILog Log = LogManager.GetLogger<SearchClient>();
+        private static readonly ILogger Log = LogManager.CreateLogger<SearchClient>();
 
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
@@ -88,10 +90,12 @@ namespace Couchbase.Search
             }
             catch (OperationCanceledException e)
             {
+                Log.LogDebug(LoggingEvents.SearchEvent, e, "Search request timeout.");
                 throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
             }
             catch (HttpRequestException e)
             {
+                Log.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
                 throw new RequestCanceledException("The query was canceled.", e);
             }
             UpdateLastActivity();

@@ -23,7 +23,7 @@ namespace Couchbase.Core.Configuration.Server
 
     internal class ConfigHandler : IConfigHandler
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<ConfigHandler>();
+        private static readonly ILogger Log = LogManager.CreateLogger<ConfigHandler>();
 
         private readonly BlockingCollection<BucketConfig> _configQueue =
             new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
@@ -86,7 +86,7 @@ namespace Couchbase.Core.Configuration.Server
                         }
                         catch (Exception e)
                         {
-                            Logger.LogWarning(e, "Issue getting Cluster Map cluster!");
+                            Log.LogWarning(e, "Issue getting Cluster Map cluster!");
                         }
                     }
                 }
@@ -120,7 +120,7 @@ namespace Couchbase.Core.Configuration.Server
                 }
                 catch (Exception e)
                 {
-                    Logger.LogWarning(e, "Error processing new clusterOptions");
+                    Log.LogWarning(e, "Error processing new clusterOptions");
                 }
             }
         }
