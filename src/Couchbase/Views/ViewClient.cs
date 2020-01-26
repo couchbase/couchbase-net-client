@@ -39,7 +39,7 @@ namespace Couchbase.Views
         public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQueryable query)
         {
             var uri = query.RawUri();
-            ViewResult<TKey, TValue> viewResult;
+            ViewResultBase<TKey, TValue> viewResult;
 
             var body = query.CreateRequestBody();
             try
@@ -50,22 +50,45 @@ namespace Couchbase.Views
 
                 if (response.IsSuccessStatusCode)
                 {
-                    viewResult = new ViewResult<TKey, TValue>(
-                        response.StatusCode,
-                        Success,
-                        await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
-                        _serializer as IStreamingTypeDeserializer ?? new DefaultSerializer()
-                    );
+                    if (_serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                    {
+                        viewResult = new StreamingViewResult<TKey, TValue>(
+                            response.StatusCode,
+                            Success,
+                            await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
+                            streamingTypeDeserializer
+                        );
+                    }
+                    else
+                    {
+                        viewResult = new BlockViewResult<TKey, TValue>(
+                            response.StatusCode,
+                            Success,
+                            await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
+                            _serializer
+                        );
+                    }
 
                     await viewResult.InitializeAsync().ConfigureAwait(false);
                 }
                 else
                 {
-                    viewResult = new ViewResult<TKey, TValue>(
-                        response.StatusCode,
-                        await response.Content.ReadAsStringAsync().ConfigureAwait(false),
-                        _serializer as IStreamingTypeDeserializer ?? new DefaultSerializer()
-                    );
+                    if (_serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                    {
+                        viewResult = new StreamingViewResult<TKey, TValue>(
+                            response.StatusCode,
+                            await response.Content.ReadAsStringAsync().ConfigureAwait(false),
+                            streamingTypeDeserializer
+                        );
+                    }
+                    else
+                    {
+                        viewResult = new BlockViewResult<TKey, TValue>(
+                            response.StatusCode,
+                            await response.Content.ReadAsStringAsync().ConfigureAwait(false),
+                            _serializer
+                        );
+                    }
 
                     await viewResult.InitializeAsync().ConfigureAwait(false);
 

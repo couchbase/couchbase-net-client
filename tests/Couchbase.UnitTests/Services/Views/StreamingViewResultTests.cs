@@ -5,14 +5,13 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
-using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Xunit;
 
 namespace Couchbase.UnitTests.Services.Views
 {
-    public class ViewResultTests
+    public class StreamingViewResultTests
     {
         private const string ViewResultResourceName = @"Documents\Views\200-success.json";
 
@@ -24,7 +23,7 @@ namespace Couchbase.UnitTests.Services.Views
             const HttpStatusCode statusCode = HttpStatusCode.Accepted;
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var serializer = new DefaultSerializer();
-            var response = new ViewResult<dynamic, dynamic>(statusCode, string.Empty, stream, serializer);
+            var response = new StreamingViewResult<dynamic, dynamic>(statusCode, string.Empty, stream, serializer);
             await response.InitializeAsync();
 
             Assert.Equal(statusCode, response.StatusCode);
@@ -36,7 +35,7 @@ namespace Couchbase.UnitTests.Services.Views
             const string message = "message";
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var serializer = new DefaultSerializer();
-            var response = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, message, stream, serializer);
+            var response = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, message, stream, serializer);
             await response.InitializeAsync();
 
             Assert.Equal(message, response.Message);
@@ -47,7 +46,7 @@ namespace Couchbase.UnitTests.Services.Views
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var serializer = new DefaultSerializer();
-            var response = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, string.Empty, stream, serializer);
+            var response = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, string.Empty, stream, serializer);
             await response.InitializeAsync();
 
             await foreach (var row in response)
@@ -68,7 +67,7 @@ namespace Couchbase.UnitTests.Services.Views
         [InlineData(HttpStatusCode.InternalServerError, "error - {not_found, missing_named_view}", false)]
         public void Failed_ViewResult_Should_Retry_Based_On_StatusCode_And_Message(HttpStatusCode statusCode, string message, RetryReason expected)
         {
-            var viewResult = new ViewResult(statusCode, message);
+            var viewResult = new StreamingViewResult<dynamic, dynamic>(statusCode, message);
             var serviceResult = (IServiceResult) viewResult;
             Assert.NotEqual(RetryReason.NoRetry, serviceResult.RetryReason);
         }*/
@@ -84,7 +83,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
             await viewResult.InitializeAsync();
 
             // Act
@@ -101,7 +100,7 @@ namespace Couchbase.UnitTests.Services.Views
         {
             // Arrange
 
-            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", new DefaultSerializer());
+            using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", new DefaultSerializer());
 
             // Act
 
@@ -120,7 +119,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
 
             // Act/Assert
 
@@ -136,7 +135,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
-            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
             await viewResult.InitializeAsync();
 
             // Act/Assert
@@ -152,7 +151,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
             await viewResult.InitializeAsync();
 
             // Act
@@ -175,7 +174,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
 
             // Act
 
@@ -193,7 +192,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new StreamingViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
 
             // Act/Assert
 

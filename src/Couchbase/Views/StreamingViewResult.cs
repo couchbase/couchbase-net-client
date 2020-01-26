@@ -6,7 +6,6 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Core.Retry;
 using Couchbase.Core.Exceptions;
 using OpenTracing;
 
@@ -25,50 +24,32 @@ namespace Couchbase.Views
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
     /// <seealso cref="IViewResult{TKey, TValue}" />
-    internal class ViewResult<TKey, TValue> : IViewResult<TKey, TValue>
+    internal class StreamingViewResult<TKey, TValue> : ViewResultBase<TKey, TValue>
     {
-        private readonly Stream? _responseStream;
         private readonly IStreamingTypeDeserializer _deserializer;
-        private readonly ISpan? _decodeSpan;
 
         private IJsonStreamReader? _reader;
         private bool _hasReadToRows;
         private bool _hasReadRows;
         private bool _hasFinishedReading;
 
-        public ViewResult(HttpStatusCode statusCode, string message, IStreamingTypeDeserializer deserializer)
+        public StreamingViewResult(HttpStatusCode statusCode, string message, IStreamingTypeDeserializer deserializer)
+            : base(statusCode, message)
         {
-            StatusCode = statusCode;
-            Message = message ?? throw new ArgumentNullException(nameof(message));
             _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
         }
 
-        public ViewResult(HttpStatusCode statusCode, string message, Stream responseStream, IStreamingTypeDeserializer deserializer,
+        public StreamingViewResult(HttpStatusCode statusCode, string message, Stream responseStream, IStreamingTypeDeserializer deserializer,
             ISpan? decodeSpan = null)
-            : this(statusCode, message, deserializer)
+            : base(statusCode, message, responseStream, decodeSpan)
         {
-            _responseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
-            _decodeSpan = decodeSpan;
+            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
         }
 
         /// <inheritdoc />
-        public IAsyncEnumerable<IViewRow<TKey, TValue>> Rows => this;
-
-        public HttpStatusCode StatusCode { get; }
-        public string Message { get; }
-
-        /// <inheritdoc cref="IViewResult{TKey,TValue}.MetaData" />
-        public ViewMetaData? MetaData { get; private set; }
-
-        /// <summary>
-        /// Initializes the reader, and reads all attributes until result rows are encountered.
-        /// This must be called before properties are valid.
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>A task.</returns>
-        public async Task InitializeAsync(CancellationToken cancellationToken = default)
+        public override async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
-            if (_responseStream == null)
+            if (ResponseStream == null)
             {
                 _hasFinishedReading = true;
                 return;
@@ -78,7 +59,7 @@ namespace Couchbase.Views
                 throw new InvalidOperationException("Cannot initialize more than once.");
             }
 
-            _reader = _deserializer.CreateJsonStreamReader(_responseStream);
+            _reader = _deserializer.CreateJsonStreamReader(ResponseStream);
             if (!await _reader.InitializeAsync(cancellationToken).ConfigureAwait(false))
             {
                 _hasFinishedReading = true;
@@ -91,7 +72,7 @@ namespace Couchbase.Views
 
         /// <inheritdoc />
 #pragma warning disable 8425
-        public async IAsyncEnumerator<IViewRow<TKey, TValue>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public override async IAsyncEnumerator<IViewRow<TKey, TValue>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
 #pragma warning restore 8425
         {
             if (_hasReadRows)
@@ -109,7 +90,7 @@ namespace Couchbase.Views
             if (!_hasReadToRows)
             {
                 throw new InvalidOperationException(
-                    $"{nameof(ViewResult<TKey, TValue>)} has not been initialized, call InitializeAsync first");
+                    $"{nameof(StreamingViewResult<TKey, TValue>)} has not been initialized, call InitializeAsync first");
             }
 
             if (_reader == null)
@@ -135,66 +116,14 @@ namespace Couchbase.Views
             await ReadResponseAttributes(cancellationToken).ConfigureAwait(false);
 
             // if we have a decode span, finish it
-            _decodeSpan?.Finish();
+            DecodeSpan?.Finish();
         }
-
-        internal bool ShouldRetry()
-        {
-            SetRetryReasonIfFailed();
-            return RetryReason != RetryReason.NoRetry;
-        }
-
-        internal void SetRetryReasonIfFailed()
-        {
-            // View status code retry strategy
-            // https://docs.google.com/document/d/1GhRxvPb7xakLL4g00FUi6fhZjiDaP33DTJZW7wfSxrI/edit
-            switch (StatusCode)
-            {
-                case HttpStatusCode.MultipleChoices: // 300
-                case HttpStatusCode.MovedPermanently: // 301
-                case HttpStatusCode.Found: // 302
-                    RetryReason = RetryReason.ViewsNoActivePartition;
-                    break;
-                case HttpStatusCode.SeeOther: // 303
-                case HttpStatusCode.TemporaryRedirect: //307
-                case HttpStatusCode.Gone: //401
-                case HttpStatusCode.RequestTimeout: // 408
-                case HttpStatusCode.Conflict: // 409
-                case HttpStatusCode.PreconditionFailed: // 412
-                case HttpStatusCode.RequestedRangeNotSatisfiable: // 416
-                case HttpStatusCode.ExpectationFailed: // 417
-                case HttpStatusCode.NotImplemented: //501
-                case HttpStatusCode.BadGateway: // 502
-                case HttpStatusCode.ServiceUnavailable: // 503
-                case HttpStatusCode.GatewayTimeout: // 504
-                    RetryReason = RetryReason.ViewsTemporaryFailure;
-                    break;
-                case HttpStatusCode.NotFound: // 404
-                    if (Message.Contains("\"reason\":\"missing\""))
-                    {
-                        RetryReason = RetryReason.ViewsTemporaryFailure;
-                    }
-                    break;
-                case HttpStatusCode.InternalServerError: // 500
-                    if(Message.Contains("error") && Message.Contains("{not_found, missing_named_view}") ||
-                       Message.Contains("badarg"))
-                    {
-                        RetryReason = RetryReason.ViewsTemporaryFailure;
-                    }
-                    break;
-                default:
-                    RetryReason = RetryReason.NoRetry;
-                    return;
-            }
-        }
-
-        public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
 
         /// <summary>
         /// Reads and parses any response attributes, returning at the end of the response or
         /// once the "results" attribute is encountered.
         /// </summary>
-        internal async Task ReadResponseAttributes(CancellationToken cancellationToken)
+        private async Task ReadResponseAttributes(CancellationToken cancellationToken)
         {
             if (_reader == null)
             {
@@ -233,12 +162,12 @@ namespace Couchbase.Views
         }
 
         /// <inheritdoc />
-        public void Dispose()
+        public override void Dispose()
         {
             _reader?.Dispose(); // also closes underlying stream
             _reader = null;
 
-            _responseStream?.Dispose();
+            base.Dispose();
         }
 
         // ReSharper disable ClassNeverInstantiated.Local
