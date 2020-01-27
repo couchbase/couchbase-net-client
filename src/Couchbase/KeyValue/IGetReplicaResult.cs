@@ -1,6 +1,6 @@
-using Couchbase.KeyValue;
+#nullable enable
 
-namespace Couchbase
+namespace Couchbase.KeyValue
 {
     public interface IGetReplicaResult : IGetResult
     {

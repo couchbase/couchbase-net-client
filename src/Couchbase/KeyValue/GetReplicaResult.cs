@@ -1,8 +1,9 @@
 using System.Buffers;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.KeyValue;
 
-namespace Couchbase
+#nullable enable
+
+namespace Couchbase.KeyValue
 {
     internal class GetReplicaResult : GetResult, IGetReplicaResult
     {
