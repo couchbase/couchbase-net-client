@@ -14,6 +14,18 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
+        public async Task Test_Open_More_Than_One_Bucket()
+        {
+            var cluster = await _fixture.GetCluster();
+
+            var bucket1 = await cluster.BucketAsync("travel-sample");
+            Assert.NotNull(bucket1);
+
+            var bucket2 = await cluster.BucketAsync("default");
+            Assert.NotNull(bucket2);
+        }
+
+        [Fact]
         public async Task Test_Query_With_Positional_Parameters()
         {
             var cluster = await _fixture.GetCluster();;
