@@ -34,27 +34,13 @@ namespace Couchbase.Analytics
         }
 
         /// <summary>
-        /// Queries the specified request.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="request">The request.</param>
-        /// <returns></returns>
-        public IAnalyticsResult<T> Query<T>(IAnalyticsRequest request)
-        {
-            return QueryAsync<T>(request, CancellationToken.None)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        /// <summary>
         /// Queries the asynchronous.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="queryRequest">The query request.</param>
         /// <param name="token">The token.</param>
         /// <returns></returns>
-        public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token)
+        public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token = default)
         {
             // try get Analytics node
             var node = Context.GetRandomNodeForService(ServiceType.Analytics);
@@ -78,11 +64,20 @@ namespace Couchbase.Analytics
                     var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                    result = new StreamingAnalyticsResult<T>(stream,
-                        _typeSerializer as IStreamingTypeDeserializer ?? new DefaultSerializer())
+                    if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)
                     {
-                        HttpStatusCode = response.StatusCode
-                    };
+                        result = new StreamingAnalyticsResult<T>(stream, streamingTypeDeserializer)
+                        {
+                            HttpStatusCode = response.StatusCode
+                        };
+                    }
+                    else
+                    {
+                        result = new BlockAnalyticsResult<T>(stream, _typeSerializer)
+                        {
+                            HttpStatusCode = response.StatusCode
+                        };
+                    }
 
                     await result.InitializeAsync(token).ConfigureAwait(false);
 
