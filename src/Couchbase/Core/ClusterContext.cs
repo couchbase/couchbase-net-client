@@ -65,7 +65,7 @@ namespace Couchbase.Core
 
         public ICluster Cluster { get; private set; }
 
-        public bool SupportsCollections { get; private set; }
+        public bool SupportsCollections { get; set; }
 
         public CancellationToken CancellationToken => _tokenSource.Token;
 
@@ -322,7 +322,11 @@ namespace Couchbase.Core
                 if (TryGetNode(endPoint, out IClusterNode bootstrapNode))
                 {
                     _logger.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
-                    await bootstrapNode.SelectBucket(bucket.Name);
+                    if (bootstrapNode.HasKv)
+                    {
+                        await bootstrapNode.SelectBucket(bucket.Name);
+                    }
+
                     bootstrapNode.NodesAdapter = nodeAdapter;
                     bootstrapNode.BuildServiceUris();
                     SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
@@ -332,7 +336,11 @@ namespace Couchbase.Core
                 _logger.LogDebug($"Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(endPoint);
                 node.Owner = bucket;
-                await node.SelectBucket(bucket.Name);
+                if (node.HasKv)
+                {
+                    await node.SelectBucket(bucket.Name);
+                }
+
                 node.NodesAdapter = nodeAdapter;
                 node.BuildServiceUris();
                 SupportsCollections = node.Supports(ServerFeatures.Collections);

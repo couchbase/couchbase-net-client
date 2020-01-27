@@ -66,11 +66,16 @@ namespace Couchbase.Core
 
         public virtual IScope Scope(string scopeName)
         {
-            if (Scopes.TryGetValue(scopeName, out IScope scope))
+            if (!Scopes.ContainsKey(scopeName))
+            {
+                LoadManifest();
+            }
+
+            if (Scopes.TryGetValue(scopeName, out var scope))
             {
                 return scope;
             }
-            throw new ScopeNotFoundException($"Cannot find scope {scopeName}!");
+            throw new ScopeNotFoundException(scopeName);
         }
 
         /// <remarks>Volatile</remarks>
@@ -82,12 +87,8 @@ namespace Couchbase.Core
         /// <remarks>Volatile</remarks>
         public ICollection Collection(string collectionName)
         {
-            if(Scopes.TryGetValue(KeyValue.Scope.DefaultScopeName, out IScope scope))
-            {
-                return scope.Collection(collectionName);
-            }
-
-            throw new ScopeNotFoundException($"Cannot find scope {KeyValue.Scope.DefaultScopeName}!");
+            var scope = DefaultScope();
+            return scope[collectionName];
         }
 
         public ICollection DefaultCollection()

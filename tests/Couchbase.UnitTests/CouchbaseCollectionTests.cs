@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
@@ -181,7 +182,9 @@ namespace Couchbase.UnitTests
                     .Setup(x => x.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<Func<SocketAsyncState, Task>>()))
                     .Returns(Task.CompletedTask);
 
-                var clusterNode = new ClusterNode(new ClusterContext(), new Mock<IConnectionFactory>().Object, new Mock<ILogger<ClusterNode>>().Object)
+                var clusterNode = new ClusterNode(new ClusterContext(), new Mock<IConnectionFactory>().Object,
+                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
+                    new Mock<ICircuitBreaker>().Object)
                 {
                     Connection = mockConnection.Object
                 };
@@ -221,7 +224,8 @@ namespace Couchbase.UnitTests
         private static CouchbaseCollection CreateTestCollection()
         {
             var mockBucket = new Mock<FakeBucket>();
-            return new CouchbaseCollection(mockBucket.Object, new DefaultTranscoder(),
+
+            return new CouchbaseCollection(mockBucket.Object, new LegacyTranscoder(),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
                 null, CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName);
         }

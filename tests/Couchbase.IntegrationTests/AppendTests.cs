@@ -1,9 +1,11 @@
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.KeyValue;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Couchbase.IntegrationTests
 {
@@ -24,10 +26,10 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.InsertAsync(key, Encoding.UTF8.GetBytes("hello"));
+                await collection.InsertAsync(key, Encoding.UTF8.GetBytes("hello"), options => options.Transcoder(new LegacyTranscoder()));
                 await collection.Binary.AppendAsync(key, Encoding.UTF8.GetBytes(" world"));
 
-                using (var result = await collection.GetAsync(key))
+                using (var result = await collection.GetAsync(key, options => options.Transcoder(new LegacyTranscoder())))
                 {
                     Assert.Equal("hello world", Encoding.UTF8.GetString(result.ContentAs<byte[]>()));
                 }

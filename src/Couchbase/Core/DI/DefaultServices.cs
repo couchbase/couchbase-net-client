@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Analytics;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -50,7 +51,7 @@ namespace Couchbase.Core.DI
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
-            yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(DefaultTranscoder)));
+            yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(JsonTranscoder)));
 
             yield return (typeof(CouchbaseHttpClient), new TransientServiceFactory(typeof(CouchbaseHttpClient)));
             yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));
@@ -66,6 +67,10 @@ namespace Couchbase.Core.DI
             yield return (typeof(IQueryIndexManager), new SingletonServiceFactory(typeof(QueryIndexManager)));
             yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
             yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
+
+            yield return (typeof(ICircuitBreaker), new SingletonServiceFactory(typeof(CircuitBreaker)));
+            yield return (typeof(CircuitBreakerConfiguration),
+                new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));
         }
     }
 }

@@ -50,12 +50,7 @@ namespace Couchbase.Core.IO.Operations
                     ReadExtras(buffer.Span);
                     var offset = Header.BodyOffset;
                     var length = TotalLength - Header.BodyOffset;
-                    var json = Transcoder.Decode<string>(buffer.Slice(offset, length), Flags, OpCode);
-                    if (EndPoint != null)
-                    {
-                        json = json.Replace("$HOST", EndPoint.Address.ToString());
-                    }
-                    bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+                    bucketConfig = Transcoder.Decode<BucketConfig>(buffer.Slice(offset, length), Flags, OpCode);
                 }
                 catch (Exception e)
                 {
@@ -63,6 +58,7 @@ namespace Couchbase.Core.IO.Operations
                     HandleClientError(e.Message, ResponseStatus.ClientFailure);
                 }
             }
+
             return bucketConfig;
         }
 

@@ -23,23 +23,36 @@ namespace Couchbase.Core
     internal class ClusterNode : IClusterNode
     {
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0, 0, 0, 0, 2500);//temp
-
         private readonly ClusterContext _context;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ILogger<ClusterNode> _logger;
-        private readonly ITypeTranscoder _transcoder = new DefaultTranscoder();
-        private readonly CircuitBreaker _circuitBreaker = new CircuitBreaker();//TODO integrate with configuration
-
+        private readonly ICircuitBreaker _circuitBreaker;
+        private readonly ITypeTranscoder _transcoder;
         private Uri _queryUri;
         private Uri _analyticsUri;
         private Uri _searchUri;
         private Uri _viewsUri;
 
-        public ClusterNode(ClusterContext context, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger)
+        public ClusterNode(ClusterContext context, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
+            _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
+        }
+
+        public ClusterNode(ClusterContext context)
+            : this(context, context.ServiceProvider.GetRequiredService<ITypeTranscoder>(),
+                context.ServiceProvider.GetRequiredService<CircuitBreaker>())
+        {
+        }
+
+        public ClusterNode(ClusterContext context, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker)
+        {
+            _context = context;
+            _transcoder = transcoder;
+            _circuitBreaker = circuitBreaker;
         }
 
         public bool IsAssigned => Owner != null;
@@ -117,7 +130,7 @@ namespace Couchbase.Core
         {
             using var manifestOp = new GetManifest
             {
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext()
             };
             await ExecuteOp(manifestOp);
@@ -129,7 +142,7 @@ namespace Couchbase.Core
         {
             using var selectBucketOp = new SelectBucket
             {
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = _transcoder,
                 Key = name
             };
 
@@ -141,7 +154,7 @@ namespace Couchbase.Core
             using var configOp = new Config
             {
                 CurrentHost = EndPoint,
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
             };
@@ -160,7 +173,7 @@ namespace Couchbase.Core
 
         public Task<uint?> GetCid(string fullyQualifiedName)
         {
-            return Connection.GetCid(fullyQualifiedName);
+            return Connection.GetCid(fullyQualifiedName, _transcoder);
         }
 
         public void BuildServiceUris()
@@ -293,7 +306,8 @@ namespace Couchbase.Core
                         _context.PublishConfig(config);
                     }
 
-                    _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode, op.Key,
+                    _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode,
+                        op.Key,
                         op.Opaque);
                 }
             }
@@ -324,10 +338,10 @@ namespace Couchbase.Core
             {
                 //recreate the connection its been closed and disposed
                 connection = await _connectionFactory.CreateAndConnectAsync(EndPoint);
-                ServerFeatures = await connection.Hello().ConfigureAwait(false);
-                ErrorMap = await connection.GetErrorMap().ConfigureAwait(false);
+                ServerFeatures = await connection.Hello(_transcoder).ConfigureAwait(false);
+                ErrorMap = await connection.GetErrorMap(_transcoder).ConfigureAwait(false);
                 await connection.Authenticate(_context.ClusterOptions, Owner.Name).ConfigureAwait(false);
-                await connection.SelectBucket(Owner.Name).ConfigureAwait(false);
+                await connection.SelectBucket(Owner.Name, _transcoder).ConfigureAwait(false);
                 Connection = connection;
             }
         }

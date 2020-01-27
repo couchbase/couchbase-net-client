@@ -13,7 +13,7 @@ namespace Couchbase.UnitTests
     public class CouchbaseBucketTests
     {
         [Fact]
-        public void Scope_Indexer_NotFound_Throws_ScopeMissingException()
+        public void Scope_Indexer_NotFound_Throws_ScopeNotFoundException()
         {
             var bucket = new CouchbaseBucket("default",
                 new ClusterContext(),
@@ -25,10 +25,13 @@ namespace Couchbase.UnitTests
         }
 
         [Fact]
-        public void Scope_NotFound_Throws_ScopeMissingException( )
+        public void Scope_NotFound_Throws_ScopeNoteFoundException( )
         {
             var bucket = new CouchbaseBucket("default",
-                new ClusterContext(),
+                new ClusterContext
+                {
+                    SupportsCollections = true
+                },
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object);

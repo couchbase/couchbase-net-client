@@ -26,7 +26,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         [GlobalSetup]
         public void Setup()
         {
-            _transcoder = new DefaultTranscoder(new DefaultSerializer());
+            _transcoder = new LegacyTranscoder(new DefaultSerializer());
             _response = CreateResponse(_transcoder, DocSize);
         }
 

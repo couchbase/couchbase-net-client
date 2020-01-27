@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using Couchbase.Core;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -139,7 +141,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             foreach (var server in oldConfig.NodesExt)
             {
                 var endPoint = server.GetIpEndPoint(options);
-                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object, new Mock<ILogger<ClusterNode>>().Object)
+                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object,
+                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
+                    new Mock<ICircuitBreaker>().Object)
                 {
                     EndPoint = endPoint
                 };
@@ -155,7 +159,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     continue;
                 }
 
-                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object, new Mock<ILogger<ClusterNode>>().Object)
+                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object,
+                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object, new Mock<ICircuitBreaker>().Object)
                 {
                     EndPoint = endPoint
                 };

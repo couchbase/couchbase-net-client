@@ -22,7 +22,7 @@ namespace Couchbase.Core.IO.Operations
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
         internal ErrorCode ErrorCode;
-        private static readonly ITypeTranscoder DefaultTranscoder = new DefaultTranscoder();
+        private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
         private IMemoryOwner<byte> _data;
 
         protected OperationBase()

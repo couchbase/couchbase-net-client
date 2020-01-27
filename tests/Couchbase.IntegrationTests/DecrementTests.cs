@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.KeyValue;
+using Couchbase.Query.Couchbase.N1QL;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.IntegrationTests

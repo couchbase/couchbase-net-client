@@ -3,10 +3,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DI;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
+using Couchbase.Core.IO.Transcoders;
+using Couchbase.KeyValue;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -23,7 +26,10 @@ namespace Couchbase.UnitTests.Core.IO.Errors
             var errorMap = JsonConvert.DeserializeObject<ErrorMap>(ResourceHelper.ReadResource("kv-error-map.json"));
 
             var node = new ClusterNode(new ClusterContext(new CancellationTokenSource(),
-                new ClusterOptions()), new Mock<IConnectionFactory>().Object, new Mock<ILogger<ClusterNode>>().Object)
+                    new ClusterOptions()), new Mock<IConnectionFactory>().Object,
+                new Mock<ILogger<ClusterNode>>().Object,
+                new Mock<ITypeTranscoder>().Object,
+                new Mock<ICircuitBreaker>().Object)
             {
                 ErrorMap = errorMap
             };

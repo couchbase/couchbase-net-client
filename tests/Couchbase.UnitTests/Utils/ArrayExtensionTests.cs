@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -49,7 +51,7 @@ namespace Couchbase.UnitTests.Utils
             {
                 {"127.0.0.1", MakeFakeClusterNode() },
                 {"127.0.0.2", MakeFakeClusterNode() },
-                {"127.0.0.3", MakeFakeClusterNode() },
+                {"127.0.0.3", MakeFakeClusterNode() }
             };
 
             var node = dict.GetRandom(x => x.Value.HasViews);
@@ -64,7 +66,7 @@ namespace Couchbase.UnitTests.Utils
             {
                 {"127.0.0.1", MakeFakeClusterNode() },
                 {"127.0.0.2", MakeFakeClusterNode() },
-                {"127.0.0.3", MakeFakeClusterNode() },
+                {"127.0.0.3", MakeFakeClusterNode() }
             };
 
             var node = dict.GetRandom(x => x.Value.HasAnalytics);
@@ -78,7 +80,9 @@ namespace Couchbase.UnitTests.Utils
             new ClusterNode(
                 new ClusterContext(null, new ClusterOptions()),
                 new Mock<IConnectionFactory>().Object,
-                new Mock<ILogger<ClusterNode>>().Object)
+                new Mock<ILogger<ClusterNode>>().Object,
+                new Mock<ITypeTranscoder>().Object,
+                new Mock<ICircuitBreaker>().Object)
             {
                 NodesAdapter = new NodeAdapter
                 {

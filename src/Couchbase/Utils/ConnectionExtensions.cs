@@ -18,13 +18,13 @@ namespace Couchbase.Utils
 {
     internal static class ConnectionExtensions
     {
-        internal static async Task<uint?> GetCid(this IConnection connection, string name)
+        internal static async Task<uint?> GetCid(this IConnection connection, string name, ITypeTranscoder transcoder)
         {
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
             using var getCid = new GetCid
             {
                 Key = name,
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = transcoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Content = null,
                 Completed = s =>
@@ -41,30 +41,28 @@ namespace Couchbase.Utils
             return resultWithValue.Content;
         }
 
-        internal static async Task<Manifest> GetManifest(this IConnection connection)
+        internal static async Task<Manifest> GetManifest(this IConnection connection, ITypeTranscoder transcoder)
         {
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
-            using (var manifestOp = new GetManifest
+            using var manifestOp = new GetManifest
             {
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = transcoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
                     completionSource.TrySetResult(s.ExtractData());
                     return completionSource.Task;
                 }
-            })
-            {
-                await manifestOp.SendAsync(connection).ConfigureAwait(false);
-                var manifestBytes = await completionSource.Task.ConfigureAwait(false);
-                await manifestOp.ReadAsync(manifestBytes).ConfigureAwait(false);
+            };
+            await manifestOp.SendAsync(connection).ConfigureAwait(false);
+            var manifestBytes = await completionSource.Task.ConfigureAwait(false);
+            await manifestOp.ReadAsync(manifestBytes).ConfigureAwait(false);
 
-                var manifestResult = manifestOp.GetResultWithValue();
-                return manifestResult.Content;
-            }
+            var manifestResult = manifestOp.GetResultWithValue();
+            return manifestResult.Content;
         }
 
-        internal static async Task<short[]> Hello(this IConnection connection)
+        internal static async Task<short[]> Hello(this IConnection connection, ITypeTranscoder transcoder)
         {
             //TODO missing MutationSeqno (0x04) and ServerDuration (0x0f)
             var features = new List<short>
@@ -77,26 +75,24 @@ namespace Couchbase.Utils
                 (short) ServerFeatures.XError
             };
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
-            using (var heloOp = new Hello
+            using var heloOp = new Hello
             {
                 Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = transcoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
                     completionSource.TrySetResult(s.ExtractData());
                     return completionSource.Task;
                 }
-            })
-            {
-                await heloOp.SendAsync(connection).ConfigureAwait(false);
-                var result = await completionSource.Task.ConfigureAwait(false);
-                await heloOp.ReadAsync(result).ConfigureAwait(false);
+            };
+            await heloOp.SendAsync(connection).ConfigureAwait(false);
+            var result = await completionSource.Task.ConfigureAwait(false);
+            await heloOp.ReadAsync(result).ConfigureAwait(false);
 
-                //returns all supported features
-                return heloOp.GetResultWithValue().Content;
-            }
+            //returns all supported features
+            return heloOp.GetResultWithValue().Content;
         }
 
         public static async Task Authenticate(this IConnection connection, ClusterOptions clusterOptions,
@@ -110,12 +106,12 @@ namespace Couchbase.Utils
             }
         }
 
-        public static async Task SelectBucket(this IConnection connection, string bucketName)
+        public static async Task SelectBucket(this IConnection connection, string bucketName, ITypeTranscoder transcoder)
         {
             var completionSource = new TaskCompletionSource<bool>();
             using var selectBucketOp = new SelectBucket
             {
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = transcoder,
                 Key = bucketName,
                 Completed = s =>
                 {
@@ -126,74 +122,24 @@ namespace Couchbase.Utils
             await selectBucketOp.SendAsync(connection).ConfigureAwait(false);
         }
 
-        public static async Task<ErrorMap> GetErrorMap(this IConnection connection)
+        public static async Task<ErrorMap> GetErrorMap(this IConnection connection, ITypeTranscoder transcoder)
         {
             var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
-            using (var errorMapOp = new GetErrorMap
+            using var errorMapOp = new GetErrorMap
             {
-                Transcoder = new DefaultTranscoder(),
+                Transcoder = transcoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Completed = s =>
                 {
                     completionSource.TrySetResult(s.ExtractData());
                     return completionSource.Task;
                 }
-            })
-            {
-                await errorMapOp.SendAsync(connection).ConfigureAwait(false);
-                var result = await completionSource.Task.ConfigureAwait(false);
-                await errorMapOp.ReadAsync(result).ConfigureAwait(false);
+            };
+            await errorMapOp.SendAsync(connection).ConfigureAwait(false);
+            var result = await completionSource.Task.ConfigureAwait(false);
+            await errorMapOp.ReadAsync(result).ConfigureAwait(false);
 
-                return errorMapOp.GetResultWithValue().Content;
-            }
-        }
-
-        internal static async Task<BucketConfig> GetClusterMap(this IConnection connection, IPEndPoint endPoint, Uri bootstrapUri)
-        {
-            var completionSource = new TaskCompletionSource<IMemoryOwner<byte>>();
-            using (var configOp = new Config
-            {
-                CurrentHost = endPoint,
-                Transcoder = new DefaultTranscoder(),
-                Opaque = SequenceGenerator.GetNext(),
-                EndPoint = endPoint,
-                Completed = s =>
-                {
-                    if (s.Status == ResponseStatus.Success)
-                    {
-                        completionSource.TrySetResult(s.ExtractData());
-                    }
-                    else
-                    {
-                        if (s.Status == ResponseStatus.KeyNotFound || s.Status == ResponseStatus.BucketNotConnected)
-                        {
-                            completionSource.TrySetResult(s.ExtractData());
-                        }
-                        else
-                        {
-                            completionSource.TrySetException(new Exception($"Cannot fetch cluster map. Reason: {s.Status}", s.Exception));//TODO change in later commit
-                        }
-                    }
-
-                    return completionSource.Task;
-                }
-            })
-            {
-                await configOp.SendAsync(connection).ConfigureAwait(false);
-
-                var clusterMapBytes = await completionSource.Task.ConfigureAwait(false);
-                await configOp.ReadAsync(clusterMapBytes).ConfigureAwait(false);
-
-                var configResult = configOp.GetResultWithValue();
-                var config = configResult.Content;
-
-                if (config != null && bootstrapUri != null)
-                {
-                    config.ReplacePlaceholderWithBootstrapHost(bootstrapUri);
-                }
-
-                return config;
-            }
+            return errorMapOp.GetResultWithValue().Content;
         }
     }
 }

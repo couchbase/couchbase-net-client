@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
@@ -21,7 +22,6 @@ namespace Couchbase.KeyValue
         public const string DefaultCollectionName = "_default";
 
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
-
         private readonly BucketBase _bucket;
         private readonly ITypeTranscoder _transcoder;
         private readonly ILogger<GetResult> _getLogger;

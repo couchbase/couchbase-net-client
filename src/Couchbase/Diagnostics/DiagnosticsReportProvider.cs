@@ -19,7 +19,7 @@ namespace Couchbase.Diagnostics
     {
         private const string UnknownEndpointValue = "Unknown";
         private const long TicksPerMicrosecond = 10;
-        private static readonly ITypeTranscoder DefaultTranscoder = new DefaultTranscoder();
+        private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
 
         private static readonly ServiceType[] AllServiceTypes =
         {
