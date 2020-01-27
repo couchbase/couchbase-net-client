@@ -28,7 +28,7 @@ namespace Couchbase.UnitTests
 
             await Assert.ThrowsAsync<NotSupportedException>(async () =>
             {
-                await bucket.ViewQueryAsync("designDoc", "viewName").ConfigureAwait(false);
+                await bucket.ViewQueryAsync<dynamic, dynamic>("designDoc", "viewName").ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
 

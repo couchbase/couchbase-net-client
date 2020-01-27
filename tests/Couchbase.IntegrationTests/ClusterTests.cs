@@ -52,7 +52,7 @@ namespace Couchbase.IntegrationTests
             var cluster = _fixture.Cluster;
             var bucket = await cluster.BucketAsync("beer-sample");
 
-            var results = await bucket.ViewQueryAsync("beer", "brewery_beers").ConfigureAwait(false);
+            var results = await bucket.ViewQueryAsync<object, object>("beer", "brewery_beers").ConfigureAwait(false);
             await foreach (var result in results)
             {
             }

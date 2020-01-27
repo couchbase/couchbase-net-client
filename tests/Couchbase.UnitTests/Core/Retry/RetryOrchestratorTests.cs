@@ -215,10 +215,10 @@ namespace Couchbase.UnitTests.Core.Retry
                     Token = cts.Token
                 };
 
-                async Task<IViewResult> Func()
+                async Task<IViewResult<dynamic, dynamic>> Func()
                 {
                     var client1 = client;
-                    return await client1.ExecuteAsync(viewQuery);
+                    return await client1.ExecuteAsync<dynamic, dynamic>(viewQuery);
                 }
 
                 await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, viewQuery));

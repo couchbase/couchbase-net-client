@@ -83,7 +83,7 @@ namespace Couchbase.Diagnostics
 
                        if (ping)
                        {
-                           RecordLatency(endPointDiagnostics, async () => await bucket.ViewQueryAsync("p", "p"));
+                           RecordLatency(endPointDiagnostics, async () => await bucket.ViewQueryAsync<object, object>("p", "p"));
                        }
 
                        kvEndpoints.Add(endPointDiagnostics);

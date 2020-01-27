@@ -202,7 +202,7 @@ namespace Couchbase.UnitTests
 
             public override Task<IScope> this[string name] => throw new NotImplementedException();
 
-            public override Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null)
+            public override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null)
             {
                 throw new NotImplementedException();
             }

@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests.Services.Views
             const HttpStatusCode statusCode = HttpStatusCode.Accepted;
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var serializer = new DefaultSerializer();
-            var response = new ViewResult(statusCode, string.Empty, stream, serializer);
+            var response = new ViewResult<dynamic, dynamic>(statusCode, string.Empty, stream, serializer);
             await response.InitializeAsync();
 
             Assert.Equal(statusCode, response.StatusCode);
@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests.Services.Views
             const string message = "message";
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var serializer = new DefaultSerializer();
-            var response = new ViewResult(HttpStatusCode.OK, message, stream, serializer);
+            var response = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, message, stream, serializer);
             await response.InitializeAsync();
 
             Assert.Equal(message, response.Message);
@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests.Services.Views
         {
             var stream = ResourceHelper.ReadResourceAsStream(ViewResultResourceName);
             var serializer = new DefaultSerializer();
-            var response = new ViewResult(HttpStatusCode.OK, string.Empty, stream, serializer);
+            var response = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, string.Empty, stream, serializer);
             await response.InitializeAsync();
 
             await foreach (var row in response)
@@ -84,7 +84,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
             await viewResult.InitializeAsync();
 
             // Act
@@ -101,7 +101,7 @@ namespace Couchbase.UnitTests.Services.Views
         {
             // Arrange
 
-            using var viewResult = new ViewResult(HttpStatusCode.OK, "OK", new DefaultSerializer());
+            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", new DefaultSerializer());
 
             // Act
 
@@ -120,7 +120,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
 
             // Act/Assert
 
@@ -136,7 +136,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
-            using var viewResult = new ViewResult(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
             await viewResult.InitializeAsync();
 
             // Act/Assert
@@ -152,7 +152,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
             await viewResult.InitializeAsync();
 
             // Act
@@ -175,7 +175,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
 
             // Act
 
@@ -193,7 +193,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Views\200-success.json");
 
-            using var viewResult = new ViewResult(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
+            using var viewResult = new ViewResult<dynamic, dynamic>(HttpStatusCode.OK, "OK", stream, new DefaultSerializer());
 
             // Act/Assert
 

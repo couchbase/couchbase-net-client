@@ -48,7 +48,7 @@ namespace Couchbase.UnitTests.Services.Views
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
 
-            await queryClient.ExecuteAsync(query).ConfigureAwait(false);
+            await queryClient.ExecuteAsync<dynamic, dynamic>(query).ConfigureAwait(false);
         }
 
         [Fact]
@@ -70,7 +70,7 @@ namespace Couchbase.UnitTests.Services.Views
             query.Keys("test-key");
             query.UseStreaming(true);
 
-            await queryClient.ExecuteAsync(query);
+            await queryClient.ExecuteAsync<dynamic, dynamic>(query);
             Assert.NotNull(queryClient.LastActivity);
         }
     }

@@ -91,7 +91,8 @@ namespace Couchbase
             return clusterNode.ViewsUri;
         }
 
-        public override async Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null)
+        /// <inheritdoc />
+        public override async Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null)
         {
             options ??= new ViewOptions();
             // create old style query
@@ -155,10 +156,10 @@ namespace Couchbase
                 query.Raw(kvp.Key, kvp.Value);
             }
 
-            async Task<IViewResult> Func()
+            async Task<IViewResult<TKey, TValue>> Func()
             {
                 var client1 = _viewClientLazy.Value;
-                return await client1.ExecuteAsync(query).ConfigureAwait(false);
+                return await client1.ExecuteAsync<TKey, TValue>(query).ConfigureAwait(false);
             }
 
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);

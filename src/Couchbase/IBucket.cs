@@ -23,7 +23,16 @@ namespace Couchbase
 
         ICollection Collection(string collectionName);
 
-        Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = null);
+        /// <summary>
+        /// Execute a view query.
+        /// </summary>
+        /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
+        /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+        /// <param name="designDocument">Design document name.</param>
+        /// <param name="viewName">View name.</param>
+        /// <param name="options"><seealso cref="ViewOptions"/> controlling query execution.</param>
+        /// <returns>An <seealso cref="IViewResult{TKey,TValue}"/>.</returns>
+        Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null);
 
         IViewIndexManager ViewIndexes { get; }
 

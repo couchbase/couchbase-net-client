@@ -50,7 +50,8 @@ namespace Couchbase
             }
         }
 
-        public  override Task<IViewResult> ViewQueryAsync(string designDocument, string viewName, ViewOptions options = default)
+        /// <inheritdoc />
+        public  override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = default)
         {
             throw new NotSupportedException("Views are not supported by Memcached Buckets.");
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -21,8 +22,10 @@ namespace Couchbase.Views
     /// A <see cref="StreamAlreadyReadException"/> will be thrown if the result is enumerated after it has reached
     /// the end of the stream.
     /// </summary>
-    /// <seealso cref="IViewResult" />
-    internal class ViewResult : IViewResult
+    /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
+    /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+    /// <seealso cref="IViewResult{TKey, TValue}" />
+    internal class ViewResult<TKey, TValue> : IViewResult<TKey, TValue>
     {
         private readonly Stream? _responseStream;
         private readonly IStreamingTypeDeserializer _deserializer;
@@ -49,12 +52,12 @@ namespace Couchbase.Views
         }
 
         /// <inheritdoc />
-        public IAsyncEnumerable<IViewRow> Rows => this;
+        public IAsyncEnumerable<IViewRow<TKey, TValue>> Rows => this;
 
         public HttpStatusCode StatusCode { get; }
         public string Message { get; }
 
-        /// <inheritdoc />
+        /// <inheritdoc cref="IViewResult{TKey,TValue}.MetaData" />
         public ViewMetaData? MetaData { get; private set; }
 
         /// <summary>
@@ -88,7 +91,7 @@ namespace Couchbase.Views
 
         /// <inheritdoc />
 #pragma warning disable 8425
-        public async IAsyncEnumerator<IViewRow> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public async IAsyncEnumerator<IViewRow<TKey, TValue>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
 #pragma warning restore 8425
         {
             if (_hasReadRows)
@@ -106,7 +109,7 @@ namespace Couchbase.Views
             if (!_hasReadToRows)
             {
                 throw new InvalidOperationException(
-                    $"{nameof(ViewResult)} has not been initialized, call InitializeAsync first");
+                    $"{nameof(ViewResult<TKey, TValue>)} has not been initialized, call InitializeAsync first");
             }
 
             if (_reader == null)
@@ -115,13 +118,13 @@ namespace Couchbase.Views
                 throw new InvalidOperationException("_reader is null");
             }
 
-            await foreach (var row in _reader.ReadTokensAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var row in _reader.ReadObjectsAsync<ViewRowData>(cancellationToken).ConfigureAwait(false))
             {
-                yield return new ViewRow
+                yield return new ViewRow<TKey, TValue>
                 {
-                    Id = row["id"]?.Value<string>(),
-                    KeyToken = row["key"],
-                    ValueToken = row["value"]
+                    Id = row.id,
+                    Key = row.key,
+                    Value = row.value
                 };
             }
 
@@ -236,6 +239,17 @@ namespace Couchbase.Views
             _reader = null;
 
             _responseStream?.Dispose();
+        }
+
+        // ReSharper disable ClassNeverInstantiated.Local
+        // ReSharper disable InconsistentNaming
+        // ReSharper disable UnusedAutoPropertyAccessor.Local
+        // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
+        private class ViewRowData
+        {
+            public string? id { get; set; }
+            [AllowNull] public TKey key { get; set; } = default!;
+            [AllowNull] public TValue value { get; set; } = default!;
         }
     }
 }

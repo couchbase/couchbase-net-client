@@ -8,7 +8,9 @@ namespace Couchbase.Views
     /// <summary>
     /// Represents the results of a View query.
     /// </summary>
-    public interface IViewResult : IDisposable, IAsyncEnumerable<IViewRow>, IServiceResult
+    /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
+    /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+    public interface IViewResult<out TKey, out TValue> : IDisposable, IAsyncEnumerable<IViewRow<TKey, TValue>>, IServiceResult
     {
         /// <summary>
         /// The results of the query as a <see cref="IAsyncEnumerable{T}"/>.
@@ -18,7 +20,7 @@ namespace Couchbase.Views
         /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
         /// ToListAsync can also be used to enumerate with a synchronous foreach loop in C# 7.
         /// </remarks>
-        IAsyncEnumerable<IViewRow> Rows { get; }
+        IAsyncEnumerable<IViewRow<TKey, TValue>> Rows { get; }
 
         /// <summary>
         /// Gets the query meta data.

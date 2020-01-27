@@ -35,16 +35,11 @@ namespace Couchbase.Views
             httpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
-        /// <summary>
-        /// Executes a <see cref="IViewQuery"/> asynchronously against a View.
-        /// </summary>
-        /// <typeparam name="T">The Type parameter of the result returned by the query.</typeparam>
-        /// <param name="query">The <see cref="IViewQuery"/> to execute on.</param>
-        /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        public async Task<IViewResult> ExecuteAsync(IViewQueryable query)
+        /// <inheritdoc />
+        public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQueryable query)
         {
             var uri = query.RawUri();
-            ViewResult viewResult = null;
+            ViewResult<TKey, TValue> viewResult;
 
             var body = query.CreateRequestBody();
             try
@@ -55,7 +50,7 @@ namespace Couchbase.Views
 
                 if (response.IsSuccessStatusCode)
                 {
-                    viewResult = new ViewResult(
+                    viewResult = new ViewResult<TKey, TValue>(
                         response.StatusCode,
                         Success,
                         await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
@@ -66,7 +61,7 @@ namespace Couchbase.Views
                 }
                 else
                 {
-                    viewResult = new ViewResult(
+                    viewResult = new ViewResult<TKey, TValue>(
                         response.StatusCode,
                         await response.Content.ReadAsStringAsync().ConfigureAwait(false),
                         _serializer as IStreamingTypeDeserializer ?? new DefaultSerializer()

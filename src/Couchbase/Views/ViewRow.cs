@@ -1,62 +1,52 @@
 using System;
-using Couchbase.Core.IO.Serializers;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable enable
 
 namespace Couchbase.Views
 {
-    public interface IViewRow
+    /// <summary>
+    /// A row returned by a view query.
+    /// </summary>
+    /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
+    /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+    public interface IViewRow<out TKey, out TValue>
     {
         /// <summary>
-        /// The identifier for the row
+        /// The identifier for the row.
         /// </summary>
         string? Id { get; }
 
         /// <summary>
-        /// The key emitted by the View Map function
+        /// The key emitted by the View Map function.
         /// </summary>
-        TKey Key<TKey>();
+        [AllowNull]
+        TKey Key { get; }
 
         /// <summary>
-        /// The value emitted by the View Map function or if a Reduce view, the value of the Reduce
+        /// The value emitted by the View Map function or if a Reduce view, the value of the Reduce.
         /// </summary>
-        TValue Value<TValue>();
+        [AllowNull]
+        TValue Value { get; }
     }
 
     /// <summary>
-    /// Represents a single row returned from a View request
+    /// A row returned by a view query.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    internal class ViewRow : IViewRow
+    /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
+    /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
+    internal class ViewRow<TKey, TValue> : IViewRow<TKey, TValue>
     {
         /// <inheritdoc />
         public string? Id { get; set; }
 
-        /// <summary>
-        /// Key for the row.
-        /// </summary>
-        public IJsonToken? KeyToken { get; set; }
+        /// <inheritdoc />
+        [AllowNull]
+        public TKey Key { get; set; } = default!;
 
-        /// <summary>
-        /// Value for the row.
-        /// </summary>
-        public IJsonToken? ValueToken { get; set; }
-
-        /// <summary>
-        /// The key emitted by the View Map function
-        /// </summary>
-        public TKey Key<TKey>()
-        {
-            return KeyToken != null ? KeyToken.ToObject<TKey>() : default;
-        }
-
-        /// <summary>
-        /// The value emitted by the View Map function or if a Reduce view, the value of the Reduce
-        /// </summary>
-        public TValue Value<TValue>()
-        {
-            return ValueToken != null ? ValueToken.ToObject<TValue>() : default;
-        }
+        /// <inheritdoc />
+        [AllowNull]
+        public TValue Value { get; set; } = default!;
     }
 }
 
