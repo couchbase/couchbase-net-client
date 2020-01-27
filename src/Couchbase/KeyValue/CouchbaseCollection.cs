@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
@@ -13,6 +12,8 @@ using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.KeyValue
 {
@@ -29,9 +30,9 @@ namespace Couchbase.KeyValue
         internal CouchbaseCollection(BucketBase bucket, ClusterContext context, uint? cid, string name)
         {
             Cid = cid;
-            Name = name;
-            _bucket = bucket;
-            _context = context;
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public uint? Cid { get; }
@@ -42,9 +43,9 @@ namespace Couchbase.KeyValue
 
         #region Get
 
-        public async Task<IGetResult> GetAsync(string id, GetOptions options = null)
+        public async Task<IGetResult> GetAsync(string id, GetOptions? options = null)
         {
-            options = options ?? new GetOptions();
+            options ??= new GetOptions();
             var specs = new List<OperationSpec>();
             if (options.IncludeExpiryValue)
             {
@@ -113,9 +114,9 @@ namespace Couchbase.KeyValue
 
         #region Exists
 
-        public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions options = null)
+        public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null)
         {
-            options = options ?? new ExistsOptions();
+            options ??= new ExistsOptions();
             using (var existsOp = new Observe
             {
                 Key = id,
@@ -149,9 +150,9 @@ namespace Couchbase.KeyValue
 
         #region Upsert
 
-        public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions options = null)
+        public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
         {
-            options = options ?? new UpsertOptions();
+            options ??= new UpsertOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
             using (var upsertOp = new Set<T>
             {
@@ -173,9 +174,9 @@ namespace Couchbase.KeyValue
 
         #region Insert
 
-        public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions options = null)
+        public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions? options = null)
         {
-            options = options ?? new InsertOptions();
+            options ??= new InsertOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
             using (var insertOp = new Add<T>
             {
@@ -197,9 +198,9 @@ namespace Couchbase.KeyValue
 
         #region Replace
 
-        public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions options = null)
+        public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null)
         {
-            options = options ?? new ReplaceOptions();
+            options ??= new ReplaceOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
             using (var replaceOp = new Replace<T>
             {
@@ -222,9 +223,9 @@ namespace Couchbase.KeyValue
 
         #region Remove
 
-        public async Task RemoveAsync(string id, RemoveOptions options = null)
+        public async Task RemoveAsync(string id, RemoveOptions? options = null)
         {
-            options = options ?? new RemoveOptions();
+            options ??= new RemoveOptions();
             using (var removeOp = new Delete
             {
                 Key = id,
@@ -243,9 +244,9 @@ namespace Couchbase.KeyValue
 
         #region Unlock
 
-        public async Task UnlockAsync<T>(string id, ulong cas, UnlockOptions options = null)
+        public async Task UnlockAsync<T>(string id, ulong cas, UnlockOptions? options = null)
         {
-            options = options ?? new UnlockOptions();
+            options ??= new UnlockOptions();
             using (var unlockOp = new Unlock
             {
                 Key = id,
@@ -262,9 +263,9 @@ namespace Couchbase.KeyValue
 
         #region Touch
 
-        public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions options = null)
+        public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
         {
-            options = options ?? new TouchOptions();
+            options ??= new TouchOptions();
             using (var touchOp = new Touch
             {
                 Key = id,
@@ -282,9 +283,9 @@ namespace Couchbase.KeyValue
 
         #region GetAndTouch
 
-        public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions options = null)
+        public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null)
         {
-            options = options ?? new GetAndTouchOptions();
+            options ??= new GetAndTouchOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
             using (var getAndTouchOp = new GetT<byte[]>
             {
@@ -311,9 +312,9 @@ namespace Couchbase.KeyValue
 
         #region GetAndLock
 
-        public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan lockTime, GetAndLockOptions options = null)
+        public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan lockTime, GetAndLockOptions? options = null)
         {
-            options = options ?? new GetAndLockOptions();
+            options ??= new GetAndLockOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
             using (var getAndLockOp = new GetL<byte[]>
             {
@@ -339,9 +340,9 @@ namespace Couchbase.KeyValue
 
         #region LookupIn
 
-        public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<OperationSpec> specs, LookupInOptions options = null)
+        public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<OperationSpec> specs, LookupInOptions? options = null)
         {
-            options = options ?? new LookupInOptions();
+            options ??= new LookupInOptions();
             using (var lookup = await ExecuteLookupIn(id, specs, options))
             {
                 return new LookupInResult(lookup.ExtractData(), lookup.Cas, null);
@@ -375,9 +376,9 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
-        public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions options = null)
+        public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions? options = null)
         {
-            options = options ?? new MutateInOptions();
+            options ??= new MutateInOptions();
             // convert new style specs into old style builder
             var builder = new MutateInBuilder<byte[]>(null, null, id, specs);
 
@@ -416,9 +417,9 @@ namespace Couchbase.KeyValue
 
         #region Append
 
-        public async Task<IMutationResult> AppendAsync(string id, byte[] value, AppendOptions options = null)
+        public async Task<IMutationResult> AppendAsync(string id, byte[] value, AppendOptions? options = null)
         {
-            options = options ?? new AppendOptions();
+            options ??= new AppendOptions();
             using (var op = new Append<byte[]>
             {
                 Cid = Cid,
@@ -437,9 +438,9 @@ namespace Couchbase.KeyValue
 
         #region Prepend
 
-        public async Task<IMutationResult> PrependAsync(string id, byte[] value, PrependOptions options = null)
+        public async Task<IMutationResult> PrependAsync(string id, byte[] value, PrependOptions? options = null)
         {
-            options = options ?? new PrependOptions();
+            options ??= new PrependOptions();
             using (var op = new Prepend<byte[]>
             {
                 Cid = Cid,
@@ -458,9 +459,9 @@ namespace Couchbase.KeyValue
 
         #region Increment
 
-        public async Task<ICounterResult> IncrementAsync(string id, IncrementOptions options = null)
+        public async Task<ICounterResult> IncrementAsync(string id, IncrementOptions? options = null)
         {
-            options = options ?? new IncrementOptions();
+            options ??= new IncrementOptions();
             using (var op = new Increment
             {
                 Cid = Cid,
@@ -480,9 +481,9 @@ namespace Couchbase.KeyValue
 
         #region Decrement
 
-        public async Task<ICounterResult> DecrementAsync(string id, DecrementOptions options = null)
+        public async Task<ICounterResult> DecrementAsync(string id, DecrementOptions? options = null)
         {
-            options = options ?? new DecrementOptions();
+            options ??= new DecrementOptions();
             using (var op = new Decrement
             {
                 Cid = Cid,
@@ -502,10 +503,10 @@ namespace Couchbase.KeyValue
 
         #region GetAnyReplica / GetAllReplicas
 
-        public async Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions options = null)
+        public async Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions? options = null)
         {
-            options = options ?? new GetAnyReplicaOptions();
-            var vBucket = (VBucket) _bucket.KeyMapper.MapKey(id);
+            options ??= new GetAnyReplicaOptions();
+            var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
             if (!vBucket.HasReplicas)
             {
                 Log.LogWarning($"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
@@ -524,10 +525,10 @@ namespace Couchbase.KeyValue
             return await Task.WhenAny(tasks).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
-        public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions options = null)
+        public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null)
         {
-            options = options ?? new GetAllReplicasOptions();
-            var vBucket = (VBucket) _bucket.KeyMapper.MapKey(id);
+            options ??= new GetAllReplicasOptions();
+            var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
             if (!vBucket.HasReplicas)
             {
                 Log.LogWarning($"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");

@@ -1,7 +1,4 @@
 using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -9,7 +6,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
-
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
@@ -17,6 +13,8 @@ using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase
 {
@@ -31,6 +29,7 @@ namespace Couchbase
         }
 
         internal MemcachedBucket(string name, ClusterContext context, HttpClusterMapBase httpClusterMap)
+            : base(name, context)
         {
             Name = name;
             _httpClusterMap = httpClusterMap;
@@ -51,7 +50,7 @@ namespace Couchbase
         }
 
         /// <inheritdoc />
-        public  override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = default)
+        public  override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = default)
         {
             throw new NotSupportedException("Views are not supported by Memcached Buckets.");
         }
@@ -62,7 +61,7 @@ namespace Couchbase
 
         internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
         {
-            if (e.Config.Name == Name && e.Config.Rev > BucketConfig.Rev)
+            if (e.Config.Name == Name && (BucketConfig ==  null || e.Config.Rev > BucketConfig.Rev))
             {
                 BucketConfig = e.Config;
                 KeyMapper = new KetamaKeyMapper(BucketConfig, Context.ClusterOptions);
@@ -76,6 +75,11 @@ namespace Couchbase
 
         internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
         {
+            if (KeyMapper == null)
+            {
+                throw new InvalidOperationException("Bucket is not bootstrapped.");
+            }
+
             var bucket = KeyMapper.MapKey(op.Key);
             var endPoint = bucket.LocatePrimary();
 

@@ -4,6 +4,8 @@ using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
 using Couchbase.Views;
 
+#nullable enable
+
 namespace Couchbase
 {
     public static class BucketExtensions

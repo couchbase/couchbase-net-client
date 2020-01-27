@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.KeyValue
 {
@@ -12,12 +15,13 @@ namespace Couchbase.KeyValue
         private static readonly ILogger Log =  LogManager.CreateLogger<Scope>();
         private readonly IBucket _bucket;
         private readonly ConcurrentDictionary<string, ICollection> _collections;
+
         internal Scope(string name,  string id, IEnumerable<ICollection> collections, IBucket bucket)
         {
-            Name = name;
-            Id = id;
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Id = id ?? throw new ArgumentNullException(nameof(id));
             _collections = new ConcurrentDictionary<string, ICollection>(collections.ToDictionary(x => x.Name, v => v));
-            _bucket = bucket;
+            _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
         }
 
         public string Id { get; }

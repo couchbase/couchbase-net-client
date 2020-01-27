@@ -252,6 +252,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             private ITestOutputHelper _output;
 
             public FakeBucket(ITestOutputHelper output,  SemaphoreSlim eventSlim)
+                : base("fake", new ClusterContext())
             {
                 _output = output;
                 _event = eventSlim;

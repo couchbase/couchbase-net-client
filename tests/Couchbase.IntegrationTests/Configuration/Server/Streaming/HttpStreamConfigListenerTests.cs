@@ -57,6 +57,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             private readonly AutoResetEvent _event;
 
             public FakeBucket(AutoResetEvent @event)
+                : base("fake", new ClusterContext())
             {
                 _event = @event;
             }

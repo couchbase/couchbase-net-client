@@ -1,5 +1,4 @@
 using System;
-using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
@@ -7,6 +6,8 @@ using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
 using PingOptions = Couchbase.Diagnostics.PingOptions;
+
+#nullable enable
 
 namespace Couchbase
 {
@@ -32,12 +33,12 @@ namespace Couchbase
         /// <param name="viewName">View name.</param>
         /// <param name="options"><seealso cref="ViewOptions"/> controlling query execution.</param>
         /// <returns>An <seealso cref="IViewResult{TKey,TValue}"/>.</returns>
-        Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null);
+        Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null);
 
         IViewIndexManager ViewIndexes { get; }
 
         ICollectionManager Collections { get; }
 
-        Task<IPingReport> PingAsync(PingOptions options = null);
+        Task<IPingReport> PingAsync(PingOptions? options = null);
     }
 }

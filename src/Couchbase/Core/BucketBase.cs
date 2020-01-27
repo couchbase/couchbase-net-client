@@ -15,6 +15,8 @@ using Couchbase.Management.Views;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Core
 {
     internal abstract class BucketBase : IBucket
@@ -23,11 +25,17 @@ namespace Couchbase.Core
         private static readonly ILogger Log = LogManager.CreateLogger<BucketBase>();
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
 
-        public ClusterContext Context;
-        public BucketConfig BucketConfig;
-        protected Manifest Manifest;
-        internal IKeyMapper KeyMapper;
-        protected bool Disposed;
+        protected BucketBase(string name, ClusterContext context)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Context = context ?? throw new ArgumentNullException(nameof(context));
+        }
+
+        public ClusterContext Context { get; }
+        public BucketConfig? BucketConfig { get; protected set; }
+        protected Manifest? Manifest { get; set; }
+        public IKeyMapper? KeyMapper { get; protected set; }
+        protected bool Disposed { get; private set; }
 
         public BucketType BucketType { get; protected set; }
 
@@ -53,13 +61,13 @@ namespace Couchbase.Core
 
         /// <inheritdoc />
         public abstract Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName,
-            ViewOptions options = default);
+            ViewOptions? options = default);
 
         public abstract IViewIndexManager ViewIndexes { get; }
 
         public abstract ICollectionManager Collections { get; }
 
-        public Task<IPingReport> PingAsync(PingOptions options = null)
+        public Task<IPingReport> PingAsync(PingOptions? options = null)
         {
             options ??= new PingOptions();
             return Task.Run(()=> DiagnosticsReportProvider.CreatePingReport(Context, BucketConfig, options));
@@ -74,7 +82,7 @@ namespace Couchbase.Core
         protected void LoadManifest()
         {
             //The server supports collections so build them from the manifest
-            if (Context.SupportsCollections)
+            if (Context.SupportsCollections && Manifest != null)
             {
                 //warmup the scopes/collections and cache them
                 foreach (var scopeDef in Manifest.scopes)

@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.DataStructures;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     public static class CollectionExtensions

@@ -165,6 +165,7 @@ namespace Couchbase.UnitTests
         {
             private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
             public FakeBucket(params ResponseStatus[] statuses)
+                : base("fake", new ClusterContext())
             {
                 foreach (var responseStatuse in statuses)
                 {

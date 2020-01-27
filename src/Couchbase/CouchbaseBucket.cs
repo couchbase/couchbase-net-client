@@ -6,7 +6,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
@@ -15,6 +14,8 @@ using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase
 {
@@ -26,10 +27,8 @@ namespace Couchbase
         private readonly Lazy<ICollectionManager> _collectionManagerLazy;
 
         internal CouchbaseBucket(string name, ClusterContext context)
+            : base(name, context)
         {
-            Name = name;
-            Context = context;
-
             var httpClient = new CouchbaseHttpClient(Context);
             _viewClientLazy = new Lazy<IViewClient>(() =>
                 new ViewClient(httpClient, new JsonDataMapper(Context.ClusterOptions.JsonSerializer), Context)
@@ -66,7 +65,7 @@ namespace Couchbase
 
         internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
         {
-            if (e.Config.Name == Name && e.Config.Rev > BucketConfig.Rev)
+            if (e.Config.Name == Name && (BucketConfig == null || e.Config.Rev > BucketConfig.Rev))
             {
                 BucketConfig = e.Config;
                 if (BucketConfig.VBucketMapChanged)
@@ -84,7 +83,7 @@ namespace Couchbase
         private Uri GetViewUri()
         {
             var clusterNode = Context.GetRandomNodeForService(ServiceType.Views, Name);
-            if (clusterNode == null)
+            if (clusterNode?.ViewsUri == null)
             {
                 throw new ServiceMissingException("Views Service cannot be located.");
             }
@@ -92,7 +91,7 @@ namespace Couchbase
         }
 
         /// <inheritdoc />
-        public override async Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null)
+        public override async Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions? options = null)
         {
             options ??= new ViewOptions();
             // create old style query
@@ -167,6 +166,11 @@ namespace Couchbase
 
         internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
         {
+            if (KeyMapper == null)
+            {
+                throw new InvalidOperationException("Bucket is not bootstrapped.");
+            }
+
             var vBucket = (VBucket) KeyMapper.MapKey(op.Key);
             var endPoint = op.VBucketId.HasValue ?
                 vBucket.LocateReplica(op.VBucketId.Value) :
