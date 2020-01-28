@@ -10,7 +10,7 @@ namespace Couchbase.UnitTests.Core.Logging
 {
     public class LogManagerTests
     {
-        [Fact]
+        [Fact(Skip = "Skip due to known design flaw, see NCBC-2324")]
         public void Test_LogLevel_Debug()
         {
             //arrange

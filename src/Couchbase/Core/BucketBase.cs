@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
@@ -22,15 +21,16 @@ namespace Couchbase.Core
     internal abstract class BucketBase : IBucket
     {
         internal const string DefaultScopeName = "_default";
-        private static readonly ILogger Log = LogManager.CreateLogger<BucketBase>();
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
 
-        protected BucketBase(string name, ClusterContext context)
+        protected BucketBase(string name, ClusterContext context, ILogger logger)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        public ILogger Logger { get; }
         public ClusterContext Context { get; }
         public BucketConfig? BucketConfig { get; protected set; }
         protected Manifest? Manifest { get; set; }

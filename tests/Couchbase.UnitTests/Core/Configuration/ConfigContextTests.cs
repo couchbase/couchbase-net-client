@@ -10,6 +10,8 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -252,7 +254,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             private ITestOutputHelper _output;
 
             public FakeBucket(ITestOutputHelper output,  SemaphoreSlim eventSlim)
-                : base("fake", new ClusterContext())
+                : base("fake", new ClusterContext(), new Mock<ILogger>().Object)
             {
                 _output = output;
                 _event = eventSlim;

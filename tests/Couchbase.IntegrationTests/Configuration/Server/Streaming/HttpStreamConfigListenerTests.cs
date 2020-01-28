@@ -13,6 +13,8 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
@@ -57,7 +59,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             private readonly AutoResetEvent _event;
 
             public FakeBucket(AutoResetEvent @event)
-                : base("fake", new ClusterContext())
+                : base("fake", new ClusterContext(), new Mock<ILogger>().Object)
             {
                 _event = @event;
             }

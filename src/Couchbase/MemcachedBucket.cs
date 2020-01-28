@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -20,16 +21,15 @@ namespace Couchbase
 {
     internal class MemcachedBucket : BucketBase
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<MemcachedBucket>();
         private readonly HttpClusterMapBase _httpClusterMap;
 
-        internal MemcachedBucket(string name, ClusterContext context) :
-            this(name, context, new HttpClusterMap(new CouchbaseHttpClient(context), context))
+        internal MemcachedBucket(string name, ClusterContext context, ILogger<MemcachedBucket> logger) :
+            this(name, context, logger, new HttpClusterMap(new CouchbaseHttpClient(context), context))
         {
         }
 
-        internal MemcachedBucket(string name, ClusterContext context, HttpClusterMapBase httpClusterMap)
-            : base(name, context)
+        internal MemcachedBucket(string name, ClusterContext context, ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap)
+            : base(name, context, logger)
         {
             Name = name;
             _httpClusterMap = httpClusterMap;
@@ -39,7 +39,7 @@ namespace Couchbase
         {
             get
             {
-                Log.LogDebug("Fetching scope {0}", name);
+                Logger.LogDebug("Fetching scope {0}", name);
 
                 if (name == DefaultScopeName)
                     if (Scopes.TryGetValue(name, out var scope))

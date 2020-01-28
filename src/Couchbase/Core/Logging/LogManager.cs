@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Couchbase.Core.Logging
 {
@@ -7,7 +8,7 @@ namespace Couchbase.Core.Logging
     {
         public static RedactionLevel RedactionLevel = RedactionLevel.None;
 
-        public static ILoggerFactory LoggerFactory { get; set; } = new LoggerFactory();
+        public static ILoggerFactory LoggerFactory { get; set; } = new NullLoggerFactory();
 
         public static ILogger CreateLogger<T>() => LoggerFactory.CreateLogger<T>();
 

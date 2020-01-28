@@ -95,10 +95,7 @@ namespace Couchbase
             //configure a null logger as the default
             if (loggerFactory == null)
             {
-                LogManager.LoggerFactory = new LoggerFactory(new[]
-                {
-                    NullLoggerProvider.Instance
-                });
+                LogManager.LoggerFactory = new NullLoggerFactory();
                 return this;
             }
 

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Logging;
+using Couchbase.Core.DI;
 using Couchbase.Diagnostics;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Retry.Query;
@@ -27,7 +27,7 @@ namespace Couchbase
 {
     public class Cluster : ICluster
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<Cluster>();
+        private readonly ILogger<Cluster> _logger;
         private readonly object _syncObject = new object();
         private bool _disposed;
         private readonly ClusterContext _context;
@@ -72,6 +72,8 @@ namespace Couchbase
             LazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_context));
             LazyUserManager = new Lazy<IUserManager>(() => new UserManager(_context));
             LazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
+
+            _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
         }
 
         public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
@@ -114,7 +116,7 @@ namespace Couchbase
             catch (AuthenticationFailureException e)
             {
                 //auth failed so bubble up exception and clean up resources
-                Log.LogError(e, @"Could not authenticate user {_clusterOptions.UserName}");
+                _logger.LogError(e, @"Could not authenticate user {_clusterOptions.UserName}");
 
                 _context.RemoveNodes();
                 throw;

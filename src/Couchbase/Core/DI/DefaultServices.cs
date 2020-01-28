@@ -19,6 +19,7 @@ namespace Couchbase.Core.DI
         {
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
+            yield return (typeof(IBucketFactory), new SingletonServiceFactory(typeof(BucketFactory)));
         }
     }
 }

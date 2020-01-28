@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.KeyValue;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -12,7 +14,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task Scope_Indexer_NotFound_Throws_ScopeMissingException()
         {
-            var bucket = new CouchbaseBucket("default", new ClusterContext());
+            var bucket = new CouchbaseBucket("default", new ClusterContext(), new Mock<ILogger<CouchbaseBucket>>().Object);
 
             await Assert.ThrowsAsync<ScopeMissingException>(() =>
             {
@@ -24,7 +26,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task Scope_NotFound_Throws_ScopeMissingException( )
         {
-            var bucket = new CouchbaseBucket("default", new ClusterContext());
+            var bucket = new CouchbaseBucket("default", new ClusterContext(), new Mock<ILogger<CouchbaseBucket>>().Object);
 
             await Assert.ThrowsAsync<ScopeMissingException>(() =>
             {

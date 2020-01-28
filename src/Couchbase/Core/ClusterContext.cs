@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
@@ -296,19 +297,8 @@ namespace Couchbase.Core
                 AddNode(node);
             }
 
-            BucketBase bucket = null;
-            switch (type)
-            {
-                case BucketType.Couchbase:
-                case BucketType.Ephemeral:
-                    bucket = new CouchbaseBucket(name, this);
-                    break;
-                case BucketType.Memcached:
-                    bucket = new MemcachedBucket(name, this);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-            }
+            var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
+            var bucket = bucketFactory.Create(name, type);
 
             try
             {

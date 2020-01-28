@@ -20,6 +20,7 @@ using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -79,7 +80,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
         private async Task AssertRetryAsync(IOperation op, Exception exp)
         {
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext());
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
@@ -99,7 +100,7 @@ namespace Couchbase.UnitTests.Core.Retry
         private async Task Operation_Succeeds_Without_Retry()
         {
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext());
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>()))
                 .Returns(Task.CompletedTask);
 
@@ -121,7 +122,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
         private async Task AssertDoesNotRetryAsync(IOperation op, Exception exp)
         {
-            var bucketMock = new Mock<BucketBase>("name", new ClusterContext());
+            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();

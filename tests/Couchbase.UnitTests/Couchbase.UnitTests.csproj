@@ -34,9 +34,10 @@
   </ItemGroup>
 
   <ItemGroup>
-      <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.0" />
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.0" />
-      <PackageReference Include="Moq" Version="4.10.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.0" />
+    <PackageReference Include="Moq" Version="4.10.0" />
     <PackageReference Include="Serilog.Extensions.Logging.File" Version="1.1.0" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0">

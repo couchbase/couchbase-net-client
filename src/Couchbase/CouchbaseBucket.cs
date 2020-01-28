@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -21,13 +22,12 @@ namespace Couchbase
 {
     internal class CouchbaseBucket : BucketBase
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseBucket>();
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewIndexManager> _viewManagerLazy;
         private readonly Lazy<ICollectionManager> _collectionManagerLazy;
 
-        internal CouchbaseBucket(string name, ClusterContext context)
-            : base(name, context)
+        internal CouchbaseBucket(string name, ClusterContext context, ILogger<CouchbaseBucket> logger)
+            : base(name, context, logger)
         {
             var httpClient = new CouchbaseHttpClient(Context);
             _viewClientLazy = new Lazy<IViewClient>(() =>
@@ -44,7 +44,7 @@ namespace Couchbase
         {
             get
             {
-                Log.LogDebug("Fetching scope {0}", name);
+                Logger.LogDebug("Fetching scope {0}", name);
 
                 if (Scopes.TryGetValue(name, out var scope))
                 {
