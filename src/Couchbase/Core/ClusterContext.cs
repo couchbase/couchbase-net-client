@@ -38,11 +38,21 @@ namespace Couchbase.Core
             ClusterOptions = options;
             _tokenSource = tokenSource;
             _configHandler = new ConfigHandler(this);//TODO make injectable
+
+            // Register this instance of ClusterContext
+            options.AddSingletonService(this);
+
+            ServiceProvider = options.BuildServiceProvider();
         }
 
         internal ConcurrentDictionary<IPEndPoint, IClusterNode> Nodes { get; set; } = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
 
         public ClusterOptions ClusterOptions { get; }
+
+        /// <summary>
+        /// <seealso cref="IServiceProvider"/> for dependency injection within the context of this cluster.
+        /// </summary>
+        public IServiceProvider ServiceProvider { get; }
 
         public BucketConfig GlobalConfig { get; set; }
 

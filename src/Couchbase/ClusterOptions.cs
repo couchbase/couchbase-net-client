@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -102,6 +103,10 @@ namespace Couchbase
             }
 
             LogManager.LoggerFactory = loggerFactory;
+
+            // TODO: Eliminate LogManager, only use DI for logging
+            AddSingletonService(loggerFactory);
+
             return this;
         }
 
@@ -170,6 +175,29 @@ namespace Couchbase
 
             return ConnectionStringValue.Hosts.Single().IndexOf(":") == -1;
         }
+
+        #region DI
+
+        private readonly IDictionary<Type, IServiceFactory> _services = DefaultServices.GetDefaultServices();
+
+        /// <summary>
+        /// Build a <see cref="IServiceProvider"/> from the currently registered services.
+        /// </summary>
+        /// <returns>The new <see cref="IServiceProvider"/>.</returns>
+        internal IServiceProvider BuildServiceProvider() =>
+            new CouchbaseServiceProvider(_services);
+
+        internal void AddTransientService<T>(Func<IServiceProvider, T> factory)
+        {
+            _services[typeof(T)] = new LambdaServiceFactory(serviceProvider => factory(serviceProvider));
+        }
+
+        internal void AddSingletonService<T>(T singleton)
+        {
+            _services[typeof(T)] = new SingletonServiceFactory(singleton);
+        }
+
+        #endregion
     }
 
     public static class NetworkTypes
