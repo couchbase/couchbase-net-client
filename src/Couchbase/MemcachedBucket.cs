@@ -4,10 +4,9 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
-using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
@@ -23,13 +22,14 @@ namespace Couchbase
     {
         private readonly HttpClusterMapBase _httpClusterMap;
 
-        internal MemcachedBucket(string name, ClusterContext context, ILogger<MemcachedBucket> logger) :
-            this(name, context, logger, new HttpClusterMap(new CouchbaseHttpClient(context), context))
+        internal MemcachedBucket(string name, ClusterContext context, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger) :
+            this(name, context, retryOrchestrator, logger, new HttpClusterMap(new CouchbaseHttpClient(context), context))
         {
         }
 
-        internal MemcachedBucket(string name, ClusterContext context, ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap)
-            : base(name, context, logger)
+        internal MemcachedBucket(string name, ClusterContext context, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger,
+            HttpClusterMapBase httpClusterMap)
+            : base(name, context, retryOrchestrator, logger)
         {
             Name = name;
             _httpClusterMap = httpClusterMap;

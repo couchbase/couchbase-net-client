@@ -10,11 +10,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Retry
 {
-    internal static class RetryOrchestrator
+    internal class RetryOrchestrator : IRetryOrchestrator
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<BucketBase>();
+        private readonly ILogger<RetryOrchestrator> _logger;
 
-        internal static async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
+        public RetryOrchestrator(ILogger<RetryOrchestrator> logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
         {
             var token = request.Token;
             if (token == CancellationToken.None)
@@ -47,7 +52,7 @@ namespace Couchbase.Core.Retry
 
                     if (reason.AlwaysRetry())
                     {
-                        Log.LogDebug(
+                        _logger.LogDebug(
                             $"Retrying query {request.ClientContextId}/{request.Statement} because {reason}.");
 
                         await backoff.Delay(request).ConfigureAwait(false);
@@ -59,17 +64,17 @@ namespace Couchbase.Core.Retry
                     var action = strategy.RetryAfter(request, reason);
                     if (action.Retry)
                     {
-                        Log.LogDebug(LoggingEvents.QueryEvent,
+                        _logger.LogDebug(LoggingEvents.QueryEvent,
                             $"Retrying query {request.ClientContextId}/{request.Statement} because {reason}.");
 
                         var duration = action.DurationValue;
                         if (duration.HasValue)
                         {
-                            Log.LogDebug($"Timeout for {request.ClientContextId} is {request.Timeout.TotalMilliseconds} and duration is {duration.Value.TotalMilliseconds} and elasped is {stopwatch.ElapsedMilliseconds}");
+                            _logger.LogDebug($"Timeout for {request.ClientContextId} is {request.Timeout.TotalMilliseconds} and duration is {duration.Value.TotalMilliseconds} and elasped is {stopwatch.ElapsedMilliseconds}");
                             var cappedDuration =
                                 request.Timeout.CappedDuration(duration.Value, stopwatch.Elapsed);
 
-                            Log.LogDebug($"Timeout for {request.ClientContextId} capped duration is {cappedDuration.TotalMilliseconds} and elasped is {stopwatch.ElapsedMilliseconds}");
+                            _logger.LogDebug($"Timeout for {request.ClientContextId} capped duration is {cappedDuration.TotalMilliseconds} and elasped is {stopwatch.ElapsedMilliseconds}");
                             await Task.Delay(cappedDuration,
                                 CancellationTokenSource.CreateLinkedTokenSource(token).Token).ConfigureAwait(false);
                             request.IncrementAttempts(reason);
@@ -99,7 +104,7 @@ namespace Couchbase.Core.Retry
                 }
                 catch (TaskCanceledException _)
                 {
-                    Log.LogDebug($"Request was canceled after {stopwatch.ElapsedMilliseconds}.");
+                    _logger.LogDebug($"Request was canceled after {stopwatch.ElapsedMilliseconds}.");
                     //timed out while waiting
                     if (request.Idempotent)
                     {
@@ -111,7 +116,7 @@ namespace Couchbase.Core.Retry
             } while (true);
         }
 
-        internal static async Task RetryAsync(this BucketBase bucket, IOperation operation, CancellationToken token = default,
+        public async Task RetryAsync(BucketBase bucket, IOperation operation, CancellationToken token = default,
             TimeSpan? timeout = null)
         {
             try
@@ -134,7 +139,7 @@ namespace Couchbase.Core.Retry
                             {
                                 if (token.IsCancellationRequested) token.ThrowIfCancellationRequested();
 
-                                Log.LogDebug($"Retrying op {operation.Opaque}/{operation.Key} because {reason}.");
+                                _logger.LogDebug($"Retrying op {operation.Opaque}/{operation.Key} because {reason}.");
                                 await backoff.Delay(operation).ConfigureAwait(false);
                                 continue;
                             }
@@ -144,7 +149,7 @@ namespace Couchbase.Core.Retry
 
                             if (action.DurationValue.HasValue)
                             {
-                                Log.LogDebug($"Retrying op {operation.Opaque}/{operation.Key} because {reason}.");
+                                _logger.LogDebug($"Retrying op {operation.Opaque}/{operation.Key} because {reason}.");
                                 await Task.Delay(action.DurationValue.Value, token).ConfigureAwait(false);
                             }
                             else
@@ -163,12 +168,12 @@ namespace Couchbase.Core.Retry
             catch (OperationCanceledException) { ThrowTimeoutException(operation, timeout); }
         }
 
-        public static void ThrowTimeoutException(TimeSpan? timeout)
+        private static void ThrowTimeoutException(TimeSpan? timeout)
         {
             throw new TimeoutException($"The query timed out after {timeout}.");
         }
 
-        public static void ThrowTimeoutException(IOperation operation, TimeSpan? timeout)
+        private static void ThrowTimeoutException(IOperation operation, TimeSpan? timeout)
         {
             throw new TimeoutException(
                 $"The operation {operation.Opaque}/{operation.Opaque} timed out after {timeout}. " +

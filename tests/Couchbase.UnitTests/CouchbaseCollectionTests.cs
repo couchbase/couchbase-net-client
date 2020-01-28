@@ -8,6 +8,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
@@ -166,7 +167,7 @@ namespace Couchbase.UnitTests
         {
             private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
             public FakeBucket(params ResponseStatus[] statuses)
-                : base("fake", new ClusterContext(), new Mock<ILogger>().Object)
+                : base("fake", new ClusterContext(), new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
             {
                 foreach (var responseStatuse in statuses)
                 {

@@ -28,6 +28,7 @@ namespace Couchbase
     public class Cluster : ICluster
     {
         private readonly ILogger<Cluster> _logger;
+        private readonly IRetryOrchestrator _retryOrchestrator;
         private readonly object _syncObject = new object();
         private bool _disposed;
         private readonly ClusterContext _context;
@@ -74,6 +75,7 @@ namespace Couchbase
             LazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
+            _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
         }
 
         public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
@@ -191,7 +193,7 @@ namespace Couchbase
                 return await client1.QueryAsync<T>(statement1, options1).ConfigureAwait(false);
             }
 
-            return await RetryOrchestrator.RetryAsync(Func, new QueryRequest
+            return await _retryOrchestrator.RetryAsync(Func, new QueryRequest
             {
                 Options = options,
                 Statement = statement,
@@ -227,7 +229,7 @@ namespace Couchbase
                 return await client1.QueryAsync<T>(query1, options1.Token).ConfigureAwait(false);
             }
 
-            return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
+            return await _retryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
         #endregion
@@ -256,7 +258,7 @@ namespace Couchbase
                 return await client1.QueryAsync(request1, request1.Token).ConfigureAwait(false);
             }
 
-            return await RetryOrchestrator.RetryAsync(Func, searchRequest).ConfigureAwait(false);
+            return await _retryOrchestrator.RetryAsync(Func, searchRequest).ConfigureAwait(false);
         }
 
         #endregion

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -19,7 +20,9 @@ namespace Couchbase.Core.DI
         {
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
+
             yield return (typeof(IBucketFactory), new SingletonServiceFactory(typeof(BucketFactory)));
+            yield return (typeof(IRetryOrchestrator), new SingletonServiceFactory(typeof(RetryOrchestrator)));
         }
     }
 }

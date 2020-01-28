@@ -1,5 +1,6 @@
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
@@ -24,19 +25,21 @@ namespace Couchbase.Core
         internal const string DefaultScopeName = "_default";
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
 
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable. 
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
-        protected BucketBase(string name, ClusterContext context, ILogger logger)
+        protected BucketBase(string name, ClusterContext context, IRetryOrchestrator retryOrchestrator, ILogger logger)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
+            RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public ILogger Logger { get; }
         public ClusterContext Context { get; }
+        public IRetryOrchestrator RetryOrchestrator { get; }
         public BucketConfig? BucketConfig { get; protected set; }
         protected Manifest? Manifest { get; set; }
         public IKeyMapper? KeyMapper { get; protected set; }
@@ -143,6 +146,9 @@ namespace Couchbase.Core
                 Scopes.TryAdd("_default", new Scope("_default", "0", collections, this));
             }
         }
+
+        public Task RetryAsync(IOperation operation, CancellationToken token = default, TimeSpan? timeout = null) =>
+            RetryOrchestrator.RetryAsync(this, operation, token, timeout);
 
         internal void CaptureException(Exception e)
         {

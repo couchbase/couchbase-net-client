@@ -4,10 +4,8 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
@@ -27,8 +25,8 @@ namespace Couchbase
         private readonly Lazy<IViewIndexManager> _viewManagerLazy;
         private readonly Lazy<ICollectionManager> _collectionManagerLazy;
 
-        internal CouchbaseBucket(string name, ClusterContext context, ILogger<CouchbaseBucket> logger)
-            : base(name, context, logger)
+        internal CouchbaseBucket(string name, ClusterContext context, IRetryOrchestrator retryOrchestrator, ILogger<CouchbaseBucket> logger)
+            : base(name, context, retryOrchestrator, logger)
         {
             var httpClient = new CouchbaseHttpClient(Context);
             _viewClientLazy = new Lazy<IViewClient>(() =>

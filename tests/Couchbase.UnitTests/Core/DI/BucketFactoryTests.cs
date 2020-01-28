@@ -1,6 +1,7 @@
 using System;
 using Couchbase.Core;
 using Couchbase.Core.DI;
+using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -22,6 +23,7 @@ namespace Couchbase.UnitTests.Core.DI
 
             var bucketFactory = new BucketFactory(
                 new ClusterContext(),
+                new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);
 
@@ -42,6 +44,7 @@ namespace Couchbase.UnitTests.Core.DI
 
             var bucketFactory = new BucketFactory(
                 new ClusterContext(),
+                new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);
 

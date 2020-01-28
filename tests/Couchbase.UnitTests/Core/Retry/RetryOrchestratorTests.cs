@@ -80,13 +80,15 @@ namespace Couchbase.UnitTests.Core.Retry
 
         private async Task AssertRetryAsync(IOperation op, Exception exp)
         {
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<ILogger>().Object);
+            var retryOrchestrator = CreateRetryOrchestrator();
+
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), retryOrchestrator, new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
             try
             {
-                await RetryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token,
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token,
                     TimeSpan.FromMilliseconds(2500));
             }
             catch (Exception e)
@@ -99,15 +101,17 @@ namespace Couchbase.UnitTests.Core.Retry
         [Fact]
         private async Task Operation_Succeeds_Without_Retry()
         {
+            var retryOrchestrator = CreateRetryOrchestrator();
+
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<ILogger>().Object);
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), retryOrchestrator, new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>()))
                 .Returns(Task.CompletedTask);
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
 
-            await RetryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token,
+            await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token,
                 TimeSpan.FromMilliseconds(2500));
 
             Assert.Equal(1u, op.Attempts);
@@ -122,7 +126,9 @@ namespace Couchbase.UnitTests.Core.Retry
 
         private async Task AssertDoesNotRetryAsync(IOperation op, Exception exp)
         {
-            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<ILogger>().Object);
+            var retryOrchestrator = CreateRetryOrchestrator();
+
+            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), retryOrchestrator, new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
@@ -147,7 +153,7 @@ namespace Couchbase.UnitTests.Core.Retry
         }
 
         [Fact(Skip = "Test incomplete")]
-        public async Task Add_DoesNot_Retry_When_KeyExists()
+        public void Add_DoesNot_Retry_When_KeyExists()
         {
             var op = new Add<dynamic> { RetryStrategy = new BestEffortRetryStrategy() };
         }
@@ -158,6 +164,8 @@ namespace Couchbase.UnitTests.Core.Retry
         [InlineData("query-error.json", HttpStatusCode.OK, null)]
         public async Task Test_Search(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
+            var retryOrchestrator = CreateRetryOrchestrator();
+
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Search\" + file);
             var buffer = new byte[response.Length];
             response.Read(buffer, 0, buffer.Length);
@@ -184,7 +192,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 return await client1.QueryAsync(searchRequest, cts.Token);
             }
 
-            await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, searchRequest));
+            await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, searchRequest));
         }
 
         [Theory]
@@ -193,6 +201,8 @@ namespace Couchbase.UnitTests.Core.Retry
         [InlineData("404-view-notfound.json", HttpStatusCode.NotFound, typeof(ViewNotFoundException))]
         public async Task Test_Views(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
+            var retryOrchestrator = CreateRetryOrchestrator();
+
             using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Views\" + file))
             {
                 var buffer = new byte[response.Length];
@@ -215,7 +225,7 @@ namespace Couchbase.UnitTests.Core.Retry
                     return await client1.ExecuteAsync<dynamic, dynamic>(viewQuery);
                 }
 
-                await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, viewQuery));
+                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, viewQuery));
             }
         }
 
@@ -231,6 +241,8 @@ namespace Couchbase.UnitTests.Core.Retry
         [InlineData("timeout.json", HttpStatusCode.RequestTimeout, typeof(AmbiguousTimeoutException), false)]
         public async Task Test_Analytics(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly)
         {
+            var retryOrchestrator = CreateRetryOrchestrator();
+
             using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file))
             {
                 var buffer = new byte[response.Length];
@@ -263,7 +275,7 @@ namespace Couchbase.UnitTests.Core.Retry
                     return await client1.QueryAsync<dynamic>(query, options.Token);
                 }
 
-                await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Send, query));
+                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, query));
             }
         }
 
@@ -278,6 +290,8 @@ namespace Couchbase.UnitTests.Core.Retry
         [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(InternalServerFailureException), false, false)]
         public async Task Test_Query(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly, bool canRetry)
         {
+            var retryOrchestrator = CreateRetryOrchestrator();
+
             using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file))
             {
                 var buffer = new byte[response.Length];
@@ -308,7 +322,7 @@ namespace Couchbase.UnitTests.Core.Retry
                     return await client1.QueryAsync<dynamic>(request.Statement, queryOptions);
                 }
 
-                var e = await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, request));
+                var e = await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Func, request));
 
                 if (e != null)
                 {
@@ -361,5 +375,8 @@ namespace Couchbase.UnitTests.Core.Retry
                 return null;
             }
         }
+
+        private static RetryOrchestrator CreateRetryOrchestrator() =>
+            new RetryOrchestrator(new Mock<ILogger<RetryOrchestrator>>().Object);
     }
 }
