@@ -6,8 +6,8 @@ namespace Couchbase.Search.Queries.Simple
     /// <summary>
     /// Regexp query finds documents containing terms that match the specified regular expression.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class RegexpQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class RegexpQuery : SearchQueryBase
     {
         private readonly string _regex;
         private string _field;

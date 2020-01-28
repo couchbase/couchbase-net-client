@@ -1,7 +1,7 @@
 ﻿namespace Couchbase.Search
 {
     /// <summary>
-    /// The status of the <see cref="IFtsQuery"/> response.
+    /// The status of the <see cref="ISearchQuery"/> response.
     /// </summary>
     public enum SearchStatus
     {

@@ -7,8 +7,8 @@ namespace Couchbase.Search.Queries.Compound
     /// <summary>
     /// A combination of conjunction and disjunction queries.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class BooleanQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class BooleanQuery : SearchQueryBase
     {
         private readonly ConjunctionQuery _mustQueries = new ConjunctionQuery();
         private readonly DisjunctionQuery _shouldQueries = new DisjunctionQuery();
@@ -19,7 +19,7 @@ namespace Couchbase.Search.Queries.Compound
         /// </summary>
         /// <param name="queries"></param>
         /// <returns></returns>
-        public BooleanQuery Must(params IFtsQuery[] queries)
+        public BooleanQuery Must(params ISearchQuery[] queries)
         {
             _mustQueries.And(queries);
             return this;
@@ -30,7 +30,7 @@ namespace Couchbase.Search.Queries.Compound
         /// </summary>
         /// <param name="queries">The query.</param>
         /// <returns></returns>
-        public BooleanQuery Should(params IFtsQuery[] queries)
+        public BooleanQuery Should(params ISearchQuery[] queries)
         {
             _shouldQueries.Or(queries);
             return this;
@@ -52,7 +52,7 @@ namespace Couchbase.Search.Queries.Compound
         /// </summary>
         /// <param name="queries">The query.</param>
         /// <returns></returns>
-        public BooleanQuery MustNot(params IFtsQuery[] queries)
+        public BooleanQuery MustNot(params ISearchQuery[] queries)
         {
             _mustNotQueries.Or(queries);
             return this;

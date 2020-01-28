@@ -3,7 +3,7 @@
 namespace Couchbase.Search
 {
     /// <summary>
-    /// Represents a single "hit" for a <see cref="IFtsQuery"/> request.
+    /// Represents a single "hit" for a <see cref="ISearchQuery"/> request.
     /// </summary>
     public interface ISearchQueryRow
     {

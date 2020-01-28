@@ -17,7 +17,7 @@ namespace Couchbase
             return cluster.DiagnosticsAsync(options);
         }
 
-        public static Task<Query.IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,
+        public static Task<IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement,
             Action<QueryOptions> configureOptions)
         {
             var options = new QueryOptions();
@@ -26,7 +26,7 @@ namespace Couchbase
             return cluster.QueryAsync<T>(statement, options);
         }
 
-        public static Task<Query.IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement)
+        public static Task<IQueryResult<T>> QueryAsync<T>(this ICluster cluster, string statement)
         {
             return cluster.QueryAsync<T>(statement, QueryOptions.Create(statement));
         }
@@ -67,7 +67,7 @@ namespace Couchbase
 
         #region Search
 
-        public static Task<ISearchResult> SearchQueryAsync(this ICluster cluster, string indexName, SearchQuery query,
+        public static Task<ISearchResult> SearchQueryAsync(this ICluster cluster, string indexName, ISearchQuery query,
             Action<ISearchOptions> configureOptions)
         {
             var options = new SearchOptions();

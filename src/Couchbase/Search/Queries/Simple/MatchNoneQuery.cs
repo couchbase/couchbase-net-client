@@ -5,8 +5,8 @@ namespace Couchbase.Search.Queries.Simple
     /// <summary>
     /// A match none query doesn't match any document in the index.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class MatchNoneQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class MatchNoneQuery : SearchQueryBase
     {
         public override JObject Export()
         {

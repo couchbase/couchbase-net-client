@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 
 namespace Couchbase.Search
@@ -23,7 +24,14 @@ namespace Couchbase.Search
         /// to the moment of the query request, to be processed before the query execution can start.
         /// </summary>
         [Description("request_plus")]
-        RequestPlus
+        RequestPlus,
+
+        /// <summary>
+        /// Do not use; for RYOW use <see cref="ISearchRequest.ConsistentWith"/> and do not specify a <see cref="ScanConsistency"/>.
+        /// </summary>
+        [Obsolete("Do not use; for RYOW use IQueryRequest.ConsistentWith and do not specify a ScanConsistency.")]
+        [Description("at_plus")]
+        AtPlus
     }
 }
 

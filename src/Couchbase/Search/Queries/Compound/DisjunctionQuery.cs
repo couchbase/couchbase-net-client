@@ -9,23 +9,23 @@ namespace Couchbase.Search.Queries.Compound
     /// <summary>
     /// The disjunction query is a compound query. The result documents must satisfy a configurable min number of child queries. By default this min is set to 1.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class DisjunctionQuery : FtsQueryBase, IEnumerable<IFtsQuery>
+    /// <seealso cref="SearchQueryBase" />
+    public class DisjunctionQuery : SearchQueryBase, IEnumerable<ISearchQuery>
     {
         private int _min = 1;
-        private readonly List<IFtsQuery> _queries;
+        private readonly List<ISearchQuery> _queries;
 
-        public DisjunctionQuery(params IFtsQuery[] queries)
+        public DisjunctionQuery(params ISearchQuery[] queries)
         {
-            _queries = new List<IFtsQuery>(queries);
+            _queries = new List<ISearchQuery>(queries);
         }
 
         /// <summary>
-        /// Adds additional <see cref="FtsQueryBase"/> implementations to this <see cref="ConjunctionQuery"/>.
+        /// Adds additional <see cref="SearchQueryBase"/> implementations to this <see cref="ConjunctionQuery"/>.
         /// </summary>
-        /// <param name="queries">One or more <see cref="FtsQueryBase"/> queries to add.</param>
+        /// <param name="queries">One or more <see cref="SearchQueryBase"/> queries to add.</param>
         /// <returns></returns>
-        public DisjunctionQuery Or(params IFtsQuery[] queries)
+        public DisjunctionQuery Or(params ISearchQuery[] queries)
         {
             _queries.AddRange(queries);
             return this;
@@ -46,9 +46,9 @@ namespace Couchbase.Search.Queries.Compound
             return this;
         }
 
-        public IEnumerator<IFtsQuery> GetEnumerator()
+        public IEnumerator<ISearchQuery> GetEnumerator()
         {
-            return _queries.Cast<IFtsQuery>().GetEnumerator();
+            return _queries.Cast<ISearchQuery>().GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

@@ -11,8 +11,8 @@ namespace Couchbase.Search.Queries.Simple
     /// includeTermVectors set to true. It is generally more useful in debugging scenarios,
     /// and the Match Phrase Query should usually be preferred for real-world use cases.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public sealed class PhraseQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public sealed class PhraseQuery : SearchQueryBase
     {
         private readonly List<string> _terms = new List<string>();
         private string _field;

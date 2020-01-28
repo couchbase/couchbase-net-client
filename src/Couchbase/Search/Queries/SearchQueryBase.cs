@@ -1,14 +1,13 @@
-﻿using System;
-using Couchbase.Core;
+using System;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries
 {
     /// <summary>
-    /// Base class for <see cref="IFtsQuery"/> implementations.
+    /// Base class for <see cref="ISearchQuery"/> implementations.
     /// </summary>
-    /// <seealso cref="IFtsQuery" />
-    public abstract class FtsQueryBase : IFtsQuery
+    /// <seealso cref="ISearchQuery" />
+    public abstract class SearchQueryBase : ISearchQuery
     {
         private const double DefaultBoostValue = 1.0;
 
@@ -21,11 +20,11 @@ namespace Couchbase.Search.Queries
         /// </summary>
         /// <param name="boost"></param>
         /// <returns></returns>
-        public IFtsQuery Boost(double boost)
+        public ISearchQuery Boost(double boost)
         {
             if (boost < 0)
             {
-                throw new ArgumentOutOfRangeException("boost", "Must be greater than or equal to zero.");
+                throw new ArgumentOutOfRangeException(nameof(boost), "Must be greater than or equal to zero.");
             }
             _boost = boost;
             return this;
@@ -44,25 +43,6 @@ namespace Couchbase.Search.Queries
             }
 
             return json;
-        }
-
-        /// <summary>
-        /// Sets the lifespan of the search request; used to check if the request exceeded the maximum time
-        /// configured for it in <see cref="ClientConfiguration.SearchRequestTimeout" />
-        /// </summary>
-        /// <value>
-        /// The lifespan.
-        /// </value>
-        Lifespan IFtsQuery.Lifespan { get; set; }
-
-        /// <summary>
-        /// True if the request exceeded it's <see cref="ClientConfiguration.SearchRequestTimeout" />
-        /// </summary>
-        /// <returns></returns>
-        bool IFtsQuery.TimedOut()
-        {
-            var temp = this as IFtsQuery;
-            return temp.Lifespan.TimedOut();
         }
     }
 }

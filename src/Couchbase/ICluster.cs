@@ -27,7 +27,7 @@ namespace Couchbase
 
         Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default);
 
-        Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions? options = default);
+        Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, ISearchOptions? options = default);
 
         #endregion
 

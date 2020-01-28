@@ -10,12 +10,13 @@ using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry.Search;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Search
 {
     /// <summary>
-    /// A client for making FTS <see cref="IFtsQuery"/> requests and mapping the responses to <see cref="ISearchResult"/>'s.
+    /// A client for making FTS <see cref="ISearchQuery"/> requests and mapping the responses to <see cref="ISearchResult"/>'s.
     /// </summary>
     /// <seealso cref="ISearchClient" />
     internal class SearchClient : HttpServiceBase, ISearchClient
@@ -36,33 +37,33 @@ namespace Couchbase.Search
         { }
 
         /// <summary>
-        /// Executes a <see cref="IFtsQuery" /> request including any <see cref="ISearchOptions" /> parameters.
+        /// Executes a <see cref="ISearchQuery" /> request including any <see cref="ISearchOptions" /> parameters.
         /// </summary>
-        /// <param name="searchQuery"></param>
+        /// <param name="searchRequest"></param>
         /// <returns></returns>
-        public ISearchResult Query(SearchQuery searchQuery)
+        public ISearchResult Query(SearchRequest searchRequest)
         {
-            return QueryAsync(searchQuery)
+            return QueryAsync(searchRequest)
                 .ConfigureAwait(false)
                 .GetAwaiter()
                 .GetResult();
         }
 
         /// <summary>
-        /// Executes a <see cref="IFtsQuery" /> request including any <see cref="ISearchOptions" /> parameters asynchronously.
+        /// Executes a <see cref="ISearchQuery" /> request including any <see cref="ISearchOptions" /> parameters asynchronously.
         /// </summary>
         /// <returns>A <see cref="ISearchResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
-        public async Task<ISearchResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken = default)
+        public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
         {
             // try get Search node
             var node = Context.GetRandomNodeForService(ServiceType.Search);
             var uriBuilder = new UriBuilder(node.SearchUri)
             {
-                Path = $"api/index/{searchQuery.Index}/query"
+                Path = $"api/index/{searchRequest.Index}/query"
             };
 
             var searchResult = new SearchResult();
-            var searchBody = searchQuery.ToJson();
+            var searchBody = searchRequest.ToJson();
 
             try
             {

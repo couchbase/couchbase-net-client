@@ -6,8 +6,8 @@ namespace Couchbase.Search.Queries.Simple
     /// <summary>
     /// The query string query allows humans to describe complex queries using a simple syntax.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class QueryStringQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class QueryStringQuery : SearchQueryBase
     {
         private readonly string _query;
 

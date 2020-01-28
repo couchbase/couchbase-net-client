@@ -10,8 +10,8 @@ namespace Couchbase.Search.Queries.Simple
     /// A docId query is a query that directly matches the documents whose ID have been provided.
     /// It can be combined within a ConjunctionQuery to restrict matches on the set of documents.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class DocIdQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class DocIdQuery : SearchQueryBase
     {
         private readonly List<string> _docIds = new List<string>();
 

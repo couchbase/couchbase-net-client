@@ -9,30 +9,30 @@ namespace Couchbase.Search.Queries.Compound
     /// <summary>
     /// The conjunction query is a compound query. The result documents must satisfy all of the child queries. It is possible to recursively nest compound queries.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class ConjunctionQuery : FtsQueryBase, IEnumerable<IFtsQuery>
+    /// <seealso cref="SearchQueryBase" />
+    public class ConjunctionQuery : SearchQueryBase, IEnumerable<ISearchQuery>
     {
-        private readonly List<IFtsQuery> _queries = new List<IFtsQuery>();
+        private readonly List<ISearchQuery> _queries = new List<ISearchQuery>();
 
-        public ConjunctionQuery(params IFtsQuery[] queries)
+        public ConjunctionQuery(params ISearchQuery[] queries)
         {
            _queries.AddRange(queries);
         }
 
         /// <summary>
-        /// Adds additional <see cref="FtsQueryBase"/> implementations to this <see cref="ConjunctionQuery"/>.
+        /// Adds additional <see cref="SearchQueryBase"/> implementations to this <see cref="ConjunctionQuery"/>.
         /// </summary>
-        /// <param name="queries">One or more <see cref="FtsQueryBase"/> queries to add.</param>
+        /// <param name="queries">One or more <see cref="SearchQueryBase"/> queries to add.</param>
         /// <returns></returns>
-        public ConjunctionQuery And(params IFtsQuery[] queries)
+        public ConjunctionQuery And(params ISearchQuery[] queries)
         {
             _queries.AddRange(queries);
             return this;
         }
 
-        public IEnumerator<IFtsQuery> GetEnumerator()
+        public IEnumerator<ISearchQuery> GetEnumerator()
         {
-            return _queries.Cast<IFtsQuery>().GetEnumerator();
+            return _queries.Cast<ISearchQuery>().GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()

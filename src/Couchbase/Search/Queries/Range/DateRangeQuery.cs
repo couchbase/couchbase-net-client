@@ -6,8 +6,8 @@ namespace Couchbase.Search.Queries.Range
     /// <summary>
     /// The date range query finds documents containing a date value in the specified field within the specified range.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class DateRangeQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class DateRangeQuery : SearchQueryBase
     {
         private DateTime? _startTime;
         private bool _inclusiveStart = true;

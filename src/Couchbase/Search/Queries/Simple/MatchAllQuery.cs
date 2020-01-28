@@ -6,8 +6,8 @@ namespace Couchbase.Search.Queries.Simple
     /// A match all query matches all documents in the index. It can take search parameters
     /// as other queries, so this can be restricted (eg. with limit).
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class MatchAllQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class MatchAllQuery : SearchQueryBase
     {
         public override JObject Export()
         {

@@ -6,8 +6,8 @@ namespace Couchbase.Search.Queries.Range
     /// <summary>
     /// The numeric range query finds documents containing a numeric value in the specified field within the specified range. Either min or max can be omitted, but not both.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class NumericRangeQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class NumericRangeQuery : SearchQueryBase
     {
         private double? _min;
         private bool _minInclusive = true;

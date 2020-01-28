@@ -7,7 +7,7 @@ namespace Couchbase.Search.Queries.Geo
     /// This query finds all matches from a given location (point) within the given distance.
     /// Both the point and the distance are required.
     /// </summary>
-    public class GeoDistanceQuery : FtsQueryBase
+    public class GeoDistanceQuery : SearchQueryBase
     {
         private double? _longitude;
         private double? _latitude;

@@ -6,8 +6,8 @@ namespace Couchbase.Search.Queries.Simple
     /// <summary>
     /// The prefix query finds documents containing terms that start with the provided prefix.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class PrefixQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class PrefixQuery : SearchQueryBase
     {
         private readonly string _prefix;
         private string _field;

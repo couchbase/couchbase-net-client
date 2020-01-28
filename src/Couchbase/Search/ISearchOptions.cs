@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 namespace Couchbase.Search
 {
     /// <summary>
-    /// Represents the input options for a <see cref="IFtsQuery"/> request.
+    /// Represents the input options for a <see cref="ISearchQuery"/> request.
     /// </summary>
     public interface ISearchOptions
     {
@@ -75,7 +75,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="consistency">The <see cref="ScanConsistency"/> for documents to be included in the query results.</param>
         /// <returns></returns>
-        ISearchOptions Consistency(SearchScanConsistency consistency);
+        ISearchOptions ScanConsistency(SearchScanConsistency consistency);
 
         /// <summary>
         /// Configures the list of fields which are used for sorting the search result. Fields with a prefix of "-" indicate a decending nature.
@@ -98,6 +98,16 @@ namespace Couchbase.Search
         /// <param name="sort">The sort.</param>
         /// <returns></returns>
         ISearchOptions Sort(JObject sort);
+
+        /// <summary>
+        /// Adds a raw query parameter and value to the query.
+        /// </summary>
+        /// <param name="name">The parameter name.</param>
+        /// <param name="value">The parameter value.</param>
+        /// <returns>A reference to the current <see cref="SearchOptions" /> for method chaining.</returns>
+        ISearchOptions Raw(string name, object value);
+
+        ISearchOptions ConsistentWith(MutationState mutationState);
 
         /// <summary>
         /// Gets the JSON representation of this object.

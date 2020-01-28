@@ -5,8 +5,8 @@ namespace Couchbase.Search.Queries.Simple
     /// <summary>
     /// A wildcard query is a query in which term the character * will match 0..n occurrences of any characters and ? will match 1 occurrence of any character.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class WildcardQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class WildcardQuery : SearchQueryBase
     {
         private readonly string _wildCard;
         private string _field;

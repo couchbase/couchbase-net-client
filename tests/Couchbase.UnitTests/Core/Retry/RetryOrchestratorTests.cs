@@ -157,40 +157,33 @@ namespace Couchbase.UnitTests.Core.Retry
         [InlineData("query-error.json", HttpStatusCode.OK, null)]
         public async Task Test_Search(string file, HttpStatusCode httpStatusCode, Type errorType)
         {
-            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Search\" + file))
+            using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Search\" + file);
+            var buffer = new byte[response.Length];
+            response.Read(buffer, 0, buffer.Length);
+
+            var responses = GetResponses(20, buffer, httpStatusCode);
+            var client = MockedHttpClients.SearchClient(responses);
+
+            using var cts = new CancellationTokenSource();
+            cts.CancelAfter(1000);
+
+            var searchRequest = new SearchRequest
             {
-                var buffer = new byte[response.Length];
-                response.Read(buffer, 0, buffer.Length);
-
-                var responses = GetResponses(20, buffer, httpStatusCode);
-                var client = MockedHttpClients.SearchClient(responses);
-
-                using var cts = new CancellationTokenSource();
-                cts.CancelAfter(1000);
-
-                var searchQuery = new SearchQuery
+                Token = cts.Token,
+                Timeout = TimeSpan.FromMilliseconds(1000),
+                Options = new SearchOptions
                 {
-                    SearchOptions =  new SearchOptions
-                    {
-                        Token = cts.Token
-                    }
-                };
-
-                var searchRequest = new SearchRequest
-                {
-                    Token = cts.Token,
-                    Timeout = TimeSpan.FromMilliseconds(1000),
-                    Options = new SearchOptions()
-                };
-
-                async Task<ISearchResult> Func()
-                {
-                    var client1 = client;
-                    return await client1.QueryAsync(searchQuery, cts.Token);
+                    Token = cts.Token
                 }
+            };
 
-                await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, searchRequest));
+            async Task<ISearchResult> Func()
+            {
+                var client1 = client;
+                return await client1.QueryAsync(searchRequest, cts.Token);
             }
+
+            await AssertThrowsIfExpectedAsync(errorType, () => RetryOrchestrator.RetryAsync(Func, searchRequest));
         }
 
         [Theory]

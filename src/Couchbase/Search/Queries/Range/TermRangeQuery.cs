@@ -7,7 +7,7 @@ namespace Couchbase.Search.Queries.Range
     /// The term range query finds documents containing a string value in the specified field within the specified range.
     /// Either min or max can be omitted, but not both.
     /// </summary>
-    public class TermRangeQuery : FtsQueryBase
+    public class TermRangeQuery : SearchQueryBase
     {
         private readonly string _term;
         private string _min;

@@ -1,0 +1,29 @@
+{
+  "ctl": {
+    "timeout": 10000,
+    "consistency": {
+      "level": "at_plus",
+      "vectors": {
+        "customerIndex": {
+          "0": 123,
+          "1/a0b1c2": 234
+        }
+      }
+    }
+  },
+  "query": {
+    "query": "alice smith",
+    "boost": 1
+  },
+  "size": 10,
+  "from": 20,
+  "highlight": {
+    "style": null,
+    "fields": null
+  },
+  "fields": [
+    "*"
+  ],
+  "facets": null,
+  "explain": true
+}

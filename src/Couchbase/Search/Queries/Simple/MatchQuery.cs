@@ -6,7 +6,7 @@ namespace Couchbase.Search.Queries.Simple
     /// <summary>
     ///  A query that analyzes the input text and uses that analyzed text to query the index.
     /// </summary>
-    public sealed class MatchQuery : FtsQueryBase
+    public sealed class MatchQuery : SearchQueryBase
     {
         private readonly string _match;
         private string _analyzer;

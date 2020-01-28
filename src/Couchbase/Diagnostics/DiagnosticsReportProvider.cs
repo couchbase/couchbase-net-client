@@ -11,6 +11,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Search;
+using Couchbase.Search.Queries;
 
 namespace Couchbase.Diagnostics
 {
@@ -124,8 +125,7 @@ namespace Couchbase.Diagnostics
                    if (ping)
                    {
                        var index = "ping";
-                       var searchQuery = new SearchQuery { Index = index };
-                       RecordLatency(endPointDiagnostics, () => context.Cluster.SearchQueryAsync(index, searchQuery));
+                       RecordLatency(endPointDiagnostics, () => context.Cluster.SearchQueryAsync(index, new NoOpQuery()));
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);

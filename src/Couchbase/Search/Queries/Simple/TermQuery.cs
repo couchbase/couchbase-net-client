@@ -7,8 +7,8 @@ namespace Couchbase.Search.Queries.Simple
     /// A term query is a query that may be "fuzzy" and matches terms within a specified edit distance (Levenshtein distance).
     /// Also, you can optionally specify that the term must have a matching prefix of the specified length.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public sealed class TermQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public sealed class TermQuery : SearchQueryBase
     {
         private readonly string _term;
         private int _fuzziness;

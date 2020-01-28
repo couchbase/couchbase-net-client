@@ -7,7 +7,7 @@ namespace Couchbase.Search.Queries.Geo
     /// This query finds all matches within a given box (identified by the upper left and lower right corner coordinates).
     /// Both coordinate points are required so the server can identify the right bounding box.
     /// </summary>
-    public class GeoBoundingBoxQuery : FtsQueryBase
+    public class GeoBoundingBoxQuery : SearchQueryBase
     {
         private double? _topLeftLongitude;
         private double? _topLeftLatitude;

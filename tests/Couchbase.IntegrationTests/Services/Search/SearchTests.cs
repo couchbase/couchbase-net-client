@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Core.Retry.Search;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
@@ -10,7 +11,7 @@ namespace Couchbase.IntegrationTests.Services.Search
     public class SearchTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
-        private const string IndexName = "idx_travel";
+        private const string IndexName = "travel-sample-index";
 
         public SearchTests(ClusterFixture fixture)
         {
@@ -22,11 +23,9 @@ namespace Couchbase.IntegrationTests.Services.Search
         {
             var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
-                new SearchQuery
-                {
-                    Query = new MatchQuery("inn")
-                }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000))
-            ).ConfigureAwait(false);
+                new MatchQuery("inn"),
+                new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000))).
+                ConfigureAwait(false);
 
             //Assert.Equal(SearchStatus.Success, results.Status);
         }
@@ -36,10 +35,9 @@ namespace Couchbase.IntegrationTests.Services.Search
         {
             var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
-                new SearchQuery
-                {
-                    Query = new MatchQuery("inn")
-                }.Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Highlight(HighLightStyle.Html, "inn")
+                new MatchQuery("inn"),
+                new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000))
+                    .Highlight(HighLightStyle.Html, "inn")
             ).ConfigureAwait(false);
 
             //Assert.Equal(SearchStatus.Success, results.Status);
@@ -50,10 +48,8 @@ namespace Couchbase.IntegrationTests.Services.Search
         {
             var cluster = await _fixture.GetCluster();
             var results = await cluster.SearchQueryAsync(IndexName,
-                new SearchQuery
-                {
-                    Query = new MatchQuery("inn")
-                }.Facets(
+                new MatchQuery("inn"),
+                new SearchOptions().Facets(
                     new TermFacet("termfacet", "name", 1),
                     new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now, DateTime.Now.AddDays(1)),
                     new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f)

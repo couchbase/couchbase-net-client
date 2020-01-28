@@ -232,28 +232,26 @@ namespace Couchbase
 
         #region Search
 
-        public async Task<ISearchResult> SearchQueryAsync(string indexName, SearchQuery query, ISearchOptions? options = default)
+        public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, ISearchOptions? options = default)
         {
             options ??= new SearchOptions();
 
             await EnsureBootstrapped();
 
-            query.Index = indexName;
-
             var searchRequest = new SearchRequest
             {
+                Index = indexName,
                 Query = query,
                 Options = options,
                 Token = ((SearchOptions)options).Token,
                 Timeout = ((SearchOptions)options).TimeOut
             };
 
-            //TODO: convert options to params
             async Task<ISearchResult> Func()
             {
                 var client1 = LazySearchClient.Value;
                 var request1 = searchRequest;
-                return await client1.QueryAsync(request1.Query, request1.Token).ConfigureAwait(false);
+                return await client1.QueryAsync(request1, request1.Token).ConfigureAwait(false);
             }
 
             return await RetryOrchestrator.RetryAsync(Func, searchRequest).ConfigureAwait(false);

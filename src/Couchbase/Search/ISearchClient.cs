@@ -1,11 +1,12 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Retry.Search;
 
 namespace Couchbase.Search
 {
     /// <summary>
-    /// A client for making FTS <see cref="IFtsQuery"/> requests and mapping the responses to <see cref="ISearchResult"/>'s.
+    /// A client for making FTS <see cref="ISearchQuery"/> requests and mapping the responses to <see cref="ISearchResult"/>'s.
     /// </summary>
     internal interface ISearchClient
     {
@@ -15,16 +16,16 @@ namespace Couchbase.Search
         DateTime? LastActivity { get; }
 
         /// <summary>
-        /// Executes a <see cref="IFtsQuery"/> request including any <see cref="ISearchOptions"/> parameters.
+        /// Executes a <see cref="ISearchQuery"/> request including any <see cref="ISearchOptions"/> parameters.
         /// </summary>
         /// <returns></returns>
-        ISearchResult Query(SearchQuery searchQuery);
+        ISearchResult Query(SearchRequest searchRequest);
 
         /// <summary>
-        /// Executes a <see cref="IFtsQuery"/> request including any <see cref="ISearchOptions"/> parameters asynchronously.
+        /// Executes a <see cref="ISearchQuery"/> request including any <see cref="ISearchOptions"/> parameters asynchronously.
         /// </summary>
         /// <returns></returns>
-        Task<ISearchResult> QueryAsync(SearchQuery searchQuery, CancellationToken cancellationToken = default);
+        Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default);
     }
 }
 

@@ -5,6 +5,7 @@ using System.Threading;
 using Couchbase.Query;
 using Couchbase.Search.Sort;
 using Couchbase.Utils;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
@@ -26,6 +27,8 @@ namespace Couchbase.Search
         private readonly JArray _sort = new JArray();
         internal  CancellationToken Token { get; set; }
         internal TimeSpan TimeOut { get; set; } = new TimeSpan(0, 0, 0, 0, 75000);
+        private readonly Dictionary<string, object> _rawParameters;
+        private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
 
         public ISearchOptions CancellationToken(CancellationToken token)
         {
@@ -45,7 +48,7 @@ namespace Couchbase.Search
         }
 
         /// <summary>
-        /// Skip indicates how many matching results to skip on the result set before returing matches.
+        /// Skip indicates how many matching results to skip on the result set before returning matches.
         /// </summary>
         /// <param name="skip"></param>
         /// <returns></returns>
@@ -111,7 +114,7 @@ namespace Couchbase.Search
         {
             if(fields == null || fields.Length <= 0)
             {
-                throw new ArgumentNullException("fields", "must be non-null and have at least one value.");
+                throw new ArgumentNullException(nameof(fields), "must be non-null and have at least one value.");
             }
             //if fields are explicitly provided remove default wildcard
             if (_fields.Contains("*"))
@@ -123,9 +126,9 @@ namespace Couchbase.Search
         }
 
         /// <summary>
-        ///   <see cref="ISearchFacet" />s used to aggregate information collected on a particluar result set.
+        ///   <see cref="ISearchFacet" />s used to aggregate information collected on a particular result set.
         /// </summary>
-        /// <param name="searchFacets">The <see cref="ISearchFacet" /> to aggreate information on.</param>
+        /// <param name="searchFacets">The <see cref="ISearchFacet" /> to aggregate information on.</param>
         /// <returns></returns>
         public ISearchOptions Facets(params ISearchFacet[] searchFacets)
         {
@@ -153,14 +156,14 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="consistency">The <see cref="SearchScanConsistency" /> for documents to be included in the query results.</param>
         /// <returns></returns>
-        public ISearchOptions Consistency(SearchScanConsistency consistency)
+        public ISearchOptions ScanConsistency(SearchScanConsistency consistency)
         {
             _scanConsistency = consistency;
             return this;
         }
 
         /// <summary>
-        /// Configures the list of fields which are used for sorting the search result. Fields with a prefix of "-" indicate a decending nature.
+        /// Configures the list of fields which are used for sorting the search result. Fields with a prefix of "-" indicate a descending nature.
         /// If no sort is provided, it is equal to sort("-_score"), since the server will sort it by score in descending order by default.
         /// </summary>
         /// <param name="sort">The field names to sort by.</param>
@@ -202,6 +205,68 @@ namespace Couchbase.Search
             return this;
         }
 
+        public ISearchOptions Raw(string name, object value)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Parameter name cannot be null or empty.");
+            }
+
+            _rawParameters.Add(name, value);
+            return this;
+        }
+
+        public ISearchOptions ConsistentWith(MutationState mutationState)
+        {
+#pragma warning disable 618
+            ScanConsistency(SearchScanConsistency.AtPlus);
+#pragma warning restore 618
+            _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
+            foreach (var token in mutationState)
+            {
+                if (_scanVectors.TryGetValue(token.BucketRef, out var vector))
+                {
+                    var bucketId = token.VBucketId.ToString();
+                    if (vector.TryGetValue(bucketId, out var bucketRef))
+                    {
+                        if ((long)bucketRef.First() < token.SequenceNumber)
+                        {
+                            vector[bucketId] = new List<object>
+                            {
+                                token.SequenceNumber,
+                                token.VBucketUuid.ToString()
+                            };
+                        }
+                    }
+                    else
+                    {
+                        vector.Add(token.VBucketId.ToString(),
+                            new List<object>
+                            {
+                                token.SequenceNumber,
+                                token.VBucketUuid.ToString()
+                            });
+                    }
+                }
+                else
+                {
+                    _scanVectors.Add(token.BucketRef, new Dictionary<string, List<object>>
+                    {
+                        {
+                            token.VBucketId.ToString(),
+                            new List<object>
+                            {
+                                token.SequenceNumber,
+                                token.VBucketUuid.ToString()
+                            }
+                        }
+                    });
+                }
+            }
+
+            return this;
+        }
+
         public JObject ToJson()
         {
             var ctl = new JObject(new JProperty("timeout", (long) TimeOut.TotalMilliseconds));
@@ -209,6 +274,11 @@ namespace Couchbase.Search
             {
                 var consistency = new JObject(
                         new JProperty("level", _scanConsistency.GetDescription()));
+
+                if (_scanVectors != null && _scanVectors.Count > 0)
+                {
+                    consistency.Add(new JProperty("vectors", _scanVectors));
+                }
 
                 ctl.Add("consistency", consistency);
             }

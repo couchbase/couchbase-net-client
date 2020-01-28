@@ -5,8 +5,8 @@ namespace Couchbase.Search.Queries.Simple
     /// <summary>
     /// A boolean field query matches documents which have a boolean field which corresponds to the requested boolean value.
     /// </summary>
-    /// <seealso cref="FtsQueryBase" />
-    public class BooleanFieldQuery : FtsQueryBase
+    /// <seealso cref="SearchQueryBase" />
+    public class BooleanFieldQuery : SearchQueryBase
     {
         private readonly bool _fieldMatch;
         private string _field;

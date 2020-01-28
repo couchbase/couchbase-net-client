@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Couchbase.Search;
+using Newtonsoft.Json;
 
 namespace Couchbase.Core.Retry.Search
 {
@@ -16,7 +17,19 @@ namespace Couchbase.Core.Retry.Search
         public string ClientContextId { get; set; }
         public string Statement { get; set; }
 
-        public SearchQuery Query { get; set; }
+        public string Index { get; set; }
+        public ISearchQuery Query { get; set; }
         public ISearchOptions Options { get; set; }
+
+        public string ToJson()
+        {
+            var json = Options.ToJson();
+            if (Query != null)
+            {
+                json.Add("query", Query.Export());
+            }
+
+            return json.ToString(Formatting.None);
+        }
     }
 }

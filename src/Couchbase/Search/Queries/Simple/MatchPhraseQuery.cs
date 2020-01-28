@@ -8,7 +8,7 @@ namespace Couchbase.Search.Queries.Simple
     /// The input text is analyzed and a phrase query is built with the terms resulting from the analysis.
     /// This depends on term vectors, which are consulted to determine phrase distance.
     /// </summary>
-    public sealed class MatchPhraseQuery : FtsQueryBase
+    public sealed class MatchPhraseQuery : SearchQueryBase
     {
         private readonly string _matchPhrase;
         private string _analyzer;

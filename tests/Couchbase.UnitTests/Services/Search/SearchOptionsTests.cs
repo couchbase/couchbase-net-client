@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Couchbase.Query;
+using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Sort;
@@ -10,39 +10,37 @@ using Xunit;
 
 namespace Couchbase.UnitTests.Services.Search
 {
-    public class SearchParamsTests
+    public class SearchOptionsTests
     {
         [Fact]
         public void ToJson_JsonStringIsValid()
         {
-            var searchParams = new SearchQuery().Skip(20).Limit(10).Explain(true)
+            var searchOptions = new SearchOptions().Skip(20).Limit(10).Explain(true)
                 .Timeout(TimeSpan.FromMilliseconds(10000));
 
                 //var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{\"customerIndex\":{\"0\":123,\"1/a0b1c2\":234}}}},\"query\":{\"query\":\"alice smith\",\"boost\": 1},\"size\": 10,\"from\":20,\"highlight\":{\"style\": null,\"fields\":null},\"fields\":[\"*\"],\"facets\":null,\"explain\":true}";
             var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"not_bounded\"}},\"size\":10,\"from\":20,\"explain\":true}";
-            var actual = searchParams.ToJson().ToString().Replace("\r\n", "").Replace(" ", "");
-            Console.WriteLine(actual);
-            Console.WriteLine(expected);
+            var actual = searchOptions.ToJson().ToString(Formatting.None);
+
             Assert.Equal(expected, actual);
         }
 
         [Fact]
         public void ToJson_WithFacets()
         {
-            var searchParams = new SearchQuery().Facets(
+            var searchOptions = new SearchOptions().Facets(
                 new TermFacet("termfacet", "thefield", 10),
                 new DateRangeFacet("daterangefacet", "thefield", 10).AddRange(DateTime.Now, DateTime.Now.AddDays(1)),
                 new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f));
 
-            Console.WriteLine(searchParams.ToJson());
+            Console.WriteLine(searchOptions.ToJson());
         }
 
         [Fact]
         public void Test_SupportsFields()
         {
             //will not throw ArgumentNullException
-            SearchQuery fc = new SearchQuery();
-            fc.Index = "beer-ft";
+            SearchOptions fc = new SearchOptions();
             fc.Highlight(HighLightStyle.Html);
             fc.Fields("name", "style");
         }
@@ -50,8 +48,7 @@ namespace Couchbase.UnitTests.Services.Search
         [Fact]
         public void Test_Fields_WhenNull_ThrowsException()
         {
-            SearchQuery fc = new SearchQuery();
-            fc.Index = "beer-ft";
+            SearchOptions fc = new SearchOptions();
             fc.Highlight(HighLightStyle.Html);
             Assert.Throws<ArgumentNullException>(() => fc.Fields(null));
         }
@@ -59,8 +56,7 @@ namespace Couchbase.UnitTests.Services.Search
         [Fact]
         public void Test_Fields_WhenEmpty_ThrowsException()
         {
-            SearchQuery fc = new SearchQuery();
-            fc.Index = "beer-ft";
+            SearchOptions fc = new SearchOptions();
             fc.Highlight(HighLightStyle.Html);
             Assert.Throws<ArgumentNullException>(() => fc.Fields());
         }
@@ -68,13 +64,14 @@ namespace Couchbase.UnitTests.Services.Search
         [Fact]
         public void Test_HighLightStyle_Html_And_Fields_Returns_LowerCase()
         {
-            var query = new SearchQuery
+            var request = new SearchRequest
             {
                 Index = "idx_travel",
-                Query = new MatchQuery("inn")
-            }.Highlight(HighLightStyle.Html, "inn");
+                Query = new MatchQuery("inn"),
+                Options = new SearchOptions().Highlight(HighLightStyle.Html, "inn")
+            };
 
-            var result = query.ToJson();
+            var result = request.ToJson();
             var expected = JsonConvert.SerializeObject(new
             {
                 ctl = new
@@ -101,10 +98,10 @@ namespace Couchbase.UnitTests.Services.Search
         {
             var fields = new List<string> {"name", "-age"};
 
-            var searchParams = new SearchOptions();
-            searchParams.Sort(fields.ToArray());
+            var searchOptions = new SearchOptions();
+            searchOptions.Sort(fields.ToArray());
 
-            var result = searchParams.ToJson().ToString(Formatting.None);
+            var result = searchOptions.ToJson().ToString(Formatting.None);
 
             var expected = JsonConvert.SerializeObject(new
             {
@@ -127,10 +124,10 @@ namespace Couchbase.UnitTests.Services.Search
         {
             var searchSort = new IdSearchSort();
 
-            var searchParams = new SearchOptions();
-            searchParams.Sort(searchSort);
+            var searchOptions = new SearchOptions();
+            searchOptions.Sort(searchSort);
 
-            var result = searchParams.ToJson().ToString(Formatting.None);
+            var result = searchOptions.ToJson().ToString(Formatting.None);
 
             var expected = JsonConvert.SerializeObject(new
             {
@@ -162,10 +159,10 @@ namespace Couchbase.UnitTests.Services.Search
                 new JProperty("foo", "bar")
             };
 
-            var searchParams = new SearchOptions();
-            searchParams.Sort(json);
+            var searchOptions = new SearchOptions();
+            searchOptions.Sort(json);
 
-            var result = searchParams.ToJson().ToString(Formatting.None);
+            var result = searchOptions.ToJson().ToString(Formatting.None);
 
             var expected = JsonConvert.SerializeObject(new
             {
