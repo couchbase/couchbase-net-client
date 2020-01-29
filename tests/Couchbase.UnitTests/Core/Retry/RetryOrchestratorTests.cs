@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
@@ -82,7 +83,7 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), retryOrchestrator, new Mock<ILogger>().Object);
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, retryOrchestrator, new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
@@ -104,7 +105,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator();
 
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), retryOrchestrator, new Mock<ILogger>().Object);
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, retryOrchestrator, new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>()))
                 .Returns(Task.CompletedTask);
 
@@ -128,7 +129,7 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), retryOrchestrator, new Mock<ILogger>().Object);
+            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object, retryOrchestrator, new Mock<ILogger>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();

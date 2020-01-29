@@ -1,4 +1,5 @@
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
@@ -22,17 +23,18 @@ namespace Couchbase.Core
 {
     internal abstract class BucketBase : IBucket
     {
-        internal const string DefaultScopeName = "_default";
+        private readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
-        protected BucketBase(string name, ClusterContext context, IRetryOrchestrator retryOrchestrator, ILogger logger)
+        protected BucketBase(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger logger)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
+            _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
             RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -68,24 +70,24 @@ namespace Couchbase.Core
             {
                 return scope;
             }
-            throw new ScopeNotFoundException($"Cannot find scope {DefaultScopeName}!");
+            throw new ScopeNotFoundException($"Cannot find scope {scopeName}!");
         }
 
         /// <remarks>Volatile</remarks>
         public IScope DefaultScope()
         {
-            return Scope(DefaultScopeName);
+            return Scope(KeyValue.Scope.DefaultScopeName);
         }
 
         /// <remarks>Volatile</remarks>
         public ICollection Collection(string collectionName)
         {
-            if(Scopes.TryGetValue(DefaultScopeName, out IScope scope))
+            if(Scopes.TryGetValue(KeyValue.Scope.DefaultScopeName, out IScope scope))
             {
                 return scope.Collection(collectionName);
             }
 
-            throw new ScopeNotFoundException($"Cannot find scope {DefaultScopeName}!");
+            throw new ScopeNotFoundException($"Cannot find scope {KeyValue.Scope.DefaultScopeName}!");
         }
 
         public ICollection DefaultCollection()
@@ -120,30 +122,17 @@ namespace Couchbase.Core
             //The server supports collections so build them from the manifest
             if (Context.SupportsCollections && !DeferredExceptions.Any())
             {
-                //warmup the scopes/collections and cache them
-                foreach (var scopeDef in Manifest.scopes)
+                foreach (var scope in _scopeFactory.CreateScopes(this, Manifest!))
                 {
-                    var collections = new List<ICollection>();
-                    foreach (var collectionDef in scopeDef.collections)
-                    {
-                        collections.Add(new CouchbaseCollection(this, Context,
-                            Convert.ToUInt32(collectionDef.uid, 16),
-                            collectionDef.name,
-                            scopeDef.name));
-                    }
-                    var scope = new Scope(scopeDef.name, scopeDef.uid, collections, this);
-                    Scopes.TryAdd(scopeDef.name, scope);
+                    Scopes.TryAdd(scope.Name, scope);
                 }
             }
             else
             {
                 //build a fake scope and collection for pre-6.5 clusters or in the bootstrap failure case
                 //for deferred error handling
-                var collections = new List<ICollection>
-                {
-                    new CouchbaseCollection(this, Context, null, "_default", "_default")
-                };
-                Scopes.TryAdd("_default", new Scope("_default", "0", collections, this));
+                var defaultScope = _scopeFactory.CreateDefaultScope(this);
+                Scopes.TryAdd(defaultScope.Name, defaultScope);
             }
         }
 

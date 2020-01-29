@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry;
@@ -59,7 +60,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             private readonly AutoResetEvent _event;
 
             public FakeBucket(AutoResetEvent @event)
-                : base("fake", new ClusterContext(), new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
+                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
             {
                 _event = @event;
             }

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry;
@@ -22,14 +23,14 @@ namespace Couchbase
     {
         private readonly HttpClusterMapBase _httpClusterMap;
 
-        internal MemcachedBucket(string name, ClusterContext context, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger) :
-            this(name, context, retryOrchestrator, logger, new HttpClusterMap(new CouchbaseHttpClient(context), context))
+        internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger) :
+            this(name, context, scopeFactory, retryOrchestrator, logger, new HttpClusterMap(new CouchbaseHttpClient(context), context))
         {
         }
 
-        internal MemcachedBucket(string name, ClusterContext context, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger,
+        internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger,
             HttpClusterMapBase httpClusterMap)
-            : base(name, context, retryOrchestrator, logger)
+            : base(name, context, scopeFactory, retryOrchestrator, logger)
         {
             Name = name;
             _httpClusterMap = httpClusterMap;
@@ -47,7 +48,7 @@ namespace Couchbase
 
                 Logger.LogDebug("Fetching scope {0}", scopeName);
 
-                if (scopeName == DefaultScopeName)
+                if (scopeName == KeyValue.Scope.DefaultScopeName)
                     if (Scopes.TryGetValue(scopeName, out var scope))
                         return scope;
 

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -254,7 +255,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             private ITestOutputHelper _output;
 
             public FakeBucket(ITestOutputHelper output,  SemaphoreSlim eventSlim)
-                : base("fake", new ClusterContext(), new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
+                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
             {
                 _output = output;
                 _event = eventSlim;

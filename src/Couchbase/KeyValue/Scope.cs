@@ -12,18 +12,21 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.KeyValue
 {
     /// <remarks>Volatile</remarks>
-    public class Scope : IScope
+    internal class Scope : IScope
     {
-        private static readonly ILogger Log =  LogManager.CreateLogger<Scope>();
-        private readonly IBucket _bucket;
+        public const string DefaultScopeName = "_default";
+
+        private readonly BucketBase _bucket;
+        private readonly ILogger<Scope> _logger;
         private readonly ConcurrentDictionary<string, ICollection> _collections;
 
-        internal Scope(string name,  string id, IEnumerable<ICollection> collections, IBucket bucket)
+        public Scope(string name, string id, IEnumerable<ICollection> collections, BucketBase bucket, ILogger<Scope> logger)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Id = id ?? throw new ArgumentNullException(nameof(id));
             _collections = new ConcurrentDictionary<string, ICollection>(collections.ToDictionary(x => x.Name, v => v));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public string Id { get; }
@@ -34,7 +37,7 @@ namespace Couchbase.KeyValue
         {
             get
             {
-                Log.LogDebug($"Fetching collection {name}.");
+                _logger.LogDebug("Fetching collection {collectionName}.", name);
 
                 if(_collections.TryGetValue(name, out ICollection collection))
                 {
@@ -42,7 +45,7 @@ namespace Couchbase.KeyValue
                 }
 
                 //return the default bucket which will fail on first op invocation
-                if (((BucketBase) _bucket).BootstrapErrors)
+                if (_bucket.BootstrapErrors)
                 {
                     return _bucket.DefaultCollection();
                 }

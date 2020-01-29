@@ -4,7 +4,9 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
+using Couchbase.Core.DI;
 using Couchbase.Core.Retry;
+using Couchbase.KeyValue;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -62,8 +64,8 @@ namespace Couchbase.UnitTests
             var bucket = CreateMemcachedBucket();
             await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
-            var scope = bucket[BucketBase.DefaultScopeName];
-            Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
+            var scope = bucket[Scope.DefaultScopeName];
+            Assert.Equal(Scope.DefaultScopeName, scope.Name);
         }
 
         [Fact(Skip = "Will be enabled in later commit.")]
@@ -86,8 +88,8 @@ namespace Couchbase.UnitTests
             var bucket = CreateMemcachedBucket();
             await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
-            var scope = bucket.Scope(BucketBase.DefaultScopeName);
-            Assert.Equal(BucketBase.DefaultScopeName, scope.Name);
+            var scope = bucket.Scope(Scope.DefaultScopeName);
+            Assert.Equal(Scope.DefaultScopeName, scope.Name);
         }
 
         [Fact(Skip = "Will be enabled in later commit.")]
@@ -118,6 +120,7 @@ namespace Couchbase.UnitTests
         private static MemcachedBucket CreateMemcachedBucket() =>
             new MemcachedBucket("default",
                 new ClusterContext(),
+                new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);
 

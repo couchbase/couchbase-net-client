@@ -23,6 +23,7 @@ namespace Couchbase.UnitTests.Core.DI
 
             var bucketFactory = new BucketFactory(
                 new ClusterContext(),
+                new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);
@@ -44,6 +45,7 @@ namespace Couchbase.UnitTests.Core.DI
 
             var bucketFactory = new BucketFactory(
                 new ClusterContext(),
+                new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);

@@ -1,5 +1,6 @@
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ namespace Couchbase.UnitTests
         {
             var bucket = new CouchbaseBucket("default",
                 new ClusterContext(),
+                new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object);
 
@@ -27,6 +29,7 @@ namespace Couchbase.UnitTests
         {
             var bucket = new CouchbaseBucket("default",
                 new ClusterContext(),
+                new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object);
 

@@ -4,10 +4,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
@@ -24,8 +26,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void Get_Timed_Out_Throw_TimeoutException()
         {
-            var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
+            var collection = CreateTestCollection();
 
             Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
@@ -36,8 +37,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task SubDoc_More_Than_One_XAttr_Throws_ArgumentException()
         {
-            var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
+            var collection = CreateTestCollection();
 
             await Assert.ThrowsAsync<ArgumentException>(async () =>
             {
@@ -99,8 +99,7 @@ namespace Couchbase.UnitTests
         [InlineData( ResponseStatus.SubdocInvalidXattrOrder, typeof(XattrException))]
         public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus, Type exceptionType)
         {
-            var bucket = new FakeBucket(responseStatus);
-            var collection = new CouchbaseCollection(bucket, new ClusterContext());
+            var collection = CreateTestCollection();
 
             try
             {
@@ -117,8 +116,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void Set_Factory_Test()
         {
-            var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
+            var collection = CreateTestCollection();
 
             var set = collection.Set<dynamic>("theDocId");
             Assert.NotNull(set);
@@ -127,8 +125,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void Queue_Factory_Test()
         {
-            var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
+            var collection = CreateTestCollection();
 
             var queue = collection.Queue<dynamic>("theDocId");
             Assert.NotNull(queue);
@@ -137,8 +134,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void List_Factory_Test()
         {
-            var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
+            var collection = CreateTestCollection();
 
             var list = collection.List<dynamic>("theDocId");
             Assert.NotNull(list);
@@ -147,8 +143,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void Dictionary_Factory_Test()
         {
-            var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
+            var collection = CreateTestCollection();
 
             var dict = collection.Dictionary<string, dynamic>("theDocId");
             Assert.NotNull(dict);
@@ -157,8 +152,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void GetAsync_Allows_No_GetOptions()
         {
-            var mockBucket = new Mock<FakeBucket>();
-            var collection = new CouchbaseCollection(mockBucket.Object, new ClusterContext());
+            var collection = CreateTestCollection();
 
             collection.GetAsync("key").GetAwaiter().GetResult();
         }
@@ -167,7 +161,7 @@ namespace Couchbase.UnitTests
         {
             private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
             public FakeBucket(params ResponseStatus[] statuses)
-                : base("fake", new ClusterContext(), new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
+                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
             {
                 foreach (var responseStatuse in statuses)
                 {
@@ -219,6 +213,14 @@ namespace Couchbase.UnitTests
             {
                 throw new NotImplementedException();
             }
+        }
+
+        private static CouchbaseCollection CreateTestCollection()
+        {
+            var mockBucket = new Mock<FakeBucket>();
+            return new CouchbaseCollection(mockBucket.Object, new DefaultTranscoder(),
+                new Mock<ILogger<CouchbaseCollection>>().Object,
+                null, CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName);
         }
     }
 }

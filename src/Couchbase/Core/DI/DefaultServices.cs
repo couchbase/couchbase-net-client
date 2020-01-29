@@ -25,6 +25,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
 
             yield return (typeof(IBucketFactory), new SingletonServiceFactory(typeof(BucketFactory)));
+            yield return (typeof(IScopeFactory), new SingletonServiceFactory(typeof(ScopeFactory)));
+            yield return (typeof(ICollectionFactory), new SingletonServiceFactory(typeof(CollectionFactory)));
             yield return (typeof(IRetryOrchestrator), new SingletonServiceFactory(typeof(RetryOrchestrator)));
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));

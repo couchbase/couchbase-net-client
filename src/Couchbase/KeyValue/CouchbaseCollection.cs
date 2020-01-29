@@ -4,11 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -20,29 +18,23 @@ namespace Couchbase.KeyValue
     /// <remarks>Volatile</remarks>
     internal class CouchbaseCollection : ICollection, IBinaryCollection
     {
-        internal const string DefaultCollectionName = "_default";
-        private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseCollection>();
-        private readonly BucketBase _bucket;
+        public const string DefaultCollectionName = "_default";
+
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
+
+        private readonly BucketBase _bucket;
         private readonly ITypeTranscoder _transcoder;
-        private readonly ClusterContext _context;
         public string ScopeName { get; }
 
-        internal CouchbaseCollection(BucketBase bucket, ClusterContext context)
-            : this(bucket, context, 0, "_default",
-            "_default")
-        {
-        }
-
-        internal CouchbaseCollection(BucketBase bucket, ClusterContext context, uint? cid, string name, string scopeName)
+        public CouchbaseCollection(BucketBase bucket, ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger,
+            uint? cid, string name, string scopeName)
         {
             Cid = cid;
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             ScopeName = scopeName;
-
-            _transcoder = context.ServiceProvider.GetRequiredService<ITypeTranscoder>();
         }
 
         public uint? Cid { get; internal set; }
@@ -50,6 +42,8 @@ namespace Couchbase.KeyValue
         public string Name { get; }
 
         public IBinaryCollection Binary => this;
+
+        public ILogger<CouchbaseCollection> Logger { get; }
 
         #region Get
 
@@ -554,7 +548,7 @@ namespace Couchbase.KeyValue
 
             if (!vBucket.HasReplicas)
             {
-                Log.LogWarning($"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
+                Logger.LogWarning($"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
             }
 
             var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
@@ -579,7 +573,7 @@ namespace Couchbase.KeyValue
             var vBucket = (VBucket) _bucket.KeyMapper.MapKey(id);
             if (!vBucket.HasReplicas)
             {
-                Log.LogWarning($"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
+                Logger.LogWarning($"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
             }
 
             var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
