@@ -12,6 +12,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
 using Couchbase.UnitTests.Helpers;
@@ -49,7 +50,7 @@ namespace Couchbase.UnitTests.Services.Query
                     Content = new ByteArrayContent(buffer)
                 });
 
-                var httpClient = new HttpClient(handlerMock.Object)
+                var httpClient = new CouchbaseHttpClient(handlerMock.Object)
                 {
                     BaseAddress = new Uri("http://localhost:8091")
                 };
@@ -102,7 +103,7 @@ namespace Couchbase.UnitTests.Services.Query
                 Content = new ByteArrayContent(buffer)
             });
 
-            var httpClient = new HttpClient(handlerMock.Object)
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };

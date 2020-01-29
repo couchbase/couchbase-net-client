@@ -24,7 +24,8 @@ namespace Couchbase
         private readonly HttpClusterMapBase _httpClusterMap;
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger) :
-            this(name, context, scopeFactory, retryOrchestrator, logger, new HttpClusterMap(new CouchbaseHttpClient(context), context))
+            this(name, context, scopeFactory, retryOrchestrator, logger,
+                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context))
         {
         }
 

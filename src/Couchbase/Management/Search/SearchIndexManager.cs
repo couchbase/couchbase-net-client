@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -17,17 +18,12 @@ namespace Couchbase.Management.Search
     {
         private static readonly ILogger Logger = LogManager.CreateLogger<SearchIndexManager>();
         private readonly ClusterContext _context;
-        private readonly HttpClient _client;
+        private readonly CouchbaseHttpClient _client;
 
-        internal SearchIndexManager(ClusterContext context)
-            : this(new CouchbaseHttpClient(context))
+        internal SearchIndexManager(ClusterContext context, CouchbaseHttpClient httpClient)
         {
-            _context = context;
-        }
-
-        internal SearchIndexManager(HttpClient httpClient)
-        {
-            _client = httpClient;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
         private Uri GetIndexUri(string indexName = null)
@@ -90,7 +86,7 @@ namespace Couchbase.Management.Search
 
         public async Task AllowQueryingAsync(string indexName, AllowQueryingSearchIndexOptions options = null)
         {
-            options = options ?? AllowQueryingSearchIndexOptions.Default;
+            options ??= AllowQueryingSearchIndexOptions.Default;
             var baseUri = GetQueryControlUri(indexName, true);
             Logger.LogInformation($"Trying to allow querying for index with name {indexName} - {baseUri}");
 
@@ -113,7 +109,7 @@ namespace Couchbase.Management.Search
 
         public async Task DisallowQueryingAsync(string indexName, DisallowQueryingSearchIndexOptions options = null)
         {
-            options = options ?? DisallowQueryingSearchIndexOptions.Default;
+            options ??= DisallowQueryingSearchIndexOptions.Default;
             var baseUri = GetQueryControlUri(indexName, false);
             Logger.LogInformation($"Trying to disallow querying for index with name {indexName} - {baseUri}");
 
@@ -136,7 +132,7 @@ namespace Couchbase.Management.Search
 
         public async Task DropIndexAsync(string indexName, DropSearchIndexOptions options = null)
         {
-            options = options ?? DropSearchIndexOptions.Default;
+            options ??= DropSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexName);
             Logger.LogInformation($"Trying to drop index with name {indexName} - {baseUri}");
 
@@ -159,7 +155,7 @@ namespace Couchbase.Management.Search
 
         public async Task FreezePlanAsync(string indexName, FreezePlanSearchIndexOptions options = null)
         {
-            options = options ?? FreezePlanSearchIndexOptions.Default;
+            options ??= FreezePlanSearchIndexOptions.Default;
             var baseUri = GetFreezeControlUri(indexName, true);
             Logger.LogInformation($"Trying to freeze index with name {indexName} - {baseUri}");
 
@@ -182,7 +178,7 @@ namespace Couchbase.Management.Search
 
         public async Task<IEnumerable<SearchIndex>> GetAllIndexesAsync(GetAllSearchIndexesOptions options = null)
         {
-            options = options ?? GetAllSearchIndexesOptions.Default;
+            options ??= GetAllSearchIndexesOptions.Default;
             var baseUri = GetIndexUri();
             Logger.LogInformation($"Trying to get all indexes - {baseUri}");
 
@@ -203,7 +199,7 @@ namespace Couchbase.Management.Search
 
         public async Task<SearchIndex> GetIndexAsync(string indexName, GetSearchIndexOptions options = null)
         {
-            options = options ?? GetSearchIndexOptions.Default;
+            options ??= GetSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexName);
             Logger.LogInformation($"Trying to get index with name {indexName} - {baseUri}");
 
@@ -224,7 +220,7 @@ namespace Couchbase.Management.Search
 
         public async Task<int> GetIndexedDocumentsCountAsync(string indexName, GetSearchIndexDocumentCountOptions options = null)
         {
-            options = options ?? GetSearchIndexDocumentCountOptions.Default;
+            options ??= GetSearchIndexDocumentCountOptions.Default;
             var baseUri = GetIndexedDocumentCountUri(indexName);
             Logger.LogInformation($"Trying to get index document count with name {indexName} - {baseUri}");
 
@@ -248,7 +244,7 @@ namespace Couchbase.Management.Search
 
         public async Task PauseIngestAsync(string indexName, PauseIngestSearchIndexOptions options = null)
         {
-            options = options ?? PauseIngestSearchIndexOptions.Default;
+            options ??= PauseIngestSearchIndexOptions.Default;
             var baseUri = GetIngestControlUri(indexName, true);
             Logger.LogInformation($"Trying to pause ingest for index with name {indexName} - {baseUri}");
 
@@ -271,7 +267,7 @@ namespace Couchbase.Management.Search
 
         public async Task ResumeIngestAsync(string indexName, ResumeIngestSearchIndexOptions options = null)
         {
-            options = options ?? ResumeIngestSearchIndexOptions.Default;
+            options ??= ResumeIngestSearchIndexOptions.Default;
             var baseUri = GetIngestControlUri(indexName, false);
             Logger.LogInformation($"Trying to resume ingest for index with name {indexName} - {baseUri}");
 
@@ -294,7 +290,7 @@ namespace Couchbase.Management.Search
 
         public async Task UnfreezePlanAsync(string indexName, UnfreezePlanSearchIndexOptions options = null)
         {
-            options = options ?? UnfreezePlanSearchIndexOptions.Default;
+            options ??= UnfreezePlanSearchIndexOptions.Default;
             var baseUri = GetFreezeControlUri(indexName, false);
             Logger.LogInformation($"Trying to unfreeze index with name {indexName} - {baseUri}");
 
@@ -317,7 +313,7 @@ namespace Couchbase.Management.Search
 
         public async Task UpsertIndexAsync(SearchIndex indexDefinition, UpsertSearchIndexOptions options = null)
         {
-            options = options ?? UpsertSearchIndexOptions.Default;
+            options ??= UpsertSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexDefinition.Name);
             Logger.LogInformation($"Trying to upsert index with name {indexDefinition.Name} - {baseUri}");
 

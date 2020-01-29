@@ -30,14 +30,14 @@ namespace Couchbase.Query
         internal bool EnhancedPreparedStatementsEnabled;
 
         internal QueryClient(ClusterContext context) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
+            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
             context.ServiceProvider.GetRequiredService<IDataMapper>(),
             context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
             context)
         {
         }
 
-        internal QueryClient(HttpClient httpClient, IDataMapper dataMapper, ITypeSerializer serializer, ClusterContext context)
+        internal QueryClient(CouchbaseHttpClient httpClient, IDataMapper dataMapper, ITypeSerializer serializer, ClusterContext context)
             : base(httpClient, dataMapper, context)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));

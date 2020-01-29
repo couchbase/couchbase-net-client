@@ -38,12 +38,13 @@ namespace Couchbase.Core
             Cluster = cluster;
             ClusterOptions = options;
             _tokenSource = tokenSource;
-            _configHandler = new ConfigHandler(this);//TODO make injectable
 
             // Register this instance of ClusterContext
             options.AddSingletonService(this);
 
             ServiceProvider = options.BuildServiceProvider();
+
+            _configHandler = ServiceProvider.GetRequiredService<ConfigHandler>();
         }
 
         internal ConcurrentDictionary<IPEndPoint, IClusterNode> Nodes { get; set; } = new ConcurrentDictionary<IPEndPoint, IClusterNode>();

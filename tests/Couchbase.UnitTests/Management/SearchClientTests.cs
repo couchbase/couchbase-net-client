@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
 using Couchbase.UnitTests.Fixtures;
@@ -28,7 +29,7 @@ namespace Couchbase.UnitTests.Management
                     Content = new StreamContent(new MemoryStream())
                 };
             });
-            var httpClient = new HttpClient(handler);
+            var httpClient = new CouchbaseHttpClient(handler);
 
             var mockClusterNode = new Mock<IClusterNode>();
             mockClusterNode.Setup(node => node.HasSearch).Returns(true);

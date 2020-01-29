@@ -1,5 +1,4 @@
 using System;
-using System.Net.Http;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
@@ -10,12 +9,11 @@ namespace Couchbase.Core.IO.HTTP
     /// Base class for HTTP services to inherit from to provide consistent access to clusterOptions,
     /// http client and data mapper.
     /// </summary>
-    /// <seealso cref="System.IDisposable" />
-    internal abstract class HttpServiceBase : IDisposable
+    internal abstract class HttpServiceBase
     {
         private const string ConnectionIdHeaderName = "cb-client-id";
 
-        protected HttpServiceBase(HttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
+        protected HttpServiceBase(CouchbaseHttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
         {
             HttpClient = httpClient;
             DataMapper = dataMapper;
@@ -33,7 +31,7 @@ namespace Couchbase.Core.IO.HTTP
         /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
         /// </summary>
-        protected HttpClient HttpClient { get; set; }
+        protected CouchbaseHttpClient HttpClient { get; set; }
 
         /// <summary>
         /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
@@ -54,11 +52,6 @@ namespace Couchbase.Core.IO.HTTP
         /// The clusterOptions context for this instance.
         /// </summary>
        // protected ConfigHandlerBase Context { get; set; }
-
-        public void Dispose()
-        {
-            HttpClient?.Dispose();
-        }
 
         protected void UpdateLastActivity()
         {

@@ -23,14 +23,14 @@ namespace Couchbase.Analytics
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(ClusterContext context) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
+            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
             context.ServiceProvider.GetRequiredService<IDataMapper>(),
             context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
             context)
         {
         }
 
-        public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ITypeSerializer typeSerializer, ClusterContext context)
+        public AnalyticsClient(CouchbaseHttpClient client, IDataMapper dataMapper, ITypeSerializer typeSerializer, ClusterContext context)
             : base(client, dataMapper, context)
         {
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));

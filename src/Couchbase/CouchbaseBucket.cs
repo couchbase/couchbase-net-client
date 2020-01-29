@@ -27,9 +27,10 @@ namespace Couchbase
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<CouchbaseBucket> logger)
             : base(name, context, scopeFactory, retryOrchestrator, logger)
         {
-            var httpClient = new CouchbaseHttpClient(Context);
+            var httpClient = context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
+
             _viewClientLazy = new Lazy<IViewClient>(() =>
-                new ViewClient(httpClient, context)
+                new ViewClient(context)
             );
             _viewManagerLazy = new Lazy<IViewIndexManager>(() =>
                 new ViewIndexManager(name, httpClient, context));

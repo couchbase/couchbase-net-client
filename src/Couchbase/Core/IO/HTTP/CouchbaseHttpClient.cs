@@ -3,34 +3,41 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.HTTP
 {
-    public class CouchbaseHttpClient : HttpClient
+    internal class CouchbaseHttpClient : HttpClient
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<CouchbaseHttpClient>();
         private const string UserAgentHeaderName = "User-Agent";
-        private readonly ClusterContext _context;
 
         //used by all http services
-        internal CouchbaseHttpClient(ClusterContext context)
-            : this (CreateClientHandler(context))
+        public CouchbaseHttpClient(ClusterContext context, ILogger<CouchbaseHttpClient> logger)
+            : this(CreateClientHandler(context, logger))
         {
-            _context = context;
-            DefaultRequestHeaders.ExpectContinue = _context.ClusterOptions.Expect100Continue;
+            DefaultRequestHeaders.ExpectContinue = context.ClusterOptions.Expect100Continue;
         }
 
-        internal CouchbaseHttpClient(HttpClientHandler handler)
-            : base(handler)
+        public CouchbaseHttpClient(HttpMessageHandler handler)
+            :base(handler)
         {
             DefaultRequestHeaders.Add(UserAgentHeaderName, ClientIdentifier.GetClientDescription());
         }
 
-        private static HttpClientHandler CreateClientHandler(ClusterContext context)
+        private static HttpClientHandler CreateClientHandler(ClusterContext context, ILogger<CouchbaseHttpClient> logger)
         {
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+            if (logger == null)
+            {
+                throw new ArgumentNullException(nameof(logger));
+            }
+
             HttpClientHandler handler;
 
             //for x509 cert authentication
@@ -52,12 +59,11 @@ namespace Couchbase.Core.IO.HTTP
             try
             {
                 handler.CheckCertificateRevocationList = context.ClusterOptions.EnableCertificateRevocation;
-                //handler.ServerCertificateCustomValidationCallback = config?.HttpServerCertificateValidationCallback ??
-                                                                  //  OnCertificateValidation;
+                handler.ServerCertificateCustomValidationCallback = CreateCertificateValidator(context.ClusterOptions);
             }
             catch (NotImplementedException)
             {
-                Logger.LogDebug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
+                logger.LogDebug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
             }
 
             try
@@ -69,23 +75,30 @@ namespace Couchbase.Core.IO.HTTP
             }
             catch (PlatformNotSupportedException e)
             {
-               Logger.LogDebug("Cannot set MaxConnectionsPerServer, not supported on this platform", e);
+                logger.LogDebug("Cannot set MaxConnectionsPerServer, not supported on this platform", e);
             }
 
             return handler;
         }
 
-        private bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        private static Func<HttpRequestMessage, X509Certificate, X509Chain, SslPolicyErrors, bool>
+            CreateCertificateValidator(ClusterOptions clusterOptions)
         {
-            if (_context.ClusterOptions.IgnoreRemoteCertificateNameMismatch)
+            bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate,
+                X509Chain chain, SslPolicyErrors sslPolicyErrors)
             {
-                if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
+                if (clusterOptions.IgnoreRemoteCertificateNameMismatch)
                 {
-                    return true;
+                    if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
+                    {
+                        return true;
+                    }
                 }
+
+                return sslPolicyErrors == SslPolicyErrors.None;
             }
 
-            return sslPolicyErrors == SslPolicyErrors.None;
+            return OnCertificateValidation;
         }
     }
 }

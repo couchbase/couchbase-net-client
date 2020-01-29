@@ -39,11 +39,12 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             tokenSource.CancelAfter(TimeSpan.FromSeconds(10));
 
             var context = new ClusterContext(tokenSource, _fixture.ClusterOptions);
-            var handler = new ConfigHandler(context);
+            var httpClient = context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
+
+            var handler = new ConfigHandler(context, httpClient);
             handler.Start(tokenSource);
             handler.Subscribe(_bucket);
 
-            var httpClient = new CouchbaseHttpClient(context);
             var listener = new HttpStreamingConfigListener("default", _fixture.ClusterOptions, httpClient, handler, tokenSource.Token);
 
             listener.StartListening();

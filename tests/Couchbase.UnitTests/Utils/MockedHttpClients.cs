@@ -8,6 +8,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -30,7 +31,7 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new HttpClient(handlerMock.Object)
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
@@ -74,7 +75,7 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new HttpClient(handlerMock.Object)
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
@@ -118,7 +119,7 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new HttpClient(handlerMock.Object)
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8094")
             };
@@ -161,7 +162,7 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new HttpClient(handlerMock.Object)
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };

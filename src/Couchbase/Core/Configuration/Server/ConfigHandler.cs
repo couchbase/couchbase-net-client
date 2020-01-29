@@ -2,8 +2,6 @@ using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server.Streaming;
@@ -37,22 +35,22 @@ namespace Couchbase.Core.Configuration.Server
         private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners =
             new ConcurrentDictionary<string, HttpStreamingConfigListener>();
 
-        private readonly HttpClient _httpClient;
+        private readonly CouchbaseHttpClient _httpClient;
 
         internal delegate void BucketConfigHandler(object sender, BucketConfigEventArgs a);
 
         public event BucketConfigHandler ConfigChanged;
 
-        public ConfigHandler(ClusterContext context)
+        public ConfigHandler(ClusterContext context, CouchbaseHttpClient httpClient)
         {
-            _context = context;
-            _httpClient = new CouchbaseHttpClient(_context);
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
         public void Start(CancellationTokenSource tokenSource)
         {
             TokenSource = tokenSource;
-            Task.Run(() => Process(), TokenSource.Token);
+            Task.Run(Process, TokenSource.Token);
         }
 
         public void Stop()
@@ -195,7 +193,6 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Dispose()
         {
-            _httpClient?.Dispose();
             _configQueue?.Dispose();
             TokenSource?.Dispose();
             if (ConfigChanged == null) return;

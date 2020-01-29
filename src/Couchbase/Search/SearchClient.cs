@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
@@ -27,12 +28,12 @@ namespace Couchbase.Search
         //private Func<object, string> User = RedactableArgument.UserAction;
 
         public SearchClient(ClusterContext context) : this(
-            new HttpClient(new AuthenticatingHttpClientHandler(context)),
+            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
             new SearchDataMapper(), context)
         {
         }
 
-        public SearchClient(HttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
+        public SearchClient(CouchbaseHttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
             : base(httpClient, dataMapper, context)
         { }
 

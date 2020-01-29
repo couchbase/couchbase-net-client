@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
@@ -40,7 +41,7 @@ namespace Couchbase.UnitTests.Services.Views
                 };
             });
 
-            var httpClient = new HttpClient(handler);
+            var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
             var queryClient = new ViewClient(httpClient,
                 new JsonDataMapper(serializer),
@@ -61,7 +62,7 @@ namespace Couchbase.UnitTests.Services.Views
                 Content = new StringContent("{ }")
             });
 
-            var httpClient = new HttpClient(handler);
+            var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
             var queryClient = new ViewClient(httpClient,
                 new JsonDataMapper(serializer),

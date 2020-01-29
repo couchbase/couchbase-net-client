@@ -6,6 +6,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Diagnostics;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Retry.Query;
@@ -66,13 +67,14 @@ namespace Couchbase
             _context = new ClusterContext(configTokenSource, clusterOptions);
             _context.StartConfigListening();
 
+            var httpClient = _context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
             LazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_context));
             LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_context));
             LazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_context));
             LazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(LazyQueryClient.Value));
             LazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_context));
             LazyUserManager = new Lazy<IUserManager>(() => new UserManager(_context));
-            LazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context));
+            LazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context, httpClient));
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();

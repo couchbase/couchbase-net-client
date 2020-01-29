@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -32,6 +34,11 @@ namespace Couchbase.Core.DI
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
             yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(DefaultTranscoder)));
+
+            yield return (typeof(CouchbaseHttpClient), new LambdaServiceFactory(serviceProvider =>
+                new CouchbaseHttpClient(serviceProvider.GetRequiredService<ClusterContext>(),
+                    serviceProvider.GetRequiredService<ILogger<CouchbaseHttpClient>>())));
+            yield return (typeof(ConfigHandler), new SingletonServiceFactory(typeof(ConfigHandler)));
         }
     }
 }

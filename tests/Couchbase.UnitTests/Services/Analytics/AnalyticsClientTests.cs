@@ -8,6 +8,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
@@ -40,7 +41,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 Content = new ByteArrayContent(buffer)
             });
 
-            var httpClient = new HttpClient(handlerMock.Object)
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
@@ -81,7 +82,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 NodesAdapter = new NodeAdapter { Analytics = 8094 }
             });
 
-            var httpClient = new HttpClient(
+            var httpClient = new CouchbaseHttpClient(
                 FakeHttpMessageHandler.Create(request =>
                 {
                     if (priority)
@@ -120,7 +121,7 @@ namespace Couchbase.UnitTests.Services.Analytics
                 NodesAdapter = new NodeAdapter { Analytics = 8094 }
             });
 
-            var httpClient = new HttpClient(
+            var httpClient = new CouchbaseHttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{}")

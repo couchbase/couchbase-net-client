@@ -25,15 +25,15 @@ namespace Couchbase.Views
         private static readonly ILogger Log = LogManager.CreateLogger<ViewClient>();
         private readonly uint? _viewTimeout;
 
-        public ViewClient(HttpClient client, ClusterContext context) : this(
-            client,
+        public ViewClient(ClusterContext context) : this(
+            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
             context.ServiceProvider.GetRequiredService<IDataMapper>(),
             context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
             context)
         {
         }
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper, ITypeSerializer serializer, ClusterContext context)
+        public ViewClient(CouchbaseHttpClient httpClient, IDataMapper mapper, ITypeSerializer serializer, ClusterContext context)
             : base(httpClient, mapper, context)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
