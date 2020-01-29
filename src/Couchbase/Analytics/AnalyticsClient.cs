@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
@@ -23,14 +24,16 @@ namespace Couchbase.Analytics
 
         public AnalyticsClient(ClusterContext context) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
-            new JsonDataMapper(new DefaultSerializer()), context.ClusterOptions.JsonSerializer, context)
+            context.ServiceProvider.GetRequiredService<IDataMapper>(),
+            context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
+            context)
         {
         }
 
         public AnalyticsClient(HttpClient client, IDataMapper dataMapper, ITypeSerializer typeSerializer, ClusterContext context)
             : base(client, dataMapper, context)
         {
-            _typeSerializer = typeSerializer;
+            _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
         }
 
         /// <summary>

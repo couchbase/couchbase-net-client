@@ -4,11 +4,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
-using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -24,7 +24,7 @@ namespace Couchbase.KeyValue
         private static readonly ILogger Log = LogManager.CreateLogger<CouchbaseCollection>();
         private readonly BucketBase _bucket;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
-        private readonly ITypeTranscoder _transcoder = new DefaultTranscoder();
+        private readonly ITypeTranscoder _transcoder;
         private readonly ClusterContext _context;
         public string ScopeName { get; }
 
@@ -41,6 +41,8 @@ namespace Couchbase.KeyValue
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             _context = context ?? throw new ArgumentNullException(nameof(context));
             ScopeName = scopeName;
+
+            _transcoder = context.ServiceProvider.GetRequiredService<ITypeTranscoder>();
         }
 
         public uint? Cid { get; internal set; }

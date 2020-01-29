@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
@@ -30,7 +31,9 @@ namespace Couchbase.Query
 
         internal QueryClient(ClusterContext context) : this(
             new HttpClient(new AuthenticatingHttpClientHandler(context.ClusterOptions.UserName, context.ClusterOptions.Password)),
-            new JsonDataMapper(new DefaultSerializer()), context.ClusterOptions.JsonSerializer, context)
+            context.ServiceProvider.GetRequiredService<IDataMapper>(),
+            context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
+            context)
         {
         }
 

@@ -192,7 +192,8 @@ namespace Couchbase.UnitTests.Utils
             clusterNode.BuildServiceUris();
             context.AddNode(clusterNode);
 
-            return new ViewClient(httpClient, new JsonDataMapper(new DefaultSerializer()), context);
+            var serializer = new DefaultSerializer();
+            return new ViewClient(httpClient, new JsonDataMapper(serializer), serializer, context);
         }
     }
 }

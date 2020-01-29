@@ -107,6 +107,40 @@ namespace Couchbase
             return this;
         }
 
+        /// <summary>
+        /// Provide a custom <seealso cref="ITypeSerializer"/>.
+        /// </summary>
+        /// <param name="serializer">Serializer to use.</param>
+        /// <returns><seealso cref="ClusterOptions"/>.</returns>
+        public ClusterOptions Serializer(ITypeSerializer serializer)
+        {
+            if (serializer == null)
+            {
+                throw new ArgumentNullException(nameof(serializer));
+            }
+
+            AddSingletonService(serializer);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Provide a custom <seealso cref="ITypeTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder">Transcoder to use.</param>
+        /// <returns><seealso cref="ClusterOptions"/>.</returns>
+        public ClusterOptions Transcoder(ITypeTranscoder transcoder)
+        {
+            if (transcoder == null)
+            {
+                throw new ArgumentNullException(nameof(transcoder));
+            }
+
+            AddSingletonService(transcoder);
+
+            return this;
+        }
+
         internal IEnumerable<Uri> ServersValue => _servers;
         internal IEnumerable<string> Buckets => _buckets;
         public string UserName { get; set; }
@@ -122,8 +156,6 @@ namespace Couchbase
         public TimeSpan SearchTimeout { get; set; } = TimeSpan.FromSeconds(75);
         public TimeSpan ManagementTimeout { get; set; } = TimeSpan.FromSeconds(75);
         public bool EnableTls { get; set; }
-        public ITypeTranscoder Transcoder { get; set; } = new DefaultTranscoder();
-        public ITypeSerializer JsonSerializer { get; set; } = new DefaultSerializer();
         public bool EnableMutationTokens { get; set; } = true;
         public ITracer Tracer = new ThresholdLoggingTracer();
         public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);

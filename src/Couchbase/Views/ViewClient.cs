@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
@@ -24,10 +25,18 @@ namespace Couchbase.Views
         private static readonly ILogger Log = LogManager.CreateLogger<ViewClient>();
         private readonly uint? _viewTimeout;
 
-        public ViewClient(HttpClient httpClient, IDataMapper mapper, ClusterContext context)
+        public ViewClient(HttpClient client, ClusterContext context) : this(
+            client,
+            context.ServiceProvider.GetRequiredService<IDataMapper>(),
+            context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
+            context)
+        {
+        }
+
+        public ViewClient(HttpClient httpClient, IDataMapper mapper, ITypeSerializer serializer, ClusterContext context)
             : base(httpClient, mapper, context)
         {
-            _serializer = context.ClusterOptions.JsonSerializer;
+            _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
             _viewTimeout = (uint) Context.ClusterOptions.ViewTimeout.TotalMilliseconds * 1000; // convert millis to micros
 
             // set timeout to infinite so we can stream results without the connection

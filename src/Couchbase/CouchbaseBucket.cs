@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry;
@@ -11,7 +10,6 @@ using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
-using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 
@@ -30,7 +28,7 @@ namespace Couchbase
         {
             var httpClient = new CouchbaseHttpClient(Context);
             _viewClientLazy = new Lazy<IViewClient>(() =>
-                new ViewClient(httpClient, new JsonDataMapper(Context.ClusterOptions.JsonSerializer), Context)
+                new ViewClient(httpClient, context)
             );
             _viewManagerLazy = new Lazy<IViewIndexManager>(() =>
                 new ViewIndexManager(name, httpClient, context));

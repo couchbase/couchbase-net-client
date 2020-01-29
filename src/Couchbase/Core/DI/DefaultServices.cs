@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.DataMapping;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -23,6 +26,10 @@ namespace Couchbase.Core.DI
 
             yield return (typeof(IBucketFactory), new SingletonServiceFactory(typeof(BucketFactory)));
             yield return (typeof(IRetryOrchestrator), new SingletonServiceFactory(typeof(RetryOrchestrator)));
+
+            yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
+            yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
+            yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(DefaultTranscoder)));
         }
     }
 }
