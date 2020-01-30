@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -9,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
@@ -54,23 +52,14 @@ namespace Couchbase.UnitTests.Services.Query
                 {
                     BaseAddress = new Uri("http://localhost:8091")
                 };
-                var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901");
-                var context = new ClusterContext(null, options);
 
-                var clusterNode = new ClusterNode(context)
-                {
-                    EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
-                    NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
-                        new NodesExt {Hostname = "127.0.0.1", Services = new Couchbase.Core.Configuration.Server.Services
-                        {
-                            N1Ql = 8093
-                        }}, new BucketConfig())
-                };
-                clusterNode.BuildServiceUris();
-                context.AddNode(clusterNode);
+                var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+                mockServiceUriProvider
+                    .Setup(m => m.GetRandomQueryUri())
+                    .Returns(new Uri("http://localhost:8093"));
 
                 var serializer = new DefaultSerializer();
-                var client = new QueryClient(httpClient, new JsonDataMapper(serializer), serializer, context);
+                var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer);
 
                 try
                 {
@@ -107,23 +96,14 @@ namespace Couchbase.UnitTests.Services.Query
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
-            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901");
-            var context = new ClusterContext(null, options);
 
-            var clusterNode = new ClusterNode(context)
-            {
-                EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
-                NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
-                    new NodesExt {Hostname = "127.0.0.1", Services = new Couchbase.Core.Configuration.Server.Services
-                    {
-                        N1Ql = 8093
-                    }}, new BucketConfig())
-            };
-            clusterNode.BuildServiceUris();
-            context.AddNode(clusterNode);
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryUri())
+                .Returns(new Uri("http://localhost:8093"));
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
-            var client = new QueryClient(httpClient, new JsonDataMapper(serializer), serializer, context);
+            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions());
 

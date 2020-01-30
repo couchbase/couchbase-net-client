@@ -2,9 +2,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Couchbase.Core;
-using Couchbase.Core.DataMapping;
-using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.UnitTests.Utils;
@@ -43,10 +40,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient,
-                new JsonDataMapper(serializer),
-                serializer,
-                new ClusterContext(null, new ClusterOptions()));
+            var queryClient = new ViewClient(httpClient, serializer);
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
@@ -64,10 +58,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient,
-                new JsonDataMapper(serializer),
-                serializer,
-                new ClusterContext(null, new ClusterOptions()));
+            var queryClient = new ViewClient(httpClient, serializer);
 
             Assert.Null(queryClient.LastActivity);
 

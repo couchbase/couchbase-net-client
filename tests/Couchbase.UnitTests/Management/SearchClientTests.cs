@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -31,16 +30,12 @@ namespace Couchbase.UnitTests.Management
             });
             var httpClient = new CouchbaseHttpClient(handler);
 
-            var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(node => node.HasSearch).Returns(true);
-            mockClusterNode.Setup(node => node.SearchUri).Returns(new Uri("http://localhost:8094"));
-            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Any, 8091));
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomSearchUri())
+                .Returns(new Uri("http://localhost:8094"));
 
-            var options = new ClusterOptions();
-            var context = new ClusterContext(null, options);
-
-            context.AddNode(mockClusterNode.Object);
-            var client = new SearchClient(httpClient, new SearchDataMapper(), context);
+            var client = new SearchClient(httpClient, mockServiceUriProvider.Object, new SearchDataMapper());
 
             await client.QueryAsync(new SearchRequest{Index = indexName, Options = new SearchOptions()});
         }

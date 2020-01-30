@@ -26,20 +26,21 @@ namespace Couchbase.Query
         private static readonly ILogger Log = LogManager.CreateLogger<QueryClient>();
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
         private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
+        private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _serializer;
         internal bool EnhancedPreparedStatementsEnabled;
 
         internal QueryClient(ClusterContext context) : this(
             context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            context.ServiceProvider.GetRequiredService<IDataMapper>(),
-            context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
-            context)
+            context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
+            context.ServiceProvider.GetRequiredService<ITypeSerializer>())
         {
         }
 
-        internal QueryClient(CouchbaseHttpClient httpClient, IDataMapper dataMapper, ITypeSerializer serializer, ClusterContext context)
-            : base(httpClient, dataMapper, context)
+        internal QueryClient(CouchbaseHttpClient httpClient, IServiceUriProvider serviceUriProvider, ITypeSerializer serializer)
+            : base(httpClient)
         {
+            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 
@@ -119,7 +120,7 @@ namespace Couchbase.Query
         private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, IDataMapper dataMapper)
         {
             // try get Query node
-            var node = Context.GetRandomNodeForService(ServiceType.Query);
+            var queryUri = _serviceUriProvider.GetRandomQueryUri();
             var body = options.GetFormValuesAsJson();
 
             QueryResultBase<T> queryResult;
@@ -127,7 +128,7 @@ namespace Couchbase.Query
             {
                 try
                 {
-                    var response = await HttpClient.PostAsync(node.QueryUri, content, options.Token).ConfigureAwait(false);
+                    var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
                     if (_serializer is IStreamingTypeDeserializer streamingDeserializer)

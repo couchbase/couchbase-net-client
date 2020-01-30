@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -24,18 +23,25 @@ namespace Couchbase.Search
     {
         private static readonly ILogger Log = LogManager.CreateLogger<SearchClient>();
 
+        private readonly IServiceUriProvider _serviceUriProvider;
+        private readonly IDataMapper _dataMapper;
+
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
 
         public SearchClient(ClusterContext context) : this(
             context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            new SearchDataMapper(), context)
+            context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
+            new SearchDataMapper())
         {
         }
 
-        public SearchClient(CouchbaseHttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
-            : base(httpClient, dataMapper, context)
-        { }
+        public SearchClient(CouchbaseHttpClient httpClient, IServiceUriProvider serviceUriProvider, IDataMapper dataMapper)
+            : base(httpClient)
+        {
+            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
+            _dataMapper = dataMapper ?? throw new ArgumentNullException(nameof(dataMapper));
+        }
 
         /// <summary>
         /// Executes a <see cref="ISearchQuery" /> request including any <see cref="ISearchOptions" /> parameters.
@@ -57,8 +63,8 @@ namespace Couchbase.Search
         public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
         {
             // try get Search node
-            var node = Context.GetRandomNodeForService(ServiceType.Search);
-            var uriBuilder = new UriBuilder(node.SearchUri)
+            var searchUri = _serviceUriProvider.GetRandomSearchUri();
+            var uriBuilder = new UriBuilder(searchUri)
             {
                 Path = $"api/index/{searchRequest.Index}/query"
             };
@@ -74,7 +80,7 @@ namespace Couchbase.Search
                 {
                     if (response.IsSuccessStatusCode)
                     {
-                        searchResult = await DataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
+                        searchResult = await _dataMapper.MapAsync<SearchResult>(stream, cancellationToken).ConfigureAwait(false);
                     }
                     else
                     {

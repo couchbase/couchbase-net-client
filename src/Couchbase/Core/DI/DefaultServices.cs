@@ -38,6 +38,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(CouchbaseHttpClient), new LambdaServiceFactory(serviceProvider =>
                 new CouchbaseHttpClient(serviceProvider.GetRequiredService<ClusterContext>(),
                     serviceProvider.GetRequiredService<ILogger<CouchbaseHttpClient>>())));
+            yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));
             yield return (typeof(ConfigHandler), new SingletonServiceFactory(typeof(ConfigHandler)));
         }
     }

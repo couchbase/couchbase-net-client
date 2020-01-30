@@ -1,7 +1,8 @@
 using System;
-using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.HTTP
 {
@@ -13,30 +14,18 @@ namespace Couchbase.Core.IO.HTTP
     {
         private const string ConnectionIdHeaderName = "cb-client-id";
 
-        protected HttpServiceBase(CouchbaseHttpClient httpClient, IDataMapper dataMapper, ClusterContext context)
+        protected HttpServiceBase(CouchbaseHttpClient httpClient)
         {
             HttpClient = httpClient;
-            DataMapper = dataMapper;
-            Context = context;
 
             // set custom header for client / connection ID
             httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));
         }
 
         /// <summary>
-        /// Gets the client clusterOptions.
-        /// </summary>
-        protected ClusterContext Context { get; set; }
-
-        /// <summary>
         /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
         /// </summary>
         protected CouchbaseHttpClient HttpClient { get; set; }
-
-        /// <summary>
-        /// The <see cref="IDataMapper"/> to use for mapping the output stream to a Type.
-        /// </summary>
-        protected IDataMapper DataMapper { get; set; }
 
         /// <summary>
         /// Gets or sets the last activity.

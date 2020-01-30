@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.DataMapping;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
@@ -18,21 +17,22 @@ namespace Couchbase.Analytics
 {
     internal class AnalyticsClient : HttpServiceBase, IAnalyticsClient
     {
+        private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _typeSerializer;
         private static readonly ILogger Log = LogManager.CreateLogger<AnalyticsClient>();
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(ClusterContext context) : this(
             context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            context.ServiceProvider.GetRequiredService<IDataMapper>(),
-            context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
-            context)
+            context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
+            context.ServiceProvider.GetRequiredService<ITypeSerializer>())
         {
         }
 
-        public AnalyticsClient(CouchbaseHttpClient client, IDataMapper dataMapper, ITypeSerializer typeSerializer, ClusterContext context)
-            : base(client, dataMapper, context)
+        public AnalyticsClient(CouchbaseHttpClient client, IServiceUriProvider serviceUriProvider, ITypeSerializer typeSerializer)
+            : base(client)
         {
+            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
         }
 
@@ -46,7 +46,7 @@ namespace Couchbase.Analytics
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token = default)
         {
             // try get Analytics node
-            var node = Context.GetRandomNodeForService(ServiceType.Analytics);
+            var analyticsUri = _serviceUriProvider.GetRandomAnalyticsUri();
             AnalyticsResultBase<T> result;
             var body = queryRequest.GetFormValuesAsJson();
 
@@ -54,7 +54,7 @@ namespace Couchbase.Analytics
             {
                 try
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Post, node.AnalyticsUri)
+                    var request = new HttpRequestMessage(HttpMethod.Post, analyticsUri)
                     {
                         Content = content
                     };

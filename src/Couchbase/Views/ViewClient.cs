@@ -23,21 +23,17 @@ namespace Couchbase.Views
         protected const string Success = "Success";
 
         private static readonly ILogger Log = LogManager.CreateLogger<ViewClient>();
-        private readonly uint? _viewTimeout;
 
         public ViewClient(ClusterContext context) : this(
             context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            context.ServiceProvider.GetRequiredService<IDataMapper>(),
-            context.ServiceProvider.GetRequiredService<ITypeSerializer>(),
-            context)
+            context.ServiceProvider.GetRequiredService<ITypeSerializer>())
         {
         }
 
-        public ViewClient(CouchbaseHttpClient httpClient, IDataMapper mapper, ITypeSerializer serializer, ClusterContext context)
-            : base(httpClient, mapper, context)
+        public ViewClient(CouchbaseHttpClient httpClient, ITypeSerializer serializer)
+            : base(httpClient)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
-            _viewTimeout = (uint) Context.ClusterOptions.ViewTimeout.TotalMilliseconds * 1000; // convert millis to micros
 
             // set timeout to infinite so we can stream results without the connection
             // closing part way through

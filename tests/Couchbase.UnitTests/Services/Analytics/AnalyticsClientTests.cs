@@ -6,13 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
-using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
-using Couchbase.Utils;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -45,23 +42,14 @@ namespace Couchbase.UnitTests.Services.Analytics
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
-            var options = new ClusterOptions().Bucket("default").Servers("http://localhost:8901");
-            var context = new ClusterContext(null, options);
 
-            var clusterNode = new ClusterNode(context)
-            {
-                EndPoint = new Uri("http://localhost:8091").GetIpEndPoint(8091, false),
-                NodesAdapter = new NodeAdapter(new Node {Hostname = "127.0.0.1"},
-                    new NodesExt {Hostname = "127.0.0.1", Services = new Couchbase.Core.Configuration.Server.Services
-                    {
-                        Cbas = 8095
-                    }}, new BucketConfig())
-            };
-            clusterNode.BuildServiceUris();
-            context.AddNode(clusterNode);
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsUri())
+                .Returns(new Uri("http://localhost:8096"));
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(serializer), serializer, context);
+            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer);
 
             var result = await client.QueryAsync<dynamic>(new AnalyticsRequest("SELECT * FROM `default`"), default);
 
@@ -73,15 +61,6 @@ namespace Couchbase.UnitTests.Services.Analytics
         [InlineData(false)]
         public async Task Client_sets_AnalyticsPriority_Header(bool priority)
         {
-            var options = new ClusterOptions().Servers("http://localhost");
-            var context = new ClusterContext(null, options);
-            context.AddNode(new ClusterNode(context)
-            {
-                AnalyticsUri = new Uri("http://localhost:8094/query"),
-                EndPoint = new IPEndPoint(IPAddress.Loopback, 8091),
-                NodesAdapter = new NodeAdapter { Analytics = 8094 }
-            });
-
             var httpClient = new CouchbaseHttpClient(
                 FakeHttpMessageHandler.Create(request =>
                 {
@@ -100,8 +79,13 @@ namespace Couchbase.UnitTests.Services.Analytics
                 })
             );
 
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsUri())
+                .Returns(new Uri("http://localhost:8096"));
+
             var serializer = new DefaultSerializer();
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(serializer), serializer, context);
+            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer);
 
             var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
             queryRequest.Priority(priority);
@@ -111,25 +95,20 @@ namespace Couchbase.UnitTests.Services.Analytics
 
         [Fact]
         public async Task QueryAsync_Sets_LastActivity()
-        {
-            var options = new ClusterOptions().Servers("http://localhost");
-            var context = new ClusterContext(null, options);
-            context.AddNode(new ClusterNode(new ClusterContext(null, new ClusterOptions()))
-            {
-                AnalyticsUri = new Uri("http://localhost:8094/query"),
-                EndPoint = new IPEndPoint(IPAddress.Loopback, 8091),
-                NodesAdapter = new NodeAdapter { Analytics = 8094 }
-            });
-
-            var httpClient = new CouchbaseHttpClient(
+        { var httpClient = new CouchbaseHttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{}")
                 })
             );
 
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsUri())
+                .Returns(new Uri("http://localhost:8096"));
+
             var serializer = new DefaultSerializer();
-            var client = new AnalyticsClient(httpClient, new JsonDataMapper(serializer), serializer, context);
+            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer);
 
             Assert.Null(client.LastActivity);
 
