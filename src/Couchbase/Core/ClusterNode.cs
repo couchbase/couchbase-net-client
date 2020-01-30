@@ -121,14 +121,15 @@ namespace Couchbase.Core
             return manifestResult.Content;
         }
 
-        public Task SelectBucket(string name)
+        public async Task SelectBucket(string name)
         {
             using var selectBucketOp = new SelectBucket
             {
                 Transcoder = new DefaultTranscoder(),
                 Key = name
             };
-            return ExecuteOp(selectBucketOp);
+
+            await ExecuteOp(selectBucketOp);
         }
 
         public async Task<BucketConfig> GetClusterMap()
@@ -140,6 +141,8 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
             };
+            await ExecuteOp(configOp);
+
             var configResult = configOp.GetResultWithValue();
             var config = configResult.Content;
 
