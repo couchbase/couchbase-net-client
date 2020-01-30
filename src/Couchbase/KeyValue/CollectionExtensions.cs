@@ -254,13 +254,13 @@ namespace Couchbase.KeyValue
         }
 
         public static Task<ILookupInResult> LookupInAsync(this ICollection collection, string id,
-            IEnumerable<OperationSpec> specs)
+            IEnumerable<LookupInSpec> specs)
         {
             return collection.LookupInAsync(id, specs, new LookupInOptions());
         }
 
         public static Task<ILookupInResult> LookupInAsync(this ICollection collection, string id,
-            IEnumerable<OperationSpec> specs, Action<LookupInOptions> configureOptions)
+            IEnumerable<LookupInSpec> specs, Action<LookupInOptions> configureOptions)
         {
             var options = new LookupInOptions();
             configureOptions(options);
@@ -303,13 +303,13 @@ namespace Couchbase.KeyValue
         }
 
         public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
-            IEnumerable<OperationSpec> specs)
+            IEnumerable<MutateInSpec> specs)
         {
             return collection.MutateInAsync(id, specs, new MutateInOptions());
         }
 
         public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
-            IEnumerable<OperationSpec> specs, Action<MutateInOptions> configureOptions)
+            IEnumerable<MutateInSpec> specs, Action<MutateInOptions> configureOptions)
         {
             var options = new MutateInOptions();
             configureOptions(options);

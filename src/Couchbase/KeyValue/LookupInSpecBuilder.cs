@@ -6,7 +6,7 @@ namespace Couchbase.KeyValue
 {
     public class LookupInSpecBuilder
     {
-        internal readonly List<OperationSpec> Specs = new List<OperationSpec>();
+        internal readonly List<LookupInSpec> Specs = new List<LookupInSpec>();
 
         public LookupInSpecBuilder Get(string path, bool isXattr = false)
         {

@@ -1,11 +1,9 @@
 using System.Collections.Generic;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -69,22 +67,22 @@ namespace Couchbase.UnitTests
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x2d, 0x31, 0x32, 0x33, 0x2e, 0x31, 0x32, 0x30, 0x37, 0x33, 0x35
             };
 
-        private List<OperationSpec> _lookupInSpecs = new List<OperationSpec>
+        private List<LookupInSpec> _lookupInSpecs = new List<LookupInSpec>
         {
-            new OperationSpec {Path = "name"},
-            new OperationSpec {Path = "age"},
-            new OperationSpec {Path = "animals"},
-            new OperationSpec {Path = "animals[1]"},
-            new OperationSpec {Path = "attributes"},
-            new OperationSpec {Path = "attributes.hair"},
-            new OperationSpec {Path = "attributes.dimensions"},
-            new OperationSpec {Path = "attributes.dimensions.height"},
-            new OperationSpec {Path = "attributes.dimensions.weight"},
-            new OperationSpec {Path = "attributes.hobbies"},
-            new OperationSpec {Path = "attributes.hobbies[0].type"},
-            new OperationSpec {Path = "attributes.hobbies[1].name"},
-            new OperationSpec {Path = "attributes.hobbies[1].details.location"},
-            new OperationSpec {Path = "attributes.hobbies[1].details.location.long"}
+            new LookupInSpec {Path = "name"},
+            new LookupInSpec {Path = "age"},
+            new LookupInSpec {Path = "animals"},
+            new LookupInSpec {Path = "animals[1]"},
+            new LookupInSpec {Path = "attributes"},
+            new LookupInSpec {Path = "attributes.hair"},
+            new LookupInSpec {Path = "attributes.dimensions"},
+            new LookupInSpec {Path = "attributes.dimensions.height"},
+            new LookupInSpec {Path = "attributes.dimensions.weight"},
+            new LookupInSpec {Path = "attributes.hobbies"},
+            new LookupInSpec {Path = "attributes.hobbies[0].type"},
+            new LookupInSpec {Path = "attributes.hobbies[1].name"},
+            new LookupInSpec {Path = "attributes.hobbies[1].details.location"},
+            new LookupInSpec {Path = "attributes.hobbies[1].details.location.long"}
         };
 
         public class Dimensions

@@ -6,14 +6,14 @@ using Newtonsoft.Json;
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
     /// <summary>
-    /// Represents a single operation within a mult-operation against a document using the SubDocument API.
+    /// Represents a single operation within a multi-operation against a document using the SubDocument API.
     /// </summary>
-    public class OperationSpec : IEqualityComparer
+    public abstract class OperationSpec : IEqualityComparer
     {
         /// <summary>
         /// Maximum length of the path, in bytes.
         /// </summary>
-        public const int MaxPathLength = 1024;
+        internal const int MaxPathLength = 1024;
 
         /// <summary>
         /// Gets or sets the N1QL path within the document.
@@ -21,7 +21,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The path.
         /// </value>
-        public string Path { get; set; }
+        internal string Path { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="OpCode"/> for the SubDocument operation.
@@ -29,15 +29,15 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The op code.
         /// </value>
-        public OpCode OpCode { get; set; }
+        internal OpCode OpCode { get; set; }
 
         /// <summary>
-        /// Gets or sets the value that will be written or recieved. This can be a JSON fragment or a scalar.
+        /// Gets or sets the value that will be written or received. This can be a JSON fragment or a scalar.
         /// </summary>
         /// <value>
         /// The value.
         /// </value>
-        public object Value { get; set; }
+        internal object Value { get; set; }
 
         /// <summary>
         /// Gets or sets the bytes.
@@ -45,7 +45,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The bytes.
         /// </value>
-        public ReadOnlyMemory<byte> Bytes { get; set; }
+        internal ReadOnlyMemory<byte> Bytes { get; set; }
 
         /// <summary>
         /// Gets or sets the path flags for the operation.
@@ -53,15 +53,15 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The flags.
         /// </value>
-        public SubdocPathFlags PathFlags { get; set; }
+        internal SubdocPathFlags PathFlags { get; set; }
 
         /// <summary>
-        /// Gets or sets the docuemnt flags for the operation.
+        /// Gets or sets the document flags for the operation.
         /// </summary>
         /// <value>
         /// The flags.
         /// </value>
-        public SubdocDocFlags DocFlags { get; set; }
+        internal SubdocDocFlags DocFlags { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="ResponseStatus"/> returned by the server indicating the status of the operation - i.e. failed, succeeded, etc.
@@ -69,7 +69,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The status.
         /// </value>
-        public ResponseStatus Status { get; set; } = ResponseStatus.None;
+        internal ResponseStatus Status { get; set; } = ResponseStatus.None;
 
         /// <summary>
         /// Gets or sets a value indicating whether or not to remove array brackets.
@@ -77,7 +77,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         ///   <c>true</c> if array brackets will be removed; otherwise, <c>false</c>.
         /// </value>
-        public bool RemoveBrackets { get; set; }
+        internal bool RemoveBrackets { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the value is valid JSON and not just an element's value.
@@ -85,29 +85,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         ///   <c>true</c> if value is JSON; otherwise, <c>false</c>.
         /// </value>
-        public bool ValueIsJson { get; set; }
-
-        /// <summary>
-        /// Creates a new object that is a copy of the current instance excluding the Byte and Status fields.
-        /// </summary>
-        /// <returns>
-        /// A new object that is a copy of this instance.
-        /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public OperationSpec Clone()
-        {
-            return new OperationSpec
-            {
-                Bytes = ReadOnlyMemory<byte>.Empty,
-                PathFlags = PathFlags,
-                DocFlags = DocFlags,
-                OpCode = OpCode,
-                Path = Path,
-                RemoveBrackets = RemoveBrackets,
-                Status = ResponseStatus.None,
-                Value = Value,
-            };
-        }
+        internal bool ValueIsJson { get; set; }
 
         /// <summary>
         /// Determines whether the specified <see cref="OperationSpec" />, is equal to this instance. Only compares Path and OpCode!

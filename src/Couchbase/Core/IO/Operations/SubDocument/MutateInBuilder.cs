@@ -135,7 +135,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 throw new ArgumentException("Path cannot be empty for an Insert.");
             }
 
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubDictAdd,
                 Path = path,
@@ -176,7 +176,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 throw new ArgumentException("Path cannot be empty for an Upsert.");
             }
 
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubDictUpsert,
                 Path = path,
@@ -216,7 +216,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 throw new ArgumentException("Path cannot be empty for an Upsert.");
             }
 
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubReplace,
                 Path = path,
@@ -254,7 +254,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 throw new ArgumentException("Path cannot be empty for an Remove.");
             }
 
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubDelete,
                 Path = path,
@@ -298,7 +298,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <returns>An <see cref="T:Couchbase.Core.IMutateInBuilder`1" /> reference for chaining operations.</returns>
         public IMutateInBuilder<TDocument> ArrayAppend(string path, object value, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubArrayPushLast,
                 Path = path,
@@ -349,7 +349,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayAppend(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags, params object[] values)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubArrayPushLast,
                 Path = path,
@@ -399,7 +399,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayPrepend(string path, object value, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubArrayPushFirst,
                 Path = path,
@@ -448,7 +448,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayPrepend(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags, params object[] values)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubArrayPushFirst,
                 Path = path,
@@ -493,7 +493,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 throw new ArgumentException("Path cannot be empty for an ArrayInsert.");
             }
 
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubArrayInsert,
                 Path = path,
@@ -537,7 +537,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 throw new ArgumentException("Path cannot be empty for an ArrayInsert.");
             }
 
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubArrayInsert,
                 Path = path,
@@ -589,7 +589,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public IMutateInBuilder<TDocument> ArrayAddUnique(string path, object value, SubdocPathFlags pathflags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubArrayAddUnique,
                 Path = path,
@@ -634,7 +634,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 throw new ArgumentException("Path cannot be empty for a Counter.");
             }
 
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new MutateInSpec
             {
                 OpCode = OpCode.SubCounter,
                 Path = path,
@@ -768,18 +768,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 return command;
             }
             return command;
-        }
-
-        /// <summary>
-        /// Creates a new object that is a copy of the current instance.
-        /// </summary>
-        /// <returns>
-        /// A new object that is a copy of this instance.
-        /// </returns>
-        public object Clone()
-        {
-            var clonedSpecs = _commands.Select(spec => spec.Clone()).ToList();
-            return new MutateInBuilder<TDocument>(_invoker, _serializer, Key, clonedSpecs);
         }
 
         /// <summary>

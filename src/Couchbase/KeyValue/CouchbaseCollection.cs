@@ -53,10 +53,10 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new GetOptions();
-            var specs = new List<OperationSpec>();
+            var specs = new List<LookupInSpec>();
             if (options.IncludeExpiryValue)
             {
-                specs.Add(new OperationSpec
+                specs.Add(new LookupInSpec
                 {
                     OpCode = OpCode.SubGet,
                     Path = VirtualXttrs.DocExpiryTime,
@@ -74,7 +74,7 @@ namespace Couchbase.KeyValue
                 //we have succeeded the max #fields returnable by sub-doc so fetch the whole doc
                 if (projectList.Count + specs.Count > 16)
                 {
-                    specs.Add(new OperationSpec
+                    specs.Add(new LookupInSpec
                     {
                         Path = "",
                         OpCode = OpCode.Get,
@@ -84,7 +84,7 @@ namespace Couchbase.KeyValue
                 else
                 {
                     //Add the projections for fetching
-                    projectList.ForEach(path=>specs.Add(new OperationSpec
+                    projectList.ForEach(path=>specs.Add(new LookupInSpec
                     {
                         OpCode = OpCode.SubGet,
                         Path = path
@@ -94,7 +94,7 @@ namespace Couchbase.KeyValue
             else
             {
                 //Project list is empty so fetch the whole doc
-                specs.Add(new OperationSpec
+                specs.Add(new LookupInSpec
                 {
                     Path = "",
                     OpCode = OpCode.Get,
@@ -363,7 +363,7 @@ namespace Couchbase.KeyValue
 
         #region LookupIn
 
-        public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<OperationSpec> specs, LookupInOptions? options = null)
+        public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs, LookupInOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
@@ -373,7 +373,7 @@ namespace Couchbase.KeyValue
             return new LookupInResult(lookup.ExtractData(), lookup.Cas, null);
         }
 
-        private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<OperationSpec> specs, LookupInOptions options)
+        private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<LookupInSpec> specs, LookupInOptions options)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
@@ -404,7 +404,7 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
-        public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<OperationSpec> specs, MutateInOptions? options = null)
+        public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();

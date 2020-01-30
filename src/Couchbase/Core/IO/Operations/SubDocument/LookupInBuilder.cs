@@ -109,7 +109,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public ILookupInBuilder<TDocument> Get(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new LookupInSpec
             {
                 Path = path,
                 OpCode = OpCode.SubGet,
@@ -142,7 +142,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public ILookupInBuilder<TDocument> Exists(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new LookupInSpec
             {
                 Path = path,
                 OpCode = OpCode.SubExist,
@@ -173,7 +173,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <remarks>Requires Couchbase Server 5.0 or higher</remarks>
         public ILookupInBuilder<TDocument> GetCount(string path, SubdocPathFlags pathFlags, SubdocDocFlags docFlags = SubdocDocFlags.None)
         {
-            _commands.Enqueue(new OperationSpec
+            _commands.Enqueue(new LookupInSpec
             {
                 Path = path,
                 OpCode = OpCode.SubGetCount,
@@ -236,18 +236,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 return command;
             }
             return command;
-        }
-
-        /// <summary>
-        /// Creates a new object that is a copy of the current instance.
-        /// </summary>
-        /// <returns>
-        /// A new object that is a copy of this instance.
-        /// </returns>
-        public object Clone()
-        {
-            var clonedSpecs = _commands.Select(spec => spec.Clone()).ToList();
-            return new LookupInBuilder<TDocument>(_invoker, _serializer, Key, clonedSpecs);
         }
 
         /// <summary>

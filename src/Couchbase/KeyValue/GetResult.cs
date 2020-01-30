@@ -17,14 +17,14 @@ namespace Couchbase.KeyValue
     {
         private static readonly ILogger Log = LogManager.CreateLogger<GetResult>();
         private readonly IMemoryOwner<byte> _contentBytes;
-        private readonly List<OperationSpec> _specs;
+        private readonly List<LookupInSpec> _specs;
         private readonly List<string> _projectList;
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer _serializer;
         private bool _isParsed;
         private TimeSpan? _expiry;
 
-        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, List<OperationSpec> specs = null,
+        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, List<LookupInSpec> specs = null,
             List<string> projectList = null)
         {
             _contentBytes = contentBytes;

@@ -1,11 +1,10 @@
 using System.Collections.Generic;
-using Couchbase.Core.IO.Operations.SubDocument;
 
 namespace Couchbase.KeyValue
 {
     public class MutateInSpecBuilder
     {
-        internal readonly List<OperationSpec> Specs = new List<OperationSpec>();
+        internal readonly List<MutateInSpec> Specs = new List<MutateInSpec>();
 
         public MutateInSpecBuilder Insert<T>(string path, T value, bool createPath = default(bool), bool isXattr = default(bool))
         {

@@ -37,7 +37,7 @@ namespace Couchbase.KeyValue
                 var bodyLength = ByteConverter.ToInt32(response.Span.Slice(2));
                 var payLoad = response.Slice(6, bodyLength);
 
-                var command = new OperationSpec
+                var command = new MutateInSpec
                 {
                     Status = (ResponseStatus) ByteConverter.ToUInt16(response.Span),
                     ValueIsJson = payLoad.Span.IsJson(),
