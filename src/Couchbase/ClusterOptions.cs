@@ -177,7 +177,29 @@ namespace Couchbase
         public bool EnableCertificateAuthentication { get; set; }
         public bool EnableCertificateRevocation { get; set; }
         public bool IgnoreRemoteCertificateNameMismatch { get; set; }
-        public bool OrphanedResponseLoggingEnabled { get; set; }
+
+        private bool _orphanedResponseLoggingEnabled;
+        public bool OrphanedResponseLoggingEnabled
+        {
+            get => _orphanedResponseLoggingEnabled;
+            set
+            {
+                if (value != _orphanedResponseLoggingEnabled)
+                {
+                    _orphanedResponseLoggingEnabled = value;
+
+                    if (value)
+                    {
+                        AddSingletonService<IOrphanedResponseLogger, OrphanedResponseLogger>();
+                    }
+                    else
+                    {
+                        AddSingletonService<IOrphanedResponseLogger, NullOrphanedResponseLogger>();
+                    }
+                }
+            }
+        }
+
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableIPV6Addressing { get; set; }
@@ -224,6 +246,12 @@ namespace Couchbase
         internal void AddSingletonService<T>(T singleton)
         {
             _services[typeof(T)] = new SingletonServiceFactory(singleton);
+        }
+
+        internal void AddSingletonService<TService, TImplementation>()
+            where TImplementation: TService
+        {
+            _services[typeof(TService)] = new SingletonServiceFactory(typeof(TImplementation));
         }
 
         #endregion

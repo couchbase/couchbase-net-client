@@ -4,6 +4,7 @@ using System.Linq;
 using Couchbase.Analytics;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -36,6 +37,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(IScopeFactory), new SingletonServiceFactory(typeof(ScopeFactory)));
             yield return (typeof(ICollectionFactory), new SingletonServiceFactory(typeof(CollectionFactory)));
             yield return (typeof(IRetryOrchestrator), new SingletonServiceFactory(typeof(RetryOrchestrator)));
+            yield return (typeof(IOrphanedResponseLogger),
+                new SingletonServiceFactory(typeof(NullOrphanedResponseLogger)));
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));

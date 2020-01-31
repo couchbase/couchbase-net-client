@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -14,7 +13,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
     internal class OrphanedResponseLogger : IOrphanedResponseLogger
     {
         private const int WorkerSleep = 100;
-        private static readonly ILogger Logger = LogManager.CreateLogger<OrphanedResponseLogger>();
+        private readonly ILogger<OrphanedResponseLogger> _logger;
 
         private readonly CancellationTokenSource _source = new CancellationTokenSource();
         private readonly BlockingCollection<OperationContext> _queue = new BlockingCollection<OperationContext>(1000);
@@ -36,12 +35,14 @@ namespace Couchbase.Core.Diagnostics.Tracing
         private bool _hasOrphans;
 
         /// <summary>
-        /// Internal total count of all pending opearation contexts to have been recored.
+        /// Internal total count of all pending operation contexts to have been recorded.
         /// </summary>
         internal int TotalCount => _kvOrphanCount + _viewOrphanCount + _queryOrphanCount + _searchOrphanCount + _analyticsOrphanCount;
 
-        public OrphanedResponseLogger()
+        public OrphanedResponseLogger(ILogger<OrphanedResponseLogger> logger)
         {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
             Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
         }
 
@@ -65,7 +66,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
                             if (result.Any())
                             {
-                                Logger.LogWarning("Orphaned responses observed: {0}", result.ToString(Formatting.None));
+                                _logger.LogWarning("Orphaned responses observed: {0}", result.ToString(Formatting.None));
                             }
 
                             _hasOrphans = false;
@@ -114,7 +115,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 catch (OperationCanceledException) { } // ignore
                 catch (Exception exception)
                 {
-                    Logger.LogError(exception, "Error when processing Orphaned Responses");
+                    _logger.LogError(exception, "Error when processing Orphaned Responses");
                 }
             }
         }

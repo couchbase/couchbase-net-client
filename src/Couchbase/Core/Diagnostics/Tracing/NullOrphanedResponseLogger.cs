@@ -2,11 +2,6 @@ namespace Couchbase.Core.Diagnostics.Tracing
 {
     internal class NullOrphanedResponseLogger : IOrphanedResponseLogger
     {
-        public static IOrphanedResponseLogger Instance = new NullOrphanedResponseLogger();
-
-        private NullOrphanedResponseLogger()
-        { }
-
         public void Add(OperationContext context)
         { }
 
