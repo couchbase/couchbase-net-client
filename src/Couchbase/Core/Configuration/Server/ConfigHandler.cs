@@ -1,11 +1,10 @@
-using Couchbase.Core.Logging;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server.Streaming;
-using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.DI;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Configuration.Server
 {
@@ -21,7 +20,7 @@ namespace Couchbase.Core.Configuration.Server
 
     internal class ConfigHandler : IConfigHandler
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<ConfigHandler>();
+        private readonly ILogger<ConfigHandler> _logger;
 
         private readonly BlockingCollection<BucketConfig> _configQueue =
             new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
@@ -31,20 +30,20 @@ namespace Couchbase.Core.Configuration.Server
 
         public CancellationTokenSource TokenSource { get; set; } = new CancellationTokenSource();
         private readonly ClusterContext _context;
+        private readonly IHttpStreamingConfigListenerFactory _configListenerFactory;
 
         private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners =
             new ConcurrentDictionary<string, HttpStreamingConfigListener>();
-
-        private readonly CouchbaseHttpClient _httpClient;
 
         internal delegate void BucketConfigHandler(object sender, BucketConfigEventArgs a);
 
         public event BucketConfigHandler ConfigChanged;
 
-        public ConfigHandler(ClusterContext context, CouchbaseHttpClient httpClient)
+        public ConfigHandler(ClusterContext context, IHttpStreamingConfigListenerFactory configListenerFactory, ILogger<ConfigHandler> logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _configListenerFactory = configListenerFactory ?? throw new ArgumentNullException(nameof(configListenerFactory));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void Start(CancellationTokenSource tokenSource)
@@ -84,7 +83,7 @@ namespace Couchbase.Core.Configuration.Server
                         }
                         catch (Exception e)
                         {
-                            Log.LogWarning(e, "Issue getting Cluster Map cluster!");
+                            _logger.LogWarning(e, "Issue getting Cluster Map cluster!");
                         }
                     }
                 }
@@ -118,7 +117,7 @@ namespace Couchbase.Core.Configuration.Server
                 }
                 catch (Exception e)
                 {
-                    Log.LogWarning(e, "Error processing new clusterOptions");
+                    _logger.LogWarning(e, "Error processing new clusterOptions");
                 }
             }
         }
@@ -141,10 +140,16 @@ namespace Couchbase.Core.Configuration.Server
 
             if (bucket is MemcachedBucket)
             {
-                var httpListener = new HttpStreamingConfigListener(bucket.Name, _context.ClusterOptions, _httpClient, this, TokenSource.Token);
+                var httpListener = _configListenerFactory.Create(bucket.Name, this);
                 if (_httpConfigListeners.TryAdd(bucket.Name, httpListener))
                 {
                     httpListener.StartListening();
+
+                    // Dispose the listener when we're stopped
+                    TokenSource.Token.Register(state =>
+                    {
+                        ((HttpStreamingConfigListener) state).Dispose();
+                    }, httpListener);
                 }
             }
         }

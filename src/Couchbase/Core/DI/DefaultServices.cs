@@ -45,7 +45,8 @@ namespace Couchbase.Core.DI
                 new CouchbaseHttpClient(serviceProvider.GetRequiredService<ClusterContext>(),
                     serviceProvider.GetRequiredService<ILogger<CouchbaseHttpClient>>())));
             yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));
-            yield return (typeof(ConfigHandler), new SingletonServiceFactory(typeof(ConfigHandler)));
+            yield return (typeof(IConfigHandler), new SingletonServiceFactory(typeof(ConfigHandler)));
+            yield return (typeof(IHttpStreamingConfigListenerFactory), new SingletonServiceFactory(typeof(HttpStreamingConfigListenerFactory)));
 
             yield return (typeof(IAnalyticsClient), new SingletonServiceFactory(typeof(AnalyticsClient)));
             yield return (typeof(ISearchClient), new SingletonServiceFactory(typeof(SearchClient)));

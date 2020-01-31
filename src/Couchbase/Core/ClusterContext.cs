@@ -17,7 +17,7 @@ namespace Couchbase.Core
     internal class ClusterContext : IDisposable
     {
         private readonly ILogger<ClusterContext> _logger;
-        private readonly ConfigHandler _configHandler;
+        private readonly IConfigHandler _configHandler;
         private readonly IClusterNodeFactory _clusterNodeFactory;
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, IBucket> Buckets = new ConcurrentDictionary<string, IBucket>();
@@ -48,7 +48,7 @@ namespace Couchbase.Core
             ServiceProvider = options.BuildServiceProvider();
 
             _logger = ServiceProvider.GetRequiredService<ILogger<ClusterContext>>();
-            _configHandler = ServiceProvider.GetRequiredService<ConfigHandler>();
+            _configHandler = ServiceProvider.GetRequiredService<IConfigHandler>();
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
         }
 

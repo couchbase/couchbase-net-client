@@ -1,11 +1,9 @@
 using System;
-using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -39,7 +37,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
             handler.Start(cts);
             handler.Subscribe(_bucket);
 
@@ -80,7 +79,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(cts, new ClusterOptions());
 
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
             handler.Start(cts);
             handler.Subscribe(_bucket);
 
@@ -105,7 +105,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
             handler.Start(cts);
             handler.Subscribe(_bucket);
 
@@ -132,7 +133,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start(cts);
             handler.Subscribe(_bucket);
@@ -167,7 +169,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(cts, new ClusterOptions());
 
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
             handler.Start(cts);
             handler.Subscribe(_bucket);
 
@@ -199,7 +202,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(cts, new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
             handler.Start(cts);
@@ -214,7 +218,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(cts, new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
             handler.Start(cts);
@@ -241,7 +246,8 @@ namespace Couchbase.UnitTests.Core.Configuration
             //arrange
             var cts = new CancellationTokenSource();
             var context = new ClusterContext(cts, new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>());
+            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+                new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start(cts);
             handler.Subscribe(_bucket);
