@@ -8,14 +8,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.IO;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -23,19 +22,24 @@ namespace Couchbase.Core
 {
     internal class ClusterNode : IClusterNode
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<ClusterNode>();
-        private readonly ClusterContext _context;
         private static readonly TimeSpan DefaultTimeout = new TimeSpan(0, 0, 0, 0, 2500);//temp
+
+        private readonly ClusterContext _context;
+        private readonly IConnectionFactory _connectionFactory;
+        private readonly ILogger<ClusterNode> _logger;
         private readonly ITypeTranscoder _transcoder = new DefaultTranscoder();
+        private readonly CircuitBreaker _circuitBreaker = new CircuitBreaker();//TODO integrate with configuration
+
         private Uri _queryUri;
         private Uri _analyticsUri;
         private Uri _searchUri;
         private Uri _viewsUri;
-        private readonly CircuitBreaker _circuitBreaker = new CircuitBreaker();//TODO integrate with configuration
 
-        public ClusterNode(ClusterContext context)
+        public ClusterNode(ClusterContext context, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public bool IsAssigned => Owner != null;
@@ -175,7 +179,7 @@ namespace Couchbase.Core
             CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            Log.LogDebug($"CB: Current state is {_circuitBreaker.State}.");
+            _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
 
             if (_circuitBreaker.Enabled)
             {
@@ -184,7 +188,7 @@ namespace Couchbase.Core
                     _circuitBreaker.Track();
                     try
                     {
-                        Log.LogDebug($"CB: Sending {op.Opaque} to {Connection.EndPoint}.");
+                        _logger.LogDebug("CB: Sending {opaque} to {endPoint}.", op.Opaque, Connection.EndPoint);
                         await ExecuteOp(Connection, op, token);
                         _circuitBreaker.MarkSuccess();
                     }
@@ -192,7 +196,7 @@ namespace Couchbase.Core
                     {
                         if (_circuitBreaker.CompletionCallback(e))
                         {
-                            Log.LogDebug($"CB: Marking a failure for {op.Opaque} to {Connection.EndPoint}.");
+                            _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque, Connection.EndPoint);
                             _circuitBreaker.MarkFailure();
                         }
 
@@ -205,7 +209,7 @@ namespace Couchbase.Core
                     {
                         try
                         {
-                            Log.LogDebug($"CB: Sending a canary to {Connection.EndPoint}.");
+                            _logger.LogDebug("CB: Sending a canary to {endPoint}.", Connection.EndPoint);
                             using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
                             {
                                 await ExecuteOp(Connection, new Noop(), cts.Token);
@@ -217,7 +221,7 @@ namespace Couchbase.Core
                         {
                             if (_circuitBreaker.CompletionCallback(e))
                             {
-                                Log.LogDebug($"CB: Marking a failure for canary sent to {Connection.EndPoint}.");
+                                _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.", Connection.EndPoint);
                                 _circuitBreaker.MarkFailure();
                             }
                         }
@@ -235,7 +239,7 @@ namespace Couchbase.Core
         public async Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            Log.LogDebug("Executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
+            _logger.LogDebug("Executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
 
             // wire up op's completed function
             var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
@@ -289,7 +293,7 @@ namespace Couchbase.Core
                         _context.PublishConfig(config);
                     }
 
-                    Log.LogDebug("Completed executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key,
+                    _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode, op.Key,
                         op.Opaque);
                 }
             }
@@ -319,31 +323,13 @@ namespace Couchbase.Core
             if (connection.IsDead)
             {
                 //recreate the connection its been closed and disposed
-                connection = EndPoint.GetConnection(_context.ClusterOptions);
+                connection = await _connectionFactory.CreateAndConnectAsync(EndPoint);
                 ServerFeatures = await connection.Hello().ConfigureAwait(false);
                 ErrorMap = await connection.GetErrorMap().ConfigureAwait(false);
                 await connection.Authenticate(_context.ClusterOptions, Owner.Name).ConfigureAwait(false);
                 await connection.SelectBucket(Owner.Name).ConfigureAwait(false);
                 Connection = connection;
             }
-        }
-
-        public static async Task<IClusterNode> CreateAsync(ClusterContext context, IPEndPoint endPoint)
-        {
-            var connection = endPoint.GetConnection(context.ClusterOptions);
-            var serverFeatures = await connection.Hello().ConfigureAwait(false);
-            var errorMap = await connection.GetErrorMap().ConfigureAwait(false);
-            await connection.Authenticate(context.ClusterOptions, null, context.CancellationToken).ConfigureAwait(false);
-
-            var clusterNode = new ClusterNode(context)
-            {
-                EndPoint = endPoint,
-                Connection = connection,
-                ServerFeatures = serverFeatures,
-                ErrorMap = errorMap
-            };
-            clusterNode.BuildServiceUris();
-            return clusterNode;
         }
 
         public void Dispose()

@@ -10,42 +10,45 @@ using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
-using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Connections
 {
     internal sealed class SslConnection : IConnection
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<SslConnection>();
+        private readonly ILogger<SslConnection> _logger;
         private const int DefaultBufferSize = 1024;
         private readonly SslStream _sslStream;
         private readonly object _syncObj = new object();
         private volatile bool Disposed;
         private readonly byte[] _receiveBuffer = new byte[1024 * 16];
 
-        internal SslConnection(IConnectionPool connectionPool, Socket socket)
-            : this (connectionPool, new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback))
-        { }
-
-        internal SslConnection(IConnectionPool connectionPool, SslStream sslStream)
+        public SslConnection(IConnectionPool? connectionPool, Socket socket, ILogger<SslConnection> logger)
         {
-            // ConnectionPool = connectionPool;
-            _sslStream = sslStream;
+            ConnectionPool = connectionPool;
+            Socket = socket ?? throw new ArgumentNullException(nameof(socket));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            _sslStream = new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback);
+
+            LocalEndPoint = socket.LocalEndPoint;
+            EndPoint = socket.RemoteEndPoint;
         }
 
         public ulong ConnectionId { get; }
-        public IConnectionPool ConnectionPool { get; set; }
+        public IConnectionPool? ConnectionPool { get; set; }
         public Socket Socket { get; set; }
         public bool IsConnected { get; }
         public EndPoint EndPoint { get; set; }
         public EndPoint LocalEndPoint { get; }
         public bool IsAuthenticated { get; set; }
-        public bool IsSecure { get; }
+        public bool IsSecure => true;
         public bool IsDead { get; set; }
         public bool InUse { get; private set; }
-        public bool IsDisposed { get; private set; }
+        public bool IsDisposed => Disposed;
         public bool HasShutdown { get; private set; }
         public bool CheckedForEnhancedAuthentication { get; set; }
         public bool MustEnableServerFeatures { get; set; }
@@ -56,20 +59,15 @@ namespace Couchbase.Core.IO.Connections
             return true;
         }
 
-        public void Authenticate()
-        {
-            throw new NotImplementedException();
-        }
-
         public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback)
         {
             return SendAsync(request, callback, null);
         }
 
-        public async Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
+        public async Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap)
         {
-            ExceptionDispatchInfo capturedException = null;
-            SocketAsyncState state = null;
+            ExceptionDispatchInfo? capturedException = null;
+            SocketAsyncState? state = null;
             try
             {
                 var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
@@ -81,7 +79,7 @@ namespace Couchbase.Core.IO.Connections
                     LocalEndpoint = LocalEndPoint.ToString()
                 };
 
-                if (!MemoryMarshal.TryGetArray<byte>(request, out var arraySegment))
+                if (!MemoryMarshal.TryGetArray(request, out var arraySegment))
                 {
                     // Fallback in case we can't use the more efficient TryGetArray method
                     arraySegment = new ArraySegment<byte>(request.ToArray());
@@ -133,7 +131,7 @@ namespace Couchbase.Core.IO.Connections
                 {
                     state.Exception = sourceException;
                     await state.Completed(state).ConfigureAwait(false);
-                    Log.LogDebug(sourceException, "");
+                    _logger.LogDebug(sourceException, "");
                 }
             }
         }
@@ -171,10 +169,7 @@ namespace Couchbase.Core.IO.Connections
                 IsDead = true;
                 MarkUsed(false);
 
-                if (_sslStream != null)
-                {
-                    _sslStream.Dispose();
-                }
+                _sslStream?.Dispose();
             }
             Disposed = true;
         }

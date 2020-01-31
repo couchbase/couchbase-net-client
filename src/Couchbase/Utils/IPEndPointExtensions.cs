@@ -70,45 +70,5 @@ namespace Couchbase.Utils
                 GetIPv4EndPoint(server) :
                 GetIPv6EndPoint(server);
         }
-
-        //TODO: refactor into factory so IConnection impls can be used
-        public static IConnection GetConnection(this IPEndPoint endPoint, ClusterOptions options)
-        {
-            var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-            var waitHandle = new ManualResetEvent(false);
-            var asyncEventArgs = new SocketAsyncEventArgs
-            {
-                RemoteEndPoint = endPoint
-            };
-            asyncEventArgs.Completed += delegate { waitHandle.Set(); };
-
-            if (socket.ConnectAsync(asyncEventArgs))
-            {
-                // True means the connect command is running asynchronously, so we need to wait for completion
-                if (!waitHandle.WaitOne(10000))//default connect timeout
-                {
-                    socket.Dispose();
-                    const int connectionTimedOut = 10060;
-                    throw new SocketException(connectionTimedOut);
-                }
-            }
-
-            if ((asyncEventArgs.SocketError != SocketError.Success) || !socket.Connected)
-            {
-                socket.Dispose();
-                throw new SocketException((int)asyncEventArgs.SocketError);
-            }
-
-            socket.SetKeepAlives(options.EnableTcpKeepAlives, (uint) options.TcpKeepAliveTime.TotalMilliseconds,
-                (uint) options.TcpKeepAliveInterval.TotalMilliseconds);
-
-            if (options.EnableTls)
-            {
-                return new SslConnection(null, socket);
-            }
-
-            return new MultiplexingConnection(null, socket);
-        }
     }
 }

@@ -12,10 +12,13 @@ using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.Connections
 {
     internal class MultiplexingConnection : IConnection
     {
+        private readonly ILogger<MultiplexingConnection> _logger;
         private readonly ConcurrentDictionary<uint, IState> _statesInFlight;
         // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
         private readonly Thread _receiveThread;
@@ -23,15 +26,15 @@ namespace Couchbase.Core.IO.Connections
         private int _receiveBufferLength;
         private readonly object _syncObj = new object();
         protected volatile bool Disposed;
-        protected ILogger Log;
 
-        public MultiplexingConnection(IConnectionPool connectionPool, Socket socket)
+        public MultiplexingConnection(IConnectionPool? connectionPool, Socket socket, ILogger<MultiplexingConnection> logger)
         {
-            Socket = socket;
+            ConnectionPool = connectionPool;
+            Socket = socket ?? throw new ArgumentNullException(nameof(socket));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
             LocalEndPoint = socket.LocalEndPoint;
             EndPoint = socket.RemoteEndPoint;
-
-            ConnectionPool = connectionPool;
 
             _statesInFlight = new ConcurrentDictionary<uint, IState>();
 
@@ -40,14 +43,16 @@ namespace Couchbase.Core.IO.Connections
             _receiveBufferLength = 0;
 
             //Start a dedicated background thread for receiving server responses.
-            _receiveThread = new Thread(ReceiveThreadBody);
-            _receiveThread.IsBackground = true;
+            _receiveThread = new Thread(ReceiveThreadBody)
+            {
+                IsBackground = true
+            };
             _receiveThread.Start();
         }
 
         public ulong ConnectionId { get; }
 
-        public IConnectionPool ConnectionPool { get; set; }
+        public IConnectionPool? ConnectionPool { get; set; }
 
         public Socket Socket { get; set; }
 
@@ -55,11 +60,11 @@ namespace Couchbase.Core.IO.Connections
 
         public EndPoint EndPoint { get; set; }
 
-        EndPoint IConnection.LocalEndPoint { get; }
+        public EndPoint LocalEndPoint { get; }
 
         public bool IsAuthenticated { get; set; }
 
-        public bool IsSecure { get; }
+        public bool IsSecure => false;
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is dead.
@@ -74,7 +79,7 @@ namespace Couchbase.Core.IO.Connections
             return SendAsync(buffer, callback, null);
         }
 
-        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
+        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap)
         {
             var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
             var state = new AsyncState
@@ -140,8 +145,6 @@ namespace Couchbase.Core.IO.Connections
         }
 
         public bool InUse { get; private set; }
-
-        public object LocalEndPoint { get; set; }
 
         /// <summary>
         /// Executed by a dedicated background thread to constantly listen for responses
@@ -268,7 +271,7 @@ namespace Couchbase.Core.IO.Connections
         }
 
         /// <summary>
-        /// Marks this <see cref="Connection"/> as used; meaning it cannot be disposed unless <see cref="InUse"/>
+        /// Marks this <see cref="IConnection"/> as used; meaning it cannot be disposed unless <see cref="InUse"/>
         /// is <c>false</c> or the <see cref="MaxCloseAttempts"/> has been reached.
         /// </summary>
         /// <param name="isUsed">if set to <c>true</c> [is used].</param>
@@ -279,10 +282,6 @@ namespace Couchbase.Core.IO.Connections
 
         public bool IsDisposed { get; private set; }
         public bool HasShutdown { get; private set; }
-        public void Authenticate()
-        {
-            throw new NotImplementedException();
-        }
 
         public bool CheckedForEnhancedAuthentication { get; set; }
         public bool MustEnableServerFeatures { get; set; }
@@ -307,7 +306,7 @@ namespace Couchbase.Core.IO.Connections
                     }
                     catch (Exception e)
                     {
-                        Log.LogInformation(e, string.Empty);
+                        _logger.LogInformation(e, string.Empty);
                     }
                     finally
                     {

@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -17,8 +16,9 @@ namespace Couchbase.Core
 {
     internal class ClusterContext : IDisposable
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<ClusterContext>();
+        private readonly ILogger<ClusterContext> _logger;
         private readonly ConfigHandler _configHandler;
+        private readonly IClusterNodeFactory _clusterNodeFactory;
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, IBucket> Buckets = new ConcurrentDictionary<string, IBucket>();
         private bool _disposed;
@@ -42,9 +42,14 @@ namespace Couchbase.Core
             // Register this instance of ClusterContext
             options.AddSingletonService(this);
 
+            // Register the ClusterOptions
+            options.AddSingletonService(options);
+
             ServiceProvider = options.BuildServiceProvider();
 
+            _logger = ServiceProvider.GetRequiredService<ILogger<ClusterContext>>();
             _configHandler = ServiceProvider.GetRequiredService<ConfigHandler>();
+            _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
         }
 
         internal ConcurrentDictionary<IPEndPoint, IClusterNode> Nodes { get; set; } = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
@@ -158,7 +163,7 @@ namespace Couchbase.Core
         {
             if (Nodes.TryAdd(node.EndPoint, node))
             {
-                Log.LogDebug("Added {0}", node.EndPoint);
+                _logger.LogDebug("Added {0}", node.EndPoint);
             }
         }
 
@@ -166,7 +171,7 @@ namespace Couchbase.Core
         {
             if (Nodes.TryRemove(removedNode.EndPoint, out removedNode))
             {
-                Log.LogDebug("Removing {0}", removedNode.EndPoint);
+                _logger.LogDebug("Removing {0}", removedNode.EndPoint);
                 removedNode.Dispose();
                 removedNode = null;
                 return true;
@@ -185,7 +190,7 @@ namespace Couchbase.Core
         public bool NodeExists(IClusterNode node)
         {
             var found = Nodes.ContainsKey(node.EndPoint);
-            Log.LogDebug(found ? "Found {0}" : "Did not find {0}", node.EndPoint);
+            _logger.LogDebug(found ? "Found {0}" : "Did not find {0}", node.EndPoint);
             return found;
         }
 
@@ -211,20 +216,20 @@ namespace Couchbase.Core
                     var servers = await ClusterOptions.DnsResolver.GetDnsSrvEntriesAsync(bootstrapUri);
                     if (servers.Any())
                     {
-                        Log.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
+                        _logger.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
                         ClusterOptions.Servers(servers);
                     }
                 }
                 catch (Exception exception)
                 {
-                    Log.LogInformation(exception, "Error trying to retrieve DNS SRV entries.");
+                    _logger.LogInformation(exception, "Error trying to retrieve DNS SRV entries.");
                 }
             }
 
             foreach (var server in ClusterOptions.ServersValue)
             {
                 var bsEndpoint = server.GetIpEndPoint(ClusterOptions.KvPort, ClusterOptions.EnableIPV6Addressing);
-                var node = await ClusterNode.CreateAsync(this, bsEndpoint);
+                var node = await _clusterNodeFactory.CreateAndConnectAsync(bsEndpoint);
                 node.BootstrapUri = server;
                 GlobalConfig = await node.GetClusterMap();
 
@@ -249,7 +254,7 @@ namespace Couchbase.Core
                         {
                             var endpoint = nodeAdapter.GetIpEndPoint(ClusterOptions.EnableTls);
                             if (endpoint.Port == 0) endpoint.Port = 11210;
-                            var newNode = await ClusterNode.CreateAsync(this, endpoint);
+                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(endpoint);
                             newNode.BootstrapUri = server;
                             newNode.NodesAdapter = nodeAdapter;
                             newNode.BuildServiceUris();
@@ -286,7 +291,7 @@ namespace Couchbase.Core
             if (node == null)
             {
                 var endpoint = uri.GetIpEndPoint(ClusterOptions.KvPort, ClusterOptions.UseInterNetworkV6Addresses);
-                node = await ClusterNode.CreateAsync(this, endpoint);
+                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint);
                 node.BootstrapUri = uri;
                 AddNode(node);
             }
@@ -301,7 +306,7 @@ namespace Couchbase.Core
             }
             catch(Exception e)
             {
-                Log.LogError(e, $"Could not bootstrap bucket {type}/{name}");
+                _logger.LogError(e, $"Could not bootstrap bucket {type}/{name}");
                 UnRegisterBucket(bucket);
             }
             return bucket;
@@ -314,7 +319,7 @@ namespace Couchbase.Core
                 var endPoint = nodeAdapter.GetIpEndPoint(ClusterOptions.EnableTls);
                 if (TryGetNode(endPoint, out IClusterNode bootstrapNode))
                 {
-                    Log.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
+                    _logger.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
                     await bootstrapNode.SelectBucket(bucket.Name);
                     bootstrapNode.NodesAdapter = nodeAdapter;
                     bootstrapNode.BuildServiceUris();
@@ -322,8 +327,8 @@ namespace Couchbase.Core
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
 
-                Log.LogDebug($"Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
-                var node = await ClusterNode.CreateAsync(this, endPoint);
+                _logger.LogDebug($"Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
+                var node = await _clusterNodeFactory.CreateAndConnectAsync(endPoint);
                 node.Owner = bucket;
                 await node.SelectBucket(bucket.Name);
                 node.NodesAdapter = nodeAdapter;

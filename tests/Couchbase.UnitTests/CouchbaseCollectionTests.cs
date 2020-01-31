@@ -181,7 +181,10 @@ namespace Couchbase.UnitTests
                     .Setup(x => x.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<Func<SocketAsyncState, Task>>()))
                     .Returns(Task.CompletedTask);
 
-                var clusterNode = new ClusterNode(new ClusterContext()) {Connection = mockConnection.Object};
+                var clusterNode = new ClusterNode(new ClusterContext(), new Mock<IConnectionFactory>().Object, new Mock<ILogger<ClusterNode>>().Object)
+                {
+                    Connection = mockConnection.Object
+                };
                 await clusterNode.ExecuteOp(op, token, timeout);
 
                 if (_statuses.TryDequeue(out ResponseStatus status))

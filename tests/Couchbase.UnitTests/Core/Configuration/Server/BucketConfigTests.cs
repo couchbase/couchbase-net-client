@@ -3,8 +3,11 @@ using System.Linq;
 using System.Net;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server
@@ -136,7 +139,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             foreach (var server in oldConfig.NodesExt)
             {
                 var endPoint = server.GetIpEndPoint(options);
-                var clusterNode = new ClusterNode(context)
+                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object, new Mock<ILogger<ClusterNode>>().Object)
                 {
                     EndPoint = endPoint
                 };
@@ -152,7 +155,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     continue;
                 }
 
-                var clusterNode = new ClusterNode(context)
+                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object, new Mock<ILogger<ClusterNode>>().Object)
                 {
                     EndPoint = endPoint
                 };

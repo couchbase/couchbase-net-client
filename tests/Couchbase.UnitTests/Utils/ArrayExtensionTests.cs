@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Utils
@@ -44,9 +47,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
-                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions()))  {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
-                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
+                {"127.0.0.1", MakeFakeClusterNode() },
+                {"127.0.0.2", MakeFakeClusterNode() },
+                {"127.0.0.3", MakeFakeClusterNode() },
             };
 
             var node = dict.GetRandom(x => x.Value.HasViews);
@@ -59,14 +62,30 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
-                {"127.0.0.2", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
-                {"127.0.0.3", new ClusterNode(new ClusterContext(null, new ClusterOptions())) {NodesAdapter =  new NodeAdapter(){Views = 8092}}},
+                {"127.0.0.1", MakeFakeClusterNode() },
+                {"127.0.0.2", MakeFakeClusterNode() },
+                {"127.0.0.3", MakeFakeClusterNode() },
             };
 
             var node = dict.GetRandom(x => x.Value.HasAnalytics);
 
             Assert.Null(node.Value);
         }
+
+        #region Helpers
+
+        private ClusterNode MakeFakeClusterNode() =>
+            new ClusterNode(
+                new ClusterContext(null, new ClusterOptions()),
+                new Mock<IConnectionFactory>().Object,
+                new Mock<ILogger<ClusterNode>>().Object)
+            {
+                NodesAdapter = new NodeAdapter
+                {
+                    Views = 8092
+                }
+            };
+
+        #endregion
     }
 }

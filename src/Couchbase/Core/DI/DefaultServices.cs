@@ -30,6 +30,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
 
+            yield return (typeof(IClusterNodeFactory), new SingletonServiceFactory(typeof(ClusterNodeFactory)));
+            yield return (typeof(IConnectionFactory), new SingletonServiceFactory(typeof(ConnectionFactory)));
             yield return (typeof(IBucketFactory), new SingletonServiceFactory(typeof(BucketFactory)));
             yield return (typeof(IScopeFactory), new SingletonServiceFactory(typeof(ScopeFactory)));
             yield return (typeof(ICollectionFactory), new SingletonServiceFactory(typeof(CollectionFactory)));

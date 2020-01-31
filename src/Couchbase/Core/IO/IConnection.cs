@@ -4,6 +4,8 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations.Errors;
 
+#nullable enable
+
 namespace Couchbase.Core.IO
 {
     /// <summary>
@@ -17,7 +19,7 @@ namespace Couchbase.Core.IO
         Socket Socket { get; }
 
         /// <summary>
-        /// Internal randomly generated connectio ID.
+        /// Internal randomly generated connection ID.
         /// </summary>
         ulong ConnectionId { get; }
 
@@ -40,7 +42,7 @@ namespace Couchbase.Core.IO
         bool IsConnected { get; }
 
         /// <summary>
-        /// Gets the remove hosts <see cref="EndPoint"/> that this <see cref="Connection"/> is connected to.
+        /// Gets the remove hosts <see cref="EndPoint"/> that this <see cref="IConnection"/> is connected to.
         /// </summary>
         /// <value>
         /// The end point.
@@ -72,18 +74,18 @@ namespace Couchbase.Core.IO
         /// <param name="callback">The callback that will be fired after the operation is completed.</param>
         Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback);
 
-        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap errorMap);
+        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap);
 
         /// <summary>
-        ///  Checks whether this <see cref="Connection"/> is currently being used to execute a request.
+        ///  Checks whether this <see cref="IConnection"/> is currently being used to execute a request.
         /// </summary>
         /// <value>
-        ///   <c>true</c> if if this <see cref="Connection"/> is in use; otherwise, <c>false</c>.
+        ///   <c>true</c> if if this <see cref="IConnection"/> is in use; otherwise, <c>false</c>.
         /// </value>
         bool InUse { get; }
 
         /// <summary>
-        /// Marks this <see cref="Connection"/> as used; meaning it cannot be disposed unless <see cref="InUse"/>
+        /// Marks this <see cref="IConnection"/> as used; meaning it cannot be disposed unless <see cref="InUse"/>
         /// is <c>false</c> or the <see cref="MaxCloseAttempts"/> has been reached.
         /// </summary>
         /// <param name="isUsed">if set to <c>true</c> [is used].</param>
@@ -104,11 +106,6 @@ namespace Couchbase.Core.IO
         /// <c>true</c> if this instance has shutdown; otherwise, <c>false</c>.
         /// </value>
         bool HasShutdown { get; }
-
-        /// <summary>
-        /// Authenticates this instance.
-        /// </summary>
-        void Authenticate();
 
         /// <summary>
         /// Gets or sets a value indicating whether the connection has been checked for enhanced authentication.
