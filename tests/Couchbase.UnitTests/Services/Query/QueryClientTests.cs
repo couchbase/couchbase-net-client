@@ -16,6 +16,7 @@ using Couchbase.Query;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -59,7 +60,8 @@ namespace Couchbase.UnitTests.Services.Query
                     .Returns(new Uri("http://localhost:8093"));
 
                 var serializer = new DefaultSerializer();
-                var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer);
+                var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
+                    new Mock<ILogger<QueryClient>>().Object);
 
                 try
                 {
@@ -103,7 +105,8 @@ namespace Couchbase.UnitTests.Services.Query
                 .Returns(new Uri("http://localhost:8093"));
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
-            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer);
+            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<QueryClient>>().Object);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions());
 
@@ -113,24 +116,47 @@ namespace Couchbase.UnitTests.Services.Query
         [Fact]
         public void EnhancedPreparedStatements_defaults_to_false()
         {
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            var client = new QueryClient(context);
+            var httpClient = new CouchbaseHttpClient(new HttpClientHandler())
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryUri())
+                .Returns(new Uri("http://localhost:8093"));
+
+            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, new DefaultSerializer(),
+                new Mock<ILogger<QueryClient>>().Object);
+
             Assert.False(client.EnhancedPreparedStatementsEnabled);
         }
 
         [Fact]
         public void EnhancedPreparedStatements_is_set_to_true_if_enabled_in_cluster_caps()
         {
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            var client = new QueryClient(context);
+            var httpClient = new CouchbaseHttpClient(new HttpClientHandler())
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryUri())
+                .Returns(new Uri("http://localhost:8093"));
+
+            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, new DefaultSerializer(),
+                new Mock<ILogger<QueryClient>>().Object);
             Assert.False(client.EnhancedPreparedStatementsEnabled);
 
-            var clusterCapabilities = new ClusterCapabilities();
-            clusterCapabilities.Capabilities = new Dictionary<string, IEnumerable<string>>
+            var clusterCapabilities = new ClusterCapabilities
             {
+                Capabilities = new Dictionary<string, IEnumerable<string>>
                 {
-                    ServiceType.Query.GetDescription(),
-                    new List<string> {ClusterCapabilityFeatures.EnhancedPreparedStatements.GetDescription()}
+                    {
+                        ServiceType.Query.GetDescription(),
+                        new List<string> {ClusterCapabilityFeatures.EnhancedPreparedStatements.GetDescription()}
+                    }
                 }
             };
 

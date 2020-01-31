@@ -6,12 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Search;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.Search
 {
@@ -21,39 +22,24 @@ namespace Couchbase.Search
     /// <seealso cref="ISearchClient" />
     internal class SearchClient : HttpServiceBase, ISearchClient
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<SearchClient>();
-
         private readonly IServiceUriProvider _serviceUriProvider;
+        private readonly ILogger<SearchClient> _logger;
         private readonly IDataMapper _dataMapper;
 
         //for log redaction
         //private Func<object, string> User = RedactableArgument.UserAction;
 
-        public SearchClient(ClusterContext context) : this(
-            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
-            new SearchDataMapper())
-        {
-        }
-
-        public SearchClient(CouchbaseHttpClient httpClient, IServiceUriProvider serviceUriProvider, IDataMapper dataMapper)
+        public SearchClient(
+            CouchbaseHttpClient httpClient,
+            IServiceUriProvider serviceUriProvider,
+            ILogger<SearchClient> logger)
             : base(httpClient)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _dataMapper = dataMapper ?? throw new ArgumentNullException(nameof(dataMapper));
-        }
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        /// <summary>
-        /// Executes a <see cref="ISearchQuery" /> request including any <see cref="ISearchOptions" /> parameters.
-        /// </summary>
-        /// <param name="searchRequest"></param>
-        /// <returns></returns>
-        public ISearchResult Query(SearchRequest searchRequest)
-        {
-            return QueryAsync(searchRequest)
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
+            // Always use the SearchDataMapper
+            _dataMapper = new SearchDataMapper();
         }
 
         /// <summary>
@@ -98,12 +84,12 @@ namespace Couchbase.Search
             }
             catch (OperationCanceledException e)
             {
-                Log.LogDebug(LoggingEvents.SearchEvent, e, "Search request timeout.");
+                _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request timeout.");
                 throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
             }
             catch (HttpRequestException e)
             {
-                Log.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
+                _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
                 throw new RequestCanceledException("The query was canceled.", e);
             }
             UpdateLastActivity();

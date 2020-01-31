@@ -8,8 +8,10 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Search;
 using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using Xunit;
@@ -49,7 +51,8 @@ namespace Couchbase.UnitTests.Services.Analytics
                 .Returns(new Uri("http://localhost:8096"));
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
-            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer);
+            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<AnalyticsClient>>().Object);
 
             var result = await client.QueryAsync<dynamic>(new AnalyticsRequest("SELECT * FROM `default`"), default);
 
@@ -85,7 +88,8 @@ namespace Couchbase.UnitTests.Services.Analytics
                 .Returns(new Uri("http://localhost:8096"));
 
             var serializer = new DefaultSerializer();
-            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer);
+            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<AnalyticsClient>>().Object);
 
             var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
             queryRequest.Priority(priority);
@@ -108,7 +112,8 @@ namespace Couchbase.UnitTests.Services.Analytics
                 .Returns(new Uri("http://localhost:8096"));
 
             var serializer = new DefaultSerializer();
-            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer);
+            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<AnalyticsClient>>().Object);
 
             Assert.Null(client.LastActivity);
 

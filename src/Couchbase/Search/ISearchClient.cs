@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Retry.Search;
 
+#nullable enable
+
 namespace Couchbase.Search
 {
     /// <summary>
@@ -14,12 +16,6 @@ namespace Couchbase.Search
         /// Gets the timestamp of the last activity.
         /// </summary>
         DateTime? LastActivity { get; }
-
-        /// <summary>
-        /// Executes a <see cref="ISearchQuery"/> request including any <see cref="ISearchOptions"/> parameters.
-        /// </summary>
-        /// <returns></returns>
-        ISearchResult Query(SearchRequest searchRequest);
 
         /// <summary>
         /// Executes a <see cref="ISearchQuery"/> request including any <see cref="ISearchOptions"/> parameters asynchronously.

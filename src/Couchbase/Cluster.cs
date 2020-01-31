@@ -68,9 +68,9 @@ namespace Couchbase
             _context.StartConfigListening();
 
             var httpClient = _context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
-            LazyQueryClient = new Lazy<IQueryClient>(() => new QueryClient(_context));
-            LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => new AnalyticsClient(_context));
-            LazySearchClient = new Lazy<ISearchClient>(() => new SearchClient(_context));
+            LazyQueryClient = new Lazy<IQueryClient>(() => _context.ServiceProvider.GetRequiredService<IQueryClient>());
+            LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => _context.ServiceProvider.GetRequiredService<IAnalyticsClient>());
+            LazySearchClient = new Lazy<ISearchClient>(() => _context.ServiceProvider.GetRequiredService<ISearchClient>());
             LazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(LazyQueryClient.Value));
             LazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_context));
             LazyUserManager = new Lazy<IUserManager>(() => new UserManager(_context));

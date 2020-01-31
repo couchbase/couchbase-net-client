@@ -45,7 +45,8 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(new Uri("http://localhost:8093"));
 
             var serializer = new DefaultSerializer();
-            return new QueryClient(httpClient, mockServiceUriProvider.Object, serializer);
+            return new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<QueryClient>>().Object);
         }
 
         internal static IAnalyticsClient AnalyticsClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
@@ -74,7 +75,8 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(new Uri("http://localhost:8095"));
 
             var serializer = new DefaultSerializer();
-            return new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer);
+            return new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<AnalyticsClient>>().Object);
         }
 
         internal static ISearchClient SearchClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
@@ -102,7 +104,8 @@ namespace Couchbase.UnitTests.Utils
                 .Setup(m => m.GetRandomSearchUri())
                 .Returns(new Uri("http://localhost:8094"));
 
-            return new SearchClient(httpClient, mockServiceUriProvider.Object, new SearchDataMapper());
+            return new SearchClient(httpClient, mockServiceUriProvider.Object,
+                new Mock<ILogger<SearchClient>>().Object);
         }
 
         internal static IViewClient ViewClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
@@ -126,7 +129,7 @@ namespace Couchbase.UnitTests.Utils
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
             var serializer = new DefaultSerializer();
-            return new ViewClient(httpClient, serializer);
+            return new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object);
         }
     }
 }

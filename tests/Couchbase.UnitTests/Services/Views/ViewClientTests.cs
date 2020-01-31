@@ -6,6 +6,8 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -40,7 +42,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient, serializer);
+            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object);
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
@@ -58,7 +60,7 @@ namespace Couchbase.UnitTests.Services.Views
 
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient, serializer);
+            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object);
 
             Assert.Null(queryClient.LastActivity);
 

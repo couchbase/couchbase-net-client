@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
@@ -13,27 +12,27 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Analytics
 {
     internal class AnalyticsClient : HttpServiceBase, IAnalyticsClient
     {
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _typeSerializer;
-        private static readonly ILogger Log = LogManager.CreateLogger<AnalyticsClient>();
+        private readonly ILogger<AnalyticsClient> _logger;
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
-        public AnalyticsClient(ClusterContext context) : this(
-            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
-            context.ServiceProvider.GetRequiredService<ITypeSerializer>())
-        {
-        }
-
-        public AnalyticsClient(CouchbaseHttpClient client, IServiceUriProvider serviceUriProvider, ITypeSerializer typeSerializer)
+        public AnalyticsClient(
+            CouchbaseHttpClient client,
+            IServiceUriProvider serviceUriProvider,
+            ITypeSerializer typeSerializer,
+            ILogger<AnalyticsClient> logger)
             : base(client)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -109,7 +108,7 @@ namespace Couchbase.Analytics
                 }
                 catch (OperationCanceledException e)
                 {
-                    Log.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request timeout.");
+                    _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request timeout.");
                     if (queryRequest.ReadOnly)
                     {
                         throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
@@ -119,7 +118,7 @@ namespace Couchbase.Analytics
                 }
                 catch (HttpRequestException e)
                 {
-                    Log.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request cancelled.");
+                    _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request cancelled.");
                     throw new RequestCanceledException("The query was canceled.", e);
                 }
             }

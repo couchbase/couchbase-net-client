@@ -30,7 +30,7 @@ namespace Couchbase
             var httpClient = context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
 
             _viewClientLazy = new Lazy<IViewClient>(() =>
-                new ViewClient(context)
+                context.ServiceProvider.GetRequiredService<IViewClient>()
             );
             _viewManagerLazy = new Lazy<IViewIndexManager>(() =>
                 new ViewIndexManager(name, httpClient, context));

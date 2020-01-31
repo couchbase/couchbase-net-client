@@ -7,13 +7,14 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.Query
 {
@@ -23,25 +24,24 @@ namespace Couchbase.Query
     internal class QueryClient : HttpServiceBase, IQueryClient
     {
         internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
-        private static readonly ILogger Log = LogManager.CreateLogger<QueryClient>();
+
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
         private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _serializer;
+        private readonly ILogger<QueryClient> _logger;
         internal bool EnhancedPreparedStatementsEnabled;
 
-        internal QueryClient(ClusterContext context) : this(
-            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
-            context.ServiceProvider.GetRequiredService<ITypeSerializer>())
-        {
-        }
-
-        internal QueryClient(CouchbaseHttpClient httpClient, IServiceUriProvider serviceUriProvider, ITypeSerializer serializer)
+        public QueryClient(
+            CouchbaseHttpClient httpClient,
+            IServiceUriProvider serviceUriProvider,
+            ITypeSerializer serializer,
+            ILogger<QueryClient> logger)
             : base(httpClient)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <inheritdoc />
@@ -148,7 +148,7 @@ namespace Couchbase.Query
 
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData.Status != QueryStatus.Success)
                     {
-                        Log.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData.Status}.");
+                        _logger.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData.Status}.");
                         if (queryResult.ShouldRetry())
                         {
                             return queryResult;
@@ -181,7 +181,7 @@ namespace Couchbase.Query
                 }
                 catch (OperationCanceledException e)
                 {
-                    Log.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
+                    _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
                     if (options.IsReadOnly)
                     {
                         throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
@@ -190,11 +190,11 @@ namespace Couchbase.Query
                 }
                 catch (HttpRequestException e)
                 {
-                    Log.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
+                    _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
                     throw new RequestCanceledException("The query was canceled.", e);
                 }
             }
-            Log.LogDebug($"Request {options.CurrentContextId} has succeeded.");
+            _logger.LogDebug($"Request {options.CurrentContextId} has succeeded.");
             return queryResult;
         }
 
@@ -203,7 +203,7 @@ namespace Couchbase.Query
             if (!EnhancedPreparedStatementsEnabled && clusterCapabilities.EnhancedPreparedStatementsEnabled)
             {
                 EnhancedPreparedStatementsEnabled = true;
-                Log.LogInformation("Enabling Enhanced Prepared Statements");
+                _logger.LogInformation("Enabling Enhanced Prepared Statements");
             }
         }
     }

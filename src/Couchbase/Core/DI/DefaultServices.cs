@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Analytics;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.Query;
+using Couchbase.Search;
+using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -40,6 +44,11 @@ namespace Couchbase.Core.DI
                     serviceProvider.GetRequiredService<ILogger<CouchbaseHttpClient>>())));
             yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));
             yield return (typeof(ConfigHandler), new SingletonServiceFactory(typeof(ConfigHandler)));
+
+            yield return (typeof(IAnalyticsClient), new SingletonServiceFactory(typeof(AnalyticsClient)));
+            yield return (typeof(ISearchClient), new SingletonServiceFactory(typeof(SearchClient)));
+            yield return (typeof(IQueryClient), new SingletonServiceFactory(typeof(QueryClient)));
+            yield return (typeof(IViewClient), new SingletonServiceFactory(typeof(ViewClient)));
         }
     }
 }

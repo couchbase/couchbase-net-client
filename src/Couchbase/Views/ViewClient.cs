@@ -5,9 +5,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core;
-using Couchbase.Core.DataMapping;
-using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
@@ -15,25 +12,21 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Views
 {
     internal class ViewClient : HttpServiceBase, IViewClient
     {
         private readonly ITypeSerializer _serializer;
+        private readonly ILogger<ViewClient> _logger;
         protected const string Success = "Success";
 
-        private static readonly ILogger Log = LogManager.CreateLogger<ViewClient>();
-
-        public ViewClient(ClusterContext context) : this(
-            context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-            context.ServiceProvider.GetRequiredService<ITypeSerializer>())
-        {
-        }
-
-        public ViewClient(CouchbaseHttpClient httpClient, ITypeSerializer serializer)
+        public ViewClient(CouchbaseHttpClient httpClient, ITypeSerializer serializer, ILogger<ViewClient> logger)
             : base(httpClient)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             // set timeout to infinite so we can stream results without the connection
             // closing part way through
@@ -49,7 +42,7 @@ namespace Couchbase.Views
             var body = query.CreateRequestBody();
             try
             {
-                Log.LogDebug("Sending view request to: {0}", uri.ToString());
+                _logger.LogDebug("Sending view request to: {0}", uri.ToString());
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
                 var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
 
@@ -111,12 +104,12 @@ namespace Couchbase.Views
             }
             catch (OperationCanceledException e)
             {
-                Log.LogDebug(LoggingEvents.ViewEvent, e, "View request timeout.");
+                _logger.LogDebug(LoggingEvents.ViewEvent, e, "View request timeout.");
                 throw new AmbiguousTimeoutException("The view query was timed out via the Token.", e);
             }
             catch (HttpRequestException e)
             {
-                Log.LogDebug(LoggingEvents.QueryEvent, e, "View request cancelled.");
+                _logger.LogDebug(LoggingEvents.QueryEvent, e, "View request cancelled.");
                 throw new RequestCanceledException("The view query was canceled.", e);
             }
 

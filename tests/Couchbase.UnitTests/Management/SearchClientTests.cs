@@ -8,6 +8,7 @@ using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
 using Couchbase.UnitTests.Fixtures;
 using Couchbase.UnitTests.Utils;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -35,7 +36,8 @@ namespace Couchbase.UnitTests.Management
                 .Setup(m => m.GetRandomSearchUri())
                 .Returns(new Uri("http://localhost:8094"));
 
-            var client = new SearchClient(httpClient, mockServiceUriProvider.Object, new SearchDataMapper());
+            var client = new SearchClient(httpClient, mockServiceUriProvider.Object,
+                new Mock<ILogger<SearchClient>>().Object);
 
             await client.QueryAsync(new SearchRequest{Index = indexName, Options = new SearchOptions()});
         }
