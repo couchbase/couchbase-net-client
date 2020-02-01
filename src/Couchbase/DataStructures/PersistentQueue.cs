@@ -1,16 +1,15 @@
 using System.Threading.Tasks;
-using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.DataStructures
 {
     public class PersistentQueue<TValue> : PersistentStoreBase<TValue>, IPersistentQueue<TValue>
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<PersistentList<TValue>>();
-
-        internal PersistentQueue(ICollection collection, string key)
-            : base(collection, key, new object(), false)
+        internal PersistentQueue(ICollection collection, string key, ILogger? logger)
+            : base(collection, key, logger, new object(), false)
         {
         }
 
@@ -25,7 +24,7 @@ namespace Couchbase.DataStructures
             var result = await Collection.LookupInAsync(Key, builder => builder.Get("[0]"));
             var item = result.ContentAs<TValue>(0);
 
-            var mutateResult = await Collection.MutateInAsync(Key, builder => builder.Remove("[0]"),
+            await Collection.MutateInAsync(Key, builder => builder.Remove("[0]"),
                 options => options.Cas(result.Cas));
 
             return item;
@@ -39,7 +38,7 @@ namespace Couchbase.DataStructures
         public async Task EnqueueAsync(TValue item)
         {
             CreateBackingStore();
-            var result = await Collection.MutateInAsync(Key, builder => builder.ArrayAppend("", item));
+            await Collection.MutateInAsync(Key, builder => builder.ArrayAppend("", item));
         }
 
         public TValue Peek()

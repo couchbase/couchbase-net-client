@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace Couchbase.DataStructures
 {
     public interface IPersistentQueue<T> :  System.Collections.ICollection

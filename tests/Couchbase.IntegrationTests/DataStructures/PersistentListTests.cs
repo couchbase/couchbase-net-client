@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.DataStructures;
 using Couchbase.IntegrationTests.Fixtures;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Couchbase.IntegrationTests.DataStructures
@@ -57,7 +59,7 @@ namespace Couchbase.IntegrationTests.DataStructures
         private async Task<IPersistentList<Foo>> GetPersistentList(string id)
         {
             var collection = await _fixture.GetDefaultCollection();
-            return new PersistentList<Foo>(collection, id);
+            return new PersistentList<Foo>(collection, id, new Mock<ILogger>().Object);
         }
 
         [Fact]

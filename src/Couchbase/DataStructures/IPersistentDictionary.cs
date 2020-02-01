@@ -1,12 +1,13 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
+
+#nullable enable
 
 namespace Couchbase.DataStructures
 {
     public interface IPersistentDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+        where TKey : notnull
     {
         Task AddAsync(KeyValuePair<TKey, TValue> item);
 

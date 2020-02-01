@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace Couchbase.DataStructures
 {
     public interface IPersistentList<T> : System.Collections.ICollection, IList<T>

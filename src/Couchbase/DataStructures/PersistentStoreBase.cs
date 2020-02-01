@@ -3,24 +3,25 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.Logging;
-using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 using ICollection = Couchbase.KeyValue.ICollection;
+
+#nullable enable
 
 namespace Couchbase.DataStructures
 {
     public abstract class PersistentStoreBase<TValue>: System.Collections.ICollection
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<PersistentStoreBase<TValue>>();
-        protected  readonly ICollection Collection;
-        protected readonly string Key;
-        protected bool BackingStoreChecked;
+        protected ILogger? Logger { get; }
+        protected ICollection Collection { get; }
+        protected string Key { get; }
+        protected bool BackingStoreChecked {get; set;}
 
-        internal PersistentStoreBase(ICollection collection, string key, object syncRoot, bool isSynchronized)
+        internal PersistentStoreBase(ICollection collection, string key, ILogger? logger, object syncRoot, bool isSynchronized)
         {
             Collection = collection ?? throw new ArgumentNullException(nameof(collection));
             Key = key ?? throw new ArgumentNullException(nameof(key));
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             SyncRoot = syncRoot;
             IsSynchronized = isSynchronized;
         }
@@ -36,7 +37,7 @@ namespace Couchbase.DataStructures
             catch (DocumentExistsException e)
             {
                 //ignore - the doc already exists for this collection
-                Log.LogTrace(e, $"The PersistentList backing document already exists for ID {Key}. Not an error.");
+                Logger?.LogTrace(e, "The PersistentList backing document already exists for ID {key}. Not an error.", Key);
             }
         }
         protected virtual IList<TValue> GetList()
@@ -47,10 +48,8 @@ namespace Couchbase.DataStructures
         protected virtual async Task<IList<TValue>> GetListAsync()
         {
             CreateBackingStore();
-            using (var result = await Collection.GetAsync(Key).ConfigureAwait(false))
-            {
-                return result.ContentAs<IList<TValue>>();
-            }
+            using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
+            return result.ContentAs<IList<TValue>>();
         }
 
         public void Clear()
@@ -61,7 +60,7 @@ namespace Couchbase.DataStructures
         public async Task ClearAsync()
         {
             CreateBackingStore();
-            var result = await Collection.
+            await Collection.
                 UpsertAsync(Key, new List<TValue>()).ConfigureAwait(false);
         }
 
@@ -80,12 +79,10 @@ namespace Couchbase.DataStructures
             if (array == null) throw new ArgumentNullException(nameof(array));
             if (arrayIndex < 0) throw new IndexOutOfRangeException();
 
-            using (var result = await Collection.GetAsync(Key).ConfigureAwait(false))
-            {
-                var items = result.ContentAs<IList<TValue>>();
-                items.CopyTo(array, arrayIndex);
-                await Collection.UpsertAsync(Key, items);
-            }
+            using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
+            var items = result.ContentAs<IList<TValue>>();
+            items.CopyTo(array, arrayIndex);
+            await Collection.UpsertAsync(Key, items);
         }
 
         public Task<int> CountAsync => Task.FromResult(GetListAsync().GetAwaiter().GetResult().Count);

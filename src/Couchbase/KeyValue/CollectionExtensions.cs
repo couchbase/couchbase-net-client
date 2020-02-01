@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.DataStructures;
 
 #nullable enable
@@ -323,22 +322,23 @@ namespace Couchbase.KeyValue
 
         public static IPersistentSet<T> Set<T>(this ICollection collection, string docId)
         {
-            return new PersistentSet<T>(collection, docId);
+            return new PersistentSet<T>(collection, docId, (collection as CouchbaseCollection)?.Logger);
         }
 
         public static IPersistentList<T> List<T>(this ICollection collection, string docId)
         {
-            return new PersistentList<T>(collection, docId);
+            return new PersistentList<T>(collection, docId, (collection as CouchbaseCollection)?.Logger);
         }
 
         public static IPersistentQueue<T> Queue<T>(this ICollection collection, string docId)
         {
-            return new PersistentQueue<T>(collection, docId);
+            return new PersistentQueue<T>(collection, docId, (collection as CouchbaseCollection)?.Logger);
         }
 
         public static IPersistentDictionary<TKey, TValue> Dictionary<TKey, TValue>(this ICollection collection, string docId)
+            where TKey : notnull
         {
-            return new PersistentDictionary<TKey, TValue>(collection, docId);
+            return new PersistentDictionary<TKey, TValue>(collection, docId, (collection as CouchbaseCollection)?.Logger);
         }
 
         #endregion

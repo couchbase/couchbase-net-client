@@ -1,18 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.DataStructures
 {
     public class PersistentList<TValue> : PersistentStoreBase<TValue>, IPersistentList<TValue>
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<PersistentList<TValue>>();
-
-        internal PersistentList(ICollection collection, string key)
-            : base(collection, key, new object(), false)
+        internal PersistentList(ICollection collection, string key, ILogger? logger)
+            : base(collection, key, logger, new object(), false)
         {
         }
 
@@ -69,7 +68,7 @@ namespace Couchbase.DataStructures
         public async Task AddAsync(TValue item)
         {
             CreateBackingStore();
-            var result = await Collection.
+            await Collection.
                 MutateInAsync(Key, builder => builder.ArrayAppend("", item)).
                     ConfigureAwait(false);
         }
@@ -93,7 +92,7 @@ namespace Couchbase.DataStructures
             }
             catch (Exception e)
             {
-                Log.LogError(e, $"Item could not be removed from PersistentList with ID of {Key}");
+                Logger?.LogError(e, "Item could not be removed from PersistentList with ID of {key}", Key);
             }
 
             return removed;
@@ -107,7 +106,7 @@ namespace Couchbase.DataStructures
         public async Task InsertAsync(int index, TValue item)
         {
             CreateBackingStore();
-            var result = await Collection.
+            await Collection.
                 MutateInAsync(Key, builder => builder.ArrayInsert($"[{index}]", new[] {item})).
                 ConfigureAwait(false);
         }
@@ -115,7 +114,7 @@ namespace Couchbase.DataStructures
         public async Task RemoveAtAsync(int index)
         {
             CreateBackingStore();
-            var result = await Collection.
+            await Collection.
                 MutateInAsync(Key, builder => builder.Remove($"[{index}]")).
                 ConfigureAwait(false);
         }

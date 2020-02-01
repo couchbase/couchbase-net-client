@@ -1,26 +1,30 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 using ICollection = Couchbase.KeyValue.ICollection;
 
+#nullable enable
+
 namespace Couchbase.DataStructures
 {
     public class PersistentDictionary<TKey, TValue> : IPersistentDictionary<TKey, TValue>
+        where TKey : notnull
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<PersistentDictionary<TKey, TValue>>();
-        protected  readonly ICollection Collection;
-        protected readonly string DocId;
-        protected bool BackingStoreChecked;
+        private readonly ILogger? _logger;
+        protected ICollection Collection { get; }
+        protected string DocId { get; }
+        protected bool BackingStoreChecked { get; set; }
 
-        internal PersistentDictionary(ICollection collection, string docId)
+        internal PersistentDictionary(ICollection collection, string docId, ILogger? logger)
         {
             Collection = collection ?? throw new ArgumentNullException(nameof(collection));
             DocId = docId ?? throw new ArgumentNullException(nameof(docId));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         protected virtual void CreateBackingStore()
@@ -34,17 +38,15 @@ namespace Couchbase.DataStructures
             catch (DocumentExistsException e)
             {
                 //ignore - the doc already exists for this collection
-                Log.LogTrace(e, $"The PersistentList backing document already exists for ID {DocId}. Not an error.");
+                _logger?.LogTrace(e, "The PersistentDictionary backing document already exists for ID {key}. Not an error.", DocId);
             }
         }
 
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
             CreateBackingStore();
-            using (var result = Collection.GetAsync(DocId).GetAwaiter().GetResult())
-            {
-                return result.ContentAs<IEnumerator<KeyValuePair<TKey, TValue>>>();
-            }
+            using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
+            return result.ContentAs<IEnumerator<KeyValuePair<TKey, TValue>>>();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -70,11 +72,9 @@ namespace Couchbase.DataStructures
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             CreateBackingStore();
-            using (var result = Collection.GetAsync(DocId).GetAwaiter().GetResult())
-            {
-                var dict = result.ContentAs<IDictionary<TKey, TValue>>();
-                dict.CopyTo(array, arrayIndex);
-            }
+            using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
+            var dict = result.ContentAs<IDictionary<TKey, TValue>>();
+            dict.CopyTo(array, arrayIndex);
         }
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
@@ -101,23 +101,21 @@ namespace Couchbase.DataStructures
             return RemoveAsync(key).GetAwaiter().GetResult();
         }
 
-        public bool TryGetValue(TKey key, out TValue value)
+        public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
         {
             CreateBackingStore();
             var success = true;
             try
             {
-                using (var result = Collection.LookupInAsync(DocId, builder => builder.Get(key.ToString()))
-                    .GetAwaiter().GetResult())
-                {
-                    value = result.ContentAs<TValue>(0);
-                }
+                using var result = Collection.LookupInAsync(DocId, builder => builder.Get(key.ToString()))
+                    .GetAwaiter().GetResult();
+                value = result.ContentAs<TValue>(0);
             }
             catch (Exception e)
             {
-                value = default;
+                value = default!;
                 success = false;
-                Log.LogDebug(e, $"Error fetching value for key {key}.");
+                _logger?.LogDebug(e, "Error fetching value for key {key}.", key);
             }
 
             return success;
@@ -129,7 +127,7 @@ namespace Couchbase.DataStructures
             {
                 if (TryGetValue(key, out TValue value))
                     return value;
-                throw new System.Collections.Generic.KeyNotFoundException($"Cannot find key {key}.");
+                throw new KeyNotFoundException($"Cannot find key {key}.");
             }
             set => Add(key, value);
         }
@@ -164,35 +162,29 @@ namespace Couchbase.DataStructures
             get
             {
                 CreateBackingStore();
-                using (var result = Collection.GetAsync(DocId).GetAwaiter().GetResult())
-                {
-                    return Task.FromResult(result.ContentAs<IDictionary<TKey, TValue>>().Count);
-                }
+                using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
+                return Task.FromResult(result.ContentAs<IDictionary<TKey, TValue>>().Count);
             }
         }
 
         public async Task AddAsync(TKey key, TValue value)
         {
             CreateBackingStore();
-            using (var exists = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())))
+            using var exists = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString()));
+            if (exists.Exists(0))
             {
-                if (exists.Exists(0))
-                {
-                    throw new ArgumentException("An element with the same key already exists in the Dictionary.");
-                }
-
-                await Collection.MutateInAsync(DocId, builder => builder.Insert(DocId, value),
-                    options => options.Cas(exists.Cas));
+                throw new ArgumentException("An element with the same key already exists in the Dictionary.");
             }
+
+            await Collection.MutateInAsync(DocId, builder => builder.Insert(DocId, value),
+                options => options.Cas(exists.Cas));
         }
 
         public async Task<bool> ContainsKeyAsync(TKey key)
         {
             CreateBackingStore();
-            using (var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())))
-            {
-                return result.Exists(0);
-            }
+            using var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString()));
+            return result.Exists(0);
         }
 
         public async Task<bool> RemoveAsync(TKey key)
@@ -201,12 +193,12 @@ namespace Couchbase.DataStructures
             var success = true;
             try
             {
-                var result = await Collection.MutateInAsync(DocId, builder => builder.Remove(key.ToString()));
+                await Collection.MutateInAsync(DocId, builder => builder.Remove(key.ToString()));
             }
             catch (Exception e)
             {
                 success = false;
-                Log.LogDebug(e, "Remove failed.");
+                _logger?.LogDebug(e, "Remove failed.");
             }
 
             return success;
@@ -217,10 +209,8 @@ namespace Couchbase.DataStructures
             get
             {
                 CreateBackingStore();
-                using (var result = Collection.GetAsync(DocId).GetAwaiter().GetResult())
-                {
-                    return Task.FromResult(result.ContentAs<IDictionary<TKey, TValue>>().Keys);
-                }
+                using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
+                return Task.FromResult(result.ContentAs<IDictionary<TKey, TValue>>().Keys);
             }
         }
 
@@ -229,10 +219,8 @@ namespace Couchbase.DataStructures
             get
             {
                 CreateBackingStore();
-                using (var result = Collection.GetAsync(DocId).GetAwaiter().GetResult())
-                {
-                    return Task.FromResult(result.ContentAs<IDictionary<TKey, TValue>>().Values);
-                }
+                using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
+                return Task.FromResult(result.ContentAs<IDictionary<TKey, TValue>>().Values);
             }
         }
     }
