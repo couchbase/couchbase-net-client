@@ -67,14 +67,13 @@ namespace Couchbase
             _context = new ClusterContext(configTokenSource, clusterOptions);
             _context.StartConfigListening();
 
-            var httpClient = _context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
             LazyQueryClient = new Lazy<IQueryClient>(() => _context.ServiceProvider.GetRequiredService<IQueryClient>());
             LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => _context.ServiceProvider.GetRequiredService<IAnalyticsClient>());
             LazySearchClient = new Lazy<ISearchClient>(() => _context.ServiceProvider.GetRequiredService<ISearchClient>());
-            LazyQueryManager = new Lazy<IQueryIndexManager>(() => new QueryIndexManager(LazyQueryClient.Value));
-            LazyBucketManager = new Lazy<IBucketManager>(() => new BucketManager(_context));
-            LazyUserManager = new Lazy<IUserManager>(() => new UserManager(_context));
-            LazySearchManager = new Lazy<ISearchIndexManager>(() => new SearchIndexManager(_context, httpClient));
+            LazyQueryManager = new Lazy<IQueryIndexManager>(() => _context.ServiceProvider.GetRequiredService<IQueryIndexManager>());
+            LazyBucketManager = new Lazy<IBucketManager>(() => _context.ServiceProvider.GetRequiredService<IBucketManager>());
+            LazyUserManager = new Lazy<IUserManager>(() => _context.ServiceProvider.GetRequiredService<IUserManager>());
+            LazySearchManager = new Lazy<ISearchIndexManager>(() => _context.ServiceProvider.GetRequiredService<ISearchIndexManager>());
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -182,16 +181,11 @@ namespace Couchbase
             options ??= new QueryOptions();
             await EnsureBootstrapped();
 
-            if (options.CurrentContextId == null)
-            {
-                options.ClientContextId(Guid.NewGuid().ToString());
-            }
-
             async Task<IQueryResult<T>> Func()
             {
                 var client1 = LazyQueryClient.Value;
                 var statement1 = statement;
-                var options1 = options;
+                var options1 = options!;
                 return await client1.QueryAsync<T>(statement1, options1).ConfigureAwait(false);
             }
 

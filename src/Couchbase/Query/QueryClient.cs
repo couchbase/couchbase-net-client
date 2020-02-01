@@ -55,6 +55,11 @@ namespace Couchbase.Query
         /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
+            if (string.IsNullOrEmpty(options.CurrentContextId))
+            {
+                options.ClientContextId(Guid.NewGuid().ToString());
+            }
+
             // does this query use a prepared plan?
             if (options.IsAdHoc)
             {

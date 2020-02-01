@@ -53,9 +53,10 @@ namespace Couchbase.IntegrationTests.Management
                 await manager.PublishDesignDocumentAsync(designDoc.Name);
 
                 // get all
-                var getAllResult = await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production);
-                Assert.Single(getAllResult);
-                VerifyDesignDoc(designDoc, getAllResult.First());
+                var getAllResult =
+                    (await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production)).ToList();
+                var result = getAllResult.First(p => p.Name == "test_ddoc");
+                VerifyDesignDoc(designDoc, result);
             }
             finally
             {

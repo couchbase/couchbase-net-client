@@ -26,5 +26,18 @@ namespace Couchbase.Core
         /// </summary>
         /// <returns>The base <see cref="Uri"/>.</returns>
         Uri GetRandomSearchUri();
+
+        /// <summary>
+        /// Get the base <see cref="Uri"/> for a random node's management service.
+        /// </summary>
+        /// <returns>The base <see cref="Uri"/>.</returns>
+        Uri GetRandomManagementUri();
+
+        /// <summary>
+        /// Get the base <see cref="Uri"/> for a bucket's view service on a random node.
+        /// </summary>
+        /// <param name="bucketName">The name of the bucket.</param>
+        /// <returns>The base <see cref="Uri"/>.</returns>
+        Uri GetRandomViewsUri(string bucketName);
     }
 }

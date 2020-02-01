@@ -6,36 +6,31 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+
+#nullable enable
 
 namespace Couchbase.Management.Buckets
 {
     internal class BucketManager : IBucketManager
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<BucketManager>();
-        private readonly ClusterContext _context;
-        private readonly HttpClient _client;
+        private readonly IServiceUriProvider _serviceUriProvider;
+        private readonly CouchbaseHttpClient _client;
+        private readonly ILogger<BucketManager> _logger;
 
-        public BucketManager(ClusterContext context)
-            : this(context, new HttpClient(new AuthenticatingHttpClientHandler(context)))
-        { }
-
-        public BucketManager(ClusterContext context, HttpClient client)
+        public BucketManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client, ILogger<BucketManager> logger)
         {
-            _context = context;
-            _client = client;
+            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        private Uri GetUri(string bucketName = null)
+        private Uri GetUri(string? bucketName = null)
         {
-            var builder = new UriBuilder
+            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
             {
-                Scheme = _context.ClusterOptions.EnableTls ? "https" : "http",
-                Host = _context.ClusterOptions.ServersValue.GetRandom().Host,
-                Port = _context.ClusterOptions.EnableTls ? 18091 : 8091,
                 Path = "pools/default/buckets"
             };
 
@@ -125,11 +120,11 @@ namespace Couchbase.Management.Buckets
             return values;
         }
 
-        public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions options = null)
+        public async Task CreateBucketAsync(BucketSettings settings, CreateBucketOptions? options = null)
         {
             options ??= new CreateBucketOptions();
             var uri = GetUri();
-            Logger.LogInformation($"Attempting to create bucket with name {settings.Name} - {uri}");
+            _logger.LogInformation($"Attempting to create bucket with name {settings.Name} - {uri}");
 
             try
             {
@@ -149,21 +144,21 @@ namespace Couchbase.Management.Buckets
             }
             catch (BucketExistsException)
             {
-                Logger.LogError($"Failed to create bucket with name {settings.Name} because it already exists");
+                _logger.LogError($"Failed to create bucket with name {settings.Name} because it already exists");
                 throw;
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to create bucket with name {settings.Name} - {uri}");
+                _logger.LogError(exception, $"Failed to create bucket with name {settings.Name} - {uri}");
                 throw;
             }
         }
 
-        public async Task UpdateBucketAsync(BucketSettings settings, UpdateBucketOptions options = null)
+        public async Task UpdateBucketAsync(BucketSettings settings, UpdateBucketOptions? options = null)
         {
             options ??= new UpdateBucketOptions();
             var uri = GetUri(settings.Name);
-            Logger.LogInformation($"Attempting to upsert bucket with name {settings.Name} - {uri}");
+            _logger.LogInformation($"Attempting to upsert bucket with name {settings.Name} - {uri}");
 
             try
             {
@@ -174,16 +169,16 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to upsert bucket with name {settings.Name} - {uri}");
+                _logger.LogError(exception, $"Failed to upsert bucket with name {settings.Name} - {uri}");
                 throw;
             }
         }
 
-        public async Task DropBucketAsync(string bucketName, DropBucketOptions options = null)
+        public async Task DropBucketAsync(string bucketName, DropBucketOptions? options = null)
         {
             options ??= new DropBucketOptions();
             var uri = GetUri(bucketName);
-            Logger.LogInformation($"Attempting to drop bucket with name {bucketName} - {uri}");
+            _logger.LogInformation($"Attempting to drop bucket with name {bucketName} - {uri}");
 
             try
             {
@@ -198,16 +193,16 @@ namespace Couchbase.Management.Buckets
             }
             catch (BucketNotFoundException)
             {
-                Logger.LogError($"Unable to drop bucket with name {bucketName} because it does not exist");
+                _logger.LogError($"Unable to drop bucket with name {bucketName} because it does not exist");
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to drop bucket with name {bucketName}");
+                _logger.LogError(exception, $"Failed to drop bucket with name {bucketName}");
                 throw;
             }
         }
 
-        public async Task FlushBucketAsync(string bucketName, FlushBucketOptions options = null)
+        public async Task FlushBucketAsync(string bucketName, FlushBucketOptions? options = null)
         {
             options ??= new FlushBucketOptions();
             // get uri and amend path to flush endpoint
@@ -215,7 +210,7 @@ namespace Couchbase.Management.Buckets
             builder.Path = Path.Combine(builder.Path, "controller/doFlush");
             var uri = builder.Uri;
 
-            Logger.LogInformation($"Attempting to flush bucket with name {bucketName} - {uri}");
+            _logger.LogInformation($"Attempting to flush bucket with name {bucketName} - {uri}");
 
             try
             {
@@ -239,26 +234,26 @@ namespace Couchbase.Management.Buckets
             }
             catch (BucketNotFoundException)
             {
-                Logger.LogError($"Unable to flush bucket with name {bucketName} because it does not exist");
+                _logger.LogError($"Unable to flush bucket with name {bucketName} because it does not exist");
                 throw;
             }
             catch (BucketIsNotFlushableException)
             {
-                Logger.LogError($"Failed to flush bucket with name {bucketName} because it is not flushable");
+                _logger.LogError($"Failed to flush bucket with name {bucketName} because it is not flushable");
                 throw;
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to flush bucket with name {bucketName}");
+                _logger.LogError(exception, $"Failed to flush bucket with name {bucketName}");
                 throw;
             }
         }
 
-        public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions options = null)
+        public async Task<Dictionary<string, BucketSettings>> GetAllBucketsAsync(GetAllBucketsOptions? options = null)
         {
             options ??= new GetAllBucketsOptions();
             var uri = GetUri();
-            Logger.LogInformation($"Attempting to get all buckets - {uri}");
+            _logger.LogInformation($"Attempting to get all buckets - {uri}");
 
             try
             {
@@ -279,16 +274,16 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to get all buckets - {uri}");
+                _logger.LogError(exception, $"Failed to get all buckets - {uri}");
                 throw;
             }
         }
 
-        public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions options = null)
+        public async Task<BucketSettings> GetBucketAsync(string bucketName, GetBucketOptions? options = null)
         {
             options ??= new GetBucketOptions();
             var uri = GetUri(bucketName);
-            Logger.LogInformation($"Attempting to get bucket with name {bucketName} - {uri}");
+            _logger.LogInformation($"Attempting to get bucket with name {bucketName} - {uri}");
 
             try
             {
@@ -306,7 +301,7 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to get bucket with name {bucketName} - {uri}");
+                _logger.LogError(exception, $"Failed to get bucket with name {bucketName} - {uri}");
                 throw;
             }
         }

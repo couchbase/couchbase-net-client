@@ -2,28 +2,30 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Couchbase.Core.Logging;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.Management.Query
 {
     internal class QueryIndexManager : IQueryIndexManager
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<QueryIndexManager>();
         private static readonly TimeSpan WatchIndexSleepDuration = TimeSpan.FromMilliseconds(50);
 
         private readonly IQueryClient _queryClient;
+        private readonly ILogger<QueryIndexManager> _logger;
 
-        public QueryIndexManager(IQueryClient queryClient)
+        public QueryIndexManager(IQueryClient queryClient, ILogger<QueryIndexManager> logger)
         {
-            _queryClient = queryClient;
+            _queryClient = queryClient ?? throw new ArgumentNullException(nameof(queryClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task BuildDeferredIndexesAsync(string bucketName, BuildDeferredQueryIndexOptions options = null)
+        public async Task BuildDeferredIndexesAsync(string bucketName, BuildDeferredQueryIndexOptions? options = null)
         {
-            options = options ?? BuildDeferredQueryIndexOptions.Default;
-            Logger.LogInformation($"Attempting to build deferred query indexes on bucket {bucketName}");
+            options ??= BuildDeferredQueryIndexOptions.Default;
+            _logger.LogInformation($"Attempting to build deferred query indexes on bucket {bucketName}");
             try
             {
                 var indexes = await this.GetAllIndexesAsync(bucketName,
@@ -43,15 +45,15 @@ namespace Couchbase.Management.Query
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to build deferred query indexes on {bucketName}");
+                _logger.LogError(exception, $"Error trying to build deferred query indexes on {bucketName}");
                 throw;
             }
         }
 
-        public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options = null)
+        public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions? options = null)
         {
-            options = options ?? CreateQueryIndexOptions.Default;
-            Logger.LogInformation($"Attempting to create query index {indexName} on bucket {bucketName}");
+            options ??= CreateQueryIndexOptions.Default;
+            _logger.LogInformation($"Attempting to create query index {indexName} on bucket {bucketName}");
 
             try
             {
@@ -62,15 +64,15 @@ namespace Couchbase.Management.Query
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to create query index {indexName} on {bucketName}");
+                _logger.LogError(exception, $"Error trying to create query index {indexName} on {bucketName}");
                 throw;
             }
         }
 
-        public async Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions options = null)
+        public async Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions? options = null)
         {
-            options = options ?? CreatePrimaryQueryIndexOptions.Default;
-            Logger.LogInformation($"Attempting to create primary query index on bucket {bucketName}");
+            options ??= CreatePrimaryQueryIndexOptions.Default;
+            _logger.LogInformation($"Attempting to create primary query index on bucket {bucketName}");
 
             try
             {
@@ -81,15 +83,15 @@ namespace Couchbase.Management.Query
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to create primary query index on {bucketName}");
+                _logger.LogError(exception, $"Error trying to create primary query index on {bucketName}");
                 throw;
             }
         }
 
-        public async Task DropIndexAsync(string bucketName, string indexName, DropQueryIndexOptions options = null)
+        public async Task DropIndexAsync(string bucketName, string indexName, DropQueryIndexOptions? options = null)
         {
-            options = options ?? DropQueryIndexOptions.Default;
-            Logger.LogInformation($"Attempting to drop query index {indexName} on bucket {bucketName}");
+            options ??= DropQueryIndexOptions.Default;
+            _logger.LogInformation($"Attempting to drop query index {indexName} on bucket {bucketName}");
 
             try
             {
@@ -100,15 +102,15 @@ namespace Couchbase.Management.Query
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to drop query index {indexName} on {bucketName}");
+                _logger.LogError(exception, $"Error trying to drop query index {indexName} on {bucketName}");
                 throw;
             }
         }
 
-        public async Task DropPrimaryIndexAsync(string bucketName, DropPrimaryQueryIndexOptions options = null)
+        public async Task DropPrimaryIndexAsync(string bucketName, DropPrimaryQueryIndexOptions? options = null)
         {
-            options = options ?? DropPrimaryQueryIndexOptions.Default;
-            Logger.LogInformation($"Attempting to drop primary query index on bucket {bucketName}");
+            options ??= DropPrimaryQueryIndexOptions.Default;
+            _logger.LogInformation($"Attempting to drop primary query index on bucket {bucketName}");
 
             try
             {
@@ -119,15 +121,15 @@ namespace Couchbase.Management.Query
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to drop query index on {bucketName}");
+                _logger.LogError(exception, $"Error trying to drop query index on {bucketName}");
                 throw;
             }
         }
 
-        public async Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions options = null)
+        public async Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions? options = null)
         {
-            options = options ?? GetAllQueryIndexOptions.Default;
-            Logger.LogInformation($"Attempting to get query indexes for bucket {bucketName}");
+            options ??= GetAllQueryIndexOptions.Default;
+            _logger.LogInformation($"Attempting to get query indexes for bucket {bucketName}");
 
             try
             {
@@ -146,16 +148,16 @@ namespace Couchbase.Management.Query
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to get query indexes for bucket {bucketName}");
+                _logger.LogError(exception, $"Error trying to get query indexes for bucket {bucketName}");
                 throw;
             }
         }
 
-        public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions options = null)
+        public async Task WatchIndexesAsync(string bucketName, IEnumerable<string> indexNames, WatchQueryIndexOptions? options = null)
         {
-            options = options ?? WatchQueryIndexOptions.Default;
+            options ??= WatchQueryIndexOptions.Default;
             var indexesToWatch = string.Join(", ", indexNames.ToList());
-            Logger.LogInformation($"Attempting to watch pending indexes ({indexesToWatch}) for bucket {bucketName}");
+            _logger.LogInformation($"Attempting to watch pending indexes ({indexesToWatch}) for bucket {bucketName}");
 
             try
             {
@@ -173,7 +175,7 @@ namespace Couchbase.Management.Query
                         break;
                     }
 
-                    Logger.LogInformation($"Still waiting for indexes to complete building ({indexesToWatch})");
+                    _logger.LogInformation($"Still waiting for indexes to complete building ({indexesToWatch})");
                     await Task.Delay(WatchIndexSleepDuration);
                 }
             }
@@ -183,7 +185,7 @@ namespace Couchbase.Management.Query
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to watch pending indexes ({indexesToWatch}) for bucket {bucketName}");
+                _logger.LogError(exception, $"Error trying to watch pending indexes ({indexesToWatch}) for bucket {bucketName}");
                 throw;
             }
         }

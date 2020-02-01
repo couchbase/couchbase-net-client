@@ -27,15 +27,19 @@ namespace Couchbase
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<CouchbaseBucket> logger)
             : base(name, context, scopeFactory, retryOrchestrator, logger)
         {
-            var httpClient = context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
-
             _viewClientLazy = new Lazy<IViewClient>(() =>
                 context.ServiceProvider.GetRequiredService<IViewClient>()
             );
             _viewManagerLazy = new Lazy<IViewIndexManager>(() =>
-                new ViewIndexManager(name, httpClient, context));
+                new ViewIndexManager(name,
+                    context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
+                    context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
+                    context.ServiceProvider.GetRequiredService<ILogger<ViewIndexManager>>()));
             _collectionManagerLazy = new Lazy<ICollectionManager>(() =>
-                new CollectionManager(name, context, httpClient)
+                new CollectionManager(name,
+                    context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
+                    context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
+                    context.ServiceProvider.GetRequiredService<ILogger<CollectionManager>>())
             );
         }
 

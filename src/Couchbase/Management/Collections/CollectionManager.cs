@@ -4,33 +4,35 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Logging;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Management.Buckets;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+
+#nullable enable
 
 namespace Couchbase.Management.Collections
 {
     /// <remarks>Volatile</remarks>
     internal class CollectionManager : ICollectionManager
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<CollectionManager>();
-
         private readonly string _bucketName;
-        private readonly ClusterContext _context;
-        private readonly HttpClient _client;
+        private readonly IServiceUriProvider _serviceUriProvider;
+        private readonly CouchbaseHttpClient _client;
+        private readonly ILogger<CollectionManager> _logger;
 
-        public CollectionManager(string bucketName, ClusterContext context, HttpClient client)
+        public CollectionManager(string bucketName, IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client,
+            ILogger<CollectionManager> logger)
         {
-            _bucketName = bucketName;
-            _context = context;
-            _client = client;
+            _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
+            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        private Uri GetUri(string scopeName = null, string collectionName = null)
+        private Uri GetUri(string? scopeName = null, string? collectionName = null)
         {
-            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
+            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
             {
                 Path = $"pools/default/buckets/{_bucketName}/collections"
             };
@@ -48,11 +50,11 @@ namespace Couchbase.Management.Collections
             return builder.Uri;
         }
 
-        public async Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions options = null)
+        public async Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions? options = null)
         {
             options ??= CollectionExistsOptions.Default;
             var uri = GetUri();
-            Logger.LogInformation($"Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}");
+            _logger.LogInformation($"Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}");
 
             try
             {
@@ -68,16 +70,16 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to verify if collection {spec.ScopeName}/{spec.Name} exists - {uri}");
+                _logger.LogError(exception, $"Failed to verify if collection {spec.ScopeName}/{spec.Name} exists - {uri}");
                 throw;
             }
         }
 
-        public async Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions options = null)
+        public async Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions? options = null)
         {
             options ??= ScopeExistsOptions.Default;
             var uri = GetUri();
-            Logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
+            _logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
 
             try
             {
@@ -91,16 +93,16 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to verify if scope {scopeName} exists - {uri}");
+                _logger.LogError(exception, $"Failed to verify if scope {scopeName} exists - {uri}");
                 throw;
             }
         }
 
-        public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions options = null)
+        public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null)
         {
             options ??= GetScopeOptions.Default;
             var uri = GetUri();
-            Logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
+            _logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
 
             try
             {
@@ -121,16 +123,16 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to verify if scope {scopeName} exists - {uri}");
+                _logger.LogError(exception, $"Failed to verify if scope {scopeName} exists - {uri}");
                 throw;
             }
         }
 
-        public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions options = null)
+        public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions? options = null)
         {
             options ??= GetAllScopesOptions.Default;
             var uri = GetUri();
-            Logger.LogInformation($"Attempting to get all scopes - {uri}");
+            _logger.LogInformation($"Attempting to get all scopes - {uri}");
 
             try
             {
@@ -171,16 +173,16 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to get all scopes - {uri}");
+                _logger.LogError(exception, $"Failed to get all scopes - {uri}");
                 throw;
             }
         }
 
-        public async Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions options = null)
+        public async Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions? options = null)
         {
             options ??= CreateCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName);
-            Logger.LogInformation($"Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}");
+            _logger.LogInformation($"Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}");
 
             try
             {
@@ -195,16 +197,16 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to create collection {spec.ScopeName}/{spec.Name} - {uri}");
+                _logger.LogError(exception, $"Failed to create collection {spec.ScopeName}/{spec.Name} - {uri}");
                 throw;
             }
         }
 
-        public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions options = null)
+        public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions? options = null)
         {
             options ??= DropCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName, spec.Name);
-            Logger.LogInformation($"Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}");
+            _logger.LogInformation($"Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}");
 
             try
             {
@@ -214,16 +216,16 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to drop collection {spec.ScopeName}/{spec.Name} - {uri}");
+                _logger.LogError(exception, $"Failed to drop collection {spec.ScopeName}/{spec.Name} - {uri}");
                 throw;
             }
         }
 
-        public async Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions options = null)
+        public async Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions? options = null)
         {
             options ??= CreateScopeOptions.Default;
             var uri = GetUri();
-            Logger.LogInformation($"Attempting create scope {spec.Name} - {uri}");
+            _logger.LogInformation($"Attempting create scope {spec.Name} - {uri}");
 
             try
             {
@@ -237,16 +239,16 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to create scope {spec.Name} - {uri}");
+                _logger.LogError(exception, $"Failed to create scope {spec.Name} - {uri}");
                 throw;
             }
         }
 
-        public async Task DropScopeAsync(string scopeName, DropScopeOptions options = null)
+        public async Task DropScopeAsync(string scopeName, DropScopeOptions? options = null)
         {
             options ??= DropScopeOptions.Default;
             var uri = GetUri(scopeName);
-            Logger.LogInformation($"Attempting drop scope {scopeName} - {uri}");
+            _logger.LogInformation($"Attempting drop scope {scopeName} - {uri}");
 
             try
             {
@@ -256,7 +258,7 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Failed to drop scope {scopeName} - {uri}");
+                _logger.LogError(exception, $"Failed to drop scope {scopeName} - {uri}");
                 throw;
             }
         }

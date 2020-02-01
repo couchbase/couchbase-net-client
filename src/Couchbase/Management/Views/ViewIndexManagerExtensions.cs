@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace Couchbase.Management.Views
 {
     public static class ViewManagerExtensions

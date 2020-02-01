@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace Couchbase.Management.Search
 {
     public static class SearchIndexManagerExtensions

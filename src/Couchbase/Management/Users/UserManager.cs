@@ -6,27 +6,30 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
-using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
+
+#nullable enable
 
 namespace Couchbase.Management.Users
 {
     internal class UserManager : IUserManager
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<UserManager>();
-        private readonly HttpClient _client;
-        private readonly ClusterContext _context;
+        private readonly IServiceUriProvider _serviceUriProvider;
+        private readonly CouchbaseHttpClient _client;
+        private readonly ILogger<UserManager> _logger;
 
-        public UserManager(ClusterContext context)
+        public UserManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient httpClient,
+            ILogger<UserManager> logger)
         {
-            _context = context;
-            _client = new HttpClient(new AuthenticatingHttpClientHandler(_context));
+            _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
+            _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        private Uri GetUsersUri(string domain, string username = null)
+        private Uri GetUsersUri(string domain, string? username = null)
         {
-            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
+            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
             {
                 Path = $"settings/rbac/users/{domain}"
             };
@@ -41,7 +44,7 @@ namespace Couchbase.Management.Users
 
         private Uri GetRolesUri()
         {
-            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
+            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
             {
                 Path = "settings/rbac/roles"
             };
@@ -49,9 +52,9 @@ namespace Couchbase.Management.Users
             return builder.Uri;
         }
 
-        private Uri GetGroupsUri(string groupName = null)
+        private Uri GetGroupsUri(string? groupName = null)
         {
-            var builder = new UriBuilder(_context.GetRandomNode().ManagementUri)
+            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
             {
                 Path = "settings/rbac/groups"
             };
@@ -112,11 +115,11 @@ namespace Couchbase.Management.Users
             };
         }
 
-        public async Task<UserAndMetaData> GetUserAsync(string username, GetUserOptions options = null)
+        public async Task<UserAndMetaData> GetUserAsync(string username, GetUserOptions? options = null)
         {
             options ??= GetUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, username);
-            Logger.LogInformation($"Attempting to get user with username {username} - {uri}");
+            _logger.LogInformation($"Attempting to get user with username {username} - {uri}");
 
             try
             {
@@ -135,16 +138,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to get user with username {username} - {uri}");
+                _logger.LogError(exception, $"Error trying to get user with username {username} - {uri}");
                 throw;
             }
         }
 
-        public async Task<IEnumerable<UserAndMetaData>> GetAllUsersAsync(GetAllUsersOptions options = null)
+        public async Task<IEnumerable<UserAndMetaData>> GetAllUsersAsync(GetAllUsersOptions? options = null)
         {
             options ??= GetAllUsersOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue);
-            Logger.LogInformation($"Attempting to get all users - {uri}");
+            _logger.LogInformation($"Attempting to get all users - {uri}");
 
             try
             {
@@ -158,16 +161,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to get all users - {uri}");
+                _logger.LogError(exception, $"Error trying to get all users - {uri}");
                 throw;
             }
         }
 
-        public async Task UpsertUserAsync(User user, UpsertUserOptions options = null)
+        public async Task UpsertUserAsync(User user, UpsertUserOptions? options = null)
         {
             options ??= UpsertUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, user.Username);
-            Logger.LogInformation($"Attempting to create user with username {user.Username} - {uri}");
+            _logger.LogInformation($"Attempting to create user with username {user.Username} - {uri}");
 
             try
             {
@@ -178,16 +181,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to upsert user - {uri}");
+                _logger.LogError(exception, $"Error trying to upsert user - {uri}");
                 throw;
             }
         }
 
-        public async Task DropUserAsync(string username, DropUserOptions options = null)
+        public async Task DropUserAsync(string username, DropUserOptions? options = null)
         {
             options ??= DropUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, username);
-            Logger.LogInformation($"Attempting to drop user with username {username} - {uri}");
+            _logger.LogInformation($"Attempting to drop user with username {username} - {uri}");
 
             try
             {
@@ -202,16 +205,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to drop user with username {username} - {uri}");
+                _logger.LogError(exception, $"Error trying to drop user with username {username} - {uri}");
                 throw;
             }
         }
 
-        public async Task<IEnumerable<RoleAndDescription>> GetRolesAsync(AvailableRolesOptions options = null)
+        public async Task<IEnumerable<RoleAndDescription>> GetRolesAsync(AvailableRolesOptions? options = null)
         {
             options ??= AvailableRolesOptions.Default;
             var uri = GetRolesUri();
-            Logger.LogInformation($"Attempting to get all available roles - {uri}");
+            _logger.LogInformation($"Attempting to get all available roles - {uri}");
 
             try
             {
@@ -225,16 +228,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to get all available roles - {uri}");
+                _logger.LogError(exception, $"Error trying to get all available roles - {uri}");
                 throw;
             }
         }
 
-        public async Task<Group> GetGroupAsync(string groupName, GetGroupOptions options = null)
+        public async Task<Group> GetGroupAsync(string groupName, GetGroupOptions? options = null)
         {
             options ??= GetGroupOptions.Default;
             var uri = GetGroupsUri(groupName);
-            Logger.LogInformation($"Attempting to get group with name {groupName} - {uri}");
+            _logger.LogInformation($"Attempting to get group with name {groupName} - {uri}");
 
             try
             {
@@ -253,16 +256,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to get group with name {groupName} - {uri}");
+                _logger.LogError(exception, $"Error trying to get group with name {groupName} - {uri}");
                 throw;
             }
         }
 
-        public async Task<IEnumerable<Group>> GetAllGroupsAsync(GetAllGroupsOptions options = null)
+        public async Task<IEnumerable<Group>> GetAllGroupsAsync(GetAllGroupsOptions? options = null)
         {
             options ??= GetAllGroupsOptions.Default;
             var uri = GetGroupsUri();
-            Logger.LogInformation($"Attempting to get all groups - {uri}");
+            _logger.LogInformation($"Attempting to get all groups - {uri}");
 
             try
             {
@@ -276,16 +279,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to get all groups - {uri}");
+                _logger.LogError(exception, $"Error trying to get all groups - {uri}");
                 throw;
             }
         }
 
-        public async Task UpsertGroupAsync(Group group, UpsertGroupOptions options = null)
+        public async Task UpsertGroupAsync(Group group, UpsertGroupOptions? options = null)
         {
             options ??= UpsertGroupOptions.Default;
             var uri = GetGroupsUri(group.Name);
-            Logger.LogInformation($"Attempting to upsert group with name {group.Name} - {uri}");
+            _logger.LogInformation($"Attempting to upsert group with name {group.Name} - {uri}");
 
             try
             {
@@ -296,16 +299,16 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to upsert group with name {group.Name} - {uri}");
+                _logger.LogError(exception, $"Error trying to upsert group with name {group.Name} - {uri}");
                 throw;
             }
         }
 
-        public async Task DropGroupAsync(string groupName, DropGroupOptions options = null)
+        public async Task DropGroupAsync(string groupName, DropGroupOptions? options = null)
         {
             options ??= DropGroupOptions.Default;
             var uri = GetGroupsUri(groupName);
-            Logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}");
+            _logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}");
 
             try
             {
@@ -320,7 +323,7 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                Logger.LogError(exception, $"Error trying to drop group with name {groupName} - {uri}");
+                _logger.LogError(exception, $"Error trying to drop group with name {groupName} - {uri}");
                 throw;
             }
         }

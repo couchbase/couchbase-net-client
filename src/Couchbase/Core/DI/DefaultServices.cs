@@ -9,6 +9,10 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.Management.Buckets;
+using Couchbase.Management.Query;
+using Couchbase.Management.Search;
+using Couchbase.Management.Users;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Views;
@@ -57,6 +61,11 @@ namespace Couchbase.Core.DI
             yield return (typeof(ISearchClient), new SingletonServiceFactory(typeof(SearchClient)));
             yield return (typeof(IQueryClient), new SingletonServiceFactory(typeof(QueryClient)));
             yield return (typeof(IViewClient), new SingletonServiceFactory(typeof(ViewClient)));
+
+            yield return (typeof(IBucketManager), new SingletonServiceFactory(typeof(BucketManager)));
+            yield return (typeof(IQueryIndexManager), new SingletonServiceFactory(typeof(QueryIndexManager)));
+            yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
+            yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
         }
     }
 }
