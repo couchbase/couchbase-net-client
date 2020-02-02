@@ -4,6 +4,8 @@ using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -131,7 +133,7 @@ namespace Couchbase.UnitTests
             getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
-                new DefaultTranscoder(),
+                new DefaultTranscoder(), new Mock<ILogger<GetResult>>().Object,
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,
@@ -150,7 +152,7 @@ namespace Couchbase.UnitTests
             getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
-                new DefaultTranscoder(),
+                new DefaultTranscoder(), new Mock<ILogger<GetResult>>().Object,
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,
@@ -169,7 +171,7 @@ namespace Couchbase.UnitTests
             getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
-                new DefaultTranscoder(),
+                new DefaultTranscoder(), new Mock<ILogger<GetResult>>().Object,
                 _lookupInSpecs)
             {
                 OpCode = OpCode.MultiLookup,

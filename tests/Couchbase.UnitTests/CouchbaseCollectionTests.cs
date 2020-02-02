@@ -222,7 +222,7 @@ namespace Couchbase.UnitTests
         {
             var mockBucket = new Mock<FakeBucket>();
             return new CouchbaseCollection(mockBucket.Object, new DefaultTranscoder(),
-                new Mock<ILogger<CouchbaseCollection>>().Object,
+                new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
                 null, CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName);
         }
     }

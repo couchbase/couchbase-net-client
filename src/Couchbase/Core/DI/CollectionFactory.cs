@@ -14,15 +14,18 @@ namespace Couchbase.Core.DI
     {
         private readonly ITypeTranscoder _transcoder;
         private readonly ILogger<CouchbaseCollection> _logger;
+        private readonly ILogger<GetResult> _getLogger;
 
-        public CollectionFactory(ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger)
+        public CollectionFactory(ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger,
+            ILogger<GetResult> getLogger)
         {
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
         }
 
         /// <inheritdoc />
         public ICollection Create(BucketBase bucket, uint? cid, string name, string scopeName) =>
-            new CouchbaseCollection(bucket, _transcoder, _logger, cid, name, scopeName);
+            new CouchbaseCollection(bucket, _transcoder, _logger, _getLogger, cid, name, scopeName);
     }
 }

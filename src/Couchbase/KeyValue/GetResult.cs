@@ -3,10 +3,8 @@ using System.Buffers;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -15,21 +13,22 @@ namespace Couchbase.KeyValue
 {
     internal class GetResult : IGetResult
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<GetResult>();
         private readonly IMemoryOwner<byte> _contentBytes;
         private readonly List<LookupInSpec> _specs;
         private readonly List<string> _projectList;
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer _serializer;
+        private readonly ILogger<GetResult> _logger;
         private bool _isParsed;
         private TimeSpan? _expiry;
 
-        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, List<LookupInSpec> specs = null,
-            List<string> projectList = null)
+        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
+            List<LookupInSpec> specs = null, List<string> projectList = null)
         {
             _contentBytes = contentBytes;
-            _transcoder = transcoder;
+            _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _serializer = transcoder.Serializer;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _specs = specs;
             _projectList = projectList;
         }
@@ -117,7 +116,7 @@ namespace Couchbase.KeyValue
                 {
                     //these are cases where a root attribute is already mapped
                     //for example "attributes" and "attributes.hair" will cause exceptions
-                    Log.LogInformation(e, "Deserialization failed.");
+                    _logger.LogInformation(e, "Deserialization failed.");
                 }
             }
             return root.ToObject<T>();

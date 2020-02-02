@@ -24,9 +24,11 @@ namespace Couchbase.KeyValue
 
         private readonly BucketBase _bucket;
         private readonly ITypeTranscoder _transcoder;
+        private readonly ILogger<GetResult> _getLogger;
         public string ScopeName { get; }
 
         public CouchbaseCollection(BucketBase bucket, ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger,
+            ILogger<GetResult> getLogger,
             uint? cid, string name, string scopeName)
         {
             Cid = cid;
@@ -34,6 +36,7 @@ namespace Couchbase.KeyValue
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
+            _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             ScopeName = scopeName;
         }
 
@@ -107,7 +110,7 @@ namespace Couchbase.KeyValue
                 .ConfigureAwait(false);
 
             var transcoder = options.TranscoderValue ?? _transcoder;
-            return new GetResult(lookupOp.ExtractData(), transcoder, specs, projectList)
+            return new GetResult(lookupOp.ExtractData(), transcoder, _getLogger, specs, projectList)
             {
                 Id = lookupOp.Key,
                 Cas = lookupOp.Cas,
@@ -320,7 +323,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             };
             await _bucket.SendAsync(getAndTouchOp, options.TokenValue, options.TimeoutValue);
-            return new GetResult(getAndTouchOp.ExtractData(), transcoder)
+            return new GetResult(getAndTouchOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getAndTouchOp.Key,
                 Cas = getAndTouchOp.Cas,
@@ -349,7 +352,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             };
             await _bucket.SendAsync(getAndLockOp, options.TokenValue, options.TimeoutValue);
-            return new GetResult(getAndLockOp.ExtractData(), transcoder)
+            return new GetResult(getAndLockOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getAndLockOp.Key,
                 Cas = getAndLockOp.Cas,
@@ -598,7 +601,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             };
             await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
-            return new GetReplicaResult(getOp.ExtractData(), transcoder)
+            return new GetReplicaResult(getOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getOp.Key,
                 Cas = getOp.Cas,
@@ -619,7 +622,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder
             };
             await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
-            return new GetReplicaResult(getOp.ExtractData(), transcoder)
+            return new GetReplicaResult(getOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getOp.Key,
                 Cas = getOp.Cas,
