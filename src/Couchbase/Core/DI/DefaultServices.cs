@@ -12,6 +12,7 @@ using Couchbase.Core.Retry;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Views;
+using DnsClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -31,6 +32,9 @@ namespace Couchbase.Core.DI
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
 
+            yield return (typeof(ILookupClient), new TransientServiceFactory(_ => new LookupClient()));
+            yield return (typeof(IDnsResolver), new TransientServiceFactory(typeof(DnsClientDnsResolver)));
+
             yield return (typeof(IClusterNodeFactory), new SingletonServiceFactory(typeof(ClusterNodeFactory)));
             yield return (typeof(IConnectionFactory), new SingletonServiceFactory(typeof(ConnectionFactory)));
             yield return (typeof(IBucketFactory), new SingletonServiceFactory(typeof(BucketFactory)));
@@ -44,9 +48,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
             yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(DefaultTranscoder)));
 
-            yield return (typeof(CouchbaseHttpClient), new LambdaServiceFactory(serviceProvider =>
-                new CouchbaseHttpClient(serviceProvider.GetRequiredService<ClusterContext>(),
-                    serviceProvider.GetRequiredService<ILogger<CouchbaseHttpClient>>())));
+            yield return (typeof(CouchbaseHttpClient), new TransientServiceFactory(typeof(CouchbaseHttpClient)));
             yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));
             yield return (typeof(IConfigHandler), new SingletonServiceFactory(typeof(ConfigHandler)));
             yield return (typeof(IHttpStreamingConfigListenerFactory), new SingletonServiceFactory(typeof(HttpStreamingConfigListenerFactory)));

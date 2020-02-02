@@ -212,8 +212,10 @@ namespace Couchbase.Core
             {
                 try
                 {
+                    var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
+
                     var bootstrapUri = ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
-                    var servers = await ClusterOptions.DnsResolver.GetDnsSrvEntriesAsync(bootstrapUri);
+                    var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri)).ToList();
                     if (servers.Any())
                     {
                         _logger.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");

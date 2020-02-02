@@ -141,6 +141,23 @@ namespace Couchbase
             return this;
         }
 
+        /// <summary>
+        /// Provide a custom <see cref="IDnsResolver"/> for DNS SRV resolution.
+        /// </summary>
+        /// <param name="dnsResolver">DNS resolver to use.</param>
+        /// <returns><see cref="ClusterOptions"/>.</returns>
+        public ClusterOptions DnsResolver(IDnsResolver dnsResolver)
+        {
+            if (dnsResolver == null)
+            {
+                throw new ArgumentNullException(nameof(dnsResolver));
+            }
+
+            AddSingletonService(dnsResolver);
+
+            return this;
+        }
+
         internal IEnumerable<Uri> ServersValue => _servers;
         internal IEnumerable<string> Buckets => _buckets;
         public string UserName { get; set; }
@@ -205,11 +222,10 @@ namespace Couchbase
         public bool EnableIPV6Addressing { get; set; }
         public int KvPort { get; set; } = 11210;
         public bool EnableDnsSrvResolution { get; set; } = true;
-        public IDnsResolver DnsResolver { get; set; } = new DnsClientDnsResolver();
 
         internal bool IsValidDnsSrv()
         {
-            if (!EnableDnsSrvResolution || DnsResolver == null)
+            if (!EnableDnsSrvResolution)
             {
                 return false;
             }
@@ -240,7 +256,7 @@ namespace Couchbase
 
         internal void AddTransientService<T>(Func<IServiceProvider, T> factory)
         {
-            _services[typeof(T)] = new LambdaServiceFactory(serviceProvider => factory(serviceProvider));
+            _services[typeof(T)] = new TransientServiceFactory(serviceProvider => factory(serviceProvider));
         }
 
         internal void AddSingletonService<T>(T singleton)

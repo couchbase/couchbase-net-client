@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DnsClient;
 using DnsClient.Protocol;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -25,7 +26,7 @@ namespace Couchbase.UnitTests
                 .Returns(Task.FromResult(mockQueryResponse.Object));
 
             var bootstrapUri = new Uri("couchbase://cb.somewhere.com");
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object);
+            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
 
             var result = await resolver.GetDnsSrvEntriesAsync(bootstrapUri);
             Assert.NotNull(result);
@@ -47,7 +48,7 @@ namespace Couchbase.UnitTests
                 .Returns(Task.FromResult(mockQueryResponse.Object));
 
             var bootstrapUri = new Uri("couchbase://cb.somewhere.com");
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object);
+            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
 
             var result = await resolver.GetDnsSrvEntriesAsync(bootstrapUri);
             Assert.NotNull(result);
@@ -75,7 +76,7 @@ namespace Couchbase.UnitTests
                 .Returns(Task.FromResult(mockQueryResponse.Object));
 
             var bootstrapUri = new Uri("couchbase://cb.somewhere.com");
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object);
+            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
 
             var result = (await resolver.GetDnsSrvEntriesAsync(bootstrapUri)).ToList();
             Assert.NotNull(result);

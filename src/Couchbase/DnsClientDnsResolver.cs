@@ -1,45 +1,49 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Logging;
 using DnsClient;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase
 {
+    /// <summary>
+    /// Default implementation of <see cref="IDnsResolver"/>.
+    /// </summary>
     internal class DnsClientDnsResolver : IDnsResolver
     {
         private const string DefaultServicePrefix = "_couchbase._tcp.";
-        private static readonly ILogger Logger = LogManager.CreateLogger<DnsClientDnsResolver>();
-        private static readonly List<Uri> EmptyList = new List<Uri>();
-        private readonly ILookupClient LookupClient = new LookupClient();
+        private readonly ILookupClient _lookupClient;
+        private readonly ILogger<DnsClientDnsResolver> _logger;
 
-        internal DnsClientDnsResolver()
-            : this (new LookupClient())
-        { }
-
-        internal DnsClientDnsResolver(ILookupClient lookupClient)
+        public DnsClientDnsResolver(ILookupClient lookupClient, ILogger<DnsClientDnsResolver> logger)
         {
-            LookupClient = lookupClient;
+            _lookupClient = lookupClient ?? throw new ArgumentNullException(nameof(lookupClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<IEnumerable<Uri>> GetDnsSrvEntriesAsync(Uri bootstrapUri)
+        /// <inheritdoc />
+        public async Task<IEnumerable<Uri>> GetDnsSrvEntriesAsync(Uri bootstrapUri,
+            CancellationToken cancellationToken = default)
         {
             var query = string.Concat(DefaultServicePrefix, bootstrapUri.Host);
-            var result = await LookupClient.QueryAsync(query, QueryType.SRV);
+            var result = await _lookupClient.QueryAsync(query, QueryType.SRV,
+                cancellationToken: cancellationToken);
 
             if (result.HasError)
             {
-                Logger.LogInformation($"There was an error attempting to resolve hosts using DNS-SRV - {result.ErrorMessage}");
-                return EmptyList;
+                _logger.LogInformation("There was an error attempting to resolve hosts using DNS-SRV - {errorMessage}", result.ErrorMessage);
+                return Enumerable.Empty<Uri>();
             }
 
-            var records = result.Answers.SrvRecords();
+            var records = result.Answers.SrvRecords().ToList();
             if (!records.Any())
             {
-                Logger.LogInformation($"No DNS SRV records found.");
-                return EmptyList;
+                _logger.LogInformation("No DNS SRV records found.");
+                return Enumerable.Empty<Uri>();
             }
 
             return records
@@ -49,7 +53,7 @@ namespace Couchbase
                     var host = record.Target.Value;
                     if (host.EndsWith("."))
                     {
-                        var index = host.LastIndexOf(".");
+                        var index = host.LastIndexOf(".", StringComparison.Ordinal);
                         host = host.Substring(0, index);
                     }
                     return new UriBuilder

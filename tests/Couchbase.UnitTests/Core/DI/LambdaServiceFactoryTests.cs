@@ -15,7 +15,7 @@ namespace Couchbase.UnitTests.Core.DI
         {
             // Arrange
 
-            var factory = new LambdaServiceFactory(_ => null);
+            var factory = new TransientServiceFactory(_ => null);
 
             // Act
 
@@ -32,7 +32,7 @@ namespace Couchbase.UnitTests.Core.DI
             var serviceProvider = new Mock<IServiceProvider>();
 
             var count = 0;
-            var factory = new LambdaServiceFactory(provider =>
+            var factory = new TransientServiceFactory(provider =>
             {
                 Assert.Equal(serviceProvider.Object, provider);
                 count++;

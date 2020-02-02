@@ -52,7 +52,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var obj = new object();
-            var factory = new LambdaServiceFactory(_ => obj);
+            var factory = new TransientServiceFactory(_ => obj);
 
             var provider = new CouchbaseServiceProvider(new[]
             {
@@ -74,7 +74,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             IServiceProvider? calledWith = null;
-            var factory = new LambdaServiceFactory(serviceProvider => {
+            var factory = new TransientServiceFactory(serviceProvider => {
                 calledWith = serviceProvider;
                 return null;
             });
@@ -187,7 +187,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var obj = new List<object>();
-            var factory = new LambdaServiceFactory(_ => obj);
+            var factory = new TransientServiceFactory(_ => obj);
 
             var provider = new CouchbaseServiceProvider(new[]
             {
@@ -229,7 +229,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var obj = new List<object>();
-            var factory = new LambdaServiceFactory(_ => obj);
+            var factory = new TransientServiceFactory(_ => obj);
 
             var provider = new CouchbaseServiceProvider(new[]
             {
@@ -267,7 +267,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var obj = new List<object>();
-            var factory = new LambdaServiceFactory(_ => obj);
+            var factory = new TransientServiceFactory(_ => obj);
 
             var provider = new CouchbaseServiceProvider(new[]
             {
