@@ -1,7 +1,9 @@
 using System;
 using System.Net.Http;
-using Couchbase.Core.Logging;
 using Couchbase.Query;
+using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.Diagnostics
 {
@@ -10,15 +12,12 @@ namespace Couchbase.Diagnostics
     /// </summary>
     internal class QueryUriTester : UriTesterBase
     {
-        public QueryUriTester(HttpClient httpClient)
-            : base(httpClient, LogManager.CreateLogger<QueryUriTester>())
+        public QueryUriTester(HttpClient httpClient, ILogger<QueryUriTester> logger)
+            : base(httpClient, logger)
         {
         }
 
-        protected override string NodeType
-        {
-            get { return "Query"; }
-        }
+        protected override string NodeType => "Query";
 
         protected override Uri GetPingUri(FailureCountingUri uri)
         {

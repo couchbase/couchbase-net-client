@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Diagnostics
 {
     /// <summary>
@@ -15,19 +17,10 @@ namespace Couchbase.Diagnostics
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
 
-        protected UriTesterBase([NotNull] HttpClient httpClient, [NotNull] ILogger logger)
+        protected UriTesterBase(HttpClient httpClient, ILogger logger)
         {
-            if (httpClient == null)
-            {
-                throw new ArgumentNullException("httpClient");
-            }
-            if (logger == null)
-            {
-                throw new ArgumentNullException("log");
-            }
-
-            _httpClient = httpClient;
-            _logger = logger;
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -49,42 +42,42 @@ namespace Couchbase.Diagnostics
         /// <param name="uri">Uri to test.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Task to monitor for completion.</returns>
-        public virtual async Task TestUri([NotNull] FailureCountingUri uri, CancellationToken cancellationToken)
+        public virtual async Task TestUri(FailureCountingUri uri, CancellationToken cancellationToken = default)
         {
             if (uri == null)
             {
-                throw new ArgumentNullException("uri");
+                throw new ArgumentNullException(nameof(uri));
             }
 
             var pingUri = GetPingUri(uri);
 
             try
             {
-                _logger.LogTrace("Pinging {0} node {1} using ping URI {2}", NodeType, uri, pingUri);
+                _logger.LogTrace("Pinging {nodeType} node {node} using ping URI {pingUri}", NodeType, uri, pingUri);
 
                 var response = await _httpClient.GetAsync(pingUri, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("{0} node {1} back online", NodeType, uri);
+                    _logger.LogInformation("{nodeType} node {node} back online", NodeType, uri);
                     uri.ClearFailed();
                 }
                 else
                 {
-                    _logger.LogInformation("{0} node {1} still offline", NodeType, uri);
+                    _logger.LogInformation("{nodeType} node {node} still offline", NodeType, uri);
                 }
             }
             catch (AggregateException ae)
             {
                 ae.Flatten().Handle(e =>
                 {
-                    _logger.LogInformation(string.Format("{0} node {1} still offline", NodeType, uri), e);
+                    _logger.LogInformation(e, "{nodeType} node {node} still offline", NodeType, uri);
                     return true;
                 });
             }
             catch (Exception e)
             {
-                _logger.LogInformation(string.Format("{0} node {1} still offline", NodeType, uri), e);
+                _logger.LogInformation(e, "{nodeType} node {node} still offline", NodeType, uri);
             }
         }
     }
