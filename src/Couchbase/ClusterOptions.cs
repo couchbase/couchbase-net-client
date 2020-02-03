@@ -12,7 +12,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTracing;
 
-using ConnectionStringCls = Couchbase.ConnectionString;
+// ReSharper disable UnusedMember.Global
+
+#nullable enable
 
 namespace Couchbase
 {
@@ -20,14 +22,18 @@ namespace Couchbase
     {
         private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
-        internal ConnectionString ConnectionStringValue { get; set; }
-        internal string connectionString { get; set; }
+        internal ConnectionString? ConnectionStringValue { get; set; }
 
         public static bool UseInterNetworkV6Addresses { get; set; }
 
         public ClusterOptions ConnectionString(string connectionString)
         {
-            ConnectionStringValue = ConnectionStringCls.Parse(connectionString);
+            if (connectionString == null)
+            {
+                throw new ArgumentNullException(nameof(connectionString));
+            }
+
+            ConnectionStringValue = Couchbase.ConnectionString.Parse(connectionString);
             var uriBuilders = ConnectionStringValue.Hosts.Select(x => new UriBuilder
             {
                 Host = x,
@@ -51,13 +57,14 @@ namespace Couchbase
 
         internal ClusterOptions Servers(IEnumerable<Uri> servers)
         {
-            if (!servers?.Any() ?? true)
+            var serverList = servers?.ToList();
+            if (!serverList?.Any() ?? true)
             {
                 throw new ArgumentException($"{nameof(servers)} cannot be null or empty.");
             }
 
             //for now just copy over - later ensure only new nodes are added
-            _servers = new ConcurrentBag<Uri>(servers.ToList());
+            _servers = new ConcurrentBag<Uri>(serverList);
             return this;
         }
 
@@ -90,7 +97,7 @@ namespace Couchbase
             return this;
         }
 
-        public ClusterOptions Logging(ILoggerFactory loggerFactory = null)
+        public ClusterOptions Logging(ILoggerFactory? loggerFactory = null)
         {
             //configure a null logger as the default
             if (loggerFactory == null)
@@ -108,10 +115,10 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Provide a custom <seealso cref="ITypeSerializer"/>.
+        /// Provide a custom <see cref="ITypeSerializer"/>.
         /// </summary>
         /// <param name="serializer">Serializer to use.</param>
-        /// <returns><seealso cref="ClusterOptions"/>.</returns>
+        /// <returns><see cref="ClusterOptions"/>.</returns>
         public ClusterOptions Serializer(ITypeSerializer serializer)
         {
             if (serializer == null)
@@ -125,10 +132,10 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Provide a custom <seealso cref="ITypeTranscoder"/>.
+        /// Provide a custom <see cref="ITypeTranscoder"/>.
         /// </summary>
         /// <param name="transcoder">Transcoder to use.</param>
-        /// <returns><seealso cref="ClusterOptions"/>.</returns>
+        /// <returns><see cref="ClusterOptions"/>.</returns>
         public ClusterOptions Transcoder(ITypeTranscoder transcoder)
         {
             if (transcoder == null)
@@ -160,8 +167,8 @@ namespace Couchbase
 
         internal IEnumerable<Uri> ServersValue => _servers;
         internal IEnumerable<string> Buckets => _buckets;
-        public string UserName { get; set; }
-        public string Password { get; set; }
+        public string? UserName { get; set; }
+        public string? Password { get; set; }
 
         //Foundation RFC conformance
         public TimeSpan KvConnectTimeout { get; set; } = TimeSpan.FromSeconds(10);
@@ -219,13 +226,14 @@ namespace Couchbase
 
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
+        // ReSharper disable once InconsistentNaming
         public bool EnableIPV6Addressing { get; set; }
         public int KvPort { get; set; } = 11210;
         public bool EnableDnsSrvResolution { get; set; } = true;
 
         internal bool IsValidDnsSrv()
         {
-            if (!EnableDnsSrvResolution)
+            if (ConnectionStringValue == null || !EnableDnsSrvResolution)
             {
                 return false;
             }
@@ -240,7 +248,7 @@ namespace Couchbase
                 return false;
             }
 
-            return ConnectionStringValue.Hosts.Single().IndexOf(":") == -1;
+            return ConnectionStringValue.Hosts.Single().IndexOf(":", StringComparison.Ordinal) == -1;
         }
 
         #region DI
@@ -260,6 +268,7 @@ namespace Couchbase
         }
 
         internal void AddSingletonService<T>(T singleton)
+            where T : notnull
         {
             _services[typeof(T)] = new SingletonServiceFactory(singleton);
         }

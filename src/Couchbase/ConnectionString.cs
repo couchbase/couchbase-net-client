@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
+#nullable enable
+
 namespace Couchbase
 {
     internal class ConnectionString
@@ -18,12 +20,17 @@ namespace Couchbase
         );
 
         internal Scheme Scheme { get; private set; } = Scheme.Couchbase;
-        internal string Username { get; private set; }
+        internal string? Username { get; private set; }
         internal IList<string> Hosts { get; private set; } = new List<string>();
         internal IDictionary<string, string> Parameters { get; private set; } = new Dictionary<string, string>();
 
         internal static ConnectionString Parse(string input)
         {
+            if (input == null)
+            {
+                throw new ArgumentNullException(nameof(input));
+            }
+
             var match = ConnectionStringRegex.Match(input);
             if (!match.Success)
             {
@@ -39,6 +46,7 @@ namespace Couchbase
                     case "couchbase":
                         connectionString.Scheme = Scheme.Couchbase;
                         break;
+                    // ReSharper disable once StringLiteralTypo
                     case "couchbases":
                         connectionString.Scheme = Scheme.Couchbases;
                         break;
@@ -90,6 +98,7 @@ namespace Couchbase
     {
         Http,
         Couchbase,
+        // ReSharper disable once IdentifierTypo
         Couchbases
     }
 }
