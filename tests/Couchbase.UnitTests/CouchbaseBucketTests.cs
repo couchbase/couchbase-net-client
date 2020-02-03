@@ -1,8 +1,6 @@
 using Couchbase.Core;
-using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Retry;
-using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Couchbase.Management.Collections;
@@ -19,6 +17,7 @@ namespace Couchbase.UnitTests
                 new ClusterContext(),
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
+                new Mock<IVBucketKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object);
 
             Assert.Throws<ScopeNotFoundException>(() =>bucket["doesnotexist"]);
@@ -34,6 +33,7 @@ namespace Couchbase.UnitTests
                 },
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
+                new Mock<IVBucketKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object);
 
             Assert.Throws<ScopeNotFoundException>(() => bucket.Scope("doesnotexist"));

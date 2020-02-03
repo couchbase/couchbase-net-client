@@ -20,13 +20,17 @@ namespace Couchbase
 {
     internal class CouchbaseBucket : BucketBase
     {
+        private readonly IVBucketKeyMapperFactory _vBucketKeyMapperFactory;
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewIndexManager> _viewManagerLazy;
         private readonly Lazy<ICollectionManager> _collectionManagerLazy;
 
-        internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<CouchbaseBucket> logger)
+        internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
+            IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger)
             : base(name, context, scopeFactory, retryOrchestrator, logger)
         {
+            _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
+
             _viewClientLazy = new Lazy<IViewClient>(() =>
                 context.ServiceProvider.GetRequiredService<IViewClient>()
             );
@@ -73,7 +77,7 @@ namespace Couchbase
                 BucketConfig = e.Config;
                 if (BucketConfig.VBucketMapChanged)
                 {
-                    KeyMapper = new VBucketKeyMapper(BucketConfig);
+                    KeyMapper = _vBucketKeyMapperFactory.Create(BucketConfig);
                 }
                 if (BucketConfig.ClusterNodesChanged)
                 {
@@ -234,7 +238,7 @@ namespace Couchbase
                 LoadManifest();
 
                 BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
-                KeyMapper = new VBucketKeyMapper(BucketConfig);
+                KeyMapper = _vBucketKeyMapperFactory.Create(BucketConfig);
 
                 await Context.ProcessClusterMapAsync(this, BucketConfig);
             }

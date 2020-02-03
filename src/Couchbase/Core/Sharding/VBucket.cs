@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+
+#nullable enable
 
 namespace Couchbase.Core.Sharding
 {
@@ -13,14 +14,13 @@ namespace Couchbase.Core.Sharding
     /// </summary>
     internal class VBucket : IVBucket
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger<VBucket>();
-
         private readonly short[] _replicas;
         private readonly VBucketServerMap _vBucketServerMap;
+        private readonly ILogger<VBucket> _logger;
         private readonly ICollection<IPEndPoint> _endPoints;
 
         public VBucket(ICollection<IPEndPoint> endPoints, short index, short primary, short[] replicas, uint rev,
-            VBucketServerMap vBucketServerMap, string bucketName)
+            VBucketServerMap vBucketServerMap, string bucketName, ILogger<VBucket> logger)
         {
             _endPoints = endPoints;
             Index = index;
@@ -29,6 +29,7 @@ namespace Couchbase.Core.Sharding
             Rev = rev;
             _vBucketServerMap = vBucketServerMap;
             BucketName = bucketName;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -38,7 +39,7 @@ namespace Couchbase.Core.Sharding
         ///<remarks>If the VBucket doesn't have a active, it will return a random <see cref="IServer"/> to force a NMV and reconfig.</remarks>
         public IPEndPoint LocatePrimary()
         {
-            IPEndPoint endPoint = null;
+            IPEndPoint? endPoint = null;
             if (Primary > -1 && Primary < _endPoints.Count &&
                 Primary < _vBucketServerMap.IPEndPoints.Count)
             {
@@ -48,7 +49,7 @@ namespace Couchbase.Core.Sharding
                 }
                 catch (Exception e)
                 {
-                    Logger.LogDebug(e, "Error locating Primary");
+                    _logger.LogDebug(e, "Error locating Primary");
                 }
             }
             if(endPoint == null)
@@ -65,7 +66,7 @@ namespace Couchbase.Core.Sharding
                         }
                         catch (Exception e)
                         {
-                           Logger.LogDebug(e, "Error locating Primary");
+                            _logger.LogDebug(e, "Error locating Primary");
                         }
                     }
                 }
@@ -78,7 +79,7 @@ namespace Couchbase.Core.Sharding
         /// </summary>
         /// <param name="index">The index of the replica.</param>
         /// <returns>An <see cref="IServer"/> if the replica is found, otherwise null.</returns>
-        public IPEndPoint LocateReplica(short index)
+        public IPEndPoint? LocateReplica(short index)
         {
             try
             {
@@ -86,7 +87,7 @@ namespace Couchbase.Core.Sharding
             }
             catch
             {
-                Logger.LogDebug("No server found for replica with index of {0}.", index);
+                _logger.LogDebug("No server found for replica with index of {0}.", index);
                 return null;
             }
         }

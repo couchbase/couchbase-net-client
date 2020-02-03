@@ -1,8 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Sharding
 {
@@ -12,6 +14,7 @@ namespace Couchbase.Core.Sharding
     internal class VBucketKeyMapper : IKeyMapper
     {
         private readonly short _mask = 1023;
+        private readonly IVBucketFactory _vBucketFactory;
         private readonly Dictionary<short, IVBucket> _vBuckets;
         private readonly Dictionary<short, IVBucket> _vForwardBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
@@ -21,8 +24,14 @@ namespace Couchbase.Core.Sharding
         //for log redaction
        // private Func<object, string> User = RedactableArgument.UserAction;
 
-        public VBucketKeyMapper(BucketConfig config)
+        public VBucketKeyMapper(BucketConfig config, IVBucketFactory vBucketFactory)
         {
+            if (config == null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+            _vBucketFactory = vBucketFactory ?? throw new ArgumentNullException(nameof(vBucketFactory));
+
             Rev = config.Rev;
             _vBucketServerMap = config.VBucketServerMap;
             _endPoints = _vBucketServerMap.IPEndPoints;
@@ -99,7 +108,8 @@ namespace Couchbase.Core.Sharding
                 {
                     replicas[r - 1] = vBucketMap[i][r];
                 }
-                vBuckets.Add((short)i, new VBucket(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
+                vBuckets.Add((short)i,
+                    _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
             }
             return vBuckets;
         }
@@ -123,7 +133,8 @@ namespace Couchbase.Core.Sharding
                     {
                         replicas[r - 1] = vBucketMapForward[i][r];
                     }
-                    vBucketMapForwards.Add((short)i, new VBucket(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
+                    vBucketMapForwards.Add((short)i,
+                        _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
                 }
             }
             return vBucketMapForwards;

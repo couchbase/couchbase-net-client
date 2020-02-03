@@ -1,4 +1,6 @@
-﻿using System.Net;
+using System.Net;
+
+#nullable enable
 
 namespace Couchbase.Core.Sharding
 {
@@ -12,7 +14,7 @@ namespace Couchbase.Core.Sharding
         /// </summary>
         /// <param name="index">The index of the replica.</param>
         /// <returns>An <see cref="IServer"/> if the replica is found, otherwise null.</returns>
-        IPEndPoint LocateReplica(short index);
+        IPEndPoint? LocateReplica(short index);
 
         /// <summary>
         /// Gets an array of replica indexes.

@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using Couchbase.Core.Logging;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations.Errors
@@ -10,7 +8,6 @@ namespace Couchbase.Core.IO.Operations.Errors
     /// </summary>
     public class ErrorMap
     {
-        private static readonly ILogger Log = LogManager.CreateLogger<ErrorMap>();
         private const string HexFormat = "X";
 
         /// <summary>
@@ -44,7 +41,6 @@ namespace Couchbase.Core.IO.Operations.Errors
                 return true;
             }
 
-            Log.LogWarning("Unexpected Status for KeyValue operation not found in Error Map: 0x{0}", code.ToString("X4"));
             return false;
         }
     }

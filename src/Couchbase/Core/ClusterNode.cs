@@ -269,7 +269,12 @@ namespace Couchbase.Core
                 }
                 else
                 {
-                    ErrorMap.TryGetGetErrorCode((short) state.Status, out ErrorCode errorCode);
+                    var code = (short) state.Status;
+                    if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
+                    {
+                        _logger.LogWarning("Unexpected Status for KeyValue operation not found in Error Map: 0x{code}", code.ToString("X4"));
+                    }
+
                     tcs.TrySetException(state.ThrowException(errorCode));
                 }
 

@@ -1,8 +1,11 @@
 using System;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.Sharding;
 using Couchbase.UnitTests.Utils;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Sharding
@@ -116,7 +119,7 @@ namespace Couchbase.UnitTests.Core.Sharding
         {
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
 
-            IKeyMapper mapper = new VBucketKeyMapper(config);
+            IKeyMapper mapper = new VBucketKeyMapper(config, new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
             var vBucket = (VBucket) mapper.MapKey(key);
             Assert.Equal(index, vBucket.Index);
         }
@@ -126,7 +129,7 @@ namespace Couchbase.UnitTests.Core.Sharding
         {
             const int actual = 389;
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
-            IKeyMapper mapper = new VBucketKeyMapper(config);
+            IKeyMapper mapper = new VBucketKeyMapper(config, new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
             var vBucket = (IVBucket) mapper.MapKey(Key);
             Assert.Equal(vBucket.Index, actual);
         }
@@ -137,7 +140,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var expected = "default";
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
-            IKeyMapper mapper = new VBucketKeyMapper(config);
+            IKeyMapper mapper = new VBucketKeyMapper(config, new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
             var vBucket = (IVBucket) mapper.MapKey(Key);
 
             Assert.Equal(expected, vBucket.BucketName);
@@ -150,7 +153,7 @@ namespace Couchbase.UnitTests.Core.Sharding
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-localhost.json");
             config.ReplacePlaceholderWithBootstrapHost(new Uri("http://127.0.0.1"));
-            IKeyMapper mapper = new VBucketKeyMapper(config);
+            IKeyMapper mapper = new VBucketKeyMapper(config, new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
             var vBucket = (IVBucket) mapper.MapKey(Key);
 
             Assert.Equal(expected, vBucket.BucketName);

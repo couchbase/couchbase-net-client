@@ -48,6 +48,9 @@ namespace Couchbase.Core.DI
             yield return (typeof(IRetryOrchestrator), new SingletonServiceFactory(typeof(RetryOrchestrator)));
             yield return (typeof(IOrphanedResponseLogger),
                 new SingletonServiceFactory(typeof(NullOrphanedResponseLogger)));
+            yield return (typeof(IVBucketKeyMapperFactory),
+                new SingletonServiceFactory(typeof(VBucketKeyMapperFactory)));
+            yield return (typeof(IVBucketFactory), new SingletonServiceFactory(typeof(VBucketFactory)));
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
