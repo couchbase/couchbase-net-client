@@ -151,9 +151,9 @@ namespace Couchbase.Query
                     //read the header and stop when we reach the queried rows
                     await queryResult.InitializeAsync(options.Token).ConfigureAwait(false);
 
-                    if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData.Status != QueryStatus.Success)
+                    if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
                     {
-                        _logger.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData.Status}.");
+                        _logger.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData?.Status}.");
                         if (queryResult.ShouldRetry())
                         {
                             return queryResult;
@@ -163,10 +163,10 @@ namespace Couchbase.Query
                             Message = queryResult.Message,
                             Errors = queryResult.Errors,
                             HttpStatus = response.StatusCode,
-                            QueryStatus = queryResult.MetaData.Status
+                            QueryStatus = queryResult.MetaData?.Status ?? QueryStatus.Fatal
                         };
 
-                        if (queryResult.MetaData.Status == QueryStatus.Timeout)
+                        if (queryResult.MetaData?.Status == QueryStatus.Timeout)
                         {
                             if (options.IsReadOnly)
                             {

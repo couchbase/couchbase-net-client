@@ -24,6 +24,7 @@
     <RootNamespace>Couchbase</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>8.0</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -42,41 +43,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Core\Exceptions\Services\**" />
-    <EmbeddedResource Remove="Core\Exceptions\Services\**" />
-    <None Remove="Core\Exceptions\Services\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="Core\Configuration\Server\ConfigContext.cs" />
     <Compile Remove="Core\Diagnostics\Tracing\TracerExtensions.cs" />
     <Compile Remove="Core\Diagnostics\Tracing\TracerFactory.cs" />
-    <Compile Remove="Core\IO\Compression.cs" />
-    <Compile Remove="Core\IO\DataFormat.cs" />
-    <Compile Remove="Core\IO\Flags.cs" />
-    <Compile Remove="Core\IO\Operations\Helo.cs" />
-    <Compile Remove="Core\IO\Operations\Manifest.cs" />
-    <Compile Remove="Core\IO\Operations\SaslStart.cs" />
-    <Compile Remove="Core\IO\Operations\SelectBucket.cs" />
-    <Compile Remove="Core\IO\Operations\Upsert.cs" />
-    <Compile Remove="IConfiguration.cs" />
-    <Compile Remove="IDocument %282%29.cs" />
-    <Compile Remove="IDocument_T.cs" />
-    <Compile Remove="IFetchOperation.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Core\Diagnostics\Logging\" />
-    <Folder Include="Core\Converters\" />
     <Folder Include="Core\Retry\Analytics\" />
-    <Folder Include="Core\Version\" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DnsClient" Version="1.2.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.1.1" />

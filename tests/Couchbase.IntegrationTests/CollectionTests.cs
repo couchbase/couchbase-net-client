@@ -43,9 +43,9 @@ namespace Couchbase.IntegrationTests
 
 
             }
-            catch (Exception e)
+            catch
             {
-
+                // ???
             }
             finally
             {

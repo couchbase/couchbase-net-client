@@ -129,8 +129,13 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object, retryOrchestrator, new Mock<ILogger>().Object);
+            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object)
+            {
+                CallBase = true
+            };
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
+
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
 

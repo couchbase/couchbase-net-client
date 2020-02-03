@@ -547,7 +547,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new GetAnyReplicaOptions();
-            var vBucket = (VBucket) _bucket.KeyMapper.MapKey(id);
+            var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
 
             if (!vBucket.HasReplicas)
             {
@@ -573,7 +573,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new GetAllReplicasOptions();
-            var vBucket = (VBucket) _bucket.KeyMapper.MapKey(id);
+            var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
             if (!vBucket.HasReplicas)
             {
                 Logger.LogWarning($"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");

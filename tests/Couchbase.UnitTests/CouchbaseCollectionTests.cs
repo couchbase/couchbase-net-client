@@ -10,6 +10,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -50,7 +51,7 @@ namespace Couchbase.UnitTests
             });
         }
 
-        //[Theory] //-> TODO fixup or find equivalant after retry commit
+        [Theory]
         //specific key value errors
         [InlineData(ResponseStatus.KeyNotFound, typeof(DocumentNotFoundException))]
         [InlineData(ResponseStatus.KeyExists, typeof(DocumentExistsException))]
@@ -100,7 +101,7 @@ namespace Couchbase.UnitTests
         [InlineData( ResponseStatus.SubdocInvalidXattrOrder, typeof(XattrException))]
         public async Task Get_Fails_Throw_KeyValueException(ResponseStatus responseStatus, Type exceptionType)
         {
-            var collection = CreateTestCollection();
+            var collection = CreateTestCollection(responseStatus);
 
             try
             {
@@ -160,13 +161,13 @@ namespace Couchbase.UnitTests
 
         internal class FakeBucket : BucketBase
         {
-            private Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
+            private readonly Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
             public FakeBucket(params ResponseStatus[] statuses)
                 : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
             {
-                foreach (var responseStatuse in statuses)
+                foreach (var responseStatus in statuses)
                 {
-                    _statuses.Enqueue(responseStatuse);
+                    _statuses.Enqueue(responseStatus);
                 }
             }
 
@@ -221,9 +222,23 @@ namespace Couchbase.UnitTests
             }
         }
 
-        private static CouchbaseCollection CreateTestCollection()
+        private static CouchbaseCollection CreateTestCollection(ResponseStatus getResult = ResponseStatus.Success)
         {
             var mockBucket = new Mock<FakeBucket>();
+            mockBucket
+                .Setup(m => m.RetryAsync(
+                    It.Is<IOperation>(p => p.OpCode == OpCode.MultiLookup),
+                    It.IsAny<CancellationToken>(),
+                    It.IsAny<TimeSpan>()))
+                .Returns((IOperation operation, CancellationToken cancellationToken, TimeSpan timeout) =>
+                {
+                    operation.Header = new OperationHeader
+                    {
+                        Status = getResult
+                    };
+
+                    return Task.CompletedTask;
+                });
 
             return new CouchbaseCollection(mockBucket.Object, new LegacyTranscoder(),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,

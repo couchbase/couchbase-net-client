@@ -137,7 +137,7 @@ namespace Couchbase.Core
             }
         }
 
-        public Task RetryAsync(IOperation operation, CancellationToken token = default, TimeSpan? timeout = null) =>
+        public virtual Task RetryAsync(IOperation operation, CancellationToken token = default, TimeSpan? timeout = null) =>
             RetryOrchestrator.RetryAsync(this, operation, token, timeout);
 
         internal void CaptureException(Exception e)

@@ -108,7 +108,7 @@ namespace Couchbase.Core
                         node = Nodes.Values.GetRandom(x => x.HasViews && x.Owner
                                                            != null && x.Owner.Name == bucketName);
                     }
-                    catch (NullReferenceException e)
+                    catch (NullReferenceException)
                     {
                         throw new ServiceMissingException(
                             $"No node with the Views service has been located for {bucketName}");

@@ -45,11 +45,11 @@ namespace Couchbase.Management.Views
                 string name;
                 if (@namespace == DesignDocumentNamespace.Production)
                 {
-                    name = designDocName.StartsWith(devPrefix) ? designDocName.Substring(devPrefix.Length) : designDocName;
+                    name = designDocName!.StartsWith(devPrefix) ? designDocName.Substring(devPrefix.Length) : designDocName;
                 }
                 else
                 {
-                    name = designDocName.StartsWith(devPrefix) ? designDocName : string.Concat(devPrefix, designDocName);
+                    name = designDocName!.StartsWith(devPrefix) ? designDocName : string.Concat(devPrefix, designDocName);
                 }
 
                 builder.Path += $"/_design/{name}";

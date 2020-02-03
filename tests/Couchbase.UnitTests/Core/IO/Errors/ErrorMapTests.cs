@@ -44,7 +44,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
             {
                 await node.ExecuteOp(insert, CancellationToken.None, TimeSpan.FromMinutes(5));
             }
-            catch (DocumentExistsException e)
+            catch (DocumentExistsException)
             {
                 //need to resolve from context
                 //Assert.NotNull((e.InnerException as DocumentExistsException)?.ErrorCode);

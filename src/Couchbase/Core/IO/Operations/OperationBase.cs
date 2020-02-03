@@ -501,7 +501,6 @@ namespace Couchbase.Core.IO.Operations
         }
 
         private bool _disposed;
-        private Dictionary<RetryReason, Exception> _retryReasons;
 
         public void Dispose()
         {

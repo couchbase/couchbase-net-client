@@ -87,19 +87,21 @@ namespace Couchbase.Query
             return _rows.ToAsyncEnumerable().GetAsyncEnumerator(cancellationToken);
         }
 
-        // ReSharper disable once ClassNeverInstantiated.Local
+        // ReSharper disable ClassNeverInstantiated.Local
+        // ReSharper disable InconsistentNaming
+        // ReSharper disable UnusedAutoPropertyAccessor.Local
         private class QueryResultData
         {
             public Guid requestID { get; set; }
-            public string clientContextID { get; set; }
-            public dynamic signature { get; set; }
-            public IEnumerable<T> results { get; set; }
-            public string status { get; set; }
-            public IEnumerable<ErrorData> errors { get; set; }
-            public IEnumerable<WarningData> warnings { get; set; }
-            public MetricsData metrics { get; set; }
-            public dynamic profile { get; set; }
-            public string prepared { get; set; }
+            public string? clientContextID { get; set; }
+            public dynamic? signature { get; set; }
+            public IEnumerable<T>? results { get; set; }
+            public string? status { get; set; }
+            public IEnumerable<ErrorData>? errors { get; set; }
+            public IEnumerable<WarningData>? warnings { get; set; }
+            public MetricsData? metrics { get; set; }
+            public dynamic? profile { get; set; }
+            public string? prepared { get; set; }
         }
     }
 }

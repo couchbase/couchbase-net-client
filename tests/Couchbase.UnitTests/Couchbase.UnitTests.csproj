@@ -26,7 +26,6 @@
     <EmbeddedResource Include="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
   </ItemGroup>
 
-
   <ItemGroup>
     <EmbeddedResource Include="Services\Search\error-with-errors.js" />
     <EmbeddedResource Include="Services\Search\search-response-success.js" />
@@ -48,12 +47,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="System">
-      <HintPath>System</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
