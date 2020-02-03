@@ -1,15 +1,11 @@
 using System;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using Couchbase.Core.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO
 {
     internal static class SocketExtensions
     {
-        private static readonly ILogger Logger = LogManager.CreateLogger(typeof(SocketExtensions));
-
         /// <summary>
         /// Enable TCP keep-alives, the time and interval on a managed Socket.
         /// </summary>
@@ -32,7 +28,6 @@ namespace Couchbase.Core.IO
             catch (PlatformNotSupportedException)
             {
                 // Can't set on non-Windows platforms, ignore error
-                Logger.LogDebug("Skipping Socket.IOControl for keep alives, not supported on this platform");
             }
         }
     }

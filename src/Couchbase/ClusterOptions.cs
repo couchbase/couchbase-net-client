@@ -7,7 +7,6 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTracing;
@@ -99,16 +98,8 @@ namespace Couchbase
 
         public ClusterOptions Logging(ILoggerFactory? loggerFactory = null)
         {
-            //configure a null logger as the default
-            if (loggerFactory == null)
-            {
-                LogManager.LoggerFactory = new NullLoggerFactory();
-                return this;
-            }
+            loggerFactory ??= new NullLoggerFactory();
 
-            LogManager.LoggerFactory = loggerFactory;
-
-            // TODO: Eliminate LogManager, only use DI for logging
             AddSingletonService(loggerFactory);
 
             return this;

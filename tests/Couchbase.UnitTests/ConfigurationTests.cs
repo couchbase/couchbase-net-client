@@ -1,43 +1,55 @@
 using System;
-using Couchbase.Core.Logging;
-using Couchbase.UnitTests.Core.Logging;
+using Couchbase.Core.DI;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests
 {
     public class ConfigurationTests
     {
+        #region Logging
+
         [Fact]
-        public void Logging_Default_To_NullLogger()
+        public void Logging_NoLoggerProvided_DefaultsToNullLogger()
         {
-            //arrange
+            // Arrange
+
             var config = new ClusterOptions();
 
-            //act
+            // Act
+
             config.Logging();
 
+            // Assert
 
-            //assert - no assertion because the actually NullLogger type is hidden by the implemention of wrappers
-            var logger = LogManager.CreateLogger<ConfigurationTests>();
+            var serviceProvider = config.BuildServiceProvider();
+            var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+            Assert.IsAssignableFrom<NullLoggerFactory>(loggerFactory);
         }
 
         [Fact]
-        public void Logging_Use_ConsoleLogger()
+        public void Logger_CustomLogger_LoadsInServiceProvider()
         {
-            //arrange
+            // Arrange
+
             var config = new ClusterOptions();
 
-            //act
-            config.Logging(new LoggerFactory(
-                new ILoggerProvider[]
-                {
-                    new LogManagerTests.InMemoryLoggerProvider()
-                }));
+            var mockLoggerFactory = new Mock<ILoggerFactory>();
 
-            //assert - no assertion because the actually NullLogger type is hidden by the implemention of wrappers
-            var logger = LogManager.CreateLogger<ConfigurationTests>();
+            // Act
+
+            config.Logging(mockLoggerFactory.Object);
+
+            // Assert
+
+            var serviceProvider = config.BuildServiceProvider();
+            var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+            Assert.Equal(mockLoggerFactory.Object, loggerFactory);
         }
+
+        #endregion
 
         [Fact]
         public void WithServers_throws_argument_exception_for_invalid_args()
