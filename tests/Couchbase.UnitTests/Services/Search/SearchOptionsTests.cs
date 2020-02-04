@@ -185,6 +185,38 @@ namespace Couchbase.UnitTests.Services.Search
 
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void Raw_To_Output_Json()
+        {
+            var searchOptions = new SearchOptions();
+            searchOptions.Raw("raw1", "abc");
+            searchOptions.Raw("raw2", new JObject
+            {
+                new JProperty("value", 6)
+            });
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new
+                {
+                    timeout = 75000,
+                    consistency = new
+                    {
+                        level = "not_bounded"
+                    }
+                },
+                raw1 = "abc",
+                raw2 = new
+                {
+                    value = 6
+                }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
     }
 }
 

@@ -27,7 +27,7 @@ namespace Couchbase.Search
         private readonly JArray _sort = new JArray();
         internal  CancellationToken Token { get; set; }
         internal TimeSpan TimeOut { get; set; } = new TimeSpan(0, 0, 0, 0, 75000);
-        private readonly Dictionary<string, object> _rawParameters;
+        private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
 
         public ISearchOptions CancellationToken(CancellationToken token)
@@ -315,6 +315,10 @@ namespace Couchbase.Search
             if (_sort.Any())
             {
                 parameters.Add(new JProperty("sort", _sort));
+            }
+            foreach (var rawParameter in _rawParameters)
+            {
+                parameters.Add(new JProperty(rawParameter.Key, rawParameter.Value));
             }
             return parameters;
         }
