@@ -56,18 +56,10 @@ namespace Couchbase.Analytics
             }
 
             //execute the analytics query
-            IAnalyticsResult<T> result;
-            try
-            {
-                result = await cluster.AnalyticsQueryAsync<T>(
-                    statement,
-                    options => options.CancellationToken(ingestOptions.TokenValue)
-                ).ConfigureAwait(false);
-            }
-            catch (Exception exception)
-            {
-                throw new AnalyticsException {Context = exception.Message};
-            }
+            var result = await cluster.AnalyticsQueryAsync<T>(
+                statement,
+                options => options.CancellationToken(ingestOptions.TokenValue)
+            ).ConfigureAwait(false);
 
             // ingest result into collection
             var results = new ConcurrentBag<Task<IMutationResult>>();
