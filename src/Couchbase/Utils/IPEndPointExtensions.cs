@@ -1,9 +1,5 @@
 using System;
 using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using Couchbase.Core.IO;
-using Couchbase.Core.IO.Connections;
 
 namespace Couchbase.Utils
 {
@@ -11,12 +7,12 @@ namespace Couchbase.Utils
     {
         public static string DefaultPort = "8091";
 
-        public static IPEndPoint GetEndPoint(string hostname, int port)
+        public static IPEndPoint GetEndPoint(string hostname, int port, bool useInterNetworkV6Addresses)
         {
             if (!IPAddress.TryParse(hostname, out var ipAddress))
             {
                 var uri = new Uri($"http://{hostname}");
-                ipAddress = uri.GetIpAddress(ClusterOptions.UseInterNetworkV6Addresses);
+                ipAddress = uri.GetIpAddress(useInterNetworkV6Addresses);
                 if (ipAddress == null)
                 {
                     throw new ArgumentException("ipAddress");
@@ -25,7 +21,10 @@ namespace Couchbase.Utils
             return new IPEndPoint(ipAddress, port);
         }
 
-        public static IPEndPoint GetIPv4EndPoint(string server)
+        public static IPEndPoint GetEndPoint(string hostname, int port) =>
+            GetEndPoint(hostname, port, ClusterOptions.UseInterNetworkV6Addresses);
+
+        private static IPEndPoint GetEndPointFromBasicString(string server, bool preferInterNetworkV6Addresses)
         {
             const int maxSplits = 2;
             var address = server.Split(':');
@@ -37,38 +36,63 @@ namespace Couchbase.Utils
             {
                 throw new ArgumentException("port");
             }
-            return GetEndPoint(address[0], port);
+            return GetEndPoint(address[0], port, preferInterNetworkV6Addresses);
         }
 
-        public static IPEndPoint GetIPv6EndPoint(string server)
+        private static IPEndPoint GetEndpointFromIpv6String(string server)
         {
-            string address;
-            var portString = DefaultPort; //we need a port to create the EP
+            // Assumes an address with IPv6 syntax of "[ip]:port"
+            // Since ip will contain colons, we can't just split the string
 
-            if (server.Contains("["))
+            const string invalidServer = "{Not a valid IPv6 host/port string";
+
+            var addressEnd = server.IndexOf(']', 1);
+            if (addressEnd < 0)
             {
-                var startIndex = server.LastIndexOf(':');
-                address = server.Substring(0, startIndex);
-                portString = server.Substring(startIndex + 1, server.Length - startIndex - 1);
-            }
-            else
-            {
-                address = server;
+                throw new ArgumentException(invalidServer, nameof(server));
             }
 
+            var address = server.Substring(1, addressEnd - 1);
+
+            if (server.Length < addressEnd + 3 || server[addressEnd + 1] != ':')
+            {
+                // Doesn't have the port on the end
+                throw new ArgumentException(invalidServer, nameof(server));
+            }
+
+            var portString = server.Substring(addressEnd + 2);
             if (!int.TryParse(portString, out var port))
             {
-                throw new ArgumentException("port");
+                throw new ArgumentException(invalidServer, nameof(server));
             }
 
-            return GetEndPoint(address, port);
+            return new IPEndPoint(IPAddress.Parse(address), port);
         }
 
-        public static IPEndPoint GetEndPoint(string server)
+        /// <summary>
+        /// Gets an <see cref="IPEndPoint"/> from a domain:port pair, such as "localhost:11210" or "[::1]:11210".
+        /// </summary>
+        /// <param name="server">Server to parse.</param>
+        /// <param name="preferInterNetworkV6Addresses">For domain names, prefer an IPv6 address.</param>
+        /// <returns>The <see cref="IPEndPoint"/>.</returns>
+        public static IPEndPoint GetEndPoint(string server, bool preferInterNetworkV6Addresses)
         {
-            return server.Contains(".") && !server.Contains("[") ?
-                GetIPv4EndPoint(server) :
-                GetIPv6EndPoint(server);
+            if (server == null)
+            {
+                throw new ArgumentNullException(nameof(server));
+            }
+
+            return server.StartsWith("[", StringComparison.Ordinal) ?
+                GetEndpointFromIpv6String(server) :
+                GetEndPointFromBasicString(server, preferInterNetworkV6Addresses);
         }
+
+        /// <summary>
+        /// Gets an <see cref="IPEndPoint"/> from a domain:port pair, such as "localhost:11210" or "[::1]:11210".
+        /// </summary>
+        /// <param name="server">Server to parse.</param>
+        /// <returns>The <see cref="IPEndPoint"/>.</returns>
+        public static IPEndPoint GetEndPoint(string server) =>
+            GetEndPoint(server, ClusterOptions.UseInterNetworkV6Addresses);
     }
 }
