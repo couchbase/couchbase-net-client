@@ -2,8 +2,9 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 using SaslStart = Couchbase.Core.IO.Operations.Authentication.SaslStart;
 using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
@@ -11,56 +12,31 @@ using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
 namespace Couchbase.Core.IO.Authentication
 {
-    internal class PlainSaslMechanism : ISaslMechanism
+    internal class PlainSaslMechanism : SaslMechanismBase
     {
-        public PlainSaslMechanism(string username, string password)
+        private readonly string _username;
+        private readonly string _password;
+
+        public PlainSaslMechanism(string username, string password, ILogger<PlainSaslMechanism> logger)
         {
-            Username = username;
-            Password = password;
+            _username = username ?? throw new ArgumentNullException(nameof(username));
+            _password = password ?? throw new ArgumentNullException(nameof(password));
+            Logger = logger;
+            MechanismType = MechanismType.Plain;
         }
 
-        public string Username { get; }
-        public string Password { get; }
-        public string MechanismType => "PLAIN";
-
         /// <inheritdoc />
-        public async Task<bool> AuthenticateAsync(IConnection connection, CancellationToken cancellationToken = default)
+        public override async Task AuthenticateAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
-            var tcs = new TaskCompletionSource<bool>();
             using var op = new SaslStart
             {
-                Key = MechanismType,
-                Content = GetAuthData(Username, Password),
+                Key = MechanismType.GetDescription(),
+                Content = GetAuthData(_username, _password),
                 Opaque = SequenceGenerator.GetNext(),
-                Transcoder = new LegacyTranscoder(),
-                Completed = s =>
-                {
-                    //Status will be AuthenticationError if auth failed otherwise false
-                    tcs.TrySetResult(s.Status == ResponseStatus.Success);
-                    return tcs.Task;
-                }
+                Transcoder = new LegacyTranscoder()
             };
 
-            IDisposable? cancellationTokenRegistration = null;
-            if (cancellationToken.CanBeCanceled)
-            {
-                // Not the default, so register the callback
-
-                cancellationTokenRegistration = cancellationToken.Register(() =>
-                {
-                    tcs.TrySetCanceled(cancellationToken);
-                });
-            }
-
-            try
-            {
-                await op.SendAsync(connection).ConfigureAwait(false);
-                return await tcs.Task.ConfigureAwait(false);
-            }
-            finally
-            {
-                cancellationTokenRegistration?.Dispose();
-            }
+            await SendAsync(op, connection, cancellationToken);
         }
 
         static string GetAuthData(string userName, string passWord)

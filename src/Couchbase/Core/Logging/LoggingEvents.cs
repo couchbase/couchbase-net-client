@@ -11,5 +11,7 @@ namespace Couchbase.Core.Logging
         public static int SearchEvent = 4000;
 
         public static int AnalyticsEvent = 5000;
+
+        public static int AuthenticationEvent = 6000;
     }
 }

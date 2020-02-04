@@ -143,7 +143,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 var endPoint = server.GetIpEndPoint(options);
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
-                    new Mock<ICircuitBreaker>().Object)
+                    new Mock<ICircuitBreaker>().Object,
+                    new Mock<ISaslMechanismFactory>().Object)
                 {
                     EndPoint = endPoint
                 };
@@ -160,7 +161,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 }
 
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object,
-                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object, new Mock<ICircuitBreaker>().Object)
+                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
+                    new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object)
                 {
                     EndPoint = endPoint
                 };

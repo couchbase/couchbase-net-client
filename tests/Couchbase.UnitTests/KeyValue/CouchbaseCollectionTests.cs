@@ -184,7 +184,8 @@ namespace Couchbase.UnitTests.KeyValue
 
                 var clusterNode = new ClusterNode(new ClusterContext(), new Mock<IConnectionFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
-                    new Mock<ICircuitBreaker>().Object)
+                    new Mock<ICircuitBreaker>().Object,
+                    new Mock<ISaslMechanismFactory>().Object)
                 {
                     Connection = mockConnection.Object
                 };

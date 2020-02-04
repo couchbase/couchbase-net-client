@@ -29,7 +29,8 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                     new ClusterOptions()), new Mock<IConnectionFactory>().Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new Mock<ITypeTranscoder>().Object,
-                new Mock<ICircuitBreaker>().Object)
+                new Mock<ICircuitBreaker>().Object,
+                new Mock<ISaslMechanismFactory>().Object)
             {
                 ErrorMap = errorMap
             };

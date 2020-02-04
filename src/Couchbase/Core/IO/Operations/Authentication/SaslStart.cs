@@ -5,6 +5,7 @@ namespace Couchbase.Core.IO.Operations.Authentication
     /// <summary>
     /// Starts the SASL authentication process using a specified SASL mechanism type as a key.
     /// </summary>
+    // ReSharper disable once IdentifierTypo
     internal class SaslStart : OperationBase<string>
     {
         public override OpCode OpCode => OpCode.SaslStart;

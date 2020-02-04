@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -20,14 +21,16 @@ namespace Couchbase.Core.DI
         private readonly ILogger<ClusterNode> _logger;
         private readonly ITypeTranscoder _transcoder;
         private readonly ICircuitBreaker _circuitBreaker;
+        private readonly ISaslMechanismFactory _saslMechanismFactory;
 
-        public ClusterNodeFactory(ClusterContext clusterContext, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker)
+        public ClusterNodeFactory(ClusterContext clusterContext, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
+            _saslMechanismFactory = saslMechanismFactory;
         }
 
         /// <inheritdoc />
@@ -36,9 +39,15 @@ namespace Couchbase.Core.DI
             var connection = await _connectionFactory.CreateAndConnectAsync(endPoint);
             var serverFeatures = await connection.Hello(_transcoder).ConfigureAwait(false);
             var errorMap = await connection.GetErrorMap(_transcoder).ConfigureAwait(false);
-            await connection.Authenticate(_clusterContext.ClusterOptions, null, _clusterContext.CancellationToken).ConfigureAwait(false);
 
-            var clusterNode = new ClusterNode(_clusterContext, _connectionFactory, _logger, _transcoder, _circuitBreaker)
+            var mechanismType = _clusterContext.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
+            var saslMechanism = _saslMechanismFactory.Create(mechanismType,
+                _clusterContext.ClusterOptions.UserName ?? throw new ArgumentNullException(nameof(_clusterContext.ClusterOptions.UserName)),
+                _clusterContext.ClusterOptions.Password ?? throw new ArgumentNullException(nameof(_clusterContext.ClusterOptions.Password)));
+
+            await saslMechanism.AuthenticateAsync(connection, _clusterContext.CancellationToken).ConfigureAwait(false);
+
+            var clusterNode = new ClusterNode(_clusterContext, _connectionFactory, _logger, _transcoder, _circuitBreaker, _saslMechanismFactory)
             {
                 EndPoint = endPoint,
                 Connection = connection,

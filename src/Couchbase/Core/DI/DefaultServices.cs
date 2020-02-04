@@ -6,6 +6,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -74,6 +75,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(ICircuitBreaker), new SingletonServiceFactory(typeof(CircuitBreaker)));
             yield return (typeof(CircuitBreakerConfiguration),
                 new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));
+
+            yield return (typeof(ISaslMechanismFactory), new SingletonServiceFactory(typeof(SaslMechanismFactory)));
         }
     }
 }

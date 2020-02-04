@@ -42,6 +42,7 @@ namespace Couchbase.Core
         Task SelectBucket(string name);
         Task<BucketConfig> GetClusterMap();
         Task<uint?> GetCid(string fullyQualifiedName);
+
         void BuildServiceUris();
 
         Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken),

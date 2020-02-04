@@ -82,7 +82,8 @@ namespace Couchbase.UnitTests.Utils
                 new Mock<IConnectionFactory>().Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new Mock<ITypeTranscoder>().Object,
-                new Mock<ICircuitBreaker>().Object)
+                new Mock<ICircuitBreaker>().Object,
+                new Mock<ISaslMechanismFactory>().Object)
             {
                 NodesAdapter = new NodeAdapter
                 {

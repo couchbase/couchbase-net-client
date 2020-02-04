@@ -1,16 +1,12 @@
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
-using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
-using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 using SequenceGenerator = Couchbase.Core.IO.Operations.SequenceGenerator;
 
@@ -93,17 +89,6 @@ namespace Couchbase.Utils
 
             //returns all supported features
             return heloOp.GetResultWithValue().Content;
-        }
-
-        public static async Task Authenticate(this IConnection connection, ClusterOptions clusterOptions,
-            string bucketName, CancellationToken cancellationToken = default)
-        {
-            var sasl = new PlainSaslMechanism(clusterOptions.UserName, clusterOptions.Password);
-            var authenticated = await sasl.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
-            if (!authenticated)
-            {
-                throw new AuthenticationFailureException($"Cannot authenticate {bucketName}");
-            }
         }
 
         public static async Task SelectBucket(this IConnection connection, string bucketName, ITypeTranscoder transcoder)

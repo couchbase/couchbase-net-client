@@ -10,6 +10,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO;
+using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
@@ -28,18 +29,20 @@ namespace Couchbase.Core
         private readonly ILogger<ClusterNode> _logger;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ITypeTranscoder _transcoder;
+        private readonly ISaslMechanismFactory _saslMechanismFactory;
         private Uri _queryUri;
         private Uri _analyticsUri;
         private Uri _searchUri;
         private Uri _viewsUri;
 
-        public ClusterNode(ClusterContext context, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker)
+        public ClusterNode(ClusterContext context, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
+            _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
         }
 
         public ClusterNode(ClusterContext context)
@@ -125,7 +128,6 @@ namespace Couchbase.Core
         public DateTime? LastAnalyticsActivity { get; private set; }
         public DateTime? LastKvActivity { get; private set; }
 
-        //TODO these methods will be more complex once we have a cpool
         public async Task<Manifest> GetManifest()
         {
             using var manifestOp = new GetManifest
@@ -345,7 +347,12 @@ namespace Couchbase.Core
                 connection = await _connectionFactory.CreateAndConnectAsync(EndPoint);
                 ServerFeatures = await connection.Hello(_transcoder).ConfigureAwait(false);
                 ErrorMap = await connection.GetErrorMap(_transcoder).ConfigureAwait(false);
-                await connection.Authenticate(_context.ClusterOptions, Owner.Name).ConfigureAwait(false);
+
+                var mechanismType = _context.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
+                var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
+                    _context.ClusterOptions.Password);
+
+                await saslMechanism.AuthenticateAsync(connection, _context.CancellationToken).ConfigureAwait(false);
                 await connection.SelectBucket(Owner.Name, _transcoder).ConfigureAwait(false);
                 Connection = connection;
             }
