@@ -47,9 +47,8 @@ namespace Couchbase.Views
         private bool? _reduce;
         private object _startKey;
         private object _startKeyDocId;
-        private TimeSpan? _timeout;
         private bool? _debug;
-        private Dictionary<string, string> _rawParams = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _rawParams = new Dictionary<string, string>();
         private DesignDocumentNamespace _namespace = DesignDocumentNamespace.Production;
 
         /// <summary>
@@ -86,7 +85,6 @@ namespace Couchbase.Views
             public const string Stale = "stale";
             public const string StartKey = "startkey";
             public const string StartKeyDocId = "startkey_docid";
-            public const string ConnectionTimeout = "connection_timeout";
             public const string Debug = "debug";
         }
 
@@ -618,10 +616,6 @@ namespace Couchbase.Views
             if (_skipCount.HasValue)
             {
                 queryParams.AppendFormat(QueryArgPattern, QueryArguments.Skip, _skipCount);
-            }
-            if (_timeout.HasValue)
-            {
-                queryParams.AppendFormat(QueryArgPattern, QueryArguments.ConnectionTimeout, _timeout);
             }
             if (_debug.HasValue)
             {
