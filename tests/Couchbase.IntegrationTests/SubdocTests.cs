@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.KeyValue;
 using Newtonsoft.Json;
@@ -82,9 +83,12 @@ namespace Couchbase.IntegrationTests
             {
                 ops.Upsert("name", "mike");
                 ops.Replace("bar", "bar");
+                ops.Insert("bah", 0);
+                ops.Increment("zzz", 10, true);
+                ops.Decrement("xxx", 5, true);
             });
 
-            using (var getResult = await collection.GetAsync(DocumentKey))
+            using (var getResult = await collection.GetAsync(DocumentKey, options=>options.Transcoder(new LegacyTranscoder())))
             {
                 var content = getResult.ContentAs<string>();
 
@@ -92,7 +96,10 @@ namespace Couchbase.IntegrationTests
                 {
                     foo = "bar",
                     bar = "bar",
-                    name = "mike"
+                    name = "mike",
+                    bah = 0,
+                    zzz = 10,
+                    xxx = -5
                 };
                 Assert.Equal(JsonConvert.SerializeObject(expected), content);
             }
@@ -104,24 +111,22 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollection();
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"});
 
-            await collection.MutateInAsync(DocumentKey, new[]
+            var result = await collection.MutateInAsync(DocumentKey, new[]
             {
                 MutateInSpec.Upsert("name", "mike"),
                 MutateInSpec.Replace("bar", "bar")
             });
 
-            using (var getResult = await collection.GetAsync(DocumentKey))
-            {
-                var content = getResult.ContentAs<string>();
+            using var getResult = await collection.GetAsync(DocumentKey, options => options.Transcoder(new LegacyTranscoder()));
+            var content = getResult.ContentAs<string>();
 
-                var expected = new
-                {
-                    foo = "bar",
-                    bar = "bar",
-                    name = "mike"
-                };
-                Assert.Equal(JsonConvert.SerializeObject(expected), content);
-            }
+            var expected = new
+            {
+                foo = "bar",
+                bar = "bar",
+                name = "mike"
+            };
+            Assert.Equal(JsonConvert.SerializeObject(expected), content);
         }
 
         [Fact]

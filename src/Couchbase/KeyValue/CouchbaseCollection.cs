@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
@@ -444,7 +443,8 @@ namespace Couchbase.KeyValue
                 DocFlags = docFlags
             };
             await _bucket.SendAsync(mutation, options.TokenValue, options.TimeoutValue);
-            return new MutateInResult(mutation.Cas, mutation.MutationToken, mutation.GetCommandValues());
+            return new MutateInResult(mutation.GetCommandValues(),mutation.Cas, mutation.MutationToken,
+                options.SerializerValue ?? _transcoder.Serializer);
         }
 
         #endregion

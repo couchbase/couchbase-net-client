@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Couchbase.Core
 {
@@ -60,5 +60,7 @@ namespace Couchbase.Core
         }
 
         internal bool IsSet => BucketRef != null && VBucketId > 0 && VBucketUuid > 0 && SequenceNumber > 0;
+
+        public static MutationToken Empty => new MutationToken("",0,0,0);
     }
 }

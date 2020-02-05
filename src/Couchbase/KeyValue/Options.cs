@@ -755,13 +755,13 @@ namespace Couchbase.KeyValue
 
     public class MutateInOptions
     {
-        internal TimeSpan expiryValue { get; set; }
+        internal TimeSpan ExpiryValue { get; set; }
 
         internal StoreSemantics StoreSemanticsValue { get; set; }
 
         internal ulong CasValue { get; set; }
 
-        internal Tuple<PersistTo, ReplicateTo> Durabilty { get; set; }
+        internal Tuple<PersistTo, ReplicateTo> DurabilityValue { get; set; }
 
         internal DurabilityLevel DurabilityLevel { get; set; }
 
@@ -785,7 +785,7 @@ namespace Couchbase.KeyValue
 
         public MutateInOptions Expiry(TimeSpan expiry)
         {
-            this.expiryValue = expiry;
+            ExpiryValue = expiry;
             return this;
         }
 
@@ -797,7 +797,7 @@ namespace Couchbase.KeyValue
 
         public MutateInOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
-            Durabilty = new Tuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
+            DurabilityValue = new Tuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
             return this;
         }
 

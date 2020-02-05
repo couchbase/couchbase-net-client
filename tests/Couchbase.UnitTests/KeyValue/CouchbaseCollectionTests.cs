@@ -10,7 +10,6 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -21,7 +20,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
-namespace Couchbase.UnitTests
+namespace Couchbase.UnitTests.KeyValue
 {
     public class CouchbaseCollectionTests
     {

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
-namespace Couchbase.UnitTests
+namespace Couchbase.UnitTests.KeyValue
 {
     public class ScopeTests
     {
