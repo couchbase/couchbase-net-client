@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using Couchbase.Configuration.Client;
 using Couchbase.IO.Converters;
 using Couchbase.Logging;
@@ -144,15 +143,12 @@ namespace Couchbase.IO
             {
                 lock (_lockObj)
                 {
-                    Task.WhenAll(
-                        Enumerable.Range(1, Configuration.MaxSize - _connections.Count).Select(i => Task.Factory.StartNew(() =>
-                        {
-                            var connection = CreateAndAuthConnection();
-                            _connections.Add(connection);
-                            return Task.FromResult(true);
-                        }, TaskCreationOptions.LongRunning))
-                    ).ConfigureAwait(false).GetAwaiter().GetResult();
-
+                    var connectionsToCreate = Configuration.MaxSize - _connections.Count;
+                    for (var i = 0; i < connectionsToCreate; i++)
+                    {
+                        var connection = CreateAndAuthConnection();
+                        _connections.Add(connection);
+                    }
                     //auth the connection used to select the SASL type to use for auth
                     foreach (var connection in _connections.Where(x=>!x.IsAuthenticated))
                     {
