@@ -59,8 +59,10 @@ namespace Couchbase.Search.Queries.Simple
         {
             var json = base.Export();
             json.Add(new JProperty("term", _term));
-            json.Add(new JProperty("prefix_length", _prefixLength));
-            json.Add(new JProperty("fuzziness", _fuzziness));
+            if(_prefixLength > 0)
+                json.Add(new JProperty("prefix_length", _prefixLength));
+            if(_fuzziness > 0)
+                json.Add(new JProperty("fuzziness", _fuzziness));
 
             if (!string.IsNullOrEmpty(_field))
             {
