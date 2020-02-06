@@ -27,9 +27,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Services\Search\error-with-errors.js" />
-    <EmbeddedResource Include="Services\Search\search-response-success.js" />
-    <EmbeddedResource Include="Services\Search\search-response-with-facets.js" />
+    <EmbeddedResource Include="Search\error-with-errors.js" />
+    <EmbeddedResource Include="Search\search-response-success.js" />
+    <EmbeddedResource Include="Search\search-response-with-facets.js" />
   </ItemGroup>
 
   <ItemGroup>
