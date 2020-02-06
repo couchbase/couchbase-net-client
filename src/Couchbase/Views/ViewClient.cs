@@ -46,9 +46,10 @@ namespace Couchbase.Views
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
                 var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
 
+                var serializer = query.Serializer ?? _serializer;
                 if (response.IsSuccessStatusCode)
                 {
-                    if (_serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                    if (serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
                     {
                         viewResult = new StreamingViewResult<TKey, TValue>(
                             response.StatusCode,
@@ -63,7 +64,7 @@ namespace Couchbase.Views
                             response.StatusCode,
                             Success,
                             await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
-                            _serializer
+                            serializer
                         );
                     }
 
@@ -71,7 +72,7 @@ namespace Couchbase.Views
                 }
                 else
                 {
-                    if (_serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
+                    if (serializer is IStreamingTypeDeserializer streamingTypeDeserializer)
                     {
                         viewResult = new StreamingViewResult<TKey, TValue>(
                             response.StatusCode,
@@ -84,7 +85,7 @@ namespace Couchbase.Views
                         viewResult = new BlockViewResult<TKey, TValue>(
                             response.StatusCode,
                             await response.Content.ReadAsStringAsync().ConfigureAwait(false),
-                            _serializer
+                            serializer
                         );
                     }
 

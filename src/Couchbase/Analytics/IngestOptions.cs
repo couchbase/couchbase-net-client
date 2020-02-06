@@ -3,6 +3,8 @@ using System.Threading;
 
 using IngestMethodCls = Couchbase.Analytics.IngestMethod;
 
+#nullable enable
+
 namespace Couchbase.Analytics
 {
     public class IngestOptions
@@ -29,7 +31,7 @@ namespace Couchbase.Analytics
         /// <returns></returns>
         public IngestOptions IdGenerator(Func<dynamic, string> idGenerator)
         {
-            IdGeneratorValue = idGenerator;
+            IdGeneratorValue = idGenerator ?? throw new ArgumentNullException(nameof(idGenerator));
             return this;
         }
 

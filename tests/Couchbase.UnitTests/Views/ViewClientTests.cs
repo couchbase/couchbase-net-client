@@ -1,13 +1,18 @@
+using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Moq.Protected;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -66,10 +71,50 @@ namespace Couchbase.UnitTests.Views
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys("test-key");
-            query.UseStreaming(true);
 
             await queryClient.ExecuteAsync<dynamic, dynamic>(query);
             Assert.NotNull(queryClient.LastActivity);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_SerializerOverride_UsesOverride()
+        {
+            var handlerMock = new Mock<HttpMessageHandler>();
+            handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(Array.Empty<byte>())
+            });
+
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomViewsUri(It.IsAny<string>()))
+                .Returns(new Uri("http://localhost:8092"));
+
+            var primarySerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
+            var overrideSerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
+
+            var client = new ViewClient(httpClient, primarySerializer.Object, new Mock<ILogger<ViewClient>>().Object);
+
+            await client.ExecuteAsync<object, object>(new ViewQuery("default", "doc", "view")
+            {
+                Serializer = overrideSerializer.Object
+            });
+
+            primarySerializer.Verify(
+                m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            overrideSerializer.Verify(
+                m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
+                Times.AtLeastOnce);
         }
     }
 

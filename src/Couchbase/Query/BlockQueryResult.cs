@@ -90,7 +90,7 @@ namespace Couchbase.Query
         // ReSharper disable ClassNeverInstantiated.Local
         // ReSharper disable InconsistentNaming
         // ReSharper disable UnusedAutoPropertyAccessor.Local
-        private class QueryResultData
+        internal class QueryResultData
         {
             public Guid requestID { get; set; }
             public string? clientContextID { get; set; }

@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+#nullable enable
+
 namespace Couchbase.Analytics
 {
     public class AnalyticsOptions
     {
         //note in a future commit this will be private and AnalyticsOptions will be sent to AnalyticsClient instead of AnalyticsRequest (legacy)
-        internal string ClientContextIdValue;
+        internal string? ClientContextIdValue;
         internal Dictionary<string, object> NamedParameters  = new Dictionary<string, object>();
         internal List<object> PositionalParameters = new List<object>();
         internal TimeSpan TimeoutValue = TimeSpan.FromMilliseconds(75000);
@@ -106,7 +108,11 @@ namespace Couchbase.Analytics
             }
 
             formValues.Add("timeout", $"{TimeoutValue.TotalMilliseconds}ms");
-            formValues.Add("client_context_id", ClientContextIdValue);
+
+            if (ClientContextIdValue != null)
+            {
+                formValues.Add("client_context_id", ClientContextIdValue);
+            }
 
             return formValues;
         }

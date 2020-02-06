@@ -109,7 +109,7 @@ namespace Couchbase.Views
         // ReSharper disable InconsistentNaming
         // ReSharper disable UnusedAutoPropertyAccessor.Local
         // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
-        private class ViewResultData
+        internal class ViewResultData
         {
             public uint total_rows { get; set; }
             public IEnumerable<ViewRowData>? rows { get; set; }
@@ -117,7 +117,7 @@ namespace Couchbase.Views
             public string? reason { get; set; }
         }
 
-        private class ViewRowData
+        internal class ViewRowData
         {
             public string? id { get; set; }
             [AllowNull] public TKey key { get; set; } = default!;

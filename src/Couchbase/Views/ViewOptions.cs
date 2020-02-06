@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Management.Views;
 
+#nullable enable
+
 namespace Couchbase.Views
 {
     public class ViewOptions
@@ -10,15 +12,15 @@ namespace Couchbase.Views
         internal ViewScanConsistency ScanConsistencyValue { get; set; }
         internal int? SkipValue { get; set; }
         internal int? LimitValue { get; set; }
-        internal object StartKeyValue { get; set; }
-        internal object StartKeyDocIdValue { get; set; }
-        internal object EndKeyValue { get; set; }
-        internal object EndKeyDocIdValue { get; set; }
+        internal object? StartKeyValue { get; set; }
+        internal object? StartKeyDocIdValue { get; set; }
+        internal object? EndKeyValue { get; set; }
+        internal object? EndKeyDocIdValue { get; set; }
         internal bool? InclusiveEndValue { get; set; }
         internal bool? GroupValue { get; set; }
         internal int? GroupLevelValue { get; set; }
-        internal object KeyValue { get; set; }
-        internal object[] KeysValue { get; set; }
+        internal object? KeyValue { get; set; }
+        internal object[]? KeysValue { get; set; }
         internal ViewOrdering ViewOrderingValue { get; set; } = ViewOrdering.Decesending;
         internal bool? ReduceValue { get; set; }
         internal bool? DevelopmentValue { get; set; }
@@ -28,7 +30,7 @@ namespace Couchbase.Views
         internal ViewErrorMode OnErrorValue { get; set; } = ViewErrorMode.Stop;
         internal Dictionary<string, string> RawParameters = new Dictionary<string, string>();
         internal DesignDocumentNamespace @NamespaceValue { get; set; } = DesignDocumentNamespace.Production;
-        internal ITypeSerializer SerializerValue { get; set; } = new DefaultSerializer();
+        internal ITypeSerializer? SerializerValue { get; set; }
 
         public ViewOptions ScanConsistency(ViewScanConsistency scanConsistency)
         {
@@ -48,25 +50,25 @@ namespace Couchbase.Views
             return this;
         }
 
-        public ViewOptions StartKey(object startKey)
+        public ViewOptions StartKey(object? startKey)
         {
             StartKeyValue = startKey;
             return this;
         }
 
-        public ViewOptions StartKeyDocId(object startKyDocId)
+        public ViewOptions StartKeyDocId(object? startKyDocId)
         {
             StartKeyDocIdValue = startKyDocId;
             return this;
         }
 
-        public ViewOptions EndKey(object endKey)
+        public ViewOptions EndKey(object? endKey)
         {
             EndKeyValue = endKey;
             return this;
         }
 
-        public ViewOptions EndKeyDocId(object endKeyDocId)
+        public ViewOptions EndKeyDocId(object? endKeyDocId)
         {
             EndKeyDocIdValue = endKeyDocId;
             return this;
@@ -78,13 +80,13 @@ namespace Couchbase.Views
             return this;
         }
 
-        public ViewOptions Key(object key)
+        public ViewOptions Key(object? key)
         {
             KeyValue = key;
             return this;
         }
 
-        public ViewOptions Keys(params object[] keys)
+        public ViewOptions Keys(params object[]? keys)
         {
             KeysValue = keys;
             return this;
@@ -156,7 +158,7 @@ namespace Couchbase.Views
             return this;
         }
 
-        public ViewOptions Serializer(ITypeSerializer serializer)
+        public ViewOptions Serializer(ITypeSerializer? serializer)
         {
             SerializerValue = serializer;
             return this;

@@ -1,5 +1,7 @@
 using System.Threading;
 
+#nullable enable
+
 namespace Couchbase.Management.Search
 {
     public class DisallowQueryingSearchIndexOptions

@@ -2,16 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Couchbase.Core.DataMapping;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Utils;
 using Newtonsoft.Json;
+
+#nullable enable
 
 namespace Couchbase.Query
 {
     public class QueryOptions
     {
-        private string _statement;
-        private QueryPlan _preparedPayload;
+        private string? _statement;
+        private QueryPlan? _preparedPayload;
         private TimeSpan _timeOut = TimeSpan.FromMilliseconds(75000);
         private bool? _readOnly;
         private bool? _includeMetrics;
@@ -19,22 +21,14 @@ namespace Couchbase.Query
         private readonly List<object> _arguments = new List<object>();
         private QueryScanConsistency? _scanConsistency;
         private TimeSpan? _scanWait;
-        private string _clientContextId;
-        private bool _prepareEncoded;
-        private bool _adHoc = true;
         private int? _maxServerParallelism;
-        private Dictionary<string, Dictionary<string, List<object>>> _scanVectors;
+        private Dictionary<string, Dictionary<string, List<object>>>? _scanVectors;
         private int? _scanCapacity;
         private int? _pipelineBatch;
         private int? _pipelineCapacity;
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private QueryProfile _profile = QueryProfile.Off;
         private bool _autoExecute;
-
-        public const string ForwardSlash = "/";
-        public const string QueryOperator = "?";
-        private const string QueryArgPattern = "{0}={1}&";
-        public const string TimeoutArgPattern = "{0}={1}ms&";
 
         internal CancellationToken Token { get; set; } = System.Threading.CancellationToken.None;
         internal TimeSpan TimeoutValue => _timeOut;
@@ -47,14 +41,14 @@ namespace Couchbase.Query
         {
             _statement = statement;
             _preparedPayload = null;
-            _prepareEncoded = false;
+            IsPrepared = false;
         }
 
         public QueryOptions(QueryPlan plan, string originalStatement) : this()
         {
             _statement = originalStatement;
             _preparedPayload = plan;
-            _prepareEncoded = true;
+            IsPrepared = true;
         }
 
         private struct QueryParameters
@@ -93,7 +87,7 @@ namespace Couchbase.Query
         /// <summary>
         /// Returns true if the request is a prepared statement
         /// </summary>
-        public bool IsPrepared => _prepareEncoded;
+        public bool IsPrepared { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this query statement is to executed in an ad-hoc manner.
@@ -101,7 +95,7 @@ namespace Couchbase.Query
         /// <value>
         ///   <c>true</c> if this instance is ad-hoc; otherwise, <c>false</c>.
         /// </value>
-        public bool IsAdHoc => _adHoc;
+        public bool IsAdHoc { get; private set; } = true;
 
         /// <summary>
         /// Gets the context identifier for the N1QL query request/response. Useful for debugging.
@@ -110,20 +104,18 @@ namespace Couchbase.Query
         /// <value>
         /// The context identifier.
         /// </value>
-        public string CurrentContextId => _clientContextId;
+        public string? CurrentContextId { get; private set; }
 
         /// <summary>
-        /// Custom <see cref="IDataMapper"/> to use when deserializing query results.
+        /// Custom <see cref="ITypeSerializer"/> to use when deserializing query results.
         /// </summary>
-        /// <remarks>Null will use the default <see cref="IDataMapper"/>.</remarks>
-        public IDataMapper DataMapper { get; set; }
+        /// <remarks>Null will use the default <see cref="ITypeSerializer"/>.</remarks>
+        public ITypeSerializer? Serializer { get; set; }
 
         /// <summary>
         /// Provides a means of ensuring "read your own writes" or RYOW consistency on the current query.
         /// </summary>
-#pragma warning disable 618
-        /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="Query.ScanConsistency.AtPlus"/>.</remarks>
-#pragma warning restore 618
+        /// <remarks>Note: <see cref="ScanConsistency"/> will be overwritten to <see cref="QueryScanConsistency.AtPlus"/>.</remarks>
         /// <param name="mutationState">State of the mutation.</param>
         /// <returns>A reference to the current <see cref="QueryOptions"/> for method chaining.</returns>
         public QueryOptions ConsistentWith(MutationState mutationState)
@@ -207,7 +199,7 @@ namespace Couchbase.Query
         /// </remarks>
         public QueryOptions AdHoc(bool adHoc)
         {
-            _adHoc = adHoc;
+            IsAdHoc = adHoc;
             return this;
         }
 
@@ -228,7 +220,7 @@ namespace Couchbase.Query
 
             _statement = originalStatement;
             _preparedPayload = preparedPlan ?? throw new ArgumentNullException(nameof(preparedPlan));
-            _prepareEncoded = true;
+            IsPrepared = true;
             return this;
         }
 
@@ -248,7 +240,7 @@ namespace Couchbase.Query
             if (string.IsNullOrWhiteSpace(statement)) throw new ArgumentNullException(nameof(statement));
             _statement = statement;
             _preparedPayload = null;
-            _prepareEncoded = false;
+            IsPrepared = false;
             return this;
         }
 
@@ -433,7 +425,7 @@ namespace Couchbase.Query
             //this is seeded in the ctor
             if (clientContextId != null)
             {
-                _clientContextId = clientContextId;
+                CurrentContextId = clientContextId;
             }
 
             return this;
@@ -538,7 +530,7 @@ namespace Couchbase.Query
         public IDictionary<string, object> GetFormValues()
         {
             if (string.IsNullOrWhiteSpace(_statement) ||
-                (_prepareEncoded && _preparedPayload == null))
+                (IsPrepared && _preparedPayload == null))
             {
                 throw new ArgumentException("A statement or prepared plan must be provided.");
             }
@@ -551,9 +543,9 @@ namespace Couchbase.Query
                 formValues.Add(QueryParameters.MaxServerParallelism, _maxServerParallelism.Value.ToString());
             }
 
-            if (_prepareEncoded)
+            if (IsPrepared)
             {
-                formValues.Add(QueryParameters.Prepared, _preparedPayload.Name);
+                formValues.Add(QueryParameters.Prepared, _preparedPayload!.Name);
 
                 // don't include empty plan
                 if (!string.IsNullOrEmpty(_preparedPayload.EncodedPlan))
@@ -563,7 +555,7 @@ namespace Couchbase.Query
             }
             else
             {
-                formValues.Add(QueryParameters.Statement, _statement);
+                formValues.Add(QueryParameters.Statement, _statement!);
             }
 
             formValues.Add(QueryParameters.Timeout, (uint) _timeOut.TotalMilliseconds + "ms");
@@ -645,7 +637,11 @@ namespace Couchbase.Query
                 formValues.Add(QueryParameters.AutoExecute, true);
             }
 
-            formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
+            if (CurrentContextId != null)
+            {
+                formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
+            }
+
             return formValues;
         }
 

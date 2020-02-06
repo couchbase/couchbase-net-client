@@ -144,6 +144,7 @@ namespace Couchbase
             query.Namespace(options.NamespaceValue);
             query.OnError(options.OnErrorValue == ViewErrorMode.Stop);
             query.Timeout = options.TimeoutValue ?? Context.ClusterOptions.ViewTimeout;
+            query.Serializer = options.SerializerValue;
 
             if (options.ViewOrderingValue == ViewOrdering.Decesending)
             {

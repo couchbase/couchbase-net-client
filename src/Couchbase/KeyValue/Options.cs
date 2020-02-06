@@ -5,6 +5,8 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     #region GetOptions
@@ -21,9 +23,9 @@ namespace Couchbase.KeyValue
 
         internal CancellationToken TokenValue { get; set; }
 
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public GetOptions Transcoder(ITypeTranscoder transcoder)
+        public GetOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -62,9 +64,9 @@ namespace Couchbase.KeyValue
     {
         internal CancellationToken TokenValue { get; set; }
 
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public GetAllReplicasOptions Transcoder(ITypeTranscoder transcoder)
+        public GetAllReplicasOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -85,9 +87,9 @@ namespace Couchbase.KeyValue
 
     public class GetAnyReplicaOptions
     {
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public GetAnyReplicaOptions Transcoder(ITypeTranscoder transcoder)
+        public GetAnyReplicaOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -144,9 +146,9 @@ namespace Couchbase.KeyValue
         internal TimeSpan? TimeoutValue { get; set; }
 
         internal CancellationToken TokenValue { get; set; }
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public UpsertOptions Transcoder(ITypeTranscoder transcoder)
+        public UpsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -202,9 +204,9 @@ namespace Couchbase.KeyValue
 
         internal CancellationToken TokenValue { get; set; }
 
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public InsertOptions Transcoder(ITypeTranscoder transcoder)
+        public InsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -262,9 +264,9 @@ namespace Couchbase.KeyValue
 
         internal CancellationToken TokenValue { get; set; }
 
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public ReplaceOptions Transcoder(ITypeTranscoder transcoder)
+        public ReplaceOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -605,7 +607,7 @@ namespace Couchbase.KeyValue
         internal PersistTo PersistTo { get; set; }
 
         internal DurabilityLevel DurabilityLevel { get; set; }
-       
+
         internal TimeSpan? TimeoutValue { get; set; }
 
 
@@ -653,9 +655,9 @@ namespace Couchbase.KeyValue
 
         internal CancellationToken TokenValue { get; set; }
 
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public GetAndLockOptions Transcoder(ITypeTranscoder transcoder)
+        public GetAndLockOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -689,9 +691,9 @@ namespace Couchbase.KeyValue
 
         internal CancellationToken TokenValue { get; set; }
 
-        internal ITypeTranscoder TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; set; }
 
-        public GetAndTouchOptions Transcoder(ITypeTranscoder transcoder)
+        public GetAndTouchOptions Transcoder(ITypeTranscoder? transcoder)
         {
             TranscoderValue = transcoder;
             return this;
@@ -722,9 +724,9 @@ namespace Couchbase.KeyValue
 
         internal bool ExpiryValue { get; set; }
 
-        internal ITypeSerializer SerializerValue { get; set; }
+        internal ITypeSerializer? SerializerValue { get; set; }
 
-        public LookupInOptions Serializer(ITypeSerializer serializer)
+        public LookupInOptions Serializer(ITypeSerializer? serializer)
         {
             SerializerValue = serializer;
             return this;
@@ -761,7 +763,7 @@ namespace Couchbase.KeyValue
 
         internal ulong CasValue { get; set; }
 
-        internal Tuple<PersistTo, ReplicateTo> DurabilityValue { get; set; }
+        internal ValueTuple<PersistTo, ReplicateTo> DurabilityValue { get; set; }
 
         internal DurabilityLevel DurabilityLevel { get; set; }
 
@@ -769,7 +771,7 @@ namespace Couchbase.KeyValue
 
         internal CancellationToken TokenValue { get; set; }
 
-        internal ITypeSerializer SerializerValue { get; set; }
+        internal ITypeSerializer? SerializerValue { get; set; }
 
         public MutateInOptions StoreSemantics(StoreSemantics storeSemantics)
         {
@@ -777,7 +779,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public MutateInOptions Serializer(ITypeSerializer serializer)
+        public MutateInOptions Serializer(ITypeSerializer? serializer)
         {
             SerializerValue = serializer;
             return this;
@@ -797,7 +799,7 @@ namespace Couchbase.KeyValue
 
         public MutateInOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
-            DurabilityValue = new Tuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
+            DurabilityValue = new ValueTuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
             return this;
         }
 

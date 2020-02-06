@@ -1,4 +1,7 @@
 using System;
+using Couchbase.Core.IO.Serializers;
+
+#nullable enable
 
 namespace Couchbase.Views
 {
@@ -10,7 +13,7 @@ namespace Couchbase.Views
         /// <summary>
         /// Gets the name of the <see cref="IBucket"/> that the query is targeting.
         /// </summary>
-        string BucketName { get; }
+        string? BucketName { get; }
 
         /// <summary>
         /// When true, the generated url will contain 'https' and use port 18092
@@ -31,7 +34,12 @@ namespace Couchbase.Views
         /// <value>
         /// The name of the view.
         /// </value>
-        string ViewName { get; }
+        string? ViewName { get; }
+
+        /// <summary>
+        /// Serializer to use when reading the view result.
+        /// </summary>
+        ITypeSerializer? Serializer { get; }
 
         /// <summary>
         /// Returns the raw REST URI which can be executed in a browser or using curl.
@@ -46,20 +54,6 @@ namespace Couchbase.Views
         /// <returns>An <see cref="IViewQueryable"/> object for chaining</returns>
         /// <remarks>Note that this will override the baseUri set in the ctor. Additionally, this method may be called internally by the <see cref="IBucket"/> and overridden.</remarks>
         IViewQueryable BaseUri(Uri uri);
-
-        /// <summary>
-        /// Toogles the if query result to is to be streamed. This is useful for large result sets in that it limits the
-        /// working size of the query and helps reduce the possibility of a <see cref="OutOfMemoryException" /> from occurring.
-        /// </summary>
-        /// <param name="useStreaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
-        /// <returns>An IViewQueryable object for chaining</returns>
-        IViewQueryable UseStreaming(bool useStreaming);
-
-        /// <summary>
-        /// Gets a value indicating if the result should be streamed.
-        /// </summary>
-        /// <value><c>true</c> if the query result is to be streamed; otherwise, <c>false</c>.</value>
-        bool IsStreaming { get; }
 
         /// <summary>
         /// Builds a JSON string of the <see cref="IViewQueryable"/> used for posting the query to a Couchbase Server.

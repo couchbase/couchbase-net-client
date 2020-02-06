@@ -1,5 +1,7 @@
 using System.Threading;
 
+#nullable enable
+
 namespace Couchbase.Management.Views
 {
     public class UpsertDesignDocumentOptions

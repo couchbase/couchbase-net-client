@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -111,6 +112,49 @@ namespace Couchbase.UnitTests.Query
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions());
 
             Assert.Equal(10, await result.CountAsync());
+        }
+
+        [Fact]
+        public async Task QueryAsync_SerializerOverride_UsesOverride()
+        {
+            var handlerMock = new Mock<HttpMessageHandler>();
+            handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()).ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(Array.Empty<byte>())
+            });
+
+            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            {
+                BaseAddress = new Uri("http://localhost:8091")
+            };
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomQueryUri())
+                .Returns(new Uri("http://localhost:8093"));
+
+            var primarySerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
+            var overrideSerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
+
+            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, primarySerializer.Object,
+                new Mock<ILogger<QueryClient>>().Object);
+
+            await client.QueryAsync<object>("SELECT * FROM `default`",
+                new QueryOptions
+                {
+                    Serializer = overrideSerializer.Object
+                });
+
+            primarySerializer.Verify(
+                m => m.DeserializeAsync<BlockQueryResult<object>.QueryResultData>(It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            overrideSerializer.Verify(
+                m => m.DeserializeAsync<BlockQueryResult<object>.QueryResultData>(It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
+                Times.AtLeastOnce);
         }
 
         [Fact]

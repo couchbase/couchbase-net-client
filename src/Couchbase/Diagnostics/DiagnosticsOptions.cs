@@ -1,8 +1,10 @@
+#nullable enable
+
 namespace Couchbase.Diagnostics
 {
     public class DiagnosticsOptions
     {
-        public string ReportIdValue { get; set; }
+        public string? ReportIdValue { get; set; }
 
         public DiagnosticsOptions ReportId(string reportId)
         {

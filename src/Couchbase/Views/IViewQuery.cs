@@ -2,11 +2,13 @@ using System;
 using System.Collections;
 using Couchbase.Core.Retry;
 
+#nullable enable
+
 namespace Couchbase.Views
 {
     /// <summary>
     /// Implemented as an object that can query a Couchbase View.
-    /// <remarks>This is a "Fluent" style interface and methods can be chained togather.</remarks>
+    /// <remarks>This is a "Fluent" style interface and methods can be chained together.</remarks>
     /// </summary>
     internal interface IViewQuery : IViewQueryable, IRequest
     {
@@ -27,7 +29,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="endKey">The key to stop at</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery EndKey(object endKey);
+        IViewQuery EndKey(object? endKey);
 
         /// <summary>
         /// Stop returning records when the specified key is reached. Key must be specified as a JSON value.
@@ -35,14 +37,14 @@ namespace Couchbase.Views
         /// <param name="endKey">The key to stop at</param>
         /// <param name="encode">True to JSON encode the parameter.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery EndKey(object endKey, bool encode);
+        IViewQuery EndKey(object? endKey, bool encode);
 
         /// <summary>
         /// Stop returning records when the specified document ID is reached
         /// </summary>
         /// <param name="docId">The document Id to stop at.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery EndKeyDocId(object docId);
+        IViewQuery EndKeyDocId(object? docId);
 
         /// <summary>
         /// Use the full cluster data set (development views only).
@@ -76,7 +78,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="key">The key to retrieve</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery Key(object key);
+        IViewQuery Key(object? key);
 
         /// <summary>
         /// Return only documents that match the specified key. Key must be specified as a JSON value.
@@ -84,14 +86,14 @@ namespace Couchbase.Views
         /// <param name="key">The key to retrieve</param>
         /// <param name="encode">True to JSON encode the parameter.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery Key(object key, bool encode);
+        IViewQuery Key(object? key, bool encode);
 
         /// <summary>
         /// Return only documents that match one of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
         /// </summary>
         /// <param name="keys">The keys to retrieve</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery Keys(IEnumerable keys);
+        IViewQuery Keys(IEnumerable? keys);
 
         /// <summary>
         /// Return only documents that match one of keys specified within the given array. Key must be specified as a JSON value. Sorting is not applied when using this option.
@@ -99,7 +101,7 @@ namespace Couchbase.Views
         /// <param name="keys">The keys to retrieve</param>
         /// <param name="encode">True to JSON encode the parameter.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery Keys(IEnumerable keys, bool encode);
+        IViewQuery Keys(IEnumerable? keys, bool encode);
 
         /// <summary>
         /// Sets the response in the event of an error
@@ -120,7 +122,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="endKey">The key to return records greater than or equal to.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery StartKey(object endKey);
+        IViewQuery StartKey(object? endKey);
 
         /// <summary>
         /// Return records with a value equal to or greater than the specified key. Key must be specified as a JSON value.
@@ -128,14 +130,14 @@ namespace Couchbase.Views
         /// <param name="endKey">The key to return records greater than or equal to.</param>
         /// <param name="encode">True to JSON encode the parameter.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery StartKey(object endKey, bool encode);
+        IViewQuery StartKey(object? endKey, bool encode);
 
         /// <summary>
         /// Return records starting with the specified document ID.
         /// </summary>
         /// <param name="docId">The docId to return records greater than or equal to.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        IViewQuery StartKeyDocId(object docId);
+        IViewQuery StartKeyDocId(object? docId);
 
         /// <summary>
         /// Specifies the bucket and design document to target for a query.

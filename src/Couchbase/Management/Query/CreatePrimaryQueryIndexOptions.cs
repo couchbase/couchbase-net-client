@@ -2,11 +2,13 @@ using System.Threading;
 
 using CancellationTokenCls = System.Threading.CancellationToken;
 
+#nullable enable
+
 namespace Couchbase.Management.Query
 {
     public class CreatePrimaryQueryIndexOptions
     {
-        internal  string IndexNameValue { get; set; }
+        internal string? IndexNameValue { get; set; }
         internal bool IgnoreIfExistsValue { get; set; }
         internal bool DeferredValue { get; set; }
         internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;

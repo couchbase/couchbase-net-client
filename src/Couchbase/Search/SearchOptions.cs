@@ -5,8 +5,9 @@ using System.Threading;
 using Couchbase.Query;
 using Couchbase.Search.Sort;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
+#nullable enable
 
 namespace Couchbase.Search
 {
@@ -19,10 +20,10 @@ namespace Couchbase.Search
         private int? _limit;
         private int? _skip;
         private bool? _explain;
-        private string  _highLightStyle;
+        private string?  _highLightStyle;
         private readonly List<string> _fields = new List<string>();
-        private List<string> _highLightFields;
-        private List<ISearchFacet> _facets;
+        private List<string>? _highLightFields;
+        private List<ISearchFacet>? _facets;
         private SearchScanConsistency? _scanConsistency = SearchScanConsistency.NotBounded;
         private readonly JArray _sort = new JArray();
         internal  CancellationToken Token { get; set; }

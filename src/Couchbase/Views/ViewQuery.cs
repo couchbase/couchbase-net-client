@@ -3,11 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Views;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
+#nullable enable
 
 namespace Couchbase.Views
 {
@@ -34,19 +37,19 @@ namespace Couchbase.Views
         private int? _skipCount;
         private StaleState _staleState;
         private bool? _descending;
-        private object _endKey;
-        private object _endDocId;
+        private object? _endKey;
+        private object? _endDocId;
         private bool? _fullSet;
         private bool? _group;
         private int? _groupLevel;
         private bool? _inclusiveEnd;
-        private object _key;
-        private IEnumerable _keys;
+        private object? _key;
+        private IEnumerable? _keys;
         private int? _limit;
         private bool? _continueOnError;
         private bool? _reduce;
-        private object _startKey;
-        private object _startKeyDocId;
+        private object? _startKey;
+        private object? _startKeyDocId;
         private bool? _debug;
         private readonly Dictionary<string, string> _rawParams = new Dictionary<string, string>();
         private DesignDocumentNamespace _namespace = DesignDocumentNamespace.Production;
@@ -65,7 +68,7 @@ namespace Couchbase.Views
         /// <value>
         /// The name of the view.
         /// </value>
-        public string ViewName { get; private set; }
+        public string? ViewName { get; private set; }
 
         private struct QueryArguments
         {
@@ -98,13 +101,13 @@ namespace Couchbase.Views
         {
         }
 
-        public ViewQuery(string bucketName, string baseUri)
+        public ViewQuery(string? bucketName, string baseUri)
             : this(bucketName, baseUri, null)
         {
                 _baseUri = new Uri(baseUri);
         }
 
-        public ViewQuery(string bucketName, string designDoc, string viewName)
+        public ViewQuery(string? bucketName, string designDoc, string? viewName)
         {
             _baseUri = new Uri(DefaultHost);
             BucketName = bucketName;
@@ -214,7 +217,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="endKey">The key to stop at</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery EndKey(object endKey)
+        public IViewQuery EndKey(object? endKey)
         {
             if (endKey != null)
             {
@@ -229,7 +232,7 @@ namespace Couchbase.Views
         /// <param name="endKey">The key to stop at</param>
         /// <param name="encode">True to JSON encode and URI escape the value.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery EndKey(object endKey, bool encode)
+        public IViewQuery EndKey(object? endKey, bool encode)
         {
             if (endKey != null)
             {
@@ -243,7 +246,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="endDocId">The document Id to stop at.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery EndKeyDocId(object endDocId)
+        public IViewQuery EndKeyDocId(object? endDocId)
         {
             _endDocId = endDocId;
             return this;
@@ -297,7 +300,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="key">The key to retrieve</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery Key(object key)
+        public IViewQuery Key(object? key)
         {
             if (key != null)
             {
@@ -312,7 +315,7 @@ namespace Couchbase.Views
         /// <param name="key">The key to retrieve</param>
         /// <param name="encode">True to JSON encode and URI escape the value.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery Key(object key, bool encode)
+        public IViewQuery Key(object? key, bool encode)
         {
             if (key != null)
             {
@@ -326,7 +329,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="keys">The keys to retrieve</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery Keys(IEnumerable keys)
+        public IViewQuery Keys(IEnumerable? keys)
         {
             _keys = keys;
             return this;
@@ -339,7 +342,7 @@ namespace Couchbase.Views
         /// <param name="encode">True to JSON encode and URI escape the value.</param>
         /// <returns>An IViewQuery object for chaining</returns>
         [Obsolete("Keys attribute is no longer submitted via query string. Use Keys(IEnumerable) instead.")]
-        public IViewQuery Keys(IEnumerable keys, bool encode)
+        public IViewQuery Keys(IEnumerable? keys, bool encode)
         {
             _keys = keys;
             return this;
@@ -383,7 +386,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="startKey">The key to return records greater than or equal to.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery StartKey(object startKey)
+        public IViewQuery StartKey(object? startKey)
         {
             if (startKey != null)
             {
@@ -398,7 +401,7 @@ namespace Couchbase.Views
         /// <param name="startKey">The key to return records greater than or equal to.</param>
         /// <param name="encode">True to JSON encode and URI escape the value.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery StartKey(object startKey, bool encode)
+        public IViewQuery StartKey(object? startKey, bool encode)
         {
             if (startKey != null)
             {
@@ -412,7 +415,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <param name="startKeyDocId">The docId to return records greater than or equal to.</param>
         /// <returns>An IViewQuery object for chaining</returns>
-        public IViewQuery StartKeyDocId(object startKeyDocId)
+        public IViewQuery StartKeyDocId(object? startKeyDocId)
         {
             _startKeyDocId = startKeyDocId;
             return this;
@@ -455,27 +458,9 @@ namespace Couchbase.Views
         }
 
         /// <summary>
-        /// Toogles the if query result to is to be streamed. This is useful for large result sets in that it limits the
-        /// working size of the query and helps reduce the possibility of a <see cref="OutOfMemoryException" /> from occurring.
-        /// </summary>
-        /// <param name="useStreaming">if set to <c>true</c> streams the results as you iterate through the response.</param>
-        /// <returns>An IViewQueryable object for chaining</returns>
-        public IViewQueryable UseStreaming(bool useStreaming)
-        {
-            IsStreaming = useStreaming;
-            return this;
-        }
-
-        /// <summary>
-        /// Gets a value indicating if the result should be streamed.
-        /// </summary>
-        /// <value><c>true</c> if the query result is to be streamed; otherwise, <c>false</c>.</value>
-        public bool IsStreaming { get; private set; }
-
-        /// <summary>
         /// Gets the name of the <see cref="IBucket"/> that the query is targeting.
         /// </summary>
-        public string BucketName { get; private set; }
+        public string? BucketName { get; private set; }
 
         /// <summary>
         /// JSON encodes the parameter and URI escapes the input parameter.
@@ -650,8 +635,12 @@ namespace Couchbase.Views
         public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy();
         public TimeSpan Timeout { get; set; }
         public CancellationToken Token { get; set; }
-        public string ClientContextId { get; set; }
-        public string Statement { get; set; }
+        public string? ClientContextId { get; set; }
+        public string? Statement { get; set; }
+
+        /// <inheritdoc />
+        public ITypeSerializer? Serializer { get; set; }
+
     }
 }
 

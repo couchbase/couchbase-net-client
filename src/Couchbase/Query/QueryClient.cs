@@ -26,7 +26,7 @@ namespace Couchbase.Query
         internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
 
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
-        private readonly IDataMapper _queryPlanDataMapper = new JsonDataMapper(new DefaultSerializer());
+        private readonly ITypeSerializer _queryPlanSerializer = new DefaultSerializer();
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<QueryClient> _logger;
@@ -65,7 +65,7 @@ namespace Couchbase.Query
             {
                 // don't use prepared plan, execute query directly
                 options.Statement(statement);
-                return await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
+                return await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
             }
 
             // try find cached query plan
@@ -76,7 +76,7 @@ namespace Couchbase.Query
                 {
                     // plan is valid, execute query with it
                     options.Prepared(queryPlan, statement);
-                    return await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
+                    return await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
                 }
 
                 // entry is stale, remove from cache
@@ -98,7 +98,7 @@ namespace Couchbase.Query
             {
                 // execute combined prepare & execute query
                 options.AutoExecute(true);
-                var result = await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
+                var result = await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
 
                 // add/replace query plan name in query cache
                 if (result is StreamingQueryResult<T> streamingResult) // NOTE: hack to not make 'PreparedPlanName' property public
@@ -111,7 +111,7 @@ namespace Couchbase.Query
             }
 
             // older style, prepare then execute
-            var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanDataMapper).ConfigureAwait(false);
+            var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanSerializer).ConfigureAwait(false);
             queryPlan = await preparedResult.FirstAsync().ConfigureAwait(false);
 
             // add plan to cache and execute
@@ -119,10 +119,10 @@ namespace Couchbase.Query
             options.Prepared(queryPlan, statement);
 
             // execute query using plan
-            return await ExecuteQuery<T>(options, options.DataMapper).ConfigureAwait(false);
+            return await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
         }
 
-        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, IDataMapper dataMapper)
+        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer)
         {
             // try get Query node
             var queryUri = _serviceUriProvider.GetRandomQueryUri();
@@ -136,13 +136,13 @@ namespace Couchbase.Query
                     var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                    if (_serializer is IStreamingTypeDeserializer streamingDeserializer)
+                    if (serializer is IStreamingTypeDeserializer streamingDeserializer)
                     {
                         queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer);
                     }
                     else
                     {
-                        queryResult = new BlockQueryResult<T>(stream, _serializer);
+                        queryResult = new BlockQueryResult<T>(stream, serializer);
                     }
 
                     queryResult.HttpStatusCode = response.StatusCode;
