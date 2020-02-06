@@ -89,6 +89,8 @@ namespace Couchbase.Core.IO.Operations
         GetCollectionsManifest = 0xBA,
 
         //Get the CID by name
-        GetCidByName = 0xbb
+        GetCidByName = 0xbb,
+
+        GetMeta = 0xa0
     }
 }

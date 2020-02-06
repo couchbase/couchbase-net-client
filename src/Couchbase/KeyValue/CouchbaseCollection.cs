@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
@@ -129,26 +130,27 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new ExistsOptions();
-            using var existsOp = new Observe
+
+            using var getMetaOp = new GetMeta
             {
                 Key = id,
                 Cid = Cid,
                 CName = Name,
                 Transcoder = _transcoder
             };
+
             try
             {
-                await _bucket.SendAsync(existsOp, options.TokenValue, options.TimeoutValue);
-                var value = existsOp.GetValue();
+                await _bucket.SendAsync(getMetaOp, options.TokenValue, options.TimeoutValue);
+                var result = getMetaOp.GetValue();
                 return new ExistsResult
                 {
-                    Exists = existsOp.Success && value.KeyState != KeyState.NotFound &&
-                             value.KeyState != KeyState.LogicalDeleted,
-                    Cas = value.Cas,
-                    Expiry = TimeSpan.FromMilliseconds(existsOp.Expires)
+                    Cas = getMetaOp.Cas,
+                    Exists = true,
+                    Expiry = TimeSpan.FromMilliseconds(result.Expiry)
                 };
             }
-            catch (KeyNotFoundException)
+            catch (DocumentNotFoundException)
             {
                 return new ExistsResult
                 {
