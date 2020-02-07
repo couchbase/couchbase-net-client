@@ -18,7 +18,7 @@ namespace Couchbase.Core.IO.HTTP
         public CouchbaseHttpClient(ClusterContext context, ILogger<CouchbaseHttpClient> logger)
             : this(CreateClientHandler(context, logger))
         {
-            DefaultRequestHeaders.ExpectContinue = context.ClusterOptions.Expect100Continue;
+            DefaultRequestHeaders.ExpectContinue = context.ClusterOptions.EnableExpect100Continue;
         }
 
         public CouchbaseHttpClient(HttpMessageHandler handler)
@@ -70,6 +70,7 @@ namespace Couchbase.Core.IO.HTTP
             {
                 if (context.ClusterOptions.MaxHttpConnection > 0)
                 {
+                    //0 means the WinHttpHandler default size of Int.MaxSize is used
                     handler.MaxConnectionsPerServer = context.ClusterOptions.MaxHttpConnection;
                 }
             }

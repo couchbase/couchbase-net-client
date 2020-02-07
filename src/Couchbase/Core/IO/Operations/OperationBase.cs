@@ -98,6 +98,8 @@ namespace Couchbase.Core.IO.Operations
             return data;
         }
 
+        public virtual bool HasDurability => false;
+
         public virtual void HandleClientError(string message, ResponseStatus responseStatus)
         {
             Reset(responseStatus);

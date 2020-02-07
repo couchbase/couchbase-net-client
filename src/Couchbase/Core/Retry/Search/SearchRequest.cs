@@ -19,7 +19,7 @@ namespace Couchbase.Core.Retry.Search
 
         public string Index { get; set; }
         public ISearchQuery Query { get; set; }
-        public ISearchOptions Options { get; set; }
+        public SearchOptions Options { get; set; }
 
         public string ToJson()
         {

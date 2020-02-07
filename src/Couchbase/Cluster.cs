@@ -179,6 +179,8 @@ namespace Couchbase
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = null)
         {
             options ??= new QueryOptions();
+            options.TimeoutValue ??= _context.ClusterOptions.QueryTimeout;
+
             await EnsureBootstrapped();
 
             async Task<IQueryResult<T>> Func()
@@ -194,7 +196,7 @@ namespace Couchbase
                 Options = options,
                 Statement = statement,
                 Token = options.Token,
-                Timeout = options.TimeoutValue
+                Timeout = options.TimeoutValue.Value
             }).ConfigureAwait(false);
         }
 
@@ -205,6 +207,8 @@ namespace Couchbase
         public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default)
         {
             options ??= new AnalyticsOptions();
+            options.TimeoutValue ??= _context.ClusterOptions.AnalyticsTimeout;
+
             await EnsureBootstrapped();
 
             var query = new AnalyticsRequest(statement)
@@ -212,7 +216,7 @@ namespace Couchbase
                 ClientContextId = options.ClientContextIdValue,
                 NamedParameters = options.NamedParameters,
                 PositionalArguments = options.PositionalParameters,
-                Timeout = options.TimeoutValue
+                Timeout = options.TimeoutValue.Value
             };
             query.Priority(options.PriorityValue);
             query.ScanConsistency(options.ScanConsistencyValue);
@@ -232,9 +236,10 @@ namespace Couchbase
 
         #region Search
 
-        public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, ISearchOptions? options = default)
+        public async Task<ISearchResult> SearchQueryAsync(string indexName, ISearchQuery query, SearchOptions? options = default)
         {
             options ??= new SearchOptions();
+            options.TimeoutValue ??= _context.ClusterOptions.SearchTimeout;
 
             await EnsureBootstrapped();
 
@@ -243,8 +248,8 @@ namespace Couchbase
                 Index = indexName,
                 Query = query,
                 Options = options,
-                Token = ((SearchOptions)options).Token,
-                Timeout = ((SearchOptions)options).TimeOut
+                Token = options.Token,
+                Timeout = options.TimeoutValue.Value
             };
 
             async Task<ISearchResult> Func()

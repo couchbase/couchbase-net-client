@@ -2,9 +2,7 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
-using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -36,25 +34,15 @@ namespace Couchbase.Core.DI
         /// <inheritdoc />
         public async Task<IClusterNode> CreateAndConnectAsync(IPEndPoint endPoint)
         {
-            var connection = await _connectionFactory.CreateAndConnectAsync(endPoint);
-            var serverFeatures = await connection.Hello(_transcoder).ConfigureAwait(false);
-            var errorMap = await connection.GetErrorMap(_transcoder).ConfigureAwait(false);
-
-            var mechanismType = _clusterContext.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
-            var saslMechanism = _saslMechanismFactory.Create(mechanismType,
-                _clusterContext.ClusterOptions.UserName ?? throw new ArgumentNullException(nameof(_clusterContext.ClusterOptions.UserName)),
-                _clusterContext.ClusterOptions.Password ?? throw new ArgumentNullException(nameof(_clusterContext.ClusterOptions.Password)));
-
-            await saslMechanism.AuthenticateAsync(connection, _clusterContext.CancellationToken).ConfigureAwait(false);
-
+            var connection = await _connectionFactory.CreateAndConnectAsync(endPoint).ConfigureAwait(false);
             var clusterNode = new ClusterNode(_clusterContext, _connectionFactory, _logger, _transcoder, _circuitBreaker, _saslMechanismFactory)
             {
                 EndPoint = endPoint,
-                Connection = connection,
-                ServerFeatures = serverFeatures,
-                ErrorMap = errorMap
+                Connection = connection
             };
 
+            //ensure server calls are made to set the state
+            await clusterNode.InitializeAsync().ConfigureAwait(false);
             clusterNode.BuildServiceUris();
 
             return clusterNode;

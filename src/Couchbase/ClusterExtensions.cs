@@ -68,7 +68,7 @@ namespace Couchbase
         #region Search
 
         public static Task<ISearchResult> SearchQueryAsync(this ICluster cluster, string indexName, ISearchQuery query,
-            Action<ISearchOptions> configureOptions)
+            Action<SearchOptions> configureOptions)
         {
             var options = new SearchOptions();
             configureOptions(options);

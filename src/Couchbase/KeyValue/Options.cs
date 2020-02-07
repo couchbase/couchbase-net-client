@@ -146,6 +146,7 @@ namespace Couchbase.KeyValue
         internal TimeSpan? TimeoutValue { get; set; }
 
         internal CancellationToken TokenValue { get; set; }
+
         internal ITypeTranscoder? TranscoderValue { get; set; }
 
         public UpsertOptions Transcoder(ITypeTranscoder? transcoder)
@@ -718,7 +719,7 @@ namespace Couchbase.KeyValue
 
     public class LookupInOptions
     {
-        internal TimeSpan TimeoutValue { get; set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
         internal CancellationToken TokenValue { get; set; }
 
@@ -732,7 +733,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public LookupInOptions Timeout(TimeSpan timeout)
+        public LookupInOptions Timeout(TimeSpan? timeout)
         {
             TimeoutValue = timeout;
             return this;

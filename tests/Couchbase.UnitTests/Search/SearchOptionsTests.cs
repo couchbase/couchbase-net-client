@@ -76,7 +76,6 @@ namespace Couchbase.UnitTests.Search
             {
                 ctl = new
                 {
-                    timeout = 75000,
                     consistency = new
                     {
                         level = "not_bounded"
@@ -107,7 +106,6 @@ namespace Couchbase.UnitTests.Search
             {
                 ctl = new
                 {
-                    timeout = 75000,
                     consistency = new
                     {
                         level = "not_bounded"
@@ -133,7 +131,6 @@ namespace Couchbase.UnitTests.Search
             {
                 ctl = new
                 {
-                    timeout = 75000,
                     consistency = new
                     {
                         level = "not_bounded"
@@ -168,7 +165,6 @@ namespace Couchbase.UnitTests.Search
             {
                 ctl = new
                 {
-                    timeout = 75000,
                     consistency = new
                     {
                         level = "not_bounded"
@@ -202,7 +198,6 @@ namespace Couchbase.UnitTests.Search
             {
                 ctl = new
                 {
-                    timeout = 75000,
                     consistency = new
                     {
                         level = "not_bounded"

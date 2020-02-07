@@ -27,7 +27,7 @@ namespace Couchbase.IntegrationTests
                 var result = await collection.ExistsAsync(key);
                 Assert.False(result.Exists);
 
-                await collection.InsertAsync(key, new { });
+                await collection.InsertAsync(key, new { }, options => options.Expiry(TimeSpan.FromHours(1)));
 
                 result = await collection.ExistsAsync(key);
                 Assert.True(result.Exists);

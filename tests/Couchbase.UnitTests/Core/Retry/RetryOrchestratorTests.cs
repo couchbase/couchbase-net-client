@@ -271,7 +271,8 @@ namespace Couchbase.UnitTests.Core.Retry
                     ReadOnly = options.ReadonlyValue,
                     Idempotent = options.ReadonlyValue
                 };
-                query.WithTimeout(options.TimeoutValue);
+                // ReSharper disable once PossibleInvalidOperationException
+                query.WithTimeout(options.TimeoutValue.Value);
                 query.Priority(options.PriorityValue);
                 query.Token = options.Token;
 

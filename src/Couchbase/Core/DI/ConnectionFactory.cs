@@ -36,7 +36,7 @@ namespace Couchbase.Core.DI
             {
                 var connectTask = socket.ConnectAsync(endPoint);
 
-                var whichTask = await Task.WhenAny(connectTask, Task.Delay(10000)); // default connect timeout
+                var whichTask = await Task.WhenAny(connectTask, Task.Delay(_clusterOptions.KvConnectTimeout));
 
                 if (whichTask != connectTask)
                 {

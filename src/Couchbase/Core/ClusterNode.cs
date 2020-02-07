@@ -23,7 +23,6 @@ namespace Couchbase.Core
 {
     internal class ClusterNode : IClusterNode
     {
-        private static readonly TimeSpan DefaultTimeout = new TimeSpan(0, 0, 0, 0, 2500);//temp
         private readonly ClusterContext _context;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ILogger<ClusterNode> _logger;
@@ -128,6 +127,80 @@ namespace Couchbase.Core
         public DateTime? LastAnalyticsActivity { get; private set; }
         public DateTime? LastKvActivity { get; private set; }
 
+        public async Task InitializeAsync()
+        {
+            await InitializeAsync(Connection);
+        }
+
+        private async Task InitializeAsync(IConnection connection)
+        {
+            ServerFeatures = await Hello(connection).ConfigureAwait(false);
+            ErrorMap = await GetErrorMap(connection).ConfigureAwait(false);
+
+            var mechanismType = _context.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
+            var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
+                _context.ClusterOptions.Password);
+
+            await saslMechanism.AuthenticateAsync(connection, _context.CancellationToken).ConfigureAwait(false);
+            await SelectBucket(connection, Owner.Name).ConfigureAwait(false);
+        }
+
+        private async Task SelectBucket(IConnection connection, string bucketName)
+        {
+            using var selectBucketOp = new SelectBucket
+            {
+                Transcoder = _transcoder,
+                Key = bucketName
+            };
+            await ExecuteOp(selectBucketOp).ConfigureAwait(false);
+        }
+
+        private async Task<ErrorMap> GetErrorMap(IConnection connection)
+        {
+            using var errorMapOp = new GetErrorMap
+            {
+                Transcoder = _transcoder,
+                Opaque = SequenceGenerator.GetNext()
+            };
+
+            await ExecuteOp(errorMapOp).ConfigureAwait(false);
+            return errorMapOp.GetResultWithValue().Content;
+        }
+
+        private async Task<short[]> Hello(IConnection connection)
+        {
+            var features = new List<short>
+            {
+                (short) IO.Operations.ServerFeatures.SelectBucket,
+                (short) IO.Operations.ServerFeatures.Collections,
+                (short) IO.Operations.ServerFeatures.AlternateRequestSupport,
+                (short) IO.Operations.ServerFeatures.SynchronousReplication,
+                (short) IO.Operations.ServerFeatures.SubdocXAttributes,
+                (short) IO.Operations. ServerFeatures.XError
+            };
+
+            if (_context.ClusterOptions.EnableMutationTokens)
+            {
+                features.Add((short) IO.Operations.ServerFeatures.MutationSeqno);
+            }
+
+            if (_context.ClusterOptions.EnableOperationDurationTracing)
+            {
+                features.Add((short) IO.Operations.ServerFeatures.ServerDuration);
+            }
+
+            using var heloOp = new Hello
+            {
+                Key = Core.IO.Operations.Hello.BuildHelloKey(Connection.ConnectionId),
+                Content = features.ToArray(),
+                Transcoder = _transcoder,
+                Opaque = SequenceGenerator.GetNext(),
+            };
+
+            await ExecuteOp(heloOp).ConfigureAwait(false);
+            return heloOp.GetResultWithValue().Content;
+        }
+
         public async Task<Manifest> GetManifest()
         {
             using var manifestOp = new GetManifest
@@ -173,9 +246,19 @@ namespace Couchbase.Core
             return config;
         }
 
-        public Task<uint?> GetCid(string fullyQualifiedName)
+        public async Task<uint?> GetCid(string fullyQualifiedName)
         {
-            return Connection.GetCid(fullyQualifiedName, _transcoder);
+            using var getCid = new GetCid
+            {
+                Key = fullyQualifiedName,
+                Transcoder = _transcoder,
+                Opaque = SequenceGenerator.GetNext(),
+                Content = null
+            };
+
+            await ExecuteOp(getCid).ConfigureAwait(false);
+            var resultWithValue = getCid.GetResultWithValue();
+            return resultWithValue.Content;
         }
 
         public void BuildServiceUris()
@@ -289,7 +372,7 @@ namespace Couchbase.Core
                 if (token == CancellationToken.None)
                 {
                     cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                    cts.CancelAfter(timeout.HasValue && timeout != TimeSpan.Zero ? timeout.Value : DefaultTimeout);
+                    cts.CancelAfter(GetTimeout(timeout, op));
                     token = cts.Token;
                 }
 
@@ -339,21 +422,23 @@ namespace Couchbase.Core
             return ExecuteOp(Connection, op, token);
         }
 
+        private TimeSpan GetTimeout(TimeSpan? optionsTimeout, IOperation op)
+        {
+            if (op.HasDurability)
+            {
+                op.Timeout = optionsTimeout ?? _context.ClusterOptions.KvDurabilityTimeout;
+                return op.Timeout;
+            }
+            return optionsTimeout ?? _context.ClusterOptions.KvTimeout;
+        }
+
         protected async Task CheckConnectionAsync(IConnection connection)
         {
             if (connection.IsDead)
             {
                 //recreate the connection its been closed and disposed
-                connection = await _connectionFactory.CreateAndConnectAsync(EndPoint);
-                ServerFeatures = await connection.Hello(_transcoder).ConfigureAwait(false);
-                ErrorMap = await connection.GetErrorMap(_transcoder).ConfigureAwait(false);
-
-                var mechanismType = _context.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
-                var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
-                    _context.ClusterOptions.Password);
-
-                await saslMechanism.AuthenticateAsync(connection, _context.CancellationToken).ConfigureAwait(false);
-                await connection.SelectBucket(Owner.Name, _transcoder).ConfigureAwait(false);
+                connection = await _connectionFactory.CreateAndConnectAsync(EndPoint).ConfigureAwait(false);
+                await InitializeAsync(connection).ConfigureAwait(false);
                 Connection = connection;
             }
         }

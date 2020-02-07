@@ -179,27 +179,34 @@ namespace Couchbase
         public TimeSpan ConfigIdleRedialTimeout { get; set; } = TimeSpan.FromMinutes(5);
         public int NumKvConnections { get; set; } = 1;
         public int MaxHttpConnection { get; set; } = 0;
-        public TimeSpan IdleHttpConnectionTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+        public TimeSpan IdleHttpConnectionTimeout
+        {
+            get => throw new NotSupportedException("Not supported by .NET Core.");
+            set => throw new NotSupportedException("Not supported by .NET Core.");
+        }
 
         public CircuitBreakerConfiguration CircuitBreakerConfiguration { get; set; } =
             CircuitBreakerConfiguration.Default;
 
+        public bool EnableOperationDurationTracing { get; set; } = true;
+
         //Volatile or obsolete options
         public int MgmtPort { get; set; } = 8091;
-        public bool Expect100Continue { get; set; }
+        public bool EnableExpect100Continue { get; set; }
         public bool EnableCertificateAuthentication { get; set; }
         public bool EnableCertificateRevocation { get; set; }
         public bool IgnoreRemoteCertificateNameMismatch { get; set; }
 
-        private bool _orphanedResponseLoggingEnabled;
-        public bool OrphanedResponseLoggingEnabled
+        private bool _enableOrphanedResponseLogging;
+        public bool EnableOrphanedResponseLogging
         {
-            get => _orphanedResponseLoggingEnabled;
+            get => _enableOrphanedResponseLogging;
             set
             {
-                if (value != _orphanedResponseLoggingEnabled)
+                if (value != _enableOrphanedResponseLogging)
                 {
-                    _orphanedResponseLoggingEnabled = value;
+                    _enableOrphanedResponseLogging = value;
 
                     if (value)
                     {

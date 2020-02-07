@@ -20,8 +20,6 @@ namespace Couchbase.KeyValue
     internal class CouchbaseCollection : ICollection, IBinaryCollection
     {
         public const string DefaultCollectionName = "_default";
-
-        private static readonly TimeSpan DefaultTimeout = new TimeSpan(0,0,0,0,2500);//temp
         private readonly BucketBase _bucket;
         private readonly ITypeTranscoder _transcoder;
         private readonly ILogger<GetResult> _getLogger;
@@ -66,10 +64,6 @@ namespace Couchbase.KeyValue
                     PathFlags = SubdocPathFlags.Xattr
                 });
             }
-            if (!options.TimeoutValue.HasValue)
-            {
-                options.TimeoutValue = DefaultTimeout;
-            }
 
             var projectList = options.ProjectListValue;
             if (projectList.Any())
@@ -106,7 +100,7 @@ namespace Couchbase.KeyValue
             }
 
             var lookupOp = await ExecuteLookupIn(id,
-                    specs, new LookupInOptions().Timeout(options.TimeoutValue.Value))
+                    specs, new LookupInOptions().Timeout(options.TimeoutValue))
                 .ConfigureAwait(false);
 
             var transcoder = options.TranscoderValue ?? _transcoder;
@@ -179,7 +173,6 @@ namespace Couchbase.KeyValue
                 Cid = Cid,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Transcoder = transcoder
             };
             await _bucket.SendAsync(upsertOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
@@ -205,7 +198,6 @@ namespace Couchbase.KeyValue
                 CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Transcoder = transcoder
             };
             await _bucket.SendAsync(insertOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
@@ -232,7 +224,6 @@ namespace Couchbase.KeyValue
                 CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Transcoder = transcoder
             };
             await _bucket.SendAsync(replaceOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
@@ -320,7 +311,6 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cid = Cid,
                 Expires = expiry.ToTtl(),
-                DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Transcoder = transcoder
             };
             await _bucket.SendAsync(getAndTouchOp, options.TokenValue, options.TimeoutValue);

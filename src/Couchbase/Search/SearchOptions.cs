@@ -14,8 +14,7 @@ namespace Couchbase.Search
     /// <summary>
     /// Represents a number of query options that can be applied to a FTS query request.
     /// </summary>
-    /// <seealso cref="ISearchOptions" />
-    public class SearchOptions : ISearchOptions
+    public class SearchOptions
     {
         private int? _limit;
         private int? _skip;
@@ -27,11 +26,11 @@ namespace Couchbase.Search
         private SearchScanConsistency? _scanConsistency = SearchScanConsistency.NotBounded;
         private readonly JArray _sort = new JArray();
         internal  CancellationToken Token { get; set; }
-        internal TimeSpan TimeOut { get; set; } = new TimeSpan(0, 0, 0, 0, 75000);
+        internal TimeSpan? TimeoutValue { get; set; }
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
 
-        public ISearchOptions CancellationToken(CancellationToken token)
+        public SearchOptions CancellationToken(CancellationToken token)
         {
             Token = token;
             return this;
@@ -42,7 +41,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="limit"></param>
         /// <returns></returns>
-        public ISearchOptions Limit(int limit)
+        public SearchOptions Limit(int limit)
         {
             _limit = limit;
             return this;
@@ -53,7 +52,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="skip"></param>
         /// <returns></returns>
-        public ISearchOptions Skip(int skip)
+        public SearchOptions Skip(int skip)
         {
             _skip = skip;
             return this;
@@ -64,7 +63,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="explain"></param>
         /// <returns></returns>
-        public ISearchOptions Explain(bool explain)
+        public SearchOptions Explain(bool explain)
         {
             _explain = explain;
             return this;
@@ -75,7 +74,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
         /// <returns></returns>
-        public ISearchOptions Highlight(HighLightStyle highLightStyle)
+        public SearchOptions Highlight(HighLightStyle highLightStyle)
         {
             var name = Enum.GetName(typeof (HighLightStyle), highLightStyle);
             if (name != null)
@@ -91,7 +90,7 @@ namespace Couchbase.Search
         /// <param name="highLightStyle">The <see cref="HighLightStyle" /> to use.</param>
         /// <param name="fields">The specific terms or fields to highlight.</param>
         /// <returns></returns>
-        public ISearchOptions Highlight(HighLightStyle highLightStyle, params string[] fields)
+        public SearchOptions Highlight(HighLightStyle highLightStyle, params string[] fields)
         {
             var name = Enum.GetName(typeof(HighLightStyle), highLightStyle);
             if (name != null)
@@ -111,7 +110,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="fields">The indexed fields to return.</param>
         /// <returns></returns>
-        public ISearchOptions Fields(params string[] fields)
+        public SearchOptions Fields(params string[] fields)
         {
             if(fields == null || fields.Length <= 0)
             {
@@ -131,7 +130,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="searchFacets">The <see cref="ISearchFacet" /> to aggregate information on.</param>
         /// <returns></returns>
-        public ISearchOptions Facets(params ISearchFacet[] searchFacets)
+        public SearchOptions Facets(params ISearchFacet[] searchFacets)
         {
             if (_facets == null)
             {
@@ -146,9 +145,9 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="timeout">The max length of time that that will be given to execute the query.</param>
         /// <returns></returns>
-        public ISearchOptions Timeout(TimeSpan timeout)
+        public SearchOptions Timeout(TimeSpan timeout)
         {
-            TimeOut = timeout;
+            TimeoutValue = timeout;
             return this;
         }
 
@@ -157,7 +156,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="consistency">The <see cref="SearchScanConsistency" /> for documents to be included in the query results.</param>
         /// <returns></returns>
-        public ISearchOptions ScanConsistency(SearchScanConsistency consistency)
+        public SearchOptions ScanConsistency(SearchScanConsistency consistency)
         {
             _scanConsistency = consistency;
             return this;
@@ -169,7 +168,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="sort">The field names to sort by.</param>
         /// <returns></returns>
-        public ISearchOptions Sort(params string[] sort)
+        public SearchOptions Sort(params string[] sort)
         {
             if (sort != null)
             {
@@ -183,7 +182,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="sort">The sort.</param>
         /// <returns></returns>
-        public ISearchOptions Sort(ISearchSort sort)
+        public SearchOptions Sort(ISearchSort sort)
         {
             if (sort != null)
             {
@@ -197,7 +196,7 @@ namespace Couchbase.Search
         /// </summary>
         /// <param name="sort">The sort.</param>
         /// <returns></returns>
-        public ISearchOptions Sort(JObject sort)
+        public SearchOptions Sort(JObject sort)
         {
             if (sort != null)
             {
@@ -206,7 +205,7 @@ namespace Couchbase.Search
             return this;
         }
 
-        public ISearchOptions Raw(string name, object value)
+        public SearchOptions Raw(string name, object value)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -217,7 +216,7 @@ namespace Couchbase.Search
             return this;
         }
 
-        public ISearchOptions ConsistentWith(MutationState mutationState)
+        public SearchOptions ConsistentWith(MutationState mutationState)
         {
 #pragma warning disable 618
             ScanConsistency(SearchScanConsistency.AtPlus);
@@ -270,7 +269,11 @@ namespace Couchbase.Search
 
         public JObject ToJson()
         {
-            var ctl = new JObject(new JProperty("timeout", (long) TimeOut.TotalMilliseconds));
+            var ctl = new JObject();
+            if (TimeoutValue.HasValue)
+            {
+                ctl.Add(new JProperty("timeout", (long)TimeoutValue.Value.TotalMilliseconds));
+            }
             if (_scanConsistency.HasValue)
             {
                 var consistency = new JObject(

@@ -12,7 +12,8 @@ namespace Couchbase.Core.IO.Operations
     internal abstract class MutationOperationBase<T> : OperationBase<T>
     {
         public DurabilityLevel DurabilityLevel { get; set; }
-        public TimeSpan? DurabilityTimeout { get; set; }
+
+        public override bool HasDurability => DurabilityLevel != DurabilityLevel.None;
 
         /// <summary>
         /// Reads the VBucketUUID and Sequence Number from  the extras if the instance has a <see cref="VBucket"/> -

@@ -72,6 +72,8 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         /// <returns>The <see cref="IMemoryOwner{T}"/>.</returns>
         IMemoryOwner<byte> ExtractData();
+
+        bool HasDurability { get; }
     }
 }
 

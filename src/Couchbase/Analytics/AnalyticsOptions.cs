@@ -13,11 +13,11 @@ namespace Couchbase.Analytics
         internal string? ClientContextIdValue;
         internal Dictionary<string, object> NamedParameters  = new Dictionary<string, object>();
         internal List<object> PositionalParameters = new List<object>();
-        internal TimeSpan TimeoutValue = TimeSpan.FromMilliseconds(75000);
         internal CancellationToken Token = System.Threading.CancellationToken.None;
         internal AnalyticsScanConsistency ScanConsistencyValue = Analytics.AnalyticsScanConsistency.NotBounded;
         internal bool ReadonlyValue;
         internal int PriorityValue { get; set; } = 0;
+        internal TimeSpan? TimeoutValue { get; set; }
 
         public AnalyticsOptions ScanConsistency(
             AnalyticsScanConsistency scanConsistency)
@@ -107,7 +107,10 @@ namespace Couchbase.Analytics
                 formValues.Add("args", PositionalParameters.ToArray());
             }
 
-            formValues.Add("timeout", $"{TimeoutValue.TotalMilliseconds}ms");
+            if (TimeoutValue.HasValue)
+            {
+                formValues.Add("timeout", $"{TimeoutValue.Value.TotalMilliseconds}ms");
+            }
 
             if (ClientContextIdValue != null)
             {
