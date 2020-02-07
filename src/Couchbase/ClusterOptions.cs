@@ -217,30 +217,8 @@ namespace Couchbase
 
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
-        // ReSharper disable once InconsistentNaming
-        public bool EnableIPV6Addressing { get; set; }
         public int KvPort { get; set; } = 11210;
         public bool EnableDnsSrvResolution { get; set; } = true;
-
-        internal bool IsValidDnsSrv()
-        {
-            if (ConnectionStringValue == null || !EnableDnsSrvResolution)
-            {
-                return false;
-            }
-
-            if (ConnectionStringValue.Scheme != Scheme.Couchbase && ConnectionStringValue.Scheme != Scheme.Couchbases)
-            {
-                return false;
-            }
-
-            if (ConnectionStringValue.Hosts.Count > 1)
-            {
-                return false;
-            }
-
-            return ConnectionStringValue.Hosts.Single().IndexOf(":", StringComparison.Ordinal) == -1;
-        }
 
         #region DI
 

@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using DnsClient;
+using DnsClient.Protocol;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -19,16 +22,71 @@ namespace Couchbase
         private readonly ILookupClient _lookupClient;
         private readonly ILogger<DnsClientDnsResolver> _logger;
 
+        public IpAddressMode IpAddressMode { get; set; }
+
+        /// <summary>
+        /// Used to disable DNS SRV resolution, enabled by default.
+        /// </summary>
+        public bool EnableDnsSrvResolution { get; set; } = true;
+
         public DnsClientDnsResolver(ILookupClient lookupClient, ILogger<DnsClientDnsResolver> logger)
         {
             _lookupClient = lookupClient ?? throw new ArgumentNullException(nameof(lookupClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        public async Task<IPAddress?> GetIpAddressAsync(string hostName,
+            CancellationToken cancellationToken = default)
+        {
+            var hostString = DnsString.FromResponseQueryString(hostName);
+
+            var tasks = new List<Task<IDnsQueryResponse>>(2);
+
+            if (IpAddressMode != IpAddressMode.ForceIpv6)
+            {
+                tasks.Add(_lookupClient.QueryAsync(hostString, QueryType.A, cancellationToken: cancellationToken));
+            }
+
+            if (IpAddressMode != IpAddressMode.ForceIpv4)
+            {
+                tasks.Add(_lookupClient.QueryAsync(hostString, QueryType.AAAA, cancellationToken: cancellationToken));
+            }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            var addresses = tasks
+                .Where(p => !p.Result.HasError)
+                .SelectMany(p => p.Result.Answers)
+                .OfType<AddressRecord>()
+                .Select(p => p.Address)
+                .ToList();
+
+            var preferredAddresses = IpAddressMode switch
+            {
+                IpAddressMode.PreferIpv4 => addresses.Where(p => p.AddressFamily == AddressFamily.InterNetwork),
+                IpAddressMode.PreferIpv6 => addresses.Where(p => p.AddressFamily == AddressFamily.InterNetworkV6),
+                IpAddressMode.Default => addresses.Where(p => p.AddressFamily == AddressFamily.InterNetworkV6),
+                _ => null
+            };
+
+            var preferredIpAddress = preferredAddresses?.FirstOrDefault();
+            if (preferredIpAddress != null)
+            {
+                return preferredIpAddress;
+            }
+
+            return addresses.FirstOrDefault();
+        }
+
         /// <inheritdoc />
         public async Task<IEnumerable<Uri>> GetDnsSrvEntriesAsync(Uri bootstrapUri,
             CancellationToken cancellationToken = default)
         {
+            if (!EnableDnsSrvResolution)
+            {
+                return Enumerable.Empty<Uri>();
+            }
+
             var query = string.Concat(DefaultServicePrefix, bootstrapUri.Host);
             var result = await _lookupClient.QueryAsync(query, QueryType.SRV,
                 cancellationToken: cancellationToken);

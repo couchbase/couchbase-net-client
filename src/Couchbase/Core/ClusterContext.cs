@@ -136,10 +136,16 @@ namespace Couchbase.Core
             return node;
         }
 
-        public void PruneNodes(BucketConfig config)
+        public async Task PruneNodesAsync(BucketConfig config)
         {
+            var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
+
+            var existingEndpoints = await config.NodesExt.ToAsyncEnumerable()
+                .SelectAwait(p => ipEndpointService.GetIpEndPointAsync(p, CancellationToken))
+                .ToListAsync(CancellationToken).ConfigureAwait(false);
+
             var removed = Nodes.Where(x =>
-                !config.NodesExt.Any(y => x.Key.Equals(y.GetIpEndPoint(ClusterOptions))));
+                !existingEndpoints.Any(y => x.Key.Equals(y)));
 
             foreach (var node in removed)
             {
@@ -199,26 +205,31 @@ namespace Couchbase.Core
             return Nodes.TryGetValue(endPoint, out node);
         }
 
-        public IClusterNode GetUnassignedNode(Uri uri, bool useIp6Address)
+        public async Task<IClusterNode> GetUnassignedNodeAsync(Uri uri)
         {
+            var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
+            var ipAddress = await dnsResolver.GetIpAddressAsync(uri.Host, CancellationToken);
+
             return Nodes.Values.FirstOrDefault(
-                x => !x.IsAssigned && x.EndPoint.Address.Equals(uri.GetIpAddress(useIp6Address)));
+                x => !x.IsAssigned && x.EndPoint.Address.Equals(ipAddress));
         }
 
         public async Task InitializeAsync()
         {
-            // DNS-SRV
-            if (ClusterOptions.IsValidDnsSrv())
+            if (ClusterOptions.ConnectionStringValue?.IsValidDnsSrv() ?? false)
             {
                 try
                 {
+                    // Always try to use DNS SRV to bootstrap if connection string is valid
+                    // It can be disabled by returning an empty URI list from IDnsResolver
                     var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
 
                     var bootstrapUri = ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
-                    var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri)).ToList();
+                    var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken)).ToList();
                     if (servers.Any())
                     {
-                        _logger.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
+                        _logger.LogInformation(
+                            $"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
                         ClusterOptions.Servers(servers);
                     }
                 }
@@ -228,9 +239,10 @@ namespace Couchbase.Core
                 }
             }
 
+            var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
             foreach (var server in ClusterOptions.ServersValue)
             {
-                var bsEndpoint = server.GetIpEndPoint(ClusterOptions.KvPort, ClusterOptions.EnableIPV6Addressing);
+                var bsEndpoint = await ipEndpointService.GetIpEndPointAsync(server.Host, ClusterOptions.KvPort, CancellationToken);
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(bsEndpoint);
                 node.BootstrapUri = server;
                 GlobalConfig = await node.GetClusterMap();
@@ -289,7 +301,7 @@ namespace Couchbase.Core
 
         public async Task<IBucket> CreateAndBootStrapBucketAsync(string name, Uri uri, BucketType type)
         {
-            var node = GetUnassignedNode(uri, ClusterOptions.EnableIPV6Addressing);
+            var node = await GetUnassignedNodeAsync(uri);
             if (node == null)
             {
                 var endpoint = uri.GetIpEndPoint(ClusterOptions.KvPort, ClusterOptions.UseInterNetworkV6Addresses);
@@ -347,7 +359,7 @@ namespace Couchbase.Core
                 AddNode(node);
             }
 
-            PruneNodes(config);
+            await PruneNodesAsync(config);
         }
 
         public void Dispose()

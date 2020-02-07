@@ -92,6 +92,26 @@ namespace Couchbase
                 Host = Hosts.First()
             }.Uri;
         }
+
+        /// <summary>
+        /// Identifies if this connection string is valid for use with DNS SRV lookup.
+        /// </summary>
+        /// <returns>True if valid for DNS SRV lookup.</returns>
+        /// <seealso cref="GetDnsBootStrapUri"/>.
+        public bool IsValidDnsSrv()
+        {
+            if (Scheme != Scheme.Couchbase && Scheme != Scheme.Couchbases)
+            {
+                return false;
+            }
+
+            if (Hosts.Count > 1)
+            {
+                return false;
+            }
+
+            return Hosts.Single().IndexOf(":", StringComparison.Ordinal) == -1;
+        }
     }
 
     internal enum Scheme

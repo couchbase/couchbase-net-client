@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,8 @@ namespace Couchbase
     /// </summary>
     public interface IDnsResolver
     {
+        Task<IPAddress?> GetIpAddressAsync(string hostName, CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Resolve a bootstrap URI to a list of servers using DNS SRV lookup.
         /// </summary>

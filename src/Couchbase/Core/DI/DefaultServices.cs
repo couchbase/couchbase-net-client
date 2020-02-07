@@ -17,6 +17,7 @@ using Couchbase.Management.Search;
 using Couchbase.Management.Users;
 using Couchbase.Query;
 using Couchbase.Search;
+using Couchbase.Utils;
 using Couchbase.Views;
 using DnsClient;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,19 @@ namespace Couchbase.Core.DI
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
 
             yield return (typeof(ILookupClient), new TransientServiceFactory(_ => new LookupClient()));
-            yield return (typeof(IDnsResolver), new TransientServiceFactory(typeof(DnsClientDnsResolver)));
+            yield return (typeof(IDnsResolver), new SingletonServiceFactory(serviceProvider =>
+            {
+                var options = serviceProvider.GetRequiredService<ClusterOptions>();
+
+                return new DnsClientDnsResolver(
+                    serviceProvider.GetRequiredService<ILookupClient>(),
+                    serviceProvider.GetRequiredService<ILogger<DnsClientDnsResolver>>())
+                {
+                    IpAddressMode = options.ForceIPv4 ? IpAddressMode.ForceIpv4 : IpAddressMode.Default,
+                    EnableDnsSrvResolution = options.EnableDnsSrvResolution
+                };
+            }));
+            yield return (typeof(IIpEndPointService), new TransientServiceFactory(typeof(IpEndPointService)));
 
             yield return (typeof(IClusterNodeFactory), new SingletonServiceFactory(typeof(ClusterNodeFactory)));
             yield return (typeof(IConnectionFactory), new SingletonServiceFactory(typeof(ConnectionFactory)));

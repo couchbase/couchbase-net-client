@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
@@ -128,19 +130,21 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Theory]
         [InlineData(@"Documents\Configs\rev92-single-node.json", @"Documents\Configs\rev94.json")]
         [InlineData(@"Documents\Configs\rev96.json", @"Documents\Configs\rev98-single-node.json")]
-        public void Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
+        public async Task Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
         {
             var oldConfig = ResourceHelper.ReadResource<BucketConfig>(oldConfigPath);
             var newConfig = ResourceHelper.ReadResource<BucketConfig>(newConfigPath);
 
             var options = new ClusterOptions();
             var bucketNodes = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
-            var context = new ClusterContext(null, options);
+            var context = new ClusterContext(new CancellationTokenSource(), options);
+
+            var ipEndpointService = context.ServiceProvider.GetRequiredService<IIpEndPointService>();
 
             //load up the initial state after bootstrapping
             foreach (var server in oldConfig.NodesExt)
             {
-                var endPoint = server.GetIpEndPoint(options);
+                var endPoint = await ipEndpointService.GetIpEndPointAsync(server);
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
                     new Mock<ICircuitBreaker>().Object,
@@ -154,7 +158,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             foreach (var nodesExt in newConfig.NodesExt)
             {
-                var endPoint = nodesExt.GetIpEndPoint(options);
+                var endPoint = await ipEndpointService.GetIpEndPointAsync(nodesExt);
                 if (bucketNodes.ContainsKey(endPoint))
                 {
                     continue;
@@ -170,17 +174,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 bucketNodes.TryAdd(endPoint, clusterNode);
             }
 
-            var removed = bucketNodes.Where(x =>
-                !newConfig.NodesExt.Any(y => x.Key.Equals(y.GetIpEndPoint(options))));
+            await context.PruneNodesAsync(newConfig);
 
-            foreach (var valuePair in removed)
-            {
-                if (!bucketNodes.TryRemove(valuePair.Key, out var clusterNode)) continue;
-                context.RemoveNode(clusterNode);
-            }
-
-            Assert.Equal(newConfig.NodesExt.Count, bucketNodes.Count);
-            Assert.Equal(context.Nodes.Count, bucketNodes.Count);
+            Assert.Equal(newConfig.NodesExt.Count, context.Nodes.Count);
         }
     }
 }
