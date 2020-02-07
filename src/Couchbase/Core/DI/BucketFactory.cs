@@ -16,6 +16,7 @@ namespace Couchbase.Core.DI
         private readonly IScopeFactory _scopeFactory;
         private readonly IRetryOrchestrator _retryOrchestrator;
         private readonly IVBucketKeyMapperFactory _vBucketKeyMapperFactory;
+        private readonly IKetamaKeyMapperFactory _ketamaKeyMapperFactory;
         private readonly ILogger<CouchbaseBucket> _couchbaseLogger;
         private readonly ILogger<MemcachedBucket> _memcachedLogger;
 
@@ -24,6 +25,7 @@ namespace Couchbase.Core.DI
             IScopeFactory scopeFactory,
             IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory,
+            IKetamaKeyMapperFactory ketamaKeyMapperFactory,
             ILogger<CouchbaseBucket> couchbaseLogger,
             ILogger<MemcachedBucket> memcachedLogger)
         {
@@ -31,6 +33,7 @@ namespace Couchbase.Core.DI
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
             _retryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
+            _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
             _couchbaseLogger = couchbaseLogger ?? throw new ArgumentNullException(nameof(couchbaseLogger));
             _memcachedLogger = memcachedLogger ?? throw new ArgumentNullException(nameof(memcachedLogger));
         }
@@ -44,7 +47,7 @@ namespace Couchbase.Core.DI
                 BucketType.Ephemeral =>
                     new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger),
                 BucketType.Memcached =>
-                    new MemcachedBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _memcachedLogger),
+                    new MemcachedBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _ketamaKeyMapperFactory, _memcachedLogger),
                 _ => throw new ArgumentOutOfRangeException(nameof(bucketType), bucketType, null)
             };
     }

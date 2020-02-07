@@ -15,7 +15,7 @@ namespace Couchbase.Utils
         public const string AnalyticsPath = "/analytics/service";
         public static string BaseUriFormat = "{0}://{1}:{2}/pools";
 
-        internal static Uri GetQueryUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodeAdapter)
+        internal static Uri GetQueryUri(this NodeAdapter nodeAdapter, ClusterOptions clusterOptions)
         {
             if (nodeAdapter.IsQueryNode)
             {
@@ -35,7 +35,7 @@ namespace Couchbase.Utils
             }.Uri;
         }
 
-        internal static Uri GetAnalyticsUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodesAdapter)
+        internal static Uri GetAnalyticsUri(this NodeAdapter nodesAdapter, ClusterOptions clusterOptions)
         {
             if (nodesAdapter.IsAnalyticsNode)
             {
@@ -55,7 +55,7 @@ namespace Couchbase.Utils
 
         }
 
-        internal static Uri GetSearchUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodeAdapter)
+        internal static Uri GetSearchUri(this NodeAdapter nodeAdapter, ClusterOptions clusterOptions)
         {
             if (nodeAdapter.IsSearchNode)
             {
@@ -74,7 +74,7 @@ namespace Couchbase.Utils
             }.Uri;
         }
 
-        internal static Uri GetViewsUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodesAdapter)
+        internal static Uri GetViewsUri(this NodeAdapter nodesAdapter, ClusterOptions clusterOptions)
         {
             if (nodesAdapter.IsKvNode)
             {
@@ -93,7 +93,7 @@ namespace Couchbase.Utils
             }.Uri;
         }
 
-        internal static Uri GetManagementUri(this IPEndPoint endPoint, ClusterOptions clusterOptions, NodeAdapter nodesAdapter)
+        internal static Uri GetManagementUri(this NodeAdapter nodesAdapter, ClusterOptions clusterOptions)
         {
             return new UriBuilder
             {
@@ -113,12 +113,6 @@ namespace Couchbase.Utils
             }
             return uri;
         }*/
-
-        public static IPEndPoint GetIpEndPoint(this Uri uri, int port, bool useInterNetworkV6Addresses)
-        {
-            var ipAddress = GetIpAddress(uri, useInterNetworkV6Addresses);
-            return new IPEndPoint(ipAddress, port);
-        }
 
         public static IPAddress GetIpAddress(this Uri uri, bool useInterNetworkV6Addresses)
         {

@@ -21,6 +21,14 @@ namespace Couchbase.Utils
         ValueTask<IPEndPoint?> GetIpEndPointAsync(NodesExt nodesExt, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Returns the K/V <see cref="IPEndPoint"/> for a given <see cref="NodeAdapter"/>.
+        /// </summary>
+        /// <param name="nodeAdapter">The <see cref="NodeAdapter"/>.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>The IP endpoint, or null if the name could not be resolved.</returns>
+        ValueTask<IPEndPoint?> GetIpEndPointAsync(NodeAdapter nodeAdapter, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Returns the <see cref="IPEndPoint"/> for a given hostname and port. Hostname may be an IP addres.
         /// </summary>
         /// <param name="hostNameOrIpAddress">The host name or IP address.</param>

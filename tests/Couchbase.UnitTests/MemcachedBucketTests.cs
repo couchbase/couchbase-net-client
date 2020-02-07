@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -52,7 +53,7 @@ namespace Couchbase.UnitTests
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(x => x.EndPoint).Returns(localhost.GetIpEndPoint(8091, false));
+            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
             mockClusterNode.Setup(x => x.BootstrapUri).Returns(localhost);
             mockClusterNode.Setup(x => x.SelectBucket("default")).Returns(Task.CompletedTask);
 
@@ -76,7 +77,7 @@ namespace Couchbase.UnitTests
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(x => x.EndPoint).Returns(localhost.GetIpEndPoint(8091, false));
+            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
             mockClusterNode.Setup(x => x.BootstrapUri).Returns(localhost);
             mockClusterNode.Setup(x => x.SelectBucket("default")).Returns(Task.CompletedTask);
 
@@ -100,7 +101,7 @@ namespace Couchbase.UnitTests
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(x => x.EndPoint).Returns(localhost.GetIpEndPoint(8091, false));
+            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
             mockClusterNode.Setup(x => x.BootstrapUri).Returns(localhost);
             mockClusterNode.Setup(x => x.SelectBucket("default")).Returns(Task.CompletedTask);
 
@@ -122,6 +123,7 @@ namespace Couchbase.UnitTests
                 new ClusterContext(),
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
+                new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);
 
         #endregion

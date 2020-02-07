@@ -20,8 +20,7 @@ namespace Couchbase.UnitTests.Utils
             var clusterOptions = new ClusterOptions {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
-            var endpoint = nodeAdapter.GetIpEndPoint();
-            var actual = endpoint.GetQueryUri(clusterOptions, nodeAdapter);
+            var actual = nodeAdapter.GetQueryUri(clusterOptions);
 
             var expected = new Uri(expectedUri);
 
@@ -36,8 +35,7 @@ namespace Couchbase.UnitTests.Utils
             var clusterOptions = new  ClusterOptions  {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
-            var endpoint = nodeAdapter.GetIpEndPoint();
-            var actual = endpoint.GetViewsUri(clusterOptions, nodeAdapter);
+            var actual = nodeAdapter.GetViewsUri(clusterOptions);
 
             var expected = new Uri(expectedUri);
 
@@ -52,8 +50,7 @@ namespace Couchbase.UnitTests.Utils
             var clusterOptions = new ClusterOptions {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
-            var endpoint = nodeAdapter.GetIpEndPoint();
-            var actual = endpoint.GetAnalyticsUri(clusterOptions, nodeAdapter);
+            var actual = nodeAdapter.GetAnalyticsUri(clusterOptions);
 
             var expected = new Uri(expectedUri);
 
@@ -68,8 +65,7 @@ namespace Couchbase.UnitTests.Utils
             var clusterOptions = new ClusterOptions  {EnableTls = useSsl};
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
-            var endpoint = nodeAdapter.GetIpEndPoint();
-            var actual = endpoint.GetSearchUri(clusterOptions, nodeAdapter);
+            var actual = nodeAdapter.GetSearchUri(clusterOptions);
 
             var expected = new Uri(expectedUri);
 

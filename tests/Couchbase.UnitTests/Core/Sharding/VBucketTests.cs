@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             _servers = new List<IPEndPoint>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                _servers.Add(node.GetIpEndPoint(false));
+                _servers.Add(new IPEndPoint(IPAddress.Parse(node.Hostname), node.KeyValue));
             }
 
             var vBucketMap = _vBucketServerMap.VBucketMap.First();

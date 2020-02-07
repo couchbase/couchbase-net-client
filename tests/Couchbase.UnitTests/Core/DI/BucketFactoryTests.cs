@@ -26,6 +26,7 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IVBucketKeyMapperFactory>().Object,
+                new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);
 
@@ -49,6 +50,7 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IVBucketKeyMapperFactory>().Object,
+                new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object);
 

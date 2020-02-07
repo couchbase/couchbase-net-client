@@ -266,7 +266,7 @@ namespace Couchbase.Core
                         }
                         else
                         {
-                            var endpoint = nodeAdapter.GetIpEndPoint(ClusterOptions.EnableTls);
+                            var endpoint = await ipEndpointService.GetIpEndPointAsync(nodeAdapter, CancellationToken);
                             if (endpoint.Port == 0) endpoint.Port = 11210;
                             var newNode = await _clusterNodeFactory.CreateAndConnectAsync(endpoint);
                             newNode.BootstrapUri = server;
@@ -304,7 +304,8 @@ namespace Couchbase.Core
             var node = await GetUnassignedNodeAsync(uri);
             if (node == null)
             {
-                var endpoint = uri.GetIpEndPoint(ClusterOptions.KvPort, ClusterOptions.UseInterNetworkV6Addresses);
+                var ipEndPointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
+                var endpoint = await ipEndPointService.GetIpEndPointAsync(uri.Host, ClusterOptions.KvPort, CancellationToken);
                 node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint);
                 node.BootstrapUri = uri;
                 AddNode(node);
@@ -328,9 +329,10 @@ namespace Couchbase.Core
 
         public async Task ProcessClusterMapAsync(IBucket bucket, BucketConfig config)
         {
+            var ipEndPointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
             foreach (var nodeAdapter in config.GetNodes())
             {
-                var endPoint = nodeAdapter.GetIpEndPoint(ClusterOptions.EnableTls);
+                var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken);
                 if (TryGetNode(endPoint, out IClusterNode bootstrapNode))
                 {
                     _logger.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");

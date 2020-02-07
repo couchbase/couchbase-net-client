@@ -57,23 +57,6 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             Assert.NotNull(adapter);
         }
 
-        [Fact]
-        public void When_IPv6_NodeAdapter_GetEndpoint_Succeeds()
-        {
-            //arrange
-            var serverConfigJson = ResourceHelper.ReadResource("config-with-ipv6.json");
-            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
-            var mockBucketConfig = new Mock<BucketConfig>();
-
-            var adapter = new NodeAdapter(serverConfig.Nodes[0], serverConfig.NodesExt[0], mockBucketConfig.Object);
-
-            //act
-            var endpoint = adapter.GetIpEndPoint(false);
-
-            //assert
-            Assert.NotNull(endpoint);
-        }
-
         [Theory]
         [InlineData("$HOST", "localhost")]
         [InlineData("$HOST:8091", "localhost")]

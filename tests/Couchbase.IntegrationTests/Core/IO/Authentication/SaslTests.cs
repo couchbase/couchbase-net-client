@@ -6,6 +6,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Utils;
+using DnsClient;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -30,8 +31,13 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
             var factory = new ConnectionFactory(options, new Mock<ILogger<MultiplexingConnection>>().Object,
                 new Mock<ILogger<SslConnection>>().Object);
 
+            var ipEndPointService = new IpEndPointService(
+                new DnsClientDnsResolver(new LookupClient(), new Mock<ILogger<DnsClientDnsResolver>>().Object),
+                options);
+            var ipEndPoint = await ipEndPointService.GetIpEndPointAsync(options.ServersValue.First().Host, 11210);
+
             var connection = await factory
-                .CreateAndConnectAsync(options.ServersValue.First().GetIpEndPoint(11210, false))
+                .CreateAndConnectAsync(ipEndPoint)
                 .ConfigureAwait(false);
 
             var sha1Mechanism = new ScramShaMechanism(new LegacyTranscoder(), MechanismType.ScramSha1, options.Password,

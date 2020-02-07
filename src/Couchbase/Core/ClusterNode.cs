@@ -182,11 +182,11 @@ namespace Couchbase.Core
         {
             if (NodesAdapter != null)
             {
-                QueryUri = EndPoint.GetQueryUri(_context.ClusterOptions, NodesAdapter);
-                SearchUri = EndPoint.GetSearchUri(_context.ClusterOptions, NodesAdapter);
-                AnalyticsUri = EndPoint.GetAnalyticsUri(_context.ClusterOptions, NodesAdapter);
-                ViewsUri = EndPoint.GetViewsUri(_context.ClusterOptions, NodesAdapter); //TODO move to IBucket level?
-                ManagementUri = EndPoint.GetManagementUri(_context.ClusterOptions, NodesAdapter);
+                QueryUri = NodesAdapter.GetQueryUri(_context.ClusterOptions);
+                SearchUri = NodesAdapter.GetSearchUri(_context.ClusterOptions);
+                AnalyticsUri = NodesAdapter.GetAnalyticsUri(_context.ClusterOptions);
+                ViewsUri = NodesAdapter.GetViewsUri(_context.ClusterOptions); //TODO move to IBucket level?
+                ManagementUri = NodesAdapter.GetManagementUri(_context.ClusterOptions);
             }
         }
 

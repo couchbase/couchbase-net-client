@@ -21,19 +21,22 @@ namespace Couchbase
 {
     internal class MemcachedBucket : BucketBase
     {
+        private readonly IKetamaKeyMapperFactory _ketamaKeyMapperFactory;
         private readonly HttpClusterMapBase _httpClusterMap;
 
-        internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger) :
-            this(name, context, scopeFactory, retryOrchestrator, logger,
+        internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
+            ILogger<MemcachedBucket> logger) :
+            this(name, context, scopeFactory, retryOrchestrator, ketamaKeyMapperFactory, logger,
                 new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context))
         {
         }
 
-        internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger<MemcachedBucket> logger,
-            HttpClusterMapBase httpClusterMap)
+        internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
+            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap)
             : base(name, context, scopeFactory, retryOrchestrator, logger)
         {
             Name = name;
+            _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
             _httpClusterMap = httpClusterMap;
         }
 
@@ -72,12 +75,16 @@ namespace Couchbase
             if (e.Config.Name == Name && (BucketConfig ==  null || e.Config.Rev > BucketConfig.Rev))
             {
                 BucketConfig = e.Config;
-                KeyMapper = new KetamaKeyMapper(BucketConfig, Context.ClusterOptions);
 
-                if (BucketConfig.ClusterNodesChanged)
+                Task.Run(async () =>
                 {
-                    Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig));
-                }
+                    KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+
+                    if (BucketConfig.ClusterNodesChanged)
+                    {
+                        await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                    }
+                });
             }
         }
 
@@ -108,7 +115,7 @@ namespace Couchbase
             BucketConfig = await _httpClusterMap.GetClusterMapAsync(
                 Name, node.BootstrapUri, CancellationToken.None).ConfigureAwait(false);
 
-            KeyMapper = new KetamaKeyMapper(BucketConfig, Context.ClusterOptions);
+            KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig);
 
             //the initial bootstrapping endpoint;
             await node.SelectBucket(Name).ConfigureAwait(false);

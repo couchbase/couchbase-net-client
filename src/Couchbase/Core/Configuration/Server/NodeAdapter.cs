@@ -1,18 +1,10 @@
 using System;
-using System.Collections.Concurrent;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using Couchbase.Utils;
 
 namespace Couchbase.Core.Configuration.Server
 {
     internal class NodeAdapter
     {
-        private readonly ConcurrentDictionary<string, IPEndPoint> _cachedEndPoints =
-            new ConcurrentDictionary<string, IPEndPoint>();
-        private IPAddress _cachedIpAddress;
-
         public NodeAdapter()
         {
         }
@@ -204,59 +196,6 @@ namespace Couchbase.Core.Configuration.Server
         public int AnalyticsSsl { get; set; }
 
         /// <summary>
-        /// Gets the <see cref="IPEndPoint" /> for the KV port for this node.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="IPEndPoint" /> with the KV port.
-        /// </returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public IPEndPoint GetIpEndPoint()
-        {
-            return GetIpEndPoint(KeyValue);
-        }
-
-        /// <summary>
-        /// Gets the <see cref="T:System.Net.IPEndPoint" /> for the KV port for this node.
-        /// </summary>
-        /// <param name="port">The port for the <see cref="T:System.Net.IPEndPoint" /></param>
-        /// <returns>
-        /// An <see cref="T:System.Net.IPEndPoint" /> with the port passed in.
-        /// </returns>
-        public IPEndPoint GetIpEndPoint(int port)
-        {
-            var key = Hostname + ":" + port;
-            if (!_cachedEndPoints.TryGetValue(key, out var endPoint))
-            {
-                endPoint = IpEndPointExtensions.GetEndPoint(Hostname, port);
-                IsIPv6 = endPoint.AddressFamily == AddressFamily.InterNetworkV6;
-                _cachedEndPoints.TryAdd(key, endPoint);
-            }
-
-            return endPoint;
-        }
-
-        /// <summary>
-        /// Gets the <see cref="IPAddress" /> for this node.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="IPAddress" /> for this node.
-        /// </returns>
-        public IPAddress GetIpAddress()
-        {
-            return _cachedIpAddress ?? (_cachedIpAddress = GetIpEndPoint().Address);
-        }
-
-        /// <summary>
-        /// Gets the ip end point.
-        /// </summary>
-        /// <param name="useSsl">if set to <c>true</c> use SSL/TLS.</param>
-        /// <returns></returns>
-        public IPEndPoint GetIpEndPoint(bool useSsl)
-        {
-            return GetIpEndPoint(useSsl ? KeyValueSsl : KeyValue);
-        }
-
-        /// <summary>
         /// Gets a value indicating whether this instance is view node.
         /// </summary>
         /// <value>
@@ -303,11 +242,6 @@ namespace Couchbase.Core.Configuration.Server
         /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
         /// </value>
         public bool IsAnalyticsNode => Analytics > 0 || AnalyticsSsl > 0;
-
-        /// <summary>
-        /// True if the endpoint is using IPv6.
-        /// </summary>
-        public bool IsIPv6 { get; set;  }
     }
 }
 
