@@ -4,7 +4,6 @@ using System.Net;
 using System.Text;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Sharding
 {
@@ -24,7 +23,7 @@ namespace Couchbase.Core.Sharding
         //for log redaction
        // private Func<object, string> User = RedactableArgument.UserAction;
 
-        public VBucketKeyMapper(BucketConfig config, IVBucketFactory vBucketFactory)
+        public VBucketKeyMapper(BucketConfig config, VBucketServerMap vBucketServerMap, IVBucketFactory vBucketFactory)
         {
             if (config == null)
             {
@@ -33,7 +32,7 @@ namespace Couchbase.Core.Sharding
             _vBucketFactory = vBucketFactory ?? throw new ArgumentNullException(nameof(vBucketFactory));
 
             Rev = config.Rev;
-            _vBucketServerMap = config.VBucketServerMap;
+            _vBucketServerMap = vBucketServerMap ?? throw new ArgumentNullException(nameof(vBucketServerMap));
             _endPoints = _vBucketServerMap.IPEndPoints;
             _bucketName = config.Name;
             _vBuckets = CreateVBucketMap();

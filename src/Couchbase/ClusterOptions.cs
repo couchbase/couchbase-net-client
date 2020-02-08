@@ -23,8 +23,6 @@ namespace Couchbase
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
         internal ConnectionString? ConnectionStringValue { get; set; }
 
-        public static bool UseInterNetworkV6Addresses { get; set; }
-
         public ClusterOptions ConnectionString(string connectionString)
         {
             if (connectionString == null)

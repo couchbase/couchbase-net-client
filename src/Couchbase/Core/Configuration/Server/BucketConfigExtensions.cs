@@ -32,22 +32,6 @@ namespace Couchbase.Core.Configuration.Server
             return nodeAdapters;
         }
 
-        public static VBucketServerMap GetBucketServerMap(this BucketConfig bucketConfig, bool useSsl)
-        {
-            var node = bucketConfig.GetNodes().First();
-            var port = useSsl ? node.KeyValueSsl : node.KeyValue;
-
-            return new VBucketServerMap
-            {
-                VBucketMap = (short[][]) bucketConfig.VBucketServerMap.VBucketMap.Clone(),
-                HashAlgorithm = bucketConfig.VBucketServerMap.HashAlgorithm,
-                ServerList = bucketConfig.VBucketServerMap.ServerList.Select(x =>
-                    x.Replace(node.KeyValue.ToString(), port.ToString())).ToArray(),
-                NumReplicas = bucketConfig.VBucketServerMap.NumReplicas,
-                VBucketMapForward = (short[][]) bucketConfig.VBucketServerMap.VBucketMapForward.Clone()
-            };
-        }
-
         public static ClusterCapabilities GetClusterCapabilities(this BucketConfig config)
         {
             return new ClusterCapabilities

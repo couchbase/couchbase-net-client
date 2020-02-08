@@ -75,14 +75,19 @@ namespace Couchbase
             if (e.Config.Name == Name && (BucketConfig == null || e.Config.Rev > BucketConfig.Rev))
             {
                 BucketConfig = e.Config;
-                if (BucketConfig.VBucketMapChanged)
+
+                Task.Run(async () =>
                 {
-                    KeyMapper = _vBucketKeyMapperFactory.Create(BucketConfig);
-                }
-                if (BucketConfig.ClusterNodesChanged)
-                {
-                    Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig)).GetAwaiter().GetResult();
-                }
+                    if (BucketConfig.VBucketMapChanged)
+                    {
+                        KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+                    }
+
+                    if (BucketConfig.ClusterNodesChanged)
+                    {
+                        await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                    }
+                }).GetAwaiter().GetResult();
             }
         }
 
@@ -239,7 +244,7 @@ namespace Couchbase
                 LoadManifest();
 
                 BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
-                KeyMapper = _vBucketKeyMapperFactory.Create(BucketConfig);
+                KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
                 await Context.ProcessClusterMapAsync(this, BucketConfig);
             }

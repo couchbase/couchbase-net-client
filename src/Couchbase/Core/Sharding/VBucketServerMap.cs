@@ -1,52 +1,45 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.ObjectModel;
 using System.Net;
-using System.Runtime.Serialization;
 using Couchbase.Utils;
-using Newtonsoft.Json;
+
+#nullable enable
 
 namespace Couchbase.Core.Sharding
 {
-     public sealed class VBucketServerMap : IEquatable<VBucketServerMap>
-    {
-        private readonly object _syncObj = new object();
-        private List<IPEndPoint> _ipEndPoints = new List<IPEndPoint>();
-        public VBucketServerMap()
+     internal sealed class VBucketServerMap : IEquatable<VBucketServerMap>
+     {
+        public VBucketServerMap(VBucketServerMapDto serverMapDto, IList<IPEndPoint> ipEndPoints)
         {
-            HashAlgorithm = string.Empty;
-            NumReplicas = 0;
-            ServerList = new string[0];
-            VBucketMap = new short[0][];
-            VBucketMapForward = new short[0][];
-        }
-
-        [JsonProperty("hashAlgorithm")]
-        public string HashAlgorithm { get; set; }
-
-        [JsonProperty("numReplicas")]
-        public int NumReplicas { get; set; }
-
-        [JsonProperty("serverList")]
-        public string[] ServerList { get; set; }
-
-        [JsonProperty("vBucketMap")]
-        public short[][] VBucketMap { get; set; }
-
-        [JsonProperty("vBucketMapForward")]
-        public short[][] VBucketMapForward { get; set; }
-
-        [JsonIgnore]
-        public List<IPEndPoint> IPEndPoints
-        {
-            get
+            if (serverMapDto == null)
             {
-                EnsureIPEndPointsAreLoaded();
-                return _ipEndPoints;
+                throw new ArgumentNullException(nameof(serverMapDto));
             }
+            if (ipEndPoints == null)
+            {
+                throw new ArgumentNullException(nameof(ipEndPoints));
+            }
+
+            HashAlgorithm = serverMapDto.HashAlgorithm;
+            NumReplicas = serverMapDto.NumReplicas;
+            ServerList = serverMapDto.ServerList;
+            VBucketMap = serverMapDto.VBucketMap;
+            VBucketMapForward = serverMapDto.VBucketMapForward;
+
+            IPEndPoints = new ReadOnlyCollection<IPEndPoint>(ipEndPoints);
         }
 
-        public bool Equals(VBucketServerMap other)
+        public string HashAlgorithm { get; }
+        public int NumReplicas { get; }
+        public string[] ServerList { get; }
+        public short[][] VBucketMap { get; }
+        public short[][] VBucketMapForward { get; }
+
+        // ReSharper disable once InconsistentNaming
+        public ReadOnlyCollection<IPEndPoint> IPEndPoints { get; }
+
+        public bool Equals(VBucketServerMap? other)
         {
             return (other != null
                     && ServerList.AreEqual<string>(other.ServerList)
@@ -54,7 +47,7 @@ namespace Couchbase.Core.Sharding
                     && VBucketMapForward.AreEqual(other.VBucketMapForward);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as VBucketServerMap);
         }
@@ -70,38 +63,6 @@ namespace Couchbase.Core.Sharding
                 hash = hash * 23 + HashAlgorithm.GetHashCode();
                 return hash;
             }
-        }
-
-        // ReSharper disable once InconsistentNaming
-        private void EnsureIPEndPointsAreLoaded()
-        {
-            const string hostPlaceHolder = "$HOST";
-            lock (_syncObj)
-            {
-                if (_ipEndPoints == null || !_ipEndPoints.Any())
-                {
-                    foreach (var server in ServerList)
-                    {
-                        if (!server.Contains(hostPlaceHolder))
-                        {
-                            //create list only if valid endpoint exists, otherwise wwe will build once $HOST is resolved
-                            if (_ipEndPoints == null)
-                            {
-                                _ipEndPoints = new List<IPEndPoint>();
-                            }
-                            _ipEndPoints.Add(IpEndPointExtensions.GetEndPoint(server));
-                        }
-                    }
-                }
-            }
-        }
-
-        [OnDeserialized]
-        internal void OnDeserializedMethod(StreamingContext context)
-        {
-            // If we're deserializing the configuration, go ahead and load the endpoints in advance
-            // https://issues.couchbase.com/browse/NCBC-1614
-            EnsureIPEndPointsAreLoaded();
         }
     }
 }

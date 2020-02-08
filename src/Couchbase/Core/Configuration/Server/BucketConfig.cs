@@ -247,7 +247,7 @@ namespace Couchbase.Core.Configuration.Server
         public BucketConfig()
         {
             Nodes = new List<Node>();
-            VBucketServerMap = new VBucketServerMap();
+            VBucketServerMap = new VBucketServerMapDto();
         }
 
         public string NetworkType { get; set; }
@@ -268,7 +268,7 @@ namespace Couchbase.Core.Configuration.Server
         [JsonProperty("nodeLocator")] public string NodeLocator { get; set; }
         [JsonProperty("uuid")] public string Uuid { get; set; }
         [JsonProperty("ddocs")] public Ddocs Ddocs { get; set; }
-        [JsonProperty("vBucketServerMap")] public VBucketServerMap VBucketServerMap { get; set; }
+        [JsonProperty("vBucketServerMap")] public VBucketServerMapDto VBucketServerMap { get; set; }
         [JsonProperty("bucketCapabilitiesVer")] public string BucketCapabilitiesVer { get; set; }
         [JsonProperty("bucketCapabilities")] public List<string> BucketCapabilities { get; set; }
         [JsonProperty("clusterCapabilitiesVer")] public List<int> ClusterCapabilitiesVersion { get; set; }

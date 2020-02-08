@@ -1,3 +1,5 @@
+using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Sharding;
 
@@ -14,7 +16,8 @@ namespace Couchbase.Core.DI
         /// Creates an <see cref="IKeyMapper"/> for VBuckets.
         /// </summary>
         /// <param name="bucketConfig">Bucket configuration.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <remarks>The new <see cref="IKeyMapper"/>.</remarks>
-        IKeyMapper Create(BucketConfig bucketConfig);
+        Task<IKeyMapper> CreateAsync(BucketConfig bucketConfig, CancellationToken cancellationToken = default);
     }
 }
