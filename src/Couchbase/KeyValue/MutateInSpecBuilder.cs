@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     public class MutateInSpecBuilder

@@ -1,5 +1,7 @@
 using System;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     internal class ExistsResult : IExistsResult

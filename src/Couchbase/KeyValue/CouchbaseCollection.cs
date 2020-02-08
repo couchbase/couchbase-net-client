@@ -364,7 +364,8 @@ namespace Couchbase.KeyValue
 
             options ??= new LookupInOptions();
             using var lookup = await ExecuteLookupIn(id, specs, options);
-            return new LookupInResult(lookup.ExtractData(), lookup.Cas, null);
+            return new LookupInResult(lookup.ExtractData(), lookup.Cas, null,
+                options.SerializerValue ?? _transcoder.Serializer);
         }
 
         private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<LookupInSpec> specs, LookupInOptions options)

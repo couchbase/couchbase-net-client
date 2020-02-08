@@ -1,5 +1,7 @@
 using Couchbase.Core;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     public interface IMutationResult : IResult

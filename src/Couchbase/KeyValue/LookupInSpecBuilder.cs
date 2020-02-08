@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Couchbase.Core.IO.Operations.SubDocument;
+
+#nullable enable
 
 namespace Couchbase.KeyValue
 {

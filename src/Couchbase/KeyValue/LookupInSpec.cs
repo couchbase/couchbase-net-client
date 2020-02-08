@@ -2,6 +2,8 @@ using System;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     public class LookupInSpec : OperationSpec

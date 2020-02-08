@@ -2,6 +2,8 @@ using System;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     public interface ILookupInResult : IResult, IDisposable

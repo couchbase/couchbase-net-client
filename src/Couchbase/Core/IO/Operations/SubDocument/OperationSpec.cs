@@ -3,6 +3,8 @@ using System.Collections;
 using Couchbase.KeyValue;
 using Newtonsoft.Json;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
     /// <summary>
@@ -10,6 +12,8 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     /// </summary>
     public abstract class OperationSpec : IEqualityComparer
     {
+        private string _path = "";
+
         /// <summary>
         /// Maximum length of the path, in bytes.
         /// </summary>
@@ -21,7 +25,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The path.
         /// </value>
-        internal string Path { get; set; }
+        internal string Path
+        {
+            get => _path;
+            set => _path = value ?? throw new ArgumentNullException(nameof(value));
+        }
 
         /// <summary>
         /// Gets or sets the <see cref="OpCode"/> for the SubDocument operation.
@@ -37,7 +45,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The value.
         /// </value>
-        internal object Value { get; set; }
+        internal object? Value { get; set; }
 
         /// <summary>
         /// Gets or sets the bytes.

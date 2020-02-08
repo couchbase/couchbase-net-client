@@ -13,11 +13,11 @@ namespace Couchbase.KeyValue
         private readonly IList<OperationSpec> _specs;
         private readonly ITypeSerializer _serializer;
 
-        public MutateInResult(IList<OperationSpec> specs, ulong cas, MutationToken token, ITypeSerializer serializer)
+        public MutateInResult(IList<OperationSpec> specs, ulong cas, MutationToken? token, ITypeSerializer serializer)
         {
             _specs = specs ?? throw new ArgumentNullException(nameof(specs));
             Cas = cas;
-            MutationToken = token ?? throw new ArgumentNullException(nameof(token));
+            MutationToken = token ?? MutationToken.Empty;
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 

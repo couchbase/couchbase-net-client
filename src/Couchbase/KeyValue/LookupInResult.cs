@@ -8,18 +8,21 @@ using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Utils;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     internal class LookupInResult : ILookupInResult
     {
         private readonly IMemoryOwner<byte> _bytes;
-        private ITypeSerializer _serializer = new DefaultSerializer();
+        private readonly ITypeSerializer _serializer;
 
-        internal LookupInResult(IMemoryOwner<byte> bytes, ulong cas, TimeSpan? expiry)
+        internal LookupInResult(IMemoryOwner<byte> bytes, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer)
         {
             _bytes = bytes;
             Cas = cas;
             Expiry = expiry;
+            _serializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
         }
 
         public ulong Cas { get; }

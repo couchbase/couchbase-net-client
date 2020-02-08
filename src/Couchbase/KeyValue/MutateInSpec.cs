@@ -2,11 +2,13 @@ using System;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     public class MutateInSpec : OperationSpec
     {
-        private static MutateInSpec CreateSpec(OpCode opCode, string path, object value, bool createPath, bool isXattr, bool removeBrackets)
+        private static MutateInSpec CreateSpec(OpCode opCode, string path, object? value, bool createPath, bool isXattr, bool removeBrackets)
         {
             var pathFlags = SubdocPathFlags.None;
             if (value is IMutationMacro)

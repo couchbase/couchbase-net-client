@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
@@ -9,13 +10,15 @@ using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
+#nullable enable
+
 namespace Couchbase.KeyValue
 {
     internal class GetResult : IGetResult
     {
         private readonly IMemoryOwner<byte> _contentBytes;
-        private readonly List<LookupInSpec> _specs;
-        private readonly List<string> _projectList;
+        private readonly IList<LookupInSpec> _specs;
+        private readonly List<string>? _projectList;
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<GetResult> _logger;
@@ -23,13 +26,13 @@ namespace Couchbase.KeyValue
         private TimeSpan? _expiry;
 
         internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
-            List<LookupInSpec> specs = null, List<string> projectList = null)
+            List<LookupInSpec>? specs = null, List<string>? projectList = null)
         {
             _contentBytes = contentBytes;
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _serializer = transcoder.Serializer;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _specs = specs;
+            _specs = specs ?? (IList<LookupInSpec>) Array.Empty<LookupInSpec>();
             _projectList = projectList;
         }
 
@@ -39,7 +42,7 @@ namespace Couchbase.KeyValue
 
         internal Flags Flags { get; set; }
 
-        public string Id { get; internal set; }
+        public string? Id { get; internal set; }
 
         public ulong Cas { get; internal set; }
 
@@ -53,7 +56,7 @@ namespace Couchbase.KeyValue
                     return _expiry;
                 }
 
-                var spec = _specs.Find(x => x.Path == VirtualXttrs.DocExpiryTime);
+                var spec = _specs.FirstOrDefault(x => x.Path == VirtualXttrs.DocExpiryTime);
                 if (spec != null)
                 {
                     var ms = _serializer.Deserialize<long>(spec.Bytes);
@@ -148,7 +151,7 @@ namespace Couchbase.KeyValue
             _isParsed = true;
         }
 
-        void BuildPath(JToken token, string name, JToken content =  null)
+        void BuildPath(JToken token, string name, JToken? content = null)
         {
             foreach (var child in token.Children())
             {
