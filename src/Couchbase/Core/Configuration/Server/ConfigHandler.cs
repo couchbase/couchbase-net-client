@@ -1,23 +1,17 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Microsoft.Extensions.Logging;
 
+#nullable enable
+
 namespace Couchbase.Core.Configuration.Server
 {
-    public class BucketConfigEventArgs : EventArgs
-    {
-        public BucketConfigEventArgs(BucketConfig config)
-        {
-            Config = config;
-        }
-
-        public BucketConfig Config { get; }
-    }
-
     internal class ConfigHandler : IConfigHandler
     {
         private readonly ILogger<ConfigHandler> _logger;
@@ -28,16 +22,18 @@ namespace Couchbase.Core.Configuration.Server
         private readonly ConcurrentDictionary<string, BucketConfig> _configs =
             new ConcurrentDictionary<string, BucketConfig>();
 
-        public CancellationTokenSource TokenSource { get; set; } = new CancellationTokenSource();
+        private readonly CancellationTokenSource _tokenSource = new CancellationTokenSource();
         private readonly ClusterContext _context;
         private readonly IHttpStreamingConfigListenerFactory _configListenerFactory;
 
         private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners =
             new ConcurrentDictionary<string, HttpStreamingConfigListener>();
 
-        internal delegate void BucketConfigHandler(object sender, BucketConfigEventArgs a);
+        private readonly HashSet<IConfigUpdateEventSink> _configChangedSubscribers =
+            new HashSet<IConfigUpdateEventSink>();
 
-        public event BucketConfigHandler ConfigChanged;
+        private Thread? _thread;
+        private bool _disposed;
 
         public ConfigHandler(ClusterContext context, IHttpStreamingConfigListenerFactory configListenerFactory, ILogger<ConfigHandler> logger)
         {
@@ -46,26 +42,33 @@ namespace Couchbase.Core.Configuration.Server
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public void Start(CancellationTokenSource tokenSource)
+        public void Start(bool withPolling = false)
         {
-            TokenSource = tokenSource;
-            Task.Run(Process, TokenSource.Token);
+            if (_thread != null)
+            {
+                throw new InvalidOperationException($"{nameof(ConfigHandler)} has already been started.");
+            }
+
+            _thread = new Thread(Process)
+            {
+                IsBackground = true,
+                Name = nameof(ConfigHandler)
+            };
+            _thread.Start();
+
+            if (withPolling)
+            {
+                Poll();
+            }
         }
 
-        public void Stop()
-        {
-            TokenSource.Cancel();
-            TokenSource.Dispose();
-        }
-
-        public void Poll(CancellationToken token = default(CancellationToken))
+        private void Poll()
         {
             Task.Run(async () =>
             {
-                Thread.CurrentThread.Name = "cnfg";
-                while (!TokenSource.IsCancellationRequested)
+                while (!_tokenSource.IsCancellationRequested)
                 {
-                    await Task.Delay(_context.ClusterOptions.ConfigPollInterval, TokenSource.Token).ConfigureAwait(false);
+                    await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token).ConfigureAwait(false);
 
                     foreach (var clusterNode in _context.Nodes)
                     {
@@ -87,38 +90,62 @@ namespace Couchbase.Core.Configuration.Server
                         }
                     }
                 }
-            }, token);
+            }, _tokenSource.Token);
         }
 
-        public void Process()
+        private void Process()
         {
-            foreach (var newMap in _configQueue.GetConsumingEnumerable())
+            try
             {
-                try
+                // Don't use cancellation token for GetConsumingEnumerable, causes some strange exceptions
+                // The call to _configQueue.CompleteAdding will exit the loop instead
+                foreach (var newMap in _configQueue.GetConsumingEnumerable())
                 {
-                    var isNewOrUpdate = false;
-                    var stored = _configs.AddOrUpdate(newMap.Name, key =>
-                        {
-                            isNewOrUpdate = true;
-                            return newMap;
-                        },
-                        (key, map) =>
-                        {
-                            if (newMap.Equals(map)) return map;
-
-                            isNewOrUpdate = true;
-                            return newMap.Rev > map.Rev ? newMap : map;
-                        });
-
-                    if (isNewOrUpdate)
+                    try
                     {
-                        ConfigChanged?.Invoke(this, new BucketConfigEventArgs(stored));
+                        var isNewOrUpdate = false;
+                        var stored = _configs.AddOrUpdate(newMap.Name, key =>
+                            {
+                                isNewOrUpdate = true;
+                                return newMap;
+                            },
+                            (key, map) =>
+                            {
+                                if (newMap.Equals(map)) return map;
+
+                                isNewOrUpdate = true;
+                                return newMap.Rev > map.Rev ? newMap : map;
+                            });
+
+                        if (isNewOrUpdate)
+                        {
+                            List<IConfigUpdateEventSink> subscribers;
+                            lock (_configChangedSubscribers)
+                            {
+                                subscribers = _configChangedSubscribers.ToList();
+                            }
+
+                            var tasks = subscribers.Select(p => p.ConfigUpdatedAsync(stored));
+                            Task.WhenAll(tasks).GetAwaiter().GetResult();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogWarning(e, "Error processing new clusterOptions");
+                    }
+
+                    if (_tokenSource.IsCancellationRequested)
+                    {
+                        break;
                     }
                 }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Error processing new clusterOptions");
-                }
+            }
+            catch (Exception ex)
+            {
+                // There is a problem in older versions of SemaphoreSlim used by BlockingCollection than can
+                // cause an NRE if GetConsumingEnumerable is still enumerating when BlockingCollection is
+                // disposed. We need to eat that error to prevent crashes. https://github.com/dotnet/coreclr/pull/24776
+                _logger.LogDebug(ex, "Ignoring unhandled exception in ConfigHandler.");
             }
         }
 
@@ -136,7 +163,10 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Subscribe(BucketBase bucket)
         {
-            ConfigChanged += bucket.ConfigUpdated;
+            lock (_configChangedSubscribers)
+            {
+                _configChangedSubscribers.Add(bucket);
+            }
 
             if (bucket is MemcachedBucket)
             {
@@ -146,7 +176,7 @@ namespace Couchbase.Core.Configuration.Server
                     httpListener.StartListening();
 
                     // Dispose the listener when we're stopped
-                    TokenSource.Token.Register(state =>
+                    _tokenSource.Token.Register(state =>
                     {
                         ((HttpStreamingConfigListener) state).Dispose();
                     }, httpListener);
@@ -156,7 +186,10 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Unsubscribe(BucketBase bucket)
         {
-            ConfigChanged -= bucket.ConfigUpdated;
+            lock (_configChangedSubscribers)
+            {
+                _configChangedSubscribers.Remove(bucket);
+            }
 
             if (bucket is MemcachedBucket)
             {
@@ -198,12 +231,22 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Dispose()
         {
-            _configQueue?.Dispose();
-            TokenSource?.Dispose();
-            if (ConfigChanged == null) return;
-            foreach (var subscriber in ConfigChanged.GetInvocationList())
+            if (_disposed)
             {
-                ConfigChanged -= (BucketConfigHandler) subscriber;
+                return;
+            }
+
+            _disposed = true;
+
+            _configQueue.CompleteAdding();
+            _configQueue.Dispose();
+
+            _tokenSource.Cancel();
+            _tokenSource.Dispose();
+
+            lock (_configChangedSubscribers)
+            {
+                _configChangedSubscribers.Clear();
             }
         }
     }

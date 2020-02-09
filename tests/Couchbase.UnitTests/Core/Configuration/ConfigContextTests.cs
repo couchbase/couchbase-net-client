@@ -34,12 +34,11 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_GreaterRevisionExcepted()
         {
             //arrange
-            var cts = new CancellationTokenSource();
             var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
-            handler.Start(cts);
+            handler.Start();
             handler.Subscribe(_bucket);
 
             var config1 = new BucketConfig
@@ -57,31 +56,25 @@ namespace Couchbase.UnitTests.Core.Configuration
             //act
             handler.Publish(config1);
 
-            _event.Wait(cts.Token);
+            _event.Wait();
 
             handler.Publish(config2);
 
-            _event.Wait(cts.Token);
+            _event.Wait();
 
             //assert
             Assert.Equal(config2.Rev, handler.Get("default").Rev);
-        }
-
-        private void Context_ConfigChanged(object sender, BucketConfigEventArgs a)
-        {
-            Thread.Sleep(10);
         }
 
         [Fact]
         public void Can_Subscribe()
         {
             //arrange
-            var cts = new CancellationTokenSource();
-            var context = new ClusterContext(cts, new ClusterOptions());
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
-            handler.Start(cts);
+            handler.Start();
             handler.Subscribe(_bucket);
 
             var config = new BucketConfig
@@ -92,51 +85,21 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act
             handler.Publish(config);
-            _event.Wait(cts.Token);
+            _event.Wait();
 
             //assert
             Assert.Equal(1u, handler.Get("default").Rev);
         }
 
-        [Fact]
-        public void Can_Start_Stop_Start_Subscribe()
-        {
-            //arrange
-            var cts = new CancellationTokenSource();
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
-                new Mock<ILogger<ConfigHandler>>().Object);
-            handler.Start(cts);
-            handler.Subscribe(_bucket);
-
-            handler.Stop();
-
-            cts = new CancellationTokenSource();
-            handler.Start(cts);
-
-            var config = new BucketConfig
-            {
-                Name = "default",
-                Rev = 1
-            };
-
-            handler.Publish(config);
-            _event.Wait(cts.Token);
-
-            //assert
-            Assert.Equal(1u, handler.Get("default").Rev);
-        }
         [Fact]
         public void Publish_LesserRevisionIgnored()
         {
             //arrange
-            var cts = new CancellationTokenSource();
             var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
-            handler.Start(cts);
+            handler.Start();
             handler.Subscribe(_bucket);
 
             //act
@@ -153,10 +116,10 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             handler.Publish(config1);
-            _event.Wait(cts.Token);
+            _event.Wait();
 
             handler.Publish(config2);
-            _event.Wait(cts.Token);
+            _event.Wait();
 
             //assert
             Assert.Equal(config1.Rev, handler.Get("default").Rev);
@@ -166,12 +129,11 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_EqualRevisionIgnored()
         {
             //arrange
-            var cts = new CancellationTokenSource();
-            var context = new ClusterContext(cts, new ClusterOptions());
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
-            handler.Start(cts);
+            handler.Start();
             handler.Subscribe(_bucket);
 
             var config1 = new BucketConfig
@@ -188,7 +150,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act
             handler.Publish(config1);
-            _event.Wait(cts.Token);
+            _event.Wait();
 
             handler.Publish(config2);
 
@@ -200,31 +162,29 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_When_ConfigNotRegistered_Throws_BucketMissingException()
         {
             //arrange
-            var cts = new CancellationTokenSource();
-            var context = new ClusterContext(cts, new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
-            handler.Start(cts);
+            handler.Start();
             handler.Subscribe(_bucket);
 
             Assert.Throws<BucketMissingException>(() => handler.Get("default"));
         }
 
         [Fact]
-        public void Get_When_Stopped_Throw_ObjectDisposedException()
+        public void Publish_When_Stopped_Throw_ContextStoppedException()
         {
             //arrange
-            var cts = new CancellationTokenSource();
-            var context = new ClusterContext(cts, new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
-            handler.Start(cts);
+            handler.Start();
             handler.Subscribe(_bucket);
-            handler.Stop();
+            handler.Dispose();
 
             var config = new BucketConfig
             {
@@ -233,10 +193,10 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             //act
-            Assert.Throws<ObjectDisposedException>(() =>
+            Assert.Throws<ContextStoppedException>(() =>
             {
                 handler.Publish(config);
-                _event.Wait(cts.Token);
+                _event.Wait();
             });
         }
 
@@ -244,12 +204,11 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Get_When_Bucket_Not_Subscribed_Throw_BucketMissingException()
         {
             //arrange
-            var cts = new CancellationTokenSource();
-            var context = new ClusterContext(cts, new ClusterOptions());
-            var handler = new ConfigHandler(context, context.ServiceProvider.GetRequiredService<IHttpStreamingConfigListenerFactory>(),
+            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
+            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
-            handler.Start(cts);
+            handler.Start();
             handler.Subscribe(_bucket);
 
             //act/assert
@@ -289,10 +248,12 @@ namespace Couchbase.UnitTests.Core.Configuration
                 throw new NotImplementedException();
             }
 
-            internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
+            public override Task ConfigUpdatedAsync(BucketConfig config)
             {
-                _output.WriteLine("recieved config #: {0}", e.Config.Rev);
+                _output.WriteLine("recieved config #: {0}", config.Rev);
                 _event.Release();
+
+                return Task.CompletedTask;
             }
         }
     }

@@ -216,7 +216,7 @@ namespace Couchbase.UnitTests.KeyValue
                 throw new NotImplementedException();
             }
 
-            internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
+            public override Task ConfigUpdatedAsync(BucketConfig config)
             {
                 throw new NotImplementedException();
             }

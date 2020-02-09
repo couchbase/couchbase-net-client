@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Core
 {
-    internal abstract class BucketBase : IBucket
+    internal abstract class BucketBase : IBucket, IConfigUpdateEventSink
     {
         private readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
@@ -116,7 +116,7 @@ namespace Couchbase.Core
 
         internal abstract Task BootstrapAsync(IClusterNode node);
 
-        internal abstract void ConfigUpdated(object sender, BucketConfigEventArgs e);
+        public abstract Task ConfigUpdatedAsync(BucketConfig config);
 
         protected void LoadManifest()
         {

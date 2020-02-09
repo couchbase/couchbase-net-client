@@ -71,8 +71,7 @@ namespace Couchbase.Core
 
         public void StartConfigListening()
         {
-            _configHandler.Start(_tokenSource);
-            if (ClusterOptions.EnableConfigPolling) _configHandler.Poll(_tokenSource.Token);
+            _configHandler.Start(ClusterOptions.EnableConfigPolling);
         }
 
         public void RegisterBucket(BucketBase bucket)

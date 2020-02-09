@@ -70,21 +70,18 @@ namespace Couchbase
 
         public override ICollectionManager Collections => throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
 
-        internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
+        public override async Task ConfigUpdatedAsync(BucketConfig config)
         {
-            if (e.Config.Name == Name && (BucketConfig ==  null || e.Config.Rev > BucketConfig.Rev))
+            if (config.Name == Name && (BucketConfig == null || config.Rev > BucketConfig.Rev))
             {
-                BucketConfig = e.Config;
+                BucketConfig = config;
 
-                Task.Run(async () =>
+                KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+
+                if (BucketConfig.ClusterNodesChanged)
                 {
-                    KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
-
-                    if (BucketConfig.ClusterNodesChanged)
-                    {
-                        await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
-                    }
-                });
+                    await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                }
             }
         }
 

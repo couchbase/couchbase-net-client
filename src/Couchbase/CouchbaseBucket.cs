@@ -70,24 +70,21 @@ namespace Couchbase
         /// <remarks>Volatile</remarks>
         public override ICollectionManager Collections => _collectionManagerLazy.Value;
 
-        internal override void ConfigUpdated(object sender, BucketConfigEventArgs e)
+        public override async Task ConfigUpdatedAsync(BucketConfig config)
         {
-            if (e.Config.Name == Name && (BucketConfig == null || e.Config.Rev > BucketConfig.Rev))
+            if (config.Name == Name && (BucketConfig == null || config.Rev > BucketConfig.Rev))
             {
-                BucketConfig = e.Config;
+                BucketConfig = config;
 
-                Task.Run(async () =>
+                if (BucketConfig.VBucketMapChanged)
                 {
-                    if (BucketConfig.VBucketMapChanged)
-                    {
-                        KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
-                    }
+                    KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+                }
 
-                    if (BucketConfig.ClusterNodesChanged)
-                    {
-                        await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
-                    }
-                }).GetAwaiter().GetResult();
+                if (BucketConfig.ClusterNodesChanged)
+                {
+                    await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                }
             }
         }
 
