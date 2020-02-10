@@ -13,6 +13,7 @@ using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Retry.Search;
@@ -83,7 +84,8 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, retryOrchestrator, new Mock<ILogger>().Object);
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
@@ -105,7 +107,8 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator();
 
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, retryOrchestrator, new Mock<ILogger>().Object);
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>()))
                 .Returns(Task.CompletedTask);
 
@@ -130,7 +133,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator();
 
             var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object,
-                retryOrchestrator, new Mock<ILogger>().Object)
+                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object)
             {
                 CallBase = true
             };
@@ -384,6 +387,6 @@ namespace Couchbase.UnitTests.Core.Retry
         }
 
         private static RetryOrchestrator CreateRetryOrchestrator() =>
-            new RetryOrchestrator(new Mock<ILogger<RetryOrchestrator>>().Object);
+            new RetryOrchestrator(new Mock<ILogger<RetryOrchestrator>>().Object, new Mock<IRedactor>().Object);
     }
 }

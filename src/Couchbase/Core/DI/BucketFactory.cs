@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ namespace Couchbase.Core.DI
         private readonly IKetamaKeyMapperFactory _ketamaKeyMapperFactory;
         private readonly ILogger<CouchbaseBucket> _couchbaseLogger;
         private readonly ILogger<MemcachedBucket> _memcachedLogger;
+        private readonly IRedactor _redactor;
 
         public BucketFactory(
             ClusterContext clusterContext,
@@ -27,7 +29,9 @@ namespace Couchbase.Core.DI
             IVBucketKeyMapperFactory vBucketKeyMapperFactory,
             IKetamaKeyMapperFactory ketamaKeyMapperFactory,
             ILogger<CouchbaseBucket> couchbaseLogger,
-            ILogger<MemcachedBucket> memcachedLogger)
+            ILogger<MemcachedBucket> memcachedLogger,
+            IRedactor redactor
+            )
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
@@ -36,6 +40,7 @@ namespace Couchbase.Core.DI
             _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
             _couchbaseLogger = couchbaseLogger ?? throw new ArgumentNullException(nameof(couchbaseLogger));
             _memcachedLogger = memcachedLogger ?? throw new ArgumentNullException(nameof(memcachedLogger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(IRedactor));
         }
 
         /// <inheritdoc />
@@ -43,11 +48,11 @@ namespace Couchbase.Core.DI
             bucketType switch
             {
                 BucketType.Couchbase =>
-                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger),
+                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger, _redactor),
                 BucketType.Ephemeral =>
-                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger),
+                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger, _redactor),
                 BucketType.Memcached =>
-                    new MemcachedBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _ketamaKeyMapperFactory, _memcachedLogger),
+                    new MemcachedBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _ketamaKeyMapperFactory, _memcachedLogger, _redactor),
                 _ => throw new ArgumentOutOfRangeException(nameof(bucketType), bucketType, null)
             };
     }

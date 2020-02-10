@@ -8,6 +8,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -78,15 +79,17 @@ namespace Couchbase.UnitTests.Utils
 
         #region Helpers
 
-        private ClusterNode MakeFakeClusterNode() =>
-            new ClusterNode(
+        private ClusterNode MakeFakeClusterNode()
+        {
+            return new ClusterNode(
                 new ClusterContext(null, new ClusterOptions()),
                 new Mock<IConnectionPoolFactory>().Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new Mock<ITypeTranscoder>().Object,
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
-                new IPEndPoint(IPAddress.Parse("127.0.0.1"),11210))
+                new Mock<IRedactor>().Object,
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210))
             {
                 NodesAdapter = new NodeAdapter
                 {
@@ -94,6 +97,7 @@ namespace Couchbase.UnitTests.Utils
                     Views = 8092
                 }
             };
+        }
 
         #endregion
     }

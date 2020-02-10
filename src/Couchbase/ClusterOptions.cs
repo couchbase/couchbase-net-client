@@ -7,6 +7,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTracing;
@@ -155,6 +156,8 @@ namespace Couchbase
             CircuitBreakerConfiguration.Default;
 
         public bool EnableOperationDurationTracing { get; set; } = true;
+
+        public RedactionLevel RedactionLevel { get; set; } = RedactionLevel.None;
 
         //Volatile or obsolete options
         public int MgmtPort { get; set; } = 8091;

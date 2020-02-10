@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -19,13 +20,15 @@ namespace Couchbase.Management.Search
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly CouchbaseHttpClient _client;
         private readonly ILogger<SearchIndexManager> _logger;
+        private readonly IRedactor _redactor;
 
         public SearchIndexManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient httpClient,
-            ILogger<SearchIndexManager> logger)
+            ILogger<SearchIndexManager> logger, IRedactor redactor)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
         private Uri GetIndexUri(string? indexName = null)
@@ -90,7 +93,8 @@ namespace Couchbase.Management.Search
         {
             options ??= AllowQueryingSearchIndexOptions.Default;
             var baseUri = GetQueryControlUri(indexName, true);
-            _logger.LogInformation($"Trying to allow querying for index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to allow querying for index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -104,7 +108,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to allow querying for index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to allow querying for index with name {indexName} - {baseUri}",
+                    _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -113,7 +118,8 @@ namespace Couchbase.Management.Search
         {
             options ??= DisallowQueryingSearchIndexOptions.Default;
             var baseUri = GetQueryControlUri(indexName, false);
-            _logger.LogInformation($"Trying to disallow querying for index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to disallow querying for index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -127,7 +133,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to disallow querying for index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to disallow querying for index with name {indexName} - {baseUri}",
+                    _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -136,7 +143,8 @@ namespace Couchbase.Management.Search
         {
             options ??= DropSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexName);
-            _logger.LogInformation($"Trying to drop index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to drop index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -150,7 +158,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to drop index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to drop index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -159,7 +168,8 @@ namespace Couchbase.Management.Search
         {
             options ??= FreezePlanSearchIndexOptions.Default;
             var baseUri = GetFreezeControlUri(indexName, true);
-            _logger.LogInformation($"Trying to freeze index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to freeze index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -173,7 +183,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to freeze index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to freeze index with name {indexName} - {baseUri}",
+                    _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -182,7 +193,7 @@ namespace Couchbase.Management.Search
         {
             options ??= GetAllSearchIndexesOptions.Default;
             var baseUri = GetIndexUri();
-            _logger.LogInformation($"Trying to get all indexes - {baseUri}");
+            _logger.LogInformation("Trying to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
 
             try
             {
@@ -194,7 +205,7 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get all indexes - {baseUri}");
+                _logger.LogError(exception, "Failed to get all indexes - {baseUri}", _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -203,7 +214,8 @@ namespace Couchbase.Management.Search
         {
             options ??= GetSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexName);
-            _logger.LogInformation($"Trying to get index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to get index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -215,7 +227,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to get index with name {indexName} - {baseUri}",
+                    _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -224,7 +237,8 @@ namespace Couchbase.Management.Search
         {
             options ??= GetSearchIndexDocumentCountOptions.Default;
             var baseUri = GetIndexedDocumentCountUri(indexName);
-            _logger.LogInformation($"Trying to get index document count with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to get index document count with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -239,7 +253,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get index document count with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to get index document count with name {indexName} - {baseUri}",
+                    _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -248,7 +263,8 @@ namespace Couchbase.Management.Search
         {
             options ??= PauseIngestSearchIndexOptions.Default;
             var baseUri = GetIngestControlUri(indexName, true);
-            _logger.LogInformation($"Trying to pause ingest for index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to pause ingest for index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -262,7 +278,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to pause ingest for index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to pause ingest for index with name {indexName} - {baseUri}",
+                    _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -271,7 +288,8 @@ namespace Couchbase.Management.Search
         {
             options ??= ResumeIngestSearchIndexOptions.Default;
             var baseUri = GetIngestControlUri(indexName, false);
-            _logger.LogInformation($"Trying to resume ingest for index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to resume ingest for index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -285,7 +303,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to resume ingest for index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to resume ingest for index with name {indexName} - {baseUri}",
+                    _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -294,7 +313,8 @@ namespace Couchbase.Management.Search
         {
             options ??= UnfreezePlanSearchIndexOptions.Default;
             var baseUri = GetFreezeControlUri(indexName, false);
-            _logger.LogInformation($"Trying to unfreeze index with name {indexName} - {baseUri}");
+            _logger.LogInformation("Trying to unfreeze index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
 
             try
             {
@@ -308,7 +328,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to unfreeze index with name {indexName} - {baseUri}");
+                _logger.LogError(exception, "Failed to unfreeze index with name {indexName} - {baseUri}",
+                _redactor.MetaData(indexName), _redactor.SystemData(baseUri));
                 throw;
             }
         }
@@ -317,7 +338,8 @@ namespace Couchbase.Management.Search
         {
             options ??= UpsertSearchIndexOptions.Default;
             var baseUri = GetIndexUri(indexDefinition.Name);
-            _logger.LogInformation($"Trying to upsert index with name {indexDefinition.Name} - {baseUri}");
+            _logger.LogInformation("Trying to upsert index with name {indexDefinition.Name} - {baseUri}",
+                _redactor.MetaData(indexDefinition.Name), _redactor.SystemData(baseUri));
 
             try
             {
@@ -328,7 +350,8 @@ namespace Couchbase.Management.Search
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to upsert index with name {indexDefinition.Name} - {baseUri}");
+                _logger.LogError(exception, "Failed to upsert index with name {indexDefinition.Name} - {baseUri}",
+                    _redactor.MetaData(indexDefinition.Name), _redactor.SystemData(baseUri));
                 throw;
             }
         }

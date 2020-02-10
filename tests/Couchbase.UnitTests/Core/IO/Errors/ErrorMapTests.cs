@@ -11,6 +11,8 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
+using Couchbase.KeyValue;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -44,6 +46,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 new Mock<ITypeTranscoder>().Object,
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
+                new Mock<IRedactor>().Object,
                 new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210))
             {
                 ErrorMap = errorMap

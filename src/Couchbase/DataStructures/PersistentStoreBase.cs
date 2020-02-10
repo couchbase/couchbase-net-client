@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using ICollection = Couchbase.KeyValue.ICollection;
 
@@ -16,12 +17,14 @@ namespace Couchbase.DataStructures
         protected ICollection Collection { get; }
         protected string Key { get; }
         protected bool BackingStoreChecked {get; set;}
+        internal IRedactor? Redactor;
 
-        internal PersistentStoreBase(ICollection collection, string key, ILogger? logger, object syncRoot, bool isSynchronized)
+        internal PersistentStoreBase(ICollection collection, string key, ILogger? logger, IRedactor? redactor, object syncRoot, bool isSynchronized)
         {
             Collection = collection ?? throw new ArgumentNullException(nameof(collection));
             Key = key ?? throw new ArgumentNullException(nameof(key));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            Logger = logger;
+            Redactor = redactor;
             SyncRoot = syncRoot;
             IsSynchronized = isSynchronized;
         }
@@ -37,7 +40,8 @@ namespace Couchbase.DataStructures
             catch (DocumentExistsException e)
             {
                 //ignore - the doc already exists for this collection
-                Logger?.LogTrace(e, "The PersistentList backing document already exists for ID {key}. Not an error.", Key);
+                Logger?.LogTrace(e, "The PersistentList backing document already exists for ID {key}. Not an error.",
+                    Redactor?.UserData(Key));
             }
         }
         protected virtual IList<TValue> GetList()

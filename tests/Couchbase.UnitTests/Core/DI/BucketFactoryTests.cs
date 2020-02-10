@@ -1,6 +1,7 @@
 using System;
 using Couchbase.Core;
 using Couchbase.Core.DI;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IVBucketKeyMapperFactory>().Object,
                 new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
-                new Mock<ILogger<MemcachedBucket>>().Object);
+                new Mock<ILogger<MemcachedBucket>>().Object,
+                new Mock<IRedactor>().Object);
 
             // Act
 
@@ -52,7 +54,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IVBucketKeyMapperFactory>().Object,
                 new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
-                new Mock<ILogger<MemcachedBucket>>().Object);
+                new Mock<ILogger<MemcachedBucket>>().Object,
+                new Mock<IRedactor>().Object);
 
             // Act/Assert
 

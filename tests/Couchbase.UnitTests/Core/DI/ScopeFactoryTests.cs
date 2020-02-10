@@ -4,6 +4,7 @@ using System.Linq;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
@@ -174,7 +175,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new ClusterContext(),
                 factory,
                 new Mock<IRetryOrchestrator>().Object,
-                new Mock<ILogger>().Object);
+                new Mock<ILogger>().Object,
+                new Mock<IRedactor>().Object);
 
             return mock.Object;
         }

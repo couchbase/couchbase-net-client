@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace Couchbase.Core
     internal class ClusterContext : IDisposable
     {
         private readonly ILogger<ClusterContext> _logger;
+        private readonly IRedactor _redactor;
         private readonly IConfigHandler _configHandler;
         private readonly IClusterNodeFactory _clusterNodeFactory;
         private readonly CancellationTokenSource _tokenSource;
@@ -48,6 +50,7 @@ namespace Couchbase.Core
             ServiceProvider = options.BuildServiceProvider();
 
             _logger = ServiceProvider.GetRequiredService<ILogger<ClusterContext>>();
+            _redactor = ServiceProvider.GetRequiredService<IRedactor>();
             _configHandler = ServiceProvider.GetRequiredService<IConfigHandler>();
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
         }
@@ -110,7 +113,7 @@ namespace Couchbase.Core
                     catch (NullReferenceException)
                     {
                         throw new ServiceMissingException(
-                            $"No node with the Views service has been located for {bucketName}");
+                            $"No node with the Views service has been located for {_redactor.MetaData(bucketName)}");
                     }
 
                     break;
@@ -168,7 +171,7 @@ namespace Couchbase.Core
         {
             if (Nodes.TryAdd(node.EndPoint, node))
             {
-                _logger.LogDebug("Added {0}", node.EndPoint);
+                _logger.LogDebug("Added {endPoint}", _redactor.SystemData(node.EndPoint));
             }
         }
 
@@ -176,7 +179,7 @@ namespace Couchbase.Core
         {
             if (Nodes.TryRemove(removedNode.EndPoint, out removedNode))
             {
-                _logger.LogDebug("Removing {0}", removedNode.EndPoint);
+                _logger.LogDebug("Removing {endPoint}", _redactor.SystemData(removedNode.EndPoint));
                 removedNode.Dispose();
                 removedNode = null;
                 return true;
@@ -195,7 +198,7 @@ namespace Couchbase.Core
         public bool NodeExists(IClusterNode node)
         {
             var found = Nodes.ContainsKey(node.EndPoint);
-            _logger.LogDebug(found ? "Found {0}" : "Did not find {0}", node.EndPoint);
+            _logger.LogDebug(found ? "Found {endPoint}" : "Did not find {endPoint}", _redactor.SystemData(node.EndPoint));
             return found;
         }
 
@@ -232,7 +235,8 @@ namespace Couchbase.Core
                     var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken)).ToList();
                     if (servers.Any())
                     {
-                        _logger.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
+                        _logger.LogInformation(
+                            $"Successfully retrieved DNS SRV entries: [{_redactor.SystemData(string.Join(",", servers))}]");
                         ClusterOptions.ConnectionStringValue =
                             new ConnectionString(ClusterOptions.ConnectionStringValue, servers);
                     }
@@ -292,7 +296,7 @@ namespace Couchbase.Core
                 }
             }
 
-            return bucket;
+            throw new BucketNotFoundException(name);
         }
 
         public async Task<IBucket> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
@@ -314,7 +318,7 @@ namespace Couchbase.Core
             }
             catch(Exception e)
             {
-                _logger.LogError(e, $"Could not bootstrap bucket {type}/{name}");
+                _logger.LogError(e, "Could not bootstrap bucket {name}.", _redactor.MetaData(name));
                 UnRegisterBucket(bucket);
             }
             return bucket;
@@ -328,7 +332,9 @@ namespace Couchbase.Core
                 var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken);
                 if (TryGetNode(endPoint, out IClusterNode bootstrapNode))
                 {
-                    _logger.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
+                    _logger.LogDebug("Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
+                        _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
+
                     if (bootstrapNode.HasKv)
                     {
                         await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
@@ -339,11 +345,14 @@ namespace Couchbase.Core
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
 
-                _logger.LogDebug($"Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
+                _logger.LogDebug("Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
+                    _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
+
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(
                     // We want the BootstrapEndpoint to use the host name, not just the IP
                     new HostEndpoint(nodeAdapter.Hostname, endPoint.Port),
                     CancellationToken);
+
                 if (node.HasKv)
                 {
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);

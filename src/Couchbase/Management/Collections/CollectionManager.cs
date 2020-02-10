@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -20,14 +21,16 @@ namespace Couchbase.Management.Collections
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly CouchbaseHttpClient _client;
         private readonly ILogger<CollectionManager> _logger;
+        private readonly IRedactor _redactor;
 
         public CollectionManager(string bucketName, IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client,
-            ILogger<CollectionManager> logger)
+            ILogger<CollectionManager> logger, IRedactor redactor)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
         private Uri GetUri(string? scopeName = null, string? collectionName = null)
@@ -54,7 +57,9 @@ namespace Couchbase.Management.Collections
         {
             options ??= CollectionExistsOptions.Default;
             var uri = GetUri();
-            _logger.LogInformation($"Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}");
+            _logger.LogInformation(
+                "Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}", spec.ScopeName,
+                spec.Name, _redactor.SystemData(uri));
 
             try
             {
@@ -70,7 +75,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to verify if collection {spec.ScopeName}/{spec.Name} exists - {uri}");
+                _logger.LogError(exception, "Failed to verify if collection {spec.ScopeName}/{spec.Name} exists - {uri}", spec.ScopeName,
+                    spec.Name, _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -79,7 +85,8 @@ namespace Couchbase.Management.Collections
         {
             options ??= ScopeExistsOptions.Default;
             var uri = GetUri();
-            _logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
+            _logger.LogInformation("Attempting to verify if scope {scopeName} exists - {uri}", scopeName,
+                _redactor.SystemData(uri));
 
             try
             {
@@ -93,7 +100,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to verify if scope {scopeName} exists - {uri}");
+                _logger.LogError(exception, "Failed to verify if scope {scopeName} exists - {uri}", scopeName,
+                    _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -102,7 +110,8 @@ namespace Couchbase.Management.Collections
         {
             options ??= GetScopeOptions.Default;
             var uri = GetUri();
-            _logger.LogInformation($"Attempting to verify if scope {scopeName} exists - {uri}");
+            _logger.LogInformation("Attempting to verify if scope {scopeName} exists - {uri}", scopeName,
+                _redactor.SystemData(uri));
 
             try
             {
@@ -123,7 +132,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to verify if scope {scopeName} exists - {uri}");
+                _logger.LogError(exception, "Failed to verify if scope {scopeName} exists - {uri}",scopeName,
+                _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -132,7 +142,7 @@ namespace Couchbase.Management.Collections
         {
             options ??= GetAllScopesOptions.Default;
             var uri = GetUri();
-            _logger.LogInformation($"Attempting to get all scopes - {uri}");
+            _logger.LogInformation("Attempting to get all scopes - {uri}", _redactor.SystemData(uri));
 
             try
             {
@@ -173,7 +183,7 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get all scopes - {uri}");
+                _logger.LogError(exception, "Failed to get all scopes - {uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -182,7 +192,8 @@ namespace Couchbase.Management.Collections
         {
             options ??= CreateCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName);
-            _logger.LogInformation($"Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}");
+            _logger.LogInformation("Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
+                spec.Name, _redactor.SystemData(uri));
 
             try
             {
@@ -197,7 +208,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to create collection {spec.ScopeName}/{spec.Name} - {uri}");
+                _logger.LogError(exception, "Failed to create collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
+                    spec.Name, _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -206,7 +218,8 @@ namespace Couchbase.Management.Collections
         {
             options ??= DropCollectionOptions.Default;
             var uri = GetUri(spec.ScopeName, spec.Name);
-            _logger.LogInformation($"Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}");
+            _logger.LogInformation("Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
+                spec.Name, _redactor.SystemData(uri));
 
             try
             {
@@ -216,7 +229,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to drop collection {spec.ScopeName}/{spec.Name} - {uri}");
+                _logger.LogError(exception, "Failed to drop collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
+                    spec.Name, _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -225,7 +239,7 @@ namespace Couchbase.Management.Collections
         {
             options ??= CreateScopeOptions.Default;
             var uri = GetUri();
-            _logger.LogInformation($"Attempting create scope {spec.Name} - {uri}");
+            _logger.LogInformation("Attempting create scope {spec.Name} - {uri}", spec.Name, _redactor.SystemData(uri));
 
             try
             {
@@ -239,7 +253,8 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to create scope {spec.Name} - {uri}");
+                _logger.LogError(exception, "Failed to create scope {spec.Name} - {uri}", spec.Name,
+                    _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -248,7 +263,7 @@ namespace Couchbase.Management.Collections
         {
             options ??= DropScopeOptions.Default;
             var uri = GetUri(scopeName);
-            _logger.LogInformation($"Attempting drop scope {scopeName} - {uri}");
+            _logger.LogInformation("Attempting drop scope {scopeName} - {uri}", scopeName, _redactor.SystemData(uri));
 
             try
             {
@@ -258,7 +273,7 @@ namespace Couchbase.Management.Collections
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to drop scope {scopeName} - {uri}");
+                _logger.LogError(exception, "Failed to drop scope {scopeName} - {uri}", scopeName, _redactor.SystemData(uri));
                 throw;
             }
         }

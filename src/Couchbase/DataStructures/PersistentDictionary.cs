@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 using ICollection = Couchbase.KeyValue.ICollection;
@@ -15,15 +16,17 @@ namespace Couchbase.DataStructures
     public class PersistentDictionary<TValue> : IPersistentDictionary<TValue>
     {
         private readonly ILogger? _logger;
+        private readonly IRedactor? _redactor;
         protected ICollection Collection { get; }
         protected string DocId { get; }
         protected bool BackingStoreChecked { get; set; }
 
-        internal PersistentDictionary(ICollection collection, string docId, ILogger? logger)
+        internal PersistentDictionary(ICollection collection, string docId, ILogger? logger, IRedactor? redactor)
         {
             Collection = collection ?? throw new ArgumentNullException(nameof(collection));
             DocId = docId ?? throw new ArgumentNullException(nameof(docId));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger;
+            _redactor = redactor;
         }
 
         protected virtual void CreateBackingStore()
@@ -37,7 +40,9 @@ namespace Couchbase.DataStructures
             catch (DocumentExistsException e)
             {
                 //ignore - the doc already exists for this collection
-                _logger?.LogTrace(e, "The PersistentDictionary backing document already exists for ID {key}. Not an error.", DocId);
+                _logger?.LogTrace(e,
+                    "The PersistentDictionary backing document already exists for ID {key}. Not an error.",
+                    _redactor?.UserData(DocId));
             }
         }
 
@@ -114,7 +119,7 @@ namespace Couchbase.DataStructures
             {
                 value = default!;
                 success = false;
-                _logger?.LogDebug(e, "Error fetching value for key {key}.", key);
+                _logger?.LogDebug(e, "Error fetching value for key {key}.", _redactor?.UserData(key));
             }
 
             return success;
@@ -126,7 +131,7 @@ namespace Couchbase.DataStructures
             {
                 if (TryGetValue(key, out TValue value))
                     return value;
-                throw new KeyNotFoundException($"Cannot find key {key}.");
+                throw new KeyNotFoundException($"Cannot find key {key.ToString()}.");
             }
             set => Add(key, value);
         }

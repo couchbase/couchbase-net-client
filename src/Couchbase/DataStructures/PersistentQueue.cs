@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 
@@ -8,8 +9,8 @@ namespace Couchbase.DataStructures
 {
     public class PersistentQueue<TValue> : PersistentStoreBase<TValue>, IPersistentQueue<TValue>
     {
-        internal PersistentQueue(ICollection collection, string key, ILogger? logger)
-            : base(collection, key, logger, new object(), false)
+        internal PersistentQueue(ICollection collection, string key, ILogger? logger, IRedactor? redactor)
+            : base(collection, key, logger, redactor, new object(), false)
         {
         }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 
@@ -10,8 +11,8 @@ namespace Couchbase.DataStructures
 {
     public class PersistentList<TValue> : PersistentStoreBase<TValue>, IPersistentList<TValue>
     {
-        internal PersistentList(ICollection collection, string key, ILogger? logger)
-            : base(collection, key, logger, new object(), false)
+        internal PersistentList(ICollection collection, string key, ILogger? logger, IRedactor? redactor)
+            : base(collection, key, logger, redactor, new object(), false)
         {
         }
 
@@ -92,7 +93,8 @@ namespace Couchbase.DataStructures
             }
             catch (Exception e)
             {
-                Logger?.LogError(e, "Item could not be removed from PersistentList with ID of {key}", Key);
+                Logger?.LogError(e, "Item could not be removed from PersistentList with ID of {key}",
+                    Redactor?.UserData(Key));
             }
 
             return removed;

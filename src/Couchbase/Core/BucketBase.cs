@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
 
 #nullable enable
 
@@ -30,15 +31,17 @@ namespace Couchbase.Core
         protected BucketBase() { }
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
-        protected BucketBase(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger logger)
+        protected BucketBase(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger logger, IRedactor redactor)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
             RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
+        protected IRedactor Redactor { get; }
         public ILogger Logger { get; }
         public ClusterContext Context { get; }
         public IRetryOrchestrator RetryOrchestrator { get; }

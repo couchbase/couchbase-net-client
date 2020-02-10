@@ -17,6 +17,7 @@ using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +27,7 @@ namespace Couchbase.Core
     {
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
+        private readonly IRedactor _redactor;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ITypeTranscoder _transcoder;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
@@ -35,15 +37,15 @@ namespace Couchbase.Core
         private Uri _viewsUri;
         private NodeAdapter _nodesAdapter;
 
-        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
-            ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IPEndPoint endPoint)
+        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
 
             if (connectionPoolFactory == null)
@@ -274,7 +276,10 @@ namespace Couchbase.Core
                     _circuitBreaker.Track();
                     try
                     {
-                        _logger.LogDebug("CB: Sending {opaque} to {endPoint}.", op.Opaque, ConnectionPool.EndPoint);
+
+                        _logger.LogDebug("CB: Sending {opaque} to {endPoint}.", op.Opaque,
+                            _redactor.SystemData(EndPoint));
+
                         await ExecuteOp(ConnectionPool, op, token).ConfigureAwait(false);
                         _circuitBreaker.MarkSuccess();
                     }
@@ -282,7 +287,9 @@ namespace Couchbase.Core
                     {
                         if (_circuitBreaker.CompletionCallback(e))
                         {
-                            _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque, ConnectionPool.EndPoint);
+                            _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
+                                _redactor.SystemData(ConnectionPool.EndPoint));
+
                             _circuitBreaker.MarkFailure();
                         }
 
@@ -295,7 +302,7 @@ namespace Couchbase.Core
                     {
                         try
                         {
-                            _logger.LogDebug("CB: Sending a canary to {endPoint}.", ConnectionPool.EndPoint);
+                            _logger.LogDebug("CB: Sending a canary to {endPoint}.", _redactor.SystemData(ConnectionPool.EndPoint));
                             using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
                             {
                                 await ExecuteOp(ConnectionPool, new Noop(), cts.Token).ConfigureAwait(false);
@@ -307,7 +314,7 @@ namespace Couchbase.Core
                         {
                             if (_circuitBreaker.CompletionCallback(e))
                             {
-                                _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.", ConnectionPool.EndPoint);
+                                _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.", _redactor.SystemData(ConnectionPool.EndPoint));
                                 _circuitBreaker.MarkFailure();
                             }
                         }
@@ -325,7 +332,7 @@ namespace Couchbase.Core
         private async Task ExecuteOp(Func<Task> sender, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            _logger.LogDebug("Executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
+            _logger.LogDebug("Executing op {opcode} with key {key} and opaque {opaque}", op.OpCode, _redactor.UserData(op.Key), op.Opaque);
 
             // wire up op's completed function
             var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
@@ -384,7 +391,7 @@ namespace Couchbase.Core
                     }
 
                     _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode,
-                        op.Key,
+                       _redactor.UserData(op.Key),
                         op.Opaque);
                 }
             }

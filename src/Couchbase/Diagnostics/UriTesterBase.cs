@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
@@ -16,11 +17,13 @@ namespace Couchbase.Diagnostics
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
+        private readonly IRedactor _redactor;
 
-        protected UriTesterBase(HttpClient httpClient, ILogger logger)
+        protected UriTesterBase(HttpClient httpClient, ILogger logger, IRedactor redactor)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
         /// <summary>
@@ -53,31 +56,32 @@ namespace Couchbase.Diagnostics
 
             try
             {
-                _logger.LogTrace("Pinging {nodeType} node {node} using ping URI {pingUri}", NodeType, uri, pingUri);
+                _logger.LogTrace("Pinging {nodeType} node {node} using ping URI {pingUri}", NodeType,
+                    _redactor.SystemData(uri), _redactor.SystemData(pingUri));
 
                 var response = await _httpClient.GetAsync(pingUri, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("{nodeType} node {node} back online", NodeType, uri);
+                    _logger.LogInformation("{nodeType} node {node} back online", NodeType, _redactor.SystemData(uri));
                     uri.ClearFailed();
                 }
                 else
                 {
-                    _logger.LogInformation("{nodeType} node {node} still offline", NodeType, uri);
+                    _logger.LogInformation("{nodeType} node {node} still offline", NodeType, _redactor.SystemData(uri));
                 }
             }
             catch (AggregateException ae)
             {
                 ae.Flatten().Handle(e =>
                 {
-                    _logger.LogInformation(e, "{nodeType} node {node} still offline", NodeType, uri);
+                    _logger.LogInformation(e, "{nodeType} node {node} still offline", NodeType, _redactor.SystemData(uri));
                     return true;
                 });
             }
             catch (Exception e)
             {
-                _logger.LogInformation(e, "{nodeType} node {node} still offline", NodeType, uri);
+                _logger.LogInformation(e, "{nodeType} node {node} still offline", NodeType, _redactor.SystemData(uri));
             }
         }
     }

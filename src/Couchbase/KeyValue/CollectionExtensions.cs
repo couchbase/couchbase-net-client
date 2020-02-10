@@ -322,22 +322,22 @@ namespace Couchbase.KeyValue
 
         public static IPersistentSet<T> Set<T>(this ICollection collection, string docId)
         {
-            return new PersistentSet<T>(collection, docId, (collection as CouchbaseCollection)?.Logger);
+            return new PersistentSet<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
         public static IPersistentList<T> List<T>(this ICollection collection, string docId)
         {
-            return new PersistentList<T>(collection, docId, (collection as CouchbaseCollection)?.Logger);
+            return new PersistentList<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
         public static IPersistentQueue<T> Queue<T>(this ICollection collection, string docId)
         {
-            return new PersistentQueue<T>(collection, docId, (collection as CouchbaseCollection)?.Logger);
+            return new PersistentQueue<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
         public static IPersistentDictionary<TValue> Dictionary<TValue>(this ICollection collection, string docId)
         {
-            return new PersistentDictionary<TValue>(collection, docId, (collection as CouchbaseCollection)?.Logger);
+            return new PersistentDictionary<TValue>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
         #endregion

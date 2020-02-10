@@ -8,6 +8,7 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -23,20 +24,24 @@ namespace Couchbase.KeyValue
         private readonly BucketBase _bucket;
         private readonly ITypeTranscoder _transcoder;
         private readonly ILogger<GetResult> _getLogger;
-        public string ScopeName { get; }
 
-        public CouchbaseCollection(BucketBase bucket, ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger,
-            ILogger<GetResult> getLogger,
+        internal CouchbaseCollection(BucketBase bucket, ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger,
+            ILogger<GetResult> getLogger, IRedactor redactor,
             uint? cid, string name, string scopeName)
         {
             Cid = cid;
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
-            ScopeName = scopeName;
+            ScopeName = scopeName ?? throw new ArgumentNullException(nameof(scopeName));
         }
+
+        internal IRedactor Redactor { get; }
+
+        public string ScopeName { get; }
 
         public uint? Cid { get; internal set; }
 

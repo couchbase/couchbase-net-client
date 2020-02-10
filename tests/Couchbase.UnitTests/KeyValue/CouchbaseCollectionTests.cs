@@ -13,6 +13,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
@@ -163,13 +164,12 @@ namespace Couchbase.UnitTests.KeyValue
         internal class FakeBucket : BucketBase
         {
             private readonly Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
+
             public FakeBucket(params ResponseStatus[] statuses)
-                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
+                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object)
             {
-                foreach (var responseStatus in statuses)
-                {
-                    _statuses.Enqueue(responseStatus);
-                }
+                foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
             }
 
             public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
@@ -189,6 +189,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
                     new Mock<ICircuitBreaker>().Object,
                     new Mock<ISaslMechanismFactory>().Object,
+                    new Mock<IRedactor>().Object,
                     new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210));
 
                 await clusterNode.ExecuteOp(op, token, timeout);
@@ -244,6 +245,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             return new CouchbaseCollection(mockBucket.Object, new LegacyTranscoder(),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
+                new Mock<IRedactor>().Object, 
                 null, CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName);
         }
     }

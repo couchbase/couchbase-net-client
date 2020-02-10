@@ -7,8 +7,8 @@ using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
-using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
@@ -25,15 +25,15 @@ namespace Couchbase
         private readonly HttpClusterMapBase _httpClusterMap;
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger) :
+            ILogger<MemcachedBucket> logger, IRedactor redactor) :
             this(name, context, scopeFactory, retryOrchestrator, ketamaKeyMapperFactory, logger,
-                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context))
+                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context), redactor)
         {
         }
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap)
-            : base(name, context, scopeFactory, retryOrchestrator, logger)
+            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap, IRedactor redactor)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor)
         {
             Name = name;
             _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
@@ -50,7 +50,7 @@ namespace Couchbase
             get
             {
 
-                Logger.LogDebug("Fetching scope {0}", scopeName);
+                Logger.LogDebug("Fetching scope {scopeName}", Redactor.MetaData(scopeName));
 
                 if (scopeName == KeyValue.Scope.DefaultScopeName)
                     if (Scopes.TryGetValue(scopeName, out var scope))

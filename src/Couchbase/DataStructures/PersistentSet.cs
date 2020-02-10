@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using ICollection = Couchbase.KeyValue.ICollection;
 
@@ -11,8 +13,8 @@ namespace Couchbase.DataStructures
 {
     public class PersistentSet<TValue> : PersistentStoreBase<TValue>, IPersistentSet<TValue>
     {
-        public PersistentSet(ICollection collection, string key, ILogger? logger)
-            : base(collection, key, logger, new object(), false)
+        internal PersistentSet(ICollection collection, string key, ILogger? logger, IRedactor? redactor)
+            : base(collection, key, logger, redactor, new object(), false)
         {
         }
 
@@ -27,7 +29,8 @@ namespace Couchbase.DataStructures
             catch (DocumentExistsException e)
             {
                 //ignore - the doc already exists for this collection
-                Logger.LogTrace(e, "The PersistentList backing document already exists for ID {key}. Not an error.", Key);
+                Logger.LogTrace(e, "The PersistentList backing document already exists for ID {key}. Not an error.",
+                    Redactor?.UserData(Key));
             }
         }
 

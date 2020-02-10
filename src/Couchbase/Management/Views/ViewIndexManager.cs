@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -21,14 +22,16 @@ namespace Couchbase.Management.Views
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly CouchbaseHttpClient _client;
         private readonly ILogger<ViewIndexManager> _logger;
+        private readonly IRedactor _redactor;
 
         public ViewIndexManager(string bucketName, IServiceUriProvider serviceUriProvider, CouchbaseHttpClient httpClient,
-            ILogger<ViewIndexManager> logger)
+            ILogger<ViewIndexManager> logger, IRedactor redactor)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
         private Uri GetUri(string? designDocName, DesignDocumentNamespace @namespace)
@@ -62,7 +65,8 @@ namespace Couchbase.Management.Views
         {
             options ??= GetDesignDocumentOptions.Default;
             var uri = GetUri(designDocName, @namespace);
-            _logger.LogInformation($"Attempting to get design document {_bucketName}/{designDocName} - {uri}");
+            _logger.LogInformation("Attempting to get design document {_bucketName}/{designDocName} - {uri}",
+                _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
 
             try
             {
@@ -82,7 +86,8 @@ namespace Couchbase.Management.Views
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get design document {_bucketName}/{designDocName} - {uri}");
+                _logger.LogError(exception, "Failed to get design document {_bucketName}/{designDocName} - {uri}",
+                    _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -94,7 +99,8 @@ namespace Couchbase.Management.Views
             {
                 Path = $"pools/default/buckets/{_bucketName}/ddocs"
             }.Uri;
-            _logger.LogInformation($"Attempting to get all design documents for bucket {_bucketName} - {uri}");
+            _logger.LogInformation("Attempting to get all design documents for bucket {_bucketName} - {uri}",
+                _redactor.MetaData(_bucketName), _redactor.SystemData(uri));
 
             try
             {
@@ -134,7 +140,8 @@ namespace Couchbase.Management.Views
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get all design documents for bucket {_bucketName} - {uri}");
+                _logger.LogError(exception, "Failed to get all design documents for bucket {_bucketName} - {uri}",
+                    _redactor.MetaData(_bucketName), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -144,7 +151,8 @@ namespace Couchbase.Management.Views
             options ??= UpsertDesignDocumentOptions.Default;
             var json = JsonConvert.SerializeObject(designDocument);
             var uri = GetUri(designDocument.Name, @namespace);
-            _logger.LogInformation($"Attempting to upsert design document {_bucketName}/{designDocument.Name} - {uri}");
+            _logger.LogInformation("Attempting to upsert design document {_bucketName}/{designDocument.Name} - {uri}",
+                _redactor.MetaData(_bucketName), _redactor.MetaData(designDocument.Name), _redactor.SystemData(uri));
             _logger.LogDebug(json);
 
             try
@@ -156,7 +164,8 @@ namespace Couchbase.Management.Views
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to upsert design document {_bucketName}/{designDocument.Name} - {uri} - {json}");
+                _logger.LogError(exception, "Failed to upsert design document {_bucketName}/{designDocument.Name} - {uri} - {json}",
+                    _redactor.MetaData(_bucketName), _redactor.MetaData(designDocument.Name), _redactor.SystemData(uri), _redactor.MetaData(json));
                 throw;
             }
         }
@@ -165,14 +174,16 @@ namespace Couchbase.Management.Views
         {
             options ??= DropDesignDocumentOptions.Default;
             var uri = GetUri(designDocName, @namespace);
-            _logger.LogInformation($"Attempting to drop design document {_bucketName}/{designDocName} - {uri}");
+            _logger.LogInformation("Attempting to drop design document {_bucketName}/{designDocName} - {uri}",
+                _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
 
             try
             {
                 var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
-                    _logger.LogError($"Failed to drop design document {_bucketName}/{designDocName} because it does not exist - {uri}");
+                    _logger.LogError("Failed to drop design document {_bucketName}/{designDocName} because it does not exist - {uri}",
+                        _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
                     throw new DesignDocumentNotFound(_bucketName, designDocName);
                 }
 
@@ -180,7 +191,8 @@ namespace Couchbase.Management.Views
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to drop design document {_bucketName}/{designDocName} - {uri}");
+                _logger.LogError(exception, "Failed to drop design document {_bucketName}/{designDocName} - {uri}",
+                    _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -189,7 +201,8 @@ namespace Couchbase.Management.Views
         {
             options ??= PublishDesignDocumentOptions.Default;
             var uri = GetUri(designDocName, DesignDocumentNamespace.Production);
-            _logger.LogInformation($"Attempting to publish design document {_bucketName}/{designDocName} - {uri}");
+            _logger.LogInformation("Attempting to publish design document {_bucketName}/{designDocName} - {uri}",
+            _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
 
             try
             {
@@ -204,12 +217,14 @@ namespace Couchbase.Management.Views
             }
             catch (DesignDocumentNotFoundException)
             {
-                _logger.LogError($"Failed to publish design document {_bucketName}/{designDocName} because it does not exist");
+                _logger.LogError("Failed to publish design document {_bucketName}/{designDocName} because it does not exist",
+                    _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName));
                 throw;
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to put design document {_bucketName}/{designDocName} - {uri}");
+                _logger.LogError(exception, "Failed to put design document {_bucketName}/{designDocName} - {uri}",
+                    _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
                 throw;
             }
         }

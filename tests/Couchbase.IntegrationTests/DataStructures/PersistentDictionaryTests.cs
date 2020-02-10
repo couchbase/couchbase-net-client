@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
 using Couchbase.DataStructures;
 using Couchbase.IntegrationTests.Fixtures;
 using Microsoft.Extensions.Logging;
@@ -59,7 +60,8 @@ namespace Couchbase.IntegrationTests.DataStructures
         private async Task<IPersistentDictionary<Foo>> GetPersistentDictionary(string id)
         {
             var collection = await _fixture.GetDefaultCollection();
-            return new PersistentDictionary<Foo>(collection, id, new Mock<ILogger>().Object);
+            return new PersistentDictionary<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
+
         }
 
         [Fact]

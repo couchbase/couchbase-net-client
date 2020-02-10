@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using Couchbase.Core.Logging;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
@@ -12,8 +13,8 @@ namespace Couchbase.Diagnostics
     /// </summary>
     internal class SearchUriTester : UriTesterBase
     {
-        public SearchUriTester(HttpClient httpClient, ILogger<SearchUriTester> logger)
-            : base(httpClient, logger)
+        public SearchUriTester(HttpClient httpClient, ILogger<SearchUriTester> logger, IRedactor redactor)
+            : base(httpClient, logger, redactor)
         {
         }
 

@@ -20,13 +20,15 @@ namespace Couchbase.Views
     {
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<ViewClient> _logger;
+        private readonly IRedactor _redactor;
         protected const string Success = "Success";
 
-        public ViewClient(CouchbaseHttpClient httpClient, ITypeSerializer serializer, ILogger<ViewClient> logger)
+        public ViewClient(CouchbaseHttpClient httpClient, ITypeSerializer serializer, ILogger<ViewClient> logger, IRedactor redactor)
             : base(httpClient)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
 
             // set timeout to infinite so we can stream results without the connection
             // closing part way through
@@ -42,7 +44,7 @@ namespace Couchbase.Views
             var body = query.CreateRequestBody();
             try
             {
-                _logger.LogDebug("Sending view request to: {0}", uri.ToString());
+                _logger.LogDebug("Sending view request to: {uri}", _redactor.SystemData(uri));
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
                 var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
 

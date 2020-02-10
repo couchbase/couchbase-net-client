@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
@@ -153,7 +152,9 @@ namespace Couchbase.Query
 
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
                     {
-                        _logger.LogDebug($"Request {options.CurrentContextId} has failed because {queryResult.MetaData?.Status}.");
+                        _logger.LogDebug("Request {currentContextId} has failed because {status}.",
+                            options.CurrentContextId, queryResult.MetaData?.Status);
+
                         if (queryResult.ShouldRetry())
                         {
                             return queryResult;

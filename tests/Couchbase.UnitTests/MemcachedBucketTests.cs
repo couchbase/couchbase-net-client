@@ -6,6 +6,7 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Utils;
@@ -118,13 +119,16 @@ namespace Couchbase.UnitTests
 
         #region Helpers
 
-        private static MemcachedBucket CreateMemcachedBucket() =>
-            new MemcachedBucket("default",
+        private static MemcachedBucket CreateMemcachedBucket()
+        {
+            return new MemcachedBucket("default",
                 new ClusterContext(),
                 new Mock<IScopeFactory>().Object,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IKetamaKeyMapperFactory>().Object,
-                new Mock<ILogger<MemcachedBucket>>().Object);
+                new Mock<ILogger<MemcachedBucket>>().Object,
+                new Mock<IRedactor>().Object);
+        }
 
         #endregion
     }

@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 
@@ -18,13 +19,15 @@ namespace Couchbase.Management.Users
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly CouchbaseHttpClient _client;
         private readonly ILogger<UserManager> _logger;
+        private readonly IRedactor _redactor;
 
         public UserManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient httpClient,
-            ILogger<UserManager> logger)
+            ILogger<UserManager> logger, IRedactor redactor)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
         private Uri GetUsersUri(string domain, string? username = null)
@@ -119,7 +122,8 @@ namespace Couchbase.Management.Users
         {
             options ??= GetUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, username);
-            _logger.LogInformation($"Attempting to get user with username {username} - {uri}");
+            _logger.LogInformation("Attempting to get user with username {username} - {uri}",
+                _redactor.UserData(username), _redactor.SystemData(uri));
 
             try
             {
@@ -138,7 +142,8 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to get user with username {username} - {uri}");
+                _logger.LogError(exception, "Error trying to get user with username {username} - {uri}",
+                    _redactor.UserData(username), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -147,7 +152,7 @@ namespace Couchbase.Management.Users
         {
             options ??= GetAllUsersOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue);
-            _logger.LogInformation($"Attempting to get all users - {uri}");
+            _logger.LogInformation("Attempting to get all users - {uri}", _redactor.SystemData(uri));
 
             try
             {
@@ -161,7 +166,7 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to get all users - {uri}");
+                _logger.LogError(exception, "Error trying to get all users - {uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -170,7 +175,8 @@ namespace Couchbase.Management.Users
         {
             options ??= UpsertUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, user.Username);
-            _logger.LogInformation($"Attempting to create user with username {user.Username} - {uri}");
+            _logger.LogInformation("Attempting to create user with username {user.Username} - {uri}",
+                _redactor.UserData(user.Username), _redactor.SystemData(uri));
 
             try
             {
@@ -181,7 +187,7 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to upsert user - {uri}");
+                _logger.LogError(exception, "Error trying to upsert user - {uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -190,7 +196,8 @@ namespace Couchbase.Management.Users
         {
             options ??= DropUserOptions.Default;
             var uri = GetUsersUri(options.DomainNameValue, username);
-            _logger.LogInformation($"Attempting to drop user with username {username} - {uri}");
+            _logger.LogInformation("Attempting to drop user with username {username} - {uri}",
+                _redactor.UserData(username), _redactor.SystemData(uri));
 
             try
             {
@@ -205,7 +212,8 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to drop user with username {username} - {uri}");
+                _logger.LogError(exception, $"Error trying to drop user with username {username} - {uri}",
+                    _redactor.UserData(username), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -214,7 +222,7 @@ namespace Couchbase.Management.Users
         {
             options ??= AvailableRolesOptions.Default;
             var uri = GetRolesUri();
-            _logger.LogInformation($"Attempting to get all available roles - {uri}");
+            _logger.LogInformation("Attempting to get all available roles - {uri}", _redactor.MetaData(uri));
 
             try
             {
@@ -228,7 +236,7 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to get all available roles - {uri}");
+                _logger.LogError(exception, "Error trying to get all available roles - {uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -237,7 +245,8 @@ namespace Couchbase.Management.Users
         {
             options ??= GetGroupOptions.Default;
             var uri = GetGroupsUri(groupName);
-            _logger.LogInformation($"Attempting to get group with name {groupName} - {uri}");
+            _logger.LogInformation("Attempting to get group with name {groupName} - {uri}", _redactor.UserData(groupName),
+                _redactor.SystemData(uri));
 
             try
             {
@@ -256,7 +265,8 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to get group with name {groupName} - {uri}");
+                _logger.LogError(exception, "Error trying to get group with name {groupName} - {uri}",
+                    _redactor.UserData(groupName), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -265,7 +275,7 @@ namespace Couchbase.Management.Users
         {
             options ??= GetAllGroupsOptions.Default;
             var uri = GetGroupsUri();
-            _logger.LogInformation($"Attempting to get all groups - {uri}");
+            _logger.LogInformation("Attempting to get all groups - {uri}", _redactor.SystemData(uri));
 
             try
             {
@@ -279,7 +289,7 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to get all groups - {uri}");
+                _logger.LogError(exception, "Error trying to get all groups - {uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -288,7 +298,8 @@ namespace Couchbase.Management.Users
         {
             options ??= UpsertGroupOptions.Default;
             var uri = GetGroupsUri(group.Name);
-            _logger.LogInformation($"Attempting to upsert group with name {group.Name} - {uri}");
+            _logger.LogInformation("Attempting to upsert group with name {group.Name} - {uri}",
+                _redactor.UserData(group.Name), _redactor.SystemData(uri));
 
             try
             {
@@ -299,7 +310,8 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to upsert group with name {group.Name} - {uri}");
+                _logger.LogError(exception, "Error trying to upsert group with name {group.Name} - {uri}",
+                    _redactor.UserData(group.Name), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -308,7 +320,8 @@ namespace Couchbase.Management.Users
         {
             options ??= DropGroupOptions.Default;
             var uri = GetGroupsUri(groupName);
-            _logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}");
+            _logger.LogInformation($"Attempting to drop group with name {groupName} - {uri}",
+                _redactor.UserData(groupName), _redactor.SystemData(uri));
 
             try
             {
@@ -323,7 +336,8 @@ namespace Couchbase.Management.Users
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Error trying to drop group with name {groupName} - {uri}");
+                _logger.LogError(exception, "Error trying to drop group with name {groupName} - {uri}",
+                    _redactor.UserData(groupName), _redactor.SystemData(uri));
                 throw;
             }
         }

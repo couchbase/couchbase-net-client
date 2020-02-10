@@ -6,7 +6,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
 using Couchbase.Diagnostics;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Retry.Query;
@@ -35,6 +35,7 @@ namespace Couchbase
         private readonly ClusterContext _context;
         private bool _hasBootStrapped;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
+        private readonly IRedactor _redactor;
 
         // Internal is used to provide a seam for unit tests
         internal Lazy<IQueryClient> LazyQueryClient;
@@ -77,6 +78,7 @@ namespace Couchbase
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
+            _redactor = _context.ServiceProvider.GetRequiredService<IRedactor>();
         }
 
         public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
@@ -119,7 +121,8 @@ namespace Couchbase
             catch (AuthenticationFailureException e)
             {
                 //auth failed so bubble up exception and clean up resources
-                _logger.LogError(e, @"Could not authenticate user {_clusterOptions.UserName}");
+                _logger.LogError(e,
+                    "Could not authenticate user {username}", _redactor.UserData(_context.ClusterOptions.UserName ?? string.Empty));
 
                 _context.RemoveNodes();
                 throw;
@@ -166,7 +169,9 @@ namespace Couchbase
                 }
 
                 // try to bootstrap first bucket in cluster
-                await BucketAsync(_context.ClusterOptions.Buckets.First()).ConfigureAwait(false);
+                var bucketName = _context.ClusterOptions.Buckets.FirstOrDefault();
+                _logger.LogDebug("Attempting to bootstrap bucket {bucketname}", _redactor.MetaData(bucketName));
+                await BucketAsync(bucketName).ConfigureAwait(false);
                 UpdateClusterCapabilities();
             }
             finally

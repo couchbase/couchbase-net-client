@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -19,12 +20,14 @@ namespace Couchbase.Management.Buckets
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly CouchbaseHttpClient _client;
         private readonly ILogger<BucketManager> _logger;
+        private readonly IRedactor _redactor;
 
-        public BucketManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client, ILogger<BucketManager> logger)
+        public BucketManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client, ILogger<BucketManager> logger, IRedactor redactor)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
         private Uri GetUri(string? bucketName = null)
@@ -124,7 +127,9 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new CreateBucketOptions();
             var uri = GetUri();
-            _logger.LogInformation($"Attempting to create bucket with name {settings.Name} - {uri}");
+
+            _logger.LogInformation("Attempting to create bucket with name {settings.Name} - {uri}",
+                _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
 
             try
             {
@@ -144,12 +149,14 @@ namespace Couchbase.Management.Buckets
             }
             catch (BucketExistsException)
             {
-                _logger.LogError($"Failed to create bucket with name {settings.Name} because it already exists");
+                _logger.LogError("Failed to create bucket with name {settings.Name} because it already exists",
+                    _redactor.MetaData(settings.Name));
                 throw;
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to create bucket with name {settings.Name} - {uri}");
+                _logger.LogError(exception, "Failed to create bucket with name {settings.Name} - {uri}",
+                    _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -158,7 +165,8 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new UpdateBucketOptions();
             var uri = GetUri(settings.Name);
-            _logger.LogInformation($"Attempting to upsert bucket with name {settings.Name} - {uri}");
+            _logger.LogInformation("Attempting to upsert bucket with name {settings.Name} - {uri}",
+                _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
 
             try
             {
@@ -169,7 +177,9 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to upsert bucket with name {settings.Name} - {uri}");
+                _logger.LogError(exception, "Failed to upsert bucket with name {settings.Name} - {uri}",
+                    _redactor.MetaData(settings.Name), _redactor.SystemData(uri));
+
                 throw;
             }
         }
@@ -178,7 +188,8 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new DropBucketOptions();
             var uri = GetUri(bucketName);
-            _logger.LogInformation($"Attempting to drop bucket with name {bucketName} - {uri}");
+            _logger.LogInformation("Attempting to drop bucket with name {bucketName} - {uri}",
+                    _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
             try
             {
@@ -193,11 +204,13 @@ namespace Couchbase.Management.Buckets
             }
             catch (BucketNotFoundException)
             {
-                _logger.LogError($"Unable to drop bucket with name {bucketName} because it does not exist");
+                _logger.LogError("Unable to drop bucket with name {bucketName} because it does not exist",
+                    _redactor.MetaData(bucketName));
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to drop bucket with name {bucketName}");
+                _logger.LogError(exception, "Failed to drop bucket with name {bucketName}",
+                    _redactor.MetaData(bucketName));
                 throw;
             }
         }
@@ -210,7 +223,8 @@ namespace Couchbase.Management.Buckets
             builder.Path = Path.Combine(builder.Path, "controller/doFlush");
             var uri = builder.Uri;
 
-            _logger.LogInformation($"Attempting to flush bucket with name {bucketName} - {uri}");
+            _logger.LogInformation($"Attempting to flush bucket with name {bucketName} - {uri}",
+                _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
             try
             {
@@ -234,17 +248,20 @@ namespace Couchbase.Management.Buckets
             }
             catch (BucketNotFoundException)
             {
-                _logger.LogError($"Unable to flush bucket with name {bucketName} because it does not exist");
+                _logger.LogError("Unable to flush bucket with name {bucketName} because it does not exist",
+                    _redactor.MetaData(bucketName));
                 throw;
             }
             catch (BucketIsNotFlushableException)
             {
-                _logger.LogError($"Failed to flush bucket with name {bucketName} because it is not flushable");
+                _logger.LogError("Failed to flush bucket with name {bucketName} because it is not flushable",
+                    _redactor.MetaData(bucketName));
                 throw;
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to flush bucket with name {bucketName}");
+                _logger.LogError(exception, "Failed to flush bucket with name {bucketName}",
+                    _redactor.MetaData(bucketName));
                 throw;
             }
         }
@@ -253,7 +270,7 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new GetAllBucketsOptions();
             var uri = GetUri();
-            _logger.LogInformation($"Attempting to get all buckets - {uri}");
+            _logger.LogInformation("Attempting to get all buckets - {uri}", _redactor.SystemData(uri));
 
             try
             {
@@ -274,7 +291,7 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get all buckets - {uri}");
+                _logger.LogError(exception, "Failed to get all buckets - {uri}", _redactor.SystemData(uri));
                 throw;
             }
         }
@@ -283,7 +300,8 @@ namespace Couchbase.Management.Buckets
         {
             options ??= new GetBucketOptions();
             var uri = GetUri(bucketName);
-            _logger.LogInformation($"Attempting to get bucket with name {bucketName} - {uri}");
+            _logger.LogInformation("Attempting to get bucket with name {bucketName} - {uri}",
+                _redactor.MetaData(bucketName), _redactor.SystemData(uri));
 
             try
             {
@@ -301,7 +319,8 @@ namespace Couchbase.Management.Buckets
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, $"Failed to get bucket with name {bucketName} - {uri}");
+                _logger.LogError(exception, $"Failed to get bucket with name {bucketName} - {uri}",
+                    _redactor.MetaData(bucketName), _redactor.SystemData(uri));
                 throw;
             }
         }

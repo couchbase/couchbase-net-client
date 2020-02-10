@@ -6,7 +6,7 @@ namespace Couchbase.Core.Logging
     public enum RedactionLevel
     {
         /// <summary>
-        /// No redaction is peformed; this is the default.
+        /// No redaction is performed; this is the default.
         /// </summary>
         None,
 

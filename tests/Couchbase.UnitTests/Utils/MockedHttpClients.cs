@@ -7,6 +7,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Logging;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Views;
@@ -129,7 +130,7 @@ namespace Couchbase.UnitTests.Utils
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
             var serializer = new DefaultSerializer();
-            return new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object);
+            return new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object, new Mock<IRedactor>().Object);
         }
     }
 }

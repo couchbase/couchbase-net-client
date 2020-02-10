@@ -5,6 +5,7 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
@@ -220,8 +221,9 @@ namespace Couchbase.UnitTests.Core.Configuration
             private SemaphoreSlim _event;
             private ITestOutputHelper _output;
 
-            public FakeBucket(ITestOutputHelper output,  SemaphoreSlim eventSlim)
-                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object, new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object)
+            public FakeBucket(ITestOutputHelper output, SemaphoreSlim eventSlim)
+                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object)
             {
                 _output = output;
                 _event = eventSlim;

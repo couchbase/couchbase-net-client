@@ -1,4 +1,6 @@
 using System;
+using System.Net;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -6,6 +8,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
@@ -26,8 +29,8 @@ namespace Couchbase
         private readonly Lazy<ICollectionManager> _collectionManagerLazy;
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
-            IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger)
-            : base(name, context, scopeFactory, retryOrchestrator, logger)
+            IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
 
@@ -38,12 +41,15 @@ namespace Couchbase
                 new ViewIndexManager(name,
                     context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
                     context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-                    context.ServiceProvider.GetRequiredService<ILogger<ViewIndexManager>>()));
+                    context.ServiceProvider.GetRequiredService<ILogger<ViewIndexManager>>(),
+                    redactor));
+
             _collectionManagerLazy = new Lazy<ICollectionManager>(() =>
                 new CollectionManager(name,
                     context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
                     context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
-                    context.ServiceProvider.GetRequiredService<ILogger<CollectionManager>>())
+                    context.ServiceProvider.GetRequiredService<ILogger<CollectionManager>>(),
+                    redactor)
             );
         }
 
@@ -51,7 +57,7 @@ namespace Couchbase
         {
             get
             {
-                Logger.LogDebug("Fetching scope {scopeName}", scopeName);
+                Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
 
                 if (Scopes.TryGetValue(scopeName, out var scope))
                 {
@@ -180,7 +186,7 @@ namespace Couchbase
         {
             if (KeyMapper == null)
             {
-                throw new InvalidOperationException("Bucket is not bootstrapped.");
+                throw new InvalidOperationException($"Bucket {Name} is not bootstrapped.");
             }
 
             var vBucket = (VBucket) KeyMapper.MapKey(op.Key);
@@ -212,7 +218,15 @@ namespace Couchbase
             }
             else
             {
-               throw new NodeNotAvailableException($"Cannot find a Couchbase Server node for {endPoint}.");
+                if (endPoint != null)
+                {
+                    throw new NodeNotAvailableException(
+                        $"Cannot find a Couchbase Server node for {endPoint}.");
+                }
+                else
+                {
+                    throw new NullReferenceException($"IPEndPoint is null for key {op.Key}.");
+                }
             }
         }
 
