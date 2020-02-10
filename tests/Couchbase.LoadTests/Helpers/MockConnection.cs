@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations.Errors;
 
 namespace Couchbase.LoadTests.Helpers

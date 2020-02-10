@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Search;
@@ -65,19 +66,23 @@ namespace Couchbase.Diagnostics
                if (serviceTypes.Contains(ServiceType.KeyValue) && clusterNode.HasKv)
                {
                    var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("kv", new List<IEndpointDiagnostics>());
-                   var connection = clusterNode.Connection; //need to make a pool
-                   var endPointDiagnostics = CreateEndpointHealth(clusterNode.Owner.Name, DateTime.UtcNow, connection);
 
-                   if (ping)
+                   foreach (var connection in clusterNode.ConnectionPool.GetConnections())
                    {
-                       await RecordLatencyAsync(endPointDiagnostics, async () =>
-                       {
-                           var op = new Noop();
-                           await clusterNode.ExecuteOp(connection, op, token);
-                       }).ConfigureAwait(false);
-                   }
+                       var endPointDiagnostics =
+                           CreateEndpointHealth(clusterNode.Owner.Name, DateTime.UtcNow, connection);
 
-                   kvEndpoints.Add(endPointDiagnostics);
+                       if (ping)
+                       {
+                           await RecordLatencyAsync(endPointDiagnostics, async () =>
+                           {
+                               var op = new Noop();
+                               await clusterNode.ExecuteOp(connection, op, token);
+                           });
+                       }
+
+                       kvEndpoints.Add(endPointDiagnostics);
+                   }
                }
 
                if (serviceTypes.Contains(ServiceType.Views) && clusterNode.HasViews)

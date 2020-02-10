@@ -6,7 +6,7 @@ using Couchbase.Core.IO.Operations.Errors;
 
 #nullable enable
 
-namespace Couchbase.Core.IO
+namespace Couchbase.Core.IO.Connections
 {
     /// <summary>
     /// Represents a TCP connection to a Couchbase Server instance.

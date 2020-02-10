@@ -342,7 +342,7 @@ namespace Couchbase.Core
                     _logger.LogDebug($"Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
                     if (bootstrapNode.HasKv)
                     {
-                        await bootstrapNode.SelectBucket(bucket.Name);
+                        await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
                     }
 
                     bootstrapNode.NodesAdapter = nodeAdapter;
@@ -353,10 +353,9 @@ namespace Couchbase.Core
 
                 _logger.LogDebug($"Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(endPoint);
-                node.Owner = bucket;
                 if (node.HasKv)
                 {
-                    await node.SelectBucket(bucket.Name);
+                    await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
                 }
 
                 node.NodesAdapter = nodeAdapter;

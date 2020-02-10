@@ -7,6 +7,7 @@ using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
@@ -145,13 +146,11 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             foreach (var server in oldConfig.NodesExt)
             {
                 var endPoint = await ipEndpointService.GetIpEndPointAsync(server);
-                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object,
+                var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
                     new Mock<ICircuitBreaker>().Object,
-                    new Mock<ISaslMechanismFactory>().Object)
-                {
-                    EndPoint = endPoint
-                };
+                    new Mock<ISaslMechanismFactory>().Object,
+                    endPoint);
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
             }
@@ -164,12 +163,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     continue;
                 }
 
-                var clusterNode = new ClusterNode(context, new Mock<IConnectionFactory>().Object,
+                var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
-                    new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object)
-                {
-                    EndPoint = endPoint
-                };
+                    new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object, endPoint);
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
             }

@@ -107,7 +107,6 @@ namespace Couchbase
 
         internal override async Task BootstrapAsync(IClusterNode node)
         {
-            node.Owner = this;
             //fetch the cluster map to avoid race condition with streaming http
             BucketConfig = await _httpClusterMap.GetClusterMapAsync(
                 Name, node.BootstrapUri, CancellationToken.None).ConfigureAwait(false);
@@ -115,7 +114,7 @@ namespace Couchbase
             KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig);
 
             //the initial bootstrapping endpoint;
-            await node.SelectBucket(Name).ConfigureAwait(false);
+            await node.SelectBucketAsync(this).ConfigureAwait(false);
 
             LoadManifest();
             await Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig));

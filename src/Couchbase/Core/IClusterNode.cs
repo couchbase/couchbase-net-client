@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 
@@ -13,10 +12,10 @@ namespace Couchbase.Core
 {
     internal interface IClusterNode : IDisposable
     {
-        IBucket Owner { get; set; }
+        IBucket Owner { get; }
         NodeAdapter NodesAdapter { get; set; }
         Uri BootstrapUri { get; set; }
-        IPEndPoint EndPoint { get; set; }
+        IPEndPoint EndPoint { get; }
         Uri QueryUri { get; set; }
         Uri AnalyticsUri { get; set; }
         Uri SearchUri { get; set; }
@@ -24,7 +23,7 @@ namespace Couchbase.Core
         Uri ManagementUri { get; set; }
         ErrorMap ErrorMap { get; set; }
         short[] ServerFeatures { get; set; }
-        IConnection Connection { get; set; } //TODO this will be a connection pool later
+        IConnectionPool ConnectionPool { get; }
         List<Exception> Exceptions { get; set; } //TODO catch and hold until first operation per RFC
         bool IsAssigned { get; }
         bool HasViews { get; }
@@ -39,7 +38,14 @@ namespace Couchbase.Core
         DateTime? LastAnalyticsActivity { get; }
         DateTime? LastKvActivity { get; }
         Task<Manifest> GetManifest();
-        Task SelectBucket(string name);
+
+        /// <summary>
+        /// Selects the <see cref="IBucket"/> this <see cref="ClusterNode" /> is associated to.
+        /// </summary>
+        /// <param name="bucket">The <see cref="IBucket"/>.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task SelectBucketAsync(IBucket bucket, CancellationToken cancellationToken = default);
+
         Task<BucketConfig> GetClusterMap();
         Task<uint?> GetCid(string fullyQualifiedName);
 

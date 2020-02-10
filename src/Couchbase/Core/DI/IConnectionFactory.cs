@@ -1,6 +1,7 @@
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
 
 #nullable enable
 
@@ -15,7 +16,8 @@ namespace Couchbase.Core.DI
         /// Creates and connects an <see cref="IConnection"/>.
         /// </summary>
         /// <param name="endPoint">Endpoint to connect.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The new <see cref="IConnection"/>.</returns>
-        Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint);
+        Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default);
     }
 }

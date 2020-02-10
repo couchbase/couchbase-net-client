@@ -7,6 +7,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -57,6 +58,7 @@ namespace Couchbase.Core.DI
 
             yield return (typeof(IClusterNodeFactory), new SingletonServiceFactory(typeof(ClusterNodeFactory)));
             yield return (typeof(IConnectionFactory), new SingletonServiceFactory(typeof(ConnectionFactory)));
+            yield return (typeof(IConnectionPoolFactory), new SingletonServiceFactory(typeof(ConnectionPoolFactory)));
             yield return (typeof(IBucketFactory), new SingletonServiceFactory(typeof(BucketFactory)));
             yield return (typeof(IScopeFactory), new SingletonServiceFactory(typeof(ScopeFactory)));
             yield return (typeof(ICollectionFactory), new SingletonServiceFactory(typeof(CollectionFactory)));

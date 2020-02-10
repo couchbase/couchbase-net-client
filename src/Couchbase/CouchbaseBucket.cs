@@ -229,8 +229,7 @@ namespace Couchbase
         {
             try
             {
-                node.Owner = this;
-                await node.SelectBucket(this.Name);
+                await node.SelectBucketAsync(this).ConfigureAwait(false);
 
                 if (Context.SupportsCollections)
                 {

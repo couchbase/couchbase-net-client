@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -6,10 +7,10 @@ using Couchbase.Core.DI;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.KeyValue;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -25,19 +26,28 @@ namespace Couchbase.UnitTests.Core.IO.Errors
         {
             var errorMap = JsonConvert.DeserializeObject<ErrorMap>(ResourceHelper.ReadResource("kv-error-map.json"));
 
+            var mockConnection = new Mock<IConnection>();
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            mockConnectionPool
+                .Setup(m => m.SendAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .Returns((IOperation operation, CancellationToken _) => operation.SendAsync(mockConnection.Object));
+
+            var mockConnectionPoolFactory = new Mock<IConnectionPoolFactory>();
+            mockConnectionPoolFactory
+                .Setup(m => m.Create(It.IsAny<ClusterNode>()))
+                .Returns(mockConnectionPool.Object);
+
             var node = new ClusterNode(new ClusterContext(new CancellationTokenSource(),
-                    new ClusterOptions()), new Mock<IConnectionFactory>().Object,
+                    new ClusterOptions()), mockConnectionPoolFactory.Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new Mock<ITypeTranscoder>().Object,
                 new Mock<ICircuitBreaker>().Object,
-                new Mock<ISaslMechanismFactory>().Object)
+                new Mock<ISaslMechanismFactory>().Object,
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210))
             {
                 ErrorMap = errorMap
             };
-
-            var mockConnection = new Mock<IConnection>();
-            mockConnection.Setup(x => x.IsDead).Returns(false);
-            node.Connection = mockConnection.Object;
 
             var insert = new FakeOperation(OpCode.Add, ResponseStatus.KeyExists);
 

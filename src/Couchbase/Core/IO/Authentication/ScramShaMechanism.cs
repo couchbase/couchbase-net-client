@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;

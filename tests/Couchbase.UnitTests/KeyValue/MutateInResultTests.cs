@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;

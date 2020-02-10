@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
@@ -480,7 +481,7 @@ namespace Couchbase.Core.IO.Operations
 
             return ErrorCode.GetNextInterval(Attempts, defaultTimeout);
         }
-        
+
         protected void TryReadMutationToken(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length >= 40 && VBucketId.HasValue)

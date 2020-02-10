@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;

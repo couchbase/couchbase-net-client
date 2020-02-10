@@ -28,7 +28,7 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public async Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint)
+        public async Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default)
         {
             var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -36,7 +36,7 @@ namespace Couchbase.Core.DI
             {
                 var connectTask = socket.ConnectAsync(endPoint);
 
-                var whichTask = await Task.WhenAny(connectTask, Task.Delay(_clusterOptions.KvConnectTimeout));
+                var whichTask = await Task.WhenAny(connectTask, Task.Delay(_clusterOptions.KvConnectTimeout, cancellationToken));
 
                 if (whichTask != connectTask)
                 {

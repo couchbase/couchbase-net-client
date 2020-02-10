@@ -11,6 +11,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
@@ -21,10 +22,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core
 {
-    internal class ClusterNode : IClusterNode
+    internal class ClusterNode : IClusterNode, IConnectionInitializer
     {
         private readonly ClusterContext _context;
-        private readonly IConnectionFactory _connectionFactory;
         private readonly ILogger<ClusterNode> _logger;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ITypeTranscoder _transcoder;
@@ -34,14 +34,23 @@ namespace Couchbase.Core
         private Uri _searchUri;
         private Uri _viewsUri;
 
-        public ClusterNode(ClusterContext context, IConnectionFactory connectionFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory)
+        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
+            ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
+            IPEndPoint endPoint)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
+            EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
+
+            if (connectionPoolFactory == null)
+            {
+                throw new ArgumentNullException(nameof(connectionPoolFactory));
+            }
+
+            ConnectionPool = connectionPoolFactory.Create(this);
         }
 
         public ClusterNode(ClusterContext context)
@@ -58,10 +67,10 @@ namespace Couchbase.Core
         }
 
         public bool IsAssigned => Owner != null;
-        public IBucket Owner { get; set; }
+        public IBucket Owner { get; private set; }
         public NodeAdapter NodesAdapter { get; set; }
         public Uri BootstrapUri { get; set; }
-        public IPEndPoint EndPoint { get; set; }
+        public IPEndPoint EndPoint { get; }
 
         public Uri QueryUri
         {
@@ -106,15 +115,13 @@ namespace Couchbase.Core
         public Uri ManagementUri { get; set; }
         public ErrorMap ErrorMap { get; set; }
         public short[] ServerFeatures { get; set; }
-        public IConnection Connection { get; set; }//TODO this will be a connection pool later NOTE: group these by IBucket!
+        public IConnectionPool ConnectionPool { get; }
         public List<Exception> Exceptions { get; set; }//TODO catch and hold until first operation per RFC
         public bool HasViews => NodesAdapter.IsViewNode;
         public bool HasAnalytics => NodesAdapter.IsAnalyticsNode;
         public bool HasQuery => NodesAdapter.IsQueryNode;
         public bool HasSearch => NodesAdapter.IsSearchNode;
         public bool HasKv => NodesAdapter.IsKvNode;
-
-        public ConcurrentDictionary<IBucket, IConnection> Connections = new ConcurrentDictionary<IBucket, IConnection>();
 
         public bool Supports(ServerFeatures feature)
         {
@@ -129,37 +136,10 @@ namespace Couchbase.Core
 
         public async Task InitializeAsync()
         {
-            await InitializeAsync(Connection);
+            await ConnectionPool.InitializeAsync(_context.CancellationToken);
         }
 
-        private async Task InitializeAsync(IConnection connection)
-        {
-            ServerFeatures = await Hello(connection).ConfigureAwait(false);
-            ErrorMap = await GetErrorMap(connection).ConfigureAwait(false);
-
-            var mechanismType = _context.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
-            var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
-                _context.ClusterOptions.Password);
-
-            await saslMechanism.AuthenticateAsync(connection, _context.CancellationToken).ConfigureAwait(false);
-
-            if (Owner != null)
-            {
-                await SelectBucket(connection, Owner.Name).ConfigureAwait(false);
-            }
-        }
-
-        private async Task SelectBucket(IConnection connection, string bucketName)
-        {
-            using var selectBucketOp = new SelectBucket
-            {
-                Transcoder = _transcoder,
-                Key = bucketName
-            };
-            await ExecuteOp(selectBucketOp).ConfigureAwait(false);
-        }
-
-        private async Task<ErrorMap> GetErrorMap(IConnection connection)
+        private async Task<ErrorMap> GetErrorMap(IConnection connection, CancellationToken cancellationToken = default)
         {
             using var errorMapOp = new GetErrorMap
             {
@@ -167,11 +147,11 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext()
             };
 
-            await ExecuteOp(errorMapOp).ConfigureAwait(false);
+            await ExecuteOp(connection, errorMapOp, cancellationToken).ConfigureAwait(false);
             return errorMapOp.GetResultWithValue().Content;
         }
 
-        private async Task<short[]> Hello(IConnection connection)
+        private async Task<short[]> Hello(IConnection connection, CancellationToken cancellationToken = default)
         {
             var features = new List<short>
             {
@@ -195,13 +175,13 @@ namespace Couchbase.Core
 
             using var heloOp = new Hello
             {
-                Key = Core.IO.Operations.Hello.BuildHelloKey(Connection.ConnectionId),
+                Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
                 Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext(),
             };
 
-            await ExecuteOp(heloOp).ConfigureAwait(false);
+            await ExecuteOp(connection, heloOp, cancellationToken).ConfigureAwait(false);
             return heloOp.GetResultWithValue().Content;
         }
 
@@ -212,20 +192,16 @@ namespace Couchbase.Core
                 Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext()
             };
-            await ExecuteOp(manifestOp);
+            await ExecuteOp(ConnectionPool, manifestOp);
             var manifestResult = manifestOp.GetResultWithValue();
             return manifestResult.Content;
         }
 
-        public async Task SelectBucket(string name)
+        public async Task SelectBucketAsync(IBucket bucket, CancellationToken cancellationToken = default)
         {
-            using var selectBucketOp = new SelectBucket
-            {
-                Transcoder = _transcoder,
-                Key = name
-            };
+            await ConnectionPool.SelectBucketAsync(bucket.Name, cancellationToken);
 
-            await ExecuteOp(selectBucketOp);
+            Owner = bucket;
         }
 
         public async Task<BucketConfig> GetClusterMap()
@@ -237,7 +213,7 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
             };
-            await ExecuteOp(configOp);
+            await ExecuteOp(ConnectionPool, configOp);
 
             var configResult = configOp.GetResultWithValue();
             var config = configResult.Content;
@@ -260,7 +236,7 @@ namespace Couchbase.Core
                 Content = null
             };
 
-            await ExecuteOp(getCid).ConfigureAwait(false);
+            await ExecuteOp(ConnectionPool, getCid).ConfigureAwait(false);
             var resultWithValue = getCid.GetResultWithValue();
             return resultWithValue.Content;
         }
@@ -290,15 +266,15 @@ namespace Couchbase.Core
                     _circuitBreaker.Track();
                     try
                     {
-                        _logger.LogDebug("CB: Sending {opaque} to {endPoint}.", op.Opaque, Connection.EndPoint);
-                        await ExecuteOp(Connection, op, token);
+                        _logger.LogDebug("CB: Sending {opaque} to {endPoint}.", op.Opaque, ConnectionPool.EndPoint);
+                        await ExecuteOp(ConnectionPool, op, token).ConfigureAwait(false);
                         _circuitBreaker.MarkSuccess();
                     }
                     catch (Exception e)
                     {
                         if (_circuitBreaker.CompletionCallback(e))
                         {
-                            _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque, Connection.EndPoint);
+                            _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque, ConnectionPool.EndPoint);
                             _circuitBreaker.MarkFailure();
                         }
 
@@ -311,10 +287,10 @@ namespace Couchbase.Core
                     {
                         try
                         {
-                            _logger.LogDebug("CB: Sending a canary to {endPoint}.", Connection.EndPoint);
+                            _logger.LogDebug("CB: Sending a canary to {endPoint}.", ConnectionPool.EndPoint);
                             using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
                             {
-                                await ExecuteOp(Connection, new Noop(), cts.Token);
+                                await ExecuteOp(ConnectionPool, new Noop(), cts.Token).ConfigureAwait(false);
                             }
 
                             _circuitBreaker.MarkSuccess();
@@ -323,7 +299,7 @@ namespace Couchbase.Core
                         {
                             if (_circuitBreaker.CompletionCallback(e))
                             {
-                                _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.", Connection.EndPoint);
+                                _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.", ConnectionPool.EndPoint);
                                 _circuitBreaker.MarkFailure();
                             }
                         }
@@ -334,11 +310,11 @@ namespace Couchbase.Core
             }
             else
             {
-                await ExecuteOp(Connection, op, token);
+                await ExecuteOp(ConnectionPool, op, token).ConfigureAwait(false);
             }
         }
 
-        public async Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
+        private async Task ExecuteOp(Func<Task> sender, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
             _logger.LogDebug("Executing op {0} with key {1} and opaque {2}", op.OpCode, op.Key, op.Opaque);
@@ -388,8 +364,7 @@ namespace Couchbase.Core
                     }
                 }, useSynchronizationContext: false))
                 {
-                    await CheckConnectionAsync(connection);
-                    await op.SendAsync(connection).ConfigureAwait(false);
+                    await sender().ConfigureAwait(false);
                     var bytes = await tcs.Task.ConfigureAwait(false);
                     await op.ReadAsync(bytes).ConfigureAwait(false);
 
@@ -423,7 +398,19 @@ namespace Couchbase.Core
         public Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            return ExecuteOp(Connection, op, token);
+            return ExecuteOp(ConnectionPool, op, token);
+        }
+
+        private Task ExecuteOp(IConnectionPool connectionPool, IOperation op, CancellationToken token = default(CancellationToken),
+            TimeSpan? timeout = null)
+        {
+            return ExecuteOp(() => connectionPool.SendAsync(op, token), op, token);
+        }
+
+        public Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
+            TimeSpan? timeout = null)
+        {
+            return ExecuteOp(() => op.SendAsync(connection), op, token);
         }
 
         private TimeSpan GetTimeout(TimeSpan? optionsTimeout, IOperation op)
@@ -436,20 +423,35 @@ namespace Couchbase.Core
             return optionsTimeout ?? _context.ClusterOptions.KvTimeout;
         }
 
-        protected async Task CheckConnectionAsync(IConnection connection)
+        #region IConnectionInitializer
+
+        async Task IConnectionInitializer.InitializeConnectionAsync(IConnection connection, CancellationToken cancellationToken)
         {
-            if (connection.IsDead)
-            {
-                //recreate the connection its been closed and disposed
-                connection = await _connectionFactory.CreateAndConnectAsync(EndPoint).ConfigureAwait(false);
-                await InitializeAsync(connection).ConfigureAwait(false);
-                Connection = connection;
-            }
+            ServerFeatures = await Hello(connection, cancellationToken).ConfigureAwait(false);
+            ErrorMap = await GetErrorMap(connection, cancellationToken).ConfigureAwait(false);
+
+            var mechanismType = _context.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
+            var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
+                _context.ClusterOptions.Password);
+
+            await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
         }
+
+        async Task IConnectionInitializer.SelectBucketAsync(IConnection connection, string bucketName, CancellationToken cancellationToken)
+        {
+            using var selectBucketOp = new SelectBucket
+            {
+                Transcoder = _transcoder,
+                Key = bucketName
+            };
+            await ExecuteOp(connection, selectBucketOp, cancellationToken).ConfigureAwait(false);
+        }
+
+        #endregion
 
         public void Dispose()
         {
-            Connection?.Dispose();
+            ConnectionPool?.Dispose();
         }
     }
 }

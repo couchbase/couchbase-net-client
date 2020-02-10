@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -79,11 +81,12 @@ namespace Couchbase.UnitTests.Utils
         private ClusterNode MakeFakeClusterNode() =>
             new ClusterNode(
                 new ClusterContext(null, new ClusterOptions()),
-                new Mock<IConnectionFactory>().Object,
+                new Mock<IConnectionPoolFactory>().Object,
                 new Mock<ILogger<ClusterNode>>().Object,
                 new Mock<ITypeTranscoder>().Object,
                 new Mock<ICircuitBreaker>().Object,
-                new Mock<ISaslMechanismFactory>().Object)
+                new Mock<ISaslMechanismFactory>().Object,
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"),11210))
             {
                 NodesAdapter = new NodeAdapter
                 {

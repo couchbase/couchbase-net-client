@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Connections;
 
 #nullable enable
 

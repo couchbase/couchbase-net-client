@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -9,6 +10,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
+using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -176,19 +178,19 @@ namespace Couchbase.UnitTests.KeyValue
 
             internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
             {
-                var mockConnection = new Mock<IConnection>();
-                mockConnection.SetupGet(x => x.IsDead).Returns(false);
-                mockConnection
-                    .Setup(x => x.SendAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<Func<SocketAsyncState, Task>>()))
-                    .Returns(Task.CompletedTask);
+                var mockConnectionPool = new Mock<IConnectionPool>();
 
-                var clusterNode = new ClusterNode(new ClusterContext(), new Mock<IConnectionFactory>().Object,
+                var mockConnectionPoolFactory = new Mock<IConnectionPoolFactory>();
+                mockConnectionPoolFactory
+                    .Setup(m => m.Create(It.IsAny<ClusterNode>()))
+                    .Returns(mockConnectionPool.Object);
+
+                var clusterNode = new ClusterNode(new ClusterContext(), mockConnectionPoolFactory.Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
                     new Mock<ICircuitBreaker>().Object,
-                    new Mock<ISaslMechanismFactory>().Object)
-                {
-                    Connection = mockConnection.Object
-                };
+                    new Mock<ISaslMechanismFactory>().Object,
+                    new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210));
+
                 await clusterNode.ExecuteOp(op, token, timeout);
 
                 if (_statuses.TryDequeue(out ResponseStatus status))
