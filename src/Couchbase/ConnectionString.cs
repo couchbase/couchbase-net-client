@@ -25,14 +25,14 @@ namespace Couchbase
 
         public Scheme Scheme { get; private set; } = Scheme.Couchbase;
         public string? Username { get; private set; }
-        public IList<string> Hosts { get; private set; } = new List<string>();
+        public IList<HostEndpoint> Hosts { get; private set; } = new List<HostEndpoint>();
         public IDictionary<string, string> Parameters { get; private set; } = new Dictionary<string, string>();
 
         private ConnectionString()
         {
         }
 
-        public ConnectionString(ConnectionString source, IEnumerable<string> newHosts)
+        public ConnectionString(ConnectionString source, IEnumerable<HostEndpoint> newHosts)
         {
             Scheme = source.Scheme;
             Username = source.Username;
@@ -82,7 +82,7 @@ namespace Couchbase
             if (match.Groups["hosts"].Success)
             {
                 connectionString.Hosts = match.Groups["hosts"].Value.Split(',')
-                    .Select(host => host.Trim())
+                    .Select(host => HostEndpoint.Parse(host.Trim()))
                     .ToList();
             }
 
@@ -102,11 +102,12 @@ namespace Couchbase
 
         public IEnumerable<Uri> GetBootstrapUris()
         {
-            foreach (var host in Hosts)
+            foreach (var (host, port) in Hosts)
             {
-                yield return new UriBuilder {
+                yield return new UriBuilder
+                {
                     Host = host,
-                    Port = Scheme == Scheme.Couchbases ? SecureKeyValuePort : KeyValuePort
+                    Port = port ?? (Scheme == Scheme.Couchbases ? SecureKeyValuePort : KeyValuePort)
                 }.Uri;
             }
         }
@@ -116,7 +117,7 @@ namespace Couchbase
             return new UriBuilder
             {
                 Scheme = Scheme.ToString(),
-                Host = Hosts.First()
+                Host = Hosts.First().Host
             }.Uri;
         }
 
@@ -137,7 +138,7 @@ namespace Couchbase
                 return false;
             }
 
-            return Hosts.Single().IndexOf(":", StringComparison.Ordinal) == -1;
+            return Hosts.Single().Port == null;
         }
 
         public override string ToString()
@@ -164,15 +165,10 @@ namespace Couchbase
                     builder.Append(',');
                 }
 
-                var split = Hosts[hostIndex].Split(':');
-                for (var splitIndex = 0; splitIndex < split.Length; splitIndex++)
+                builder.Append(Hosts[hostIndex].Host);
+                if (Hosts[hostIndex].Port != null)
                 {
-                    if (splitIndex > 0)
-                    {
-                        builder.Append(':');
-                    }
-
-                    builder.Append(Uri.EscapeDataString(split[splitIndex]));
+                    builder.AppendFormat(":{0}", Hosts[hostIndex].Port);
                 }
             }
 

@@ -41,31 +41,31 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Empty(parsed.Parameters);
             Assert.Single(parsed.Hosts);
-            Assert.Equal("localhost", parsed.Hosts.First());
+            Assert.Equal("localhost", parsed.Hosts.First().ToString());
             Assert.Null(parsed.Username);
 
             parsed = ConnectionString.Parse("couchbase://localhost:1234");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Empty(parsed.Parameters);
             Assert.Single(parsed.Hosts);
-            Assert.Equal("localhost:1234", parsed.Hosts.First());
+            Assert.Equal("localhost:1234", parsed.Hosts.First().ToString());
             Assert.Null(parsed.Username);
 
             parsed = ConnectionString.Parse("couchbase://foo:1234,bar:5678");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Empty(parsed.Parameters);
             Assert.Equal(2, parsed.Hosts.Count);
-            Assert.Equal("foo:1234", parsed.Hosts[0]);
-            Assert.Equal("bar:5678", parsed.Hosts[1]);
+            Assert.Equal("foo:1234", parsed.Hosts[0].ToString());
+            Assert.Equal("bar:5678", parsed.Hosts[1].ToString());
             Assert.Null(parsed.Username);
 
             parsed = ConnectionString.Parse("couchbase://foo,bar:5678,baz");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Empty(parsed.Parameters);
             Assert.Equal(3, parsed.Hosts.Count);
-            Assert.Equal("foo", parsed.Hosts[0]);
-            Assert.Equal("bar:5678", parsed.Hosts[1]);
-            Assert.Equal("baz", parsed.Hosts[2]);
+            Assert.Equal("foo", parsed.Hosts[0].ToString());
+            Assert.Equal("bar:5678", parsed.Hosts[1].ToString());
+            Assert.Equal("baz", parsed.Hosts[2].ToString());
             Assert.Null(parsed.Username);
         }
 
@@ -94,15 +94,15 @@ namespace Couchbase.UnitTests.Utils
             var parsed = ConnectionString.Parse("couchbase://user@localhost?foo=bar");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Equal("user", parsed.Username);
-            Assert.Equal("localhost", parsed.Hosts.First());
+            Assert.Equal("localhost", parsed.Hosts.First().ToString());
             Assert.Single(parsed.Parameters);
             Assert.Equal("bar", parsed.Parameters["foo"]);
 
             parsed = ConnectionString.Parse("couchbase://user123@host1,host2?foo=bar&setting=true");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Equal("user123", parsed.Username);
-            Assert.Equal("host1", parsed.Hosts.First());
-            Assert.Equal("host2", parsed.Hosts.Last());
+            Assert.Equal("host1", parsed.Hosts.First().ToString());
+            Assert.Equal("host2", parsed.Hosts.Last().ToString());
             Assert.Equal(2, parsed.Parameters.Count);
             Assert.Equal("bar", parsed.Parameters["foo"]);
             Assert.Equal("true", parsed.Parameters["setting"]);
@@ -115,14 +115,14 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Null(parsed.Username);
             Assert.Single(parsed.Hosts);
-            Assert.Equal("[::1]", parsed.Hosts.First());
+            Assert.Equal("[::1]", parsed.Hosts.First().ToString());
             Assert.Empty(parsed.Parameters);
 
             parsed = ConnectionString.Parse("couchbase://[::1/128]");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Null(parsed.Username);
             Assert.Single(parsed.Hosts);
-            Assert.Equal("[::1/128]", parsed.Hosts.First());
+            Assert.Equal("[::1/128]", parsed.Hosts.First().ToString());
             Assert.Empty(parsed.Parameters);
         }
 
@@ -133,17 +133,17 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Null(parsed.Username);
             Assert.Equal(2, parsed.Hosts.Count);
-            Assert.Equal("[::1]", parsed.Hosts[0]);
-            Assert.Equal("[::2]", parsed.Hosts[1]);
+            Assert.Equal("[::1]", parsed.Hosts[0].ToString());
+            Assert.Equal("[::2]", parsed.Hosts[1].ToString());
             Assert.Empty(parsed.Parameters);
 
             parsed = ConnectionString.Parse("couchbase://[::1/128], [::2/128],[::3/128]");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Null(parsed.Username);
             Assert.Equal(3, parsed.Hosts.Count);
-            Assert.Equal("[::1/128]", parsed.Hosts[0]);
-            Assert.Equal("[::2/128]", parsed.Hosts[1]);
-            Assert.Equal("[::3/128]", parsed.Hosts[2]);
+            Assert.Equal("[::1/128]", parsed.Hosts[0].ToString());
+            Assert.Equal("[::2/128]", parsed.Hosts[1].ToString());
+            Assert.Equal("[::3/128]", parsed.Hosts[2].ToString());
             Assert.Empty(parsed.Parameters);
         }
 
@@ -154,17 +154,17 @@ namespace Couchbase.UnitTests.Utils
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Null(parsed.Username);
             Assert.Equal(2, parsed.Hosts.Count);
-            Assert.Equal("[::1]:8091", parsed.Hosts[0]);
-            Assert.Equal("[::1]:11210", parsed.Hosts[1]);
+            Assert.Equal("[::1]:8091", parsed.Hosts[0].ToString());
+            Assert.Equal("[::1]:11210", parsed.Hosts[1].ToString());
             Assert.Empty(parsed.Parameters);
 
             parsed = ConnectionString.Parse("couchbase://[::1/128]:1234, [::1/128]:11210,[::1/128]:1");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Null(parsed.Username);
             Assert.Equal(3, parsed.Hosts.Count);
-            Assert.Equal("[::1/128]:1234", parsed.Hosts[0]);
-            Assert.Equal("[::1/128]:11210", parsed.Hosts[1]);
-            Assert.Equal("[::1/128]:1", parsed.Hosts[2]);
+            Assert.Equal("[::1/128]:1234", parsed.Hosts[0].ToString());
+            Assert.Equal("[::1/128]:11210", parsed.Hosts[1].ToString());
+            Assert.Equal("[::1/128]:1", parsed.Hosts[2].ToString());
             Assert.Empty(parsed.Parameters);
         }
     }

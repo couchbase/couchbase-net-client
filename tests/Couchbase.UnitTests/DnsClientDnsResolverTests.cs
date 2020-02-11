@@ -267,8 +267,8 @@ namespace Couchbase.UnitTests
             Assert.NotNull(result);
             Assert.Equal(2, result.Count());
 
-            Assert.Contains(result, uri => uri.Scheme == "couchbase" && uri.Host == "node1.somewhere.com" && uri.Port == 8091);
-            Assert.Contains(result, uri => uri.Scheme == "couchbase" && uri.Host == "node2.somewhere.com" && uri.Port == 8091);
+            Assert.Contains(result, endpoint => endpoint.Host == "node1.somewhere.com" && endpoint.Port == 8091);
+            Assert.Contains(result, endpoint => endpoint.Host == "node2.somewhere.com" && endpoint.Port == 8091);
         }
 
         #endregion

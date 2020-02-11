@@ -79,12 +79,12 @@ namespace Couchbase
         }
 
         /// <inheritdoc />
-        public async Task<IEnumerable<Uri>> GetDnsSrvEntriesAsync(Uri bootstrapUri,
+        public async Task<IEnumerable<HostEndpoint>> GetDnsSrvEntriesAsync(Uri bootstrapUri,
             CancellationToken cancellationToken = default)
         {
             if (!EnableDnsSrvResolution)
             {
-                return Enumerable.Empty<Uri>();
+                return Enumerable.Empty<HostEndpoint>();
             }
 
             var query = string.Concat(DefaultServicePrefix, bootstrapUri.Host);
@@ -94,14 +94,14 @@ namespace Couchbase
             if (result.HasError)
             {
                 _logger.LogInformation("There was an error attempting to resolve hosts using DNS-SRV - {errorMessage}", result.ErrorMessage);
-                return Enumerable.Empty<Uri>();
+                return Enumerable.Empty<HostEndpoint>();
             }
 
             var records = result.Answers.SrvRecords().ToList();
             if (!records.Any())
             {
                 _logger.LogInformation("No DNS SRV records found.");
-                return Enumerable.Empty<Uri>();
+                return Enumerable.Empty<HostEndpoint>();
             }
 
             return records
@@ -114,12 +114,8 @@ namespace Couchbase
                         var index = host.LastIndexOf(".", StringComparison.Ordinal);
                         host = host.Substring(0, index);
                     }
-                    return new UriBuilder
-                    {
-                        Scheme = bootstrapUri.Scheme,
-                        Host = host,
-                        Port = record.Port
-                    }.Uri;
+
+                    return new HostEndpoint(host, record.Port);
                 });
         }
     }

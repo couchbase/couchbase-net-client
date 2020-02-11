@@ -187,7 +187,6 @@ namespace Couchbase
 
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
-        public int KvPort { get; set; } = 11210;
         public bool EnableDnsSrvResolution { get; set; } = true;
 
         #region DI

@@ -234,7 +234,7 @@ namespace Couchbase.Core
                     {
                         _logger.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
                         ClusterOptions.ConnectionStringValue =
-                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers.Select(p => p.Host));
+                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers);
                     }
                 }
                 catch (Exception exception)
@@ -309,7 +309,7 @@ namespace Couchbase.Core
             if (node == null)
             {
                 var ipEndPointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
-                var endpoint = await ipEndPointService.GetIpEndPointAsync(uri.Host, ClusterOptions.KvPort, CancellationToken);
+                var endpoint = await ipEndPointService.GetIpEndPointAsync(uri.Host, uri.Port, CancellationToken);
                 node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint);
                 node.BootstrapUri = uri;
                 AddNode(node);

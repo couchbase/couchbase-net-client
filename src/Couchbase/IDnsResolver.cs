@@ -20,8 +20,8 @@ namespace Couchbase
         /// </summary>
         /// <param name="bootstrapUri">Bootstrap URI to lookup.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>A list of <seealso cref="Uri"/> objects, empty if the DNS SRV lookup fails.</returns>
-        Task<IEnumerable<Uri>> GetDnsSrvEntriesAsync(Uri bootstrapUri,
+        /// <returns>A list of <seealso cref="HostEndpoint"/> objects, empty if the DNS SRV lookup fails.</returns>
+        Task<IEnumerable<HostEndpoint>> GetDnsSrvEntriesAsync(Uri bootstrapUri,
             CancellationToken cancellationToken = default);
     }
 }
