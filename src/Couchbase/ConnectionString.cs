@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 #nullable enable
@@ -9,6 +10,9 @@ namespace Couchbase
 {
     internal class ConnectionString
     {
+        private const int KeyValuePort = 11210;
+        private const int SecureKeyValuePort = 11207;
+
         private static readonly Regex ConnectionStringRegex = new Regex(
             "^((?<scheme>[^://]+)://)?((?<username>[^\n@]+)@)?(?<hosts>[^\n?]+)?(\\?(?<params>(.+)))?",
             RegexOptions.Compiled | RegexOptions.CultureInvariant
@@ -19,10 +23,22 @@ namespace Couchbase
             RegexOptions.Compiled | RegexOptions.CultureInvariant
         );
 
-        internal Scheme Scheme { get; private set; } = Scheme.Couchbase;
-        internal string? Username { get; private set; }
-        internal IList<string> Hosts { get; private set; } = new List<string>();
-        internal IDictionary<string, string> Parameters { get; private set; } = new Dictionary<string, string>();
+        public Scheme Scheme { get; private set; } = Scheme.Couchbase;
+        public string? Username { get; private set; }
+        public IList<string> Hosts { get; private set; } = new List<string>();
+        public IDictionary<string, string> Parameters { get; private set; } = new Dictionary<string, string>();
+
+        private ConnectionString()
+        {
+        }
+
+        public ConnectionString(ConnectionString source, IEnumerable<string> newHosts)
+        {
+            Scheme = source.Scheme;
+            Username = source.Username;
+            Hosts = newHosts.ToList();
+            Parameters = source.Parameters;
+        }
 
         internal static ConnectionString Parse(string input)
         {
@@ -84,6 +100,17 @@ namespace Couchbase
             return connectionString;
         }
 
+        public IEnumerable<Uri> GetBootstrapUris()
+        {
+            foreach (var host in Hosts)
+            {
+                yield return new UriBuilder {
+                    Host = host,
+                    Port = Scheme == Scheme.Couchbases ? SecureKeyValuePort : KeyValuePort
+                }.Uri;
+            }
+        }
+
         internal Uri GetDnsBootStrapUri()
         {
             return new UriBuilder
@@ -111,6 +138,66 @@ namespace Couchbase
             }
 
             return Hosts.Single().IndexOf(":", StringComparison.Ordinal) == -1;
+        }
+
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+
+            builder.Append(Scheme switch
+            {
+                Scheme.Couchbase => "couchbase://",
+                Scheme.Couchbases => "couchbases://",
+                _ => "http://"
+            });
+
+            if (!string.IsNullOrEmpty(Username))
+            {
+                builder.Append(Uri.EscapeDataString(Username));
+                builder.Append('@');
+            }
+
+            for (var hostIndex = 0; hostIndex < Hosts.Count; hostIndex++)
+            {
+                if (hostIndex > 0)
+                {
+                    builder.Append(',');
+                }
+
+                var split = Hosts[hostIndex].Split(':');
+                for (var splitIndex = 0; splitIndex < split.Length; splitIndex++)
+                {
+                    if (splitIndex > 0)
+                    {
+                        builder.Append(':');
+                    }
+
+                    builder.Append(Uri.EscapeDataString(split[splitIndex]));
+                }
+            }
+
+            if (Parameters.Count > 0)
+            {
+                var first = true;
+                foreach (var parameter in Parameters)
+                {
+                    if (first)
+                    {
+                        first = false;
+                        builder.Append('?');
+                    }
+                    else
+                    {
+                        builder.Append('&');
+                    }
+
+                    builder.Append(Uri.EscapeDataString(parameter.Key));
+                    builder.Append('=');
+                    builder.Append(Uri.EscapeDataString(parameter.Value));
+                }
+            }
+
+            return builder.ToString();
         }
     }
 

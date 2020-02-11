@@ -19,7 +19,6 @@ namespace Couchbase
 {
     public sealed class ClusterOptions
     {
-        private ConcurrentBag<Uri> _servers = new ConcurrentBag<Uri>();
         private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
         internal ConnectionString? ConnectionStringValue { get; set; }
 
@@ -31,37 +30,7 @@ namespace Couchbase
             }
 
             ConnectionStringValue = Couchbase.ConnectionString.Parse(connectionString);
-            var uriBuilders = ConnectionStringValue.Hosts.Select(x => new UriBuilder
-            {
-                Host = x,
-                Port = KvPort
-            }.Uri).ToArray();
-            Servers(uriBuilders);
-            return this;
-        }
 
-        public ClusterOptions Servers(params string[] servers)
-        {
-            if (!servers?.Any() ?? true)
-            {
-                throw new ArgumentException($"{nameof(servers)} cannot be null or empty.");
-            }
-
-            //for now just copy over - later ensure only new nodes are added
-            _servers = new ConcurrentBag<Uri>(servers.Select(x => new Uri(x)));
-            return this;
-        }
-
-        internal ClusterOptions Servers(IEnumerable<Uri> servers)
-        {
-            var serverList = servers?.ToList();
-            if (!serverList?.Any() ?? true)
-            {
-                throw new ArgumentException($"{nameof(servers)} cannot be null or empty.");
-            }
-
-            //for now just copy over - later ensure only new nodes are added
-            _servers = new ConcurrentBag<Uri>(serverList);
             return this;
         }
 
@@ -154,7 +123,6 @@ namespace Couchbase
             return this;
         }
 
-        internal IEnumerable<Uri> ServersValue => _servers;
         internal IEnumerable<string> Buckets => _buckets;
         public string? UserName { get; set; }
         public string? Password { get; set; }
@@ -180,11 +148,8 @@ namespace Couchbase
         public int NumKvConnections { get; set; } = 1;
         public int MaxHttpConnection { get; set; } = 0;
 
-        public TimeSpan IdleHttpConnectionTimeout
-        {
-            get => throw new NotSupportedException("Not supported by .NET Core.");
-            set => throw new NotSupportedException("Not supported by .NET Core.");
-        }
+        [Obsolete("Not supported in .NET, uses system defaults.")]
+        public TimeSpan IdleHttpConnectionTimeout { get; set; }
 
         public CircuitBreakerConfiguration CircuitBreakerConfiguration { get; set; } =
             CircuitBreakerConfiguration.Default;

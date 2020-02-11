@@ -52,17 +52,6 @@ namespace Couchbase.UnitTests
         #endregion
 
         [Fact]
-        public void WithServers_throws_argument_exception_for_invalid_args()
-        {
-            var config = new ClusterOptions();
-
-            Assert.Throws<ArgumentException>(() => config.Servers());
-            Assert.Throws<ArgumentException>(() => config.Servers((string[])null));
-            Assert.Throws<ArgumentException>(() => config.Servers((Uri[])null));
-            Assert.Throws<ArgumentException>(() => config.Servers(new string[0]));
-        }
-
-        [Fact]
         public void WithBucket_throws_argument_exception_for_invalid_args()
         {
             var config = new ClusterOptions();

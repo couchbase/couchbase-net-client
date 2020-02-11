@@ -215,7 +215,12 @@ namespace Couchbase.Core
 
         public async Task InitializeAsync()
         {
-            if (ClusterOptions.ConnectionStringValue?.IsValidDnsSrv() ?? false)
+            if (ClusterOptions.ConnectionStringValue == null)
+            {
+                throw new InvalidOperationException("ConnectionString has not been set.");
+            }
+
+            if (ClusterOptions.ConnectionStringValue.IsValidDnsSrv())
             {
                 try
                 {
@@ -227,9 +232,9 @@ namespace Couchbase.Core
                     var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken)).ToList();
                     if (servers.Any())
                     {
-                        _logger.LogInformation(
-                            $"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
-                        ClusterOptions.Servers(servers);
+                        _logger.LogInformation($"Successfully retrieved DNS SRV entries: [{string.Join(",", servers)}]");
+                        ClusterOptions.ConnectionStringValue =
+                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers.Select(p => p.Host));
                     }
                 }
                 catch (Exception exception)
@@ -239,9 +244,9 @@ namespace Couchbase.Core
             }
 
             var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
-            foreach (var server in ClusterOptions.ServersValue)
+            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapUris())
             {
-                var bsEndpoint = await ipEndpointService.GetIpEndPointAsync(server.Host, ClusterOptions.KvPort, CancellationToken);
+                var bsEndpoint = await ipEndpointService.GetIpEndPointAsync(server.Host, server.Port, CancellationToken);
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(bsEndpoint);
                 node.BootstrapUri = server;
                 GlobalConfig = await node.GetClusterMap();
@@ -286,7 +291,7 @@ namespace Couchbase.Core
                 return bucket;
             }
 
-            foreach (var server in ClusterOptions.ServersValue)
+            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapUris())
             {
                 foreach (var type in Enum.GetValues(typeof(BucketType)))
                 {
