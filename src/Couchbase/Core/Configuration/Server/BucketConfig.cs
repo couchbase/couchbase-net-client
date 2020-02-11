@@ -8,7 +8,7 @@ using Couchbase.Utils;
 
 namespace Couchbase.Core.Configuration.Server
 {
-    public class Ports : IEquatable<Ports>
+    internal class Ports : IEquatable<Ports>
     {
         [JsonProperty("direct")] public int Direct { get; set; }
         [JsonProperty("proxy")] public int Proxy { get; set; }
@@ -49,7 +49,7 @@ namespace Couchbase.Core.Configuration.Server
         }
     }
 
-    public class Node : IEquatable<Node>
+    internal class Node : IEquatable<Node>
     {
 
         const string LocalHost = "127.0.0.1";
@@ -112,7 +112,7 @@ namespace Couchbase.Core.Configuration.Server
         }
     }
 
-    public class Services : IEquatable<Services>
+    internal class Services : IEquatable<Services>
     {
         [JsonProperty("mgmt")] public int Mgmt { get; set; }
         [JsonProperty("mgmtSSL")] public int MgmtSsl { get; set; }
@@ -189,7 +189,7 @@ namespace Couchbase.Core.Configuration.Server
         }
     }
 
-    public class NodesExt : IEquatable<NodesExt>
+    internal class NodesExt : IEquatable<NodesExt>
     {
         public NodesExt()
         {
@@ -236,13 +236,13 @@ namespace Couchbase.Core.Configuration.Server
         }
     }
 
-    public class Ddocs
+    internal class Ddocs
     {
         public string uri { get; set; }
     }
 
     //Root object
-    public class BucketConfig : IEquatable<BucketConfig>
+    internal class BucketConfig : IEquatable<BucketConfig>
     {
         public BucketConfig()
         {
@@ -355,14 +355,14 @@ namespace Couchbase.Core.Configuration.Server
         [Description("enhancedPreparedStatements")] EnhancedPreparedStatements
     }
 
-    public sealed class AlternateAddressesConfig
+    internal sealed class AlternateAddressesConfig
     {
         [JsonProperty("external")] public ExternalAddressesConfig External { get; set; }
 
         public bool HasExternalAddress => External?.Hostname != null;
     }
 
-    public sealed class ExternalAddressesConfig
+    internal sealed class ExternalAddressesConfig
     {
         [JsonProperty("hostname")] public string Hostname { get; set; }
         [JsonProperty("ports")] public Services Ports { get; set; }
