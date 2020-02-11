@@ -133,10 +133,11 @@ namespace Couchbase
             return bucket;
         }
 
-        public Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
+        public async Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
         {
             options ??= new DiagnosticsOptions();
-            return Task.FromResult(DiagnosticsReportProvider.CreateDiagnosticsReport(_context, options.ReportIdValue ?? Guid.NewGuid().ToString()));
+            return await DiagnosticsReportProvider.CreateDiagnosticsReportAsync(_context, options.ReportIdValue ?? Guid.NewGuid().ToString())
+                .ConfigureAwait(false);
         }
 
         /// <summary>

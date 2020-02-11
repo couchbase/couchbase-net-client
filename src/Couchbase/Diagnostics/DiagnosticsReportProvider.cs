@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO;
@@ -31,7 +32,7 @@ namespace Couchbase.Diagnostics
             ServiceType.Analytics
         };
 
-        internal static IPingReport CreatePingReport(ClusterContext context, BucketConfig config, PingOptions options)
+        internal static async Task<IPingReport> CreatePingReportAsync(ClusterContext context, BucketConfig config, PingOptions options)
         {
             if (!options.ServiceTypesValue.Any())
             {
@@ -39,19 +40,23 @@ namespace Couchbase.Diagnostics
             }
 
             var clusterNodes = context.GetNodes(config.Name);
-            var endpoints = GetEndpointDiagnostics(context, clusterNodes,true, options.ServiceTypesValue, CancellationToken.None);
-            return new PingReport(options.ReportIdValue, config.Rev, endpoints);
+            var endpoints =
+                await GetEndpointDiagnosticsAsync(context, clusterNodes, true, options.ServiceTypesValue,
+                    CancellationToken.None).ConfigureAwait(false);
+            return new PingReport(options.ReportIdValue ?? Guid.NewGuid().ToString(), config.Rev, endpoints);
         }
 
-        internal static IDiagnosticsReport CreateDiagnosticsReport(ClusterContext context, string reportId)
+        internal static async Task<IDiagnosticsReport> CreateDiagnosticsReportAsync(ClusterContext context, string reportId)
         {
             var clusterNodes = context.Nodes;
-            var endpoints = GetEndpointDiagnostics(context, clusterNodes.Values,false, AllServiceTypes, CancellationToken.None);
+            var endpoints =
+                await GetEndpointDiagnosticsAsync(context, clusterNodes.Values, false, AllServiceTypes,
+                    CancellationToken.None).ConfigureAwait(false);
             return new DiagnosticsReport(reportId, endpoints);
         }
 
-       internal static ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>> GetEndpointDiagnostics(ClusterContext context, IEnumerable<IClusterNode> clusterNodes, bool ping,
-           ICollection<ServiceType> serviceTypes, CancellationToken token)
+       private async static Task<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
+           IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes, CancellationToken token)
        {
            var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
 
@@ -65,11 +70,11 @@ namespace Couchbase.Diagnostics
 
                    if (ping)
                    {
-                       RecordLatency(endPointDiagnostics, async () =>
+                       await RecordLatencyAsync(endPointDiagnostics, async () =>
                        {
                            var op = new Noop();
                            await clusterNode.ExecuteOp(connection, op, token);
-                       });
+                       }).ConfigureAwait(false);
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);
@@ -84,7 +89,9 @@ namespace Couchbase.Diagnostics
 
                        if (ping)
                        {
-                           RecordLatency(endPointDiagnostics, async () => await bucket.ViewQueryAsync<object, object>("p", "p"));
+                           await RecordLatencyAsync(endPointDiagnostics,
+                                   async () => await bucket.ViewQueryAsync<object, object>("p", "p"))
+                               .ConfigureAwait(false);
                        }
 
                        kvEndpoints.Add(endPointDiagnostics);
@@ -98,7 +105,9 @@ namespace Couchbase.Diagnostics
 
                    if (ping)
                    {
-                       RecordLatency(endPointDiagnostics, () => context.Cluster.QueryAsync<dynamic>("SELECT 1;"));
+                       await RecordLatencyAsync(endPointDiagnostics,
+                               () => context.Cluster.QueryAsync<dynamic>("SELECT 1;"))
+                           .ConfigureAwait(false);
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);
@@ -111,7 +120,9 @@ namespace Couchbase.Diagnostics
 
                    if (ping)
                    {
-                       RecordLatency(endPointDiagnostics, () => context.Cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;"));
+                       await RecordLatencyAsync(endPointDiagnostics,
+                               () => context.Cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;"))
+                           .ConfigureAwait(false);
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);
@@ -125,7 +136,8 @@ namespace Couchbase.Diagnostics
                    if (ping)
                    {
                        var index = "ping";
-                       RecordLatency(endPointDiagnostics, () => context.Cluster.SearchQueryAsync(index, new NoOpQuery()));
+                       await RecordLatencyAsync(endPointDiagnostics,
+                           () => context.Cluster.SearchQueryAsync(index, new NoOpQuery())).ConfigureAwait(false);
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);
@@ -181,12 +193,12 @@ namespace Couchbase.Diagnostics
             };
         }
 
-        internal static void RecordLatency(EndpointDiagnostics endpoint, Action action)
+        internal static async Task RecordLatencyAsync(EndpointDiagnostics endpoint, Func<Task> action)
         {
             var timer = Stopwatch.StartNew();
             try
             {
-                action();
+                await action().ConfigureAwait(false);
                 endpoint.State = ServiceState.Ok;
             }
             catch

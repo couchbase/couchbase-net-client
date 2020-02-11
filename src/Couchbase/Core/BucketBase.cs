@@ -104,12 +104,13 @@ namespace Couchbase.Core
 
         public abstract ICollectionManager Collections { get; }
 
-        public Task<IPingReport> PingAsync(PingOptions? options = null)
+        public async Task<IPingReport> PingAsync(PingOptions? options = null)
         {
             ThrowIfBootStrapFailed();
 
             options ??= new PingOptions();
-            return Task.Run(()=> DiagnosticsReportProvider.CreatePingReport(Context, BucketConfig, options));
+            return await DiagnosticsReportProvider.CreatePingReportAsync(Context, BucketConfig, options)
+                .ConfigureAwait(false);
         }
 
         internal abstract Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null);
