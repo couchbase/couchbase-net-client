@@ -9,7 +9,5 @@ namespace Couchbase.KeyValue
         public bool Exists { get; set; }
 
         public ulong Cas { get; set; }
-
-        public TimeSpan? Expiry { get; set; }
     }
 }

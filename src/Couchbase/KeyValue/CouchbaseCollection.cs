@@ -120,28 +120,27 @@ namespace Couchbase.KeyValue
 
         public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null)
         {
-            //sanity check for deferred bootstrapping errors
-            _bucket.ThrowIfBootStrapFailed();
-
-            options ??= new ExistsOptions();
-
-            using var getMetaOp = new GetMeta
-            {
-                Key = id,
-                Cid = Cid,
-                CName = Name,
-                Transcoder = _transcoder
-            };
-
             try
             {
+                //sanity check for deferred bootstrapping errors
+                _bucket.ThrowIfBootStrapFailed();
+
+                options ??= new ExistsOptions();
+
+                using var getMetaOp = new GetMeta
+                {
+                    Key = id,
+                    Cid = Cid,
+                    CName = Name,
+                    Transcoder = _transcoder
+                };
+
                 await _bucket.SendAsync(getMetaOp, options.TokenValue, options.TimeoutValue);
                 var result = getMetaOp.GetValue();
                 return new ExistsResult
                 {
                     Cas = getMetaOp.Cas,
-                    Exists = true,
-                    Expiry = TimeSpan.FromMilliseconds(result.Expiry)
+                    Exists = !result.Deleted
                 };
             }
             catch (DocumentNotFoundException)
