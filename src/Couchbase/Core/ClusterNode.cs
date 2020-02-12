@@ -142,7 +142,11 @@ namespace Couchbase.Core
                 _context.ClusterOptions.Password);
 
             await saslMechanism.AuthenticateAsync(connection, _context.CancellationToken).ConfigureAwait(false);
-            await SelectBucket(connection, Owner.Name).ConfigureAwait(false);
+
+            if (Owner != null)
+            {
+                await SelectBucket(connection, Owner.Name).ConfigureAwait(false);
+            }
         }
 
         private async Task SelectBucket(IConnection connection, string bucketName)
