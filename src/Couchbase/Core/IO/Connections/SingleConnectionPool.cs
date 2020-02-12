@@ -21,10 +21,9 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
-        /// <param name="clusterOptions">Options used to configure the cluster at bootstrap.</param>
         public SingleConnectionPool(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory, ClusterOptions clusterOptions)
-            : base (connectionInitializer, connectionFactory, clusterOptions)
+            IConnectionFactory connectionFactory)
+            : base (connectionInitializer, connectionFactory)
         {
         }
 

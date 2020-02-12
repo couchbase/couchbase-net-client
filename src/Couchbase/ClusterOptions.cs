@@ -146,7 +146,17 @@ namespace Couchbase
         public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
         public TimeSpan ConfigPollFloorInterval { get; set; } = TimeSpan.FromMilliseconds(50);
         public TimeSpan ConfigIdleRedialTimeout { get; set; } = TimeSpan.FromMinutes(5);
-        public int NumKvConnections { get; set; } = 1;
+
+        /// <summary>
+        /// Minimum number of connections per key/value node.
+        /// </summary>
+        public int NumKvConnections { get; set; }
+
+        /// <summary>
+        /// Maximum number of connections per key/value node.
+        /// </summary>
+        public int MaxKvConnections { get; set; }
+
         public int MaxHttpConnection { get; set; } = 0;
 
         [Obsolete("Not supported in .NET, uses system defaults.")]

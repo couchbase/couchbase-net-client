@@ -24,11 +24,6 @@ namespace Couchbase.Core.IO.Connections
         public IPEndPoint EndPoint => _connectionInitializer.EndPoint;
 
         /// <summary>
-        /// Options used to configure the cluster at bootstrap.
-        /// </summary>
-        protected ClusterOptions ClusterOptions { get; }
-
-        /// <summary>
         /// Current bucket name passed to <see cref="SelectBucketAsync(string,CancellationToken)"/>.
         /// </summary>
         protected string? BucketName { get; set; }
@@ -38,13 +33,11 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
-        /// <param name="clusterOptions">Options used to configure the cluster at bootstrap.</param>
         protected ConnectionPoolBase(IConnectionInitializer connectionInitializer,
-            IConnectionFactory connectionFactory, ClusterOptions clusterOptions)
+            IConnectionFactory connectionFactory)
         {
             _connectionInitializer = connectionInitializer ?? throw new ArgumentNullException(nameof(connectionInitializer));
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
-            ClusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
         }
 
         /// <summary>
@@ -73,7 +66,7 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public virtual async Task SelectBucketAsync(string name, CancellationToken cancellationToken = default)
         {
-            await using (FreezePool().ConfigureAwait(false))
+            await using ((await FreezePoolAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
             {
                 var tasks = GetConnections()
                     .Select(connection =>
@@ -93,7 +86,8 @@ namespace Couchbase.Core.IO.Connections
         /// <remarks>
         /// Should be overriden by any derived class which supports rescaling connections.
         /// </remarks>
-        protected virtual IAsyncDisposable FreezePool() => NullAsyncDisposable.Instance;
+        protected virtual ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default) =>
+            new ValueTask<IAsyncDisposable>(NullAsyncDisposable.Instance);
 
         /// <inheritdoc />
         public abstract Task InitializeAsync(CancellationToken cancellationToken = default);
