@@ -148,7 +148,7 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var collection = CreateTestCollection();
 
-            var dict = collection.Dictionary<string, dynamic>("theDocId");
+            var dict = collection.Dictionary<dynamic>("theDocId");
             Assert.NotNull(dict);
         }
 

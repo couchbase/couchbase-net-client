@@ -335,10 +335,9 @@ namespace Couchbase.KeyValue
             return new PersistentQueue<T>(collection, docId, (collection as CouchbaseCollection)?.Logger);
         }
 
-        public static IPersistentDictionary<TKey, TValue> Dictionary<TKey, TValue>(this ICollection collection, string docId)
-            where TKey : notnull
+        public static IPersistentDictionary<TValue> Dictionary<TValue>(this ICollection collection, string docId)
         {
-            return new PersistentDictionary<TKey, TValue>(collection, docId, (collection as CouchbaseCollection)?.Logger);
+            return new PersistentDictionary<TValue>(collection, docId, (collection as CouchbaseCollection)?.Logger);
         }
 
         #endregion

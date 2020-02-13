@@ -6,26 +6,25 @@ using System.Threading.Tasks;
 
 namespace Couchbase.DataStructures
 {
-    public interface IPersistentDictionary<TKey, TValue> : IDictionary<TKey, TValue>
-        where TKey : notnull
+    public interface IPersistentDictionary<TValue> : IDictionary<string, TValue>
     {
-        Task AddAsync(KeyValuePair<TKey, TValue> item);
+        Task AddAsync(KeyValuePair<string, TValue> item);
 
         Task ClearAsync();
 
-        Task<bool> ContainsAsync(KeyValuePair<TKey, TValue> item);
+        Task<bool> ContainsAsync(KeyValuePair<string, TValue> item);
 
-        Task<bool> RemoveAsync(KeyValuePair<TKey, TValue> item);
+        Task<bool> RemoveAsync(KeyValuePair<string, TValue> item);
 
         Task<int> CountAsync { get; }
 
-        Task AddAsync(TKey key, TValue value);
+        Task AddAsync(string key, TValue value);
 
-        Task<bool> ContainsKeyAsync(TKey key);
+        Task<bool> ContainsKeyAsync(string key);
 
-        Task<bool> RemoveAsync(TKey key);
+        Task<bool> RemoveAsync(string key);
 
-        Task<ICollection<TKey>> KeysAsync { get; }
+        Task<ICollection<string>> KeysAsync { get; }
 
         Task<ICollection<TValue>> ValuesAsync { get; }
     }
