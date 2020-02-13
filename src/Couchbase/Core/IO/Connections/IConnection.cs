@@ -63,9 +63,9 @@ namespace Couchbase.Core.IO.Connections
         bool IsDead { get; set; }
 
         /// <summary>
-        /// Gets the timestamp of the last activity.
+        /// Gets the amount of time this connection has been idle.
         /// </summary>
-        DateTime? LastActivity { get; }
+        TimeSpan IdleTime { get; }
 
         /// <summary>
         /// Sends a request packet as an asynchronous operation.
@@ -122,5 +122,13 @@ namespace Couchbase.Core.IO.Connections
         /// <c>true</c> if the connection must enable server features; otherwise, <c>false</c>.
         /// </value>
         bool MustEnableServerFeatures { get; set; }
+
+        /// <summary>
+        /// Closes the connection gracefully, waiting up to timeout for all in-flight operations
+        /// to be completed, then disposes the connection.
+        /// </summary>
+        /// <param name="timeout">Time to wait for in-flight operations.</param>
+        /// <returns>Task to observe for completion.</returns>
+        ValueTask CloseAsync(TimeSpan timeout);
     }
 }

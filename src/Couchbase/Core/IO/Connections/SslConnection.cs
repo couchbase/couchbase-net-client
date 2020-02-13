@@ -107,6 +107,8 @@ namespace Couchbase.Core.IO.Connections
                 // write response to state and complete callback
                 state.SetData(response);
                 await callback(state).ConfigureAwait(false);
+
+                UpdateLastActivity();
             }
             catch (Exception e)
             {
@@ -141,11 +143,14 @@ namespace Couchbase.Core.IO.Connections
             InUse = isUsed;
         }
 
-        public DateTime? LastActivity { get; private set; }
+        private DateTime _lastActivity = DateTime.UtcNow;
 
-        internal void UpdateLastActivity()
+        /// <inheritdoc />
+        public TimeSpan IdleTime => DateTime.UtcNow - _lastActivity;
+
+        private void UpdateLastActivity()
         {
-            LastActivity = DateTime.UtcNow;
+            _lastActivity = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -172,6 +177,14 @@ namespace Couchbase.Core.IO.Connections
                 _sslStream?.Dispose();
             }
             Disposed = true;
+        }
+
+        /// <inheritdoc />
+        public ValueTask CloseAsync(TimeSpan timeout)
+        {
+            // TODO: Deal with multiplexing support on SslConnection
+            Close();
+            return default;
         }
     }
 }

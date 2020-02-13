@@ -24,7 +24,7 @@ namespace Couchbase.LoadTests.Helpers
         public EndPoint EndPoint { get; set; }
         public EndPoint LocalEndPoint { get; set; }
         public bool IsDead { get; set; }
-        public DateTime? LastActivity { get; set; }
+        public TimeSpan IdleTime { get; set; }
 
         public Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback)
         {
@@ -49,5 +49,10 @@ namespace Couchbase.LoadTests.Helpers
 
         public bool CheckedForEnhancedAuthentication { get; set; }
         public bool MustEnableServerFeatures { get; set; }
+        public ValueTask CloseAsync(TimeSpan timeout)
+        {
+            Dispose();
+            return default;
+        }
     }
 }

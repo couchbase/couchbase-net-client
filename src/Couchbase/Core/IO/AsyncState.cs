@@ -15,6 +15,8 @@ namespace Couchbase.Core.IO
     /// </summary>
     internal class AsyncState : IState
     {
+        private readonly TaskCompletionSource<bool> _tcs = new TaskCompletionSource<bool>();
+
         public IPEndPoint EndPoint { get; set; }
         public Func<SocketAsyncState, Task> Callback { get; set; }
         public uint Opaque { get; set; }
@@ -22,6 +24,8 @@ namespace Couchbase.Core.IO
         public ulong ConnectionId { get; set; }
         public ErrorMap ErrorMap { get; set; }
         public string LocalEndpoint { get; set; }
+
+        public Task CompletionTask => _tcs.Task;
 
         /// <summary>
         /// Cancels the current Memcached request that is in-flight.
@@ -47,6 +51,8 @@ namespace Couchbase.Core.IO
             state.SetData(response);
 
             Callback(state);
+
+            _tcs.TrySetCanceled();
         }
 
         /// <inheritdoc />
@@ -85,6 +91,8 @@ namespace Couchbase.Core.IO
 
             //somewhat of hack for backwards compatibility
             Task.Factory.StartNew(stateObj => Callback((SocketAsyncState) stateObj), state);
+
+            _tcs.TrySetResult(true);
         }
 
         public void Dispose()

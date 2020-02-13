@@ -15,14 +15,17 @@ namespace Couchbase.Core.IO.Connections
     {
         private readonly IConnectionFactory _connectionFactory;
         private readonly ClusterOptions _clusterOptions;
+        private readonly IConnectionPoolScaleControllerFactory _scaleControllerFactory;
         private readonly IRedactor _redactor;
         private readonly ILogger<DataFlowConnectionPool> _dataFlowLogger;
 
         public ConnectionPoolFactory(IConnectionFactory connectionFactory, ClusterOptions clusterOptions,
-            IRedactor redactor, ILogger<DataFlowConnectionPool> dataFlowLogger)
+            IConnectionPoolScaleControllerFactory scaleControllerFactory, IRedactor redactor,
+            ILogger<DataFlowConnectionPool> dataFlowLogger)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
+            _scaleControllerFactory = scaleControllerFactory ?? throw new ArgumentNullException(nameof(scaleControllerFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _dataFlowLogger = dataFlowLogger ?? throw new ArgumentNullException(nameof(dataFlowLogger));
         }
@@ -36,7 +39,10 @@ namespace Couchbase.Core.IO.Connections
             }
             else
             {
-                return new DataFlowConnectionPool(clusterNode, _connectionFactory, _redactor, _dataFlowLogger)
+                var scaleController = _scaleControllerFactory.Create();
+
+                return new DataFlowConnectionPool(clusterNode, _connectionFactory, scaleController,
+                    _redactor, _dataFlowLogger)
                 {
                     MinimumSize = _clusterOptions.NumKvConnections,
                     MaximumSize = _clusterOptions.MaxKvConnections

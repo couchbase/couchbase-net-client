@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -141,7 +142,7 @@ namespace Couchbase.Core.IO.Connections
                 }
             }
 
-            return Task.FromResult(0);
+            return Task.CompletedTask;
         }
 
         public bool InUse { get; private set; }
@@ -260,14 +261,14 @@ namespace Couchbase.Core.IO.Connections
             Close();
         }
 
-        /// <summary>
-        /// Gets the timestamp of the last activity.
-        /// </summary>
-        public DateTime? LastActivity { get; private set; }
+        private DateTime _lastActivity = DateTime.UtcNow;
 
-        protected void UpdateLastActivity()
+        /// <inheritdoc />
+        public TimeSpan IdleTime => DateTime.UtcNow - _lastActivity;
+
+        private void UpdateLastActivity()
         {
-            LastActivity = DateTime.UtcNow;
+            _lastActivity = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -324,6 +325,24 @@ namespace Couchbase.Core.IO.Connections
                     }
                 }
             }
+        }
+
+        /// <inheritdoc />
+        public async ValueTask CloseAsync(TimeSpan timeout)
+        {
+            if (_statesInFlight.Count == 0)
+            {
+                // Short circuit if nothing's in flight
+                Close();
+                return;
+            }
+
+            var allStatesTask = Task.WhenAll(
+                _statesInFlight.Select(p => p.Value.CompletionTask));
+
+            await Task.WhenAny(allStatesTask, Task.Delay(timeout)).ConfigureAwait(false);
+
+            Close();
         }
 
         public void Dispose()

@@ -7,6 +7,7 @@ using System.Threading.Tasks.Dataflow;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Exception = System.Exception;
 
@@ -19,6 +20,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
     /// </summary>
     internal class DataFlowConnectionPool : ConnectionPoolBase
     {
+        private readonly IConnectionPoolScaleController _scaleController;
         private readonly IRedactor _redactor;
         private readonly ILogger<DataFlowConnectionPool> _logger;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
@@ -35,29 +37,36 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
         private bool _initialized;
 
-        /// <summary>
-        /// Minimum number of connections in the pool.
-        /// </summary>
-        public int MinimumSize { get; set; } = 2;
+        /// <inheritdoc />
+        public sealed override int Size => _connections.Count;
 
-        /// <summary>
-        /// Maximum number of connections in the pool.
-        /// </summary>
-        public int MaximumSize { get; set; } = 5;
+        /// <inheritdoc />
+        public sealed override int MinimumSize { get; set; }
+
+        /// <inheritdoc />
+        public sealed override int MaximumSize { get; set; }
+
+        /// <inheritdoc />
+        public sealed override int PendingSends => _sendQueue.Count;
 
         /// <summary>
         /// Creates a new DataFlowConnectionPool.
         /// </summary>
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
+        /// <param name="scaleController">Scale controller.</param>
         /// <param name="redactor">Log redactor.</param>
         /// <param name="logger">Logger.</param>
         public DataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IRedactor redactor, ILogger<DataFlowConnectionPool> logger)
+            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger)
             : base(connectionInitializer, connectionFactory)
         {
+            _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            MinimumSize = 2;
+            MaximumSize = 5;
         }
 
         /// <inheritdoc />
@@ -69,6 +78,8 @@ namespace Couchbase.Core.IO.Connections.DataFlow
             }
 
             await AddConnectionsAsync(MinimumSize, cancellationToken);
+
+            _scaleController.Start(this);
 
             _logger.LogDebug("Connection pool for {endpoint} initialized with {size} connections.",
                 _redactor.SystemData(EndPoint), MinimumSize);
@@ -83,7 +94,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
             var operationRequest = new SendOperationRequest(operation, cancellationToken);
 
-            if (_connections.Count > 0)
+            if (Size > 0)
             {
                 _sendQueue.Post(operationRequest);
 
@@ -113,7 +124,58 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         }
 
         /// <inheritdoc />
-        protected override async ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default)
+        public override async Task ScaleAsync(int delta)
+        {
+            if (delta > 0)
+            {
+                var growBy = Math.Min(delta, MaximumSize - Size);
+                if (growBy > 0)
+                {
+                    await AddConnectionsAsync(growBy, _cts.Token).ConfigureAwait(false);
+                }
+            }
+            else if (delta < 0)
+            {
+                var shrinkBy = Math.Min(-delta, Size - MinimumSize);
+                if (shrinkBy > 0)
+                {
+                    // Select connections to shrink, longest inactive first
+                    var toShrink = _connections
+                        .OrderByDescending(p => p.Connection.IdleTime)
+                        .Select((connection, index) => (index, connection))
+                        .Take(shrinkBy)
+                        .ToList();
+
+                    // Stop all connections from receiving new sends, and wait for in flight sends
+                    // to complete, in parallel
+                    var completionTasks = toShrink
+                        .Select(p =>
+                        {
+                            p.connection.Block.Complete();
+                            return p.connection.Block.Completion;
+                        })
+                        .ToList();
+
+                    // Wait for all stops to be done
+                    await Task.WhenAll(completionTasks).ConfigureAwait(false);
+
+                    // Dispose and remove from _connections
+                    // Do it in reverse order so we can remove by index safely
+                    foreach (var p in toShrink.OrderByDescending(p => p.index))
+                    {
+                        _connections.RemoveAt(p.index);
+
+#pragma warning disable 4014
+                        // Don't wait for close, let it happen in the background
+                        p.connection.Connection.CloseAsync(TimeSpan.FromMinutes(1));
+#pragma warning restore 4014
+                    }
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public override async ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default)
         {
             EnsureNotDisposed();
 
@@ -138,6 +200,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 return;
             }
 
+            _scaleController.Dispose();
             _cts.Cancel(false);
 
             // Take out a lock to prevent more connections from opening while we're disposing

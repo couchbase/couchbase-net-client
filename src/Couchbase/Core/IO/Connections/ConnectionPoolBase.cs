@@ -23,6 +23,18 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public IPEndPoint EndPoint => _connectionInitializer.EndPoint;
 
+        /// <inheritdoc />
+        public abstract int Size { get; }
+
+        /// <inheritdoc />
+        public abstract int MinimumSize { get; set; }
+
+        /// <inheritdoc />
+        public abstract int MaximumSize { get; set; }
+
+        /// <inheritdoc />
+        public abstract int PendingSends { get; }
+
         /// <summary>
         /// Current bucket name passed to <see cref="SelectBucketAsync(string,CancellationToken)"/>.
         /// </summary>
@@ -79,14 +91,8 @@ namespace Couchbase.Core.IO.Connections
             }
         }
 
-        /// <summary>
-        /// Requests that the connections in the pool be frozen, with no connections being added or removed.
-        /// </summary>
-        /// <returns>An <seealso cref="IAsyncDisposable"/> which releases the freeze when disposed.</returns>
-        /// <remarks>
-        /// Should be overriden by any derived class which supports rescaling connections.
-        /// </remarks>
-        protected virtual ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default) =>
+        /// <inheritdoc />
+        public virtual ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default) =>
             new ValueTask<IAsyncDisposable>(NullAsyncDisposable.Instance);
 
         /// <inheritdoc />
@@ -97,6 +103,9 @@ namespace Couchbase.Core.IO.Connections
 
         /// <inheritdoc />
         public abstract IEnumerable<IConnection> GetConnections();
+
+        /// <inheritdoc />
+        public abstract Task ScaleAsync(int delta);
 
         /// <inheritdoc />
         public abstract void Dispose();

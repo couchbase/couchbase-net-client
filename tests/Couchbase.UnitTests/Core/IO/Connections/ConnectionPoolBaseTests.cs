@@ -246,6 +246,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 set => BucketName = value;
             }
 
+            public override int Size => 1;
+            public override int MinimumSize { get; set; }
+            public override int MaximumSize { get; set; }
+            public override int PendingSends => 0;
+
             public List<IConnection> Connections { get; } = new List<IConnection>();
 
             public bool IsFrozen { get; private set; }
@@ -255,7 +260,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             {
             }
 
-            protected override ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default)
+            public override ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default)
             {
                 IsFrozen = true;
 
@@ -275,6 +280,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             public override IEnumerable<IConnection> GetConnections()
             {
                 return Connections;
+            }
+
+            public override Task ScaleAsync(int delta)
+            {
+                throw new NotImplementedException();
             }
 
             public override void Dispose()

@@ -158,7 +158,7 @@ namespace Couchbase.Diagnostics
             {
                 Id = connection.ConnectionId.ToString(),
                 Type = ServiceType.KeyValue,
-                LastActivity = CalculateLastActivity(createdAt, connection.LastActivity),
+                LastActivity = CalculateLastActivity(createdAt, DateTime.UtcNow - connection.IdleTime),
                 Remote = connection.Socket?.RemoteEndPoint.ToString() ?? UnknownEndpointValue,
                 Local = connection.Socket?.LocalEndPoint.ToString() ?? UnknownEndpointValue,
                 State = GetConnectionServiceState(connection),

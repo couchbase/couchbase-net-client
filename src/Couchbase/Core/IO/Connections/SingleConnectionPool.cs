@@ -16,6 +16,26 @@ namespace Couchbase.Core.IO.Connections
     {
         private IConnection? _connection;
 
+        /// <inheritdoc />
+        public sealed override int Size => 1;
+
+        /// <inheritdoc />
+        public sealed override int MinimumSize
+        {
+            get => 1;
+            set => throw new NotSupportedException();
+        }
+
+        /// <inheritdoc />
+        public sealed override int MaximumSize
+        {
+            get => 1;
+            set => throw new NotSupportedException();
+        }
+
+        /// <inheritdoc />
+        public sealed override int PendingSends => 0;
+
         /// <summary>
         /// Creates a new SingleConnectionPool.
         /// </summary>
@@ -53,6 +73,12 @@ namespace Couchbase.Core.IO.Connections
             {
                 yield return _connection;
             }
+        }
+
+        /// <inheritdoc />
+        public override Task ScaleAsync(int delta)
+        {
+            throw new NotSupportedException();
         }
 
         private async ValueTask CheckConnectionAsync()

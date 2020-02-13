@@ -148,12 +148,17 @@ namespace Couchbase
         /// <summary>
         /// Minimum number of connections per key/value node.
         /// </summary>
-        public int NumKvConnections { get; set; }
+        public int NumKvConnections { get; set; } = 2;
 
         /// <summary>
         /// Maximum number of connections per key/value node.
         /// </summary>
-        public int MaxKvConnections { get; set; }
+        public int MaxKvConnections { get; set; } = 5;
+
+        /// <summary>
+        /// Amount of time with no activity before a key/value connection is considered idle.
+        /// </summary>
+        public TimeSpan IdleKvConnectionTimeout { get; set; } = TimeSpan.FromMinutes(1);
 
         public int MaxHttpConnection { get; set; } = 0;
 

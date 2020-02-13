@@ -20,6 +20,26 @@ namespace Couchbase.Core.IO.Connections
         IPEndPoint EndPoint { get; }
 
         /// <summary>
+        /// Current size of the pool.
+        /// </summary>
+        public int Size { get; }
+
+        /// <summary>
+        /// Minimum number of connections in the pool.
+        /// </summary>
+        public int MinimumSize { get; }
+
+        /// <summary>
+        /// Maximum number of connections in the pool.
+        /// </summary>
+        public int MaximumSize { get; }
+
+        /// <summary>
+        /// The number of pending sends on the connection pool.
+        /// </summary>
+        public int PendingSends { get; }
+
+        /// <summary>
         /// Initialize the connection pool, opening initial connections and generally preparing the pool for use.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>\
@@ -38,6 +58,15 @@ namespace Couchbase.Core.IO.Connections
         Task SendAsync(IOperation op, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Requests that the connections in the pool be frozen, with no connections being added or removed.
+        /// </summary>
+        /// <returns>An <seealso cref="IAsyncDisposable"/> which releases the freeze when disposed.</returns>
+        /// <remarks>
+        /// Should be overriden by any derived class which supports rescaling connections.
+        /// </remarks>
+        ValueTask<IAsyncDisposable> FreezePoolAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Selects the bucket for all connections on the pool.
         /// </summary>
         /// <param name="name">The bucket name.</param>
@@ -49,5 +78,16 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <returns>The current connections in the pool.</returns>
         IEnumerable<IConnection> GetConnections();
+
+        /// <summary>
+        /// Scale the pool up or down by a certain amount.
+        /// </summary>
+        /// <param name="delta">Amount to scale the pool.</param>
+        /// <returns>Task to observer for completion.</returns>
+        /// <remarks>
+        /// It is assumed that the caller has already frozen the pool before calling ScalePool.
+        /// Not freezing first so will have unexpected results.
+        /// </remarks>
+        Task ScaleAsync(int delta);
     }
 }

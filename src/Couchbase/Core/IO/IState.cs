@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Threading.Tasks;
 
 namespace Couchbase.Core.IO
 {
@@ -8,6 +9,11 @@ namespace Couchbase.Core.IO
     /// </summary>
     internal interface IState : IDisposable
     {
+        /// <summary>
+        /// Task to observe for completion of the state.
+        /// </summary>
+        Task CompletionTask { get; }
+
         /// <summary>
         /// Completes the specified Memcached response.
         /// </summary>
