@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Couchbase.Core.Sharding;
 
 namespace Couchbase.Core.Configuration.Server
 {
@@ -44,25 +43,25 @@ namespace Couchbase.Core.Configuration.Server
         /// <summary>
         /// Replaces the $HOST placeholder with the Uri.Host used to bootstrap. This occurs in a single-node cluster.
         /// </summary>
-        /// <param name="config"></param>
-        /// <param name="bootStrapUri"></param>
-        public static void ReplacePlaceholderWithBootstrapHost(this BucketConfig config, Uri bootStrapUri)
+        /// <param name="config">Configuration to update.</param>
+        /// <param name="host">New host value for $HOST.</param>
+        public static void ReplacePlaceholderWithBootstrapHost(this BucketConfig config, string host)
         {
             const string hostPlaceHolder = "$HOST";
             foreach (var nodesExt in config.NodesExt)
             {
-                if (nodesExt.Hostname == null) nodesExt.Hostname = bootStrapUri.Host;
+                if (nodesExt.Hostname == null) nodesExt.Hostname = host;
 
                 if (nodesExt.Hostname.Contains(hostPlaceHolder))
-                    nodesExt.Hostname = nodesExt.Hostname.Replace(hostPlaceHolder, bootStrapUri.Host);
+                    nodesExt.Hostname = nodesExt.Hostname.Replace(hostPlaceHolder, host);
             }
 
             foreach (var node in config.Nodes)
             {
-                if (node.Hostname == null) node.Hostname = bootStrapUri.Host;
+                if (node.Hostname == null) node.Hostname = host;
 
                 if (node.Hostname.Contains(hostPlaceHolder))
-                    node.Hostname = node.Hostname.Replace(hostPlaceHolder, bootStrapUri.Host);
+                    node.Hostname = node.Hostname.Replace(hostPlaceHolder, host);
             }
 
             if (config.VBucketServerMap?.ServerList != null)
@@ -70,7 +69,7 @@ namespace Couchbase.Core.Configuration.Server
                 var servers = config.VBucketServerMap.ServerList;
                 for (var i = 0; i < servers.Length; i++)
                 {
-                    servers[i] = servers[i].Replace(hostPlaceHolder, bootStrapUri.Host);
+                    servers[i] = servers[i].Replace(hostPlaceHolder, host);
                 }
             }
         }

@@ -165,7 +165,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var expected = "default";
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-localhost.json");
-            config.ReplacePlaceholderWithBootstrapHost(new Uri("http://127.0.0.1"));
+            config.ReplacePlaceholderWithBootstrapHost("127.0.0.1");
 
             var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(config.VBucketServerMap);
 

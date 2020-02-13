@@ -204,10 +204,10 @@ namespace Couchbase.Core
             return Nodes.TryGetValue(endPoint, out node);
         }
 
-        public async Task<IClusterNode> GetUnassignedNodeAsync(Uri uri)
+        public async Task<IClusterNode> GetUnassignedNodeAsync(HostEndpoint endpoint)
         {
             var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
-            var ipAddress = await dnsResolver.GetIpAddressAsync(uri.Host, CancellationToken);
+            var ipAddress = await dnsResolver.GetIpAddressAsync(endpoint.Host, CancellationToken);
 
             return Nodes.Values.FirstOrDefault(
                 x => !x.IsAssigned && x.EndPoint.Address.Equals(ipAddress));
@@ -244,11 +244,9 @@ namespace Couchbase.Core
             }
 
             var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
-            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapUris())
+            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints())
             {
-                var bsEndpoint = await ipEndpointService.GetIpEndPointAsync(server.Host, server.Port, CancellationToken);
-                var node = await _clusterNodeFactory.CreateAndConnectAsync(bsEndpoint);
-                node.BootstrapUri = server;
+                var node = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken);
                 GlobalConfig = await node.GetClusterMap();
 
                 if (GlobalConfig == null) //TODO NCBC-1966 xerror info is being hidden, so on failure this will not be null
@@ -262,20 +260,14 @@ namespace Couchbase.Core
                     {
                         if (server.Host.Equals(nodeAdapter.Hostname))//this is the bootstrap node so update
                         {
-                            node.BootstrapUri = server;
                             node.NodesAdapter = nodeAdapter;
-                            node.BuildServiceUris();
                             SupportsCollections = node.Supports(ServerFeatures.Collections);
                             AddNode(node);
                         }
                         else
                         {
-                            var endpoint = await ipEndpointService.GetIpEndPointAsync(nodeAdapter, CancellationToken);
-                            if (endpoint.Port == 0) endpoint.Port = 11210;
-                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(endpoint);
-                            newNode.BootstrapUri = server;
+                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken);
                             newNode.NodesAdapter = nodeAdapter;
-                            newNode.BuildServiceUris();
                             SupportsCollections = node.Supports(ServerFeatures.Collections);
                             AddNode(newNode);
                         }
@@ -291,7 +283,7 @@ namespace Couchbase.Core
                 return bucket;
             }
 
-            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapUris())
+            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints())
             {
                 foreach (var type in Enum.GetValues(typeof(BucketType)))
                 {
@@ -303,15 +295,12 @@ namespace Couchbase.Core
             return bucket;
         }
 
-        public async Task<IBucket> CreateAndBootStrapBucketAsync(string name, Uri uri, BucketType type)
+        public async Task<IBucket> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
         {
-            var node = await GetUnassignedNodeAsync(uri);
+            var node = await GetUnassignedNodeAsync(endpoint);
             if (node == null)
             {
-                var ipEndPointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
-                var endpoint = await ipEndPointService.GetIpEndPointAsync(uri.Host, uri.Port, CancellationToken);
-                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint);
-                node.BootstrapUri = uri;
+                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken);
                 AddNode(node);
             }
 
@@ -346,20 +335,21 @@ namespace Couchbase.Core
                     }
 
                     bootstrapNode.NodesAdapter = nodeAdapter;
-                    bootstrapNode.BuildServiceUris();
                     SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
                     continue; //bootstrap node is skipped because it already went through these steps
                 }
 
                 _logger.LogDebug($"Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}");
-                var node = await _clusterNodeFactory.CreateAndConnectAsync(endPoint);
+                var node = await _clusterNodeFactory.CreateAndConnectAsync(
+                    // We want the BootstrapEndpoint to use the host name, not just the IP
+                    new HostEndpoint(nodeAdapter.Hostname, endPoint.Port),
+                    CancellationToken);
                 if (node.HasKv)
                 {
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
                 }
 
                 node.NodesAdapter = nodeAdapter;
-                node.BuildServiceUris();
                 SupportsCollections = node.Supports(ServerFeatures.Collections);
                 AddNode(node);
             }

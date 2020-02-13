@@ -33,6 +33,7 @@ namespace Couchbase.Core
         private Uri _analyticsUri;
         private Uri _searchUri;
         private Uri _viewsUri;
+        private NodeAdapter _nodesAdapter;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
@@ -68,8 +69,18 @@ namespace Couchbase.Core
 
         public bool IsAssigned => Owner != null;
         public IBucket Owner { get; private set; }
-        public NodeAdapter NodesAdapter { get; set; }
-        public Uri BootstrapUri { get; set; }
+
+        public NodeAdapter NodesAdapter
+        {
+            get => _nodesAdapter;
+            set
+            {
+                _nodesAdapter = value;
+                BuildServiceUris();
+            }
+        }
+
+        public HostEndpoint BootstrapEndpoint { get; set; }
         public IPEndPoint EndPoint { get; }
 
         public Uri QueryUri
@@ -220,7 +231,7 @@ namespace Couchbase.Core
 
             if (config != null && EndPoint!= null)
             {
-                config.ReplacePlaceholderWithBootstrapHost(BootstrapUri);
+                config.ReplacePlaceholderWithBootstrapHost(BootstrapEndpoint.Host);
             }
 
             return config;
@@ -241,16 +252,13 @@ namespace Couchbase.Core
             return resultWithValue.Content;
         }
 
-        public void BuildServiceUris()
+        private void BuildServiceUris()
         {
-            if (NodesAdapter != null)
-            {
-                QueryUri = NodesAdapter.GetQueryUri(_context.ClusterOptions);
-                SearchUri = NodesAdapter.GetSearchUri(_context.ClusterOptions);
-                AnalyticsUri = NodesAdapter.GetAnalyticsUri(_context.ClusterOptions);
-                ViewsUri = NodesAdapter.GetViewsUri(_context.ClusterOptions); //TODO move to IBucket level?
-                ManagementUri = NodesAdapter.GetManagementUri(_context.ClusterOptions);
-            }
+            QueryUri = NodesAdapter?.GetQueryUri(_context.ClusterOptions);
+            SearchUri = NodesAdapter?.GetSearchUri(_context.ClusterOptions);
+            AnalyticsUri = NodesAdapter?.GetAnalyticsUri(_context.ClusterOptions);
+            ViewsUri = NodesAdapter?.GetViewsUri(_context.ClusterOptions); //TODO move to IBucket level?
+            ManagementUri = NodesAdapter?.GetManagementUri(_context.ClusterOptions);
         }
 
         public async Task SendAsync(IOperation op,

@@ -100,15 +100,19 @@ namespace Couchbase
             return connectionString;
         }
 
-        public IEnumerable<Uri> GetBootstrapUris()
+        public IEnumerable<HostEndpoint> GetBootstrapEndpoints()
         {
-            foreach (var (host, port) in Hosts)
+            foreach (var endpoint in Hosts)
             {
-                yield return new UriBuilder
+                if (endpoint.Port != null)
                 {
-                    Host = host,
-                    Port = port ?? (Scheme == Scheme.Couchbases ? SecureKeyValuePort : KeyValuePort)
-                }.Uri;
+                    yield return endpoint;
+                }
+                else
+                {
+                    yield return new HostEndpoint(endpoint.Host,
+                        Scheme == Scheme.Couchbases ? SecureKeyValuePort : KeyValuePort);
+                }
             }
         }
 

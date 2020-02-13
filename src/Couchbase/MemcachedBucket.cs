@@ -109,7 +109,7 @@ namespace Couchbase
         {
             //fetch the cluster map to avoid race condition with streaming http
             BucketConfig = await _httpClusterMap.GetClusterMapAsync(
-                Name, node.BootstrapUri, CancellationToken.None).ConfigureAwait(false);
+                Name, node.BootstrapEndpoint, CancellationToken.None).ConfigureAwait(false);
 
             KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig);
 

@@ -14,7 +14,7 @@ namespace Couchbase.Core
     {
         IBucket Owner { get; }
         NodeAdapter NodesAdapter { get; set; }
-        Uri BootstrapUri { get; set; }
+        HostEndpoint BootstrapEndpoint { get; }
         IPEndPoint EndPoint { get; }
         Uri QueryUri { get; set; }
         Uri AnalyticsUri { get; set; }
@@ -48,8 +48,6 @@ namespace Couchbase.Core
 
         Task<BucketConfig> GetClusterMap();
         Task<uint?> GetCid(string fullyQualifiedName);
-
-        void BuildServiceUris();
 
         Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null);

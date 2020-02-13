@@ -1,4 +1,4 @@
-using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 
 #nullable enable
@@ -13,8 +13,9 @@ namespace Couchbase.Core.DI
         /// <summary>
         /// Create and connect to a <see cref="IClusterNode"/>.
         /// </summary>
-        /// <param name="endPoint"><see cref="IPEndPoint"/> of the node.</param>
+        /// <param name="endPoint"><see cref="HostEndpoint"/> of the node.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The <seealso cref="IClusterNode"/>.</returns>
-        Task<IClusterNode> CreateAndConnectAsync(IPEndPoint endPoint);
+        Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, CancellationToken cancellationToken = default);
     }
 }

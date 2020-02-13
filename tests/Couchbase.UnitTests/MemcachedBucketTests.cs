@@ -48,13 +48,13 @@ namespace Couchbase.UnitTests
         [Fact(Skip = "Will be enabled in later commit.")]
         public async Task Indexer_Succeeds_When_Name_Is_Default()
         {
-            var localhost = new Uri("http://10.112.192.102:8091");
+            var localhost = HostEndpoint.Parse("10.112.192.102:8091");
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>("mycache.json");
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
             mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
-            mockClusterNode.Setup(x => x.BootstrapUri).Returns(localhost);
+            mockClusterNode.Setup(x => x.BootstrapEndpoint).Returns(localhost);
             mockClusterNode.Setup(x => x.SelectBucketAsync(It.IsAny<IBucket>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             var mockHttpClusterMap = new Mock<HttpClusterMapBase>();
@@ -72,13 +72,13 @@ namespace Couchbase.UnitTests
         [Fact(Skip = "Will be enabled in later commit.")]
         public async Task ScopeAsync_Succeeds_When_Name_Is_Default()
         {
-            var localhost = new Uri("http://10.112.192.102:8091");
+            var localhost = HostEndpoint.Parse("10.112.192.102:8091");
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>("mycache.json");
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
             mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
-            mockClusterNode.Setup(x => x.BootstrapUri).Returns(localhost);
+            mockClusterNode.Setup(x => x.BootstrapEndpoint).Returns(localhost);
             mockClusterNode.Setup(x => x.SelectBucketAsync(It.IsAny<IBucket>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             var mockHttpClusterMap = new Mock<HttpClusterMapBase>();
@@ -96,13 +96,13 @@ namespace Couchbase.UnitTests
         [Fact(Skip = "Will be enabled in later commit.")]
         public async Task ScopeAsync_Throws_NotSupportedException_When_Name_Is_Not_Default()
         {
-            var localhost = new Uri("http://10.112.192.102:8091");
+            var localhost = HostEndpoint.Parse("10.112.192.102:8091");
             var bucketConfig = ResourceHelper.ReadResource<BucketConfig>("mycache.json");
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
             mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
-            mockClusterNode.Setup(x => x.BootstrapUri).Returns(localhost);
+            mockClusterNode.Setup(x => x.BootstrapEndpoint).Returns(localhost);
             mockClusterNode.Setup(x => x.SelectBucketAsync(It.IsAny<IBucket>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             var mockHttpClusterMap = new Mock<HttpClusterMapBase>();

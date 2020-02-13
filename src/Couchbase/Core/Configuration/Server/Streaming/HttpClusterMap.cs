@@ -11,7 +11,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
     /// </summary>
     internal abstract class HttpClusterMapBase
     {
-        public abstract Task<BucketConfig> GetClusterMapAsync(string bucketName, Uri hostUri,
+        public abstract Task<BucketConfig> GetClusterMapAsync(string bucketName, HostEndpoint hostEndpoint,
             CancellationToken cancellationToken);
     }
 
@@ -27,12 +27,13 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             _context = context;
         }
 
-        public override async Task<BucketConfig> GetClusterMapAsync(string bucketName, Uri hostUri,
+        public override async Task<BucketConfig> GetClusterMapAsync(string bucketName, HostEndpoint hostEndpoint,
             CancellationToken cancellationToken)
         {
-            var uri = new UriBuilder(hostUri)
+            var uri = new UriBuilder
             {
                 Scheme = _context.ClusterOptions.EnableTls ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
+                Host = hostEndpoint.Host,
                 Port = _context.ClusterOptions.MgmtPort, //TODO add ssl/tls support
                 Path = Path + bucketName
             };
@@ -42,7 +43,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
-                bucketConfig.ReplacePlaceholderWithBootstrapHost(uri.Uri);
+                bucketConfig.ReplacePlaceholderWithBootstrapHost(uri.Host);
                 return bucketConfig;
             }
         }

@@ -90,6 +90,7 @@ namespace Couchbase.UnitTests.Utils
             {
                 NodesAdapter = new NodeAdapter
                 {
+                    Hostname = "localhost",
                     Views = 8092
                 }
             };
