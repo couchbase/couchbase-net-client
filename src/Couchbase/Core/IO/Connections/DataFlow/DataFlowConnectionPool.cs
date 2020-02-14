@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Exception = System.Exception;
 
@@ -18,6 +19,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
     /// </summary>
     internal class DataFlowConnectionPool : ConnectionPoolBase
     {
+        private readonly IRedactor _redactor;
         private readonly ILogger<DataFlowConnectionPool> _logger;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
@@ -48,11 +50,13 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// </summary>
         /// <param name="connectionInitializer">Handler for initializing new connections.</param>
         /// <param name="connectionFactory">Factory for creating new connections.</param>
+        /// <param name="redactor">Log redactor.</param>
         /// <param name="logger">Logger.</param>
         public DataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            ILogger<DataFlowConnectionPool> logger)
+            IRedactor redactor, ILogger<DataFlowConnectionPool> logger)
             : base(connectionInitializer, connectionFactory)
         {
+            _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -66,7 +70,8 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
             await AddConnectionsAsync(MinimumSize, cancellationToken);
 
-            _logger.LogDebug("Connection pool for {endpoint} initialized with {size} connections.", EndPoint, MinimumSize);
+            _logger.LogDebug("Connection pool for {endpoint} initialized with {size} connections.",
+                _redactor.SystemData(EndPoint), MinimumSize);
 
             _initialized = true;
         }
@@ -278,7 +283,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 if (deadCount > 0)
                 {
                     _logger.LogInformation("Connection pool for {endpoint} has {size} dead connections, removing.",
-                        EndPoint, deadCount);
+                        _redactor.SystemData(EndPoint), deadCount);
                 }
 
                 // Ensure that we still meet the minimum size
@@ -289,12 +294,13 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     {
                         await AddConnectionsAsync(needToRestart, _cts.Token).ConfigureAwait(false);
 
-                        _logger.LogInformation("Restarted {size} connections for {endpoint}.", needToRestart, EndPoint);
+                        _logger.LogInformation("Restarted {size} connections for {endpoint}.",
+                            needToRestart, _redactor.SystemData(EndPoint));
                     }
                     catch (Exception ex)
                     {
                         // Eat the error if we were unable to restart one of the dead connections, but log
-                        _logger.LogError(ex, "Error replacing dead connections for {endpoint}.", EndPoint);
+                        _logger.LogError(ex, "Error replacing dead connections for {endpoint}.", _redactor.SystemData(EndPoint));
                     }
                 }
             }

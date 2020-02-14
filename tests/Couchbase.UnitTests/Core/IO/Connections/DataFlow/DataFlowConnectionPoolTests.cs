@@ -8,6 +8,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.DataFlow;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -316,6 +317,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             }
 
             return new DataFlowConnectionPool(connectionInitializer, connectionFactory,
+                new Mock<IRedactor>().Object,
                 new Logger(_testOutput));
         }
 
