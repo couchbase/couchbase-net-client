@@ -19,6 +19,7 @@ namespace Couchbase
     internal class DnsClientDnsResolver : IDnsResolver
     {
         private const string DefaultServicePrefix = "_couchbase._tcp.";
+        private const string TlsServicePrefix = "_couchbases._tcp.";
         private readonly ILookupClient _lookupClient;
         private readonly ILogger<DnsClientDnsResolver> _logger;
 
@@ -87,7 +88,7 @@ namespace Couchbase
                 return Enumerable.Empty<HostEndpoint>();
             }
 
-            var query = string.Concat(DefaultServicePrefix, bootstrapUri.Host);
+            var query = string.Concat(bootstrapUri.Scheme == "couchbases" ? TlsServicePrefix : DefaultServicePrefix, bootstrapUri.Host);
             var result = await _lookupClient.QueryAsync(query, QueryType.SRV,
                 cancellationToken: cancellationToken);
 

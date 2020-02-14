@@ -240,8 +240,10 @@ namespace Couchbase.UnitTests
             Assert.Empty(result);
         }
 
-        [Fact]
-        public async Task GetDnsSrvEntriesAsync_GetsSrvEntries_ReturnsUris()
+        [Theory]
+        [InlineData("couchbase")]
+        [InlineData("couchbases")]
+        public async Task GetDnsSrvEntriesAsync_GetsSrvEntries_ReturnsUris(string scheme)
         {
             var records = new List<SrvRecord>
             {
@@ -257,10 +259,10 @@ namespace Couchbase.UnitTests
 
             var mockLookupClient = new Mock<ILookupClient>();
             mockLookupClient
-                .Setup(x => x.QueryAsync("_couchbase._tcp.cb.somewhere.com", QueryType.SRV, QueryClass.IN, CancellationToken.None))
+                .Setup(x => x.QueryAsync($"_{scheme}._tcp.cb.somewhere.com", QueryType.SRV, QueryClass.IN, CancellationToken.None))
                 .Returns(Task.FromResult(mockQueryResponse.Object));
 
-            var bootstrapUri = new Uri("couchbase://cb.somewhere.com");
+            var bootstrapUri = new Uri($"{scheme}://cb.somewhere.com");
             var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
 
             var result = (await resolver.GetDnsSrvEntriesAsync(bootstrapUri)).ToList();
