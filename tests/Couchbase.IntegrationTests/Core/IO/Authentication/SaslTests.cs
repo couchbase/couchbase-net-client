@@ -26,7 +26,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
         public async Task Authenticate_Connection()
         {
             var options = ClusterFixture.GetClusterOptions();
-            options.ConnectionString(ClusterFixture.GetSettings().ConnectionString);
+            options.WithConnectionString(ClusterFixture.GetSettings().ConnectionString);
 
             var factory = new ConnectionFactory(options, new Mock<ILogger<MultiplexingConnection>>().Object,
                 new Mock<ILogger<SslConnection>>().Object);

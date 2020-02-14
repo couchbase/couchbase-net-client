@@ -20,7 +20,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            config.Logging();
+            config.WithLogging();
 
             // Assert
 
@@ -40,7 +40,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            config.Logging(mockLoggerFactory.Object);
+            config.WithLogging(mockLoggerFactory.Object);
 
             // Assert
 
@@ -56,9 +56,9 @@ namespace Couchbase.UnitTests
         {
             var config = new ClusterOptions();
 
-            Assert.Throws<ArgumentException>(() => config.Bucket());
-            Assert.Throws<ArgumentException>(() => config.Bucket(null));
-            Assert.Throws<ArgumentException>(() => config.Bucket(new string[0]));
+            Assert.Throws<ArgumentException>(() => config.WithBuckets());
+            Assert.Throws<ArgumentException>(() => config.WithBuckets(null));
+            Assert.Throws<ArgumentException>(() => config.WithBuckets(new string[0]));
         }
 
         [Fact]

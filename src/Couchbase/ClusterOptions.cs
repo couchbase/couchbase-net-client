@@ -20,22 +20,22 @@ namespace Couchbase
 {
     public sealed class ClusterOptions
     {
-        private ConcurrentBag<string> _buckets = new ConcurrentBag<string>();
         internal ConnectionString? ConnectionStringValue { get; set; }
 
-        public ClusterOptions ConnectionString(string connectionString)
+        public string? ConnectionString
         {
-            if (connectionString == null)
-            {
-                throw new ArgumentNullException(nameof(connectionString));
-            }
-
-            ConnectionStringValue = Couchbase.ConnectionString.Parse(connectionString);
+            get => ConnectionStringValue?.ToString();
+            set => ConnectionStringValue = value != null ? Couchbase.ConnectionString.Parse(value) : null;
+        }
+        public ClusterOptions WithConnectionString(string connectionString)
+        {
+            ConnectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
 
             return this;
         }
 
-        public ClusterOptions Bucket(params string[] bucketNames)
+        public IList<string> Buckets { get; set; } = new List<string>();
+        public ClusterOptions WithBuckets(params string[] bucketNames)
         {
             if (!bucketNames?.Any() ?? true)
             {
@@ -43,7 +43,7 @@ namespace Couchbase
             }
 
             //just the name of the bucket for now - later make and actual cluster
-            _buckets = new ConcurrentBag<string>(bucketNames.ToList());
+            Buckets = new List<string>(bucketNames);
             return this;
         }
 
@@ -64,11 +64,10 @@ namespace Couchbase
             return this;
         }
 
-        public ClusterOptions Logging(ILoggerFactory? loggerFactory = null)
+        public ILoggerFactory? Logging { get; set; }
+        public ClusterOptions WithLogging(ILoggerFactory? loggerFactory = null)
         {
-            loggerFactory ??= new NullLoggerFactory();
-
-            AddSingletonService(loggerFactory);
+            Logging = loggerFactory;
 
             return this;
         }
@@ -76,16 +75,16 @@ namespace Couchbase
         /// <summary>
         /// Provide a custom <see cref="ITypeSerializer"/>.
         /// </summary>
+        public ITypeSerializer? Serializer { get; set; }
+
+        /// <summary>
+        /// Provide a custom <see cref="ITypeSerializer"/>.
+        /// </summary>
         /// <param name="serializer">Serializer to use.</param>
         /// <returns><see cref="ClusterOptions"/>.</returns>
-        public ClusterOptions Serializer(ITypeSerializer serializer)
+        public ClusterOptions WithSerializer(ITypeSerializer serializer)
         {
-            if (serializer == null)
-            {
-                throw new ArgumentNullException(nameof(serializer));
-            }
-
-            AddSingletonService(serializer);
+            Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
 
             return this;
         }
@@ -93,16 +92,16 @@ namespace Couchbase
         /// <summary>
         /// Provide a custom <see cref="ITypeTranscoder"/>.
         /// </summary>
+        public ITypeTranscoder? Transcoder { get; set; }
+
+        /// <summary>
+        /// Provide a custom <see cref="ITypeTranscoder"/>.
+        /// </summary>
         /// <param name="transcoder">Transcoder to use.</param>
         /// <returns><see cref="ClusterOptions"/>.</returns>
-        public ClusterOptions Transcoder(ITypeTranscoder transcoder)
+        public ClusterOptions WithTranscoder(ITypeTranscoder transcoder)
         {
-            if (transcoder == null)
-            {
-                throw new ArgumentNullException(nameof(transcoder));
-            }
-
-            AddSingletonService(transcoder);
+            Transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
 
             return this;
         }
@@ -110,21 +109,20 @@ namespace Couchbase
         /// <summary>
         /// Provide a custom <see cref="IDnsResolver"/> for DNS SRV resolution.
         /// </summary>
+        public IDnsResolver? DnsResolver { get; set; }
+
+        /// <summary>
+        /// Provide a custom <see cref="IDnsResolver"/> for DNS SRV resolution.
+        /// </summary>
         /// <param name="dnsResolver">DNS resolver to use.</param>
         /// <returns><see cref="ClusterOptions"/>.</returns>
-        public ClusterOptions DnsResolver(IDnsResolver dnsResolver)
+        public ClusterOptions WithDnsResolver(IDnsResolver dnsResolver)
         {
-            if (dnsResolver == null)
-            {
-                throw new ArgumentNullException(nameof(dnsResolver));
-            }
-
-            AddSingletonService(dnsResolver);
+            DnsResolver = dnsResolver ?? throw new ArgumentNullException(nameof(dnsResolver));
 
             return this;
         }
 
-        internal IEnumerable<string> Buckets => _buckets;
         public string? UserName { get; set; }
         public string? Password { get; set; }
 
@@ -210,8 +208,28 @@ namespace Couchbase
         /// Build a <see cref="IServiceProvider"/> from the currently registered services.
         /// </summary>
         /// <returns>The new <see cref="IServiceProvider"/>.</returns>
-        internal IServiceProvider BuildServiceProvider() =>
-            new CouchbaseServiceProvider(_services);
+        internal IServiceProvider BuildServiceProvider()
+        {
+            AddSingletonService(this);
+            AddSingletonService(Logging ?? new NullLoggerFactory());
+
+            if (Serializer != null)
+            {
+                AddSingletonService(Serializer);
+            }
+
+            if (Transcoder != null)
+            {
+                AddSingletonService(Transcoder);
+            }
+
+            if (DnsResolver != null)
+            {
+                AddSingletonService(DnsResolver);
+            }
+
+            return new CouchbaseServiceProvider(_services);
+        }
 
         internal void AddTransientService<T>(Func<IServiceProvider, T> factory)
         {

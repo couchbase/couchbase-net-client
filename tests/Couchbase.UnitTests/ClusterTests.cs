@@ -17,7 +17,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void ctor_Throws_InvalidConfigurationException_When_Credentials_Not_Provided()
         {
-            Assert.Throws<InvalidConfigurationException>(() => new Cluster("couchbase://localhost", new ClusterOptions()));
+            Assert.Throws<InvalidConfigurationException>(() => new Cluster(new ClusterOptions().WithConnectionString("couchbase://localhost")));
         }
 
         #endregion
@@ -45,9 +45,10 @@ namespace Couchbase.UnitTests
                 .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<QueryOptions>()))
                 .ReturnsAsync(queryResult.Object);
 
-            var options = new ClusterOptions().Credentials("u", "p");
+            var options = new ClusterOptions().Credentials("u", "p")
+                .WithConnectionString("couchbase://localhost");
 
-            var cluster = new Mock<Cluster>("couchbase://localhost", options)
+            var cluster = new Mock<Cluster>(options)
             {
                 CallBase = true
             };
@@ -90,9 +91,10 @@ namespace Couchbase.UnitTests
                 .Setup(m => m.QueryAsync<TestClass>(It.IsAny<IAnalyticsRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(analyticsResult.Object);
 
-            var options = new ClusterOptions().Credentials("u", "p");
+            var options = new ClusterOptions().Credentials("u", "p")
+                .WithConnectionString("couchbase://localhost");
 
-            var cluster = new Mock<Cluster>("couchbase://localhost", options)
+            var cluster = new Mock<Cluster>(options)
             {
                 CallBase = true
             };

@@ -44,9 +44,6 @@ namespace Couchbase.Core
             // Register this instance of ClusterContext
             options.AddSingletonService(this);
 
-            // Register the ClusterOptions
-            options.AddSingletonService(options);
-
             ServiceProvider = options.BuildServiceProvider();
 
             _logger = ServiceProvider.GetRequiredService<ILogger<ClusterContext>>();

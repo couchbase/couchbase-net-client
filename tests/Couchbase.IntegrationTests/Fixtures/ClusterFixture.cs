@@ -69,7 +69,7 @@ namespace Couchbase.IntegrationTests.Fixtures
         {
             Cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
-                    builder => builder.AddJsonFile("config.json"))
+                    GetClusterOptions())
                 .ConfigureAwait(false);
         }
 

@@ -18,7 +18,6 @@ using Couchbase.Management.Search;
 using Couchbase.Management.Users;
 using Couchbase.Query;
 using Couchbase.Search;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 
@@ -46,13 +45,8 @@ namespace Couchbase
         internal Lazy<IQueryIndexManager> LazyQueryManager;
         internal Lazy<ISearchIndexManager> LazySearchManager;
 
-        internal Cluster(string connectionString, ClusterOptions? clusterOptions = null)
+        internal Cluster(ClusterOptions clusterOptions)
         {
-            clusterOptions ??= new ClusterOptions();
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidConfigurationException("The connectionString cannot be null, empty or only be whitespace.");
-            }
             if (clusterOptions == null)
             {
                 throw new InvalidConfigurationException("ClusterOptions is null.");
@@ -61,8 +55,6 @@ namespace Couchbase
             {
                 throw new InvalidConfigurationException("Username and password are required.");
             }
-
-            clusterOptions.ConnectionString(connectionString);
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(configTokenSource, clusterOptions);
@@ -81,11 +73,9 @@ namespace Couchbase
             _redactor = _context.ServiceProvider.GetRequiredService<IRedactor>();
         }
 
-        public static async Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
+        public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
         {
-            var cluster = new Cluster(connectionString, options);
-            await cluster.InitializeAsync().ConfigureAwait(false);
-            return cluster;
+            return ConnectAsync((options ?? new ClusterOptions()).WithConnectionString(connectionString));
         }
 
         public static Task<ICluster> ConnectAsync(string connectionString, string username, string password)
@@ -97,17 +87,21 @@ namespace Couchbase
             });
         }
 
-        public static Task<ICluster> ConnectAsync(string connectionString, Action<ConfigurationBuilder> configureBuilder)
+        public static async Task<ICluster> ConnectAsync(ClusterOptions options)
         {
-            var builder = new ConfigurationBuilder();
-            configureBuilder(builder);
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+            if (options.ConnectionString == null)
+            {
+                throw new ArgumentException($"{nameof(options)} must have a connection string.",
+                    nameof(options));
+            }
 
-            var clusterOptions = builder
-                .Build()
-                .GetSection("couchbase")
-                .Get<ClusterOptions>();
-
-            return ConnectAsync(connectionString, clusterOptions);
+            var cluster = new Cluster(options);
+            await cluster.InitializeAsync().ConfigureAwait(false);
+            return cluster;
         }
 
         internal async Task InitializeAsync()

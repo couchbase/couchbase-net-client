@@ -10,8 +10,9 @@ namespace Couchbase.LoadTests.Fixtures
 
         public ClusterFixture()
         {
-            Cluster = new Cluster("couchbase://localhost", new ClusterOptions()
-                .Bucket("default")
+            Cluster = new Cluster(new ClusterOptions()
+                .WithConnectionString("couchbase://localhost")
+                .WithBuckets("default")
                 .Credentials("Administrator", "password"));
         }
 
