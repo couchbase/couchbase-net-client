@@ -445,7 +445,7 @@ namespace Couchbase.Core
             ServerFeatures = await Hello(connection, cancellationToken).ConfigureAwait(false);
             ErrorMap = await GetErrorMap(connection, cancellationToken).ConfigureAwait(false);
 
-            var mechanismType = _context.ClusterOptions.EnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
+            var mechanismType = _context.ClusterOptions.EffectiveEnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
             var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
                 _context.ClusterOptions.Password);
 

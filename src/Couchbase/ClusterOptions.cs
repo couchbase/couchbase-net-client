@@ -135,7 +135,13 @@ namespace Couchbase
         public TimeSpan AnalyticsTimeout { get; set; } = TimeSpan.FromSeconds(75);
         public TimeSpan SearchTimeout { get; set; } = TimeSpan.FromSeconds(75);
         public TimeSpan ManagementTimeout { get; set; } = TimeSpan.FromSeconds(75);
-        public bool EnableTls { get; set; }
+
+        /// <summary>
+        /// Overrides the TLS behavior in <see cref="ConnectionString"/>, enabling or
+        /// disabling TLS.
+        /// </summary>
+        public bool? EnableTls { get; set; }
+
         public bool EnableMutationTokens { get; set; } = true;
         public ITracer Tracer = new ThresholdLoggingTracer();
         public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);
@@ -172,8 +178,12 @@ namespace Couchbase
 
         public RedactionLevel RedactionLevel { get; set; } = RedactionLevel.None;
 
+        /// <summary>
+        /// Port used for HTTP bootstrapping fallback if other bootstrap methods are not available.
+        /// </summary>
+        public int BootstrapHttpPort { get; set; } = 8091;
+
         //Volatile or obsolete options
-        public int MgmtPort { get; set; } = 8091;
         public bool EnableExpect100Continue { get; set; }
         public bool EnableCertificateAuthentication { get; set; }
         public bool EnableCertificateRevocation { get; set; }
@@ -204,6 +214,11 @@ namespace Couchbase
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableDnsSrvResolution { get; set; } = true;
+
+        /// <summary>
+        /// Effective value for TLS, should be used instead of <see cref="EnableTls"/> internally within the SDK.
+        /// </summary>
+        internal bool EffectiveEnableTls => EnableTls ?? ConnectionStringValue?.Scheme == Scheme.Couchbases;
 
         #region DI
 

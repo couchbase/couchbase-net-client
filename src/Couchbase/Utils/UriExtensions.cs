@@ -1,7 +1,4 @@
 using System;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using Couchbase.Core.Configuration.Server;
 
 namespace Couchbase.Utils
@@ -13,7 +10,6 @@ namespace Couchbase.Utils
 
         public static string QueryPath = "/query";
         public const string AnalyticsPath = "/analytics/service";
-        public static string BaseUriFormat = "{0}://{1}:{2}/pools";
 
         internal static Uri GetQueryUri(this NodeAdapter nodeAdapter, ClusterOptions clusterOptions)
         {
@@ -21,16 +17,16 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.EnableTls ? Https : Http,
+                    Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                     Host = nodeAdapter.Hostname,
-                    Port = clusterOptions.EnableTls ? nodeAdapter.N1QlSsl : nodeAdapter.N1Ql,
+                    Port = clusterOptions.EffectiveEnableTls ? nodeAdapter.N1QlSsl : nodeAdapter.N1Ql,
                     Path = QueryPath
                 }.Uri;
             }
 
             return new UriBuilder
             {
-                Scheme = clusterOptions.EnableTls ? Https : Http,
+                Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                 Host = nodeAdapter.Hostname,
             }.Uri;
         }
@@ -41,15 +37,15 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.EnableTls ? Https : Http,
+                    Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                     Host = nodesAdapter.Hostname,
-                    Port = clusterOptions.EnableTls ? nodesAdapter.AnalyticsSsl : nodesAdapter.Analytics,
+                    Port = clusterOptions.EffectiveEnableTls ? nodesAdapter.AnalyticsSsl : nodesAdapter.Analytics,
                     Path = AnalyticsPath
                 }.Uri;
             }
             return new UriBuilder
             {
-                Scheme = clusterOptions.EnableTls ? Https : Http,
+                Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                 Host = nodesAdapter.Hostname,
             }.Uri;
 
@@ -61,15 +57,15 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.EnableTls ? Https : Http,
+                    Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                     Host = nodeAdapter.Hostname,
-                    Port = clusterOptions.EnableTls ? nodeAdapter.FtsSsl : nodeAdapter.Fts
+                    Port = clusterOptions.EffectiveEnableTls ? nodeAdapter.FtsSsl : nodeAdapter.Fts
                 }.Uri;
             }
 
             return new UriBuilder
             {
-                Scheme = clusterOptions.EnableTls ? Https : Http,
+                Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                 Host = nodeAdapter.Hostname,
             }.Uri;
         }
@@ -80,16 +76,16 @@ namespace Couchbase.Utils
             {
                 return new UriBuilder
                 {
-                    Scheme = clusterOptions.EnableTls ? Https : Http,
+                    Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                     Host = nodesAdapter.Hostname,
-                    Port = clusterOptions.EnableTls ? nodesAdapter.ViewsSsl : nodesAdapter.Views
+                    Port = clusterOptions.EffectiveEnableTls ? nodesAdapter.ViewsSsl : nodesAdapter.Views
                 }.Uri;
             }
             return new UriBuilder
             {
-                Scheme = clusterOptions.EnableTls ? Https : Http,
+                Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                 Host = nodesAdapter.Hostname,
-                Port = clusterOptions.EnableTls ? nodesAdapter.ViewsSsl : nodesAdapter.Views
+                Port = clusterOptions.EffectiveEnableTls ? nodesAdapter.ViewsSsl : nodesAdapter.Views
             }.Uri;
         }
 
@@ -97,9 +93,9 @@ namespace Couchbase.Utils
         {
             return new UriBuilder
             {
-                Scheme = clusterOptions.EnableTls ? Https : Http,
+                Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
                 Host = nodesAdapter.Hostname,
-                Port = clusterOptions.EnableTls ? nodesAdapter.MgmtApiSsl : nodesAdapter.MgmtApi
+                Port = clusterOptions.EffectiveEnableTls ? nodesAdapter.MgmtApiSsl : nodesAdapter.MgmtApi
             }.Uri;
         }
     }

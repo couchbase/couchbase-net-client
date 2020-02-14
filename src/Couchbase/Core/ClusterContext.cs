@@ -244,8 +244,7 @@ namespace Couchbase.Core
                 }
             }
 
-            var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
-            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints())
+            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken);
                 GlobalConfig = await node.GetClusterMap();
@@ -284,7 +283,7 @@ namespace Couchbase.Core
                 return bucket;
             }
 
-            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints())
+            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
                 foreach (var type in Enum.GetValues(typeof(BucketType)))
                 {

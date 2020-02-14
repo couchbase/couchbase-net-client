@@ -38,7 +38,7 @@ namespace Couchbase.Utils
                 throw new ArgumentNullException(nameof(nodesExt));
             }
 
-            var port = _clusterOptions.EnableTls ? nodesExt.Services.KvSsl : nodesExt.Services.Kv;
+            var port = _clusterOptions.EffectiveEnableTls ? nodesExt.Services.KvSsl : nodesExt.Services.Kv;
 
             return GetIpEndPointAsync(nodesExt.Hostname, port, cancellationToken);
         }
@@ -51,7 +51,7 @@ namespace Couchbase.Utils
                 throw new ArgumentNullException(nameof(nodeAdapter));
             }
 
-            var port = _clusterOptions.EnableTls ? nodeAdapter.KeyValueSsl : nodeAdapter.KeyValue;
+            var port = _clusterOptions.EffectiveEnableTls ? nodeAdapter.KeyValueSsl : nodeAdapter.KeyValue;
             var key = $"{nodeAdapter.Hostname}:{port}";
 
             var cache = _nodeAdapterCache.GetOrCreateValue(nodeAdapter);

@@ -54,7 +54,7 @@ namespace Couchbase.Core.DI
             socket.SetKeepAlives(_clusterOptions.EnableTcpKeepAlives, (uint) _clusterOptions.TcpKeepAliveTime.TotalMilliseconds,
                 (uint) _clusterOptions.TcpKeepAliveInterval.TotalMilliseconds);
 
-            if (_clusterOptions.EnableTls)
+            if (_clusterOptions.EffectiveEnableTls)
             {
                 return new SslConnection(null, socket, _sslLogger);
             }

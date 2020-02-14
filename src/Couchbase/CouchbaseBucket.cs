@@ -114,7 +114,7 @@ namespace Couchbase
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
             {
-                UseSsl = Context.ClusterOptions.EnableTls
+                UseSsl = Context.ClusterOptions.EffectiveEnableTls
             };
 
             //Normalize to new naming convention for public API RFC#51

@@ -100,7 +100,7 @@ namespace Couchbase
             return connectionString;
         }
 
-        public IEnumerable<HostEndpoint> GetBootstrapEndpoints()
+        public IEnumerable<HostEndpoint> GetBootstrapEndpoints(bool? overrideTls = null)
         {
             foreach (var endpoint in Hosts)
             {
@@ -111,7 +111,7 @@ namespace Couchbase
                 else
                 {
                     yield return new HostEndpoint(endpoint.Host,
-                        Scheme == Scheme.Couchbases ? SecureKeyValuePort : KeyValuePort);
+                        overrideTls.GetValueOrDefault(Scheme == Scheme.Couchbases) ? SecureKeyValuePort : KeyValuePort);
                 }
             }
         }
