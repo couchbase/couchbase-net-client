@@ -20,15 +20,13 @@ namespace Couchbase.Core.IO.Connections
     internal sealed class SslConnection : IConnection
     {
         private readonly ILogger<SslConnection> _logger;
-        private const int DefaultBufferSize = 1024;
         private readonly SslStream _sslStream;
         private readonly object _syncObj = new object();
-        private volatile bool Disposed;
+        private volatile bool _disposed;
         private readonly byte[] _receiveBuffer = new byte[1024 * 16];
 
-        public SslConnection(IConnectionPool? connectionPool, Socket socket, ILogger<SslConnection> logger)
+        public SslConnection(Socket socket, ILogger<SslConnection> logger)
         {
-            ConnectionPool = connectionPool;
             Socket = socket ?? throw new ArgumentNullException(nameof(socket));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -36,22 +34,32 @@ namespace Couchbase.Core.IO.Connections
 
             LocalEndPoint = socket.LocalEndPoint;
             EndPoint = socket.RemoteEndPoint;
+
+            ConnectionId = ConnectionIdProvider.GetNextId();
         }
 
+        /// <inheritdoc />
         public ulong ConnectionId { get; }
-        public IConnectionPool? ConnectionPool { get; set; }
-        public Socket Socket { get; set; }
-        public bool IsConnected { get; }
-        public EndPoint EndPoint { get; set; }
+
+        private Socket Socket { get; }
+
+        /// <inheritdoc />
+        public bool IsConnected => !IsDead && !_disposed;
+
+        /// <inheritdoc />
+        public EndPoint EndPoint { get;  }
+
+        /// <inheritdoc />
         public EndPoint LocalEndPoint { get; }
+
+        /// <inheritdoc />
         public bool IsAuthenticated { get; set; }
-        public bool IsSecure => true;
-        public bool IsDead { get; set; }
-        public bool InUse { get; private set; }
-        public bool IsDisposed => Disposed;
-        public bool HasShutdown { get; private set; }
-        public bool CheckedForEnhancedAuthentication { get; set; }
-        public bool MustEnableServerFeatures { get; set; }
+
+        /// <inheritdoc />
+        public bool IsSecure => _sslStream.IsEncrypted;
+
+        /// <inheritdoc />
+        public bool IsDead { get; private set; }
 
         private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
@@ -59,12 +67,8 @@ namespace Couchbase.Core.IO.Connections
             return true;
         }
 
-        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback)
-        {
-            return SendAsync(request, callback, null);
-        }
-
-        public async Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap)
+        /// <inheritdoc />
+        public async Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null)
         {
             ExceptionDispatchInfo? capturedException = null;
             SocketAsyncState? state = null;
@@ -138,11 +142,6 @@ namespace Couchbase.Core.IO.Connections
             }
         }
 
-        public void MarkUsed(bool isUsed)
-        {
-            InUse = isUsed;
-        }
-
         private DateTime _lastActivity = DateTime.UtcNow;
 
         /// <inheritdoc />
@@ -153,30 +152,28 @@ namespace Couchbase.Core.IO.Connections
             _lastActivity = DateTime.UtcNow;
         }
 
-        /// <summary>
-        /// Shuts down, closes and disposes of the internal <see cref="Socket"/> instance.
-        /// </summary>
+        /// <inheritdoc />
         public void Dispose()
         {
-            if (Disposed) return;
+            if (_disposed) return;
             Close();
         }
 
-        public void Close()
+        private void Close()
         {
-            if (Disposed) return;
+            if (_disposed) return;
 
             lock (_syncObj)
             {
-                if (Disposed) return;
+                if (_disposed) return;
 
-                Disposed = true;
+                _disposed = true;
                 IsDead = true;
-                MarkUsed(false);
 
                 _sslStream?.Dispose();
+                Socket.Dispose();
             }
-            Disposed = true;
+            _disposed = true;
         }
 
         /// <inheritdoc />

@@ -1,6 +1,5 @@
 using System;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations.Errors;
 
@@ -13,11 +12,6 @@ namespace Couchbase.Core.IO.Connections
     /// </summary>
     internal interface IConnection : IDisposable
     {
-        /// <summary>
-        /// The Socket used for IO.
-        /// </summary>
-        Socket Socket { get; }
-
         /// <summary>
         /// Internal randomly generated connection ID.
         /// </summary>
@@ -60,7 +54,7 @@ namespace Couchbase.Core.IO.Connections
         /// <value>
         ///   <c>true</c> if this instance is dead; otherwise, <c>false</c>.
         /// </value>
-        bool IsDead { get; set; }
+        bool IsDead { get; }
 
         /// <summary>
         /// Gets the amount of time this connection has been idle.
@@ -72,56 +66,8 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>
         /// <param name="callback">The callback that will be fired after the operation is completed.</param>
-        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback);
-
-        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap);
-
-        /// <summary>
-        ///  Checks whether this <see cref="IConnection"/> is currently being used to execute a request.
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if if this <see cref="IConnection"/> is in use; otherwise, <c>false</c>.
-        /// </value>
-        bool InUse { get; }
-
-        /// <summary>
-        /// Marks this <see cref="IConnection"/> as used; meaning it cannot be disposed unless <see cref="InUse"/>
-        /// is <c>false</c> or the <see cref="MaxCloseAttempts"/> has been reached.
-        /// </summary>
-        /// <param name="isUsed">if set to <c>true</c> [is used].</param>
-        void MarkUsed(bool isUsed);
-
-        /// <summary>
-        /// Gets a value indicating whether this instance is disposed.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if this instance is disposed; otherwise, <c>false</c>.
-        /// </value>
-        bool IsDisposed { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether this instance is shutting down.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if this instance has shutdown; otherwise, <c>false</c>.
-        /// </value>
-        bool HasShutdown { get; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the connection has been checked for enhanced authentication.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the connection has been checked for enhanced authentication; otherwise, <c>false</c>.
-        /// </value>
-        bool CheckedForEnhancedAuthentication { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the connection must enable server features.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if the connection must enable server features; otherwise, <c>false</c>.
-        /// </value>
-        bool MustEnableServerFeatures { get; set; }
+        /// <param name="errorMap"><see cref="ErrorMap"/>, or null if not available.</param>
+        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null);
 
         /// <summary>
         /// Closes the connection gracefully, waiting up to timeout for all in-flight operations

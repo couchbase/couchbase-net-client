@@ -26,11 +26,10 @@ namespace Couchbase.Core.IO.Connections
         private byte[] _receiveBuffer;
         private int _receiveBufferLength;
         private readonly object _syncObj = new object();
-        protected volatile bool Disposed;
+        private volatile bool _disposed;
 
-        public MultiplexingConnection(IConnectionPool? connectionPool, Socket socket, ILogger<MultiplexingConnection> logger)
+        public MultiplexingConnection(Socket socket, ILogger<MultiplexingConnection> logger)
         {
-            ConnectionPool = connectionPool;
             Socket = socket ?? throw new ArgumentNullException(nameof(socket));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -43,6 +42,8 @@ namespace Couchbase.Core.IO.Connections
             _receiveBuffer = new byte[1024 * 16];
             _receiveBufferLength = 0;
 
+            ConnectionId = ConnectionIdProvider.GetNextId();
+
             //Start a dedicated background thread for receiving server responses.
             _receiveThread = new Thread(ReceiveThreadBody)
             {
@@ -51,36 +52,31 @@ namespace Couchbase.Core.IO.Connections
             _receiveThread.Start();
         }
 
+        /// <inheritdoc />
         public ulong ConnectionId { get; }
 
-        public IConnectionPool? ConnectionPool { get; set; }
+        private Socket Socket { get; }
 
-        public Socket Socket { get; set; }
+        /// <inheritdoc />
+        public bool IsConnected => !IsDead;
 
-        public bool IsConnected { get; }
+        /// <inheritdoc />
+        public EndPoint EndPoint { get; }
 
-        public EndPoint EndPoint { get; set; }
-
+        /// <inheritdoc />
         public EndPoint LocalEndPoint { get; }
 
+        /// <inheritdoc />
         public bool IsAuthenticated { get; set; }
 
+        /// <inheritdoc />
         public bool IsSecure => false;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether this instance is dead.
-        /// </summary>
-        /// <value>
-        ///   <c>true</c> if this instance is dead; otherwise, <c>false</c>.
-        /// </value>
+        /// <inheritdoc />
         public bool IsDead { get; set; }
 
-        public Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback)
-        {
-            return SendAsync(buffer, callback, null);
-        }
-
-        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap)
+        /// <inheritdoc />
+        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null)
         {
             var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
             var state = new AsyncState
@@ -144,8 +140,6 @@ namespace Couchbase.Core.IO.Connections
 
             return Task.CompletedTask;
         }
-
-        public bool InUse { get; private set; }
 
         /// <summary>
         /// Executed by a dedicated background thread to constantly listen for responses
@@ -271,30 +265,13 @@ namespace Couchbase.Core.IO.Connections
             _lastActivity = DateTime.UtcNow;
         }
 
-        /// <summary>
-        /// Marks this <see cref="IConnection"/> as used; meaning it cannot be disposed unless <see cref="InUse"/>
-        /// is <c>false</c> or the <see cref="MaxCloseAttempts"/> has been reached.
-        /// </summary>
-        /// <param name="isUsed">if set to <c>true</c> [is used].</param>
-        public void MarkUsed(bool isUsed)
-        {
-            InUse = isUsed;
-        }
-
-        public bool IsDisposed { get; private set; }
-        public bool HasShutdown { get; private set; }
-
-        public bool CheckedForEnhancedAuthentication { get; set; }
-        public bool MustEnableServerFeatures { get; set; }
-
         public void Close()
         {
-            if (Disposed) return;
+            if (_disposed) return;
             lock (_syncObj)
             {
-                Disposed = true;
+                _disposed = true;
                 IsDead = true;
-                MarkUsed(false);
 
                 if (Socket != null)
                 {
@@ -347,7 +324,7 @@ namespace Couchbase.Core.IO.Connections
 
         public void Dispose()
         {
-            if (Disposed) return;
+            if (_disposed) return;
             Close();
         }
     }

@@ -56,10 +56,10 @@ namespace Couchbase.Core.DI
 
             if (_clusterOptions.EffectiveEnableTls)
             {
-                return new SslConnection(null, socket, _sslLogger);
+                return new SslConnection(socket, _sslLogger);
             }
 
-            return new MultiplexingConnection(null, socket, _multiplexLogger);
+            return new MultiplexingConnection(socket, _multiplexLogger);
         }
     }
 }
