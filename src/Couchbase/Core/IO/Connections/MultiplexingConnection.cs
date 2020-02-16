@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -19,22 +20,31 @@ namespace Couchbase.Core.IO.Connections
 {
     internal class MultiplexingConnection : IConnection
     {
+        private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly ConcurrentDictionary<uint, IState> _statesInFlight;
-        // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
-        private readonly Thread _receiveThread;
         private byte[] _receiveBuffer;
         private int _receiveBufferLength;
         private readonly object _syncObj = new object();
         private volatile bool _disposed;
 
-        public MultiplexingConnection(Socket socket, ILogger<MultiplexingConnection> logger)
-        {
-            Socket = socket ?? throw new ArgumentNullException(nameof(socket));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        // Connection pooling normally prevents simultaneous writes, but there are cases where they may occur,
+        // such as when running Diagnostics pings). We therefore use an AsyncMutex instead of the slightly
+        // slower SemaphoreSlim.
+        private readonly AsyncMutex _writeMutex = new AsyncMutex();
 
-            LocalEndPoint = socket.LocalEndPoint;
-            EndPoint = socket.RemoteEndPoint;
+        public MultiplexingConnection(Socket socket, ILogger<MultiplexingConnection> logger)
+            : this(new NetworkStream(socket, true), socket.LocalEndPoint, socket.RemoteEndPoint, logger)
+        {
+        }
+
+        public MultiplexingConnection(Stream stream, EndPoint localEndPoint, EndPoint remoteEndPoint,
+            ILogger<MultiplexingConnection> logger)
+        {
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
+            LocalEndPoint = localEndPoint ?? throw new ArgumentNullException(nameof(localEndPoint));
+            EndPoint = remoteEndPoint ?? throw new ArgumentNullException(nameof(remoteEndPoint));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _statesInFlight = new ConcurrentDictionary<uint, IState>();
 
@@ -44,18 +54,11 @@ namespace Couchbase.Core.IO.Connections
 
             ConnectionId = ConnectionIdProvider.GetNextId();
 
-            //Start a dedicated background thread for receiving server responses.
-            _receiveThread = new Thread(ReceiveThreadBody)
-            {
-                IsBackground = true
-            };
-            _receiveThread.Start();
+            Task.Run(ReceiveResponsesAsync);
         }
 
         /// <inheritdoc />
         public ulong ConnectionId { get; }
-
-        private Socket Socket { get; }
 
         /// <inheritdoc />
         public bool IsConnected => !IsDead;
@@ -76,8 +79,13 @@ namespace Couchbase.Core.IO.Connections
         public bool IsDead { get; set; }
 
         /// <inheritdoc />
-        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null)
+        public async Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null)
         {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(MultiplexingConnection));
+            }
+
             var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
             var state = new AsyncState
             {
@@ -98,58 +106,42 @@ namespace Couchbase.Core.IO.Connections
                 a.Cancel(ResponseStatus.OperationTimeout, new TimeoutException());
             }, state, 75000, Timeout.Infinite);
 
-
-            lock (Socket)
+            await _writeMutex.GetLockAsync().ConfigureAwait(false);
+            try
             {
-                try
+#if NETCOREAPP2_1 || NETSTANDARD2_1
+                await _stream.WriteAsync(request).ConfigureAwait(false);
+#else
+                if (!MemoryMarshal.TryGetArray<byte>(request, out var arraySegment))
                 {
-                    #if NETCOREAPP2_1 || NETSTANDARD2_1
-
-                    var requestSpan = request.Span;
-                    while (requestSpan.Length > 0) {
-                        var sentBytesCount = Socket.Send(requestSpan, SocketFlags.None);
-
-                        requestSpan = requestSpan.Slice(sentBytesCount);
-                    }
-
-                    #else
-
-                    if (!MemoryMarshal.TryGetArray<byte>(request, out var arraySegment))
-                    {
-                        // Fallback in case we can't use the more efficient TryGetArray method
-                        arraySegment = new ArraySegment<byte>(request.ToArray());
-                    }
-
-                    var sentBytesCount = 0;
-                    do
-                    {
-                        // ReSharper disable once AssignNullToNotNullAttribute
-                        sentBytesCount += Socket.Send(arraySegment.Array,
-                            arraySegment.Offset + sentBytesCount,
-                            arraySegment.Count - sentBytesCount,
-                            SocketFlags.None);
-                    } while (sentBytesCount < arraySegment.Count);
-
-                    #endif
+                    // Fallback in case we can't use the more efficient TryGetArray method
+                    arraySegment = new ArraySegment<byte>(request.ToArray());
                 }
-                catch (Exception e)
-                {
-                    HandleDisconnect(e);
-                }
+
+                await _stream.WriteAsync(arraySegment.Array, arraySegment.Offset, arraySegment.Count)
+                    .ConfigureAwait(false);
+#endif
             }
-
-            return Task.CompletedTask;
+            catch (Exception e)
+            {
+                HandleDisconnect(e);
+            }
+            finally
+            {
+                _writeMutex.ReleaseLock();
+            }
         }
 
         /// <summary>
-        /// Executed by a dedicated background thread to constantly listen for responses
-        /// coming back from the server and writes them to the <see cref="_receiveBuffer"/>.
+        /// Continuously running task which constantly listens for responses
+        /// coming back from the server, writes them to the <see cref="_receiveBuffer"/>,
+        /// and processes the responses once complete.
         /// </summary>
-        internal void ReceiveThreadBody()
+        internal async Task ReceiveResponsesAsync()
         {
             try
             {
-                while (Socket.Connected)
+                while (true)
                 {
                     if (_receiveBuffer.Length < _receiveBufferLength*2)
                     {
@@ -158,10 +150,17 @@ namespace Couchbase.Core.IO.Connections
                         _receiveBuffer = buffer;
                     }
 
-                    var receivedByteCount = Socket.Receive(_receiveBuffer, _receiveBufferLength,
-                        _receiveBuffer.Length - _receiveBufferLength, SocketFlags.None);
+                    #if NETCOREAPP2_1 || NETSTANDARD2_1
+                    var receivedByteCount = await _stream.ReadAsync(
+                            _receiveBuffer.AsMemory(_receiveBufferLength, _receiveBuffer.Length - _receiveBufferLength))
+                        .ConfigureAwait(false);
+                    #else
+                    var receivedByteCount = await _stream.ReadAsync(
+                            _receiveBuffer, _receiveBufferLength, _receiveBuffer.Length - _receiveBufferLength)
+                        .ConfigureAwait(false);
+                    #endif
 
-                    if (receivedByteCount == 0) break;
+                    if (receivedByteCount == 0) break; // Disconnected
 
                     _receiveBufferLength += receivedByteCount;
 
@@ -273,23 +272,17 @@ namespace Couchbase.Core.IO.Connections
                 _disposed = true;
                 IsDead = true;
 
-                if (Socket != null)
+                try
                 {
-                    try
-                    {
-                        if (Socket.Connected)
-                        {
-                            Socket.Shutdown(SocketShutdown.Both);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogInformation(e, string.Empty);
-                    }
-                    finally
-                    {
-                        Socket.Dispose();
-                    }
+                    _stream?.Close();
+                }
+                catch (Exception e)
+                {
+                    _logger.LogInformation(e, string.Empty);
+                }
+                finally
+                {
+                    _stream?.Dispose();
                 }
 
                 // free up all states in flight

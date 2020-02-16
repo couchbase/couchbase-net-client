@@ -1,16 +1,12 @@
 using System;
-using System.Buffers;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using System.Runtime.ExceptionServices;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Converters;
-using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -21,168 +17,59 @@ namespace Couchbase.Core.IO.Connections
     {
         private readonly ILogger<SslConnection> _logger;
         private readonly SslStream _sslStream;
-        private readonly object _syncObj = new object();
-        private volatile bool _disposed;
-        private readonly byte[] _receiveBuffer = new byte[1024 * 16];
+        private readonly MultiplexingConnection _multiplexingConnection;
 
-        public SslConnection(Socket socket, ILogger<SslConnection> logger)
+        public SslConnection(SslStream stream, EndPoint localEndPoint, EndPoint remoteEndPoint,
+            ILogger<SslConnection> logger, ILogger<MultiplexingConnection> multiplexingLogger)
         {
-            Socket = socket ?? throw new ArgumentNullException(nameof(socket));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            _sslStream = new SslStream(new NetworkStream(socket), true, ServerCertificateValidationCallback);
-
-            LocalEndPoint = socket.LocalEndPoint;
-            EndPoint = socket.RemoteEndPoint;
-
-            ConnectionId = ConnectionIdProvider.GetNextId();
+            _sslStream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _multiplexingConnection = new MultiplexingConnection(_sslStream, localEndPoint, remoteEndPoint,
+                multiplexingLogger);
         }
 
         /// <inheritdoc />
-        public ulong ConnectionId { get; }
-
-        private Socket Socket { get; }
+        public ulong ConnectionId => _multiplexingConnection.ConnectionId;
 
         /// <inheritdoc />
-        public bool IsConnected => !IsDead && !_disposed;
+        public bool IsConnected => _multiplexingConnection.IsConnected;
 
         /// <inheritdoc />
-        public EndPoint EndPoint { get;  }
+        public EndPoint EndPoint => _multiplexingConnection.EndPoint;
 
         /// <inheritdoc />
-        public EndPoint LocalEndPoint { get; }
+        public EndPoint LocalEndPoint => _multiplexingConnection.LocalEndPoint;
 
         /// <inheritdoc />
-        public bool IsAuthenticated { get; set; }
+        public bool IsAuthenticated
+        {
+            get => _multiplexingConnection.IsAuthenticated;
+            set => _multiplexingConnection.IsAuthenticated = value;
+        }
 
         /// <inheritdoc />
         public bool IsSecure => _sslStream.IsEncrypted;
 
         /// <inheritdoc />
-        public bool IsDead { get; private set; }
-
-        private static bool ServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            // TODO: add callback validation
-            return true;
-        }
+        public bool IsDead => _multiplexingConnection.IsDead;
 
         /// <inheritdoc />
-        public async Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null)
-        {
-            ExceptionDispatchInfo? capturedException = null;
-            SocketAsyncState? state = null;
-            try
-            {
-                var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
-                state = new SocketAsyncState
-                {
-                    Opaque = opaque,
-                    EndPoint = (IPEndPoint) EndPoint,
-                    ConnectionId = ConnectionId,
-                    LocalEndpoint = LocalEndPoint.ToString()
-                };
-
-                if (!MemoryMarshal.TryGetArray(request, out var arraySegment))
-                {
-                    // Fallback in case we can't use the more efficient TryGetArray method
-                    arraySegment = new ArraySegment<byte>(request.ToArray());
-                }
-
-                // write data to stream
-                await _sslStream.WriteAsync(arraySegment.Array, 0, request.Length).ConfigureAwait(false);
-
-                // wait for response
-                var received = await _sslStream.ReadAsync(_receiveBuffer, 0, _receiveBuffer.Length).ConfigureAwait(false);
-                var responseSize = ByteConverter.ToInt32(_receiveBuffer.AsSpan(HeaderOffsets.BodyLength)) + HeaderOffsets.HeaderLength;
-
-                // create memory slice and copy first segment
-                var response = MemoryPool<byte>.Shared.RentAndSlice(responseSize);
-                _receiveBuffer.AsMemory(0, received).CopyTo(response.Memory);
-
-                // append any further segments as required
-                while (received < responseSize)
-                {
-                    var segmentLength = await _sslStream.ReadAsync(_receiveBuffer, 0, _receiveBuffer.Length).ConfigureAwait(false);
-                    _receiveBuffer.AsMemory(0, segmentLength).CopyTo(response.Memory);
-                    received += segmentLength;
-                }
-
-                // write response to state and complete callback
-                state.SetData(response);
-                await callback(state).ConfigureAwait(false);
-
-                UpdateLastActivity();
-            }
-            catch (Exception e)
-            {
-                IsDead = true;
-                capturedException = ExceptionDispatchInfo.Capture(e);
-            }
-
-            if (capturedException != null)
-            {
-                var sourceException = capturedException.SourceException;
-                if (state == null)
-                {
-                    await callback(new SocketAsyncState
-                    {
-                        Exception = capturedException.SourceException,
-                        Status = (sourceException is SocketException)
-                            ? ResponseStatus.TransportFailure
-                            : ResponseStatus.ClientFailure
-                    }).ConfigureAwait(false);
-                }
-                else
-                {
-                    state.Exception = sourceException;
-                    await state.Completed(state).ConfigureAwait(false);
-                    _logger.LogDebug(sourceException, "");
-                }
-            }
-        }
-
-        private DateTime _lastActivity = DateTime.UtcNow;
+        public TimeSpan IdleTime => _multiplexingConnection.IdleTime;
 
         /// <inheritdoc />
-        public TimeSpan IdleTime => DateTime.UtcNow - _lastActivity;
-
-        private void UpdateLastActivity()
-        {
-            _lastActivity = DateTime.UtcNow;
-        }
+        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback,
+            ErrorMap? errorMap = null) =>
+            _multiplexingConnection.SendAsync(request, callback, errorMap);
 
         /// <inheritdoc />
         public void Dispose()
         {
-            if (_disposed) return;
-            Close();
-        }
-
-        private void Close()
-        {
-            if (_disposed) return;
-
-            lock (_syncObj)
-            {
-                if (_disposed) return;
-
-                _disposed = true;
-                IsDead = true;
-
-                _sslStream?.Dispose();
-                Socket.Dispose();
-            }
-            _disposed = true;
+            _multiplexingConnection.Dispose();
         }
 
         /// <inheritdoc />
-        public ValueTask CloseAsync(TimeSpan timeout)
-        {
-            // TODO: Deal with multiplexing support on SslConnection
-            Close();
-            return default;
-        }
+        public ValueTask CloseAsync(TimeSpan timeout) => _multiplexingConnection.CloseAsync(timeout);
     }
 }
 

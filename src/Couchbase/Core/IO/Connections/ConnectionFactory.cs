@@ -1,15 +1,15 @@
 using System;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO;
-using Couchbase.Core.IO.Connections;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
 
-namespace Couchbase.Core.DI
+namespace Couchbase.Core.IO.Connections
 {
     /// <summary>
     /// Default implementation for <see cref="IConnectionFactory"/>.
@@ -36,7 +36,8 @@ namespace Couchbase.Core.DI
             {
                 var connectTask = socket.ConnectAsync(endPoint);
 
-                var whichTask = await Task.WhenAny(connectTask, Task.Delay(_clusterOptions.KvConnectTimeout, cancellationToken));
+                var whichTask = await Task.WhenAny(connectTask, Task.Delay(_clusterOptions.KvConnectTimeout, cancellationToken))
+                    .ConfigureAwait(false);
 
                 if (whichTask != connectTask)
                 {
@@ -56,7 +57,16 @@ namespace Couchbase.Core.DI
 
             if (_clusterOptions.EffectiveEnableTls)
             {
-                return new SslConnection(socket, _sslLogger);
+                var sslStream = new SslStream(new NetworkStream(socket, true), false);
+
+                // TODO: add callback validation
+                await sslStream.AuthenticateAsClientAsync(endPoint.Address.ToString(), null,
+                        SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+                        _clusterOptions.EnableCertificateRevocation)
+                    .ConfigureAwait(false);
+
+                return new SslConnection(sslStream, socket.LocalEndPoint, socket.RemoteEndPoint,
+                    _sslLogger, _multiplexLogger);
             }
 
             return new MultiplexingConnection(socket, _multiplexLogger);

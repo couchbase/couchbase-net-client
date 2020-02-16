@@ -1,11 +1,10 @@
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Connections;
 
 #nullable enable
 
-namespace Couchbase.Core.DI
+namespace Couchbase.Core.IO.Connections
 {
     /// <summary>
     /// Creates and connects an <see cref="IConnection"/>.
