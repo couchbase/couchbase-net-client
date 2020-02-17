@@ -349,6 +349,7 @@ namespace Couchbase.Core
                     new HostEndpoint(nodeAdapter.Hostname, endPoint.Port),
                     CancellationToken);
 
+                node.NodesAdapter = nodeAdapter;
                 if (node.HasKv)
                 {
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
