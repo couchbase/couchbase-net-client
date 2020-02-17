@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 using Couchbase.Diagnostics;
 using Couchbase.Core.Retry;
@@ -25,8 +28,7 @@ using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 
 namespace Couchbase
 {
-    /// <inheritdoc />
-    public class Cluster : ICluster
+    public class Cluster : ICluster, IBootstrappable
     {
         private readonly ILogger<Cluster> _logger;
         private readonly IRetryOrchestrator _retryOrchestrator;
@@ -36,6 +38,8 @@ namespace Couchbase
         private bool _hasBootStrapped;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
         private readonly IRedactor _redactor;
+        private readonly IBootstrapper _bootstrapper;
+        private readonly List<Exception> _deferredExceptions = new List<Exception>();
 
         // Internal is used to provide a seam for unit tests
         internal Lazy<IQueryClient> LazyQueryClient;
@@ -72,6 +76,9 @@ namespace Couchbase
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
             _redactor = _context.ServiceProvider.GetRequiredService<IRedactor>();
+
+            var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
+            _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
         }
 
         public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
@@ -100,36 +107,38 @@ namespace Couchbase
                     nameof(options));
             }
 
+            //try to bootstrap for GC3P; if pre-6.6 this will fail and bootstrapping will
+            //happen at the bucket level. In this case the caller can open a bucket and
+            //resubmit the cluster level request.
             var cluster = new Cluster(options);
-            await cluster.InitializeAsync().ConfigureAwait(false);
-            return cluster;
+
+            //TODO temp to ensure this works without requiring a wait method
+            await ((IBootstrappable) cluster).BootStrapAsync().ConfigureAwait(false);
+            cluster.StartBootstrapper();
+
+           return cluster;
         }
 
-        internal async Task InitializeAsync()
+        internal void StartBootstrapper()
         {
-            try
-            {
-                await _context.InitializeAsync();
-                _hasBootStrapped = _context.GlobalConfig != null;
-                UpdateClusterCapabilities();
-            }
-            catch (AuthenticationFailureException e)
-            {
-                //auth failed so bubble up exception and clean up resources
-                _logger.LogError(e,
-                    "Could not authenticate user {username}", _redactor.UserData(_context.ClusterOptions.UserName ?? string.Empty));
-
-                _context.RemoveAllNodes();
-                throw;
-            }
+            _bootstrapper.Start(this);
         }
 
-        /// <inheritdoc />
         public async Task<IBucket> BucketAsync(string name)
         {
-            var bucket = await _context.GetOrCreateBucketAsync(name);
-            _hasBootStrapped = true;
-            return bucket;
+            var cluster = this as IBootstrappable;
+            if (cluster.IsBootstrapped)
+            {
+                var bucket = await _context.GetOrCreateBucketAsync(name).ConfigureAwait(false);
+                _hasBootStrapped = true;//for legacy pre-6.5 servers
+                return bucket;
+            }
+
+            var message = cluster.DeferredExceptions.Any()
+                ? "Cluster has not yet bootstrapped. Call WaitUntilReady(..) to wait for it to complete."
+                : "The Cluster cannot bootstrap. Check the client the inner exception for details.";
+
+            throw new AggregateException(message, cluster.DeferredExceptions);
         }
 
         /// <inheritdoc />
@@ -141,7 +150,7 @@ namespace Couchbase
         }
 
         /// <summary>
-        /// Seam for unit tests.
+        /// Seam for unit tests and for supporting non-GC3P servers (prior to v6.5).
         /// </summary>
         protected internal virtual async Task EnsureBootstrapped()
         {
@@ -156,7 +165,7 @@ namespace Couchbase
                 throw new CouchbaseException("Unable to bootstrap - please open a bucket or add a bucket name to the clusterOptions.");
             }
 
-            await _bootstrapLock.WaitAsync();
+            await _bootstrapLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 // check again to make sure we still need to bootstrap
@@ -165,7 +174,7 @@ namespace Couchbase
                     return;
                 }
 
-                // try to bootstrap first bucket in cluster
+                // try to bootstrap first bucket in cluster; we need this because pre-6.5 servers do not support GC3P so we need to open a bucket
                 var bucketName = _context.ClusterOptions.Buckets.FirstOrDefault();
                 _logger.LogDebug("Attempting to bootstrap bucket {bucketname}", _redactor.MetaData(bucketName));
                 await BucketAsync(bucketName).ConfigureAwait(false);
@@ -183,8 +192,6 @@ namespace Couchbase
         {
             options ??= new QueryOptions();
             options.TimeoutValue ??= _context.ClusterOptions.QueryTimeout;
-
-            await EnsureBootstrapped();
 
             async Task<IQueryResult<T>> Func()
             {
@@ -212,7 +219,7 @@ namespace Couchbase
             options ??= new AnalyticsOptions();
             options.TimeoutValue ??= _context.ClusterOptions.AnalyticsTimeout;
 
-            await EnsureBootstrapped();
+            ThrowIfNotBootstrapped();
 
             var query = new AnalyticsRequest(statement)
             {
@@ -244,7 +251,7 @@ namespace Couchbase
             options ??= new SearchOptions();
             options.TimeoutValue ??= _context.ClusterOptions.SearchTimeout;
 
-            await EnsureBootstrapped();
+            ThrowIfNotBootstrapped();
 
             var searchRequest = new SearchRequest
             {
@@ -290,6 +297,7 @@ namespace Couchbase
             {
                 if(_disposed) return;
                 _disposed = true;
+                _bootstrapper?.Dispose();
                 _context.Dispose();
             }
         }
@@ -304,5 +312,50 @@ namespace Couchbase
                 }
             }
         }
+
+        async Task IBootstrappable.BootStrapAsync()
+        {
+            try
+            {
+                await _context.BootstrapGlobalAsync().ConfigureAwait(false);
+
+                //if we succeeded set the state of the cluster to bootstrapped
+                _hasBootStrapped = _context.GlobalConfig != null;
+                _deferredExceptions.Clear();
+
+                UpdateClusterCapabilities();
+            }
+            catch (AuthenticationFailureException e)
+            {
+                _deferredExceptions.Add(e);
+
+                //auth failed so bubble up exception and clean up resources
+                _logger.LogError(e,
+                    "Could not authenticate user {username}", _redactor.UserData(_context.ClusterOptions.UserName ?? string.Empty));
+
+                _context.RemoveAllNodes();
+                throw;
+            }
+        }
+
+#region Bootstrapping error handling and propagation
+
+        bool IBootstrappable.IsBootstrapped => !_deferredExceptions.Any();
+
+        List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
+
+        private void ThrowIfNotBootstrapped()
+        {
+            if (this is IBootstrappable b)
+            {
+                if (!b.IsBootstrapped && b.DeferredExceptions.Any())
+                {
+                    throw new AggregateException("Cannot bootstrap cluster.", _deferredExceptions);
+                }
+            }
+        }
+
+#endregion
+
     }
 }

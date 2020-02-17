@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -30,7 +31,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object,
-                new Mock<IRedactor>().Object);
+                new Mock<IRedactor>().Object,
+                new Mock<IBootstrapperFactory>().Object);
 
             // Act
 
@@ -55,7 +57,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object,
-                new Mock<IRedactor>().Object);
+                new Mock<IRedactor>().Object,
+                new Mock<IBootstrapperFactory>().Object);
 
             // Act/Assert
 

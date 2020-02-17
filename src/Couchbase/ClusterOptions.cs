@@ -233,6 +233,11 @@ namespace Couchbase
         /// </summary>
         public int BootstrapHttpPort { get; set; } = 8091;
 
+        /// <summary>
+        /// Used for checking that the SDK has bootstrapped and potentially retrying if not.
+        /// </summary>
+        public TimeSpan BootstrapPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
+
         //Volatile or obsolete options
         public bool EnableExpect100Continue { get; set; }
         public bool EnableCertificateAuthentication { get; set; }

@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
@@ -127,7 +128,8 @@ namespace Couchbase.UnitTests
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object,
-                new Mock<IRedactor>().Object);
+                new Mock<IRedactor>().Object,
+                new Mock<IBootstrapperFactory>().Object);
         }
 
         #endregion

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Analytics;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
@@ -100,6 +101,7 @@ namespace Couchbase.Core.DI
                 new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));
 
             yield return (typeof(ISaslMechanismFactory), new SingletonServiceFactory(typeof(SaslMechanismFactory)));
+            yield return (typeof(IBootstrapperFactory), new SingletonServiceFactory(typeof(BootstrapperFactory)));
         }
     }
 }

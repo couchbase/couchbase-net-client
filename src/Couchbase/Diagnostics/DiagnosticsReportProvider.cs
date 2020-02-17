@@ -56,7 +56,7 @@ namespace Couchbase.Diagnostics
             return new DiagnosticsReport(reportId, endpoints);
         }
 
-       private async static Task<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
+       private static async Task<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
            IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes, CancellationToken token)
        {
            var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
@@ -77,8 +77,8 @@ namespace Couchbase.Diagnostics
                            await RecordLatencyAsync(endPointDiagnostics, async () =>
                            {
                                var op = new Noop();
-                               await clusterNode.ExecuteOp(connection, op, token);
-                           });
+                               await clusterNode.ExecuteOp(connection, op, token).ConfigureAwait(false);
+                           }).ConfigureAwait(false);
                        }
 
                        kvEndpoints.Add(endPointDiagnostics);
@@ -95,7 +95,7 @@ namespace Couchbase.Diagnostics
                        if (ping)
                        {
                            await RecordLatencyAsync(endPointDiagnostics,
-                                   async () => await bucket.ViewQueryAsync<object, object>("p", "p"))
+                                   async () => await bucket.ViewQueryAsync<object, object>("p", "p").ConfigureAwait(false))
                                .ConfigureAwait(false);
                        }
 

@@ -60,7 +60,7 @@ namespace Couchbase.IntegrationTests.Services.Views
             // Using an asynchronous view query within an MVC Web API action causes
             // a deadlock if you wait for the result synchronously.
 
-            var bucket = await _fixture.Cluster.BucketAsync("beer-sample").ConfigureAwait(false);
+            var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
 
             var context = new Mock<SynchronizationContext>
             {
@@ -88,7 +88,7 @@ namespace Couchbase.IntegrationTests.Services.Views
         [Fact]
         public async Task Use_Streaming()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("beer-sample").ConfigureAwait(false);
+            var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
             var result = await bucket.ViewQueryAsync<object, object>("beer", "brewery_beers", options =>
             {
                 options.Limit(10);
@@ -109,7 +109,7 @@ namespace Couchbase.IntegrationTests.Services.Views
         [Fact]
         public async Task Can_Submit_Lots_of_Keys()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("beer-sample").ConfigureAwait(false);
+            var bucket = await _fixture.Cluster.BucketAsync("beer-sample");
             await bucket.ViewQueryAsync<object, object>("beer", "brewery_beers",
                 options =>
                 {

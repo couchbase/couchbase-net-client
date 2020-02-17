@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
@@ -167,7 +168,8 @@ namespace Couchbase.UnitTests.KeyValue
 
             public FakeBucket(params ResponseStatus[] statuses)
                 : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
-                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object)
+                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                    new Mock<IBootstrapperFactory>().Object)
             {
                 foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
             }

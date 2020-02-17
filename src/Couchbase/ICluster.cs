@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Diagnostics;
-using Couchbase.Management;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
@@ -31,6 +30,7 @@ namespace Couchbase
 
         #endregion
 
+        #region Management
         IQueryIndexManager QueryIndexes { get; }
 
         IAnalyticsIndexManager AnalyticsIndexes { get; }
@@ -40,6 +40,6 @@ namespace Couchbase
         IBucketManager Buckets { get; }
 
         IUserManager Users { get; }
-
+        #endregion
     }
 }

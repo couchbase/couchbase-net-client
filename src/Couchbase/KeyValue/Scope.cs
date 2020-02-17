@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -45,7 +46,7 @@ namespace Couchbase.KeyValue
                 }
 
                 //return the default bucket which will fail on first op invocation
-                if (_bucket.BootstrapErrors)
+                if (!(_bucket as IBootstrappable).IsBootstrapped)
                 {
                     return _bucket.DefaultCollection();
                 }

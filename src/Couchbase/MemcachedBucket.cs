@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
@@ -25,15 +26,15 @@ namespace Couchbase
         private readonly HttpClusterMapBase _httpClusterMap;
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, IRedactor redactor) :
+            ILogger<MemcachedBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory) :
             this(name, context, scopeFactory, retryOrchestrator, ketamaKeyMapperFactory, logger,
-                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context), redactor)
+                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context), redactor, bootstrapperFactory)
         {
         }
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap, IRedactor redactor)
-            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor)
+            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap, IRedactor redactor, IBootstrapperFactory bootstrapperFactory)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory)
         {
             Name = name;
             _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
@@ -117,7 +118,8 @@ namespace Couchbase
             await node.SelectBucketAsync(this).ConfigureAwait(false);
 
             LoadManifest();
-            await Task.Run(async () => await Context.ProcessClusterMapAsync(this, BucketConfig));
+            await Context.ProcessClusterMapAsync(this, BucketConfig);
+            Bootstrapper.Start(this);
         }
     }
 }

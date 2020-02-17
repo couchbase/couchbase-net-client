@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
@@ -176,7 +177,8 @@ namespace Couchbase.UnitTests.Core.DI
                 factory,
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<ILogger>().Object,
-                new Mock<IRedactor>().Object);
+                new Mock<IRedactor>().Object,
+                new Mock<IBootstrapperFactory>().Object);
 
             return mock.Object;
         }

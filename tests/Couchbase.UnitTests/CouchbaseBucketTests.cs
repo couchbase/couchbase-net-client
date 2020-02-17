@@ -1,4 +1,5 @@
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -20,7 +21,8 @@ namespace Couchbase.UnitTests
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IVBucketKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
-                new Mock<IRedactor>().Object);
+                new Mock<IRedactor>().Object,
+                new Mock<IBootstrapperFactory>().Object);
 
             Assert.Throws<ScopeNotFoundException>(() =>bucket["doesnotexist"]);
         }
@@ -37,7 +39,8 @@ namespace Couchbase.UnitTests
                 new Mock<IRetryOrchestrator>().Object,
                 new Mock<IVBucketKeyMapperFactory>().Object,
                 new Mock<ILogger<CouchbaseBucket>>().Object,
-            new Mock<IRedactor>().Object);
+            new Mock<IRedactor>().Object,
+                new Mock<IBootstrapperFactory>().Object);
 
             Assert.Throws<ScopeNotFoundException>(() => bucket.Scope("doesnotexist"));
         }

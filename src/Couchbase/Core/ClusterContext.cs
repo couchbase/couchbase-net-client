@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -22,7 +23,7 @@ namespace Couchbase.Core
         private readonly IConfigHandler _configHandler;
         private readonly IClusterNodeFactory _clusterNodeFactory;
         private readonly CancellationTokenSource _tokenSource;
-        protected readonly ConcurrentDictionary<string, IBucket> Buckets = new ConcurrentDictionary<string, IBucket>();
+        protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new ConcurrentDictionary<string, BucketBase>();
         private bool _disposed;
 
         //For testing
@@ -66,7 +67,7 @@ namespace Couchbase.Core
 
         public BucketConfig GlobalConfig { get; set; }
 
-        public ICluster Cluster { get; private set; }
+        public ICluster Cluster { get; }
 
         public bool SupportsCollections { get; set; }
 
@@ -197,13 +198,13 @@ namespace Couchbase.Core
         public async Task<IClusterNode> GetUnassignedNodeAsync(HostEndpoint endpoint)
         {
             var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
-            var ipAddress = await dnsResolver.GetIpAddressAsync(endpoint.Host, CancellationToken);
+            var ipAddress = await dnsResolver.GetIpAddressAsync(endpoint.Host, CancellationToken).ConfigureAwait(false);
 
             return Nodes.FirstOrDefault(
                 x => !x.IsAssigned && x.EndPoint.Address.Equals(ipAddress));
         }
 
-        public async Task InitializeAsync()
+        public async Task BootstrapGlobalAsync()
         {
             if (ClusterOptions.ConnectionStringValue == null)
             {
@@ -219,7 +220,7 @@ namespace Couchbase.Core
                     var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
 
                     var bootstrapUri = ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
-                    var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken)).ToList();
+                    var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken).ConfigureAwait(false)).ToList();
                     if (servers.Any())
                     {
                         _logger.LogInformation(
@@ -236,10 +237,10 @@ namespace Couchbase.Core
 
             foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
-                var node = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken);
-                GlobalConfig = await node.GetClusterMap();
+                var node = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken).ConfigureAwait(false);
+                GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
 
-                if (GlobalConfig == null) //TODO NCBC-1966 xerror info is being hidden, so on failure this will not be null
+                if (GlobalConfig == null)
                 {
                     AddNode(node); //GCCCP is not supported - pre-6.5 server fall back to CCCP like SDK 2
                 }
@@ -256,7 +257,7 @@ namespace Couchbase.Core
                         }
                         else
                         {
-                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken);
+                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken).ConfigureAwait(false);
                             newNode.NodesAdapter = nodeAdapter;
                             SupportsCollections = node.Supports(ServerFeatures.Collections);
                             AddNode(newNode);
@@ -277,7 +278,7 @@ namespace Couchbase.Core
             {
                 foreach (var type in Enum.GetValues(typeof(BucketType)))
                 {
-                    bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType) type);
+                    bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType) type).ConfigureAwait(false);
                     return bucket;
                 }
             }
@@ -285,12 +286,12 @@ namespace Couchbase.Core
             throw new BucketNotFoundException(name);
         }
 
-        public async Task<IBucket> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
+        public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
         {
-            var node = await GetUnassignedNodeAsync(endpoint);
+            var node = await GetUnassignedNodeAsync(endpoint).ConfigureAwait(false);
             if (node == null)
             {
-                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken);
+                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
                 AddNode(node);
             }
 
@@ -299,7 +300,7 @@ namespace Couchbase.Core
 
             try
             {
-                await bucket.BootstrapAsync(node);
+                await bucket.BootstrapAsync(node).ConfigureAwait(false);
                 RegisterBucket(bucket);
             }
             catch(Exception e)
@@ -308,6 +309,51 @@ namespace Couchbase.Core
                 UnRegisterBucket(bucket);
             }
             return bucket;
+        }
+
+        public async Task RebootStrapAsync(string name)
+        {
+            if(Buckets.TryGetValue(name, out var bucket))
+            {
+                //need to remove the old nodes
+                var oldNodes = Nodes.Where(x => x.Owner == bucket).ToArray();
+                foreach (var node in oldNodes)
+                {
+                    if (Nodes.Remove(node.EndPoint, out var removedNode))
+                    {
+                        removedNode.Dispose();
+                    }
+                }
+
+                //start going through the bootstrap list trying to connect
+                foreach (var endpoint in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
+                    .EnableTls))
+                {
+                    var node = await GetUnassignedNodeAsync(endpoint).ConfigureAwait(false);
+                    if (node == null)
+                    {
+                        node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken)
+                            .ConfigureAwait(false);
+                        AddNode(node);
+                    }
+
+                    try
+                    {
+                        //connected so let bootstrapping continue on the bucket
+                        await bucket.BootstrapAsync(node).ConfigureAwait(false);
+                        RegisterBucket(bucket);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e, "Could not bootstrap bucket {name}.", _redactor.MetaData(name));
+                        UnRegisterBucket(bucket);
+                    }
+                }
+            }
+            else
+            {
+                throw new BucketNotFoundException(name);
+            }
         }
 
         public async Task ProcessClusterMapAsync(IBucket bucket, BucketConfig config)
@@ -337,7 +383,7 @@ namespace Couchbase.Core
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(
                     // We want the BootstrapEndpoint to use the host name, not just the IP
                     new HostEndpoint(nodeAdapter.Hostname, endPoint.Port),
-                    CancellationToken);
+                    CancellationToken).ConfigureAwait(false);
 
                 node.NodesAdapter = nodeAdapter;
                 if (node.HasKv)
@@ -349,7 +395,7 @@ namespace Couchbase.Core
                 AddNode(node);
             }
 
-            await PruneNodesAsync(config);
+            await PruneNodesAsync(config).ConfigureAwait(false);
         }
 
         public void Dispose()

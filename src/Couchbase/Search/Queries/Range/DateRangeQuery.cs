@@ -68,7 +68,7 @@ namespace Couchbase.Search.Queries.Range
         {
             if (_startTime == null && _endTime == null)
             {
-                throw new InvalidOperationException("Either Start or End can be omitted, but not both.");
+                throw new InvalidOperationException("Either StartAsync or End can be omitted, but not both.");
             }
 
             var json = base.Export();

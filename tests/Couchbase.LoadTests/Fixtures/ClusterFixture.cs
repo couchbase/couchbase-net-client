@@ -16,14 +16,14 @@ namespace Couchbase.LoadTests.Fixtures
                 .WithCredentials("Administrator", "password"));
         }
 
-        public async Task<IBucket> GetDefaultBucket()
+        public async Task<IBucket> GetDefaultBucketAsync()
         {
             return await Cluster.BucketAsync("default");
         }
 
         public async Task<ICollection> GetDefaultCollection()
         {
-            var bucket = await GetDefaultBucket();
+            var bucket = await GetDefaultBucketAsync();
             return bucket.DefaultCollection();
         }
 

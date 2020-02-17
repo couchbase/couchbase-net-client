@@ -1,9 +1,8 @@
 using System;
-using System.Net;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
@@ -29,8 +28,8 @@ namespace Couchbase
         private readonly Lazy<ICollectionManager> _collectionManagerLazy;
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
-            IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor)
-            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor)
+            IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
 
@@ -256,12 +255,22 @@ namespace Couchbase
                 BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
                 KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
-                await Context.ProcessClusterMapAsync(this, BucketConfig);
+                await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                ClearErrors();
             }
             catch (Exception e)
             {
+
                 CaptureException(e);
             }
+
+            //this needs to be started after bootstrapping has been attempted
+            Bootstrapper.Start(this);
+        }
+
+        private void ClearErrors()
+        {
+            ((IBootstrappable)this).DeferredExceptions.Clear();
         }
     }
 }

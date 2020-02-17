@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using Couchbase.KeyValue;
 
 namespace Couchbase.UnitTests.Fixtures
@@ -18,14 +17,14 @@ namespace Couchbase.UnitTests.Fixtures
             Cluster = cluster;
         }
 
-        public async Task<IBucket> GetDefaultBucket()
+        public IBucket GetDefaultBucket()
         {
-            return await Cluster.BucketAsync("default");
+            return Cluster.BucketAsync("default").GetAwaiter().GetResult();
         }
 
-        public async Task<ICollection> GetDefaultCollection()
+        public ICollection GetDefaultCollection()
         {
-            var bucket = await GetDefaultBucket();
+            var bucket = GetDefaultBucket();
             return bucket.DefaultCollection();
         }
 

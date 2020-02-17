@@ -16,13 +16,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Logging;
 
 #nullable enable
 
 namespace Couchbase.Core
 {
-    internal abstract class BucketBase : IBucket, IConfigUpdateEventSink
+    internal abstract class BucketBase : IBucket, IConfigUpdateEventSink, IBootstrappable
     {
         private readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
@@ -31,7 +32,7 @@ namespace Couchbase.Core
         protected BucketBase() { }
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
-        protected BucketBase(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger logger, IRedactor redactor)
+        protected BucketBase(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
@@ -39,8 +40,13 @@ namespace Couchbase.Core
             RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+
+            BootstrapperFactory = bootstrapperFactory ?? throw new ArgumentNullException(nameof(bootstrapperFactory));
+            Bootstrapper = bootstrapperFactory.Create(Context.ClusterOptions.BootstrapPollInterval);
         }
 
+        public IBootstrapper Bootstrapper { get; }
+        public IBootstrapperFactory BootstrapperFactory { get; }
         protected IRedactor Redactor { get; }
         public ILogger Logger { get; }
         public ClusterContext Context { get; }
@@ -51,15 +57,7 @@ namespace Couchbase.Core
         protected bool Disposed { get; private set; }
 
         //for propagating errors during bootstrapping
-        protected readonly List<Exception> DeferredExceptions = new List<Exception>();
-        internal bool BootstrapErrors => DeferredExceptions.Any();
-        internal void ThrowIfBootStrapFailed()
-        {
-            if (BootstrapErrors)
-            {
-                throw new AggregateException($"Bootstrapping for bucket {Name} as failed.", DeferredExceptions);
-            }
-        }
+        private readonly List<Exception> _deferredExceptions = new List<Exception>();
 
         public BucketType BucketType { get; protected set; }
 
@@ -124,8 +122,10 @@ namespace Couchbase.Core
 
         protected void LoadManifest()
         {
+            var subject = this as IBootstrappable;
+
             //The server supports collections so build them from the manifest
-            if (Context.SupportsCollections && !DeferredExceptions.Any())
+            if (Context.SupportsCollections && subject.IsBootstrapped)
             {
                 foreach (var scope in _scopeFactory.CreateScopes(this, Manifest!))
                 {
@@ -144,15 +144,40 @@ namespace Couchbase.Core
         public virtual Task RetryAsync(IOperation operation, CancellationToken token = default, TimeSpan? timeout = null) =>
             RetryOrchestrator.RetryAsync(this, operation, token, timeout);
 
+
+#region Bootstrap Error Handling and Propagation
+
         internal void CaptureException(Exception e)
         {
-            DeferredExceptions.Add(e);
+            var subject = this as IBootstrappable;
+            subject.DeferredExceptions.Add(e);
         }
+
+        async Task IBootstrappable.BootStrapAsync()
+        {
+            await Context.RebootStrapAsync(Name).ConfigureAwait(false);
+        }
+
+        bool IBootstrappable.IsBootstrapped => !_deferredExceptions.Any();
+
+        List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
+
+        internal void ThrowIfBootStrapFailed()
+        {
+            var subject = this as IBootstrappable;
+            if (!subject.IsBootstrapped)
+            {
+                throw new AggregateException($"Bootstrapping for bucket {Name} as failed.", subject.DeferredExceptions);
+            }
+        }
+
+#endregion
 
         public virtual void Dispose()
         {
             if (Disposed) return;
             Disposed = true;
+            Bootstrapper?.Dispose();
             Context.RemoveAllNodes();
         }
     }
