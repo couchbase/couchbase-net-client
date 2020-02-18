@@ -28,8 +28,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
                 .Select(p => new Replace<object>
                 {
                     Key = p.Key,
-                    Content = p.Value,
-                    Completed = state => Task.CompletedTask
+                    Content = p.Value
                 })
                 .First();
         }

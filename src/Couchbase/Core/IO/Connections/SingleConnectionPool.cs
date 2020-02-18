@@ -63,7 +63,7 @@ namespace Couchbase.Core.IO.Connections
 
             await CheckConnectionAsync().ConfigureAwait(false);
 
-            await operation.SendAsync(_connection).ConfigureAwait(false);
+            await operation.SendAsync(_connection, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc />

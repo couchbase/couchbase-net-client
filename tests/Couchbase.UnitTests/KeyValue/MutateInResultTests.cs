@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests.KeyValue
                 Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs)
             };
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
-            await op.ReadAsync(new FakeMemoryOwner<byte>(bytes), null).ConfigureAwait(false);
+            op.Read(new FakeMemoryOwner<byte>(bytes), null);
 
             var result = new MutateInResult(op.GetCommandValues(), 0, MutationToken.Empty, new DefaultSerializer());
 

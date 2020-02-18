@@ -31,14 +31,14 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         }
 
         [Benchmark]
-        public async Task Json()
+        public void Json()
         {
             using (var operation = new Get<Dictionary<string, object>>
             {
                 Transcoder = _transcoder
             })
             {
-                await operation.ReadAsync(new FakeMemoryOwner<byte>(_response));
+                operation.Read(new FakeMemoryOwner<byte>(_response));
                 operation.GetValue();
             }
         }

@@ -26,12 +26,7 @@ namespace Couchbase.LoadTests.Helpers
         public bool IsDead { get; set; }
         public TimeSpan IdleTime { get; set; }
 
-        public Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap errorMap)
+        public Task SendAsync(ReadOnlyMemory<byte> buffer, Action<SocketAsyncState> callback, ErrorMap errorMap = null)
         {
             return Task.CompletedTask;
         }

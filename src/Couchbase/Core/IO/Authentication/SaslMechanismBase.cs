@@ -66,47 +66,17 @@ namespace Couchbase.Core.IO.Authentication
 
         protected async Task<T> SendAsync<T>(IOperation<T> op, IConnection connection, CancellationToken cancellationToken)
         {
-            var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
-            op.Completed = s =>
+            await op.SendAsync(connection, cancellationToken).ConfigureAwait(false);
+
+            var status = await op.Completed.ConfigureAwait(false);
+
+            if (status != ResponseStatus.Success && status != ResponseStatus.AuthenticationContinue)
             {
-                //Status will be AuthenticationError if auth failed otherwise false
-                if (s.Status == ResponseStatus.Success || s.Status == ResponseStatus.AuthenticationContinue)
-                {
-                    tcs.TrySetResult(s.ExtractData());
-                }
-                else
-                {
-                    tcs.SetException(
-                        new AuthenticationFailureException(
-                            $"Cannot authenticate the user. Reason: {s.Status}"));
-                }
-
-                return tcs.Task;
-            };
-
-            IDisposable? cancellationTokenRegistration = null;
-            if (cancellationToken.CanBeCanceled)
-            {
-                // Not the default, so register the callback
-
-                cancellationTokenRegistration = cancellationToken.Register(() =>
-                {
-                    tcs.TrySetCanceled(cancellationToken);
-                });
+                throw new AuthenticationFailureException(
+                    $"Cannot authenticate the user. Reason: {status}");
             }
 
-            try
-            {
-                await op.SendAsync(connection).ConfigureAwait(false);
-                var bytes = await tcs.Task.ConfigureAwait(false);
-                await op.ReadAsync(bytes).ConfigureAwait(false);
-
-                return op.GetResultWithValue().Content;
-            }
-            finally
-            {
-                cancellationTokenRegistration?.Dispose();
-            }
+            return op.GetResultWithValue().Content;
         }
     }
 }

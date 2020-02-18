@@ -196,7 +196,7 @@ namespace Couchbase.UnitTests.KeyValue
 
                 if (_statuses.TryDequeue(out ResponseStatus status))
                 {
-                    await op.Completed(new SocketAsyncState
+                    (op as OperationBase)?.HandleOperationCompleted(new SocketAsyncState
                     {
                         Status = status
                     });
@@ -245,7 +245,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             return new CouchbaseCollection(mockBucket.Object, new LegacyTranscoder(),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
-                new Mock<IRedactor>().Object, 
+                new Mock<IRedactor>().Object,
                 null, CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName);
         }
     }

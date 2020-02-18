@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Connections;
@@ -51,28 +52,23 @@ namespace Couchbase.Core.IO.Operations
 
         DateTime CreationTime { get; set; }
 
-        Task SendAsync(IConnection connection);
-
-        Task ReadAsync(IMemoryOwner<byte> buffer, ErrorMap errorMap = null);
+        Task SendAsync(IConnection connection, CancellationToken cancellationToken = default);
 
         void HandleClientError(string message, ResponseStatus responseStatus);
 
         BucketConfig GetConfig(ITypeTranscoder transcoder);
 
-        Func<SocketAsyncState, Task> Completed { get; set; }
+        /// <summary>
+        /// Task which indicates completion of the operation. Once this task is complete,
+        /// the result has been received and, if successful, read.
+        /// </summary>
+        Task<ResponseStatus> Completed { get; }
 
         bool CanRetry();
 
         IOperationResult GetResult();
 
         IOperation Clone();
-
-        /// <summary>
-        /// Extracts the data for this instance, if any. The data is removed, and ownership is transferred to the receiver.
-        /// The receiver is now responsible for releasing the memory.
-        /// </summary>
-        /// <returns>The <see cref="IMemoryOwner{T}"/>.</returns>
-        IMemoryOwner<byte> ExtractData();
 
         bool HasDurability { get; }
     }

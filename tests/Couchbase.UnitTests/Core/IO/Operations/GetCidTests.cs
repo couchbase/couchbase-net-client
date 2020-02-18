@@ -22,7 +22,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             var response = MemoryPool<byte>.Shared.RentAndSlice(packet.Length);
             packet.AsMemory(0, packet.Length).CopyTo(response.Memory);
             var op = new GetCid();
-            op.ReadAsync(response);
+            op.Read(response);
 
             var result = op.GetResultWithValue();
 

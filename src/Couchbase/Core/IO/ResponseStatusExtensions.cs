@@ -7,12 +7,11 @@ using Couchbase.KeyValue;
 
 namespace Couchbase.Core.IO
 {
-    internal static class SocketAsyncStateExtensions
+    internal static class ResponseStatusExtensions
     {
-        public static Exception ThrowException(this SocketAsyncState state, ErrorCode errorCode)
+        public static Exception CreateException(this ResponseStatus status, ErrorCode errorCode)
         {
-            var statusName = Enum.GetName(typeof(ResponseStatus), state.Status);
-            switch (state.Status)
+            switch (status)
             {
                 case ResponseStatus.KeyNotFound:
                     return new DocumentNotFoundException

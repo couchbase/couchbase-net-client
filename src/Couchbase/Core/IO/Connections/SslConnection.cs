@@ -58,7 +58,7 @@ namespace Couchbase.Core.IO.Connections
         public TimeSpan IdleTime => _multiplexingConnection.IdleTime;
 
         /// <inheritdoc />
-        public Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback,
+        public Task SendAsync(ReadOnlyMemory<byte> request, Action<SocketAsyncState> callback,
             ErrorMap? errorMap = null) =>
             _multiplexingConnection.SendAsync(request, callback, errorMap);
 

@@ -26,6 +26,8 @@ namespace Couchbase.Core.IO.Operations
         private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
         private IMemoryOwner<byte> _data;
 
+        private readonly TaskCompletionSource<ResponseStatus> _completed = new TaskCompletionSource<ResponseStatus>();
+
         protected OperationBase()
         {
             Opaque = SequenceGenerator.GetNext();
@@ -68,7 +70,8 @@ namespace Couchbase.Core.IO.Operations
         #endregion
 
         public DateTime CreationTime { get; set; }
-        public Func<SocketAsyncState, Task> Completed { get; set; }
+
+        public Task<ResponseStatus> Completed => _completed.Task;
 
         public virtual void Reset()
         {
@@ -91,7 +94,6 @@ namespace Couchbase.Core.IO.Operations
             };
         }
 
-        /// <inheritdoc />
         public IMemoryOwner<byte> ExtractData()
         {
             var data = _data;
@@ -110,15 +112,15 @@ namespace Couchbase.Core.IO.Operations
             msgBytes.AsSpan().CopyTo(_data.Memory.Span);
         }
 
-        public Task ReadAsync(IMemoryOwner<byte> buffer, ErrorMap errorMap = null)
+        public void Read(IMemoryOwner<byte> buffer, ErrorMap errorMap = null)
         {
             EnsureNotDisposed();
 
             var header = buffer.Memory.Span.CreateHeader(errorMap, out var errorCode);
-            return ReadAsync(buffer, header, errorCode);
+            Read(buffer, header, errorCode);
         }
 
-        private Task ReadAsync(IMemoryOwner<byte> buffer, OperationHeader header, ErrorCode errorCode = null)
+        private void Read(IMemoryOwner<byte> buffer, OperationHeader header, ErrorCode errorCode = null)
         {
             Header = header;
             ErrorCode = errorCode;
@@ -126,7 +128,6 @@ namespace Couchbase.Core.IO.Operations
             _data = buffer;
 
             ReadExtras(_data.Memory.Span);
-            return Task.CompletedTask;
         }
 
         public OperationHeader ReadHeader()
@@ -435,13 +436,18 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
-        public virtual async Task SendAsync(IConnection connection)
+        public virtual async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
             BeginSend();
 
             var builder = OperationBuilderPool.Instance.Rent();
             try
             {
+                if (cancellationToken.CanBeCanceled)
+                {
+                    cancellationToken.Register(HandleOperationCancelled, cancellationToken);
+                }
+
                 WriteFramingExtras(builder);
 
                 builder.AdvanceToSegment(OperationSegment.Extras);
@@ -455,11 +461,40 @@ namespace Couchbase.Core.IO.Operations
 
                 builder.WriteHeader(CreateHeader());
 
-                await connection.SendAsync(builder.GetBuffer(), Completed).ConfigureAwait(false);
+                await connection.SendAsync(builder.GetBuffer(), HandleOperationCompleted).ConfigureAwait(false);
             }
             finally
             {
                 OperationBuilderPool.Instance.Return(builder);
+            }
+        }
+
+        private void HandleOperationCancelled(object state)
+        {
+            _completed.TrySetCanceled((CancellationToken) state);
+        }
+
+        /// <summary>
+        /// Internal for testing purposes only, do not use in SDK.
+        /// </summary>
+        internal void HandleOperationCompleted(SocketAsyncState state)
+        {
+            try
+            {
+                if (state.Status == ResponseStatus.Success || state.Status ==
+                                                           ResponseStatus.VBucketBelongsToAnotherServer
+                                                           || state.Status == ResponseStatus.AuthenticationContinue)
+                {
+                    Read(state.ExtractData());
+
+                    _completed.TrySetResult(state.Status);
+                }
+
+                _completed.TrySetResult(state.Status);
+            }
+            catch (Exception ex)
+            {
+                _completed.TrySetException(ex);
             }
         }
 

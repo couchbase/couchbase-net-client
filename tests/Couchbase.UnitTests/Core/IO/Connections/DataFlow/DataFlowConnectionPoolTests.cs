@@ -702,7 +702,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             public override OpCode OpCode => OpCode.NoOp;
 
-            public override async Task SendAsync(IConnection connection)
+            public override async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
                 SendStarted?.Invoke(connection);
 

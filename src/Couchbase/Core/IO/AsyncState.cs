@@ -18,7 +18,7 @@ namespace Couchbase.Core.IO
         private readonly TaskCompletionSource<bool> _tcs = new TaskCompletionSource<bool>();
 
         public IPEndPoint EndPoint { get; set; }
-        public Func<SocketAsyncState, Task> Callback { get; set; }
+        public Action<SocketAsyncState> Callback { get; set; }
         public uint Opaque { get; set; }
         public Timer Timer;
         public ulong ConnectionId { get; set; }

@@ -397,37 +397,10 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task ExecuteOp(Func<Task> sender, IOperation op, CancellationToken token = default(CancellationToken),
+        private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
             _logger.LogDebug("Executing op {opcode} with key {key} and opaque {opaque}", op.OpCode, _redactor.UserData(op.Key), op.Opaque);
-
-            // wire up op's completed function
-            var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
-            op.Completed = state =>
-            {
-                if (state.Status == ResponseStatus.Success)
-                {
-                    tcs.TrySetResult(state.ExtractData());
-                }
-                else if
-                    (state.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-                {
-                    tcs.TrySetResult(state.ExtractData());
-                }
-                else
-                {
-                    var code = (short) state.Status;
-                    if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
-                    {
-                        _logger.LogWarning("Unexpected Status for KeyValue operation not found in Error Map: 0x{code}", code.ToString("X4"));
-                    }
-
-                    tcs.TrySetException(state.ThrowException(errorCode));
-                }
-
-                return tcs.Task;
-            };
 
             CancellationTokenSource cts = null;
             try
@@ -439,29 +412,29 @@ namespace Couchbase.Core
                     token = cts.Token;
                 }
 
-                using (token.Register(() =>
-                {
-                    if (tcs.Task.Status != TaskStatus.RanToCompletion)
-                    {
-                        tcs.TrySetCanceled();
-                    }
-                }, useSynchronizationContext: false))
-                {
-                    await sender().ConfigureAwait(false);
-                    var bytes = await tcs.Task.ConfigureAwait(false);
-                    await op.ReadAsync(bytes).ConfigureAwait(false);
+                await sender(op, state, token).ConfigureAwait(false);
 
-                    var status = op.Header.Status;
-                    if (status == ResponseStatus.VBucketBelongsToAnotherServer)
-                    {
-                        var config = op.GetConfig(_transcoder);
-                        _context.PublishConfig(config);
-                    }
+                var status = await op.Completed.ConfigureAwait(false);
 
-                    _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode,
-                       _redactor.UserData(op.Key),
-                        op.Opaque);
+                if (status == ResponseStatus.VBucketBelongsToAnotherServer)
+                {
+                    var config = op.GetConfig(_transcoder);
+                    _context.PublishConfig(config);
                 }
+                else if (status != ResponseStatus.Success)
+                {
+                    var code = (short) status;
+                    if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
+                    {
+                        _logger.LogWarning("Unexpected Status for KeyValue operation not found in Error Map: 0x{code}", code.ToString("X4"));
+                    }
+
+                    throw status.CreateException(errorCode);
+                }
+
+                _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode,
+                   _redactor.UserData(op.Key),
+                    op.Opaque);
             }
             catch (OperationCanceledException e)
             {
@@ -487,13 +460,17 @@ namespace Couchbase.Core
         private Task ExecuteOp(IConnectionPool connectionPool, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            return ExecuteOp(() => connectionPool.SendAsync(op, token), op, token);
+            // op and connectionPool come back via lambda parameters to prevent an extra closure heap allocation
+            return ExecuteOp((op2, state, effectiveToken) => ((IConnectionPool) state).SendAsync(op2, effectiveToken),
+                op, connectionPool, token);
         }
 
         public Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            return ExecuteOp(() => op.SendAsync(connection), op, token);
+            // op and connection come back via lambda parameters to prevent an extra closure heap allocation
+            return ExecuteOp((op2, state, effectiveToken) => op2.SendAsync((IConnection) state, effectiveToken),
+                op, connection, token);
         }
 
         private TimeSpan GetTimeout(TimeSpan? optionsTimeout, IOperation op)

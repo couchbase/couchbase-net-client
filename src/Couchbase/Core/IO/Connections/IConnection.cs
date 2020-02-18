@@ -67,7 +67,7 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="buffer">A memcached request buffer.</param>
         /// <param name="callback">The callback that will be fired after the operation is completed.</param>
         /// <param name="errorMap"><see cref="ErrorMap"/>, or null if not available.</param>
-        Task SendAsync(ReadOnlyMemory<byte> buffer, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null);
+        Task SendAsync(ReadOnlyMemory<byte> buffer, Action<SocketAsyncState> callback, ErrorMap? errorMap = null);
 
         /// <summary>
         /// Closes the connection gracefully, waiting up to timeout for all in-flight operations

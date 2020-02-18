@@ -81,9 +81,9 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 ErrorCode = errorCode;
             }
 
-            public override Task SendAsync(IConnection connection)
+            public override Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
-                Completed(new SocketAsyncState
+                HandleOperationCompleted(new SocketAsyncState
                 {
                     Status = Header.Status
                 });

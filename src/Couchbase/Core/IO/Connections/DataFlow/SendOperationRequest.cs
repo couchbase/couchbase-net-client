@@ -36,7 +36,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
                 try
                 {
-                    await Operation.SendAsync(connection).ConfigureAwait(false);
+                    await Operation.SendAsync(connection, CancellationToken).ConfigureAwait(false);
 
                     _tcs.TrySetResult(true);
                 }

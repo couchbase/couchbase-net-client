@@ -79,7 +79,7 @@ namespace Couchbase.Core.IO.Connections
         public bool IsDead { get; set; }
 
         /// <inheritdoc />
-        public async Task SendAsync(ReadOnlyMemory<byte> request, Func<SocketAsyncState, Task> callback, ErrorMap? errorMap = null)
+        public async Task SendAsync(ReadOnlyMemory<byte> request, Action<SocketAsyncState> callback, ErrorMap? errorMap = null)
         {
             if (_disposed)
             {

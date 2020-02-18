@@ -130,7 +130,7 @@ namespace Couchbase.UnitTests.KeyValue
         public void Test_Projection()
         {
             var getRequest = new MultiLookup<byte[]>();
-            getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
+            getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
                 new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
@@ -149,7 +149,7 @@ namespace Couchbase.UnitTests.KeyValue
         public void Test_Projection_With_Poco()
         {
             var getRequest = new MultiLookup<byte[]>();
-            getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
+            getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
                 new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
@@ -168,7 +168,7 @@ namespace Couchbase.UnitTests.KeyValue
         public void Test_Projection_With_Dictionary()
         {
             var getRequest = new MultiLookup<byte[]>();
-            getRequest.ReadAsync(new FakeMemoryOwner<byte>(_lookupInPacket));
+            getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
                 new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
