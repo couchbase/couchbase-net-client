@@ -355,7 +355,6 @@ namespace Couchbase.Core
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
                 }
 
-                node.NodesAdapter = nodeAdapter;
                 SupportsCollections = node.Supports(ServerFeatures.Collections);
                 AddNode(node);
             }
