@@ -95,7 +95,7 @@ namespace Couchbase
             var bucket = KeyMapper.MapKey(op.Key);
             var endPoint = bucket.LocatePrimary();
 
-            if (Context.TryGetNode(endPoint, out var clusterNode))
+            if (Context.Nodes.TryGet(endPoint, out var clusterNode))
             {
                 await clusterNode.ExecuteOp(op, token, timeout);
             }

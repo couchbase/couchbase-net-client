@@ -74,7 +74,7 @@ namespace Couchbase.Core.Configuration.Server
                     {
                         try
                         {
-                            var config = await clusterNode.Value.GetClusterMap().ConfigureAwait(false);
+                            var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
                             if (config != null)
                             {
                                 if (config.Name == null)

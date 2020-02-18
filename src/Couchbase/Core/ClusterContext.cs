@@ -52,7 +52,10 @@ namespace Couchbase.Core
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
         }
 
-        internal ConcurrentDictionary<IPEndPoint, IClusterNode> Nodes { get; set; } = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
+        /// <summary>
+        /// Nodes currently being managed.
+        /// </summary>
+        public ClusterNodeCollection Nodes { get; } = new ClusterNodeCollection();
 
         public ClusterOptions ClusterOptions { get; }
 
@@ -104,7 +107,7 @@ namespace Couchbase.Core
                 case ServiceType.Views:
                     try
                     {
-                        node = Nodes.Values.GetRandom(x => x.HasViews && x.Owner
+                        node = Nodes.GetRandom(x => x.HasViews && x.Owner
                                                            != null && x.Owner.Name == bucketName);
                     }
                     catch (NullReferenceException)
@@ -115,13 +118,13 @@ namespace Couchbase.Core
 
                     break;
                 case ServiceType.Query:
-                    node = Nodes.Values.GetRandom(x => x.HasQuery);
+                    node = Nodes.GetRandom(x => x.HasQuery);
                     break;
                 case ServiceType.Search:
-                    node = Nodes.Values.GetRandom(x => x.HasSearch);
+                    node = Nodes.GetRandom(x => x.HasSearch);
                     break;
                 case ServiceType.Analytics:
-                    node = Nodes.Values.GetRandom(x => x.HasAnalytics);
+                    node = Nodes.GetRandom(x => x.HasAnalytics);
                     break;
                 default:
                     throw new ServiceNotAvailableException(service);
@@ -144,29 +147,29 @@ namespace Couchbase.Core
                 .ToListAsync(CancellationToken).ConfigureAwait(false);
 
             var removed = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.Key.Equals(y)));
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y))));
 
             foreach (var node in removed)
             {
-                RemoveNode(node.Value);
+                RemoveNode(node);
             }
         }
 
         public IEnumerable<IClusterNode> GetNodes(string bucketName)
         {
-            return Nodes.Values.Where(x => x.Owner != null &&
-                                           x.Owner.Name.Equals(bucketName))
+            return Nodes.Where(x => x.Owner != null &&
+                                   x.Owner.Name.Equals(bucketName))
                 .Select(node => node);
         }
 
         public IClusterNode GetRandomNode()
         {
-            return Nodes.GetRandom().Value;
+            return Nodes.GetRandom();
         }
 
         public void AddNode(IClusterNode node)
         {
-            if (Nodes.TryAdd(node.EndPoint, node))
+            if (Nodes.Add(node))
             {
                 _logger.LogDebug("Added {endPoint}", _redactor.SystemData(node.EndPoint));
             }
@@ -174,34 +177,21 @@ namespace Couchbase.Core
 
         public bool RemoveNode(IClusterNode removedNode)
         {
-            if (Nodes.TryRemove(removedNode.EndPoint, out removedNode))
+            if (Nodes.Remove(removedNode.EndPoint, out removedNode))
             {
                 _logger.LogDebug("Removing {endPoint}", _redactor.SystemData(removedNode.EndPoint));
                 removedNode.Dispose();
-                removedNode = null;
                 return true;
             }
             return false;
         }
 
-        public void RemoveNodes()
+        public void RemoveAllNodes()
         {
-            foreach (var clusterNode in Nodes)
+            foreach (var removedNode in Nodes.Clear())
             {
-                RemoveNode(clusterNode.Value);
+                removedNode.Dispose();
             }
-        }
-
-        public bool NodeExists(IClusterNode node)
-        {
-            var found = Nodes.ContainsKey(node.EndPoint);
-            _logger.LogDebug(found ? "Found {endPoint}" : "Did not find {endPoint}", _redactor.SystemData(node.EndPoint));
-            return found;
-        }
-
-        public bool TryGetNode(IPEndPoint endPoint, out IClusterNode node)
-        {
-            return Nodes.TryGetValue(endPoint, out node);
         }
 
         public async Task<IClusterNode> GetUnassignedNodeAsync(HostEndpoint endpoint)
@@ -209,7 +199,7 @@ namespace Couchbase.Core
             var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
             var ipAddress = await dnsResolver.GetIpAddressAsync(endpoint.Host, CancellationToken);
 
-            return Nodes.Values.FirstOrDefault(
+            return Nodes.FirstOrDefault(
                 x => !x.IsAssigned && x.EndPoint.Address.Equals(ipAddress));
         }
 
@@ -326,7 +316,7 @@ namespace Couchbase.Core
             foreach (var nodeAdapter in config.GetNodes())
             {
                 var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken);
-                if (TryGetNode(endPoint, out IClusterNode bootstrapNode))
+                if (Nodes.TryGet(endPoint, out var bootstrapNode))
                 {
                     _logger.LogDebug("Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
                         _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
@@ -377,13 +367,7 @@ namespace Couchbase.Core
                 }
             }
 
-            foreach (var endpoint in Nodes.Keys)
-            {
-                if (Nodes.TryRemove(endpoint, out var node))
-                {
-                    node.Dispose();
-                }
-            }
+            RemoveAllNodes();
         }
     }
 }

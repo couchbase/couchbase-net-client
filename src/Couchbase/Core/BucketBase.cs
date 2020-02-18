@@ -153,7 +153,7 @@ namespace Couchbase.Core
         {
             if (Disposed) return;
             Disposed = true;
-            Context.RemoveNodes();
+            Context.RemoveAllNodes();
         }
     }
 }

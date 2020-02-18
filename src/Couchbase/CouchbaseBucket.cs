@@ -196,7 +196,7 @@ namespace Couchbase
 
             op.VBucketId = vBucket.Index;
 
-            if (Context.TryGetNode(endPoint, out var clusterNode))
+            if (Context.Nodes.TryGet(endPoint!, out var clusterNode))
             {
                 try
                 {

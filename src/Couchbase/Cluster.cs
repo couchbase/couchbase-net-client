@@ -118,7 +118,7 @@ namespace Couchbase
                 _logger.LogError(e,
                     "Could not authenticate user {username}", _redactor.UserData(_context.ClusterOptions.UserName ?? string.Empty));
 
-                _context.RemoveNodes();
+                _context.RemoveAllNodes();
                 throw;
             }
         }

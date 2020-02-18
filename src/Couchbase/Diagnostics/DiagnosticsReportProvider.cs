@@ -51,7 +51,7 @@ namespace Couchbase.Diagnostics
         {
             var clusterNodes = context.Nodes;
             var endpoints =
-                await GetEndpointDiagnosticsAsync(context, clusterNodes.Values, false, AllServiceTypes,
+                await GetEndpointDiagnosticsAsync(context, clusterNodes, false, AllServiceTypes,
                     CancellationToken.None).ConfigureAwait(false);
             return new DiagnosticsReport(reportId, endpoints);
         }

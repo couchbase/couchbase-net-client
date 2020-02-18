@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +17,15 @@ namespace Couchbase.Core
         NodeAdapter NodesAdapter { get; set; }
         HostEndpoint BootstrapEndpoint { get; }
         IPEndPoint EndPoint { get; }
+
+        /// <summary>
+        /// Endpoints by which this node may be referenced for key/value operations.
+        /// </summary>
+        /// <remarks>
+        /// May change over time depending on bootstrap status.
+        /// </remarks>
+        IReadOnlyCollection<IPEndPoint> KeyEndPoints { get; }
+
         Uri QueryUri { get; set; }
         Uri AnalyticsUri { get; set; }
         Uri SearchUri { get; set; }
@@ -57,5 +67,10 @@ namespace Couchbase.Core
 
         Task SendAsync(IOperation op, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null);
+
+        /// <summary>
+        /// Notifies when the <see cref="KeyEndPoints"/> collection is changed.
+        /// </summary>
+        event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
     }
 }

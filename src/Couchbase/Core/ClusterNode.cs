@@ -1,7 +1,8 @@
 using System;
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -36,6 +37,7 @@ namespace Couchbase.Core
         private Uri _searchUri;
         private Uri _viewsUri;
         private NodeAdapter _nodesAdapter;
+        private readonly ObservableCollection<IPEndPoint> _keyEndPoints  = new ObservableCollection<IPEndPoint>();
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint)
         {
@@ -47,6 +49,10 @@ namespace Couchbase.Core
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
 
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
+
+            KeyEndPoints = new ReadOnlyObservableCollection<IPEndPoint>(_keyEndPoints);
+            UpdateKeyEndPoints();
+            ((INotifyCollectionChanged) _keyEndPoints).CollectionChanged += (_, e) => OnKeyEndPointsChanged(e);
 
             if (connectionPoolFactory == null)
             {
@@ -79,11 +85,15 @@ namespace Couchbase.Core
             {
                 _nodesAdapter = value;
                 BuildServiceUris();
+                UpdateKeyEndPoints();
             }
         }
 
         public HostEndpoint BootstrapEndpoint { get; set; }
         public IPEndPoint EndPoint { get; }
+
+        /// <inheritdoc />
+        public IReadOnlyCollection<IPEndPoint> KeyEndPoints { get; }
 
         public Uri QueryUri
         {
@@ -146,6 +156,14 @@ namespace Couchbase.Core
         public DateTime? LastSearchActivity { get; private set; }
         public DateTime? LastAnalyticsActivity { get; private set; }
         public DateTime? LastKvActivity { get; private set; }
+
+        /// <inheritdoc />
+        public event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
+
+        private void OnKeyEndPointsChanged(NotifyCollectionChangedEventArgs e)
+        {
+            KeyEndPointsChanged?.Invoke(this, e);
+        }
 
         public async Task InitializeAsync()
         {
@@ -261,6 +279,56 @@ namespace Couchbase.Core
             AnalyticsUri = NodesAdapter?.GetAnalyticsUri(_context.ClusterOptions);
             ViewsUri = NodesAdapter?.GetViewsUri(_context.ClusterOptions); //TODO move to IBucket level?
             ManagementUri = NodesAdapter?.GetManagementUri(_context.ClusterOptions);
+        }
+
+        /// <summary>
+        /// Ensures that <see cref="KeyEndPoints"/> is correct, given the values of
+        /// <see cref="EndPoint"/> and <see cref="NodesAdapter"/>.
+        /// </summary>
+        private void UpdateKeyEndPoints()
+        {
+            if (_nodesAdapter == null)
+            {
+                // NodesAdapter has not been set, so KeyEndPoints should be the EndPoint property
+
+                if (_keyEndPoints.Count > 0)
+                {
+                    foreach (var endPoint in _keyEndPoints.Where(p => !p.Equals(EndPoint)).ToList())
+                    {
+                        _keyEndPoints.Remove(endPoint);
+                    }
+                }
+
+                if (_keyEndPoints.Count == 0)
+                {
+                    _keyEndPoints.Add(EndPoint);
+                }
+            }
+            else
+            {
+                // KeyEndPoints should be the K/V and K/V SSL ports at EndPoint.Address. Remove others add if necessary.
+
+                var kvEndpoint = new IPEndPoint(EndPoint.Address, _nodesAdapter.KeyValue);
+                var sslEndpoint = new IPEndPoint(EndPoint.Address, _nodesAdapter.KeyValueSsl);
+
+                if (_keyEndPoints.Count > 0)
+                {
+                    foreach (var endPoint in _keyEndPoints.Where(p => !p.Equals(kvEndpoint) && !p.Equals(sslEndpoint)).ToList())
+                    {
+                        _keyEndPoints.Remove(endPoint);
+                    }
+                }
+
+                if (!_keyEndPoints.Contains(kvEndpoint))
+                {
+                    _keyEndPoints.Add(kvEndpoint);
+                }
+
+                if (!_keyEndPoints.Contains(sslEndpoint))
+                {
+                    _keyEndPoints.Add(sslEndpoint);
+                }
+            }
         }
 
         public async Task SendAsync(IOperation op,
