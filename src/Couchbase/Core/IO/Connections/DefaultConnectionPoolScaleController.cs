@@ -57,7 +57,7 @@ namespace Couchbase.Core.IO.Connections
             _connectionPool = connectionPool ?? throw new ArgumentNullException(nameof(connectionPool));
 
             _logger.LogDebug(
-                "Starting connection pool monitor on {endpoint}, idle timeout {idleTimeout}, back pressure threshold {backPressureThreshold",
+                "Starting connection pool monitor on {endpoint}, idle timeout {idleTimeout}, back pressure threshold {backPressureThreshold}",
                 _redactor.SystemData(_connectionPool.EndPoint), IdleConnectionTimeout, BackPressureThreshold);
 
             Task.Run(MonitorAsync, _cts.Token);
