@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Core;
@@ -15,7 +15,7 @@ namespace Couchbase.Query
         private readonly List<MutationToken> _tokens = new List<MutationToken>();
 
         /// <summary>
-        /// Creates a <see cref="MutationToken"/> from a list of <see cref="IGetResult{T}"/>'s assuming enhanced durability is enabled.
+        /// Creates a <see cref="MutationToken"/> from a list of <see cref="IMutationResult"/>'s assuming enhanced durability is enabled.
         /// </summary>
         /// <param name="mutationResults">The mutationResults.</param>
         /// <returns></returns>
@@ -35,10 +35,10 @@ namespace Couchbase.Query
         }
 
         /// <summary>
-        /// Adds a <see cref="MutationToken"/> to the <see cref="MutationState"/> from a list of <see cref="IGetResult{T}"/> assuming enhanced durability is enabled.
+        /// Adds a <see cref="MutationToken"/> to the <see cref="MutationState"/> from a list of <see cref="IMutationResult"/> assuming enhanced durability is enabled.
         /// </summary>
         /// <param name="mutationResults">The mutationResults.</param>
-        /// <exception cref="ArgumentException">If a <see cref="IGetResult{T}"/> does not contain a valid <see cref="MutationToken"/>.</exception>
+        /// <exception cref="ArgumentException">If a <see cref="IMutationResult"/> does not contain a valid <see cref="MutationToken"/>.</exception>
         /// <returns>The <see cref="MutationState"/> object itself.</returns>
         public MutationState Add(params IMutationResult[] mutationResults)
         {

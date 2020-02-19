@@ -25,6 +25,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>8.0</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- suppress warnings for missing XML comments on public members -->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

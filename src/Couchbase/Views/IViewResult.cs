@@ -17,7 +17,7 @@ namespace Couchbase.Views
         /// </summary>
         /// <remarks>
         /// In most cases, the rows may be enumerated only once. If it's necessary to enumerate more than
-        /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
+        /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync{T}(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
         /// ToListAsync can also be used to enumerate with a synchronous foreach loop in C# 7.
         /// </remarks>
         IAsyncEnumerable<IViewRow<TKey, TValue>> Rows { get; }
@@ -28,6 +28,9 @@ namespace Couchbase.Views
         ViewMetaData? MetaData { get; }
     }
 
+    /// <summary>
+    /// Metadata regarding a <see cref="IViewResult{TKey,TValue}"/>.
+    /// </summary>
     public class ViewMetaData
     {
         /// <summary>

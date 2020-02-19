@@ -6,7 +6,7 @@ namespace Couchbase.Core.IO.Operations
 {
     /// <summary>
     /// Represents an abstract base class for mutation operations (PROTOCOL_BINARY_CMD_SET, DELETE,REPLACE, ADD,
-    /// APPEND, PREPEND, INCR, DECR, SET_WITH_META, DEL_WITH_META) and supports <see cref="OperationBase{}.MutationToken"/>'s.
+    /// APPEND, PREPEND, INCR, DECR, SET_WITH_META, DEL_WITH_META) and supports <see cref="OperationBase.MutationToken"/>'s.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     internal abstract class MutationOperationBase<T> : OperationBase<T>

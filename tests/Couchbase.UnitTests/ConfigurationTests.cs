@@ -66,10 +66,10 @@ namespace Couchbase.UnitTests
         {
             var config = new ClusterOptions();
 
-            Assert.Throws<ArgumentException>(() => config.Credentials(null, null));
-            Assert.Throws<ArgumentException>(() => config.Credentials(string.Empty, null));
-            Assert.Throws<ArgumentException>(() => config.Credentials(null, string.Empty));
-            Assert.Throws<ArgumentException>(() => config.Credentials(string.Empty, string.Empty));
+            Assert.Throws<ArgumentException>(() => config.WithCredentials(null, null));
+            Assert.Throws<ArgumentException>(() => config.WithCredentials(string.Empty, null));
+            Assert.Throws<ArgumentException>(() => config.WithCredentials(null, string.Empty));
+            Assert.Throws<ArgumentException>(() => config.WithCredentials(string.Empty, string.Empty));
         }
     }
 }

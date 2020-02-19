@@ -13,7 +13,7 @@ namespace Couchbase.UnitTests.Fixtures
             var cluster = new Cluster(new ClusterOptions()
                 .WithConnectionString("couchbase://localhost")
                 .WithBuckets("default")
-                .Credentials("Administrator", "password")
+                .WithCredentials("Administrator", "password")
             );
             Cluster = cluster;
         }

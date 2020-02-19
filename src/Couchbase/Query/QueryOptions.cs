@@ -10,6 +10,9 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Query
 {
+    /// <summary>
+    /// Options to control execution of a N1QL query.
+    /// </summary>
     public class QueryOptions
     {
         private readonly List<object> _arguments = new List<object>();
@@ -30,10 +33,17 @@ namespace Couchbase.Query
         private string? _statement;
         private TimeSpan? _timeOut;
 
+        /// <summary>
+        /// Creates a new QueryOptions object.
+        /// </summary>
         public QueryOptions()
         {
         }
 
+        /// <summary>
+        /// Creates a new QueryOptions object with a N1QL query statement.
+        /// </summary>
+        /// <param name="statement">A N1QL query statement.</param>
         public QueryOptions(string statement) : this()
         {
             _statement = statement;
@@ -41,6 +51,11 @@ namespace Couchbase.Query
             IsPrepared = false;
         }
 
+        /// <summary>
+        /// Creates a new QueryOptions object with an existing <see cref="QueryPlan"/>.
+        /// </summary>
+        /// <param name="plan">The <see cref="QueryPlan"/>.</param>
+        /// <param name="originalStatement">The original N1QL query statement used to generate the plan.</param>
         public QueryOptions(QueryPlan plan, string originalStatement) : this()
         {
             _statement = originalStatement;
@@ -444,12 +459,26 @@ namespace Couchbase.Query
             return this;
         }
 
+        /// <summary>
+        ///     Set the <see cref="QueryProfile"/> information to be returned along with the query results.
+        /// </summary>
+        /// <param name="profile">The <see cref="QueryProfile"/>.</param>
+        /// <returns>
+        ///     A reference to the current <see cref="QueryOptions" /> for method chaining.
+        /// </returns>
         public QueryOptions Profile(QueryProfile profile)
         {
             _profile = profile;
             return this;
         }
 
+        /// <summary>
+        ///     Set the <see cref="CancellationToken"/> which will cancel the query if it is incomplete.
+        /// </summary>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        /// <returns>
+        ///     A reference to the current <see cref="QueryOptions" /> for method chaining.
+        /// </returns>
         public QueryOptions CancellationToken(CancellationToken cancellationToken)
         {
             Token = cancellationToken;
@@ -556,6 +585,7 @@ namespace Couchbase.Query
             return formValues;
         }
 
+        /// <summary>
         /// Gets the JSON representation of this query for execution in a POST.
         /// </summary>
         /// <returns>The form values as a JSON object.</returns>

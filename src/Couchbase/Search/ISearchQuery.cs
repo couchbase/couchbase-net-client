@@ -1,4 +1,3 @@
-using Couchbase.Core;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search
@@ -16,7 +15,7 @@ namespace Couchbase.Search
         ISearchQuery Boost(double boost);
 
         /// <summary>
-        /// Gets a JSON object representing this instance excluding any <see cref="ISearchOptions"/>
+        /// Gets a JSON object representing this instance excluding any <see cref="SearchOptions"/>
         /// </summary>
         /// <returns></returns>
         JObject Export();

@@ -6,7 +6,10 @@ using Couchbase.KeyValue;
 
 namespace Couchbase.Analytics
 {
-    public static class AnalyticsExtensionsnsns
+    /// <summary>
+    /// Analytics related extensions for <see cref="ICluster"/>.
+    /// </summary>
+    public static class AnalyticsExtensions
     {
         /// <summary>
         /// Executes a query and ingests the results as documents into Couchbase server for further analytics.
@@ -48,7 +51,7 @@ namespace Couchbase.Analytics
         public static async Task<IEnumerable<IMutationResult>> IngestAsync<T>(this ICluster cluster, string statement, ICollection collection, IngestOptions ingestOptions = null)
         {
             //use defaults if not options not explicitly passed
-            ingestOptions = ingestOptions ?? new IngestOptions();
+            ingestOptions ??= new IngestOptions();
 
             if (ingestOptions.TokenValue.IsCancellationRequested)
             {

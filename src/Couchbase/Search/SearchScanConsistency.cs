@@ -27,9 +27,9 @@ namespace Couchbase.Search
         RequestPlus,
 
         /// <summary>
-        /// Do not use; for RYOW use <see cref="ISearchRequest.ConsistentWith"/> and do not specify a <see cref="ScanConsistency"/>.
+        /// Do not use; for RYOW use <see cref="SearchOptions.ConsistentWith"/> and do not specify a <see cref="SearchScanConsistency"/>.
         /// </summary>
-        [Obsolete("Do not use; for RYOW use IQueryRequest.ConsistentWith and do not specify a ScanConsistency.")]
+        [Obsolete("Do not use; for RYOW use SearchOptions.ConsistentWith and do not specify a ScanConsistency.")]
         [Description("at_plus")]
         AtPlus
     }

@@ -6,7 +6,7 @@ using Couchbase.Core.IO.Serializers;
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
     /// <summary>
-    /// Represents one more fragments of an <see cref="IDocument{T}"/> that is returned by the sub-document API.
+    /// Represents one more fragments of a document that is returned by the sub-document API.
     /// </summary>
     /// <typeparam name="TDocument">The document</typeparam>
     public class DocumentFragment<TDocument> : OperationResult, IDocumentFragment<TDocument>, ITypeSerializerProvider

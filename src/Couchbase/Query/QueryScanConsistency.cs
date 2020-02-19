@@ -34,9 +34,9 @@ namespace Couchbase.Query
         StatementPlus,
 
         /// <summary>
-        /// Do not use; for RYOW use <see cref="IQueryRequest.ConsistentWith"/> and do not specify a <see cref="ScanConsistency"/>.
+        /// Do not use; for RYOW use <see cref="QueryOptions.ConsistentWith"/> and do not specify a <see cref="QueryScanConsistency"/>.
         /// </summary>
-        [Obsolete("Do not use; for RYOW use IQueryRequest.ConsistentWith and do not specify a ScanConsistency.")]
+        [Obsolete("Do not use; for RYOW use QueryOptions.ConsistentWith and do not specify a ScanConsistency.")]
         [Description("at_plus")]
         AtPlus
     }

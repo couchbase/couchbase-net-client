@@ -6,7 +6,7 @@ using Couchbase.Core.Exceptions.Query;
 
 namespace Couchbase.Query
 {
-    public static class QueryResultExtensions
+    internal static class QueryResultExtensions
     {
         private static readonly List<QueryStatus> StaleStatuses = new List<QueryStatus>
         {

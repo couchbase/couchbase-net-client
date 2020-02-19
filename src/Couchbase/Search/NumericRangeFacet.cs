@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
@@ -27,11 +27,8 @@ namespace Couchbase.Search
         }
 
         /// <summary>
-        ///  /// <summary>
         /// Adds a numeric range to the <see cref="ISearchFacet"/>.
         /// </summary>
-        /// </summary>
-        /// <param name="name">The name of the <see cref="ISearchFacet"/>.</param>
         /// <param name="start">The start of the numeric range."/></param>
         /// <param name="end">The end of the numeric range.</param>
         /// <returns></returns>

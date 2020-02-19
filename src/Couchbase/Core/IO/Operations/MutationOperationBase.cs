@@ -5,16 +5,15 @@ namespace Couchbase.Core.IO.Operations
 {
     /// <summary>
     /// Represents an abstract base class for mutation operations (PROTOCOL_BINARY_CMD_SET, DELETE,REPLACE, ADD,
-    /// APPEND, PREPEND, INCR, DECR, SET_WITH_META, DEL_WITH_META) and supports <see cref="OperationBase{}.MutationToken"/>'s.
+    /// APPEND, PREPEND, INCR, DECR, SET_WITH_META, DEL_WITH_META) and supports <see cref="OperationBase.MutationToken"/>'s.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
     internal abstract class MutationOperationBase : OperationBase
     {
         public DurabilityLevel DurabilityLevel { get; set; }
         public TimeSpan? DurabilityTimeout { get; set; }
 
         /// <summary>
-        /// Reads the VBucketUUID and Sequence Number from  the extras if the instance has a <see cref="OperationBase.VBucket"/> -
+        /// Reads the VBucketUUID and Sequence Number from the extras if the instance has a <see cref="OperationBase.VBucketId"/> -
         /// only persistent Couchbase buckets that use VBucket Hashing support mutation tokens.
         /// </summary>
         /// <param name="buffer">The memcached response buffer.</param>

@@ -20,7 +20,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
         {
             var options = new ClusterOptions()
                 .WithConnectionString("couchbase://localhost")
-                .Credentials("Administrator", "password");
+                .WithCredentials("Administrator", "password");
 
             _cluster = await Cluster.ConnectAsync(options);
 

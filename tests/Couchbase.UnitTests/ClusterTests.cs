@@ -45,7 +45,7 @@ namespace Couchbase.UnitTests
                 .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<QueryOptions>()))
                 .ReturnsAsync(queryResult.Object);
 
-            var options = new ClusterOptions().Credentials("u", "p")
+            var options = new ClusterOptions().WithCredentials("u", "p")
                 .WithConnectionString("couchbase://localhost");
 
             var cluster = new Mock<Cluster>(options)
@@ -91,7 +91,7 @@ namespace Couchbase.UnitTests
                 .Setup(m => m.QueryAsync<TestClass>(It.IsAny<IAnalyticsRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(analyticsResult.Object);
 
-            var options = new ClusterOptions().Credentials("u", "p")
+            var options = new ClusterOptions().WithCredentials("u", "p")
                 .WithConnectionString("couchbase://localhost");
 
             var cluster = new Mock<Cluster>(options)

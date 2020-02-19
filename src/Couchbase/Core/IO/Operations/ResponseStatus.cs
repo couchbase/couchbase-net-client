@@ -266,7 +266,7 @@ namespace Couchbase.Core.IO.Operations
         SubDocXattrInvalidKeyCombo = 0xcf,
 
         /// <summary>
-        // The server has no knowledge of the requested macro
+        /// The server has no knowledge of the requested macro
         /// </summary>
         SubdocXattrUnknownMacro = 0xd0,
 

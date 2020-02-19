@@ -25,6 +25,7 @@ using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
 
 namespace Couchbase
 {
+    /// <inheritdoc />
     public class Cluster : ICluster
     {
         private readonly ILogger<Cluster> _logger;
@@ -123,6 +124,7 @@ namespace Couchbase
             }
         }
 
+        /// <inheritdoc />
         public async Task<IBucket> BucketAsync(string name)
         {
             var bucket = await _context.GetOrCreateBucketAsync(name);
@@ -130,6 +132,7 @@ namespace Couchbase
             return bucket;
         }
 
+        /// <inheritdoc />
         public async Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
         {
             options ??= new DiagnosticsOptions();
@@ -264,16 +267,22 @@ namespace Couchbase
 
         #endregion
 
+        /// <inheritdoc />
         public IQueryIndexManager QueryIndexes => LazyQueryManager.Value;
 
+        /// <inheritdoc />
         public IAnalyticsIndexManager AnalyticsIndexes => throw new NotImplementedException();
 
+        /// <inheritdoc />
         public ISearchIndexManager SearchIndexes => LazySearchManager.Value;
 
+        /// <inheritdoc />
         public IBucketManager Buckets => LazyBucketManager.Value;
 
+        /// <inheritdoc />
         public IUserManager Users => LazyUserManager.Value;
 
+        /// <inheritdoc />
         public void Dispose()
         {
             if (_disposed) return;

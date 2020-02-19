@@ -18,15 +18,29 @@ using OpenTracing;
 
 namespace Couchbase
 {
+    /// <summary>
+    /// Options controlling the connection to the Couchbase cluster.
+    /// </summary>
     public sealed class ClusterOptions
     {
         internal ConnectionString? ConnectionStringValue { get; set; }
 
+        /// <summary>
+        /// The connection string for the cluster.
+        /// </summary>
         public string? ConnectionString
         {
             get => ConnectionStringValue?.ToString();
             set => ConnectionStringValue = value != null ? Couchbase.ConnectionString.Parse(value) : null;
         }
+
+        /// <summary>
+        /// Set the connection string for the cluster.
+        /// </summary>
+        /// <param name="connectionString">The connection string.</param>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
         public ClusterOptions WithConnectionString(string connectionString)
         {
             ConnectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
@@ -34,7 +48,18 @@ namespace Couchbase
             return this;
         }
 
+        /// <summary>
+        /// The buckets to be used in the cluster.
+        /// </summary>
         public IList<string> Buckets { get; set; } = new List<string>();
+
+        /// <summary>
+        /// Set the buckets to be used in the cluster.
+        /// </summary>
+        /// <param name="bucketNames">The names of the buckets.</param>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
         public ClusterOptions WithBuckets(params string[] bucketNames)
         {
             if (!bucketNames?.Any() ?? true)
@@ -47,7 +72,15 @@ namespace Couchbase
             return this;
         }
 
-        public ClusterOptions Credentials(string username, string password)
+        /// <summary>
+        /// Set credentials used for authentication.
+        /// </summary>
+        /// <param name="username">The username.</param>
+        /// <param name="password">The password.</param>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
+        public ClusterOptions WithCredentials(string username, string password)
         {
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -64,7 +97,18 @@ namespace Couchbase
             return this;
         }
 
+        /// <summary>
+        /// The <see cref="ILoggerFactory"/> to use for logging.
+        /// </summary>
         public ILoggerFactory? Logging { get; set; }
+
+        /// <summary>
+        /// Set the <see cref="ILoggerFactory"/> to use for logging.
+        /// </summary>
+        /// <param name="loggerFactory">The logger factory.</param>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
         public ClusterOptions WithLogging(ILoggerFactory? loggerFactory = null)
         {
             Logging = loggerFactory;
@@ -81,7 +125,9 @@ namespace Couchbase
         /// Provide a custom <see cref="ITypeSerializer"/>.
         /// </summary>
         /// <param name="serializer">Serializer to use.</param>
-        /// <returns><see cref="ClusterOptions"/>.</returns>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
         public ClusterOptions WithSerializer(ITypeSerializer serializer)
         {
             Serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
@@ -98,7 +144,9 @@ namespace Couchbase
         /// Provide a custom <see cref="ITypeTranscoder"/>.
         /// </summary>
         /// <param name="transcoder">Transcoder to use.</param>
-        /// <returns><see cref="ClusterOptions"/>.</returns>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
         public ClusterOptions WithTranscoder(ITypeTranscoder transcoder)
         {
             Transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
@@ -115,7 +163,9 @@ namespace Couchbase
         /// Provide a custom <see cref="IDnsResolver"/> for DNS SRV resolution.
         /// </summary>
         /// <param name="dnsResolver">DNS resolver to use.</param>
-        /// <returns><see cref="ClusterOptions"/>.</returns>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
         public ClusterOptions WithDnsResolver(IDnsResolver dnsResolver)
         {
             DnsResolver = dnsResolver ?? throw new ArgumentNullException(nameof(dnsResolver));

@@ -16,7 +16,7 @@ namespace Couchbase.Query
         /// </summary>
         /// <remarks>
         /// In most cases, the rows may be enumerated only once. If it's necessary to enumerate more than
-        /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
+        /// once, use <see cref="System.Linq.AsyncEnumerable.ToListAsync{T}(IAsyncEnumerable{T}, System.Threading.CancellationToken)"/> to convert to a list.
         /// ToListAsync can also be used to enumerate with a synchronous foreach loop in C# 7.
         /// </remarks>
         IAsyncEnumerable<T> Rows { get; }

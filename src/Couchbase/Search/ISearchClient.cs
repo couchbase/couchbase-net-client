@@ -18,7 +18,7 @@ namespace Couchbase.Search
         DateTime? LastActivity { get; }
 
         /// <summary>
-        /// Executes a <see cref="ISearchQuery"/> request including any <see cref="ISearchOptions"/> parameters asynchronously.
+        /// Executes a <see cref="ISearchQuery"/> request including any <see cref="SearchOptions"/> parameters asynchronously.
         /// </summary>
         /// <returns></returns>
         Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default);

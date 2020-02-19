@@ -91,6 +91,8 @@ namespace Couchbase.Core.IO.Authentication
         /// Gets the salted password using <see cref="Rfc2898DeriveBytes"/> - SHA1 only!
         /// </summary>
         /// <param name="password">The password.</param>
+        /// <param name="salt">The salt.</param>
+        /// <param name="iterationCount">Number of times to iterate.</param>
         /// <returns></returns>
         internal byte[] GetSaltedPassword(string password, byte[] salt, int iterationCount)
         {
