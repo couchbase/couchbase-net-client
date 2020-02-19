@@ -8,67 +8,90 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Utils;
 
+#nullable enable
+
 namespace Couchbase.Core.IO
 {
-     /// <summary>
+    /// <summary>
     /// Represents an asynchronous Memcached request in flight.
     /// </summary>
-    internal class AsyncState : IState
+    internal class AsyncState
     {
-        private readonly TaskCompletionSource<bool> _tcs = new TaskCompletionSource<bool>();
+        // CompletionTask is rarely used, only to support graceful connection shutdown during pool scaling
+        // So we delay initialization until it is requested.
+        private volatile TaskCompletionSource<bool>? _tcs;
 
-        public IPEndPoint EndPoint { get; set; }
-        public Action<SocketAsyncState> Callback { get; set; }
-        public uint Opaque { get; set; }
-        public Timer Timer;
+        // Used to track the completion state when there is not _tcs, so if it's requested later we can still
+        // mark the task as complete before returning. This also helps with thread sync.
+        private volatile bool _isCompleted;
+
+        public IPEndPoint? EndPoint { get; set; }
+        public Action<IMemoryOwner<byte>, ResponseStatus> Callback { get; set; }
+        public uint Opaque { get; }
+        public Timer? Timer { get; set; }
         public ulong ConnectionId { get; set; }
-        public ErrorMap ErrorMap { get; set; }
-        public string LocalEndpoint { get; set; }
+        public ErrorMap? ErrorMap { get; set; }
+        public string? LocalEndpoint { get; set; }
 
-        public Task CompletionTask => _tcs.Task;
+        public Task CompletionTask
+        {
+            get
+            {
+                if (_tcs != null)
+                {
+                    return _tcs.Task;
+                }
+
+                // This may create an extra TCS if two callers hit CompletionTask at the same time
+                // But that's unlikely so worth keeping the cost low with Interlocked.CompareExchange
+                var newTcs = new TaskCompletionSource<bool>();
+                Interlocked.CompareExchange(ref _tcs, newTcs, null);
+
+                if (_isCompleted)
+                {
+                    // Just in case we were completing at the same time we were creating the _tcs
+                    _tcs.TrySetResult(true);
+                }
+
+                return _tcs.Task;
+            }
+        }
+
+        public AsyncState(Action<IMemoryOwner<byte>, ResponseStatus> callback, uint opaque)
+        {
+            Callback = callback ?? throw new ArgumentNullException(nameof(callback));
+            Opaque = opaque;
+        }
 
         /// <summary>
         /// Cancels the current Memcached request that is in-flight.
         /// </summary>
-        public void Cancel(ResponseStatus status, Exception e = null)
+        public void Cancel(ResponseStatus status)
         {
             Timer?.Dispose();
+            Timer = null;
 
             var response = MemoryPool<byte>.Shared.RentAndSlice(24);
             ByteConverter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
 
-            var state = new SocketAsyncState
-            {
-                Opaque = Opaque,
-                // ReSharper disable once MergeConditionalExpression
-                Exception = e,
-                Status = status,
-                EndPoint = EndPoint,
-                ConnectionId = ConnectionId,
-                LocalEndpoint = LocalEndpoint
-            };
+            Callback(response, status);
 
-            state.SetData(response);
-
-            Callback(state);
-
-            _tcs.TrySetCanceled();
+            _isCompleted = true;
+            _tcs?.TrySetCanceled();
         }
 
-        /// <inheritdoc />
-        public void Complete(IMemoryOwner<byte> response)
+        public void Complete(IMemoryOwner<byte>? response)
         {
             Timer?.Dispose();
+            Timer = null;
 
             ResponseStatus status;
-            Exception e = null;
 
             if (response == null)
             {
                 //this means the request never completed - assume a transport failure
                 response = MemoryPool<byte>.Shared.RentAndSlice(24);
                 ByteConverter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
-                e = new NetworkErrorException("The socket connection was closed.");
                 status = ResponseStatus.TransportFailure;
             }
             else
@@ -77,27 +100,16 @@ namespace Couchbase.Core.IO
                 status = (ResponseStatus) ByteConverter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status));
             }
 
-            var state = new SocketAsyncState
-            {
-                Opaque = Opaque,
-                Exception = e,
-                Status = status,
-                EndPoint = EndPoint,
-                ConnectionId = ConnectionId,
-                LocalEndpoint = LocalEndpoint
-            };
+            Callback(response, status);
 
-            state.SetData(response);
-
-            //somewhat of hack for backwards compatibility
-            Task.Factory.StartNew(stateObj => Callback((SocketAsyncState) stateObj), state);
-
-            _tcs.TrySetResult(true);
+            _isCompleted = true;
+            _tcs?.TrySetResult(true);
         }
 
         public void Dispose()
         {
             Timer?.Dispose();
+            Timer = null;
         }
     }
 }

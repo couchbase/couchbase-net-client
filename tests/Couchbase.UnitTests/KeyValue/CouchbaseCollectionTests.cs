@@ -196,10 +196,7 @@ namespace Couchbase.UnitTests.KeyValue
 
                 if (_statuses.TryDequeue(out ResponseStatus status))
                 {
-                    (op as OperationBase)?.HandleOperationCompleted(new SocketAsyncState
-                    {
-                        Status = status
-                    });
+                    (op as OperationBase)?.HandleOperationCompleted(null, status);
                 }
                 else
                 {

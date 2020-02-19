@@ -2,11 +2,9 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
@@ -22,7 +20,7 @@ namespace Couchbase.Core.IO.Connections
     {
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
-        private readonly ConcurrentDictionary<uint, IState> _statesInFlight;
+        private readonly InFlightOperationSet _statesInFlight = new InFlightOperationSet();
         private byte[] _receiveBuffer;
         private int _receiveBufferLength;
         private readonly object _syncObj = new object();
@@ -45,8 +43,6 @@ namespace Couchbase.Core.IO.Connections
             LocalEndPoint = localEndPoint ?? throw new ArgumentNullException(nameof(localEndPoint));
             EndPoint = remoteEndPoint ?? throw new ArgumentNullException(nameof(remoteEndPoint));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            _statesInFlight = new ConcurrentDictionary<uint, IState>();
 
             //allocate a buffer
             _receiveBuffer = new byte[1024 * 16];
@@ -79,7 +75,7 @@ namespace Couchbase.Core.IO.Connections
         public bool IsDead { get; set; }
 
         /// <inheritdoc />
-        public async Task SendAsync(ReadOnlyMemory<byte> request, Action<SocketAsyncState> callback, ErrorMap? errorMap = null)
+        public async Task SendAsync(ReadOnlyMemory<byte> request, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap? errorMap = null)
         {
             if (_disposed)
             {
@@ -87,24 +83,15 @@ namespace Couchbase.Core.IO.Connections
             }
 
             var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
-            var state = new AsyncState
+            var state = new AsyncState(callback, opaque)
             {
-                Opaque = opaque,
-                Callback = callback,
                 EndPoint = (IPEndPoint)EndPoint,
                 ConnectionId = ConnectionId,
                 ErrorMap = errorMap,
                 LocalEndpoint = LocalEndPoint.ToString()
             };
 
-            _statesInFlight.TryAdd(state.Opaque, state);
-
-            state.Timer = new Timer(o =>
-            {
-                AsyncState a = (AsyncState)o;
-                _statesInFlight.TryRemove(a.Opaque, out _);
-                a.Cancel(ResponseStatus.OperationTimeout, new TimeoutException());
-            }, state, 75000, Timeout.Infinite);
+            _statesInFlight.Add(state, 75000);
 
             await _writeMutex.GetLockAsync().ConfigureAwait(false);
             try
@@ -188,7 +175,7 @@ namespace Couchbase.Core.IO.Connections
 
         /// <summary>
         /// Parses the received data checking the buffer to see if a completed response has arrived.
-        ///  If it has, the request is completed and the <see cref="IState"/> is removed from the pending queue.
+        /// If it has, the request is completed and the <see cref="AsyncState"/> is removed from the pending queue.
         /// </summary>
         internal void ParseReceivedData()
         {
@@ -285,32 +272,21 @@ namespace Couchbase.Core.IO.Connections
                     _stream?.Dispose();
                 }
 
-                // free up all states in flight
-                lock (_statesInFlight)
-                {
-                    foreach (var state in _statesInFlight.Values)
-                    {
-                        state.Complete(null);
-                        state.Dispose();
-                    }
-                }
+                _statesInFlight.Dispose();
             }
         }
 
         /// <inheritdoc />
         public async ValueTask CloseAsync(TimeSpan timeout)
         {
-            if (_statesInFlight.Count == 0)
+            try
             {
-                // Short circuit if nothing's in flight
-                Close();
-                return;
+                await _statesInFlight.WaitForAllOperationsAsync(timeout);
             }
-
-            var allStatesTask = Task.WhenAll(
-                _statesInFlight.Select(p => p.Value.CompletionTask));
-
-            await Task.WhenAny(allStatesTask, Task.Delay(timeout)).ConfigureAwait(false);
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error waiting for all operations to gracefully complete before connection close.");
+            }
 
             Close();
         }

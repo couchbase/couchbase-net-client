@@ -1,9 +1,11 @@
 using System;
+using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 
 namespace Couchbase.LoadTests.Helpers
@@ -26,7 +28,7 @@ namespace Couchbase.LoadTests.Helpers
         public bool IsDead { get; set; }
         public TimeSpan IdleTime { get; set; }
 
-        public Task SendAsync(ReadOnlyMemory<byte> buffer, Action<SocketAsyncState> callback, ErrorMap errorMap = null)
+        public Task SendAsync(ReadOnlyMemory<byte> buffer, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap errorMap = null)
         {
             return Task.CompletedTask;
         }

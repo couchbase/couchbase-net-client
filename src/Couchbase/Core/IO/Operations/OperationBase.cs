@@ -477,24 +477,29 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Internal for testing purposes only, do not use in SDK.
         /// </summary>
-        internal void HandleOperationCompleted(SocketAsyncState state)
+        internal void HandleOperationCompleted(IMemoryOwner<byte> data, ResponseStatus status)
         {
             try
             {
-                if (state.Status == ResponseStatus.Success || state.Status ==
-                                                           ResponseStatus.VBucketBelongsToAnotherServer
-                                                           || state.Status == ResponseStatus.AuthenticationContinue)
+                if (data != null && (status == ResponseStatus.Success
+                                     || status == ResponseStatus.VBucketBelongsToAnotherServer
+                                     || status == ResponseStatus.AuthenticationContinue))
                 {
-                    Read(state.ExtractData());
+                    Read(data);
 
-                    _completed.TrySetResult(state.Status);
+                    _completed.TrySetResult(status);
+                }
+                else
+                {
+                    data?.Dispose();
                 }
 
-                _completed.TrySetResult(state.Status);
+                _completed.TrySetResult(status);
             }
             catch (Exception ex)
             {
                 _completed.TrySetException(ex);
+                data?.Dispose();
             }
         }
 
