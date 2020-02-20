@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using Couchbase.Core.IO.Serializers;
@@ -27,7 +28,7 @@ namespace Couchbase.Query
         private QueryProfile _profile = QueryProfile.Off;
         private bool? _readOnly;
         private int? _scanCapacity;
-        private QueryScanConsistency? _scanConsistency;
+        private QueryScanConsistencyInternal? _scanConsistency;
         private Dictionary<string, Dictionary<string, List<object>>>? _scanVectors;
         private TimeSpan? _scanWait;
         private string? _statement;
@@ -104,13 +105,13 @@ namespace Couchbase.Query
         /// <summary>
         ///     Provides a means of ensuring "read your own writes" or RYOW consistency on the current query.
         /// </summary>
-        /// <remarks>Note: <see cref="ScanConsistency" /> will be overwritten to <see cref="QueryScanConsistency.AtPlus" />.</remarks>
+        /// <remarks>Note: <see cref="ScanConsistency" /> will be overwritten to <see cref="QueryScanConsistencyInternal.AtPlus" />.</remarks>
         /// <param name="mutationState">State of the mutation.</param>
         /// <returns>A reference to the current <see cref="QueryOptions" /> for method chaining.</returns>
         public QueryOptions ConsistentWith(MutationState mutationState)
         {
 #pragma warning disable 618
-            ScanConsistency(QueryScanConsistency.AtPlus);
+            ScanConsistencyInternal(QueryScanConsistencyInternal.AtPlus);
 #pragma warning restore 618
             _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
             foreach (var token in mutationState)
@@ -351,17 +352,30 @@ namespace Couchbase.Query
         /// <returns>
         ///     A reference to the current <see cref="QueryOptions" /> for method chaining.
         /// </returns>
-        /// <exception cref="NotSupportedException">StatementPlus are not currently supported by CouchbaseServer.</exception>
         /// <remarks>
         ///     Optional.
         /// </remarks>
-        public QueryOptions ScanConsistency(QueryScanConsistency scanConsistency)
+        public QueryOptions ScanConsistency(QueryScanConsistency scanConsistency) =>
+            ScanConsistencyInternal((QueryScanConsistencyInternal) scanConsistency);
+
+        /// <summary>
+        ///     Specifies the consistency guarantee/constraint for index scanning.
+        /// </summary>
+        /// <param name="scanConsistency">Specify the consistency guarantee/constraint for index scanning.</param>
+        /// <returns>
+        ///     A reference to the current <see cref="QueryOptions" /> for method chaining.
+        /// </returns>
+        /// <exception cref="InvalidEnumArgumentException">Invalid <paramref name="scanConsistency"/>.</exception>
+        /// <remarks>
+        ///     Used internally to allow <see cref="ConsistentWith"/> to set the consistency to <see cref="QueryScanConsistencyInternal.AtPlus"/>.
+        /// </remarks>
+        internal QueryOptions ScanConsistencyInternal(QueryScanConsistencyInternal scanConsistency)
         {
-#pragma warning disable 618
-            if (scanConsistency == QueryScanConsistency.StatementPlus)
-#pragma warning restore 618
-                throw new NotSupportedException(
-                    "AtPlus and StatementPlus are not currently supported by CouchbaseServer.");
+            if (scanConsistency < QueryScanConsistencyInternal.NotBounded ||
+                scanConsistency > QueryScanConsistencyInternal.AtPlus)
+            {
+                throw new InvalidEnumArgumentException(nameof(scanConsistency), (int) scanConsistency, typeof(QueryScanConsistencyInternal));
+            }
 
             _scanConsistency = scanConsistency;
             return this;
@@ -556,7 +570,7 @@ namespace Couchbase.Query
             if (_scanVectors != null)
             {
 #pragma warning disable 618
-                if (_scanConsistency != QueryScanConsistency.AtPlus)
+                if (_scanConsistency != QueryScanConsistencyInternal.AtPlus)
 #pragma warning restore 618
                     throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");
 

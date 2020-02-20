@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 
 namespace Couchbase.Query
 {
@@ -15,7 +14,6 @@ namespace Couchbase.Query
         /// the index or the view. This consistency level is useful for queries that favor
         /// low latency and do not need precise and most up-to-date information.
         /// </summary>
-        [Description("not_bounded")]
         NotBounded,
 
         /// <summary>
@@ -23,22 +21,7 @@ namespace Couchbase.Query
         /// latencies than the other levels. This consistency level requires all mutations, up
         /// to the moment of the query request, to be processed before the query execution can start.
         /// </summary>
-        [Description("request_plus")]
-        RequestPlus,
-
-        /// <summary>
-        /// Not supported; do not use.
-        /// </summary>
-        [Obsolete("Do not use.")]
-        [Description("statement_plus")]
-        StatementPlus,
-
-        /// <summary>
-        /// Do not use; for RYOW use <see cref="QueryOptions.ConsistentWith"/> and do not specify a <see cref="QueryScanConsistency"/>.
-        /// </summary>
-        [Obsolete("Do not use; for RYOW use QueryOptions.ConsistentWith and do not specify a ScanConsistency.")]
-        [Description("at_plus")]
-        AtPlus
+        RequestPlus
     }
 }
 
