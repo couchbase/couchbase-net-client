@@ -17,6 +17,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 
 #nullable enable
@@ -25,6 +26,7 @@ namespace Couchbase.Core
 {
     internal abstract class BucketBase : IBucket, IConfigUpdateEventSink, IBootstrappable
     {
+        private ClusterState _clusterState;
         private readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
 
@@ -63,6 +65,8 @@ namespace Couchbase.Core
 
         public string Name { get; protected set; }
 
+        #region Scopes
+
         public abstract IScope this[string scopeName] { get; }
 
         public virtual IScope Scope(string scopeName)
@@ -85,6 +89,12 @@ namespace Couchbase.Core
             return Scope(KeyValue.Scope.DefaultScopeName);
         }
 
+        #endregion
+
+        #region Collections
+
+        public abstract ICouchbaseCollectionManager Collections { get; }
+
         /// <remarks>Volatile</remarks>
         public ICouchbaseCollection Collection(string collectionName)
         {
@@ -97,26 +107,19 @@ namespace Couchbase.Core
             return Collection(CouchbaseCollection.DefaultCollectionName);
         }
 
+        #endregion
+
+        #region Views
+
         /// <inheritdoc />
         public abstract Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName,
             ViewOptions? options = default);
 
         public abstract IViewIndexManager ViewIndexes { get; }
 
-        public abstract ICouchbaseCollectionManager Collections { get; }
+        #endregion
 
-        public async Task<IPingReport> PingAsync(PingOptions? options = null)
-        {
-            ThrowIfBootStrapFailed();
-
-            options ??= new PingOptions();
-            return await DiagnosticsReportProvider.CreatePingReportAsync(Context, BucketConfig, options)
-                .ConfigureAwait(false);
-        }
-
-        internal abstract Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null);
-
-        internal abstract Task BootstrapAsync(IClusterNode node);
+        #region Config & Manifest
 
         public abstract Task ConfigUpdatedAsync(BucketConfig config);
 
@@ -141,11 +144,106 @@ namespace Couchbase.Core
             }
         }
 
+        #endregion
+
+        #region Send and Retry
+
+        internal abstract Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null);
+
         public virtual Task RetryAsync(IOperation operation, CancellationToken token = default, TimeSpan? timeout = null) =>
             RetryOrchestrator.RetryAsync(this, operation, token, timeout);
 
+        #endregion
 
-#region Bootstrap Error Handling and Propagation
+        #region Diagnostics
+
+        public async Task<IPingReport> PingAsync(PingOptions? options = null)
+        {
+            ThrowIfBootStrapFailed();
+
+            options ??= new PingOptions();
+            return await DiagnosticsReportProvider.CreatePingReportAsync(Context, BucketConfig, options)
+                .ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Waits until bootstrapping has completed and all services have been initialized.
+        /// </summary>
+        /// <param name="timeout">The amount of time to wait for the desired <see cref="ClusterState"/>.</param>
+        /// <param name="options">The optional arguments.</param>
+        public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
+        {
+            if (options?.DesiredStateValue == ClusterState.Offline)
+                throw new ArgumentException(nameof(options.DesiredStateValue));
+
+            var token = options?.CancellationTokenValue ?? new CancellationToken();
+            CancellationTokenSource? tokenSource = null;
+            if (token == CancellationToken.None)
+            {
+                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+                tokenSource.CancelAfter(timeout);
+                token = tokenSource.Token;
+            }
+
+            try
+            {
+                token.ThrowIfCancellationRequested();
+                while (!token.IsCancellationRequested)
+                {
+                    var pingReport =
+                        await DiagnosticsReportProvider.CreatePingReportAsync(Context, BucketConfig,
+                            new PingOptions
+                            {
+                                ServiceTypesValue = options?.ServiceTypesValue
+                            }).ConfigureAwait(false);
+
+                    var status = new Dictionary<string, bool>();
+                    foreach (var service in pingReport.Services)
+                    {
+                        var failures = service.Value.Any(x => x.State != ServiceState.Ok);
+                        if (failures)
+                        {
+                            //mark a service as failed
+                            status.Add(service.Key, failures);
+                        }
+                    }
+
+                    //everything is up
+                    if (status.Count == 0)
+                    {
+                        _clusterState = ClusterState.Online;
+                        return;
+                    }
+
+                    //determine if completely offline or degraded
+                    _clusterState = status.Count == pingReport.Services.Count ? ClusterState.Offline : ClusterState.Degraded;
+                    if (_clusterState == options?.DesiredStateValue)
+                    {
+                        return;
+                    }
+
+                    await Task.Delay(100, token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException e)
+            {
+                throw new UnambiguousTimeoutException($"Timed out after {timeout}.", e);
+            }
+            catch (Exception e)
+            {
+                throw new CouchbaseException("An error has occurred, see the inner exception for details.", e);
+            }
+            finally
+            {
+                tokenSource?.Dispose();
+            }
+        }
+
+        #endregion
+
+        #region Bootstrap Error Handling and Propagation
+
+        internal abstract Task BootstrapAsync(IClusterNode node);
 
         internal void CaptureException(Exception e)
         {

@@ -30,7 +30,7 @@ namespace Couchbase.Core.IO.Connections
         bool IsSecure { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the underlying socket is connected to the remopte host.
+        /// Gets a value indicating whether the underlying socket is connected to the remote host.
         /// </summary>
         /// <value>
         /// <c>true</c> if this socket is connected; otherwise, <c>false</c>.

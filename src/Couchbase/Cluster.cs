@@ -40,6 +40,7 @@ namespace Couchbase
         private readonly IRedactor _redactor;
         private readonly IBootstrapper _bootstrapper;
         private readonly List<Exception> _deferredExceptions = new List<Exception>();
+        private volatile ClusterState _clusterState;
 
         // Internal is used to provide a seam for unit tests
         internal Lazy<IQueryClient> LazyQueryClient;
@@ -62,7 +63,7 @@ namespace Couchbase
             }
 
             var configTokenSource = new CancellationTokenSource();
-            _context = new ClusterContext(configTokenSource, clusterOptions);
+            _context = new ClusterContext(this, configTokenSource, clusterOptions);
             _context.StartConfigListening();
 
             LazyQueryClient = new Lazy<IQueryClient>(() => _context.ServiceProvider.GetRequiredService<IQueryClient>());
@@ -80,6 +81,8 @@ namespace Couchbase
             var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
         }
+
+        #region Connect
 
         public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
         {
@@ -101,6 +104,7 @@ namespace Couchbase
             {
                 throw new ArgumentNullException(nameof(options));
             }
+
             if (options.ConnectionString == null)
             {
                 throw new ArgumentException($"{nameof(options)} must have a connection string.",
@@ -112,17 +116,15 @@ namespace Couchbase
             //resubmit the cluster level request.
             var cluster = new Cluster(options);
 
-            //TODO temp to ensure this works without requiring a wait method
             await ((IBootstrappable) cluster).BootStrapAsync().ConfigureAwait(false);
             cluster.StartBootstrapper();
 
            return cluster;
         }
 
-        internal void StartBootstrapper()
-        {
-            _bootstrapper.Start(this);
-        }
+        #endregion
+
+        #region Bucket
 
         public async Task<IBucket> BucketAsync(string name)
         {
@@ -141,6 +143,10 @@ namespace Couchbase
             throw new AggregateException(message, cluster.DeferredExceptions);
         }
 
+        #endregion
+
+        #region Diagnostics
+
         /// <inheritdoc />
         public async Task<IDiagnosticsReport> DiagnosticsAsync(DiagnosticsOptions? options = null)
         {
@@ -149,42 +155,90 @@ namespace Couchbase
                 .ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// Seam for unit tests and for supporting non-GC3P servers (prior to v6.5).
-        /// </summary>
-        protected internal virtual async Task EnsureBootstrapped()
+        public async Task<IPingReport> PingAsync(PingOptions? options = null)
         {
-            if (_hasBootStrapped)
+            options ??= new PingOptions();
+
+            return await DiagnosticsReportProvider.
+               CreatePingReportAsync(_context, _context.GlobalConfig, options).
+               ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Waits until bootstrapping has completed and all services have been initialized.
+        /// </summary>
+        /// <param name="timeout">The amount of time to wait for the desired <see cref="ClusterState"/>.</param>
+        /// <param name="options">The optional arguments.</param>
+        public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
+        {
+            options ??= new WaitUntilReadyOptions();
+            if(options.DesiredStateValue == ClusterState.Offline)
+                throw new ArgumentException(nameof(options.DesiredStateValue));
+
+            var token = options.CancellationTokenValue;
+            CancellationTokenSource? tokenSource = null;
+            if (token == CancellationToken.None)
             {
-                return;
+                tokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+                tokenSource.CancelAfter(timeout);
+                token = tokenSource.Token;
             }
 
-            // if no buckets registered in cluster, throw exception
-            if (!_context.ClusterOptions.Buckets.Any())
-            {
-                throw new CouchbaseException("Unable to bootstrap - please open a bucket or add a bucket name to the clusterOptions.");
-            }
-
-            await _bootstrapLock.WaitAsync().ConfigureAwait(false);
             try
             {
-                // check again to make sure we still need to bootstrap
-                if (_hasBootStrapped)
+                token.ThrowIfCancellationRequested();
+                while (!token.IsCancellationRequested)
                 {
-                    return;
-                }
+                    var pingReport =
+                        await DiagnosticsReportProvider.CreatePingReportAsync(_context, _context.GlobalConfig,
+                            new PingOptions
+                            {
+                                ServiceTypesValue = options.ServiceTypesValue
+                            }).ConfigureAwait(false);
 
-                // try to bootstrap first bucket in cluster; we need this because pre-6.5 servers do not support GC3P so we need to open a bucket
-                var bucketName = _context.ClusterOptions.Buckets.FirstOrDefault();
-                _logger.LogDebug("Attempting to bootstrap bucket {bucketname}", _redactor.MetaData(bucketName));
-                await BucketAsync(bucketName).ConfigureAwait(false);
-                UpdateClusterCapabilities();
+                    var status = new Dictionary<string, bool>();
+                    foreach (var service in pingReport.Services)
+                    {
+                        var failures = service.Value.Any(x => x.State != ServiceState.Ok);
+                        if (failures)
+                        {
+                            //mark a service as failed
+                            status.Add(service.Key, failures);
+                        }
+                    }
+
+                    //everything is up
+                    if (status.Count == 0)
+                    {
+                        _clusterState = ClusterState.Online;
+                        return;
+                    }
+
+                    //determine if completely offline or degraded
+                    _clusterState = status.Count == pingReport.Services.Count ? ClusterState.Offline : ClusterState.Degraded;
+                    if(_clusterState == options.DesiredStateValue)
+                    {
+                        return;
+                    }
+
+                    await Task.Delay(100, token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException e)
+            {
+                throw new UnambiguousTimeoutException($"Timed out after {timeout}.", e);
+            }
+            catch (Exception e)
+            {
+                throw new CouchbaseException("An error has occurred, see the inner exception for details.", e);
             }
             finally
             {
-                _bootstrapLock.Release(1);
+                tokenSource?.Dispose();
             }
         }
+
+        #endregion
 
         #region Query
 
@@ -274,6 +328,8 @@ namespace Couchbase
 
         #endregion
 
+        #region Management
+
         /// <inheritdoc />
         public IQueryIndexManager QueryIndexes => LazyQueryManager.Value;
 
@@ -289,18 +345,9 @@ namespace Couchbase
         /// <inheritdoc />
         public IUserManager Users => LazyUserManager.Value;
 
-        /// <inheritdoc />
-        public void Dispose()
-        {
-            if (_disposed) return;
-            lock (_syncObject)
-            {
-                if(_disposed) return;
-                _disposed = true;
-                _bootstrapper?.Dispose();
-                _context.Dispose();
-            }
-        }
+        #endregion
+
+        #region Misc
 
         internal void UpdateClusterCapabilities()
         {
@@ -311,6 +358,15 @@ namespace Couchbase
                     client.UpdateClusterCapabilities(_context.GlobalConfig.GetClusterCapabilities());
                 }
             }
+        }
+
+        #endregion
+
+        #region Bootstrapping error handling and propagation
+
+        internal void StartBootstrapper()
+        {
+            _bootstrapper.Start(this);
         }
 
         async Task IBootstrappable.BootStrapAsync()
@@ -338,8 +394,6 @@ namespace Couchbase
             }
         }
 
-#region Bootstrapping error handling and propagation
-
         bool IBootstrappable.IsBootstrapped => !_deferredExceptions.Any();
 
         List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
@@ -355,7 +409,60 @@ namespace Couchbase
             }
         }
 
-#endregion
+        /// <summary>
+        /// Seam for unit tests and for supporting non-GC3P servers (prior to v6.5).
+        /// </summary>
+        protected internal virtual async Task EnsureBootstrapped()
+        {
+            if (_hasBootStrapped)
+            {
+                return;
+            }
 
+            // if no buckets registered in cluster, throw exception
+            if (!_context.ClusterOptions.Buckets.Any())
+            {
+                throw new CouchbaseException("Unable to bootstrap - please open a bucket or add a bucket name to the clusterOptions.");
+            }
+
+            await _bootstrapLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                // check again to make sure we still need to bootstrap
+                if (_hasBootStrapped)
+                {
+                    return;
+                }
+
+                // try to bootstrap first bucket in cluster; we need this because pre-6.5 servers do not support GC3P so we need to open a bucket
+                var bucketName = _context.ClusterOptions.Buckets.FirstOrDefault();
+                _logger.LogDebug("Attempting to bootstrap bucket {bucketname}", _redactor.MetaData(bucketName));
+                await BucketAsync(bucketName).ConfigureAwait(false);
+                UpdateClusterCapabilities();
+            }
+            finally
+            {
+                _bootstrapLock.Release(1);
+            }
+        }
+
+        #endregion
+
+        #region Dispose
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (_disposed) return;
+            lock (_syncObject)
+            {
+                if (_disposed) return;
+                _disposed = true;
+                _bootstrapper?.Dispose();
+                _context.Dispose();
+            }
+        }
+
+        #endregion
     }
 }

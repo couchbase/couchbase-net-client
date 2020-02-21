@@ -4,7 +4,7 @@ namespace Couchbase.Diagnostics
 {
     public class DiagnosticsOptions
     {
-        public string? ReportIdValue { get; set; }
+        internal string? ReportIdValue { get; set; }
 
         public DiagnosticsOptions ReportId(string reportId)
         {

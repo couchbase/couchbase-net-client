@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Xunit;
@@ -68,6 +69,13 @@ namespace Couchbase.IntegrationTests
             await foreach (var result in results)
             {
             }
+        }
+
+        [Fact]
+        public async Task Test_WaitUntilReadyAsync()
+        {
+            var cluster = _fixture.Cluster;
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
         }
     }
 }

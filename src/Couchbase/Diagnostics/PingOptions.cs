@@ -7,7 +7,14 @@ namespace Couchbase.Diagnostics
     {
         internal string ReportIdValue { get; set; }
 
-        internal IList<ServiceType> ServiceTypesValue { get; set; } = new List<ServiceType>();
+        internal IList<ServiceType> ServiceTypesValue { get; set; } = new List<ServiceType>
+        {
+            ServiceType.Analytics,
+            ServiceType.KeyValue,
+            ServiceType.Query,
+            ServiceType.Search,
+            ServiceType.Views
+        };
 
         internal CancellationToken Token { get; set; } = System.Threading.CancellationToken.None;
 

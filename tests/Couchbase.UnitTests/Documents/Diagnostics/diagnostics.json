@@ -1,0 +1,93 @@
+{
+  "id": "be836d8d-a8fa-46c3-8bde-8f8f4d998cef",
+  "version": 1,
+  "sdk": "couchbase-net-sdk/3.0.0.0 (clr/.NET Core 4.6.28325.01) (os/Microsoft Windows 10.0.17763 )",
+  "services": {
+    "kv": [
+      {
+        "id": "1",
+        "state": "authenticating",
+        "local": "10.143.194.1:64428",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 674291,
+        "scope": "default"
+      },
+      {
+        "id": "2",
+        "state": "authenticating",
+        "local": "10.143.194.1:64427",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 680100,
+        "scope": "default"
+      },
+      {
+        "id": "4",
+        "state": "authenticating",
+        "local": "10.143.194.1:64430",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 93473
+      },
+      {
+        "id": "3",
+        "state": "authenticating",
+        "local": "10.143.194.1:64429",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 1993966
+      },
+      {
+        "id": "6",
+        "state": "authenticating",
+        "local": "10.143.194.1:64432",
+        "remote": "10.143.194.102:11210",
+        "last_activity_us": 734076,
+        "scope": "default"
+      },
+      {
+        "id": "5",
+        "state": "authenticating",
+        "local": "10.143.194.1:64431",
+        "remote": "10.143.194.102:11210",
+        "last_activity_us": 664695,
+        "scope": "default"
+      }
+    ],
+    "cbas": [
+      {
+        "state": "new",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 0,
+        "scope": "Cluster"
+      }
+    ],
+    "fts": [
+      {
+        "state": "new",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 0,
+        "scope": "Cluster"
+      }
+    ],
+    "view": [
+      {
+        "state": "new",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 0,
+        "scope": "default"
+      },
+      {
+        "state": "new",
+        "remote": "10.143.194.102:11210",
+        "last_activity_us": 0,
+        "scope": "default"
+      }
+    ],
+    "n1ql": [
+      {
+        "state": "new",
+        "remote": "10.143.194.101:11210",
+        "last_activity_us": 0,
+        "scope": "Cluster"
+      }
+    ]
+  }
+}

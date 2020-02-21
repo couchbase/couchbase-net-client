@@ -158,8 +158,14 @@ namespace Couchbase.Core
 
         public IEnumerable<IClusterNode> GetNodes(string bucketName)
         {
-            return Nodes.Where(x => x.Owner != null &&
-                                   x.Owner.Name.Equals(bucketName))
+            //global nodes
+            if (bucketName == null)
+            {
+                return Nodes;
+            }
+
+            //bucket owned nodes
+            return Nodes.Where(x => x.Owner != null && x.Owner.Name.Equals(bucketName))
                 .Select(node => node);
         }
 

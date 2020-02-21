@@ -38,6 +38,23 @@ namespace Couchbase
 
         ICouchbaseCollectionManager Collections { get; }
 
+        #region Diagnostics
+
+        /// <summary>
+        /// Actively performs I/O by application-level pinging services and returning their pinged status.
+        /// </summary>
+        /// <param name="options">Optional arguments.</param>
+        /// <returns></returns>
         Task<IPingReport> PingAsync(PingOptions? options = null);
+
+        /// <summary>
+        /// Waits until a desired cluster state by default (“online”) is reached or times out.
+        /// </summary>
+        /// <param name="timeout">The <see cref="TimeSpan"/> duration to wait before throwing an exception.</param>
+        /// <param name="options">Optional arguments.</param>
+        /// <returns></returns>
+        Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null);
+
+        #endregion
     }
 }

@@ -35,11 +35,6 @@ namespace Couchbase.Diagnostics
 
         internal static async Task<IPingReport> CreatePingReportAsync(ClusterContext context, BucketConfig config, PingOptions options)
         {
-            if (!options.ServiceTypesValue.Any())
-            {
-               options.ServiceTypes(AllServiceTypes);
-            }
-
             var clusterNodes = context.GetNodes(config.Name);
             var endpoints =
                 await GetEndpointDiagnosticsAsync(context, clusterNodes, true, options.ServiceTypesValue,
@@ -70,7 +65,7 @@ namespace Couchbase.Diagnostics
                    foreach (var connection in clusterNode.ConnectionPool.GetConnections())
                    {
                        var endPointDiagnostics =
-                           CreateEndpointHealth(clusterNode.Owner.Name, DateTime.UtcNow, connection);
+                           CreateEndpointHealth(clusterNode.Owner?.Name, DateTime.UtcNow, connection);
 
                        if (ping)
                        {
@@ -206,7 +201,7 @@ namespace Couchbase.Diagnostics
                 await action().ConfigureAwait(false);
                 endpoint.State = ServiceState.Ok;
             }
-            catch
+            catch(Exception)
             {
                 endpoint.State = ServiceState.Error;
             }
