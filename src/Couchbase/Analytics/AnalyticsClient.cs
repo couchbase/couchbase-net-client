@@ -91,35 +91,67 @@ namespace Couchbase.Analytics
                             return result;
                         }
 
-                        if (result.LinkNotFound()) throw new LinkNotFoundException();
-                        if (result.DataverseExists()) throw new DataverseExistsException();
+                        var context = new AnalyticsErrorContext
+                        {
+                            ClientContextId = queryRequest.ClientContextId,
+                            HttpStatus = response.StatusCode,
+                            Statement = queryRequest.Statement,
+                            Parameters = queryRequest.GetParametersAsJson(),
+                            Errors = result.Errors
+                        };
+
+                        if (result.LinkNotFound()) throw new LinkNotFoundException(context);
+                        if (result.DataverseExists()) throw new DataverseExistsException(context);
                         if (result.DatasetExists()) throw new DatasetExistsException();
-                        if (result.DataverseNotFound()) throw new DataverseNotFoundException();
-                        if (result.DataSetNotFound()) throw new DatasetNotFoundException();
-                        if (result.JobQueueFull()) throw new JobQueueFullException();
-                        if (result.CompilationFailure()) throw new CompilationFailureException();
-                        if (result.InternalServerFailure()) throw new InternalServerFailureException();
-                        if (result.AuthenticationFailure()) throw new AuthenticationFailureException();
-                        if (result.TemporaryFailure()) throw new TemporaryFailureException();
-                        if (result.ParsingFailure()) throw new ParsingFailureException();
-                        if (result.IndexNotFound()) throw new IndexNotFoundException();
-                        if (result.IndexExists()) throw new IndexExistsException();
+                        if (result.DataverseNotFound()) throw new DataverseNotFoundException(context);
+                        if (result.DataSetNotFound()) throw new DatasetNotFoundException(context);
+                        if (result.JobQueueFull()) throw new JobQueueFullException(context);
+                        if (result.CompilationFailure()) throw new CompilationFailureException(context);
+                        if (result.InternalServerFailure()) throw new InternalServerFailureException(context);
+                        if (result.AuthenticationFailure()) throw new AuthenticationFailureException(context);
+                        if (result.TemporaryFailure()) throw new TemporaryFailureException(context);
+                        if (result.ParsingFailure()) throw new ParsingFailureException(context);
+                        if (result.IndexNotFound()) throw new IndexNotFoundException(context);
+                        if (result.IndexExists()) throw new IndexExistsException(context);
                     }
                 }
                 catch (OperationCanceledException e)
                 {
+                    var context = new AnalyticsErrorContext
+                    {
+                        ClientContextId = queryRequest.ClientContextId,
+                        Statement = queryRequest.Statement,
+                        Parameters = queryRequest.GetParametersAsJson()
+                    };
+
                     _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request timeout.");
                     if (queryRequest.ReadOnly)
                     {
-                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
+                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
+                        {
+                            Context = context
+                        };
                     }
 
-                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
+                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
+                    {
+                        Context = context
+                    };
                 }
                 catch (HttpRequestException e)
                 {
+                    var context = new AnalyticsErrorContext
+                    {
+                        ClientContextId = queryRequest.ClientContextId,
+                        Statement = queryRequest.Statement,
+                        Parameters = queryRequest.GetParametersAsJson()
+                    };
+
                     _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request cancelled.");
-                    throw new RequestCanceledException("The query was canceled.", e);
+                    throw new RequestCanceledException("The query was canceled.", e)
+                    {
+                        Context = context
+                    };
                 }
             }
 

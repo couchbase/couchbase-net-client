@@ -8,7 +8,7 @@ namespace Couchbase.Core.Exceptions.View
     {
         public string DesignDocumentName { get; internal set; }
 
-        public Dictionary<string, string> Parameters { get; internal set; }
+        public string Parameters { get; internal set; }
 
         public string ViewName { get; internal set; }
 
@@ -17,5 +17,7 @@ namespace Couchbase.Core.Exceptions.View
         public string ClientContextId { get; internal set; }
 
         public string Message { get; internal set; }
+
+        public string Errors { get; internal set; }
     }
 }

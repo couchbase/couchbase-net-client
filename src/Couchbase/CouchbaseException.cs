@@ -1,8 +1,7 @@
 using System;
-using System.Collections;
 using System.Text;
 using Couchbase.Core;
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Couchbase
 {
@@ -22,35 +21,17 @@ namespace Couchbase
 
         public CouchbaseException(string message, Exception innerException) : base(message, innerException) {}
 
-        public override string Message
-        {
-            get
-            {
-                var message = base.Message;
-                if (Data.Count > 0)
-                {
-                    var contextInfo = new JObject();
-                    foreach (DictionaryEntry dictionaryEntry in Data)
-                    {
-                        contextInfo.Add(new JProperty(dictionaryEntry.Key.ToString(), dictionaryEntry.Value));
-                    }
-
-                    var json = contextInfo.ToString();
-                    var sb = new StringBuilder(message.Length + json.Length + 3);
-                    sb.AppendLine(message);
-                    sb.Append(Environment.NewLine);
-                    sb.AppendLine("Context Information");
-                    sb.AppendLine("--------------------");
-                    sb.AppendLine(json);
-                    return sb.ToString();
-                }
-
-                return message;
-            }
-        }
-
         public IErrorContext Context { get; set; }
 
         internal bool IsReadOnly { get; set; }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine(base.ToString());
+            sb.AppendLine("-----------------------Context Info---------------------------");
+            sb.AppendLine(JsonConvert.SerializeObject(Context));
+            return sb.ToString();
+        }
     }
 }

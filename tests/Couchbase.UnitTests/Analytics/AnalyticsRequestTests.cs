@@ -184,5 +184,37 @@ namespace Couchbase.UnitTests.Analytics
             request.Priority(5);
             Assert.Equal(5, request.PriorityValue);
         }
+
+        [Fact]
+        public void Can_fetch_JSON_from_NamedParameters()
+        {
+            var request = new AnalyticsRequest(Statement);
+            request.AddNamedParameter("theykey", "thevalue");
+
+            var json = request.GetParametersAsJson();
+
+            Assert.Equal("{\"theykey\":\"thevalue\"}", json);
+        }
+
+        [Fact]
+        public void Can_fetch_JSON_from_PositionalParameters()
+        {
+            var request = new AnalyticsRequest(Statement);
+            request.AddPositionalParameter("thevalue");
+
+            var json = request.GetParametersAsJson();
+
+            Assert.Equal("[\"thevalue\"]", json);
+        }
+
+        [Fact]
+        public void When_parameters_empty_GetParametersFromJson_returns_empty_object()
+        {
+            var request = new AnalyticsRequest(Statement);
+
+            var json = request.GetParametersAsJson();
+
+            Assert.Equal("{}", json);
+        }
     }
 }

@@ -4,7 +4,7 @@ using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.Exceptions
 {
-    public class UnambiguousTimeoutException : TimeoutException
+    public class UnambiguousTimeoutException : CouchbaseException
     {
         public UnambiguousTimeoutException() { }
 
@@ -29,7 +29,5 @@ namespace Couchbase.Core.Exceptions
 
             throw exception;
         }
-
-        public IErrorContext Context { get; set; }
     }
 }

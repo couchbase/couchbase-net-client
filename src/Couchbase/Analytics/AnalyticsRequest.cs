@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Couchbase.Core;
 using Couchbase.Core.Retry;
 using Newtonsoft.Json;
 
@@ -10,8 +9,6 @@ namespace Couchbase.Analytics
 {
     internal class AnalyticsRequest : IAnalyticsRequest
     {
-        internal Dictionary<string, object> NamedParameters = new Dictionary<string, object>();
-        internal List<object> PositionalArguments = new List<object>();
         private TimeSpan _timeout = TimeSpan.FromMilliseconds(75000);
         private AnalyticsScanConsistency _scanConsistency = AnalyticsScanConsistency.NotBounded;
 
@@ -19,6 +16,10 @@ namespace Couchbase.Analytics
         {
             ClientContextId = Guid.NewGuid().ToString();
         }
+
+        public Dictionary<string, object> NamedParameters { get; set; } = new Dictionary<string, object>();
+
+        public List<object> PositionalArguments { get; set; } = new List<object>();
 
         public AnalyticsRequest(string statement)
         {

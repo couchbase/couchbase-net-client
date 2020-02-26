@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Couchbase.Core.Retry;
+using Newtonsoft.Json;
 
 namespace Couchbase.Core.Exceptions
 {
-    public class AmbiguousTimeoutException : TimeoutException
+    public class AmbiguousTimeoutException : CouchbaseException
     {
         public AmbiguousTimeoutException() { }
 
@@ -29,7 +31,5 @@ namespace Couchbase.Core.Exceptions
 
             throw exception;
         }
-
-        public IErrorContext Context { get; set; }
     }
 }

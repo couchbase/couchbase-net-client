@@ -35,8 +35,7 @@ namespace Couchbase.Views
             httpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
-        /// <inheritdoc />
-        public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQueryable query)
+        public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQuery query)
         {
             var uri = query.RawUri();
             ViewResultBase<TKey, TValue> viewResult;
@@ -101,19 +100,47 @@ namespace Couchbase.Views
 
                     if (viewResult.ViewNotFound())
                     {
-                        throw new ViewNotFoundException(uri.ToString());
+                        throw new ViewNotFoundException(uri.ToString())
+                        {
+                            Context = new ViewContextError
+                            {
+                                DesignDocumentName = query.DesignDocName,
+                                ViewName = query.ViewName,
+                                ClientContextId = query.ClientContextId,
+                                HttpStatus = response.StatusCode,
+                                Errors = viewResult.Message
+                            }
+                        };
                     }
                 }
             }
             catch (OperationCanceledException e)
             {
                 _logger.LogDebug(LoggingEvents.ViewEvent, e, "View request timeout.");
-                throw new AmbiguousTimeoutException("The view query was timed out via the Token.", e);
+                throw new AmbiguousTimeoutException("The view query was timed out via the Token.", e)
+                {
+                    Context = new ViewContextError
+                    {
+                        DesignDocumentName = query.DesignDocName,
+                        ViewName = query.ViewName,
+                        ClientContextId = query.ClientContextId,
+                        HttpStatus = HttpStatusCode.RequestTimeout
+                    }
+                };
             }
             catch (HttpRequestException e)
             {
                 _logger.LogDebug(LoggingEvents.QueryEvent, e, "View request cancelled.");
-                throw new RequestCanceledException("The view query was canceled.", e);
+                throw new RequestCanceledException("The view query was canceled.", e)
+                {
+                    Context = new ViewContextError
+                    {
+                        DesignDocumentName = query.DesignDocName,
+                        ViewName = query.ViewName,
+                        ClientContextId = query.ClientContextId,
+                        HttpStatus = HttpStatusCode.RequestTimeout
+                    }
+                };
             }
 
             UpdateLastActivity();

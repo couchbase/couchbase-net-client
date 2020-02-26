@@ -9,5 +9,9 @@ namespace Couchbase.Core.Exceptions
         public TemporaryFailureException(string message) : base(message) { }
 
         public TemporaryFailureException(string message, Exception innerException) : base(message, innerException) { }
+
+        public TemporaryFailureException(IErrorContext context) : base(context)
+        {
+        }
     }
 }

@@ -72,6 +72,20 @@ namespace Couchbase.Query
             set => _timeOut = value;
         }
 
+        internal string? StatementValue => _statement;
+
+        internal string GetAllParametersAsJson()
+        {
+            var allParameters = new
+            {
+                Named = _parameters,
+                Raw = _rawParameters,
+                Positional = _arguments
+            };
+
+            return JsonConvert.SerializeObject(allParameters);
+        }
+
         /// <summary>
         ///     Returns true if the request is a prepared statement
         /// </summary>

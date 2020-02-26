@@ -161,6 +161,9 @@ namespace Couchbase.Query
                         }
                         var context = new QueryErrorContext
                         {
+                            ClientContextId = options.CurrentContextId,
+                            Parameters = options.GetAllParametersAsJson(),
+                            Statement = options.ToString(),
                             Message = queryResult.Message,
                             Errors = queryResult.Errors,
                             HttpStatus = response.StatusCode,
@@ -187,17 +190,45 @@ namespace Couchbase.Query
                 }
                 catch (OperationCanceledException e)
                 {
+                    var context = new QueryErrorContext
+                    {
+                        ClientContextId = options.CurrentContextId,
+                        Parameters = options.GetAllParametersAsJson(),
+                        Statement = options.ToString(),
+                        HttpStatus = HttpStatusCode.RequestTimeout,
+                        QueryStatus = QueryStatus.Fatal
+                    };
+
                     _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
                     if (options.IsReadOnly)
                     {
-                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e);
+                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
+                        {
+                            Context = context
+                        };
                     }
-                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
+                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
+                    {
+                        Context = context
+                    };
                 }
                 catch (HttpRequestException e)
                 {
                     _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
-                    throw new RequestCanceledException("The query was canceled.", e);
+
+                    var context = new QueryErrorContext
+                    {
+                        ClientContextId = options.CurrentContextId,
+                        Parameters = options.GetAllParametersAsJson(),
+                        Statement = options.ToString(),
+                        HttpStatus = HttpStatusCode.RequestTimeout,
+                        QueryStatus = QueryStatus.Fatal
+                    };
+
+                    throw new RequestCanceledException("The query was canceled.", e)
+                    {
+                        Context = context
+                    };
                 }
             }
             _logger.LogDebug($"Request {options.CurrentContextId} has succeeded.");

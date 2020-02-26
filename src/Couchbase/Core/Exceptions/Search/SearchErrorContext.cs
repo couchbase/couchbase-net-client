@@ -10,12 +10,16 @@ namespace Couchbase.Core.Exceptions.Search
 
         public string Query { get; internal set; }
 
-        public Dictionary<string, string> Parameters { get; internal set; }
+        public string Parameters { get; internal set; }
 
         public HttpStatusCode HttpStatus { get; internal set; }
 
-        public string ClientContextId { get; }
+        public string ClientContextId { get; internal set; }
+
+        public string Statement { get; internal set; }
 
         public string Message { get; internal set; }
+
+        public string Errors { get; internal set; }
     }
 }

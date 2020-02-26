@@ -11,7 +11,7 @@ namespace Couchbase.Core.Exceptions.Query
 
         public string ClientContextId { get; internal set; }
 
-        public Dictionary<string, string> Parameters { get; internal set; }
+        public string Parameters { get; internal set; }
 
         public HttpStatusCode HttpStatus { get; internal set; }
 

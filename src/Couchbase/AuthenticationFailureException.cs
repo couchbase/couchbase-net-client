@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core;
 
 namespace Couchbase
 {
@@ -15,6 +16,10 @@ namespace Couchbase
 
         public AuthenticationFailureException(string message, Exception innerException)
             : base(message, innerException)
+        {
+        }
+
+        public AuthenticationFailureException(IErrorContext context) : base(context)
         {
         }
     }

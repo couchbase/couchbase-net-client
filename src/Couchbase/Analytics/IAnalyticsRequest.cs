@@ -7,6 +7,16 @@ namespace Couchbase.Analytics
     internal interface IAnalyticsRequest : IRequest
     {
         /// <summary>
+        /// Parameters identified by name.
+        /// </summary>
+        Dictionary<string, object> NamedParameters { get; set; }
+
+        /// <summary>
+        /// Parameters identified by position.
+        /// </summary>
+        List<object> PositionalArguments { get; set; }
+
+        /// <summary>
         /// Gets the original analytics statement.
         /// </summary>
         /// <returns>The original statement as a <see cref="string"/></returns>

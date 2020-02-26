@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Core.Exceptions
 {
     public class ParsingFailureException : CouchbaseException
@@ -7,6 +9,14 @@ namespace Couchbase.Core.Exceptions
         public ParsingFailureException(IErrorContext context)
         {
             Context = context;
+        }
+
+        public ParsingFailureException(string message) : base(message)
+        {
+        }
+
+        public ParsingFailureException(string message, Exception innerException) : base(message, innerException)
+        {
         }
     }
 }

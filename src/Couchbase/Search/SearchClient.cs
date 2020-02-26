@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Search;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Search;
@@ -58,6 +60,7 @@ namespace Couchbase.Search
             var searchResult = new SearchResult();
             var searchBody = searchRequest.ToJson();
 
+            string? errors = null;
             try
             {
                 using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
@@ -71,7 +74,7 @@ namespace Couchbase.Search
                     else
                     {
                         using var reader = new StreamReader(stream);
-                        var errorResult = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        errors = await reader.ReadToEndAsync().ConfigureAwait(false);
                     }
                 }
 
@@ -85,12 +88,34 @@ namespace Couchbase.Search
             catch (OperationCanceledException e)
             {
                 _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request timeout.");
-                throw new AmbiguousTimeoutException("The query was timed out via the Token.", e);
+                throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
+                {
+                    Context = new SearchErrorContext
+                    {
+                        HttpStatus = HttpStatusCode.RequestTimeout,
+                        IndexName = searchRequest.Index,
+                        ClientContextId = searchRequest.ClientContextId,
+                        Statement = searchRequest.Statement,
+                        Errors = errors,
+                        Query = searchRequest.ToJson()
+                    }
+                };
             }
             catch (HttpRequestException e)
             {
                 _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
-                throw new RequestCanceledException("The query was canceled.", e);
+                throw new RequestCanceledException("The query was canceled.", e)
+                {
+                    Context = new SearchErrorContext
+                    {
+                        HttpStatus = HttpStatusCode.RequestTimeout,
+                        IndexName = searchRequest.Index,
+                        ClientContextId = searchRequest.ClientContextId,
+                        Statement = searchRequest.Statement,
+                        Errors = errors,
+                        Query = searchRequest.ToJson()
+                    }
+                };
             }
             UpdateLastActivity();
             return searchResult;

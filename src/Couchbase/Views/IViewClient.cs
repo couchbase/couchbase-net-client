@@ -22,7 +22,7 @@ namespace Couchbase.Views
         /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
         /// <param name="query">The <see cref="IViewQuery"/> to execute.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQueryable query);
+        Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQuery query);
     }
 }
 
