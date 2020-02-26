@@ -7,7 +7,7 @@ using Couchbase.Management.Buckets;
 namespace Couchbase.Management.Collections
 {
     /// <remarks>Volatile</remarks>
-    public interface ICollectionManager
+    public interface ICouchbaseCollectionManager
     {
         Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null);
 

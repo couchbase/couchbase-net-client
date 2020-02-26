@@ -233,7 +233,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
 
-            public override ICollectionManager Collections => throw new NotImplementedException();
+            public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
             public override IScope this[string name] => throw new NotImplementedException();
 

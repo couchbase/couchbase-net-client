@@ -22,7 +22,8 @@ namespace Couchbase.UnitTests.Fixtures
             return Cluster.BucketAsync("default").GetAwaiter().GetResult();
         }
 
-        public ICollection GetDefaultCollection()
+
+        public ICouchbaseCollection GetDefaultCollection()
         {
             var bucket = GetDefaultBucket();
             return bucket.DefaultCollection();

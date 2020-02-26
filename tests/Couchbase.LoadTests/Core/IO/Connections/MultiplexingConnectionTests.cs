@@ -12,7 +12,7 @@ namespace Couchbase.LoadTests.Core.IO.Connections
     public class MultiplexingConnectionTests
     {
         private ICluster _cluster;
-        private ICollection _collection;
+        private ICouchbaseCollection _collection;
         private string _key;
 
         [GlobalSetup]

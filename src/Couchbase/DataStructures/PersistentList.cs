@@ -11,7 +11,7 @@ namespace Couchbase.DataStructures
 {
     public class PersistentList<TValue> : PersistentStoreBase<TValue>, IPersistentList<TValue>
     {
-        internal PersistentList(ICollection collection, string key, ILogger? logger, IRedactor? redactor)
+        internal PersistentList(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
         {
         }

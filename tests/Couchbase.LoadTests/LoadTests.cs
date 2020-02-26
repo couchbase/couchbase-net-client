@@ -106,12 +106,12 @@ namespace Couchbase.LoadTests
             _outputHelper.WriteLine($"Elapsed: {stopwatch.Elapsed}");
         }
 
-        private static Task Upsert(ICollection collection, KeyValuePair<string, object> document)
+        private static Task Upsert(ICouchbaseCollection collection, KeyValuePair<string, object> document)
         {
             return collection.UpsertAsync(document.Key, document.Value);
         }
 
-        private static async Task Get(ICollection collection, string key)
+        private static async Task Get(ICouchbaseCollection collection, string key)
         {
             using (var result = await collection.GetAsync(key))
             {

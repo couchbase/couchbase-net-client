@@ -176,7 +176,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             public override IViewIndexManager ViewIndexes => throw new NotImplementedException();
 
-            public override ICollectionManager Collections => throw new NotImplementedException();
+            public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
             internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
             {

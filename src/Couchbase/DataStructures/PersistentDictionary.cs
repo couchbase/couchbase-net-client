@@ -7,7 +7,6 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
-using ICollection = Couchbase.KeyValue.ICollection;
 
 #nullable enable
 
@@ -17,11 +16,11 @@ namespace Couchbase.DataStructures
     {
         private readonly ILogger? _logger;
         private readonly IRedactor? _redactor;
-        protected ICollection Collection { get; }
+        protected ICouchbaseCollection Collection { get; }
         protected string DocId { get; }
         protected bool BackingStoreChecked { get; set; }
 
-        internal PersistentDictionary(ICollection collection, string docId, ILogger? logger, IRedactor? redactor)
+        internal PersistentDictionary(ICouchbaseCollection collection, string docId, ILogger? logger, IRedactor? redactor)
         {
             Collection = collection ?? throw new ArgumentNullException(nameof(collection));
             DocId = docId ?? throw new ArgumentNullException(nameof(docId));

@@ -28,7 +28,7 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public ICollection Create(BucketBase bucket, uint? cid, string name, string scopeName) =>
+        public ICouchbaseCollection Create(BucketBase bucket, uint? cid, string name, string scopeName) =>
             new CouchbaseCollection(bucket, _transcoder, _logger, _getLogger, _redactor, cid, name, scopeName);
     }
 }

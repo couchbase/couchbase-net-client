@@ -9,7 +9,7 @@ namespace Couchbase.DataStructures
 {
     public class PersistentQueue<TValue> : PersistentStoreBase<TValue>, IPersistentQueue<TValue>
     {
-        internal PersistentQueue(ICollection collection, string key, ILogger? logger, IRedactor? redactor)
+        internal PersistentQueue(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
         {
         }

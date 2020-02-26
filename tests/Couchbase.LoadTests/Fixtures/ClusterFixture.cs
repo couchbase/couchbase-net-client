@@ -21,7 +21,7 @@ namespace Couchbase.LoadTests.Fixtures
             return await Cluster.BucketAsync("default");
         }
 
-        public async Task<ICollection> GetDefaultCollection()
+        public async Task<ICouchbaseCollection> GetDefaultCollection()
         {
             var bucket = await GetDefaultBucketAsync();
             return bucket.DefaultCollection();

@@ -7,7 +7,7 @@ using Couchbase.Core.IO.Operations.SubDocument;
 
 namespace Couchbase.KeyValue
 {
-    public interface ICollection
+    public interface ICouchbaseCollection
     {
         uint? Cid { get; }
 

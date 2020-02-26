@@ -11,12 +11,12 @@ namespace Couchbase.KeyValue
     {
         #region Get
 
-        public static Task<IGetResult> GetAsync(this ICollection collection, string id)
+        public static Task<IGetResult> GetAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.GetAsync(id, new GetOptions());
         }
 
-        public static Task<IGetResult> GetAsync(this ICollection collection, string id, Action<GetOptions> configureOptions)
+        public static Task<IGetResult> GetAsync(this ICouchbaseCollection collection, string id, Action<GetOptions> configureOptions)
         {
             var options = new GetOptions();
             configureOptions?.Invoke(options);
@@ -28,12 +28,12 @@ namespace Couchbase.KeyValue
 
         #region GetAnyReplica
 
-        public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICollection collection, string id)
+        public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.GetAnyReplicaAsync(id, GetAnyReplicaOptions.Default);
         }
 
-        public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICollection collection, string id, Action<GetAnyReplicaOptions> configureOptions)
+        public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICouchbaseCollection collection, string id, Action<GetAnyReplicaOptions> configureOptions)
         {
             var options = new GetAnyReplicaOptions();
             configureOptions(options);
@@ -45,12 +45,12 @@ namespace Couchbase.KeyValue
 
         #region GetAllReplicas
 
-        public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICollection collection, string id)
+        public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.GetAllReplicasAsync(id, GetAllReplicasOptions.Default);
         }
 
-        public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICollection collection, string id, Action<GetAllReplicasOptions> configureOptions)
+        public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICouchbaseCollection collection, string id, Action<GetAllReplicasOptions> configureOptions)
         {
             var options = new GetAllReplicasOptions();
             configureOptions(options);
@@ -62,12 +62,12 @@ namespace Couchbase.KeyValue
 
         #region Exists
 
-        public static Task<IExistsResult> ExistsAsync(this ICollection collection, string id)
+        public static Task<IExistsResult> ExistsAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.ExistsAsync(id, new ExistsOptions());
         }
 
-        public static Task<IExistsResult> ExistsAsync(this ICollection collection, string id,
+        public static Task<IExistsResult> ExistsAsync(this ICouchbaseCollection collection, string id,
             Action<ExistsOptions> configureOptions)
         {
             var options = new ExistsOptions();
@@ -80,12 +80,12 @@ namespace Couchbase.KeyValue
 
         #region Upsert
 
-        public static Task<IMutationResult> UpsertAsync<T>(this ICollection collection, string id, T content)
+        public static Task<IMutationResult> UpsertAsync<T>(this ICouchbaseCollection collection, string id, T content)
         {
             return collection.UpsertAsync(id, content, new UpsertOptions());
         }
 
-        public static Task<IMutationResult> UpsertAsync<T>(this ICollection collection, string id, T content,
+        public static Task<IMutationResult> UpsertAsync<T>(this ICouchbaseCollection collection, string id, T content,
             Action<UpsertOptions> configureOptions)
         {
             var options = new UpsertOptions();
@@ -98,12 +98,12 @@ namespace Couchbase.KeyValue
 
         #region Insert
 
-        public static Task<IMutationResult> InsertAsync<T>(this ICollection collection, string id, T content)
+        public static Task<IMutationResult> InsertAsync<T>(this ICouchbaseCollection collection, string id, T content)
         {
             return collection.InsertAsync(id, content, new InsertOptions());
         }
 
-        public static Task<IMutationResult> InsertAsync<T>(this ICollection collection, string id, T content,
+        public static Task<IMutationResult> InsertAsync<T>(this ICouchbaseCollection collection, string id, T content,
             Action<InsertOptions> optionsAction)
         {
             var options = new InsertOptions();
@@ -116,12 +116,12 @@ namespace Couchbase.KeyValue
 
         #region Replace
 
-        public static Task<IMutationResult> ReplaceAsync<T>(this ICollection collection, string id, T content)
+        public static Task<IMutationResult> ReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content)
         {
             return collection.ReplaceAsync(id, content, new ReplaceOptions());
         }
 
-        public static Task<IMutationResult> ReplaceAsync<T>(this ICollection collection, string id, T content,
+        public static Task<IMutationResult> ReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content,
             Action<ReplaceOptions> configureOptions)
         {
             var options = new ReplaceOptions();
@@ -134,12 +134,12 @@ namespace Couchbase.KeyValue
 
         #region Remove
 
-        public static Task RemoveAsync(this ICollection collection, string id)
+        public static Task RemoveAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.RemoveAsync(id, new RemoveOptions());
         }
 
-        public static Task RemoveAsync(this ICollection collection, string id, Action<RemoveOptions> configureOptions)
+        public static Task RemoveAsync(this ICouchbaseCollection collection, string id, Action<RemoveOptions> configureOptions)
         {
             var options = new RemoveOptions();
             configureOptions(options);
@@ -151,12 +151,12 @@ namespace Couchbase.KeyValue
 
         #region Unlock
 
-        public static Task UnlockAsync<T>(this ICollection collection, string id, ulong cas)
+        public static Task UnlockAsync<T>(this ICouchbaseCollection collection, string id, ulong cas)
         {
             return collection.UnlockAsync<T>(id, cas, new UnlockOptions());
         }
 
-        public static Task UnlockAsync<T>(this ICollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
+        public static Task UnlockAsync<T>(this ICouchbaseCollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
         {
             var options = new UnlockOptions();
             configureOptions(options);
@@ -168,12 +168,12 @@ namespace Couchbase.KeyValue
 
         #region Touch
 
-        public static Task TouchAsync(this ICollection collection, string id, TimeSpan expiry)
+        public static Task TouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
         {
             return collection.TouchAsync(id, expiry, new TouchOptions());
         }
 
-        public static Task TouchAsync(this ICollection collection, string id, TimeSpan expiry,
+        public static Task TouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry,
             Action<TouchOptions> configureOptions)
         {
             var options = new TouchOptions();
@@ -186,12 +186,12 @@ namespace Couchbase.KeyValue
 
         #region GetAndTouch
 
-        public static Task<IGetResult> GetAndTouchAsync(this ICollection collection, string id, TimeSpan expiry)
+        public static Task<IGetResult> GetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
         {
             return collection.GetAndTouchAsync(id, expiry, new GetAndTouchOptions());
         }
 
-        public static Task<IGetResult> GetAndTouchAsync(this ICollection collection, string id, TimeSpan expiry,
+        public static Task<IGetResult> GetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry,
             Action<GetAndTouchOptions> configureOptions)
         {
             var options = new GetAndTouchOptions();
@@ -204,12 +204,12 @@ namespace Couchbase.KeyValue
 
         #region GetAndLock
 
-        public static Task<IGetResult> GetAndLockAsync(this ICollection collection, string id, TimeSpan expiry)
+        public static Task<IGetResult> GetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
         {
             return collection.GetAndLockAsync(id, expiry, new GetAndLockOptions());
         }
 
-        public static Task<IGetResult> GetAndLockAsync(this ICollection collection, string id, TimeSpan expiry,
+        public static Task<IGetResult> GetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry,
             Action<GetAndLockOptions> configureOptions)
         {
             var options = new GetAndLockOptions();
@@ -222,7 +222,7 @@ namespace Couchbase.KeyValue
 
         #region LookupIn
 
-        public static Task<ILookupInResult> LookupInAsync(this ICollection collection, string id,
+        public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             Action<LookupInSpecBuilder> configureBuilder)
         {
             var builder = new LookupInSpecBuilder();
@@ -231,7 +231,7 @@ namespace Couchbase.KeyValue
             return collection.LookupInAsync(id, builder.Specs, new LookupInOptions());
         }
 
-        public static Task<ILookupInResult> LookupInAsync(this ICollection collection, string id,
+        public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             Action<LookupInSpecBuilder> configureBuilder, Action<LookupInOptions> configureOptions)
         {
             var builder = new LookupInSpecBuilder();
@@ -243,7 +243,7 @@ namespace Couchbase.KeyValue
             return collection.LookupInAsync(id, builder.Specs, options);
         }
 
-        public static Task<ILookupInResult> LookupInAsync(this ICollection collection, string id,
+        public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             Action<LookupInSpecBuilder> configureBuilder, LookupInOptions options)
         {
             var lookupInSpec = new LookupInSpecBuilder();
@@ -252,13 +252,13 @@ namespace Couchbase.KeyValue
             return collection.LookupInAsync(id, lookupInSpec.Specs, options);
         }
 
-        public static Task<ILookupInResult> LookupInAsync(this ICollection collection, string id,
+        public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<LookupInSpec> specs)
         {
             return collection.LookupInAsync(id, specs, new LookupInOptions());
         }
 
-        public static Task<ILookupInResult> LookupInAsync(this ICollection collection, string id,
+        public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<LookupInSpec> specs, Action<LookupInOptions> configureOptions)
         {
             var options = new LookupInOptions();
@@ -271,7 +271,7 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
-        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder)
         {
             var builder = new MutateInSpecBuilder();
@@ -280,7 +280,7 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, builder.Specs, new MutateInOptions());
         }
 
-        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder, Action<MutateInOptions> configureOptions)
         {
             var builder = new MutateInSpecBuilder();
@@ -292,7 +292,7 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, builder.Specs, options);
         }
 
-        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder, MutateInOptions options)
         {
             var mutateInSpec = new MutateInSpecBuilder();
@@ -301,13 +301,13 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, mutateInSpec.Specs, options);
         }
 
-        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<MutateInSpec> specs)
         {
             return collection.MutateInAsync(id, specs, new MutateInOptions());
         }
 
-        public static Task<IMutateInResult> MutateInAsync(this ICollection collection, string id,
+        public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<MutateInSpec> specs, Action<MutateInOptions> configureOptions)
         {
             var options = new MutateInOptions();
@@ -320,22 +320,22 @@ namespace Couchbase.KeyValue
 
         #region Data Structures
 
-        public static IPersistentSet<T> Set<T>(this ICollection collection, string docId)
+        public static IPersistentSet<T> Set<T>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentSet<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
-        public static IPersistentList<T> List<T>(this ICollection collection, string docId)
+        public static IPersistentList<T> List<T>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentList<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
-        public static IPersistentQueue<T> Queue<T>(this ICollection collection, string docId)
+        public static IPersistentQueue<T> Queue<T>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentQueue<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
-        public static IPersistentDictionary<TValue> Dictionary<TValue>(this ICollection collection, string docId)
+        public static IPersistentDictionary<TValue> Dictionary<TValue>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentDictionary<TValue>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }

@@ -15,7 +15,7 @@ using Newtonsoft.Json.Linq;
 namespace Couchbase.Management.Collections
 {
     /// <remarks>Volatile</remarks>
-    internal class CollectionManager : ICollectionManager
+    internal class CollectionManager : ICouchbaseCollectionManager
     {
         private readonly string _bucketName;
         private readonly IServiceUriProvider _serviceUriProvider;

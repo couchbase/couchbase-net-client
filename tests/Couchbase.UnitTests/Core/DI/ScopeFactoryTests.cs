@@ -159,7 +159,7 @@ namespace Couchbase.UnitTests.Core.DI
                     m.Create(It.IsAny<BucketBase>(), It.IsAny<uint?>(), It.IsAny<string>(), It.IsAny<string>()))
                 .Returns((BucketBase bucket, uint? cid, string name, string scopeName) =>
                 {
-                    var collection = new Mock<ICollection>();
+                    var collection = new Mock<ICouchbaseCollection>();
                     collection.SetupGet(m => m.Name).Returns(name);
                     collection.SetupGet(m => m.Cid).Returns(cid);
 

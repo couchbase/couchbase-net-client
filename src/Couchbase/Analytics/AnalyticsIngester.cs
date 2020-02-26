@@ -23,7 +23,7 @@ namespace Couchbase.Analytics
         /// <param name="statement"></param>
         /// <param name="configureOptions"></param>
         /// <returns></returns>
-        public static Task<IEnumerable<IMutationResult>> IngestAsync<T>(this ICluster cluster, string statement, ICollection collection, Action<IngestOptions> configureOptions)
+        public static Task<IEnumerable<IMutationResult>> IngestAsync<T>(this ICluster cluster, string statement, ICouchbaseCollection collection, Action<IngestOptions> configureOptions)
         {
             var options = new IngestOptions();
             configureOptions(options);
@@ -48,7 +48,7 @@ namespace Couchbase.Analytics
         /// <param name="statement"></param>
         /// <param name="ingestOptions"></param>
         /// <returns></returns>
-        public static async Task<IEnumerable<IMutationResult>> IngestAsync<T>(this ICluster cluster, string statement, ICollection collection, IngestOptions ingestOptions = null)
+        public static async Task<IEnumerable<IMutationResult>> IngestAsync<T>(this ICluster cluster, string statement, ICouchbaseCollection collection, IngestOptions ingestOptions = null)
         {
             //use defaults if not options not explicitly passed
             ingestOptions ??= new IngestOptions();

@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.KeyValue
 {
     /// <remarks>Volatile</remarks>
-    internal class CouchbaseCollection : ICollection, IBinaryCollection
+    internal class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection
     {
         public const string DefaultCollectionName = "_default";
         private readonly BucketBase _bucket;

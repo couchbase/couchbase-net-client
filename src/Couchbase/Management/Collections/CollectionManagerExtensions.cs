@@ -9,12 +9,12 @@ namespace Couchbase.Management.Collections
 {
     public static class CollectionManagerExtensions
     {
-        public static Task CreateScopeAsync(this ICollectionManager manager, ScopeSpec scopeSpec)
+        public static Task CreateScopeAsync(this ICouchbaseCollectionManager manager, ScopeSpec scopeSpec)
         {
             return manager.CreateScopeAsync(scopeSpec, CreateScopeOptions.Default);
         }
 
-        public static Task CreateScopeAsync(this ICollectionManager manager, ScopeSpec scopeSpec, Action<CreateScopeOptions> configureOptions)
+        public static Task CreateScopeAsync(this ICouchbaseCollectionManager manager, ScopeSpec scopeSpec, Action<CreateScopeOptions> configureOptions)
         {
             var options = new CreateScopeOptions();
             configureOptions(options);
@@ -22,12 +22,12 @@ namespace Couchbase.Management.Collections
             return manager.CreateScopeAsync(scopeSpec, options);
         }
 
-        public static Task<ScopeSpec> GetScopeAsync(this ICollectionManager manager, string scopeName)
+        public static Task<ScopeSpec> GetScopeAsync(this ICouchbaseCollectionManager manager, string scopeName)
         {
             return manager.GetScopeAsync(scopeName, GetScopeOptions.Default);
         }
 
-        public static Task<ScopeSpec> GetScopeAsync(this ICollectionManager manager, string scopeName, Action<GetScopeOptions> configureOptions)
+        public static Task<ScopeSpec> GetScopeAsync(this ICouchbaseCollectionManager manager, string scopeName, Action<GetScopeOptions> configureOptions)
         {
             var options = new GetScopeOptions();
             configureOptions(options);
@@ -35,12 +35,12 @@ namespace Couchbase.Management.Collections
             return manager.GetScopeAsync(scopeName, options);
         }
 
-        public static Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(this ICollectionManager manager)
+        public static Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(this ICouchbaseCollectionManager manager)
         {
             return manager.GetAllScopesAsync(GetAllScopesOptions.Default);
         }
 
-        public static Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(this ICollectionManager manager, Action<GetAllScopesOptions> configureOptions)
+        public static Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(this ICouchbaseCollectionManager manager, Action<GetAllScopesOptions> configureOptions)
         {
             var options = new GetAllScopesOptions();
             configureOptions(options);
@@ -48,12 +48,12 @@ namespace Couchbase.Management.Collections
             return manager.GetAllScopesAsync(options);
         }
 
-        public static Task CreateCollectionAsync(this ICollectionManager manager, CollectionSpec spec)
+        public static Task CreateCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec)
         {
             return manager.CreateCollectionAsync(spec, CreateCollectionOptions.Default);
         }
 
-        public static Task CreateCollectionAsync(this ICollectionManager manager, CollectionSpec spec, Action<CreateCollectionOptions> configureOptions)
+        public static Task CreateCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec, Action<CreateCollectionOptions> configureOptions)
         {
             var options = new CreateCollectionOptions();
             configureOptions(options);
@@ -61,12 +61,12 @@ namespace Couchbase.Management.Collections
             return manager.CreateCollectionAsync(spec, options);
         }
 
-        public static Task DropCollectionAsync(this ICollectionManager manager, CollectionSpec spec)
+        public static Task DropCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec)
         {
             return manager.DropCollectionAsync(spec, DropCollectionOptions.Default);
         }
 
-        public static Task DropCollectionAsync(this ICollectionManager manager, CollectionSpec spec, Action<DropCollectionOptions> configureOptions)
+        public static Task DropCollectionAsync(this ICouchbaseCollectionManager manager, CollectionSpec spec, Action<DropCollectionOptions> configureOptions)
         {
             var options = new DropCollectionOptions();
             configureOptions(options);
@@ -74,12 +74,12 @@ namespace Couchbase.Management.Collections
             return manager.DropCollectionAsync(spec, options);
         }
 
-        public static Task DropScopeAsync(this ICollectionManager manager, string scopeName)
+        public static Task DropScopeAsync(this ICouchbaseCollectionManager manager, string scopeName)
         {
             return manager.DropScopeAsync(scopeName, DropScopeOptions.Default);
         }
 
-        public static Task DropScopeAsync(this ICollectionManager manager, string scopeName, Action<DropScopeOptions> configureOptions)
+        public static Task DropScopeAsync(this ICouchbaseCollectionManager manager, string scopeName, Action<DropScopeOptions> configureOptions)
         {
             var options = new DropScopeOptions();
             configureOptions(options);

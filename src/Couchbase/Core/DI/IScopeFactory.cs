@@ -13,7 +13,7 @@ namespace Couchbase.Core.DI
     internal interface IScopeFactory
     {
         /// <summary>
-        /// Creates <see cref="IScope"/> populated with <see cref="ICollection"/> based
+        /// Creates <see cref="IScope"/> populated with <see cref="ICouchbaseCollection"/> based
         /// on a <see cref="Manifest"/>.
         /// </summary>
         /// <param name="bucket">The owning <see cref="BucketBase"/>.</param>

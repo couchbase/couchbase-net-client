@@ -69,7 +69,7 @@ namespace Couchbase
 
         public override IViewIndexManager ViewIndexes => throw new NotSupportedException("View Indexes are not supported by Memcached Buckets.");
 
-        public override ICollectionManager Collections => throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
+        public override ICouchbaseCollectionManager Collections => throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
 
         public override async Task ConfigUpdatedAsync(BucketConfig config)
         {

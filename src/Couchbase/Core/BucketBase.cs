@@ -86,13 +86,13 @@ namespace Couchbase.Core
         }
 
         /// <remarks>Volatile</remarks>
-        public ICollection Collection(string collectionName)
+        public ICouchbaseCollection Collection(string collectionName)
         {
             var scope = DefaultScope();
             return scope[collectionName];
         }
 
-        public ICollection DefaultCollection()
+        public ICouchbaseCollection DefaultCollection()
         {
             return Collection(CouchbaseCollection.DefaultCollectionName);
         }
@@ -103,7 +103,7 @@ namespace Couchbase.Core
 
         public abstract IViewIndexManager ViewIndexes { get; }
 
-        public abstract ICollectionManager Collections { get; }
+        public abstract ICouchbaseCollectionManager Collections { get; }
 
         public async Task<IPingReport> PingAsync(PingOptions? options = null)
         {

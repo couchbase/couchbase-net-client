@@ -19,13 +19,13 @@ namespace Couchbase.KeyValue
 
         private readonly BucketBase _bucket;
         private readonly ILogger<Scope> _logger;
-        private readonly ConcurrentDictionary<string, ICollection> _collections;
+        private readonly ConcurrentDictionary<string, ICouchbaseCollection> _collections;
 
-        public Scope(string name, string id, IEnumerable<ICollection> collections, BucketBase bucket, ILogger<Scope> logger)
+        public Scope(string name, string id, IEnumerable<ICouchbaseCollection> collections, BucketBase bucket, ILogger<Scope> logger)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Id = id ?? throw new ArgumentNullException(nameof(id));
-            _collections = new ConcurrentDictionary<string, ICollection>(collections.ToDictionary(x => x.Name, v => v));
+            _collections = new ConcurrentDictionary<string, ICouchbaseCollection>(collections.ToDictionary(x => x.Name, v => v));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -34,13 +34,13 @@ namespace Couchbase.KeyValue
 
         public string Name { get; }
 
-        public ICollection this[string name]
+        public ICouchbaseCollection this[string name]
         {
             get
             {
                 _logger.LogDebug("Fetching collection {collectionName}.", name);
 
-                if(_collections.TryGetValue(name, out ICollection collection))
+                if(_collections.TryGetValue(name, out ICouchbaseCollection collection))
                 {
                     return collection;
                 }
@@ -61,7 +61,7 @@ namespace Couchbase.KeyValue
         /// <param name="collectionName"></param>
         /// <returns></returns>
         /// <remarks>Volatile</remarks>
-        public ICollection Collection(string collectionName)
+        public ICouchbaseCollection Collection(string collectionName)
         {
             return this[collectionName];
         }

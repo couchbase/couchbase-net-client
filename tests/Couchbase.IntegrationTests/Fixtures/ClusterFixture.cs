@@ -41,7 +41,7 @@ namespace Couchbase.IntegrationTests.Fixtures
             return bucket;
         }
 
-        public async Task<ICollection> GetDefaultCollection()
+        public async Task<ICouchbaseCollection> GetDefaultCollection()
         {
             var bucket = await GetDefaultBucket();
             return bucket.DefaultCollection();

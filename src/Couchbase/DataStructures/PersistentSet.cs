@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
+using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
-using ICollection = Couchbase.KeyValue.ICollection;
 
 #nullable enable
 
@@ -13,7 +13,7 @@ namespace Couchbase.DataStructures
 {
     public class PersistentSet<TValue> : PersistentStoreBase<TValue>, IPersistentSet<TValue>
     {
-        internal PersistentSet(ICollection collection, string key, ILogger? logger, IRedactor? redactor)
+        internal PersistentSet(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
         {
         }

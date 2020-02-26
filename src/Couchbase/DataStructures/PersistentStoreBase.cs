@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
+using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
-using ICollection = Couchbase.KeyValue.ICollection;
 
 #nullable enable
 
@@ -14,12 +14,12 @@ namespace Couchbase.DataStructures
     public abstract class PersistentStoreBase<TValue>: System.Collections.ICollection
     {
         protected ILogger? Logger { get; }
-        protected ICollection Collection { get; }
+        protected ICouchbaseCollection Collection { get; }
         protected string Key { get; }
         protected bool BackingStoreChecked {get; set;}
         internal IRedactor? Redactor;
 
-        internal PersistentStoreBase(ICollection collection, string key, ILogger? logger, IRedactor? redactor, object syncRoot, bool isSynchronized)
+        internal PersistentStoreBase(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor, object syncRoot, bool isSynchronized)
         {
             Collection = collection ?? throw new ArgumentNullException(nameof(collection));
             Key = key ?? throw new ArgumentNullException(nameof(key));

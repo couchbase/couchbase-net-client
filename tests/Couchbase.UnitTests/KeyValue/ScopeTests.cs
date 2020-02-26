@@ -13,7 +13,7 @@ namespace Couchbase.UnitTests.KeyValue
         public void Collection_Indexer_NotFound_Throws_CollectionMissingException()
         {
             var mockBucket = new Mock<BucketBase>();
-            var scope = new Scope("_default", "0", new ICollection[]{}, mockBucket.Object,
+            var scope = new Scope("_default", "0", new ICouchbaseCollection[]{}, mockBucket.Object,
                 new Mock<ILogger<Scope>>().Object);
 
             Assert.Throws<CollectionNotFoundException>(() =>
@@ -26,7 +26,7 @@ namespace Couchbase.UnitTests.KeyValue
         public void Collection_NotFound_Throws_CollectionMissingException()
         {
             var mockBucket = new Mock<BucketBase>();
-            var scope = new Scope("_default", "0", new ICollection[]{}, mockBucket.Object,
+            var scope = new Scope("_default", "0", new ICouchbaseCollection[]{}, mockBucket.Object,
                 new Mock<ILogger<Scope>>().Object);
 
             Assert.Throws<CollectionNotFoundException>(() =>

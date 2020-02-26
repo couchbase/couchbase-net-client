@@ -25,7 +25,7 @@ namespace Couchbase
         private readonly IVBucketKeyMapperFactory _vBucketKeyMapperFactory;
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewIndexManager> _viewManagerLazy;
-        private readonly Lazy<ICollectionManager> _collectionManagerLazy;
+        private readonly Lazy<ICouchbaseCollectionManager> _collectionManagerLazy;
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory)
@@ -43,7 +43,7 @@ namespace Couchbase
                     context.ServiceProvider.GetRequiredService<ILogger<ViewIndexManager>>(),
                     redactor));
 
-            _collectionManagerLazy = new Lazy<ICollectionManager>(() =>
+            _collectionManagerLazy = new Lazy<ICouchbaseCollectionManager>(() =>
                 new CollectionManager(name,
                     context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
                     context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
@@ -73,7 +73,7 @@ namespace Couchbase
         /// The Collection Management API.
         /// </summary>
         /// <remarks>Volatile</remarks>
-        public override ICollectionManager Collections => _collectionManagerLazy.Value;
+        public override ICouchbaseCollectionManager Collections => _collectionManagerLazy.Value;
 
         public override async Task ConfigUpdatedAsync(BucketConfig config)
         {

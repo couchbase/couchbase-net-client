@@ -9,8 +9,8 @@ namespace Couchbase.KeyValue
 
         string Name { get; }
 
-        ICollection this[string name] { get; }
+        ICouchbaseCollection this[string name] { get; }
 
-        ICollection Collection(string collectionName);
+        ICouchbaseCollection Collection(string collectionName);
     }
 }

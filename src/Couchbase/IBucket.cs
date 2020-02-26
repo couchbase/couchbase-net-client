@@ -19,9 +19,9 @@ namespace Couchbase
 
         IScope DefaultScope();
 
-        ICollection DefaultCollection();
+        ICouchbaseCollection DefaultCollection();
 
-        ICollection Collection(string collectionName);
+        ICouchbaseCollection Collection(string collectionName);
 
         /// <summary>
         /// Execute a view query.
@@ -36,7 +36,7 @@ namespace Couchbase
 
         IViewIndexManager ViewIndexes { get; }
 
-        ICollectionManager Collections { get; }
+        ICouchbaseCollectionManager Collections { get; }
 
         Task<IPingReport> PingAsync(PingOptions? options = null);
     }

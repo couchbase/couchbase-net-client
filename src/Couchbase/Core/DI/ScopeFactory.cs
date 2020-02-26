@@ -36,7 +36,7 @@ namespace Couchbase.Core.DI
 
             foreach (var scopeDef in manifest.scopes)
             {
-                var collections = new List<ICollection>();
+                var collections = new List<ICouchbaseCollection>();
                 foreach (var collectionDef in scopeDef.collections)
                 {
                     collections.Add(_collectionFactory.Create(bucket,
@@ -57,7 +57,7 @@ namespace Couchbase.Core.DI
                 throw new ArgumentNullException(nameof(bucket));
             }
 
-            var collections = new List<ICollection>
+            var collections = new List<ICouchbaseCollection>
             {
                 _collectionFactory.Create(bucket, null,
                     CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName)
