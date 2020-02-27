@@ -15,6 +15,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
+using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
@@ -95,7 +96,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(IQueryIndexManager), new SingletonServiceFactory(typeof(QueryIndexManager)));
             yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
             yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
-
+            yield return (typeof(IAnalyticsIndexManager), new SingletonServiceFactory(typeof(AnalyticsIndexManager)));
             yield return (typeof(ICircuitBreaker), new SingletonServiceFactory(typeof(CircuitBreaker)));
             yield return (typeof(CircuitBreakerConfiguration),
                 new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));

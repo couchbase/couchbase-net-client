@@ -11,21 +11,21 @@ namespace Couchbase.Management.Analytics
 
         Task DropDataverseAsync(string dataverseName, DropAnalyticsDataverseOptions? options = null);
 
-        Task CreateDatasetAsync(string bucketName, string datasetName, CreateAnalyticsDatasetOptions? options = null);
+        Task CreateDatasetAsync(string datasetName, string bucketName, CreateAnalyticsDatasetOptions? options = null);
 
         Task DropDatasetAsync(string datasetName, DropAnalyticsDatasetOptions? options = null);
 
         Task<IEnumerable<AnalyticsDataset>> GetAllDatasetsAsync(GetAllAnalyticsDatasetsOptions? options = null);
 
-        Task CreateIndexAsync(string indexName, Dictionary<string, string> fields, CreateAnalyticsIndexOptions? options = null);
+        Task CreateIndexAsync(string datasetName, string indexName, Dictionary<string, string> fields, CreateAnalyticsIndexOptions? options = null);
 
         Task DropIndexAsync(string datasetName, string indexName, DropAnalyticsIndexOptions? options = null);
 
         Task<IEnumerable<AnalyticsIndex>> GetAllIndexesAsync(GetAllAnalyticsIndexesOptions? options = null);
 
-        Task ConnectLinkAsync(string linkName, ConnectAnalyticsLinkOptions? options = null);
+        Task ConnectLinkAsync(ConnectAnalyticsLinkOptions? options = null);
 
-        Task DisconnectLinkAsync(string linkName, DisconnectAnalyticsLinkOptions? options = null);
+        Task DisconnectLinkAsync(DisconnectAnalyticsLinkOptions? options = null);
 
         Task<Dictionary<string, int>> GetPendingMutationsAsync(GetPendingAnalyticsMutationsOptions? options = null);
     }
