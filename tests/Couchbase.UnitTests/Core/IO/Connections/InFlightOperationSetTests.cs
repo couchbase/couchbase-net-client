@@ -35,20 +35,23 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             // Arrange
 
-            ResponseStatus gotStatus = ResponseStatus.Success;
-            var state = MakeState(5, (_, status) => { gotStatus = status; });
+            var tcs = new TaskCompletionSource<ResponseStatus>();
+
+            var state = MakeState(5, (_, status) => { tcs.TrySetResult(status); });
 
             using var set = new InFlightOperationSet();
 
             // Act
 
-            set.Add(state, 100);
-            await Task.Delay(200);
+            set.Add(state, 10);
+
+            // Wait up to 15 seconds for the task to complete
+            await Task.WhenAny(tcs.Task, Task.Delay(15000));
 
             // Assert
 
-            Assert.Equal(ResponseStatus.OperationTimeout, gotStatus);
-            Assert.Equal(0, set.Count);
+            Assert.True(tcs.Task.IsCompleted);
+            Assert.Equal(ResponseStatus.OperationTimeout, tcs.Task.Result);
         }
 
         #endregion
