@@ -18,12 +18,27 @@ namespace Couchbase.IntegrationTests
         public async Task Test_Open_More_Than_One_Bucket()
         {
             var cluster = await _fixture.GetCluster();
+            var key = Guid.NewGuid().ToString();
 
             var bucket1 = await cluster.BucketAsync("travel-sample");
             Assert.NotNull(bucket1);
 
             var bucket2 = await cluster.BucketAsync("default");
             Assert.NotNull(bucket2);
+
+            try
+            {
+                var result1 = await bucket1.DefaultCollection().InsertAsync(key, new {Whoah = "buddy!"})
+                    .ConfigureAwait(false);
+
+                var result2 = await bucket1.DefaultCollection().InsertAsync(key, new { Whoah = "buddy!" })
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                await bucket1.DefaultCollection().RemoveAsync(key).ConfigureAwait(false);
+                await bucket2.DefaultCollection().RemoveAsync(key).ConfigureAwait(false);
+            }
         }
 
         [Fact]

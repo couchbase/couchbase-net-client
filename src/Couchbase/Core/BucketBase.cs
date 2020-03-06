@@ -29,6 +29,7 @@ namespace Couchbase.Core
         private ClusterState _clusterState;
         private readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
+        public readonly ClusterNodeCollection Nodes = new ClusterNodeCollection();
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }

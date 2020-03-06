@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
@@ -201,13 +199,10 @@ namespace Couchbase.Core
             }
         }
 
-        public async Task<IClusterNode> GetUnassignedNodeAsync(HostEndpoint endpoint)
+        public IClusterNode GetUnassignedNode(HostEndpoint endpoint)
         {
-            var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
-            var ipAddress = await dnsResolver.GetIpAddressAsync(endpoint.Host, CancellationToken).ConfigureAwait(false);
-
             return Nodes.FirstOrDefault(
-                x => !x.IsAssigned && x.EndPoint.Address.Equals(ipAddress));
+                x => !x.IsAssigned && x.BootstrapEndpoint.Equals(endpoint));
         }
 
         public async Task BootstrapGlobalAsync()
@@ -263,7 +258,8 @@ namespace Couchbase.Core
                         }
                         else
                         {
-                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken).ConfigureAwait(false);
+                            var hostEndpoint = HostEndpoint.Create(nodeAdapter, ClusterOptions);
+                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(hostEndpoint, CancellationToken).ConfigureAwait(false);
                             newNode.NodesAdapter = nodeAdapter;
                             SupportsCollections = node.Supports(ServerFeatures.Collections);
                             AddNode(newNode);
@@ -294,11 +290,10 @@ namespace Couchbase.Core
 
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
         {
-            var node = await GetUnassignedNodeAsync(endpoint).ConfigureAwait(false);
+            var node = GetUnassignedNode(endpoint);
             if (node == null)
             {
                 node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
-                AddNode(node);
             }
 
             var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
@@ -335,7 +330,7 @@ namespace Couchbase.Core
                 foreach (var endpoint in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
                     .EnableTls))
                 {
-                    var node = await GetUnassignedNodeAsync(endpoint).ConfigureAwait(false);
+                    var node = GetUnassignedNode(endpoint);
                     if (node == null)
                     {
                         node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken)
@@ -362,7 +357,7 @@ namespace Couchbase.Core
             }
         }
 
-        public async Task ProcessClusterMapAsync(IBucket bucket, BucketConfig config)
+        public async Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
             var ipEndPointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
             foreach (var nodeAdapter in config.GetNodes())
@@ -370,17 +365,22 @@ namespace Couchbase.Core
                 var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken);
                 if (Nodes.TryGet(endPoint, out var bootstrapNode))
                 {
-                    _logger.LogDebug("Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
-                        _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
-
-                    if (bootstrapNode.HasKv)
+                    if (bootstrapNode.Owner == null)
                     {
-                        await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
-                    }
+                        _logger.LogDebug(
+                            "Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
+                            _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
-                    bootstrapNode.NodesAdapter = nodeAdapter;
-                    SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
-                    continue; //bootstrap node is skipped because it already went through these steps
+                        if (bootstrapNode.HasKv)
+                        {
+                            await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
+                        }
+
+                        bootstrapNode.NodesAdapter = nodeAdapter;
+                        SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
+                        bucket.Nodes.Add(bootstrapNode);
+                        continue; //bootstrap node is skipped because it already went through these steps
+                    }
                 }
 
                 _logger.LogDebug("Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
@@ -399,6 +399,7 @@ namespace Couchbase.Core
 
                 SupportsCollections = node.Supports(ServerFeatures.Collections);
                 AddNode(node);
+                bucket.Nodes.Add(node);//may remove
             }
 
             await PruneNodesAsync(config).ConfigureAwait(false);

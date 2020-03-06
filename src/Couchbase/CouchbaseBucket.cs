@@ -80,7 +80,6 @@ namespace Couchbase
             if (config.Name == Name && (BucketConfig == null || config.Rev > BucketConfig.Rev))
             {
                 BucketConfig = config;
-
                 if (BucketConfig.VBucketMapChanged)
                 {
                     KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
@@ -89,6 +88,17 @@ namespace Couchbase
                 if (BucketConfig.ClusterNodesChanged)
                 {
                     await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                    var nodes = Context.GetNodes(Name);
+
+                    //update the local nodes collection
+                    lock (Nodes)
+                    {
+                        Nodes.Clear();
+                        foreach (var clusterNode in nodes)
+                        {
+                            Nodes.Add(clusterNode);
+                        }
+                    }
                 }
             }
         }
@@ -195,7 +205,7 @@ namespace Couchbase
 
             op.VBucketId = vBucket.Index;
 
-            if (Context.Nodes.TryGet(endPoint!, out var clusterNode))
+            if (Nodes.TryGet(endPoint!, out var clusterNode))
             {
                 try
                 {
@@ -255,6 +265,7 @@ namespace Couchbase
                 BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
                 KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
+                Nodes.Add(node);
                 await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
                 ClearErrors();
             }

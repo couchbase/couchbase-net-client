@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Configuration.Server;
 
 #nullable enable
 
@@ -148,5 +149,11 @@ namespace Couchbase
         }
 
         #endregion
+
+        internal static HostEndpoint Create(NodeAdapter nodeAdapter, ClusterOptions options)
+        {
+            return new HostEndpoint(nodeAdapter.Hostname,
+                options.EffectiveEnableTls ? nodeAdapter.KeyValueSsl : nodeAdapter.KeyValue);
+        }
     }
 }

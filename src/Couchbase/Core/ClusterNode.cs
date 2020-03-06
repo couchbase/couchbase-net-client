@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core
 {
-    internal class ClusterNode : IClusterNode, IConnectionInitializer
+    internal class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
     {
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
@@ -140,11 +140,11 @@ namespace Couchbase.Core
         public short[] ServerFeatures { get; set; }
         public IConnectionPool ConnectionPool { get; }
         public List<Exception> Exceptions { get; set; }//TODO catch and hold until first operation per RFC
-        public bool HasViews => NodesAdapter.IsViewNode;
-        public bool HasAnalytics => NodesAdapter.IsAnalyticsNode;
-        public bool HasQuery => NodesAdapter.IsQueryNode;
-        public bool HasSearch => NodesAdapter.IsSearchNode;
-        public bool HasKv => NodesAdapter.IsKvNode;
+        public bool HasViews => NodesAdapter?.IsViewNode ?? false;
+        public bool HasAnalytics => NodesAdapter?.IsAnalyticsNode ?? false;
+        public bool HasQuery => NodesAdapter?.IsQueryNode ?? false;
+        public bool HasSearch => NodesAdapter?.IsSearchNode ?? false;
+        public bool HasKv => NodesAdapter?.IsKvNode ?? false;
 
         public bool Supports(ServerFeatures feature)
         {
@@ -513,5 +513,32 @@ namespace Couchbase.Core
         {
             ConnectionPool?.Dispose();
         }
+
+        #region Equality
+
+        public bool Equals(ClusterNode other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Equals(Owner, other.Owner) && BootstrapEndpoint.Equals(other.BootstrapEndpoint);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((ClusterNode) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((Owner != null ? Owner.GetHashCode() : 0) * 397) ^ EndPoint.GetHashCode();
+            }
+        }
+
+        #endregion
     }
 }
