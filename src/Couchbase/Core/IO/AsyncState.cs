@@ -100,7 +100,8 @@ namespace Couchbase.Core.IO
                 status = (ResponseStatus) ByteConverter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status));
             }
 
-            Callback(response, status);
+            // Run callback in a new task to avoid blocking the connection read process
+            Task.Factory.StartNew(() => Callback(response, status));
 
             _isCompleted = true;
             _tcs?.TrySetResult(true);
