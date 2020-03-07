@@ -40,7 +40,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            var result = await resolver.GetIpAddressAsync("cb.somewhere.com");
+            var result = await resolver.GetIpAddressAsync("cb.somewhere.com").ConfigureAwait(false);
             Assert.Null(result);
         }
 
@@ -82,7 +82,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            var result = await resolver.GetIpAddressAsync("cb.somewhere.com");
+            var result = await resolver.GetIpAddressAsync("cb.somewhere.com").ConfigureAwait(false);
 
             // Assert
 

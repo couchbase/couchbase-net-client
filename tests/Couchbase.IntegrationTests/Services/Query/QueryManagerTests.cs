@@ -24,13 +24,13 @@ namespace Couchbase.IntegrationTests.Services.Query
             try
             {
                 // create primary
-                await queryManager.CreatePrimaryIndexAsync("default");
+                await queryManager.CreatePrimaryIndexAsync("default").ConfigureAwait(false);
 
                 // create deferred custom index
-                await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true));
+                await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true)).ConfigureAwait(false);
 
                 // get all
-                var queryIndexes = await queryManager.GetAllIndexesAsync("default");
+                var queryIndexes = await queryManager.GetAllIndexesAsync("default").ConfigureAwait(false);
                 Assert.True(queryIndexes.Any());
 
                 var primaryIndex = queryIndexes.Single(index => index.Name == "#primary");
@@ -42,18 +42,18 @@ namespace Couchbase.IntegrationTests.Services.Query
                 Assert.Equal("deferred", customIndex.State);
 
                 // build deferred
-                await queryManager.BuildDeferredIndexesAsync("default");
+                await queryManager.BuildDeferredIndexesAsync("default").ConfigureAwait(false);
 
                 // watch deferred index
-                await queryManager.WatchIndexesAsync("default", new[] {"custom"});
+                await queryManager.WatchIndexesAsync("default", new[] {"custom"}).ConfigureAwait(false);
             }
             finally
             {
                 // drop primary
-                await queryManager.DropPrimaryIndexAsync("default");
+                await queryManager.DropPrimaryIndexAsync("default").ConfigureAwait(false);
 
                 // drop custom
-                await queryManager.DropIndexAsync("default", "custom");
+                await queryManager.DropIndexAsync("default", "custom").ConfigureAwait(false);
             }
         }
     }

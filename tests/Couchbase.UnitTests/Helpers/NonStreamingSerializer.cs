@@ -27,7 +27,7 @@ namespace Couchbase.UnitTests.Helpers
 
         public async ValueTask<T> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default)
         {
-            return await _internalSerializer.DeserializeAsync<T>(stream, cancellationToken);
+            return await _internalSerializer.DeserializeAsync<T>(stream, cancellationToken).ConfigureAwait(false);
         }
 
         public void Serialize(Stream stream, object obj)
@@ -37,7 +37,7 @@ namespace Couchbase.UnitTests.Helpers
 
         public async ValueTask SerializeAsync(Stream stream, object obj, CancellationToken cancellationToken = default)
         {
-            await _internalSerializer.SerializeAsync(stream, obj, cancellationToken);
+            await _internalSerializer.SerializeAsync(stream, obj, cancellationToken).ConfigureAwait(false);
         }
     }
 }

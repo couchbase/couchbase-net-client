@@ -19,15 +19,15 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_get_any_replica()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
             var person = Person.Create();
 
             try
             {
-                await collection.InsertAsync(key, person);
+                await collection.InsertAsync(key, person).ConfigureAwait(false);
 
-                var result = await collection.GetAnyReplicaAsync(key);
+                var result = await collection.GetAnyReplicaAsync(key).ConfigureAwait(false);
                 Assert.NotEqual(ulong.MinValue, result.Cas);
                 Assert.Null(result.Expiry);
 
@@ -36,22 +36,22 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Can_get_all_replicas()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
             var person = Person.Create();
 
             try
             {
-                await collection.InsertAsync(key, person);
+                await collection.InsertAsync(key, person).ConfigureAwait(false);
 
-                var result = await Task.WhenAll(collection.GetAllReplicasAsync(key));
+                var result = await Task.WhenAll(collection.GetAllReplicasAsync(key)).ConfigureAwait(false);
                 Assert.Contains(result, x => x.IsActive);
                 Assert.Contains(result, x => !x.IsActive);
 
@@ -66,7 +66,7 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
     }

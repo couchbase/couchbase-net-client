@@ -77,7 +77,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 return;
             }
 
-            await AddConnectionsAsync(MinimumSize, cancellationToken);
+            await AddConnectionsAsync(MinimumSize, cancellationToken).ConfigureAwait(false);
 
             _scaleController.Start(this);
 

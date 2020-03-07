@@ -53,14 +53,14 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_get_document()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, new {name = "mike"});
+                await collection.InsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
 
-                using (var result = await collection.GetAsync(key))
+                using (var result = await collection.GetAsync(key).ConfigureAwait(false))
                 {
                     var content = result.ContentAs<dynamic>();
 
@@ -69,14 +69,14 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Can_Get_Document_As_Poco()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             var poco = new Poco
@@ -102,9 +102,9 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.InsertAsync(key, poco);
+                await collection.InsertAsync(key, poco).ConfigureAwait(false);
 
-                using (var result = await collection.GetAsync(key))
+                using (var result = await collection.GetAsync(key).ConfigureAwait(false))
                 {
                     var content = result.ContentAs<Poco>();
 
@@ -129,14 +129,14 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Can_Get_Over_16_Projections()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             var poco = new Poco
@@ -163,12 +163,12 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.InsertAsync(key, poco);
+                await collection.InsertAsync(key, poco).ConfigureAwait(false);
 
                 using (var result = await collection.GetAsync(key,
                     options => options.Projection("field1", "field2", "field3", "field4", "field5", "field6",
                         "field7", "field8", "field9", "field10", "field11", "field12",
-                        "field13", "field14", "field15", "field16", "field17")))
+                        "field13", "field14", "field15", "field16", "field17")).ConfigureAwait(false))
                 {
                     var content = result.ContentAs<Poco>();
 
@@ -194,21 +194,21 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Can_Get_Projection()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, Person.Create());
+                await collection.InsertAsync(key, Person.Create()).ConfigureAwait(false);
 
-                using (var result = await collection.GetAsync(key, options => options.Projection("name")))
+                using (var result = await collection.GetAsync(key, options => options.Projection("name")).ConfigureAwait(false))
                 {
                     var content = result.ContentAs<Person>();
 
@@ -218,14 +218,14 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Can_Get_Projection_As_Poco()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             var poco = new Poco
@@ -251,10 +251,10 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.InsertAsync(key, poco);
+                await collection.InsertAsync(key, poco).ConfigureAwait(false);
 
                 using (var result =
-                    await collection.GetAsync(key, options => options.Projection("field1", "field3")))
+                    await collection.GetAsync(key, options => options.Projection("field1", "field3")).ConfigureAwait(false))
                 {
                     var content = result.ContentAs<Poco>();
 
@@ -264,21 +264,21 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Can_Get_Projections()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, Person.Create());
+                await collection.InsertAsync(key, Person.Create()).ConfigureAwait(false);
 
-                using (var result = await collection.GetAsync(key, options => options.Projection("name", "age")))
+                using (var result = await collection.GetAsync(key, options => options.Projection("name", "age")).ConfigureAwait(false))
                 {
                     var content = result.ContentAs<Person>();
 
@@ -288,45 +288,45 @@ namespace Couchbase.IntegrationTests
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Get_returns_cas()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, Person.Create());
+                await collection.InsertAsync(key, Person.Create()).ConfigureAwait(false);
 
-                var result = await collection.GetAsync(key);
+                var result = await collection.GetAsync(key).ConfigureAwait(false);
                 Assert.NotEqual(ulong.MinValue, result.Cas);
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Can_GetAndTouch_Do_Something_Fabulous()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, Person.Create());
-                var result = await collection.GetAndTouchAsync(key, TimeSpan.FromMilliseconds(10));
+                await collection.InsertAsync(key, Person.Create()).ConfigureAwait(false);
+                var result = await collection.GetAndTouchAsync(key, TimeSpan.FromMilliseconds(10)).ConfigureAwait(false);
                 var content = result.ContentAs<Person>();
                 Assert.NotEqual(ulong.MinValue, result.Cas);
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
     }

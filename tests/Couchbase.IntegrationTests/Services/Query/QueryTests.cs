@@ -22,30 +22,30 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_Query()
         {
-            var cluster = await _fixture.GetCluster();
-            await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;");
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;").ConfigureAwait(false);
         }
 
         [Fact]
         public async Task Test_Prepared()
         {
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             // execute prepare first time
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;",
-                options => options.AdHoc(false));
+                options => options.AdHoc(false)).ConfigureAwait(false);
             Assert.Equal(QueryStatus.Success, result.MetaData.Status);
 
             // should use prepared plan
             var preparedResult = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` LIMIT 1;",
-                options => options.AdHoc(false));
+                options => options.AdHoc(false)).ConfigureAwait(false);
             Assert.Equal(QueryStatus.Success, preparedResult.MetaData.Status);
         }
 
         [Fact]
         public async Task Test_QueryWithSynchronousStream()
         {
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
@@ -64,7 +64,7 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_QueryWithAsyncStreamCSharp7()
         {
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>
@@ -92,7 +92,7 @@ namespace Couchbase.IntegrationTests.Services.Query
         [Fact]
         public async Task Test_QueryWithAsyncStreamCSharp8()
         {
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
                 parameter =>

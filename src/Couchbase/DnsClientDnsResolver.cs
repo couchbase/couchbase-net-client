@@ -90,7 +90,7 @@ namespace Couchbase
 
             var query = string.Concat(bootstrapUri.Scheme == "couchbases" ? TlsServicePrefix : DefaultServicePrefix, bootstrapUri.Host);
             var result = await _lookupClient.QueryAsync(query, QueryType.SRV,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (result.HasError)
             {

@@ -31,7 +31,7 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
             var result = await cluster.AnalyticsQuery<TestRequest>(statement)
                 .ToListAsync().ConfigureAwait(false);
 
@@ -44,10 +44,10 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         {
             const string statement = "SELECT \"hello\" as greeting;";
 
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
             var result = await cluster.IngestAsync<dynamic>(
                 statement,
-                await _fixture.GetDefaultCollection(),
+                await _fixture.GetDefaultCollection().ConfigureAwait(false),
                 options =>
                 {
                     options.Timeout(TimeSpan.FromSeconds(75));

@@ -362,7 +362,7 @@ namespace Couchbase.Core
             var ipEndPointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
             foreach (var nodeAdapter in config.GetNodes())
             {
-                var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken);
+                var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken).ConfigureAwait(false);
                 if (Nodes.TryGet(endPoint, out var bootstrapNode))
                 {
                     if (bootstrapNode.Owner == null)

@@ -21,7 +21,7 @@ namespace Couchbase.IntegrationTests.Management
         public async Task TestIndexManager()
         {
             var cluster = _fixture.Cluster;
-            var bucket = await _fixture.GetDefaultBucket();
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
             var manager = bucket.ViewIndexes;
 
             var designDoc = new DesignDocument
@@ -43,25 +43,25 @@ namespace Couchbase.IntegrationTests.Management
             try
             {
                 // upsert
-                await manager.UpsertDesignDocumentAsync(designDoc, DesignDocumentNamespace.Development);
+                await manager.UpsertDesignDocumentAsync(designDoc, DesignDocumentNamespace.Development).ConfigureAwait(false);
 
                 // get
-                var getResult = await manager.GetDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Development);
+                var getResult = await manager.GetDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Development).ConfigureAwait(false);
                 VerifyDesignDoc(designDoc, getResult);
 
                 // publish
-                await manager.PublishDesignDocumentAsync(designDoc.Name);
+                await manager.PublishDesignDocumentAsync(designDoc.Name).ConfigureAwait(false);
 
                 // get all
                 var getAllResult =
-                    (await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production)).ToList();
+                    (await manager.GetAllDesignDocumentsAsync(DesignDocumentNamespace.Production).ConfigureAwait(false)).ToList();
                 var result = getAllResult.First(p => p.Name == "test_ddoc");
                 VerifyDesignDoc(designDoc, result);
             }
             finally
             {
                 // drop
-                await manager.DropDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Production);
+                await manager.DropDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Production).ConfigureAwait(false);
             }
         }
 

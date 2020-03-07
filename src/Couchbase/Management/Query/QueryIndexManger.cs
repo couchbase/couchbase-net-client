@@ -34,7 +34,7 @@ namespace Couchbase.Management.Query
             {
                 var indexes = await this.GetAllIndexesAsync(bucketName,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                );
+                ).ConfigureAwait(false);
 
                 var tasks = new List<Task>();
                 foreach (var index in indexes.Where(i => i.State == "pending" || i.State == "deferred"))
@@ -45,7 +45,7 @@ namespace Couchbase.Management.Query
                     ));
                 }
 
-                await Task.WhenAll(tasks);
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -66,7 +66,7 @@ namespace Couchbase.Management.Query
                 var statement = $"CREATE INDEX {indexName} ON {bucketName}({string.Join(",", fields)}) USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                );
+                ).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -86,7 +86,7 @@ namespace Couchbase.Management.Query
                 var statement = $"CREATE PRIMARY INDEX ON {bucketName} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                );
+                ).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -107,7 +107,7 @@ namespace Couchbase.Management.Query
                 var statement = $"DROP INDEX {bucketName}.{indexName} USING GSI;";
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                );
+                ).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -128,7 +128,7 @@ namespace Couchbase.Management.Query
                 var statement = $"DROP PRIMARY INDEX ON {bucketName} USING GSI;";
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                );
+                ).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -149,7 +149,7 @@ namespace Couchbase.Management.Query
                 var statement = $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=\"{bucketName}\" AND `using`=\"gsi\";";
                 var result = await _queryClient.QueryAsync<QueryIndex>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                );
+                ).ConfigureAwait(false);
 
                 var indexes = new List<QueryIndex>();
                 await foreach (var row in result.ConfigureAwait(false))
@@ -180,7 +180,7 @@ namespace Couchbase.Management.Query
                 {
                     var indexes = await this.GetAllIndexesAsync(bucketName,
                         queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                    );
+                    ).ConfigureAwait(false);
 
                     var pendingIndexes = indexes.Where(index => index.State != "online")
                         .Select(index => index.Name)
@@ -192,7 +192,7 @@ namespace Couchbase.Management.Query
 
                     _logger.LogInformation($"Still waiting for indexes to complete building ({indexesToWatch})",
                         _redactor.MetaData(indexesToWatch));
-                    await Task.Delay(WatchIndexSleepDuration);
+                    await Task.Delay(WatchIndexSleepDuration).ConfigureAwait(false);
                 }
             }
             catch (TaskCanceledException)

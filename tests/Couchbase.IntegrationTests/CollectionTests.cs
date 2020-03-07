@@ -21,7 +21,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Collection_Exists()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default");
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope", collectionName = "my_collection";

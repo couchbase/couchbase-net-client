@@ -59,7 +59,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            var result = await cluster.Object.QueryAsync<TestClass>("SELECT * FROM `default`");
+            var result = await cluster.Object.QueryAsync<TestClass>("SELECT * FROM `default`").ConfigureAwait(false);
 
             // Assert
 
@@ -105,7 +105,7 @@ namespace Couchbase.UnitTests
 
             // Act
 
-            var result = await cluster.Object.AnalyticsQueryAsync<TestClass>("SELECT * FROM `default`");
+            var result = await cluster.Object.AnalyticsQueryAsync<TestClass>("SELECT * FROM `default`").ConfigureAwait(false);
 
             // Assert
 

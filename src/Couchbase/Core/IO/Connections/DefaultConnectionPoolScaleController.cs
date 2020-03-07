@@ -115,7 +115,7 @@ namespace Couchbase.Core.IO.Connections
 
                     // We have at least one connection going idle, so scale down by 1 so it's gradual.
                     // We'll reevaluate on the next cycle if we need to scale down more.
-                    await connectionPool.ScaleAsync(-1);
+                    await connectionPool.ScaleAsync(-1).ConfigureAwait(false);
 
                     // Don't do any further checks
                     return;
@@ -136,7 +136,7 @@ namespace Couchbase.Core.IO.Connections
                     _logger.LogInformation(
                         "Detected {count} back pressure, scaling up connection pool {endpoint}",
                         backPressure, _redactor.SystemData(connectionPool.EndPoint));
-                    await connectionPool.ScaleAsync(1);
+                    await connectionPool.ScaleAsync(1).ConfigureAwait(false);
                 }
             }
         }

@@ -20,42 +20,42 @@ namespace Couchbase.IntegrationTests
         public async Task Exists_returns_true_when_key_exists()
         {
             var key = Guid.NewGuid().ToString();
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
 
             try
             {
-                var result = await collection.ExistsAsync(key);
+                var result = await collection.ExistsAsync(key).ConfigureAwait(false);
                 Assert.False(result.Exists);
 
-                await collection.InsertAsync(key, new { }, options => options.Expiry(TimeSpan.FromHours(1)));
+                await collection.InsertAsync(key, new { }, options => options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
 
-                result = await collection.ExistsAsync(key);
+                result = await collection.ExistsAsync(key).ConfigureAwait(false);
                 Assert.True(result.Exists);
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
 
         [Fact]
         public async Task Exists_returns_cas()
         {
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
             {
-                await collection.InsertAsync(key, new {});
+                await collection.InsertAsync(key, new {}).ConfigureAwait(false);
 
-                var get = await collection.GetAsync(key);
-                var result = await collection.ExistsAsync(key);
+                var get = await collection.GetAsync(key).ConfigureAwait(false);
+                var result = await collection.ExistsAsync(key).ConfigureAwait(false);
                 Assert.Equal(get.Cas, result.Cas);
                 Assert.NotEqual(ulong.MinValue, result.Cas);
             }
             finally
             {
-                await collection.RemoveAsync(key);
+                await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
     }

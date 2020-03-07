@@ -37,7 +37,7 @@ namespace Couchbase.Query
         /// <inheritdoc />
         public override async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
-            var body = await _deserializer.DeserializeAsync<QueryResultData>(ResponseStream, cancellationToken);
+            var body = await _deserializer.DeserializeAsync<QueryResultData>(ResponseStream, cancellationToken).ConfigureAwait(false);
 
             MetaData = new QueryMetaData
             {

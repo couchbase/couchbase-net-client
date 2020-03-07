@@ -35,7 +35,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 new DnsClientDnsResolver(new LookupClient(), new Mock<ILogger<DnsClientDnsResolver>>().Object),
                 options);
             var ipEndPoint = await ipEndPointService.GetIpEndPointAsync(
-                options.ConnectionStringValue.GetBootstrapEndpoints().First().Host, 11210);
+                options.ConnectionStringValue.GetBootstrapEndpoints().First().Host, 11210).ConfigureAwait(false);
 
             var connection = await factory
                 .CreateAndConnectAsync(ipEndPoint)

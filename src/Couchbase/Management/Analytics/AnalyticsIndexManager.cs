@@ -1,9 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Linq;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -235,7 +233,7 @@ namespace Couchbase.Management.Analytics
 
                 if (!fields.Any())
                 {
-                    throw new InvalidArgumentException("Atleast one field is required.");
+                    throw new InvalidArgumentException("At least one field is required.");
                 }
 
                 var joinedFields = $"({string.Join(", ", fields.Select(x => $"{x.Key}: {x.Value}"))})";
@@ -359,7 +357,7 @@ namespace Couchbase.Management.Analytics
             }
             catch (LinkNotFoundException)
             {
-                _logger.LogError("Could not find link {linkname}", _redactor.MetaData(options.LinkNameValue));
+                _logger.LogError("Could not find link {linkName}", _redactor.MetaData(options.LinkNameValue));
                 throw;
             }
             catch (Exception exception)
@@ -383,7 +381,7 @@ namespace Couchbase.Management.Analytics
             }
             catch (LinkNotFoundException)
             {
-                _logger.LogError("Could not find link {linkname}", _redactor.MetaData(options.LinkNameValue));
+                _logger.LogError("Could not find link {linkName}", _redactor.MetaData(options.LinkNameValue));
                 throw;
             }
             catch (Exception exception)

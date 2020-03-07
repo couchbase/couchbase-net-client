@@ -59,7 +59,7 @@ namespace Couchbase.Diagnostics
                 _logger.LogTrace("Pinging {nodeType} node {node} using ping URI {pingUri}", NodeType,
                     _redactor.SystemData(uri), _redactor.SystemData(pingUri));
 
-                var response = await _httpClient.GetAsync(pingUri, cancellationToken);
+                var response = await _httpClient.GetAsync(pingUri, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {

@@ -28,13 +28,13 @@ namespace Couchbase.IntegrationTests.Fixtures
                 return Cluster;
             }
 
-            await GetDefaultBucket();
+            await GetDefaultBucket().ConfigureAwait(false);
             return Cluster;
         }
 
         public async Task<IBucket> GetDefaultBucket()
         {
-            var bucket = await Cluster.BucketAsync(_settings.BucketName);
+            var bucket = await Cluster.BucketAsync(_settings.BucketName).ConfigureAwait(false);
 
             _bucketOpened = true;
 
@@ -43,7 +43,7 @@ namespace Couchbase.IntegrationTests.Fixtures
 
         public async Task<ICouchbaseCollection> GetDefaultCollection()
         {
-            var bucket = await GetDefaultBucket();
+            var bucket = await GetDefaultBucket().ConfigureAwait(false);
             return bucket.DefaultCollection();
         }
 

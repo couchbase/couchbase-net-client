@@ -1,6 +1,6 @@
 {
   "testSettings": {
-    "connectionString": "couchbase://localhost",
+    "connectionString": "couchbase://10.143.194.101",
     "bucketName": "default"
   },
   "couchbase": {
@@ -8,7 +8,7 @@
     "password": "password"
   },
   "couchbaseSsl": {
-    "connectionString": "couchbases://localhost",
+    "connectionString": "couchbases://10.143.194.101",
     "username": "Administrator",
     "password": "password"
   }

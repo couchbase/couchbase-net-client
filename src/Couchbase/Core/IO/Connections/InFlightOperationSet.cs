@@ -64,7 +64,7 @@ namespace Couchbase.Core.IO.Connections
             var allStatesTask = Task.WhenAll(
                 _statesInFlight.Select(p => p.Value.CompletionTask));
 
-            var waitTask = await Task.WhenAny(allStatesTask, Task.Delay(timeout));
+            var waitTask = await Task.WhenAny(allStatesTask, Task.Delay(timeout)).ConfigureAwait(false);
 
             if (waitTask != allStatesTask)
             {

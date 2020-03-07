@@ -31,7 +31,7 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // available roles
-                var availableRoles = await userManager.GetRolesAsync();
+                var availableRoles = await userManager.GetRolesAsync().ConfigureAwait(false);
                 Assert.Contains(availableRoles, role => role.Role.Name == "admin");
 
                 // upsert group
@@ -41,10 +41,10 @@ namespace Couchbase.IntegrationTests
                     LdapGroupReference = "asda=price",
                     Roles = new[] {new Role {Name = "admin"}, new Role{Name = "bucket_admin", Bucket = "*"}}
                 };
-                await userManager.UpsertGroupAsync(group);
+                await userManager.UpsertGroupAsync(@group).ConfigureAwait(false);
 
                 // get group
-                var groupResult = await userManager.GetGroupAsync(groupName);
+                var groupResult = await userManager.GetGroupAsync(groupName).ConfigureAwait(false);
                 Assert.Equal(group.Name, groupResult.Name);
                 Assert.Equal(group.Description, groupResult.Description);
                 Assert.Equal(group.LdapGroupReference, groupResult.LdapGroupReference);
@@ -52,7 +52,7 @@ namespace Couchbase.IntegrationTests
                 Assert.Contains(group.Roles, role => role.Name == "bucket_admin" && role.Bucket == "*");
 
                 // get all groups
-                var allGroupsResult = await userManager.GetAllGroupsAsync();
+                var allGroupsResult = await userManager.GetAllGroupsAsync().ConfigureAwait(false);
                 groupResult = allGroupsResult.Single(x => x.Name == groupName);
                 Assert.Equal(group.Name, groupResult.Name);
                 Assert.Equal(group.Description, groupResult.Description);
@@ -68,10 +68,10 @@ namespace Couchbase.IntegrationTests
                     Roles = roles,
                     Password = password
                 };
-                await userManager.UpsertUsersAsync(user);
+                await userManager.UpsertUsersAsync(user).ConfigureAwait(false);
 
                 // get user with meta
-                var userResult = await userManager.GetUserAsync(username);
+                var userResult = await userManager.GetUserAsync(username).ConfigureAwait(false);
                 Assert.Equal(username, userResult.Username);
                 Assert.Equal(displayName, userResult.DisplayName);
                 Assert.Equal("local", userResult.Domain);
@@ -81,7 +81,7 @@ namespace Couchbase.IntegrationTests
                 Assert.Contains(userResult.Groups, x => x == groupName);
 
                 // get all users with meta
-                var users = await userManager.GetAllUsersAsync();
+                var users = await userManager.GetAllUsersAsync().ConfigureAwait(false);
                 userResult = users.Single(x => x.Username == username);
                 Assert.Equal(username, userResult.Username);
                 Assert.Equal(displayName, userResult.DisplayName);
@@ -94,10 +94,10 @@ namespace Couchbase.IntegrationTests
             finally
             {
                 // drop user
-                await userManager.DropUserAsync(username);
+                await userManager.DropUserAsync(username).ConfigureAwait(false);
 
                 // drop group
-                await userManager.DropGroupAsync(groupName);
+                await userManager.DropGroupAsync(groupName).ConfigureAwait(false);
             }
         }
     }

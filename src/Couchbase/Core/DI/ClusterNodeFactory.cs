@@ -43,7 +43,7 @@ namespace Couchbase.Core.DI
         /// <inheritdoc />
         public async Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, CancellationToken cancellationToken = default)
         {
-            var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken);
+            var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
 
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
                 _transcoder, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint)

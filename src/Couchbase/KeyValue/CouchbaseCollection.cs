@@ -140,7 +140,7 @@ namespace Couchbase.KeyValue
                     Transcoder = _transcoder
                 };
 
-                await _bucket.SendAsync(getMetaOp, options.TokenValue, options.TimeoutValue);
+                await _bucket.SendAsync(getMetaOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
                 var result = getMetaOp.GetValue();
                 return new ExistsResult
                 {
@@ -317,7 +317,7 @@ namespace Couchbase.KeyValue
                 Expires = expiry.ToTtl(),
                 Transcoder = transcoder
             };
-            await _bucket.SendAsync(getAndTouchOp, options.TokenValue, options.TimeoutValue);
+            await _bucket.SendAsync(getAndTouchOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return new GetResult(getAndTouchOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getAndTouchOp.Key,
@@ -346,7 +346,7 @@ namespace Couchbase.KeyValue
                 Expiry = lockTime.ToTtl(),
                 Transcoder = transcoder
             };
-            await _bucket.SendAsync(getAndLockOp, options.TokenValue, options.TimeoutValue);
+            await _bucket.SendAsync(getAndLockOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return new GetResult(getAndLockOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getAndLockOp.Key,
@@ -367,7 +367,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new LookupInOptions();
-            using var lookup = await ExecuteLookupIn(id, specs, options);
+            using var lookup = await ExecuteLookupIn(id, specs, options).ConfigureAwait(false);
             return new LookupInResult(lookup.ExtractData(), lookup.Cas, null,
                 options.SerializerValue ?? _transcoder.Serializer);
         }
@@ -395,7 +395,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder
             };
 
-            await _bucket.RetryAsync(lookup, options.TokenValue, options.TimeoutValue);
+            await _bucket.RetryAsync(lookup, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return lookup;
         }
 
@@ -439,7 +439,7 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 DocFlags = docFlags
             };
-            await _bucket.SendAsync(mutation, options.TokenValue, options.TimeoutValue);
+            await _bucket.SendAsync(mutation, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return new MutateInResult(mutation.GetCommandValues(),mutation.Cas, mutation.MutationToken,
                 options.SerializerValue ?? _transcoder.Serializer);
         }
@@ -462,7 +462,7 @@ namespace Couchbase.KeyValue
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder
             };
-            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue);
+            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
 
@@ -484,7 +484,7 @@ namespace Couchbase.KeyValue
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder
             };
-            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue);
+            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
 
@@ -507,7 +507,7 @@ namespace Couchbase.KeyValue
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder
             };
-            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue);
+            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
 
@@ -530,7 +530,7 @@ namespace Couchbase.KeyValue
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder
             };
-            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue);
+            await _bucket.SendAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
 

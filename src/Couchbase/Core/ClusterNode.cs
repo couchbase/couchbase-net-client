@@ -167,7 +167,7 @@ namespace Couchbase.Core
 
         public async Task InitializeAsync()
         {
-            await ConnectionPool.InitializeAsync(_context.CancellationToken);
+            await ConnectionPool.InitializeAsync(_context.CancellationToken).ConfigureAwait(false);
         }
 
         private async Task<ErrorMap> GetErrorMap(IConnection connection, CancellationToken cancellationToken = default)
@@ -223,14 +223,14 @@ namespace Couchbase.Core
                 Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext()
             };
-            await ExecuteOp(ConnectionPool, manifestOp);
+            await ExecuteOp(ConnectionPool, manifestOp).ConfigureAwait(false);
             var manifestResult = manifestOp.GetResultWithValue();
             return manifestResult.Content;
         }
 
         public async Task SelectBucketAsync(IBucket bucket, CancellationToken cancellationToken = default)
         {
-            await ConnectionPool.SelectBucketAsync(bucket.Name, cancellationToken);
+            await ConnectionPool.SelectBucketAsync(bucket.Name, cancellationToken).ConfigureAwait(false);
 
             Owner = bucket;
         }
@@ -244,7 +244,7 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
             };
-            await ExecuteOp(ConnectionPool, configOp);
+            await ExecuteOp(ConnectionPool, configOp).ConfigureAwait(false);
 
             var configResult = configOp.GetResultWithValue();
             var config = configResult.Content;

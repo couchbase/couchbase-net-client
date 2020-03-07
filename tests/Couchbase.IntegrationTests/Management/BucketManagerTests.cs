@@ -18,7 +18,7 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task CreateAndDropBucket()
         {
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             await cluster.Buckets.CreateBucketAsync(new BucketSettings
             {
@@ -26,11 +26,11 @@ namespace Couchbase.IntegrationTests.Management
                 Name = "bucketmgr_test",
                 NumReplicas = 0,
                 RamQuotaMB = 100
-            });
+            }).ConfigureAwait(false);
 
-            await Task.Delay(5000);
+            await Task.Delay(5000).ConfigureAwait(false);
 
-            await cluster.Buckets.DropBucketAsync("bucketmgr_test");
+            await cluster.Buckets.DropBucketAsync("bucketmgr_test").ConfigureAwait(false);
         }
     }
 }

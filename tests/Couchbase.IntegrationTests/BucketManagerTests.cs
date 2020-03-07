@@ -37,28 +37,28 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // create
-                await bucketManager.CreateBucketAsync(settings);
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
 
                 // get
-                var result = await bucketManager.GetBucketAsync(settings.Name);
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
                 VerifyBucket(settings, result);
 
                 // upsert
                 settings.ConflictResolutionType = null; // not allowed to edit on existing bucket
-                await bucketManager.UpdateBucketAsync(settings);
+                await bucketManager.UpdateBucketAsync(settings).ConfigureAwait(false);
                 settings.ConflictResolutionType = ConflictResolutionType.Timestamp;
 
                 // get all
-                var allBuckets = await bucketManager.GetAllBucketsAsync();
+                var allBuckets = await bucketManager.GetAllBucketsAsync().ConfigureAwait(false);
                 VerifyBucket(settings, allBuckets.Single(x => x.Key == settings.Name).Value);
 
                 // flush
-                await bucketManager.FlushBucketAsync(settings.Name);
+                await bucketManager.FlushBucketAsync(settings.Name).ConfigureAwait(false);
             }
             finally
             {
                 // drop
-                await bucketManager.DropBucketAsync(settings.Name);
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
             }
         }
 

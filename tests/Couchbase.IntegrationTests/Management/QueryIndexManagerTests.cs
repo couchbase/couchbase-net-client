@@ -20,25 +20,25 @@ namespace Couchbase.IntegrationTests.Management
         [Fact]
         public async Task CreateAndDropIndex()
         {
-            var cluster = await _fixture.GetCluster();
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             await cluster.QueryIndexes.CreateIndexAsync(
-                "default", "indexmgr_test", new[] {"type"});
+                "default", "indexmgr_test", new[] {"type"}).ConfigureAwait(false);
 
             try
             {
-                await cluster.QueryIndexes.BuildDeferredIndexesAsync("default");
+                await cluster.QueryIndexes.BuildDeferredIndexesAsync("default").ConfigureAwait(false);
 
                 using var cts = new CancellationTokenSource(10000);
 
                 await cluster.QueryIndexes.WatchIndexesAsync("default", new[] {"indexmgr_test"}, options =>
-                    {
-                        options.CancellationToken(cts.Token);
-                    });
+                {
+                    options.CancellationToken(cts.Token);
+                }).ConfigureAwait(false);
             }
             finally
             {
-                await cluster.QueryIndexes.DropIndexAsync("default", "indexmgr_test");
+                await cluster.QueryIndexes.DropIndexAsync("default", "indexmgr_test").ConfigureAwait(false);
             }
         }
     }

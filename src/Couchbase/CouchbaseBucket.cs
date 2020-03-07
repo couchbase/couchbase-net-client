@@ -209,15 +209,15 @@ namespace Couchbase
             {
                 try
                 {
-                    await clusterNode.SendAsync(op, token, timeout);
+                    await clusterNode.SendAsync(op, token, timeout).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
                     if (e is CollectionOutdatedException)
                     {
                         Logger.LogInformation("Updating stale manifest for collection and retrying.", e);
-                        await RefreshCollectionId(op, clusterNode);
-                        await clusterNode.SendAsync(op, token, timeout);
+                        await RefreshCollectionId(op, clusterNode).ConfigureAwait(false);
+                        await clusterNode.SendAsync(op, token, timeout).ConfigureAwait(false);
                     }
                     else
                     {
@@ -243,7 +243,7 @@ namespace Couchbase
         {
             var scope = Scope(op.SName);
             var collection = (CouchbaseCollection)scope.Collection(op.CName);
-            var newCid = await node.GetCid($"{op.SName}.{op.CName}");
+            var newCid = await node.GetCid($"{op.SName}.{op.CName}").ConfigureAwait(false);
             collection.Cid = newCid;
             op.Cid = collection.Cid;
         }

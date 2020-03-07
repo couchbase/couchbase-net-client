@@ -64,7 +64,7 @@ namespace Couchbase.Views
 
             if (ResponseStream != null)
             {
-                var body = await _deserializer.DeserializeAsync<ViewResultData>(ResponseStream, cancellationToken);
+                var body = await _deserializer.DeserializeAsync<ViewResultData>(ResponseStream, cancellationToken).ConfigureAwait(false);
 
                 MetaData = new ViewMetaData
                 {

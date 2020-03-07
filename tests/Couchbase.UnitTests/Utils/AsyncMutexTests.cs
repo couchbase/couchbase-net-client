@@ -40,7 +40,7 @@ namespace Couchbase.UnitTests.Utils
 
             mutex.ReleaseLock();
 
-            await task2;
+            await task2.ConfigureAwait(false);
         }
 
         [Fact]
@@ -66,13 +66,13 @@ namespace Couchbase.UnitTests.Utils
             // Arrange
 
             var mutex = new AsyncMutex();
-            await mutex.GetLockAsync();
+            await mutex.GetLockAsync().ConfigureAwait(false);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
 
             // Act/Assert
 
-            var ex = await Assert.ThrowsAsync<TaskCanceledException>(() => mutex.GetLockAsync(cts.Token).AsTask());
+            var ex = await Assert.ThrowsAsync<TaskCanceledException>(() => mutex.GetLockAsync(cts.Token).AsTask()).ConfigureAwait(false);
 
             Assert.Equal(cts.Token, ex.CancellationToken);
         }

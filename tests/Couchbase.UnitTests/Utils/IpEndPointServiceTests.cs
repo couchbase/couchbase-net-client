@@ -30,7 +30,7 @@ namespace Couchbase.UnitTests.Utils
 
             // Act
 
-            var result = await service.GetIpEndPointAsync(ipAddress, port);
+            var result = await service.GetIpEndPointAsync(ipAddress, port).ConfigureAwait(false);
 
             // Assert
 
@@ -59,7 +59,7 @@ namespace Couchbase.UnitTests.Utils
 
             // Act
 
-            var result = await service.GetIpEndPointAsync("test.com", port);
+            var result = await service.GetIpEndPointAsync("test.com", port).ConfigureAwait(false);
 
             // Assert
 
@@ -77,7 +77,7 @@ namespace Couchbase.UnitTests.Utils
 
             // Act
 
-            var result = await service.GetIpEndPointAsync("test.com", 11210);
+            var result = await service.GetIpEndPointAsync("test.com", 11210).ConfigureAwait(false);
 
             // Assert
 
@@ -110,7 +110,7 @@ namespace Couchbase.UnitTests.Utils
                     Kv = 11210,
                     KvSsl = 11207
                 }
-            });
+            }).ConfigureAwait(false);
 
             // Assert
 
@@ -139,7 +139,7 @@ namespace Couchbase.UnitTests.Utils
                     Kv = 11210,
                     KvSsl = 11207
                 }
-            });
+            }).ConfigureAwait(false);
 
             // Assert
 
@@ -169,7 +169,7 @@ namespace Couchbase.UnitTests.Utils
                 Hostname = "127.0.0.1",
                 KeyValue = 11210,
                 KeyValueSsl = 11207
-            });
+            }).ConfigureAwait(false);
 
             // Assert
 

@@ -37,7 +37,7 @@ namespace Couchbase.Core.IO.Authentication
                 Transcoder = new LegacyTranscoder()
             };
 
-            await SendAsync(op, connection, cancellationToken);
+            await SendAsync(op, connection, cancellationToken).ConfigureAwait(false);
         }
 
         static string GetAuthData(string userName, string passWord)

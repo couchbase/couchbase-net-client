@@ -86,7 +86,7 @@ namespace Couchbase.DataStructures
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
             var items = result.ContentAs<IList<TValue>>();
             items.CopyTo(array, arrayIndex);
-            await Collection.UpsertAsync(Key, items);
+            await Collection.UpsertAsync(Key, items).ConfigureAwait(false);
         }
 
         public Task<int> CountAsync => Task.FromResult(GetListAsync().GetAwaiter().GetResult().Count);

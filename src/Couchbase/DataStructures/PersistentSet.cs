@@ -64,12 +64,12 @@ namespace Couchbase.DataStructures
         public async Task<bool> AddAsync(TValue item)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var items = getResult.ContentAs<HashSet<TValue>>();
             var added = items.Add(item);
             if (added)
             {
-                await Collection.UpsertAsync(Key, items);
+                await Collection.UpsertAsync(Key, items).ConfigureAwait(false);
             }
 
             return added;
@@ -150,25 +150,25 @@ namespace Couchbase.DataStructures
         public async Task ExceptWithAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             thisSet.ExceptWith(other);
-            await Collection.UpsertAsync(Key, thisSet);
+            await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
 
         public async Task IntersectWithAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             thisSet.IntersectWith(other);
-            await Collection.UpsertAsync(Key, thisSet);
+            await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
 
         public async Task<bool> IsProperSubsetOfAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             return thisSet.IsProperSubsetOf(other);
         }
@@ -176,7 +176,7 @@ namespace Couchbase.DataStructures
         public async Task<bool> IsProperSupersetOfAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             return thisSet.IsProperSupersetOf(other);
         }
@@ -184,7 +184,7 @@ namespace Couchbase.DataStructures
         public async Task<bool> IsSubsetOfAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             return thisSet.IsSubsetOf(other);
         }
@@ -192,7 +192,7 @@ namespace Couchbase.DataStructures
         public async Task<bool> IsSupersetOfAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             return thisSet.IsSupersetOf(other);
         }
@@ -200,7 +200,7 @@ namespace Couchbase.DataStructures
         public async Task<bool> OverlapsAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             return thisSet.Overlaps(other);
         }
@@ -208,7 +208,7 @@ namespace Couchbase.DataStructures
         public async Task<bool> SetEqualsAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             return thisSet.SetEquals(other);
         }
@@ -216,25 +216,25 @@ namespace Couchbase.DataStructures
         public async Task SymmetricExceptWithAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             thisSet.SymmetricExceptWith(other);
-            await Collection.UpsertAsync(Key, thisSet);
+            await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
 
         public async Task UnionWithAsync(IEnumerable<TValue> other)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             thisSet.UnionWith(other);
-            await Collection.UpsertAsync(Key, thisSet);
+            await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
 
         public async Task<bool> ContainsAsync(TValue item)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var items = getResult.ContentAs<HashSet<TValue>>();
             return items.Contains(item);
         }
@@ -242,12 +242,12 @@ namespace Couchbase.DataStructures
         public async Task<bool> RemoveAsync(TValue item)
         {
             CreateBackingStore();
-            using var getResult = await Collection.GetAsync(Key);
+            using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>();
             var removed = thisSet.Remove(item);
             if (removed)
             {
-                await Collection.UpsertAsync(Key, thisSet);
+                await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
             }
 
             return removed;

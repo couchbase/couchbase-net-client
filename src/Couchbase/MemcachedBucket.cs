@@ -98,7 +98,7 @@ namespace Couchbase
 
             if (Context.Nodes.TryGet(endPoint, out var clusterNode))
             {
-                await clusterNode.ExecuteOp(op, token, timeout);
+                await clusterNode.ExecuteOp(op, token, timeout).ConfigureAwait(false);
             }
             else
             {
@@ -112,13 +112,13 @@ namespace Couchbase
             BucketConfig = await _httpClusterMap.GetClusterMapAsync(
                 Name, node.BootstrapEndpoint, CancellationToken.None).ConfigureAwait(false);
 
-            KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig);
+            KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
             //the initial bootstrapping endpoint;
             await node.SelectBucketAsync(this).ConfigureAwait(false);
 
             LoadManifest();
-            await Context.ProcessClusterMapAsync(this, BucketConfig);
+            await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
             Bootstrapper.Start(this);
         }
     }

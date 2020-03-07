@@ -281,7 +281,7 @@ namespace Couchbase.Core.IO.Connections
         {
             try
             {
-                await _statesInFlight.WaitForAllOperationsAsync(timeout);
+                await _statesInFlight.WaitForAllOperationsAsync(timeout).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

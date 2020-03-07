@@ -27,7 +27,7 @@ namespace Couchbase.Core.DI
         /// <inheritdoc />
         public async Task<KetamaKeyMapper> CreateAsync(BucketConfig bucketConfig, CancellationToken cancellationToken = default)
         {
-            var ipEndPoints = await GetIpEndPointsAsync(bucketConfig, cancellationToken);
+            var ipEndPoints = await GetIpEndPointsAsync(bucketConfig, cancellationToken).ConfigureAwait(false);
 
             return new KetamaKeyMapper(ipEndPoints);
         }
@@ -37,7 +37,7 @@ namespace Couchbase.Core.DI
             var ipEndPoints = new List<IPEndPoint>();
             foreach (var node in config.GetNodes().Where(p => p.IsKvNode))
             {
-                var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(node, cancellationToken);
+                var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(node, cancellationToken).ConfigureAwait(false);
                 if (ipEndPoint == null)
                 {
                     throw new InvalidOperationException("IP endpoint lookup failed.");

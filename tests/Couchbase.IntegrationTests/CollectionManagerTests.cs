@@ -19,7 +19,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_CollectionManager()
         {
-            var bucket = await _fixture.Cluster.BucketAsync("default");
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
             var collectionManager = (CollectionManager) bucket.Collections;
 
             const string scopeName = "test_scope", collectionName = "test_collection";
@@ -29,35 +29,35 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeSpec);
+                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
 
                 // scope exists
-                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName);
+                var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(false);
                 Assert.True(scopeExistsResult);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName);
+                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // get all scopes
-                var getAllScopesResult = await collectionManager.GetAllScopesAsync();
+                var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(false);
                 var scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
                 Assert.NotNull(scope);
 
                 // create collection
-                await collectionManager.CreateCollectionAsync(collectionSpec);
+                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
 
                 // collection exists
-                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
                 Assert.True(collectionExistsResult);
             }
             finally
             {
                 // drop collection
-                await collectionManager.DropCollectionAsync(collectionSpec);
+                await collectionManager.DropCollectionAsync(collectionSpec).ConfigureAwait(false);
 
                 // drop scope
-                await collectionManager.DropScopeAsync(scopeName);
+                await collectionManager.DropScopeAsync(scopeName).ConfigureAwait(false);
             }
         }
     }

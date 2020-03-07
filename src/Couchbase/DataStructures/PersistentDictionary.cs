@@ -142,7 +142,7 @@ namespace Couchbase.DataStructures
         public async Task AddAsync(KeyValuePair<string, TValue> item)
         {
             CreateBackingStore();
-            await Collection.MutateInAsync(DocId, builder => builder.Insert(item.Key.ToString(), item.Value));
+            await Collection.MutateInAsync(DocId, builder => builder.Insert(item.Key.ToString(), item.Value)).ConfigureAwait(false);
         }
 
         public Task ClearAsync()
@@ -173,20 +173,20 @@ namespace Couchbase.DataStructures
         public async Task AddAsync(string key, TValue value)
         {
             CreateBackingStore();
-            using var exists = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString()));
+            using var exists = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
             if (exists.Exists(0))
             {
                 throw new ArgumentException("An element with the same key already exists in the Dictionary.");
             }
 
             await Collection.MutateInAsync(DocId, builder => builder.Insert(DocId, value),
-                options => options.Cas(exists.Cas));
+                options => options.Cas(exists.Cas)).ConfigureAwait(false);
         }
 
         public async Task<bool> ContainsKeyAsync(string key)
         {
             CreateBackingStore();
-            using var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString()));
+            using var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
             return result.Exists(0);
         }
 
@@ -196,7 +196,7 @@ namespace Couchbase.DataStructures
             var success = true;
             try
             {
-                await Collection.MutateInAsync(DocId, builder => builder.Remove(key.ToString()));
+                await Collection.MutateInAsync(DocId, builder => builder.Remove(key.ToString())).ConfigureAwait(false);
             }
             catch (Exception e)
             {

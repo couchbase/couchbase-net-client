@@ -139,15 +139,15 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             // Assert
 
-            await Task.Delay(10);
+            await Task.Delay(10).ConfigureAwait(false);
             Assert.False(task.IsCompleted);
 
             state1.Complete(null);
-            await Task.Delay(10);
+            await Task.Delay(10).ConfigureAwait(false);
             Assert.False(task.IsCompleted);
 
             state2.Complete(null);
-            await Task.Delay(10);
+            await Task.Delay(10).ConfigureAwait(false);
             Assert.True(task.IsCompleted);
         }
 

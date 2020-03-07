@@ -39,7 +39,7 @@ namespace Couchbase.UnitTests.Management
             var client = new SearchClient(httpClient, mockServiceUriProvider.Object,
                 new Mock<ILogger<SearchClient>>().Object);
 
-            await client.QueryAsync(new SearchRequest{Index = indexName, Options = new SearchOptions()});
+            await client.QueryAsync(new SearchRequest{Index = indexName, Options = new SearchOptions()}).ConfigureAwait(false);
         }
     }
 }
