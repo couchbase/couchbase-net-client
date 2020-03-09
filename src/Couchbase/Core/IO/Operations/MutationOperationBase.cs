@@ -1,14 +1,18 @@
 using System;
 using Couchbase.KeyValue;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.Core.IO.Operations
 {
+
     /// <summary>
     /// Represents an abstract base class for mutation operations (PROTOCOL_BINARY_CMD_SET, DELETE,REPLACE, ADD,
     /// APPEND, PREPEND, INCR, DECR, SET_WITH_META, DEL_WITH_META) and supports <see cref="OperationBase.MutationToken"/>'s.
     /// </summary>
     internal abstract class MutationOperationBase : OperationBase
     {
+        ushort SyncReplicationTimeoutFloorMs = 1500;
+
         public DurabilityLevel DurabilityLevel { get; set; }
         public TimeSpan? DurabilityTimeout { get; set; }
 
@@ -30,16 +34,29 @@ namespace Couchbase.Core.IO.Operations
             }
 
             // TODO: omit timeout bytes if no timeout provided
-            Span<byte> bytes = stackalloc byte[2];
+            Span<byte> bytes = stackalloc byte[4];
 
             var framingExtra = new FramingExtraInfo(RequestFramingExtraType.DurabilityRequirements, (byte) (bytes.Length - 1));
-            bytes[0] = framingExtra.Byte;
+            bytes[0] = (byte) (framingExtra.Byte | (byte) 0x03);
             bytes[1] = (byte) DurabilityLevel;
 
-            // TODO: improve timeout, coerce to 1500ms, etc
-            //var timeout = DurabilityTimeout.HasValue ? DurabilityTimeout.Value.TotalMilliseconds : 0;
-            //Converter.FromUInt16((ushort)timeout, bytes, 2);
+            var userTimeout = DurabilityTimeout.Value.TotalMilliseconds;
 
+            ushort deadline;
+            if (userTimeout >= ushort.MaxValue) {
+                // -1 because 0xffff is going to be reserved by the cluster. 1ms less doesn't matter.
+                deadline = ushort.MaxValue - 1;
+            } else {
+                // per spec 90% of the timeout is used as the deadline
+                deadline = (ushort) (userTimeout * 0.9);
+            }
+
+            if (deadline < SyncReplicationTimeoutFloorMs) {
+                // we need to ensure a floor value
+                deadline = SyncReplicationTimeoutFloorMs;
+            }
+
+            ByteConverter.FromUInt16(deadline, bytes);
             builder.Write(bytes);
         }
     }
