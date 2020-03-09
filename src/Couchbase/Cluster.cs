@@ -50,6 +50,7 @@ namespace Couchbase
         internal Lazy<IBucketManager> LazyBucketManager;
         internal Lazy<IQueryIndexManager> LazyQueryManager;
         internal Lazy<ISearchIndexManager> LazySearchManager;
+        internal Lazy<IAnalyticsIndexManager> LazyAnalyticsIndexManager;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -73,6 +74,7 @@ namespace Couchbase
             LazyBucketManager = new Lazy<IBucketManager>(() => _context.ServiceProvider.GetRequiredService<IBucketManager>());
             LazyUserManager = new Lazy<IUserManager>(() => _context.ServiceProvider.GetRequiredService<IUserManager>());
             LazySearchManager = new Lazy<ISearchIndexManager>(() => _context.ServiceProvider.GetRequiredService<ISearchIndexManager>());
+            LazyAnalyticsIndexManager = new Lazy<IAnalyticsIndexManager>(()=> _context.ServiceProvider.GetRequiredService<IAnalyticsIndexManager>());
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -334,7 +336,7 @@ namespace Couchbase
         public IQueryIndexManager QueryIndexes => LazyQueryManager.Value;
 
         /// <inheritdoc />
-        public IAnalyticsIndexManager AnalyticsIndexes => throw new NotImplementedException();
+        public IAnalyticsIndexManager AnalyticsIndexes => LazyAnalyticsIndexManager.Value;
 
         /// <inheritdoc />
         public ISearchIndexManager SearchIndexes => LazySearchManager.Value;
