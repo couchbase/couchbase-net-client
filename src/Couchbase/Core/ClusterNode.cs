@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Connections;
@@ -429,7 +430,18 @@ namespace Couchbase.Core
                         _logger.LogWarning("Unexpected Status for KeyValue operation not found in Error Map: 0x{code}", code.ToString("X4"));
                     }
 
-                    throw status.CreateException(errorCode);
+                    //Contextual error information
+                    var ctx = new KeyValueErrorContext
+                    {
+                        BucketName = Owner?.Name,
+                        ClientContextId = op.Opaque.ToString(),
+                        DocumentKey = op.Key,
+                        Cas = op.Cas,
+                        CollectionName = op.CName,
+                        ScopeName = op.SName,
+                        Message = errorCode?.ToString()
+                    };
+                    throw status.CreateException(ctx);
                 }
 
                 _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode,

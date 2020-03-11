@@ -3,7 +3,7 @@ using Couchbase.Core.Retry;
 
 namespace Couchbase.KeyValue
 {
-    public class CollectionOutdatedException : Exception, IRetryable
+    public class CollectionOutdatedException : CouchbaseException, IRetryable
     {
         public CollectionOutdatedException()
         {

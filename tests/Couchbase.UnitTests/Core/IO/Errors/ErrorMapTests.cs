@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
     public class ErrorMapTests
     {
         [Fact]
-        public async Task When_Status_Indicates_Failure_ErrorCode_Is_Populated()
+        public async Task When_Status_Indicates_Failure_Context_Is_Populated()
         {
             var errorMap = JsonConvert.DeserializeObject<ErrorMap>(ResourceHelper.ReadResource("kv-error-map.json"));
 
@@ -52,16 +52,26 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 ErrorMap = errorMap
             };
 
-            var insert = new FakeOperation(OpCode.Add, ResponseStatus.KeyExists);
+            var insert = new FakeOperation(OpCode.Add, ResponseStatus.KeyExists)
+            {
+                SName = "TheScope",
+                CName = "TheCollection"
+            };
 
             try
             {
-                await node.ExecuteOp(insert, CancellationToken.None, TimeSpan.FromMinutes(5));
+                await node.ExecuteOp(insert, CancellationToken.None, TimeSpan.FromMinutes(5)).ConfigureAwait(false);
             }
-            catch (DocumentExistsException)
+            catch (DocumentExistsException e)
             {
-                //need to resolve from context
-                //Assert.NotNull((e.InnerException as DocumentExistsException)?.ErrorCode);
+                var context = e.Context as KeyValueErrorContext;
+                Assert.NotNull(e.Context);
+                var message =
+                    "KV Error: {Name=\"KEY_EEXISTS\", Description=\"key already exists, or CAS mismatch\", Attributes=\"item-only\"}";
+                Assert.Equal(message, e.Context.Message);
+                Assert.Equal("TheScope", context.ScopeName);
+                Assert.Equal("TheCollection", context.CollectionName);
+                Assert.NotEqual("0", context.ClientContextId);
             }
         }
 
