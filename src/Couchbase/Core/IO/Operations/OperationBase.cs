@@ -483,7 +483,8 @@ namespace Couchbase.Core.IO.Operations
             {
                 if (data != null && (status == ResponseStatus.Success
                                      || status == ResponseStatus.VBucketBelongsToAnotherServer
-                                     || status == ResponseStatus.AuthenticationContinue))
+                                     || status == ResponseStatus.AuthenticationContinue
+                                     || status == ResponseStatus.SubDocMultiPathFailure))
                 {
                     Read(data);
 

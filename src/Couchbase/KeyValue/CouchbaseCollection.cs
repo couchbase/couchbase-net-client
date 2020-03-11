@@ -368,7 +368,7 @@ namespace Couchbase.KeyValue
 
             options ??= new LookupInOptions();
             using var lookup = await ExecuteLookupIn(id, specs, options).ConfigureAwait(false);
-            return new LookupInResult(lookup.ExtractData(), lookup.Cas, null,
+            return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
                 options.SerializerValue ?? _transcoder.Serializer);
         }
 

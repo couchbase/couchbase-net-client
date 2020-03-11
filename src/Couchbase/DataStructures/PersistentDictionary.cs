@@ -110,7 +110,7 @@ namespace Couchbase.DataStructures
             var success = true;
             try
             {
-                using var result = Collection.LookupInAsync(DocId, builder => builder.Get(key.ToString()))
+                var result = Collection.LookupInAsync(DocId, builder => builder.Get(key.ToString()))
                     .GetAwaiter().GetResult();
                 value = result.ContentAs<TValue>(0);
             }
@@ -173,7 +173,7 @@ namespace Couchbase.DataStructures
         public async Task AddAsync(string key, TValue value)
         {
             CreateBackingStore();
-            using var exists = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
+            var exists = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
             if (exists.Exists(0))
             {
                 throw new ArgumentException("An element with the same key already exists in the Dictionary.");
@@ -186,7 +186,7 @@ namespace Couchbase.DataStructures
         public async Task<bool> ContainsKeyAsync(string key)
         {
             CreateBackingStore();
-            using var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
+            var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
             return result.Exists(0);
         }
 

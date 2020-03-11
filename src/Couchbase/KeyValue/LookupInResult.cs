@@ -1,12 +1,9 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
-using Couchbase.Core.IO;
-using Couchbase.Core.IO.Converters;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Utils;
 
 #nullable enable
 
@@ -14,93 +11,41 @@ namespace Couchbase.KeyValue
 {
     internal class LookupInResult : ILookupInResult
     {
-        private readonly IMemoryOwner<byte> _bytes;
+        private readonly IList<OperationSpec> _specs;
         private readonly ITypeSerializer _serializer;
 
-        internal LookupInResult(IMemoryOwner<byte> bytes, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer)
+        internal LookupInResult(IList<OperationSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer)
         {
-            _bytes = bytes;
+            _specs = specs;
             Cas = cas;
             Expiry = expiry;
             _serializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
         }
 
         public ulong Cas { get; }
+
         public TimeSpan? Expiry { get; }
 
         public T ContentAs<T>(int index)
         {
-            EnsureNotDisposed();
-
-            var response = _bytes.Memory.Slice(HeaderOffsets.HeaderLength);
-
-            var operationSpecs = new List<OperationSpec>();
-            for (;;)
+            if (index < 0 || index >= _specs.Count)
             {
-                var bodyLength = ByteConverter.ToInt32(response.Span.Slice(2));
-                var payLoad = response.Slice(6, bodyLength);
-
-                var command = new MutateInSpec
-                {
-                    Status = (ResponseStatus) ByteConverter.ToUInt16(response.Span),
-                    ValueIsJson = payLoad.Span.IsJson(),
-                    Bytes = payLoad
-                };
-                operationSpecs.Add(command);
-
-                response = response.Slice(6 + bodyLength);
-
-                if (response.Length <= 0) break;
+                throw new InvalidIndexException($"The index provided is out of range: {index}.");
             }
 
-            var spec = operationSpecs[index];
+            var spec = _specs[index];
             return _serializer.Deserialize<T>(spec.Bytes);
-        }
-
-        public T ContentAs<T>(int index, ITypeSerializer serializer)
-        {
-            throw new NotImplementedException();
         }
 
         public bool Exists(int index)
         {
-            throw new NotImplementedException();
-        }
-
-        public ResponseStatus OpCode(int index)
-        {
-            throw new NotImplementedException();
-        }
-
-        #region Finalization and Dispose
-
-        ~LookupInResult()
-        {
-            Dispose(false);
-        }
-
-        private bool _disposed;
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing)
-        {
-            _disposed = true;
-            _bytes?.Dispose();
-        }
-
-        protected void EnsureNotDisposed()
-        {
-            if (_disposed)
+            if (index < 0 || index >= _specs.Count)
             {
-                throw new ObjectDisposedException(GetType().FullName);
+                throw new InvalidIndexException($"The index provided is out of range: {index}.");
             }
-        }
 
-        #endregion
+            var spec = _specs[index];
+            return spec.Status == ResponseStatus.SubDocPathNotFound;
+        }
     }
 }

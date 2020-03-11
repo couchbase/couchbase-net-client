@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Core;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 
@@ -25,6 +26,10 @@ namespace Couchbase.KeyValue
         public MutationToken MutationToken { get; set; }
         public T ContentAs<T>(int index)
         {
+            if (index < 0 || index >= _specs.Count)
+            {
+                throw new InvalidIndexException($"The index provided is out of range: {index}.");
+            }
             var spec = _specs[index];
             return _serializer.Deserialize<T>(spec.Bytes);
         }

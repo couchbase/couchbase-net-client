@@ -49,14 +49,14 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.SubdocXattrUnknownVattr:
                     return new XattrException { Context = ctx };
                 case ResponseStatus.SubdocXattrUnknownMacro:
-                case ResponseStatus.SubDocMultiPathFailure:
                 case ResponseStatus.SubDocXattrInvalidFlagCombo:
                 case ResponseStatus.SubDocXattrInvalidKeyCombo:
                 case ResponseStatus.SubdocXattrCantModifyVattr:
-                case ResponseStatus.SubdocMultiPathFailureDeleted:
                 case ResponseStatus.SubdocInvalidXattrOrder:
                     return new XattrException { Context = ctx };
                 //sub doc errors
+                case ResponseStatus.SubdocMultiPathFailureDeleted:
+                case ResponseStatus.SubDocMultiPathFailure:
                 case ResponseStatus.SubDocPathNotFound:
                 case ResponseStatus.SubDocPathMismatch:
                 case ResponseStatus.SubDocPathInvalid:

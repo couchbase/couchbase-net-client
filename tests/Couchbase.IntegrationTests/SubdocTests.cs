@@ -45,15 +45,30 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
-            using (var result = await collection.LookupInAsync(DocumentKey, ops =>
+            var result = await collection.LookupInAsync(DocumentKey, ops =>
             {
                 ops.Get("foo");
                 ops.Get("bar");
-            }).ConfigureAwait(false))
+            }).ConfigureAwait(false);
+
+            Assert.Equal("bar", result.ContentAs<string>(0));
+            Assert.Equal("foo", result.ContentAs<string>(1));
+        }
+
+        [Fact]
+        public async Task Can_perform_lookup_in_with_Exists()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            await collection.UpsertAsync(DocumentKey, new { foo = "bar", bar = "foo" }).ConfigureAwait(false);
+
+            var result = await collection.LookupInAsync(DocumentKey, ops =>
             {
-                Assert.Equal("bar", result.ContentAs<string>(0));
-                Assert.Equal("foo", result.ContentAs<string>(1));
-            }
+                ops.Get("foo");
+                ops.Exists("bwar");
+            }).ConfigureAwait(false);
+
+            Assert.Equal("bar", result.ContentAs<string>(0));
+            Assert.True(result.Exists(1));
         }
 
         [Fact]
@@ -62,15 +77,14 @@ namespace Couchbase.IntegrationTests
             var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
-            using (var result = await collection.LookupInAsync(DocumentKey, new[]
+            var result = await collection.LookupInAsync(DocumentKey, new[]
             {
                 LookupInSpec.Get("foo"),
                 LookupInSpec.Get("bar")
-            }).ConfigureAwait(false))
-            {
-                Assert.Equal("bar", result.ContentAs<string>(0));
-                Assert.Equal("foo", result.ContentAs<string>(1));
-            }
+            }).ConfigureAwait(false);
+
+            Assert.Equal("bar", result.ContentAs<string>(0));
+            Assert.Equal("foo", result.ContentAs<string>(1));
         }
 
         [Fact]

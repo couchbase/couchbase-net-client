@@ -42,12 +42,12 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public override bool Idempotent { get; } = true;
 
-        public override T GetValue()
+        public IList<OperationSpec> GetCommandValues()
         {
             var responseSpan = Data.Span.Slice(Header.BodyOffset);
             var commandIndex = 0;
 
-            for (;;)
+            for (; ;)
             {
                 var bodyLength = ByteConverter.ToInt32(responseSpan.Slice(2));
                 var payLoad = new byte[bodyLength];
@@ -61,7 +61,8 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 responseSpan = responseSpan.Slice(6 + bodyLength);
                 if (responseSpan.Length <= 0) break;
             }
-            return (T)LookupCommands;
+
+            return LookupCommands;
         }
 
         public override IOperationResult<T> GetResultWithValue()
@@ -75,7 +76,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 result.Cas = Header.Cas;
                 result.Exception = Exception;
                 result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = (IList<OperationSpec>) GetValue();
+                result.Value = GetCommandValues();
 
                 //clean up and set to null
                 if (!result.IsNmv())

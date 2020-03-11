@@ -154,7 +154,10 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 return _lookupCommands;
             }
 
-            responseSpan = responseSpan.Slice(Header.ExtrasOffset);
+            responseSpan = responseSpan.Slice(Header.BodyOffset);
+
+            //some commands return nothing - so return back an empty list
+            if (responseSpan.Length == 0) return new List<OperationSpec>();
 
             for (;;)
             {
@@ -181,10 +184,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             return _lookupCommands;
         }
 
-        public override OpCode OpCode
-        {
-            get { return OpCode.SubMultiMutation; }
-        }
+        public override OpCode OpCode => OpCode.SubMultiMutation;
 
         /// <summary>
         /// Clones this instance.

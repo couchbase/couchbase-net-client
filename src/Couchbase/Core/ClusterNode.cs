@@ -424,6 +424,13 @@ namespace Couchbase.Core
                 }
                 else if (status != ResponseStatus.Success)
                 {
+                    //sub-doc path failures are handled when the ContentAs() method is called.
+                    //so we simply return back to the caller and let it be handled later.
+                    if (status == ResponseStatus.SubDocMultiPathFailure)
+                    {
+                        return;
+                    }
+
                     var code = (short) status;
                     if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
                     {
@@ -445,7 +452,7 @@ namespace Couchbase.Core
                 }
 
                 _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode,
-                   _redactor.UserData(op.Key),
+                    _redactor.UserData(op.Key),
                     op.Opaque);
             }
             catch (OperationCanceledException e)
