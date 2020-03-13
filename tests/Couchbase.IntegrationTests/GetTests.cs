@@ -73,6 +73,43 @@ namespace Couchbase.IntegrationTests
             }
         }
 
+        // Regression test for NCBC-2217
+        [Fact]
+        public async Task Upsert_And_Fetch_Poco() {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+            var testData = new TestData() {
+                StringTest = "test",
+                IntTest = Int32.MaxValue,
+                DictTest = new Dictionary<string, int>() {
+                    {"key1", 1},
+                    {"key2", 2},
+                    {"key3", 3}
+                }
+            };
+
+            var key = "test:mydoc";
+
+            await collection.UpsertAsync(key, testData).ConfigureAwait(false);
+
+            using (var result = await collection.GetAsync(key).ConfigureAwait(false)) {
+                var content = result.ContentAs<TestData>();
+                Assert.Equal(testData.StringTest, content.StringTest);
+                Assert.Equal(testData.IntTest, content.IntTest);
+                Assert.Equal(testData.DictTest, content.DictTest);
+            }
+        }
+
+        public class TestData
+        {
+            public string StringTest { get; set; }
+
+            public int IntTest { get; set; }
+
+            public Dictionary<string, int> DictTest { get; set; }
+
+        }
+
         [Fact]
         public async Task Can_Get_Document_As_Poco()
         {
