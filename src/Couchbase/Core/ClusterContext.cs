@@ -146,7 +146,7 @@ namespace Couchbase.Core
                 .ToListAsync(CancellationToken).ConfigureAwait(false);
 
             var removed = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y))));
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Address.Equals(y.Address))));
 
             foreach (var node in removed)
             {
@@ -379,8 +379,9 @@ namespace Couchbase.Core
                         bootstrapNode.NodesAdapter = nodeAdapter;
                         SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
                         bucket.Nodes.Add(bootstrapNode);
-                        continue; //bootstrap node is skipped because it already went through these steps
                     }
+
+                    continue;//bootstrap node is skipped because it already went through these steps
                 }
 
                 _logger.LogDebug("Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
