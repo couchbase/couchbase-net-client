@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.SubDocument
@@ -8,7 +9,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     internal abstract class SubDocSingularBase<T> : OperationBase<T>
     {
         protected ITypeSerializerProvider Builder;
-        protected OperationSpec CurrentSpec;
+        protected OperationSpec CurrentSpec = default;
 
         public string Path { get; protected set; }
 
