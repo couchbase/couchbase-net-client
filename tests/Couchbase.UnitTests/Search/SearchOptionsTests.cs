@@ -19,7 +19,7 @@ namespace Couchbase.UnitTests.Search
                 .Timeout(TimeSpan.FromMilliseconds(10000));
 
                 //var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"at_plus\",\"vectors\":{\"customerIndex\":{\"0\":123,\"1/a0b1c2\":234}}}},\"query\":{\"query\":\"alice smith\",\"boost\": 1},\"size\": 10,\"from\":20,\"highlight\":{\"style\": null,\"fields\":null},\"fields\":[\"*\"],\"facets\":null,\"explain\":true}";
-            var expected = "{\"ctl\":{\"timeout\":10000,\"consistency\":{\"level\":\"not_bounded\"}},\"size\":10,\"from\":20,\"explain\":true}";
+            var expected = "{\"ctl\":{\"timeout\":10000},\"size\":10,\"from\":20,\"explain\":true}";
             var actual = searchOptions.ToJson().ToString(Formatting.None);
 
             Assert.Equal(expected, actual);
@@ -74,13 +74,7 @@ namespace Couchbase.UnitTests.Search
             var result = request.ToJson();
             var expected = JsonConvert.SerializeObject(new
             {
-                ctl = new
-                {
-                    consistency = new
-                    {
-                        level = "not_bounded"
-                    }
-                },
+                ctl = new { },
                 highlight = new
                 {
                     style="html",
@@ -104,13 +98,7 @@ namespace Couchbase.UnitTests.Search
 
             var expected = JsonConvert.SerializeObject(new
             {
-                ctl = new
-                {
-                    consistency = new
-                    {
-                        level = "not_bounded"
-                    }
-                },
+                ctl = new { },
                 sort = fields
             }, Formatting.None);
 
@@ -129,13 +117,7 @@ namespace Couchbase.UnitTests.Search
 
             var expected = JsonConvert.SerializeObject(new
             {
-                ctl = new
-                {
-                    consistency = new
-                    {
-                        level = "not_bounded"
-                    }
-                },
+                ctl = new { },
                 sort = new[]
                 {
                     new
@@ -163,13 +145,7 @@ namespace Couchbase.UnitTests.Search
 
             var expected = JsonConvert.SerializeObject(new
             {
-                ctl = new
-                {
-                    consistency = new
-                    {
-                        level = "not_bounded"
-                    }
-                },
+                ctl = new { },
                 sort = new []
                 {
                     new
@@ -196,13 +172,7 @@ namespace Couchbase.UnitTests.Search
 
             var expected = JsonConvert.SerializeObject(new
             {
-                ctl = new
-                {
-                    consistency = new
-                    {
-                        level = "not_bounded"
-                    }
-                },
+                ctl = new {},
                 raw1 = "abc",
                 raw2 = new
                 {

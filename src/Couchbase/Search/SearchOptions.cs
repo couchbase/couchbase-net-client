@@ -23,7 +23,7 @@ namespace Couchbase.Search
         private readonly List<string> _fields = new List<string>();
         private List<string>? _highLightFields;
         private List<ISearchFacet>? _facets;
-        private SearchScanConsistency? _scanConsistency = SearchScanConsistency.NotBounded;
+        private SearchScanConsistency? _scanConsistency;
         private readonly JArray _sort = new JArray();
         internal  CancellationToken Token { get; set; }
         internal TimeSpan? TimeoutValue { get; set; }

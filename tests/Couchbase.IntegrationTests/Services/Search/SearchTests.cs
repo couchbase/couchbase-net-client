@@ -27,7 +27,7 @@ namespace Couchbase.IntegrationTests.Services.Search
                 new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000))).
                 ConfigureAwait(false);
 
-            //Assert.Equal(SearchStatus.Success, results.Status);
+            Assert.True(results.Hits.Count > 0);
         }
 
         [Fact]
@@ -40,7 +40,7 @@ namespace Couchbase.IntegrationTests.Services.Search
                     .Highlight(HighLightStyle.Html, "inn")
             ).ConfigureAwait(false);
 
-            //Assert.Equal(SearchStatus.Success, results.Status);
+            Assert.True(results.Hits.Count > 0);
         }
 
         [Fact]
@@ -55,8 +55,6 @@ namespace Couchbase.IntegrationTests.Services.Search
                     new NumericRangeFacet("numericrangefacet", "thefield", 2).AddRange(2.2f, 3.5f)
                 )
             ).ConfigureAwait(false);
-
-            //Assert.Equal(SearchStatus.Success, results.Status);
             Assert.Equal(3, results.Facets.Count);
         }
     }
