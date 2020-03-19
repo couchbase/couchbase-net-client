@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
@@ -18,6 +19,7 @@ namespace Couchbase.Core.IO.Connections
 {
     internal class MultiplexingConnection : IConnection
     {
+        private const uint MaxDocSize = 20971520;
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly InFlightOperationSet _statesInFlight = new InFlightOperationSet();
@@ -77,6 +79,10 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public async Task SendAsync(ReadOnlyMemory<byte> request, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap? errorMap = null)
         {
+            if (request.Length >= MaxDocSize)
+            {
+                throw new ValueToolargeException("Encoded document exceeds the 20MB document size limit.");
+            }
             if (_disposed)
             {
                 throw new ObjectDisposedException(nameof(MultiplexingConnection));
