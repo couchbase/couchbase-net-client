@@ -269,7 +269,7 @@ namespace Couchbase.Core
             }
         }
 
-        public async Task<IBucket> GetOrCreateBucketAsync(string name)
+        public async ValueTask<IBucket> GetOrCreateBucketAsync(string name)
         {
             if (Buckets.TryGetValue(name, out var bucket))
             {

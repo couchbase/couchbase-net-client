@@ -16,7 +16,7 @@ namespace Couchbase
 {
     public interface ICluster : IDisposable
     {
-        Task<IBucket> BucketAsync(string name);
+        ValueTask<IBucket> BucketAsync(string name);
 
         #region Diagnostics
 

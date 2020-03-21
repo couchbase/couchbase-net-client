@@ -128,21 +128,35 @@ namespace Couchbase
 
         #region Bucket
 
-        public async Task<IBucket> BucketAsync(string name)
+        public ValueTask<IBucket> BucketAsync(string name)
         {
             var cluster = this as IBootstrappable;
             if (cluster.IsBootstrapped)
             {
-                var bucket = await _context.GetOrCreateBucketAsync(name).ConfigureAwait(false);
-                _hasBootStrapped = true;//for legacy pre-6.5 servers
-                return bucket;
+                if (_hasBootStrapped)
+                {
+                    // The most common path is an already bootstrapped cluster, so we want to avoid
+                    // heap allocations along that path using ValueTask. Since _hasBootStrapped is already
+                    // set to true, we don't need to await GetOrCreateBucketAsync here just to set it to true again.
+                    // By avoiding the await we also avoid some heap allocations for tasks and continuations.
+
+                    return _context.GetOrCreateBucketAsync(name);
+                }
+
+                return new ValueTask<IBucket>(Task.Run(async () =>
+                {
+                    var bucket = await _context.GetOrCreateBucketAsync(name).ConfigureAwait(false);
+                    _hasBootStrapped = true; //for legacy pre-6.5 servers
+                    return bucket;
+                }));
             }
 
             var message = cluster.DeferredExceptions.Any()
-                ? "Cluster has not yet bootstrapped. Call WaitUntilReady(..) to wait for it to complete."
+                ? "Cluster has not yet bootstrapped. Call WaitUntilReadyAsync(..) to wait for it to complete."
                 : "The Cluster cannot bootstrap. Check the client the inner exception for details.";
 
-            throw new AggregateException(message, cluster.DeferredExceptions);
+            return new ValueTask<IBucket>(
+                Task.FromException<IBucket>(new AggregateException(message, cluster.DeferredExceptions)));
         }
 
         #endregion
