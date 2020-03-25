@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -93,6 +94,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                         {
                             if (config != string.Empty)
                             {
+                                _logger.LogDebug(LoggingEvents.ConfigEvent, config);
                                 config = config.Replace("$HOST", server.Host);
                                 var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);
                                 _configHandler.Publish(bucketConfig);

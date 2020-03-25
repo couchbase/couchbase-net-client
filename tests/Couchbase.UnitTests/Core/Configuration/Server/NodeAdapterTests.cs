@@ -19,10 +19,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             };
 
             var mockBucketConfig = new Mock<BucketConfig>();
-            var adapater = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
+            var adapter = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
 
-            Assert.Equal(8095, adapater.Analytics);
-            Assert.True(adapater.IsAnalyticsNode);
+            Assert.Equal(8095, adapter.Analytics);
+            Assert.True(adapter.IsAnalyticsNode);
         }
 
         [Fact]
@@ -36,10 +36,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             };
 
             var mockBucketConfig = new Mock<BucketConfig>();
-            var adapater = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
+            var adapter = new NodeAdapter(node, nodeExt, mockBucketConfig.Object);
 
-            Assert.Equal(18095, adapater.AnalyticsSsl);
-            Assert.True(adapater.IsAnalyticsNode);
+            Assert.Equal(18095, adapter.AnalyticsSsl);
+            Assert.True(adapter.IsAnalyticsNode);
         }
 
         [Fact]
@@ -73,7 +73,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData("fd63:6f75:6368:2068:1471:75ff:fe25:a8be", "fd63:6f75:6368:2068:1471:75ff:fe25:a8be")]
         [InlineData("[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]", "[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]")]
         [InlineData("[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]:8091", "[fd63:6f75:6368:2068:1471:75ff:fe25:a8be]")]
-        public void When_NodeExt_Hostname_Is_Null_NodeAdapater_Can_Parse_Hostname_and_Port_From_Node(string hostname, string expectedHostname)
+        public void When_NodeExt_Hostname_Is_Null_NodeAdapter_Can_Parse_Hostname_and_Port_From_Node(string hostname, string expectedHostname)
         {
             var node = new Node
             {

@@ -13,5 +13,7 @@ namespace Couchbase.Core.Logging
         public static int AnalyticsEvent = 5000;
 
         public static int AuthenticationEvent = 6000;
+
+        public static int ConfigEvent = 7000;
     }
 }

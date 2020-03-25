@@ -6,7 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
+using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 #nullable enable
 
@@ -103,14 +105,17 @@ namespace Couchbase.Core.Configuration.Server
                 {
                     try
                     {
+                        _logger.LogDebug(LoggingEvents.ConfigEvent, "Receiving new map revision {revision}", newMap.Rev);
                         var isNewOrUpdate = false;
                         var stored = _configs.AddOrUpdate(newMap.Name, key =>
                             {
+                                _logger.LogDebug(LoggingEvents.ConfigEvent, "Storing new map revision {revision}", newMap.Rev);
                                 isNewOrUpdate = true;
                                 return newMap;
                             },
                             (key, map) =>
                             {
+                                _logger.LogDebug(LoggingEvents.ConfigEvent, "Updating new map revision {revision}", newMap.Rev);
                                 if (newMap.Equals(map)) return map;
 
                                 isNewOrUpdate = true;
@@ -153,6 +158,7 @@ namespace Couchbase.Core.Configuration.Server
         {
             try
             {
+                _logger.LogDebug(LoggingEvents.ConfigEvent, JsonConvert.SerializeObject(config));
                 _configQueue.Add(config);
             }
             catch (ObjectDisposedException e)

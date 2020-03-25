@@ -15,6 +15,7 @@ using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 #nullable enable
 
@@ -79,14 +80,18 @@ namespace Couchbase
         {
             if (config.Name == Name && (BucketConfig == null || config.Rev > BucketConfig.Rev))
             {
+                Logger.LogDebug("Processing cluster map for revision {revision} on {bucketName}", config.Rev, Name);
+                Logger.LogDebug(JsonConvert.SerializeObject(BucketConfig));
                 BucketConfig = config;
                 if (BucketConfig.VBucketMapChanged)
                 {
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for revision {revision}", config.Rev);
                     KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
                 }
 
                 if (BucketConfig.ClusterNodesChanged)
                 {
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating cluster nodes for revision {revision}", config.Rev);
                     await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
                     var nodes = Context.GetNodes(Name);
 

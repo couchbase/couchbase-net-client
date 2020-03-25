@@ -11,6 +11,7 @@ using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace Couchbase.Core
 {
@@ -95,6 +96,7 @@ namespace Couchbase.Core
 
         public void PublishConfig(BucketConfig bucketConfig)
         {
+            _logger.LogDebug(LoggingEvents.ConfigEvent, JsonConvert.SerializeObject(bucketConfig));
             _configHandler.Publish(bucketConfig);
         }
 
@@ -135,23 +137,6 @@ namespace Couchbase.Core
             }
 
             return node;
-        }
-
-        public async Task PruneNodesAsync(BucketConfig config)
-        {
-            var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
-
-            var existingEndpoints = await config.NodesExt.ToAsyncEnumerable()
-                .SelectAwait(p => ipEndpointService.GetIpEndPointAsync(p, CancellationToken))
-                .ToListAsync(CancellationToken).ConfigureAwait(false);
-
-            var removed = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Address.Equals(y.Address))));
-
-            foreach (var node in removed)
-            {
-                RemoveNode(node);
-            }
         }
 
         public IEnumerable<IClusterNode> GetNodes(string bucketName)
@@ -405,6 +390,28 @@ namespace Couchbase.Core
 
             await PruneNodesAsync(config).ConfigureAwait(false);
         }
+
+        public async Task PruneNodesAsync(BucketConfig config)
+        {
+            var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
+
+            var existingEndpoints = await config.GetNodes().ToAsyncEnumerable()
+                .SelectAwait(p => ipEndpointService.GetIpEndPointAsync(p, CancellationToken))
+                .ToListAsync(CancellationToken).ConfigureAwait(false);
+
+            _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision}.", existingEndpoints, config.Rev);
+
+            var removedEndpoints = Nodes.Where(x =>
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Address.Equals(y.Address))));
+
+            _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision.}", removedEndpoints, config.Rev);
+
+            foreach (var node in removedEndpoints)
+            {
+                RemoveNode(node);
+            }
+        }
+
 
         public void Dispose()
         {

@@ -27,6 +27,7 @@ namespace Couchbase.Core
 {
     internal class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
     {
+        private readonly Guid _id = Guid.NewGuid();
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
         private readonly IRedactor _redactor;
@@ -39,6 +40,7 @@ namespace Couchbase.Core
         private Uri _viewsUri;
         private NodeAdapter _nodesAdapter;
         private readonly ObservableCollection<IPEndPoint> _keyEndPoints  = new ObservableCollection<IPEndPoint>();
+        private readonly string _cachedToString;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint)
         {
@@ -50,6 +52,7 @@ namespace Couchbase.Core
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
 
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
+            _cachedToString = $"{EndPoint}-{_id}";
 
             KeyEndPoints = new ReadOnlyObservableCollection<IPEndPoint>(_keyEndPoints);
             UpdateKeyEndPoints();
@@ -77,7 +80,7 @@ namespace Couchbase.Core
         }
 
         public bool IsAssigned => Owner != null;
-        public IBucket Owner { get; private set; }
+        public IBucket Owner { get; internal set; }
 
         public NodeAdapter NodesAdapter
         {
@@ -192,7 +195,7 @@ namespace Couchbase.Core
                 (short) IO.Operations.ServerFeatures.AlternateRequestSupport,
                 (short) IO.Operations.ServerFeatures.SynchronousReplication,
                 (short) IO.Operations.ServerFeatures.SubdocXAttributes,
-                (short) IO.Operations. ServerFeatures.XError
+                (short) IO.Operations.ServerFeatures.XError
             };
 
             if (_context.ClusterOptions.EnableMutationTokens)
@@ -552,10 +555,19 @@ namespace Couchbase.Core
 
         public override int GetHashCode()
         {
-            unchecked
-            {
-                return ((Owner != null ? Owner.GetHashCode() : 0) * 397) ^ EndPoint.GetHashCode();
-            }
+            #if NETSTANDARD2_0
+            return new {EndPoint, _id}.GetHashCode();
+            #else
+            return System.HashCode.Combine(EndPoint, _id);
+            #endif
+        }
+        #endregion
+
+        #region ToString
+
+        public override string ToString()
+        {
+            return _cachedToString;
         }
 
         #endregion

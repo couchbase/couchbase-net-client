@@ -179,5 +179,21 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             Assert.Equal(newConfig.NodesExt.Count, context.Nodes.Count);
         }
+
+        [Fact]
+        public void When_NodesExt_Contains_Evicted_Node_It_Is_Removed()
+        {
+            //Arrange
+
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-error.json");
+
+            //Act
+
+            var nodes = config.GetNodes();
+
+            //Assert
+
+            Assert.Equal(3, nodes.Count);
+        }
     }
 }
