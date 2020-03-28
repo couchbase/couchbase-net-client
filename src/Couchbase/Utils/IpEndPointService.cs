@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Exceptions;
+using DnsClient;
 
 #nullable enable
 
@@ -73,7 +75,7 @@ namespace Couchbase.Utils
 
             if (ipAddress == null)
             {
-                return null;
+                throw new InvalidArgumentException($"Cannot resolve DNS for {hostNameOrIpAddress}.");
             }
 
             return new IPEndPoint(ipAddress, port);

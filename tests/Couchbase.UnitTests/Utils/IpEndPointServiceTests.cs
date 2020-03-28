@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Exceptions;
 using Couchbase.Utils;
 using Moq;
 using Xunit;
@@ -67,7 +68,7 @@ namespace Couchbase.UnitTests.Utils
         }
 
         [Fact]
-        public async Task GetIpEndPointAsync_HostNameNotFound_ReturnsNull()
+        public async Task GetIpEndPointAsync_HostNameNotFound_Throws_DnsResolutionException()
         {
             // Arrange
 
@@ -75,13 +76,11 @@ namespace Couchbase.UnitTests.Utils
 
             var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions());
 
-            // Act
+            // Act //Assert
 
-            var result = await service.GetIpEndPointAsync("test.com", 11210).ConfigureAwait(false);
-
-            // Assert
-
-            Assert.Null(result);
+            await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
+                await service.GetIpEndPointAsync("test.com", 11210).ConfigureAwait(false)).
+                ConfigureAwait(false);
         }
 
         #endregion
