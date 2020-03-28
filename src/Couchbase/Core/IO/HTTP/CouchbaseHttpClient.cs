@@ -68,10 +68,10 @@ namespace Couchbase.Core.IO.HTTP
 
             try
             {
-                if (context.ClusterOptions.MaxHttpConnection > 0)
+                if (context.ClusterOptions.MaxHttpConnections > 0)
                 {
                     //0 means the WinHttpHandler default size of Int.MaxSize is used
-                    handler.MaxConnectionsPerServer = context.ClusterOptions.MaxHttpConnection;
+                    handler.MaxConnectionsPerServer = context.ClusterOptions.MaxHttpConnections;
                 }
             }
             catch (PlatformNotSupportedException e)

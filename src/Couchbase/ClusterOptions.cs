@@ -216,7 +216,7 @@ namespace Couchbase
         /// </summary>
         public TimeSpan IdleKvConnectionTimeout { get; set; } = TimeSpan.FromMinutes(1);
 
-        public int MaxHttpConnection { get; set; } = 0;
+        public int MaxHttpConnections { get; set; } = 0;
 
         [Obsolete("Not supported in .NET, uses system defaults.")]
         public TimeSpan IdleHttpConnectionTimeout { get; set; }
