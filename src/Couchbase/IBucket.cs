@@ -11,7 +11,7 @@ using PingOptions = Couchbase.Diagnostics.PingOptions;
 
 namespace Couchbase
 {
-    public interface IBucket : IDisposable
+    public interface IBucket : IDisposable, IAsyncDisposable
     {
         string Name { get; }
 

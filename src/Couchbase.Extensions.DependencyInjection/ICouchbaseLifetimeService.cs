@@ -13,6 +13,13 @@ namespace Couchbase.Extensions.DependencyInjection
         /// implementations, this operation cannot be reversed without rebuilding
         /// the service provider.
         /// </summary>
+        void Close();
+
+        /// <summary>
+        /// Close all open Couchbase buckets and clusters.  If using the default
+        /// implementations, this operation cannot be reversed without rebuilding
+        /// the service provider.
+        /// </summary>
         ValueTask CloseAsync();
     }
 }

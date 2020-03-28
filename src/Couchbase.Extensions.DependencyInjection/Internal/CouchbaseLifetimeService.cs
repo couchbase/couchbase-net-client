@@ -13,10 +13,18 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         }
 
+        /// <inheritdoc />
+        public void Close()
+        {
+            _serviceProvider.GetService<IBucketProvider>()?.Dispose();
+            _serviceProvider.GetService<IClusterProvider>()?.Dispose();
+        }
+
+        /// <inheritdoc />
         public async ValueTask CloseAsync()
         {
-            await (_serviceProvider.GetService<IBucketProvider>()?.DisposeAsync() ?? default);
-            await (_serviceProvider.GetService<IClusterProvider>()?.DisposeAsync() ?? default);
+            await (_serviceProvider.GetService<IBucketProvider>()?.DisposeAsync() ?? default).ConfigureAwait(false);
+            await (_serviceProvider.GetService<IClusterProvider>()?.DisposeAsync() ?? default).ConfigureAwait(false);
         }
     }
 }

@@ -279,5 +279,19 @@ namespace Couchbase.Core
             Bootstrapper?.Dispose();
             Context.RemoveAllNodes();
         }
+
+        /// <inheritdoc />
+        public virtual ValueTask DisposeAsync()
+        {
+            try
+            {
+                Dispose();
+                return default;
+            }
+            catch (Exception ex)
+            {
+                return new ValueTask(Task.FromException(ex));
+            }
+        }
     }
 }

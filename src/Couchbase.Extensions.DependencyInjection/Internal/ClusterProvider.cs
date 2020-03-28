@@ -56,11 +56,15 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             }
         }
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            Dispose();
+            if (!_disposed)
+            {
+                _disposed = true;
 
-            return default;
+                await (_cluster?.DisposeAsync() ?? default).ConfigureAwait(false);
+                _cluster = null;
+            }
         }
     }
 }

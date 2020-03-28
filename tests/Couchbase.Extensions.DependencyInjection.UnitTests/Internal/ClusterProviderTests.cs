@@ -169,7 +169,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 
         #endregion
 
-        #region Dispose
+        #region DisposeAsync
 
         [Fact]
         public async Task DisposeAsync_DisposesCluster()
@@ -202,7 +202,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 
             // Assert
 
-            cluster.Verify(m => m.Dispose(), Times.AtLeastOnce);
+            cluster.Verify(m => m.DisposeAsync(), Times.AtLeastOnce);
         }
 
         #endregion

@@ -55,11 +55,20 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             }
         }
 
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
-            Dispose();
+            if (!_disposed)
+            {
+                _disposed = true;
 
-            return default;
+                var bucketCache = _buckets.Values.ToList();
+                _buckets.Clear();
+
+                foreach (var bucket in bucketCache.Where(p => p.IsCompleted && !p.IsFaulted && !p.IsCanceled).Select(p => p.Result))
+                {
+                    await bucket.DisposeAsync().ConfigureAwait(false);
+                }
+            }
         }
     }
 }

@@ -479,6 +479,20 @@ namespace Couchbase
             }
         }
 
+        /// <inheritdoc />
+        public ValueTask DisposeAsync()
+        {
+            try
+            {
+                Dispose();
+                return default;
+            }
+            catch (Exception ex)
+            {
+                return new ValueTask(Task.FromException(ex));
+            }
+        }
+
         #endregion
     }
 }

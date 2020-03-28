@@ -160,7 +160,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 
         #endregion
 
-        #region Dispose
+        #region DisposeAsync
 
         [Fact]
         public async Task DisposeAsync_DisposesBuckets()
@@ -196,8 +196,8 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 
             // Assert
 
-            bucket1.Verify(m => m.Dispose(), Times.AtLeastOnce);
-            bucket2.Verify(m => m.Dispose(), Times.AtLeastOnce);
+            bucket1.Verify(m => m.DisposeAsync(), Times.AtLeastOnce);
+            bucket2.Verify(m => m.DisposeAsync(), Times.AtLeastOnce);
         }
 
         #endregion

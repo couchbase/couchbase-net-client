@@ -14,7 +14,7 @@ using Couchbase.Search;
 
 namespace Couchbase
 {
-    public interface ICluster : IDisposable
+    public interface ICluster : IDisposable, IAsyncDisposable
     {
         ValueTask<IBucket> BucketAsync(string name);
 

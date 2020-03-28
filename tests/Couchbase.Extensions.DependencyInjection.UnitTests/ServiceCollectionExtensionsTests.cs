@@ -21,7 +21,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             var configurationBuilder = new ConfigurationBuilder();
             configurationBuilder.AddInMemoryCollection(new[]
             {
-                new KeyValuePair<string, string>("MaxHttpConnection", "1005")
+                new KeyValuePair<string, string>("MaxHttpConnections", "1005")
             });
 
             var configuration = configurationBuilder.Build();
