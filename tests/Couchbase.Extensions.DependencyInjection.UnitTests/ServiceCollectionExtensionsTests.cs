@@ -37,7 +37,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             var provider = services.BuildServiceProvider();
             var options = provider.GetRequiredService<IOptions<ClusterOptions>>();
 
-            Assert.Equal(1005, options.Value.MaxHttpConnection);
+            Assert.Equal(1005, options.Value.MaxHttpConnections);
         }
 
         [Fact]
@@ -149,7 +149,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
 
             Action<ClusterOptions> optionsAction = clientDefinition =>
             {
-                clientDefinition.MaxHttpConnection = 1005;
+                clientDefinition.MaxHttpConnections = 1005;
             };
 
             //  Act
@@ -161,7 +161,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             var provider = services.BuildServiceProvider();
             var options = provider.GetRequiredService<IOptions<ClusterOptions>>();
 
-            Assert.Equal(1005, options.Value.MaxHttpConnection);
+            Assert.Equal(1005, options.Value.MaxHttpConnections);
         }
 
         #endregion
