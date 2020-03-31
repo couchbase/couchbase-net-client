@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
@@ -66,9 +67,13 @@ namespace Couchbase.Core
 
         public BucketConfig GlobalConfig { get; set; }
 
+        public bool IsGlobal => GlobalConfig != null && GlobalConfig.IsGlobal;
+
         public ICluster Cluster { get; }
 
         public bool SupportsCollections { get; set; }
+
+        public bool SupportsGlobalConfig { get; private set; }
 
         public CancellationToken CancellationToken => _tokenSource.Token;
 
@@ -224,31 +229,41 @@ namespace Couchbase.Core
             foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken).ConfigureAwait(false);
-                GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
 
-                if (GlobalConfig == null)
+                try
                 {
-                    AddNode(node); //GCCCP is not supported - pre-6.5 server fall back to CCCP like SDK 2
+                    GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
                 }
-                else
+                catch (CouchbaseException e)
                 {
-                    GlobalConfig.IsGlobal = true;
-                    foreach (var nodeAdapter in GlobalConfig.GetNodes())//Initialize cluster nodes for global services
+                    if (e.Context is KeyValueErrorContext ctx)
                     {
-                        if (server.Host.Equals(nodeAdapter.Hostname))//this is the bootstrap node so update
+                        if (ctx.Status == ResponseStatus.BucketNotConnected)
                         {
-                            node.NodesAdapter = nodeAdapter;
-                            SupportsCollections = node.Supports(ServerFeatures.Collections);
-                            AddNode(node);
+                            AddNode(node); //GCCCP is not supported - pre-6.5 server fall back to CCCP like SDK 2
+                            return;
                         }
-                        else
-                        {
-                            var hostEndpoint = HostEndpoint.Create(nodeAdapter, ClusterOptions);
-                            var newNode = await _clusterNodeFactory.CreateAndConnectAsync(hostEndpoint, CancellationToken).ConfigureAwait(false);
-                            newNode.NodesAdapter = nodeAdapter;
-                            SupportsCollections = node.Supports(ServerFeatures.Collections);
-                            AddNode(newNode);
-                        }
+                    }
+                }
+
+                //Server is 6.5 and greater and supports GC3P so loop through the global config and
+                //create the nodes that are not associated with any buckets via Select Bucket.
+                GlobalConfig.IsGlobal = true;
+                foreach (var nodeAdapter in GlobalConfig.GetNodes())//Initialize cluster nodes for global services
+                {
+                    if (server.Host.Equals(nodeAdapter.Hostname))//this is the bootstrap node so update
+                    {
+                        node.NodesAdapter = nodeAdapter;
+                        SupportsCollections = node.Supports(ServerFeatures.Collections);
+                        AddNode(node);
+                    }
+                    else
+                    {
+                        var hostEndpoint = HostEndpoint.Create(nodeAdapter, ClusterOptions);
+                        var newNode = await _clusterNodeFactory.CreateAndConnectAsync(hostEndpoint, CancellationToken).ConfigureAwait(false);
+                        newNode.NodesAdapter = nodeAdapter;
+                        SupportsCollections = node.Supports(ServerFeatures.Collections);
+                        AddNode(newNode);
                     }
                 }
             }

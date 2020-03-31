@@ -22,6 +22,18 @@ namespace Couchbase.UnitTests
 
         #endregion
 
+        #region WaitUntilReady
+
+        [Fact]
+        public async Task WaitUntilReady_Throws_NotSupportedException_If_GC3P_Not_Supported()
+        {
+            var cluster = new Cluster(ClusterOptions.Default.WithCredentials("Administrator", "password"));
+            await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+
+        #endregion
+
         #region QueryAsync
 
         [Fact]

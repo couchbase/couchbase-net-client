@@ -271,6 +271,11 @@ namespace Couchbase
         public bool EnableDnsSrvResolution { get; set; } = true;
 
         /// <summary>
+        /// Provides a default implementation of <see cref="ClusterOptions"/>.
+        /// </summary>
+        public static ClusterOptions Default => new ClusterOptions();
+
+        /// <summary>
         /// Effective value for TLS, should be used instead of <see cref="EnableTls"/> internally within the SDK.
         /// </summary>
         internal bool EffectiveEnableTls => EnableTls ?? ConnectionStringValue?.Scheme == Scheme.Couchbases;

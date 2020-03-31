@@ -187,6 +187,11 @@ namespace Couchbase
         /// <param name="options">The optional arguments.</param>
         public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
         {
+            if (!_context.IsGlobal)
+                throw new NotSupportedException(
+                    "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
+                    "If you think this exception is caused by another error, please check your SDK logs for detail.");
+
             options ??= new WaitUntilReadyOptions();
             if(options.DesiredStateValue == ClusterState.Offline)
                 throw new ArgumentException(nameof(options.DesiredStateValue));

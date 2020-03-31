@@ -449,7 +449,8 @@ namespace Couchbase.Core
                         Cas = op.Cas,
                         CollectionName = op.CName,
                         ScopeName = op.SName,
-                        Message = errorCode?.ToString()
+                        Message = errorCode?.ToString(),
+                        Status = status
                     };
                     throw status.CreateException(ctx);
                 }
