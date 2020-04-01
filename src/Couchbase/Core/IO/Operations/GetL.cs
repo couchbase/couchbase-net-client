@@ -27,6 +27,7 @@ namespace Couchbase.Core.IO.Operations
             var cloned = new GetL<T>
             {
                 Key = Key,
+                ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
                 VBucketId = VBucketId,

@@ -9,6 +9,7 @@ namespace Couchbase.Core.IO.Operations
             var cloned = new Add<T>
             {
                 Key = Key,
+                ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 VBucketId = VBucketId,
                 Transcoder =  Transcoder,

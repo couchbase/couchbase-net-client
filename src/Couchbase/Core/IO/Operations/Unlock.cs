@@ -9,6 +9,7 @@ namespace Couchbase.Core.IO.Operations
             var cloned = new Unlock
             {
                 Key = Key,
+                ReplicaIdx = ReplicaIdx,
                 Transcoder = Transcoder,
                 VBucketId = VBucketId,
                 Attempts = Attempts,

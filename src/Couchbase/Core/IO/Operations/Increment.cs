@@ -29,6 +29,7 @@ namespace Couchbase.Core.IO.Operations
             var cloned = new Increment
             {
                 Key = Key,
+                ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
                 VBucketId = VBucketId,

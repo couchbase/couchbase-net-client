@@ -615,7 +615,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
-                VBucketId = index,
+                ReplicaIdx = index,
                 Transcoder = transcoder
             };
             await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);

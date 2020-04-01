@@ -23,6 +23,7 @@ namespace Couchbase.Core.IO.Operations
             var cloned = new Touch
             {
                 Key = Key,
+                ReplicaIdx = ReplicaIdx,
                 Transcoder = Transcoder,
                 VBucketId = VBucketId,
                 Opaque = Opaque,

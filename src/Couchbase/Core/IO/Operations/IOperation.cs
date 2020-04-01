@@ -22,6 +22,8 @@ namespace Couchbase.Core.IO.Operations
 
         ulong Cas { get; set; }
 
+        short ReplicaIdx { get; set; }
+
         uint? Cid { get; set; }
 
         short? VBucketId { get; set; }

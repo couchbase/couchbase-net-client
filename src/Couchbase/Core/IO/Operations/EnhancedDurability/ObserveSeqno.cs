@@ -83,6 +83,7 @@ namespace Couchbase.Core.IO.Operations.EnhancedDurability
             {
                 MutationToken = MutationToken,
                 Key = Key,
+                ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
                 VBucketId = VBucketId,

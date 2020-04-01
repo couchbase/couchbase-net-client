@@ -17,6 +17,7 @@ namespace Couchbase.Core.IO.Operations
             var cloned = new Delete
             {
                 Key = Key,
+                ReplicaIdx = ReplicaIdx,
                 Transcoder = Transcoder,
                 VBucketId = VBucketId,
                 Attempts = Attempts,
