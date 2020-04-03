@@ -294,6 +294,7 @@ namespace Couchbase.Core
             if (node == null)
             {
                 node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
+                AddNode(node);
             }
 
             var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
