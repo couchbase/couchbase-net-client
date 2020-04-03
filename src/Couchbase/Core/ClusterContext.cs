@@ -380,9 +380,14 @@ namespace Couchbase.Core
                         bootstrapNode.NodesAdapter = nodeAdapter;
                         SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
                         bucket.Nodes.Add(bootstrapNode);
-                    }
 
-                    continue;//bootstrap node is skipped because it already went through these steps
+                        continue;
+                    }
+                }
+
+                if (bucket.Nodes.TryGet(endPoint, out var bucketNode))
+                {
+                    continue;
                 }
 
                 _logger.LogDebug("Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
