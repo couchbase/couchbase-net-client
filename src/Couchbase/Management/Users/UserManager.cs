@@ -96,7 +96,7 @@ namespace Couchbase.Management.Users
 
             if (user.Groups?.Any() ?? false)
             {
-                values.Add("groups", string.Join(",", user.Groups));
+                values.Add("groups", string.Join(",", user.Groups!));
             }
 
             return values;

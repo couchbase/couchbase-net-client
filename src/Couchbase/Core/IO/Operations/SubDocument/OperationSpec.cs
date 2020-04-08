@@ -102,7 +102,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <returns>
         ///   <c>true</c> if the specified <see cref="OperationSpec" /> is equal to this instance; otherwise, <c>false</c>.
         /// </returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (!(obj is OperationSpec spec)) return false;
             return Path == spec.Path &&
@@ -119,7 +119,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <returns>
         ///   <c>true</c> if the specified <see cref="OperationSpec" /> is equal to this instance; otherwise, <c>false</c>.
         /// </returns>
-        public new bool Equals(object x, object y)
+        public new bool Equals(object? x, object? y)
         {
             if (!(x is OperationSpec spec1) || !(y is OperationSpec spec2)) return false;
             return spec1.Path == spec2.Path &&

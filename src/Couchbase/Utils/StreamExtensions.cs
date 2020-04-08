@@ -8,7 +8,7 @@ namespace Couchbase.Utils
 {
     internal static class StreamExtensions
     {
-#if NETCOREAPP2_1 || NETSTANDARD2_1
+#if NETCOREAPP2_1 || NETCOREAPP3_0 || NETSTANDARD2_1
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Write(this Stream stream, ReadOnlyMemory<byte> buffer)
         {

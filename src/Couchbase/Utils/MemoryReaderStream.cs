@@ -73,7 +73,7 @@ namespace Couchbase.Utils
             return count;
         }
 
-#if NETCOREAPP2_1 || NETSTANDARD2_1
+#if NETCOREAPP2_1 || NETCOREAPP3_0 || NETSTANDARD2_1
 
         public override int Read(Span<byte> buffer)
         {

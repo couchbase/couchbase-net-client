@@ -88,7 +88,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
                         using var reader = new StreamReader(stream, Encoding.UTF8, false);
 
-                        string config;
+                        string? config;
                         while (!_cancellationTokenSource.IsCancellationRequested &&
                                (config = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
                         {

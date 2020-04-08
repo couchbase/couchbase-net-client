@@ -184,7 +184,7 @@ namespace Couchbase.Core.Configuration.Server
                     // Dispose the listener when we're stopped
                     _tokenSource.Token.Register(state =>
                     {
-                        ((HttpStreamingConfigListener) state).Dispose();
+                        ((HttpStreamingConfigListener) state!).Dispose();
                     }, httpListener);
                 }
             }
@@ -199,7 +199,7 @@ namespace Couchbase.Core.Configuration.Server
 
             if (bucket is MemcachedBucket)
             {
-                if(_httpConfigListeners.TryRemove(bucket.Name, out HttpStreamingConfigListener listener))
+                if(_httpConfigListeners.TryRemove(bucket.Name, out var listener))
                 {
                     listener.Dispose();
                 }
@@ -210,7 +210,7 @@ namespace Couchbase.Core.Configuration.Server
         {
             try
             {
-                if (_configs.TryGetValue(bucketName, out BucketConfig bucketConfig))
+                if (_configs.TryGetValue(bucketName, out var bucketConfig))
                 {
                     return bucketConfig;
                 }

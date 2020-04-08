@@ -72,9 +72,9 @@ namespace Couchbase.Core.IO.Connections
             }
         }
 
-        private void TimeoutHandler(object state)
+        private void TimeoutHandler(object? state)
         {
-            AsyncState a = (AsyncState) state;
+            AsyncState a = (AsyncState) state!;
             _statesInFlight.TryRemove(a.Opaque, out _);
             a.Cancel(ResponseStatus.OperationTimeout);
         }

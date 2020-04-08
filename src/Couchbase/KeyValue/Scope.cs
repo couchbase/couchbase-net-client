@@ -40,7 +40,7 @@ namespace Couchbase.KeyValue
             {
                 _logger.LogDebug("Fetching collection {collectionName}.", name);
 
-                if(_collections.TryGetValue(name, out ICouchbaseCollection collection))
+                if(_collections.TryGetValue(name, out var collection))
                 {
                     return collection;
                 }

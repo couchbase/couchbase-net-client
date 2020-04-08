@@ -150,7 +150,7 @@ namespace Couchbase.Views
         protected static HttpStatusCode GetStatusCode(string message)
         {
             var httpStatusCode = HttpStatusCode.ServiceUnavailable;
-            var codes = Enum.GetValues(typeof(HttpStatusCode));
+            var codes = (int[]) Enum.GetValues(typeof(HttpStatusCode));
             foreach (int code in codes)
             {
                 if (message.Contains(code.ToString(CultureInfo.InvariantCulture)))

@@ -68,7 +68,7 @@ namespace Couchbase
             }
 
             //just the name of the bucket for now - later make and actual cluster
-            Buckets = new List<string>(bucketNames);
+            Buckets = new List<string>(bucketNames!);
             return this;
         }
 
