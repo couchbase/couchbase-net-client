@@ -46,7 +46,7 @@ namespace Couchbase
 
         #region Query
 
-        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options);
+        Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = default);
 
         Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default);
 
