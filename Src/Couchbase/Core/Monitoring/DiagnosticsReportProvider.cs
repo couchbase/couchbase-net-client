@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -85,7 +85,14 @@ namespace Couchbase.Core.Monitoring
                                 var endpoint = CreateEndpointHealth(config.BucketName, now, server.ViewClient, server.EndPoint);
                                 if (ping)
                                 {
-                                    RecordLatency(endpoint, () => server.ViewClient.Execute<dynamic>(viewQuery));
+                                    RecordLatency(endpoint, () =>
+                                    {
+                                        var result = server.ViewClient.Execute<dynamic>(viewQuery);
+                                        if (result.Exception != null)
+                                        {
+                                            throw result.Exception;
+                                        }
+                                    });
                                 }
 
                                 return endpoint;
@@ -102,7 +109,14 @@ namespace Couchbase.Core.Monitoring
                                 var endpoint = CreateEndpointHealth(config.BucketName, now, server.QueryClient, server.EndPoint);
                                 if (ping)
                                 {
-                                    RecordLatency(endpoint, () => server.QueryClient.Query<dynamic>(n1qlQuery));
+                                    RecordLatency(endpoint, () =>
+                                    {
+                                        var result = server.QueryClient.Query<dynamic>(n1qlQuery);
+                                        if (result.Exception != null)
+                                        {
+                                            throw result.Exception;
+                                        }
+                                    });
                                 }
 
                                 return endpoint;
@@ -120,7 +134,14 @@ namespace Couchbase.Core.Monitoring
                                 var endpoint = CreateEndpointHealth(config.BucketName, now, server.SearchClient, server.EndPoint);
                                 if (ping)
                                 {
-                                    RecordLatency(endpoint, () => server.SearchClient.Query(searchQuery));
+                                    RecordLatency(endpoint, () =>
+                                    {
+                                        var result = server.SearchClient.Query(searchQuery);
+                                        if (result.Exception != null)
+                                        {
+                                            throw result.Exception;
+                                        }
+                                    });
                                 }
 
                                 return endpoint;
@@ -137,7 +158,14 @@ namespace Couchbase.Core.Monitoring
                                 var endpoint = CreateEndpointHealth(config.BucketName, now, server.AnalyticsClient, server.EndPoint);
                                 if (ping)
                                 {
-                                    RecordLatency(endpoint, () => server.AnalyticsClient.Query<dynamic>(analyticsRequest));
+                                    RecordLatency(endpoint, () =>
+                                    {
+                                        var result = server.AnalyticsClient.Query<dynamic>(analyticsRequest);
+                                        if (result.Exception != null)
+                                        {
+                                            throw result.Exception;
+                                        }
+                                    });
                                 }
 
                                 return endpoint;

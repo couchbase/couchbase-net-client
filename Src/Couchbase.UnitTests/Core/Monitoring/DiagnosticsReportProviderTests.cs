@@ -1,10 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using Couchbase.Configuration;
 using Couchbase.Core;
 using Couchbase.Core.Monitoring;
 using Couchbase.IO;
+using Couchbase.IO.Operations;
+using Couchbase.N1QL;
 using Couchbase.Utils;
 using Moq;
 using Newtonsoft.Json;
@@ -66,7 +70,7 @@ namespace Couchbase.UnitTests.Core.Monitoring
         }
 
         [Test]
-        public void Can_Create_Ping_Report()
+        public void Can_Create_Ping_Report_Failed()
         {
             var reportId = Guid.NewGuid().ToString();
 
@@ -99,12 +103,87 @@ namespace Couchbase.UnitTests.Core.Monitoring
                 s.AnalyticsClient.LastActivity == analyticsLastActivity
             );
 
+            Mock.Get(connection).Setup(x=>x.Send(It.IsAny<byte[]>())).Throws<SocketException>();
+
+            Mock.Get(server).Setup(x => x.QueryClient.Query<dynamic>(It.IsAny<IQueryRequest>()))
+                .Returns(new QueryResult<dynamic>
+                {
+                    Exception = new Exception()
+                });
+
             var configInfo = Mock.Of<IConfigInfo>(c =>
                 c.Servers == new List<IServer> { server }
             );
 
             var report = DiagnosticsReportProvider.CreatePingReport(reportId, configInfo, new[] { ServiceType.KeyValue, ServiceType.Query});
             Assert.IsNotNull(report);
+
+            foreach (var endpointDiagnostic in report.Services.Values.SelectMany(service => service))
+            {
+                Assert.AreEqual(ServiceState.Error, endpointDiagnostic.State);
+            }
+
+            Assert.AreEqual(reportId, report.Id);
+            Assert.AreEqual(1, report.Version);
+            Assert.AreEqual(ClientIdentifier.GetClientDescription(), report.Sdk);
+        }
+
+
+        [Test]
+        public void Can_Create_Ping_Report_Success()
+        {
+            var reportId = Guid.NewGuid().ToString();
+
+            var kvLastActivity = DateTime.UtcNow;
+            var viewLastActivity = kvLastActivity.AddSeconds(-5);
+            var queryLastActivity = kvLastActivity.AddSeconds(-10);
+            var searchLastActivity = kvLastActivity.AddSeconds(-15);
+            var analyticsLastActivity = kvLastActivity.AddSeconds(-20);
+
+            var connection = Mock.Of<IConnection>(c =>
+                c.LastActivity == kvLastActivity &&
+                c.IsConnected == true &&
+                c.IsAuthenticated == true
+            );
+
+            var connectionPool = Mock.Of<IConnectionPool>(p =>
+                p.Connections == new List<IConnection> { connection }
+            );
+
+            var server = Mock.Of<IServer>(s =>
+                s.IsDataNode == true &&
+                s.ConnectionPool == connectionPool &&
+                s.IsViewNode == true &&
+                s.ViewClient.LastActivity == viewLastActivity &&
+                s.IsQueryNode == true &&
+                s.QueryClient.LastActivity == queryLastActivity &&
+                s.IsSearchNode == true &&
+                s.SearchClient.LastActivity == searchLastActivity &&
+                s.IsAnalyticsNode == true &&
+                s.AnalyticsClient.LastActivity == analyticsLastActivity
+            );
+
+            //just assume nothing is thrown, however, server could return back a status
+            Mock.Get(connection).Setup(x => x.Send(It.IsAny<byte[]>())).Returns(new byte[] {0x00});
+
+            Mock.Get(server).Setup(x => x.QueryClient.Query<dynamic>(It.IsAny<IQueryRequest>()))
+                .Returns(new QueryResult<dynamic>
+                {
+                    Success = true,
+                    HttpStatusCode = HttpStatusCode.OK
+                });
+
+            var configInfo = Mock.Of<IConfigInfo>(c =>
+                c.Servers == new List<IServer> { server }
+            );
+
+            var report = DiagnosticsReportProvider.CreatePingReport(reportId, configInfo, new[] { ServiceType.KeyValue, ServiceType.Query });
+            Assert.IsNotNull(report);
+
+            foreach (var endpointDiagnostic in report.Services.Values.SelectMany(service => service))
+            {
+                Assert.AreEqual(ServiceState.Ok, endpointDiagnostic.State);
+            }
             Assert.AreEqual(reportId, report.Id);
             Assert.AreEqual(1, report.Version);
             Assert.AreEqual(ClientIdentifier.GetClientDescription(), report.Sdk);
