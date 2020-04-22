@@ -67,6 +67,8 @@ namespace Couchbase.KeyValue
             }
         }
 
+        internal uint Opaque { get; set; }
+
         public T ContentAs<T>()
         {
             EnsureNotDisposed();

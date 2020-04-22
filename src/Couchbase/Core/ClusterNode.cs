@@ -404,7 +404,7 @@ namespace Couchbase.Core
         private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            _logger.LogDebug("Executing op {opcode} with key {key} and opaque {opaque}", op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+            _logger.LogDebug("Executing op {opcode} with key {key} and opaque {opaque}.", op.OpCode, _redactor.UserData(op.Key), op.Opaque);
 
             CancellationTokenSource cts = null;
             try
@@ -427,6 +427,9 @@ namespace Couchbase.Core
                 }
                 else if (status != ResponseStatus.Success)
                 {
+                    _logger.LogDebug("Server returned {status} for op {opcode} with key {key} and opaque {opaque}.",
+                        status, op.OpCode, op.Key, op.Opaque);
+
                     //sub-doc path failures are handled when the ContentAs() method is called.
                     //so we simply return back to the caller and let it be handled later.
                     if (status == ResponseStatus.SubDocMultiPathFailure)
@@ -466,6 +469,8 @@ namespace Couchbase.Core
                     //oddly IsCancellationRequested is false when timed out
                     throw new TimeoutException();
                 }
+
+                throw;
             }
             finally
             {

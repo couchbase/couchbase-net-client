@@ -115,7 +115,8 @@ namespace Couchbase.KeyValue
                 Cas = lookupOp.Cas,
                 OpCode = lookupOp.OpCode,
                 Flags = lookupOp.Flags,
-                Header = lookupOp.Header
+                Header = lookupOp.Header,
+                Opaque = lookupOp.Opaque
             };
         }
 
