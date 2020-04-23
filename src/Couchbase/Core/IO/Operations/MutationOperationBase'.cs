@@ -11,6 +11,12 @@ namespace Couchbase.Core.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal abstract class MutationOperationBase<T> : OperationBase<T>
     {
+        protected MutationOperationBase(string bucketName, string key)
+        {
+            BucketName = bucketName;
+            Key = key;
+        }
+
         public DurabilityLevel DurabilityLevel { get; set; }
 
         public override bool HasDurability => DurabilityLevel != DurabilityLevel.None;

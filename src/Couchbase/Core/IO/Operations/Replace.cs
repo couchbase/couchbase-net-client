@@ -6,13 +6,15 @@ namespace Couchbase.Core.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal sealed class Replace<T> : MutationOperationBase<T>
     {
+        internal Replace(string bucketName, string key) : base(bucketName, key)
+        {}
+
         public override OpCode OpCode => OpCode.Replace;
 
         public override IOperation Clone()
         {
-            var cloned = new Replace<T>
+            var cloned = new Replace<T>(BucketName, Key)
             {
-                Key = Key,
                 ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
@@ -23,7 +25,6 @@ namespace Couchbase.Core.IO.Operations
                 CreationTime = CreationTime,
                 MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
                 ErrorCode = ErrorCode,
                 Expires = Expires
             };

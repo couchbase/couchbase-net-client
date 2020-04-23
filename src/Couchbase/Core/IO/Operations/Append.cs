@@ -2,6 +2,9 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Append<T> : MutationOperationBase<T>
     {
+        internal Append(string bucketName, string key) : base(bucketName, key)
+        {}
+
         protected override void BeginSend()
         {
             Flags = Transcoder.GetFormat(Content);
@@ -17,9 +20,8 @@ namespace Couchbase.Core.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Append<T>
+            var cloned = new Append<T>(BucketName, Key)
             {
-                Key = Key,
                 ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
@@ -30,7 +32,6 @@ namespace Couchbase.Core.IO.Operations
                 CreationTime = CreationTime,
                 MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
                 ErrorCode = ErrorCode
             };
             return cloned;

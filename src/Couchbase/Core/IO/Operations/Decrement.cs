@@ -5,6 +5,9 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Decrement : MutationOperationBase<ulong>
     {
+        internal Decrement(string bucketName, string key) : base(bucketName, key)
+        { }
+
         public ulong Delta { get; set; } = 1;
 
         public ulong Initial { get; set; } = 1;
@@ -26,9 +29,8 @@ namespace Couchbase.Core.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new Decrement
+            var cloned = new Decrement(BucketName, Key)
             {
-                Key = Key,
                 ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
@@ -41,7 +43,6 @@ namespace Couchbase.Core.IO.Operations
                 CreationTime = CreationTime,
                 MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
                 ErrorCode = ErrorCode,
                 Expires = Expires
             };

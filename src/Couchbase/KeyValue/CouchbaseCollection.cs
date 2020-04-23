@@ -169,9 +169,8 @@ namespace Couchbase.KeyValue
 
             options ??= new UpsertOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
-            using var upsertOp = new Set<T>
+            using var upsertOp = new Set<T>(_bucket.Name, id)
             {
-                Key = id,
                 Content = content,
                 CName = Name,
                 SName = ScopeName,
@@ -195,9 +194,8 @@ namespace Couchbase.KeyValue
 
             options ??= new InsertOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
-            using var insertOp = new Add<T>
+            using var insertOp = new Add<T>(_bucket.Name, id)
             {
-                Key = id,
                 Content = content,
                 Cid = Cid,
                 CName = Name,
@@ -220,9 +218,8 @@ namespace Couchbase.KeyValue
 
             options ??= new ReplaceOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
-            using var replaceOp = new Replace<T>
+            using var replaceOp = new Replace<T>(_bucket.Name, id)
             {
-                Key = id,
                 Content = content,
                 Cas = options.CasValue,
                 Cid = Cid,
@@ -311,9 +308,8 @@ namespace Couchbase.KeyValue
 
             options ??= new GetAndTouchOptions();
             var transcoder = options.TranscoderValue ?? _transcoder;
-            using var getAndTouchOp = new GetT<byte[]>
+            using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
-                Key = id,
                 Cid = Cid,
                 Expires = expiry.ToTtl(),
                 Transcoder = transcoder
@@ -434,6 +430,7 @@ namespace Couchbase.KeyValue
             using var mutation = new MultiMutation<byte[]>
             {
                 Key = id,
+                BucketName = _bucket.Name,
                 Builder = builder,
                 Cid = Cid,
                 DurabilityLevel = options.DurabilityLevel,
@@ -455,10 +452,9 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new AppendOptions();
-            using var op = new Append<byte[]>
+            using var op = new Append<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
-                Key = id,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder
@@ -477,10 +473,9 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new PrependOptions();
-            using var op = new Prepend<byte[]>
+            using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
-                Key = id,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder
@@ -499,10 +494,9 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new IncrementOptions();
-            using var op = new Increment
+            using var op = new Increment(_bucket.Name, id)
             {
                 Cid = Cid,
-                Key = id,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
@@ -522,10 +516,9 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= new DecrementOptions();
-            using var op = new Decrement
+            using var op = new Decrement(_bucket.Name, id)
             {
                 Cid = Cid,
-                Key = id,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,

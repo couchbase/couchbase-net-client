@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +20,7 @@ using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
+using Couchbase.Query;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -128,6 +130,25 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         [Fact]
+        public async Task MutationOperations_Pass_BucketName_To_MutationToken()
+        {
+            var collection = CreateTestCollection();
+
+            // BucketName asserted in Mock.
+            var mutationTasks = new Task[]
+            {
+                collection.AppendAsync("theDocId", new byte[] {0xff}),
+                collection.DecrementAsync("theDocId"),
+                collection.IncrementAsync("theDocId"),
+                collection.GetAndTouchAsync("theDocId", TimeSpan.FromSeconds(10)),
+                collection.PrependAsync("theDocId", new byte[] { 0x00 }),
+                collection.UpsertAsync<dynamic>("theDocId", new {foo = "bar"})
+            };
+
+            await Task.WhenAll(mutationTasks);
+        }
+
+        [Fact]
         public void Queue_Factory_Test()
         {
             var collection = CreateTestCollection();
@@ -164,10 +185,11 @@ namespace Couchbase.UnitTests.KeyValue
 
         internal class FakeBucket : BucketBase
         {
+            internal const string BucketName = "fake";
             private readonly Queue<ResponseStatus> _statuses = new Queue<ResponseStatus>();
 
             public FakeBucket(params ResponseStatus[] statuses)
-                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                : base(BucketName, new ClusterContext(), new Mock<IScopeFactory>().Object,
                     new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                     new Mock<IBootstrapperFactory>().Object)
             {
@@ -238,6 +260,22 @@ namespace Couchbase.UnitTests.KeyValue
                     {
                         Status = getResult
                     };
+
+                    return Task.CompletedTask;
+                });
+
+            mockBucket.Setup(m => m.SendAsync(
+                It.IsAny<IOperation>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<TimeSpan?>()))
+                .Returns((IOperation operation, CancellationToken cancellationToken, TimeSpan timeout) =>
+                {
+                    operation.Header = new OperationHeader
+                    {
+                        Status = getResult
+                    };
+
+                    Assert.Equal(FakeBucket.BucketName, operation.BucketName);
 
                     return Task.CompletedTask;
                 });

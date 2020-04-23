@@ -2,13 +2,15 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Add<T> : MutationOperationBase<T>
     {
+        internal Add(string bucketName, string key) : base(bucketName, key)
+        {}
+
         public override OpCode OpCode => OpCode.Add;
 
         public override IOperation Clone()
         {
-            var cloned = new Add<T>
+            var cloned = new Add<T>(BucketName, Key)
             {
-                Key = Key,
                 ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 VBucketId = VBucketId,
@@ -19,7 +21,6 @@ namespace Couchbase.Core.IO.Operations
                 CreationTime = CreationTime,
                 MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
                 ErrorCode = ErrorCode,
                 Expires = Expires
             };

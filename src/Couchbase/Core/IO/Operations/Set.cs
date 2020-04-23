@@ -6,13 +6,15 @@ namespace Couchbase.Core.IO.Operations
     /// <typeparam name="T">The value to insert.</typeparam>
     internal sealed class Set<T> : MutationOperationBase<T>
     {
+        internal Set(string bucketName, string key) : base(bucketName, key)
+        {}
+
         public override OpCode OpCode => OpCode.Set;
 
         public override IOperation Clone()
         {
-            var cloned = new Set<T>
+            var cloned = new Set<T>(BucketName, Key)
             {
-                Key = Key,
                 ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
@@ -23,7 +25,6 @@ namespace Couchbase.Core.IO.Operations
                 CreationTime = CreationTime,
                 MutationToken = MutationToken,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
                 ErrorCode = ErrorCode,
                 Expires = Expires
             };

@@ -36,7 +36,7 @@ namespace Couchbase.UnitTests.Core.Retry
             public IEnumerator<object[]> GetEnumerator()
             {
                 yield return new object[] {new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new Set<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
+                yield return new object[] {new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new ReplicaRead<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
@@ -55,14 +55,14 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] {new Set<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
+                yield return new object[] {new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
                 yield return new object[] {new Delete {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
-                yield return new object[] {new Append<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
-                yield return new object[] {new Prepend<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
+                yield return new object[] {new Append<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
+                yield return new object[] {new Prepend<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
                 yield return new object[] {new MultiMutation<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
                 yield return new object[] {new Unlock {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
                 yield return new object[] {new Touch {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
-                yield return new object[] {new GetT<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
+                yield return new object[] {new GetT<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
                 yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new SocketClosedException()};
             }
 
@@ -168,7 +168,7 @@ namespace Couchbase.UnitTests.Core.Retry
         [Fact(Skip = "Test incomplete")]
         public void Add_DoesNot_Retry_When_KeyExists()
         {
-            var op = new Add<dynamic> { RetryStrategy = new BestEffortRetryStrategy() };
+            var op = new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() };
         }
 
         [Theory]

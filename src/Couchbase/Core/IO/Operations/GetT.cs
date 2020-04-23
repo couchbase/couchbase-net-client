@@ -5,6 +5,9 @@ namespace Couchbase.Core.IO.Operations
 {
     internal class GetT<T> : MutationOperationBase<T>
     {
+        internal GetT(string bucketName, string key) : base(bucketName, key)
+        { }
+
         public override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[4];
@@ -20,9 +23,8 @@ namespace Couchbase.Core.IO.Operations
 
         public override IOperation Clone()
         {
-            var cloned = new GetT<T>
+            var cloned = new GetT<T>(BucketName, Key)
             {
-                Key = Key,
                 ReplicaIdx = ReplicaIdx,
                 Content = Content,
                 Transcoder = Transcoder,
@@ -33,7 +35,6 @@ namespace Couchbase.Core.IO.Operations
                 CreationTime = CreationTime,
                 Expires = Expires,
                 LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
                 ErrorCode = ErrorCode
             };
             return cloned;

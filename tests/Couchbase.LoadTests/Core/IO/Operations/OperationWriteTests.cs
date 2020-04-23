@@ -25,9 +25,8 @@ namespace Couchbase.LoadTests.Core.IO.Operations
             var keyGenerator = new GuidKeyGenerator();
 
             _operation = docGenerator.GenerateDocumentsWithKeys(keyGenerator, 1)
-                .Select(p => new Replace<object>
+                .Select(p => new Replace<object>("fake", p.Key)
                 {
-                    Key = p.Key,
                     Content = p.Value
                 })
                 .First();
