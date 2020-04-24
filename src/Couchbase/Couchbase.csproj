@@ -9,7 +9,7 @@
     <Authors>Couchbase, Inc.</Authors>
     <Company>Couchbase, Inc.</Company>
     <Product>CouchbaseNetClient</Product>
-    <Description>The all new Couchbase client supporting the soon to be available Couchbase Server 6.5.0 DP and .NET Standard v2.0.</Description>
+    <Description>The all new Couchbase client supporting the now available Couchbase Server 6.5.0 and .NET Standard v2.0 and v2.1</Description>
     <Copyright>Copyright 2019</Copyright>
 
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
