@@ -527,12 +527,23 @@ namespace Couchbase.Core
 
         async Task IConnectionInitializer.SelectBucketAsync(IConnection connection, string bucketName, CancellationToken cancellationToken)
         {
-            using var selectBucketOp = new SelectBucket
+            try
             {
-                Transcoder = _transcoder,
-                Key = bucketName
-            };
-            await ExecuteOp(connection, selectBucketOp, cancellationToken).ConfigureAwait(false);
+                using var selectBucketOp = new SelectBucket
+                {
+                    Transcoder = _transcoder,
+                    Key = bucketName
+                };
+                await ExecuteOp(connection, selectBucketOp, cancellationToken).ConfigureAwait(false);
+            }
+            catch (DocumentNotFoundException)
+            {
+                var message = "The Bucket [" + _redactor.MetaData(bucketName)+ "] could not be selected. Either it does not exist, " +
+                              "is unavailable or the node itself does not have the Data service enabled.";
+
+                _logger.LogError(LoggingEvents.BootstrapEvent, message);
+                throw new CouchbaseException(message);
+            }
         }
 
         #endregion
