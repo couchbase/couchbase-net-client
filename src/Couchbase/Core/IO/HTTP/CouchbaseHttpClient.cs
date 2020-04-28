@@ -61,9 +61,13 @@ namespace Couchbase.Core.IO.HTTP
                 handler.CheckCertificateRevocationList = context.ClusterOptions.EnableCertificateRevocation;
                 handler.ServerCertificateCustomValidationCallback = CreateCertificateValidator(context.ClusterOptions);
             }
-            catch (NotImplementedException)
+            catch (PlatformNotSupportedException)
             {
                 logger.LogDebug("Cannot set ServerCertificateCustomValidationCallback, not supported on this platform");
+            }
+            catch (NotImplementedException)
+            {
+                logger.LogDebug("Cannot set ServerCertificateCustomValidationCallback, not implemented on this platform");
             }
 
             try
