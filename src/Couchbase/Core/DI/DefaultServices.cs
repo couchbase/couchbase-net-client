@@ -46,12 +46,14 @@ namespace Couchbase.Core.DI
             yield return (typeof(IRedactor), new SingletonServiceFactory(typeof(Redactor)));
 
             yield return (typeof(ILookupClient), new TransientServiceFactory(_ => new LookupClient()));
+            yield return (typeof(IDotNetDnsClient), new TransientServiceFactory(_ => new DotNetDnsClient()));
             yield return (typeof(IDnsResolver), new SingletonServiceFactory(serviceProvider =>
             {
                 var options = serviceProvider.GetRequiredService<ClusterOptions>();
 
                 return new DnsClientDnsResolver(
                     serviceProvider.GetRequiredService<ILookupClient>(),
+                    serviceProvider.GetRequiredService<IDotNetDnsClient>(),
                     serviceProvider.GetRequiredService<ILogger<DnsClientDnsResolver>>())
                 {
                     IpAddressMode = options.ForceIPv4 ? IpAddressMode.ForceIpv4 : IpAddressMode.Default,

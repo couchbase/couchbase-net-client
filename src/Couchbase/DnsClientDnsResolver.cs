@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Utils;
 using DnsClient;
 using DnsClient.Protocol;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,7 @@ namespace Couchbase
         private const string DefaultServicePrefix = "_couchbase._tcp.";
         private const string TlsServicePrefix = "_couchbases._tcp.";
         private readonly ILookupClient _lookupClient;
+        private readonly IDotNetDnsClient _dotNetDnsClient;
         private readonly ILogger<DnsClientDnsResolver> _logger;
 
         public IpAddressMode IpAddressMode { get; set; }
@@ -30,43 +32,34 @@ namespace Couchbase
         /// </summary>
         public bool EnableDnsSrvResolution { get; set; } = true;
 
-        public DnsClientDnsResolver(ILookupClient lookupClient, ILogger<DnsClientDnsResolver> logger)
+        public DnsClientDnsResolver(ILookupClient lookupClient, IDotNetDnsClient dotNetDnsClient, ILogger<DnsClientDnsResolver> logger)
         {
             _lookupClient = lookupClient ?? throw new ArgumentNullException(nameof(lookupClient));
+            _dotNetDnsClient = dotNetDnsClient ?? throw new ArgumentNullException(nameof(dotNetDnsClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<IPAddress?> GetIpAddressAsync(string hostName,
             CancellationToken cancellationToken = default)
         {
-            var hostString = DnsString.FromResponseQueryString(hostName);
+            var addresses = (IEnumerable<IPAddress>) await _dotNetDnsClient.GetHostAddressesAsync(hostName);
 
-            var tasks = new List<Task<IDnsQueryResponse>>(2);
-
-            if (IpAddressMode != IpAddressMode.ForceIpv6)
+            if (IpAddressMode == IpAddressMode.ForceIpv6)
             {
-                tasks.Add(_lookupClient.QueryAsync(hostString, QueryType.A, cancellationToken: cancellationToken));
+                addresses = addresses.Where(p => p.AddressFamily == AddressFamily.InterNetworkV6);
             }
-
-            if (IpAddressMode != IpAddressMode.ForceIpv4)
+            else if (IpAddressMode == IpAddressMode.ForceIpv4)
             {
-                tasks.Add(_lookupClient.QueryAsync(hostString, QueryType.AAAA, cancellationToken: cancellationToken));
+                addresses = addresses.Where(p => p.AddressFamily == AddressFamily.InterNetwork);
             }
-
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-
-            var addresses = tasks
-                .Where(p => !p.Result.HasError)
-                .SelectMany(p => p.Result.Answers)
-                .OfType<AddressRecord>()
-                .Select(p => p.Address)
-                .ToList();
 
             var preferredAddresses = IpAddressMode switch
             {
+                // ReSharper disable PossibleMultipleEnumeration
                 IpAddressMode.PreferIpv4 => addresses.Where(p => p.AddressFamily == AddressFamily.InterNetwork),
                 IpAddressMode.PreferIpv6 => addresses.Where(p => p.AddressFamily == AddressFamily.InterNetworkV6),
                 IpAddressMode.Default => addresses.Where(p => p.AddressFamily == AddressFamily.InterNetworkV6),
+                // ReSharper restore PossibleMultipleEnumeration
                 _ => null
             };
 
@@ -76,6 +69,7 @@ namespace Couchbase
                 return preferredIpAddress;
             }
 
+            // ReSharper disable once PossibleMultipleEnumeration
             return addresses.FirstOrDefault();
         }
 

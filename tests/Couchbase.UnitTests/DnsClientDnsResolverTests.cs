@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Utils;
 using DnsClient;
 using DnsClient.Protocol;
 using Microsoft.Extensions.Logging;
@@ -17,79 +18,6 @@ namespace Couchbase.UnitTests
     {
         #region GetIpAddressAsync
 
-        [Fact]
-        public async Task GetIpAddressAsync_BothQueriesError_ReturnsNull()
-        {
-            // Arrange
-
-            var mockQueryResponse = new Mock<IDnsQueryResponse>();
-            mockQueryResponse
-                .Setup(x => x.HasError).Returns(true);
-
-            var mockLookupClient = new Mock<ILookupClient>();
-            mockLookupClient
-                .Setup(x => x.QueryAsync("cb.somewhere.com.", QueryType.A, QueryClass.IN, default))
-                .ReturnsAsync(mockQueryResponse.Object);
-            mockLookupClient
-                .Setup(x => x.QueryAsync("cb.somewhere.com.", QueryType.AAAA, QueryClass.IN, default))
-                .ReturnsAsync(mockQueryResponse.Object);
-
-            // Act
-
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
-
-            // Act
-
-            var result = await resolver.GetIpAddressAsync("cb.somewhere.com").ConfigureAwait(false);
-            Assert.Null(result);
-        }
-
-        [Theory]
-        [InlineData(QueryType.A, QueryType.AAAA)]
-        [InlineData(QueryType.AAAA, QueryType.A)]
-        public async Task GetIpAddressAsync_OneQueryErrors_ReturnsOtherQueryResult(QueryType success, QueryType failure)
-        {
-            // Arrange
-
-            var mockErrorResponse = new Mock<IDnsQueryResponse>();
-            mockErrorResponse
-                .Setup(x => x.HasError).Returns(true);
-
-            var successRecord = success == QueryType.A
-                ? new AddressRecord(
-                    new ResourceRecordInfo("cb.somewhere.com.", ResourceRecordType.A, QueryClass.IN, 100, 100),
-                    IPAddress.Parse("127.0.0.1"))
-                : new AddressRecord(
-                    new ResourceRecordInfo("cb.somewhere.com.", ResourceRecordType.AAAA, QueryClass.IN, 100, 100),
-                    IPAddress.Parse("::1"));
-
-            var mockSuccessResponse = new Mock<IDnsQueryResponse>();
-            mockSuccessResponse
-                .Setup(x => x.HasError).Returns(false);
-            mockSuccessResponse
-                .Setup(x => x.Answers)
-                .Returns(new List<AddressRecord> {successRecord});
-
-            var mockLookupClient = new Mock<ILookupClient>();
-            mockLookupClient
-                .Setup(x => x.QueryAsync("cb.somewhere.com.", success, QueryClass.IN, default))
-                .ReturnsAsync(mockSuccessResponse.Object);
-            mockLookupClient
-                .Setup(x => x.QueryAsync("cb.somewhere.com.", failure, QueryClass.IN, default))
-                .ReturnsAsync(mockErrorResponse.Object);
-
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
-
-            // Act
-
-            var result = await resolver.GetIpAddressAsync("cb.somewhere.com").ConfigureAwait(false);
-
-            // Assert
-
-            Assert.NotNull(result);
-            Assert.Equal(successRecord.Address, result);
-        }
-
         [Theory]
         [InlineData(IpAddressMode.PreferIpv4, AddressFamily.InterNetwork)]
         [InlineData(IpAddressMode.PreferIpv6, AddressFamily.InterNetworkV6)]
@@ -98,38 +26,21 @@ namespace Couchbase.UnitTests
         {
             // Arrange
 
-            var ipv4Record = new AddressRecord(
-                new ResourceRecordInfo("cb.somewhere.com.", ResourceRecordType.A, QueryClass.IN, 100, 100),
-                IPAddress.Parse("127.0.0.1"));
-
-            var mockIpv4Response = new Mock<IDnsQueryResponse>();
-            mockIpv4Response
-                .Setup(x => x.HasError).Returns(false);
-            mockIpv4Response
-                .Setup(x => x.Answers)
-                .Returns(new List<AddressRecord> {ipv4Record});
-
-            var ipv6Record = new AddressRecord(
-                new ResourceRecordInfo("cb.somewhere.com.", ResourceRecordType.AAAA, QueryClass.IN, 100, 100),
-                IPAddress.Parse("::1"));
-
-            var mockIpv6Response = new Mock<IDnsQueryResponse>();
-            mockIpv6Response
-                .Setup(x => x.HasError).Returns(false);
-            mockIpv6Response
-                .Setup(x => x.Answers)
-                .Returns(new List<AddressRecord> {ipv6Record});
+            var addresses = new IPAddress[]
+            {
+                IPAddress.Parse("127.0.0.1"),
+                IPAddress.Parse("::1")
+            };
 
             var mockLookupClient = new Mock<ILookupClient>();
-            mockLookupClient
-                .Setup(x => x.QueryAsync("cb.somewhere.com.", QueryType.A, QueryClass.IN, default))
-                .ReturnsAsync(mockIpv4Response.Object);
-            mockLookupClient
-                .Setup(x => x.QueryAsync("cb.somewhere.com.", QueryType.AAAA, QueryClass.IN, default))
-                .ReturnsAsync(mockIpv6Response.Object);
+
+            var mockDotNetDnsClient = new Mock<IDotNetDnsClient>();
+            mockDotNetDnsClient
+                .Setup(m => m.GetHostAddressesAsync("cb.somewhere.com"))
+                .ReturnsAsync(addresses);
 
             var resolver =
-                new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object)
+                new DnsClientDnsResolver(mockLookupClient.Object, mockDotNetDnsClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object)
                 {
                     IpAddressMode = ipAddressMode
                 };
@@ -145,37 +56,27 @@ namespace Couchbase.UnitTests
         }
 
         [Theory]
-        [InlineData(IpAddressMode.ForceIpv4)]
-        [InlineData(IpAddressMode.ForceIpv6)]
-        internal async Task GetIpAddressAsync_Force_IsRespected(IpAddressMode ipAddressMode)
+        [InlineData(IpAddressMode.ForceIpv4, "127.0.0.1")]
+        [InlineData(IpAddressMode.ForceIpv6, "::1")]
+        internal async Task GetIpAddressAsync_Force_IsRespected(IpAddressMode ipAddressMode, string expectedResult)
         {
             // Arrange
 
-            var expectedQuery = ipAddressMode == IpAddressMode.ForceIpv4 ? QueryType.A : QueryType.AAAA;
-            var notExpectedQuery = ipAddressMode == IpAddressMode.ForceIpv4 ? QueryType.AAAA : QueryType.A;
-
-            var record = expectedQuery == QueryType.A
-                ? new AddressRecord(
-                    new ResourceRecordInfo("cb.somewhere.com.", ResourceRecordType.A, QueryClass.IN, 100, 100),
-                    IPAddress.Parse("127.0.0.1"))
-                : new AddressRecord(
-                    new ResourceRecordInfo("cb.somewhere.com.", ResourceRecordType.AAAA, QueryClass.IN, 100, 100),
-                    IPAddress.Parse("::1"));
-
-            var mockResponse = new Mock<IDnsQueryResponse>();
-            mockResponse
-                .Setup(x => x.HasError).Returns(false);
-            mockResponse
-                .Setup(x => x.Answers)
-                .Returns(new List<AddressRecord> {record});
+            var addresses = new IPAddress[]
+            {
+                IPAddress.Parse("127.0.0.1"),
+                IPAddress.Parse("::1")
+            };
 
             var mockLookupClient = new Mock<ILookupClient>();
-            mockLookupClient
-                .Setup(x => x.QueryAsync("cb.somewhere.com.", expectedQuery, QueryClass.IN, default))
-                .ReturnsAsync(mockResponse.Object);
+
+            var mockDotNetDnsClient = new Mock<IDotNetDnsClient>();
+            mockDotNetDnsClient
+                .Setup(m => m.GetHostAddressesAsync("cb.somewhere.com"))
+                .ReturnsAsync(addresses);
 
             var resolver =
-                new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object)
+                new DnsClientDnsResolver(mockLookupClient.Object, mockDotNetDnsClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object)
                 {
                     IpAddressMode = ipAddressMode
                 };
@@ -187,11 +88,7 @@ namespace Couchbase.UnitTests
             // Assert
 
             Assert.NotNull(result);
-            Assert.Equal(record.Address, result);
-
-            mockLookupClient.Verify(
-                x => x.QueryAsync(It.IsAny<string>(), notExpectedQuery, It.IsAny<QueryClass>(), It.IsAny<CancellationToken>()),
-                Times.Never);
+            Assert.Equal(IPAddress.Parse(expectedResult), result);
         }
 
         #endregion
@@ -210,8 +107,10 @@ namespace Couchbase.UnitTests
                 .Setup(x => x.QueryAsync("_couchbase._tcp.cb.somewhere.com", QueryType.SRV, QueryClass.IN, CancellationToken.None))
                 .Returns(Task.FromResult(mockQueryResponse.Object));
 
+            var mockDotNetDnsClient = new Mock<IDotNetDnsClient>();
+
             var bootstrapUri = new Uri("couchbase://cb.somewhere.com");
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
+            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, mockDotNetDnsClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
 
             var result = await resolver.GetDnsSrvEntriesAsync(bootstrapUri);
             Assert.NotNull(result);
@@ -232,8 +131,10 @@ namespace Couchbase.UnitTests
                 .Setup(x => x.QueryAsync("_couchbase._tcp.cb.somewhere.com", QueryType.SRV, QueryClass.IN, CancellationToken.None))
                 .Returns(Task.FromResult(mockQueryResponse.Object));
 
+            var mockDotNetDnsClient = new Mock<IDotNetDnsClient>();
+
             var bootstrapUri = new Uri("couchbase://cb.somewhere.com");
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
+            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, mockDotNetDnsClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
 
             var result = await resolver.GetDnsSrvEntriesAsync(bootstrapUri);
             Assert.NotNull(result);
@@ -262,8 +163,10 @@ namespace Couchbase.UnitTests
                 .Setup(x => x.QueryAsync($"_{scheme}._tcp.cb.somewhere.com", QueryType.SRV, QueryClass.IN, CancellationToken.None))
                 .Returns(Task.FromResult(mockQueryResponse.Object));
 
+            var mockDotNetDnsClient = new Mock<IDotNetDnsClient>();
+
             var bootstrapUri = new Uri($"{scheme}://cb.somewhere.com");
-            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
+            var resolver = new DnsClientDnsResolver(mockLookupClient.Object, mockDotNetDnsClient.Object, new Mock<ILogger<DnsClientDnsResolver>>().Object);
 
             var result = (await resolver.GetDnsSrvEntriesAsync(bootstrapUri)).ToList();
             Assert.NotNull(result);

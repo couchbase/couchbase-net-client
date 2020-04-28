@@ -32,7 +32,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 new Mock<ILogger<SslConnection>>().Object);
 
             var ipEndPointService = new IpEndPointService(
-                new DnsClientDnsResolver(new LookupClient(), new Mock<ILogger<DnsClientDnsResolver>>().Object),
+                new DnsClientDnsResolver(new LookupClient(), new DotNetDnsClient(), new Mock<ILogger<DnsClientDnsResolver>>().Object),
                 options);
             var ipEndPoint = await ipEndPointService.GetIpEndPointAsync(
                 options.ConnectionStringValue.GetBootstrapEndpoints().First().Host, 11210).ConfigureAwait(false);
