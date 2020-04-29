@@ -56,9 +56,10 @@ namespace Couchbase.IntegrationTests.Fixtures
 
         public async Task InitializeAsync()
         {
+            var clusterOptions = GetClusterOptions();
             Cluster = await Couchbase.Cluster.ConnectAsync(
-                    "couchbases://localhost",
-                    GetClusterOptions())
+                    clusterOptions.ConnectionString,
+                    clusterOptions)
                 .ConfigureAwait(false);
         }
 
