@@ -2,6 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -242,6 +244,10 @@ namespace Couchbase
         public bool EnableExpect100Continue { get; set; }
         public bool EnableCertificateAuthentication { get; set; }
         public bool EnableCertificateRevocation { get; set; }
+
+        /// <summary>
+        /// Ignore CertificateNameMismatch and CertificateChainMismatch, since they happen together.
+        /// </summary>
         public bool IgnoreRemoteCertificateNameMismatch { get; set; }
 
         private bool _enableOrphanedResponseLogging;
@@ -279,6 +285,21 @@ namespace Couchbase
         /// Effective value for TLS, should be used instead of <see cref="EnableTls"/> internally within the SDK.
         /// </summary>
         internal bool EffectiveEnableTls => EnableTls ?? ConnectionStringValue?.Scheme == Scheme.Couchbases;
+
+        internal bool ValidateCertificateCallback(object sender,
+            X509Certificate certificate,
+            X509Chain chain,
+            SslPolicyErrors sslPolicyErrors)
+        {
+            if (IgnoreRemoteCertificateNameMismatch)
+            {
+                // mask out the name mismatch error, and the chain error that comes along with it
+                sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+                sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+            }
+
+            return sslPolicyErrors == SslPolicyErrors.None;
+        }
 
         #region DI
 

@@ -92,15 +92,7 @@ namespace Couchbase.Core.IO.HTTP
             bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate,
                 X509Chain chain, SslPolicyErrors sslPolicyErrors)
             {
-                if (clusterOptions.IgnoreRemoteCertificateNameMismatch)
-                {
-                    if (sslPolicyErrors == SslPolicyErrors.RemoteCertificateNameMismatch)
-                    {
-                        return true;
-                    }
-                }
-
-                return sslPolicyErrors == SslPolicyErrors.None;
+                return clusterOptions.ValidateCertificateCallback(request, certificate, chain, sslPolicyErrors);
             }
 
             return OnCertificateValidation;

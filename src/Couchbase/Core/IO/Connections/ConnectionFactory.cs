@@ -57,7 +57,7 @@ namespace Couchbase.Core.IO.Connections
 
             if (_clusterOptions.EffectiveEnableTls)
             {
-                var sslStream = new SslStream(new NetworkStream(socket, true), false);
+                var sslStream = new SslStream(new NetworkStream(socket, true), false,  _clusterOptions.ValidateCertificateCallback);
 
                 // TODO: add callback validation
                 await sslStream.AuthenticateAsClientAsync(endPoint.Address.ToString(), null,

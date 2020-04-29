@@ -10,6 +10,7 @@
   "couchbaseSsl": {
     "connectionString": "couchbases://localhost",
     "username": "Administrator",
-    "password": "password"
+    "password": "password",
+    "ignoreRemoteCertificateNameMismatch":  true
   }
 }
