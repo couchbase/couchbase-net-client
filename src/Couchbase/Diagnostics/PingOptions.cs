@@ -5,9 +5,7 @@ namespace Couchbase.Diagnostics
 {
     public class PingOptions
     {
-        internal string ReportIdValue { get; set; }
-
-        internal IList<ServiceType> ServiceTypesValue { get; set; } = new List<ServiceType>
+        internal static readonly IList<ServiceType> DefaultServiceTypeValues = new List<ServiceType>
         {
             ServiceType.Analytics,
             ServiceType.KeyValue,
@@ -15,6 +13,10 @@ namespace Couchbase.Diagnostics
             ServiceType.Search,
             ServiceType.Views
         };
+
+        internal string ReportIdValue { get; set; }
+
+        internal IList<ServiceType> ServiceTypesValue { get; set; } = DefaultServiceTypeValues;
 
         internal CancellationToken Token { get; set; } = System.Threading.CancellationToken.None;
 

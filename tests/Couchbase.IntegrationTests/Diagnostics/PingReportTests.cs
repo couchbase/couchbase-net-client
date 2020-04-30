@@ -66,6 +66,7 @@ namespace Couchbase.IntegrationTests.Diagnostics
             var report = await bucket.PingAsync(reportId).ConfigureAwait(false);
 
             Assert.NotNull(report);
+            Assert.NotEmpty(report.Services);
             Assert.Equal(reportId, report.Id);
             Assert.NotEmpty(report.Services["kv"].Where(e => e.Type == ServiceType.KeyValue)); // at least one KV
             Assert.NotEmpty(report.Services["view"].Where(e => e.Type == ServiceType.Views)); // at least one Index
