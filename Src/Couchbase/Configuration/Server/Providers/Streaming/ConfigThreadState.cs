@@ -104,8 +104,6 @@ namespace Couchbase.Configuration.Server.Providers.Streaming
 
                         using (var stream = response.Content.ReadAsStreamAsync().Result)
                         {
-                            stream.ReadTimeout = Timeout.Infinite;
-
                             //this will cancel the infinite wait below
                             _cancellationToken.Register(stream.Dispose);
 
