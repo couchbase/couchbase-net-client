@@ -12,6 +12,9 @@ namespace Couchbase.Core.Configuration.Server
             var nodes = bucketConfig.Nodes;
             var nodesExt = bucketConfig.NodesExt;
 
+            var nodesCount = nodes?.Count;
+            var nodesExtCount = nodesExt?.Count;
+
             if (nodesExt == null)
                 nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null, bucketConfig)));
             else if (nodes.Count == nodesExt.Count)
@@ -23,24 +26,13 @@ namespace Couchbase.Core.Configuration.Server
                 //In certain cases the server will return an evicted node at the end of the NodesExt list
                 //we filter that list to ensure parity between Nodes and NodesExt - see NCBC-2422 for details
 
-                var temp = new List<NodesExt>();
-                foreach (var ext in nodesExt)
-                {
-                    if (ext.Services.Kv <= 0) continue;
-                    if (!nodes.Any(n => n.Hostname.Contains(ext.Hostname)))
-                    {
-                        temp.Add(ext);
-                    }
-                }
 
-                //remove the k/v server from nodesExt that was evicted
-                foreach (var ext in temp)
-                {
-                    nodesExt.Remove(ext);
-                }
+                var nodesExtFiltered = nodesExt.Where(ext => nodes.Count == 0
+                                                             || ext.Services.Kv <= 0
+                                                             || nodes.Any(n => n.Hostname.Contains(ext.Hostname)));
 
                 //create the adapters list - if node exists, it should pair with its equiv nodeExt
-                foreach (var ext in nodesExt)
+                foreach (var ext in nodesExtFiltered)
                 {
                     var node = nodes.FirstOrDefault(x => x.Hostname.Contains(ext.Hostname));
                     nodeAdapters.Add(new NodeAdapter(node, ext, bucketConfig));
@@ -48,6 +40,12 @@ namespace Couchbase.Core.Configuration.Server
             }
             else
                 nodeAdapters.AddRange(nodesExt.Select((t, i) => new NodeAdapter(null, nodesExt[i], bucketConfig)));
+
+            if (nodeAdapters.Count == 0)
+            {
+                throw new ServiceMissingException(
+                    $"No node adapters selected.  nodes = {nodesCount}, nodesExt = {nodesExtCount}");
+            }
 
             return nodeAdapters;
         }

@@ -45,6 +45,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         }
 
         [Fact]
+        public void Integration_Test_Environment_HasNodes()
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-integration-tests.json");
+            var nodes = config.GetNodes();
+            Assert.Equal(2, nodes.Count);
+        }
+
+        [Fact]
         public void Test_Equals_False()
         {
             var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
@@ -186,14 +194,18 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             //Arrange
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-error.json");
-
+            var originalExtCount = config.NodesExt.Count;
             //Act
 
-            var nodes = config.GetNodes();
+            for (int i = 0; i < 10; i++)
+            {
+                var nodes = config.GetNodes();
 
-            //Assert
+                //Assert
 
-            Assert.Equal(3, nodes.Count);
+                Assert.Equal(3, nodes.Count);
+                Assert.Equal(originalExtCount, config.NodesExt.Count);
+            }
         }
     }
 }
