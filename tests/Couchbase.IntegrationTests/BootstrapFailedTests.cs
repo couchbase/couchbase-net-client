@@ -80,7 +80,8 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_BootStrap_Error_Propagates_To_View_Operations()
         {
-            var cluster = await Cluster.ConnectAsync("couchbase://10.143.194.101", "Administrator", "password").ConfigureAwait(false);
+            var settings = ClusterFixture.GetSettings();
+            var cluster = await Cluster.ConnectAsync(settings.ConnectionString, "Administrator", "password").ConfigureAwait(false);
             var bucket = await cluster.BucketAsync("doesnotexist").ConfigureAwait(false);
 
             await Assert.ThrowsAsync<AuthenticationFailureException>(async () =>
