@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,34 +65,44 @@ namespace Couchbase.Query
         /// <remarks>
         /// Intended for internal use only.
         /// </remarks>
-        public bool ShouldRetry()
+        public bool ShouldRetry(bool enableEnhancedPreparedStatements)
         {
-            SetRetryReasonIfFailed();
+            RetryReason = GetRetryReason(enableEnhancedPreparedStatements);
             return RetryReason != RetryReason.NoRetry;
         }
 
-        private void SetRetryReasonIfFailed()
+        private RetryReason GetRetryReason(bool enableEnhancedPreparedStatements)
         {
-            foreach (var error in Errors)
+            var error = Errors.FirstOrDefault();
+            if (error != null)
             {
-                switch (error.Code)
+                if (enableEnhancedPreparedStatements)
                 {
-                    case 4040:
-                    case 4050:
-                    case 4070:
-                        RetryReason = RetryReason.QueryPreparedStatementFailure;
-                        return;
-                    case 5000:
-                        if (error.Message != null
-                            && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
-                        {
-                            RetryReason = RetryReason.QueryPreparedStatementFailure;
-                        }
-                        return;
-                    default:
-                        continue;
+                    //If enhancedPreparedStatements is enabled do not retry 4040, 4050, or 4050 here; the error must percolate up.
+                    if (error.Code == 4040 || error.Code == 4050 || error.Code == 4070)
+                    {
+                        return RetryReason.NoRetry;
+                    }
+
+                    if (error.Code == 5000 && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
+                    {
+                        return RetryReason.QueryPreparedStatementFailure;
+                    }
+                }
+                else
+                {
+                    //pre-couchbase server 6.5 behavior
+                    if (error.Code == 4040 || error.Code == 4050 || error.Code == 4070 ||
+                        error.Code == 5000 && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
+                    {
+                        return RetryReason.QueryPreparedStatementFailure;
+                    }
+
+                    return RetryReason.NoRetry;
                 }
             }
+
+            return RetryReason.NoRetry;
         }
 
         public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;

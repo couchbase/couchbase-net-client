@@ -11,6 +11,37 @@ namespace Couchbase.UnitTests.Query
 {
     public class StreamingQueryResultTests
     {
+        #region retry handling
+
+        [Theory]
+        [InlineData(@"Documents\Query\Retrys\4040.json", true, false)]
+        [InlineData(@"Documents\Query\Retrys\4050.json", true, false)]
+        [InlineData(@"Documents\Query\Retrys\4070.json", true, false)]
+        [InlineData(@"Documents\Query\Retrys\5000.json", true, true)]
+        [InlineData(@"Documents\Query\Retrys\4040.json", false, true)]
+        [InlineData(@"Documents\Query\Retrys\4050.json", false, true)]
+        [InlineData(@"Documents\Query\Retrys\4070.json", false, true)]
+        [InlineData(@"Documents\Query\Retrys\5000.json", false, true)]
+        public async Task ShouldRetry_Handles_Retry_Cases(string fileName, bool enableEnhancedPreparedStatements, bool shouldRetry)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(fileName);
+
+            using var blockResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            await blockResult.InitializeAsync().ConfigureAwait(false);
+
+            // Act
+
+            var actual = blockResult.ShouldRetry(enableEnhancedPreparedStatements);
+
+            // Assert
+
+            Assert.Equal(shouldRetry, actual);
+        }
+
+        #endregion
+
         #region GetAsyncEnumerator
 
         [Fact]

@@ -155,7 +155,7 @@ namespace Couchbase.Query
                         _logger.LogDebug("Request {currentContextId} has failed because {status}.",
                             options.CurrentContextId, queryResult.MetaData?.Status);
 
-                        if (queryResult.ShouldRetry())
+                        if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
                         {
                             return queryResult;
                         }

@@ -3,7 +3,7 @@
   "errors": [
     {
       "code": 5000,
-      "msg": "Internal Error"
+      "msg": "\"Internal Error- \"queryport.indexNotFound\"\""
     }],
   "status": "fatal",
   "metrics": {

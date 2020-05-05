@@ -297,16 +297,16 @@ namespace Couchbase.UnitTests.Core.Retry
         [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
         [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
         [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
-        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(InternalServerFailureException), true, false)]
+        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
         [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
         [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
         [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
-        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(InternalServerFailureException), false, false)]
+        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
         public async Task Test_Query(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly, bool canRetry)
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Analytics\" + file))
+            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\Retrys\" + file))
             {
                 var buffer = new byte[response.Length];
                 response.Read(buffer, 0, buffer.Length);
