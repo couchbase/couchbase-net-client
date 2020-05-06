@@ -1,4 +1,4 @@
-﻿// http://blogs.msdn.com/b/pfxteam/archive/2011/12/15/10248293.aspx
+// http://blogs.msdn.com/b/pfxteam/archive/2011/12/15/10248293.aspx
 
 using System;
 using System.Net.Sockets;
@@ -36,7 +36,7 @@ namespace Couchbase.IO.Utils
             catch (PlatformNotSupportedException)
             {
                 // Can't set on non-Windows platforms, ignore error
-                Log.Debug("Skipping Socket.IOControl for keep alives, not supported on this platform");
+                Log.Warn("Skipping Socket.IOControl for keep alives, not supported on this platform");
             }
         }
 
