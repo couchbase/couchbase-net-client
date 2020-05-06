@@ -52,8 +52,13 @@ namespace Couchbase.Core.IO.Connections
                 throw;
             }
 
-            socket.SetKeepAlives(_clusterOptions.EnableTcpKeepAlives, (uint) _clusterOptions.TcpKeepAliveTime.TotalMilliseconds,
-                (uint) _clusterOptions.TcpKeepAliveInterval.TotalMilliseconds);
+            if (!socket.TrySetKeepAlives(_clusterOptions.EnableTcpKeepAlives,
+                (uint) _clusterOptions.TcpKeepAliveTime.TotalMilliseconds,
+                (uint) _clusterOptions.TcpKeepAliveInterval.TotalMilliseconds, out string setKeepAliveMessage)
+            )
+            {
+                _multiplexLogger.LogWarning(setKeepAliveMessage);
+            }
 
             if (_clusterOptions.EffectiveEnableTls)
             {
