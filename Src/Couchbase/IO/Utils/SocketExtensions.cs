@@ -35,7 +35,7 @@ namespace Couchbase.IO.Utils
             }
             catch (PlatformNotSupportedException)
             {
-                // Can't set on non-Windows platforms, ignore error
+                // Can't set on non-Windows platforms, warn on error
                 Log.Warn("Skipping Socket.IOControl for keep alives, not supported on this platform");
             }
         }
