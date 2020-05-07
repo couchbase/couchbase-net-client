@@ -12,7 +12,7 @@ namespace Couchbase
     {
         public CouchbaseException() { }
 
-        public CouchbaseException(IErrorContext context)
+        public CouchbaseException(IErrorContext context) : base(context.Message)
         {
             Context = context;
         }

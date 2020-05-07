@@ -20,7 +20,7 @@ namespace Couchbase.UnitTests.Utils
 {
     internal static class MockedHttpClients
     {
-        public static IQueryClient QueryClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
+        public static IQueryClient QueryClient([NotNull] Queue<Task<HttpResponseMessage>> responses, bool enableEnhancedPreparedStatements)
         {
             var handlerMock = new Mock<HttpMessageHandler>();
             handlerMock.Protected().Setup<Task<HttpResponseMessage>>(
@@ -30,7 +30,7 @@ namespace Couchbase.UnitTests.Utils
 
             var httpClient = new CouchbaseHttpClient(handlerMock.Object)
             {
-                BaseAddress = new Uri("http://localhost:8091")
+                BaseAddress = new Uri("http://localhost:8091"),
             };
 
             IServiceCollection serviceCollection = new ServiceCollection();
@@ -47,7 +47,10 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<QueryClient>>().Object);
+                new Mock<ILogger<QueryClient>>().Object)
+            {
+                EnhancedPreparedStatementsEnabled = enableEnhancedPreparedStatements
+            };
         }
 
         internal static IAnalyticsClient AnalyticsClient([NotNull] Queue<Task<HttpResponseMessage>> responses)

@@ -6,7 +6,7 @@ namespace Couchbase.Core.Exceptions
     {
         public ParsingFailureException() { }
 
-        public ParsingFailureException(IErrorContext context)
+        public ParsingFailureException(IErrorContext context) : base(context.Message)
         {
             Context = context;
         }

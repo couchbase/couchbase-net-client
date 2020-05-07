@@ -95,6 +95,7 @@ namespace Couchbase.Query
             // server supports combined prepare & execute
             if (EnhancedPreparedStatementsEnabled)
             {
+                _logger.LogDebug("Using enhanced prepared statement behavior for request {currentContextId}", options.CurrentContextId);
                 // execute combined prepare & execute query
                 options.AutoExecute(true);
                 var result = await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
@@ -108,6 +109,8 @@ namespace Couchbase.Query
 
                 return result;
             }
+
+            _logger.LogDebug("Using legacy prepared statement behavior for request {currentContextId}", options.CurrentContextId);
 
             // older style, prepare then execute
             var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanSerializer).ConfigureAwait(false);
@@ -152,19 +155,32 @@ namespace Couchbase.Query
 
                     if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
                     {
+                        var currentContextId = options.CurrentContextId ?? Guid.Empty.ToString();
+
                         _logger.LogDebug("Request {currentContextId} has failed because {status}.",
-                            options.CurrentContextId, queryResult.MetaData?.Status);
+                            currentContextId, queryResult.MetaData?.Status);
 
                         if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
                         {
+                            if(queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
+                            {
+                                //clear the cache of stale query plan
+                                var statement = options.StatementValue ?? string.Empty;
+                                if (_queryCache.TryRemove(statement, out var queryPlan))
+                                {
+                                    _logger.LogDebug("Query plan is stale for {currentContextId}. Purging plan {queryPlanName}.", currentContextId, queryPlan.Name);
+                                };
+                            }
+                            _logger.LogDebug("Request {currentContextId} is being retried.", currentContextId);
                             return queryResult;
                         }
+
                         var context = new QueryErrorContext
                         {
                             ClientContextId = options.CurrentContextId,
                             Parameters = options.GetAllParametersAsJson(),
                             Statement = options.ToString(),
-                            Message = queryResult.Message,
+                            Message = GetErrorMessage(queryResult, currentContextId),
                             Errors = queryResult.Errors,
                             HttpStatus = response.StatusCode,
                             QueryStatus = queryResult.MetaData?.Status ?? QueryStatus.Fatal
@@ -242,6 +258,18 @@ namespace Couchbase.Query
                 EnhancedPreparedStatementsEnabled = true;
                 _logger.LogInformation("Enabling Enhanced Prepared Statements");
             }
+        }
+
+        private string GetErrorMessage<T>(QueryResultBase<T> queryResult, string requestId)
+        {
+            var error = queryResult?.Errors?.FirstOrDefault();
+            if (error != null)
+            {
+                _logger.LogDebug("The request {requestId} failed because: {message} [{code}]", error.Message, error.Code);
+                return $"{error.Message} [{error.Code}]";
+            }
+
+            return string.Empty;
         }
     }
 }

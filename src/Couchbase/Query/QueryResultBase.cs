@@ -78,13 +78,17 @@ namespace Couchbase.Query
             {
                 if (enableEnhancedPreparedStatements)
                 {
-                    //If enhancedPreparedStatements is enabled do not retry 4040, 4050, or 4050 here; the error must percolate up.
-                    if (error.Code == 4040 || error.Code == 4050 || error.Code == 4070)
-                    {
-                        return RetryReason.NoRetry;
-                    }
-
-                    if (error.Code == 5000 && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
+                    /*
+                     * 4040 - Statement Not Found
+                     * In the background the query engine is trying to fetch a prepared statement
+                     * from a different node if it doesn’t have, but in the case it cannot find it
+                     * from anywhere the client is supposed to re-prepare the statement on that
+                     * specific node and execute again.
+                     * Retryable: yes
+                     * Action: run the fast prepare-and-execute logic on any of the nodes to make progress on the request.
+                     * Other codes, especially 4001 (could not prepare a stale statement) need to be forward to the user.
+                     */
+                    if (error.Code == 4040)
                     {
                         return RetryReason.QueryPreparedStatementFailure;
                     }
@@ -92,7 +96,7 @@ namespace Couchbase.Query
                 else
                 {
                     //pre-couchbase server 6.5 behavior
-                    if (error.Code == 4040 || error.Code == 4050 || error.Code == 4070 ||
+                    if (error.Code == 4050 || error.Code == 4070 ||
                         error.Code == 5000 && error.Message.Contains(QueryClient.Error5000MsgQueryPortIndexNotFound))
                     {
                         return RetryReason.QueryPreparedStatementFailure;

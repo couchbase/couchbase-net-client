@@ -73,10 +73,7 @@ namespace Couchbase.Query
                 if (error.Code == 12009) throw new CasMismatchException(context);
 
                 if (error.Code >= 10000 && error.Code < 11000)
-                    throw new AuthenticationFailureException("Could not authenticate query.")
-                    {
-                        Context = context
-                    };
+                    throw new AuthenticationFailureException(context);
 
                 if (error.Code >= 12000 && error.Code < 13000 || error.Code >= 14000 && error.Code < 15000)
                     throw new IndexFailureException(context);

@@ -10,6 +10,7 @@ using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Operations;
@@ -294,15 +295,17 @@ namespace Couchbase.UnitTests.Core.Retry
         }
 
         [Theory]
-        [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
-        [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
-        [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
-        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true)]
-        [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
-        [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
-        [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
-        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true)]
-        public async Task Test_Query(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly, bool canRetry)
+        //only retry 4040 when enhanced prepared statements is enabled
+        [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), true, false, false)]
+        [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
+        [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
+        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
+        //only retry 4040 when enhanced prepared statements is enabled
+        [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true, true)]
+        [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), false, false, true)]
+        [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), false, false, true)]
+        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(InternalServerFailureException), false, false, true)]
+        public async Task Test_Query(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly, bool canRetry, bool enableEnhancedPreparedStatements)
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
@@ -312,7 +315,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 response.Read(buffer, 0, buffer.Length);
 
                 var responses = GetResponses(20, buffer, httpStatusCode);
-                var client = MockedHttpClients.QueryClient(responses);
+                var client = MockedHttpClients.QueryClient(responses, enableEnhancedPreparedStatements);
 
                 using var cts = new CancellationTokenSource();
                 cts.CancelAfter(100000);

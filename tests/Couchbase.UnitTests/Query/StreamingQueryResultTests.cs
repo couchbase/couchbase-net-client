@@ -14,11 +14,11 @@ namespace Couchbase.UnitTests.Query
         #region retry handling
 
         [Theory]
-        [InlineData(@"Documents\Query\Retrys\4040.json", true, false)]
+        [InlineData(@"Documents\Query\Retrys\4040.json", true, true)]
         [InlineData(@"Documents\Query\Retrys\4050.json", true, false)]
         [InlineData(@"Documents\Query\Retrys\4070.json", true, false)]
-        [InlineData(@"Documents\Query\Retrys\5000.json", true, true)]
-        [InlineData(@"Documents\Query\Retrys\4040.json", false, true)]
+        [InlineData(@"Documents\Query\Retrys\5000.json", true, false)]
+        [InlineData(@"Documents\Query\Retrys\4040.json", false, false)]
         [InlineData(@"Documents\Query\Retrys\4050.json", false, true)]
         [InlineData(@"Documents\Query\Retrys\4070.json", false, true)]
         [InlineData(@"Documents\Query\Retrys\5000.json", false, true)]

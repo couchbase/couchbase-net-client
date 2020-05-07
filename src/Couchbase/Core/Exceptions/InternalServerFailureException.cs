@@ -8,7 +8,7 @@ namespace Couchbase.Core.Exceptions
         {
         }
 
-        public InternalServerFailureException(IErrorContext context)
+        public InternalServerFailureException(IErrorContext context) : base(context.Message)
         {
             Context = context;
         }

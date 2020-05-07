@@ -4,7 +4,7 @@ namespace Couchbase.Core.Exceptions
 {
     public class PlanningFailureException : CouchbaseException
     {
-        public PlanningFailureException(QueryErrorContext context)
+        public PlanningFailureException(QueryErrorContext context) : base(context.Message)
         {
             Context = context;
         }

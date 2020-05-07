@@ -4,7 +4,7 @@ namespace Couchbase.Core.Exceptions
 {
     public class IndexFailureException : CouchbaseException
     {
-        public IndexFailureException(QueryErrorContext context)
+        public IndexFailureException(QueryErrorContext context) : base(context.Message)
         {
             Context = context;
         }
