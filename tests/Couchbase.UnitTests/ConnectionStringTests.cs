@@ -41,6 +41,7 @@ namespace Couchbase.UnitTests
         [InlineData("couchbase://localhost:10012")]
         [InlineData("couchbases://localhost:10012")]
         [InlineData("http://localhost:10012")]
+        [InlineData("couchbase://username@localhost?param=value")]
         public void ToString_ExpectedResult(string input)
         {
             // Arrange

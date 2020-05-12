@@ -22,6 +22,29 @@ namespace Couchbase.UnitTests
 
         #endregion
 
+        #region Extensions
+
+        [Theory]
+        [InlineData(null, "couchbase://user1@localhost", "user1", null)]
+        [InlineData("user1", "couchbase://localhost", "user1", "user1")]
+        [InlineData("user1", "couchbase://user2@localhost", "user2", "user1")]
+        [InlineData(null, "couchbase://localhost", null, null)]
+        [InlineData("", "couchbase://localhost", "", "")]
+        [InlineData(" ", "couchbase://bob@localhost", "bob", " ")]
+        [InlineData(null, "couchbase://\t@localhost", null, null)]
+        public void WithConnectionString_Sets_Username_Unless_Provided(string username, string connectionString, string expectedUserNamePreSet, string expectedUserNamePostSet)
+        {
+            var clusterOptionsPreSet = new ClusterOptions() {UserName = username}.WithConnectionString(connectionString);
+            Assert.Equal(expectedUserNamePreSet, clusterOptionsPreSet.UserName);
+
+            var clusterOptionsPostSet = new ClusterOptions().WithConnectionString(connectionString);
+
+            clusterOptionsPostSet.UserName = username;
+            Assert.Equal(expectedUserNamePostSet, clusterOptionsPostSet.UserName);
+        }
+
+        #endregion
+
         #region WaitUntilReady
 
         [Fact]

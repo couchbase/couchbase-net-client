@@ -33,7 +33,14 @@ namespace Couchbase
         public string? ConnectionString
         {
             get => ConnectionStringValue?.ToString();
-            set => ConnectionStringValue = value != null ? Couchbase.ConnectionString.Parse(value) : null;
+            set
+            {
+                ConnectionStringValue = value != null ? Couchbase.ConnectionString.Parse(value) : null;
+                if (!string.IsNullOrWhiteSpace(ConnectionStringValue?.Username))
+                {
+                    UserName = ConnectionStringValue!.Username;
+                }
+            }
         }
 
         /// <summary>
