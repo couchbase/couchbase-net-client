@@ -53,11 +53,10 @@ namespace Couchbase.Core.IO.Connections
             }
 
 #if NETCOREAPP3_0
-            _multiplexLogger.LogDebug("Setting TCP Keep-Alives using SocketOptions - enable keep-alives {EnableTcpKeepAlives}, retries {TcpKeepAliveRetryCount}, time {TcpKeepAliveTime}, interval {TcpKeepAliveInterval}.",
-                _clusterOptions.EnableTcpKeepAlives, _clusterOptions.TcpKeepAliveRetryCount, _clusterOptions.TcpKeepAliveTime, _clusterOptions.TcpKeepAliveInterval);
+            _multiplexLogger.LogDebug("Setting TCP Keep-Alives using SocketOptions - enable keep-alives {EnableTcpKeepAlives}, time {TcpKeepAliveTime}, interval {TcpKeepAliveInterval}.",
+                _clusterOptions.EnableTcpKeepAlives, _clusterOptions.TcpKeepAliveTime, _clusterOptions.TcpKeepAliveInterval);
 
             if (!socket.TryEnableKeepAlives(_clusterOptions.EnableTcpKeepAlives,
-                _clusterOptions.TcpKeepAliveRetryCount,
                 (int)_clusterOptions.TcpKeepAliveTime.TotalSeconds,
                 (int)_clusterOptions.TcpKeepAliveInterval.TotalSeconds, out string setKeepAliveMessage)
             )

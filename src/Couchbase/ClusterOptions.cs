@@ -205,7 +205,6 @@ namespace Couchbase
         public ITracer Tracer = new ThresholdLoggingTracer();
         public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);
         public TimeSpan TcpKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(1);
-        public int TcpKeepAliveRetryCount { get; set; } = 9;
         public bool ForceIPv4 { get; set; }
         public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
         public TimeSpan ConfigPollFloorInterval { get; set; } = TimeSpan.FromMilliseconds(50);

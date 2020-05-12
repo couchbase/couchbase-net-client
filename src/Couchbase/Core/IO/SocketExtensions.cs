@@ -39,14 +39,13 @@ namespace Couchbase.Core.IO
         }
 
 #if NETCOREAPP3_0
-        internal static bool TryEnableKeepAlives(this Socket socket, bool enableKeepAlives, int retryCount, int keepAliveTimeInSeconds, int keepAliveIntervalInSeconds, out string message)
+        internal static bool TryEnableKeepAlives(this Socket socket, bool enableKeepAlives, int keepAliveTimeInSeconds, int keepAliveIntervalInSeconds, out string message)
         {
             message = string.Empty;
 
             try
             {
                 socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, enableKeepAlives);
-                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, retryCount);
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, keepAliveTimeInSeconds);
                 socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, keepAliveIntervalInSeconds);
             }
