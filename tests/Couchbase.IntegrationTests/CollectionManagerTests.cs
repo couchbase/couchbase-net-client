@@ -16,7 +16,7 @@ namespace Couchbase.IntegrationTests
             _fixture = fixture;
         }
 
-        [Fact]
+        [Fact(Skip = "Not a 6.5.0-4960 feature.")]
         public async Task Test_CollectionManager()
         {
             var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);

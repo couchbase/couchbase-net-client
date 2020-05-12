@@ -53,7 +53,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
                 new Mock<ILogger<HttpStreamingConfigListener>>().Object);
 
             listener.StartListening();
-            Assert.True(autoResetEvent.WaitOne(TimeSpan.FromSeconds(1)));
+            Assert.True(autoResetEvent.WaitOne(TimeSpan.FromSeconds(5)));
         }
     }
 }

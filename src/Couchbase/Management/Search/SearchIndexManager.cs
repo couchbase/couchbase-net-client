@@ -249,7 +249,9 @@ namespace Couchbase.Management.Search
                 }
 
                 result.EnsureSuccessStatusCode();
-                return JsonConvert.DeserializeObject<int>(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var jobj = JObject.Parse(responseBody);
+                return jobj["count"].Value<int>();
             }
             catch (Exception exception)
             {

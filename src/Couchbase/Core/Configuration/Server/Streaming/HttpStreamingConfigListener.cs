@@ -57,13 +57,14 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             {
                 _httpClient.Timeout = Timeout.InfiniteTimeSpan;
 
-                var servers = _clusterOptions.ConnectionStringValue!.GetBootstrapEndpoints().ToList().Shuffle();
+                var servers = _clusterOptions.ConnectionStringValue?.GetBootstrapEndpoints().ToList().Shuffle();
+
                 while (servers.Any())
                 {
                     try
                     {
                         var server = servers.First();
-                        servers.Remove(server);
+                        servers?.Remove(server);
 
                         var streamingUri = new UriBuilder()
                         {

@@ -1,20 +1,24 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests.Management
 {
     public class QueryIndexManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
+        private readonly ITestOutputHelper _outputHelper;
 
-        public QueryIndexManagerTests(ClusterFixture fixture)
+        public QueryIndexManagerTests(ClusterFixture fixture, ITestOutputHelper outputHelper)
         {
             _fixture = fixture;
+            _outputHelper = outputHelper;
         }
 
         [Fact]
@@ -22,24 +26,41 @@ namespace Couchbase.IntegrationTests.Management
         {
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
-            await cluster.QueryIndexes.CreateIndexAsync(
-                "default", "indexmgr_test", new[] {"type"}).ConfigureAwait(false);
+            var indexName = "indexmgr_test";
+            try
+            {
+                await cluster.QueryIndexes.CreateIndexAsync(
+                    "default", indexName, new[] { "type" }).ConfigureAwait(false);
+            }
+            catch (IndexExistsException)
+            {
+                _outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
+            }
 
+            bool failedCleanup = false;
             try
             {
                 await cluster.QueryIndexes.BuildDeferredIndexesAsync("default").ConfigureAwait(false);
 
                 using var cts = new CancellationTokenSource(10000);
 
-                await cluster.QueryIndexes.WatchIndexesAsync("default", new[] {"indexmgr_test"}, options =>
-                {
-                    options.CancellationToken(cts.Token);
-                }).ConfigureAwait(false);
+                await cluster.QueryIndexes.WatchIndexesAsync("default", new[] {"indexmgr_test"},
+                    options => { options.CancellationToken(cts.Token); }).ConfigureAwait(false);
             }
             finally
             {
-                await cluster.QueryIndexes.DropIndexAsync("default", "indexmgr_test").ConfigureAwait(false);
+                try
+                {
+                    await cluster.QueryIndexes.DropIndexAsync("default", "indexmgr_test").ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    _outputHelper.WriteLine($"Failure during cleanup: ${e.ToString()}");
+                    failedCleanup = true;
+                }
             }
+
+            Assert.False(failedCleanup);
         }
     }
 }

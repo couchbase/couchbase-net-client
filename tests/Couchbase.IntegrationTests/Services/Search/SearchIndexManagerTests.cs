@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management;
 using Couchbase.Management.Search;
@@ -14,6 +16,21 @@ namespace Couchbase.IntegrationTests.Services.Search
         public SearchIndexManagerTests(ClusterFixture fixture)
         {
             _fixture = fixture;
+        }
+
+        [Fact]
+        public async Task TravelSample_Index_Exists()
+        {
+            var cluster = _fixture.Cluster;
+            var manager = cluster.SearchIndexes;
+            var allIndexes = await manager.GetAllIndexesAsync();
+            var names = new HashSet<string>(allIndexes.Select(idx => idx.Name));
+
+            if (!names.Contains(SearchTests.IndexName))
+            {
+                throw new IndexNotFoundException(
+                    $"Index {SearchTests.IndexName} not found in test environment.  Available indexes: {string.Join(", ", names)}");
+            }
         }
 
         [Fact]
