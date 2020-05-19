@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.UnitTests.Utils;
 using Moq;
@@ -105,29 +106,29 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         }
 
         [Theory]
-        [InlineData(NetworkTypes.Auto, "external")]
-        [InlineData(NetworkTypes.External, "external")]
-        [InlineData(NetworkTypes.Default, "default")]
-        [InlineData("", "default")]
-        [InlineData(null, "default")]
+        [InlineData(NetworkResolution.Auto, "external")]
+        [InlineData(NetworkResolution.External, "external")]
+        [InlineData(NetworkResolution.Default, "default")]
         public void When_NodeExt_Has_Alternate_Network_Configured_Use_External_Hostname(string networkType, string expected)
         {
             var node = new Node();
             var nodeExt = new NodesExt
             {
                 Hostname = "default",
-                AlternateAddresses = new AlternateAddressesConfig
+                AlternateAddresses = new Dictionary<string, ExternalAddressesConfig>
                 {
-                    External = new ExternalAddressesConfig
                     {
-                        Hostname = "external"
+                        "external", new ExternalAddressesConfig
+                        {
+                            Hostname = "external"
+                        }
                     }
                 }
             };
 
             var bucketConfig = new BucketConfig
             {
-                NetworkType = networkType,
+                NetworkResolution = networkType,
                 SurrogateHost = expected
             };
 
@@ -137,11 +138,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         }
 
         [Theory]
-        [InlineData(NetworkTypes.Auto, "external")]
-        [InlineData(NetworkTypes.External, "external")]
-        [InlineData(NetworkTypes.Default, "default")]
-        [InlineData("", "default")]
-        [InlineData(null, "default")]
+        [InlineData(NetworkResolution.Auto, "external")]
+        [InlineData(NetworkResolution.External, "external")]
+        [InlineData(NetworkResolution.Default, "default")]
         public void When_NodeExt_Has_Alternate_Network_With_Ports_Configured_Use_External_Ports(string networkType, string expected)
         {
             var defaultServices = new Couchbase.Core.Configuration.Server.Services
@@ -176,19 +175,21 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             {
                 Hostname = "default",
                 Services = defaultServices,
-                AlternateAddresses = new AlternateAddressesConfig
+                AlternateAddresses = new Dictionary<string, ExternalAddressesConfig>
                 {
-                    External = new ExternalAddressesConfig
                     {
-                        Hostname = "external",
-                        Ports = externalServices
+                        "external", new ExternalAddressesConfig
+                        {
+                            Hostname = "external",
+                            Ports = externalServices
+                        }
                     }
                 }
             };
 
             var bucketConfig = new BucketConfig
             {
-                NetworkType = networkType,
+                NetworkResolution = networkType,
                 SurrogateHost = expected
             };
 

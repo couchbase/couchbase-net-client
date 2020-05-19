@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
@@ -282,6 +281,7 @@ namespace Couchbase
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableDnsSrvResolution { get; set; } = true;
+        public string NetworkResolution => Couchbase.NetworkResolution.Auto;
 
         /// <summary>
         /// Provides a default implementation of <see cref="ClusterOptions"/>.
@@ -359,6 +359,7 @@ namespace Couchbase
         #endregion
     }
 
+    [Obsolete("Use Couchbase.NetworkResolution")]
     public static class NetworkTypes
     {
         public const string Auto = "auto";

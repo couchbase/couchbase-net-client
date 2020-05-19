@@ -14,6 +14,7 @@ using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server
@@ -205,6 +206,41 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
                 Assert.Equal(3, nodes.Count);
                 Assert.Equal(originalExtCount, config.NodesExt.Count);
+            }
+        }
+
+        [Fact]
+        public void When_Config_Has_AlternateAddresses_Hostname_And_Ports_Are_Populated()
+        {
+            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Documents\Configs\config-alternate-addresses.json"));
+            config.NetworkResolution = NetworkResolution.Auto;
+
+            Assert.Equal(3, config.Nodes.Count);
+            Assert.Equal(3, config.NodesExt.Count);
+
+            foreach (var nodeExt in config.NodesExt)
+            {
+                var alternateAddress = nodeExt.AlternateAddresses[NetworkResolution.External];
+                Assert.NotEmpty(alternateAddress.Hostname);
+                Assert.NotNull(alternateAddress.Ports);
+            }
+        }
+
+        [Fact]
+        public void When_Config_Has_AlternateAddresses_NodeAdapter_Uses_External_Hostname()
+        {
+            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Documents\Configs\config-alternate-addresses2.json"));
+
+            var nodes = config.GetNodes();
+            var nodesExt = config.NodesExt;
+
+            Assert.Empty(config.Nodes);
+            Assert.Equal(3, config.NodesExt.Count);
+
+            for (var i = 0; i < nodes.Count; i++ )
+            {
+                var alternateAddress = nodesExt[i].AlternateAddresses[NetworkResolution.External];
+                Assert.Equal(nodes[i].Hostname, alternateAddress.Hostname);
             }
         }
     }

@@ -268,6 +268,7 @@ namespace Couchbase
                 LoadManifest();
 
                 BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
+                BucketConfig.NetworkResolution = Context.ClusterOptions.NetworkResolution;
                 KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
                 Nodes.Add(node);

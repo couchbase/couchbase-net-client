@@ -265,7 +265,7 @@ namespace Couchbase.Query
             var error = queryResult?.Errors?.FirstOrDefault();
             if (error != null)
             {
-                _logger.LogDebug("The request {requestId} failed because: {message} [{code}]", error.Message, error.Code);
+                _logger.LogDebug("The request {requestId} failed because: {message} [{code}]", requestId, error.Message, error.Code);
                 return $"{error.Message} [{error.Code}]";
             }
 

@@ -3,6 +3,8 @@ using Couchbase.Core.Sharding;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
 using Newtonsoft.Json;
 using Couchbase.Utils;
 
@@ -199,9 +201,9 @@ namespace Couchbase.Core.Configuration.Server
         [JsonProperty("thisNode")] public bool ThisNode { get; set; }
         [JsonProperty("services")] public Services Services { get; set; }
         [JsonProperty("hostname")] public string Hostname { get; set; }
-        [JsonProperty("alternateAddresses")] public AlternateAddressesConfig AlternateAddresses { get; set; }
+        [JsonProperty("alternateAddresses")] public Dictionary<string, ExternalAddressesConfig> AlternateAddresses { get; set; }
 
-        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.HasExternalAddress;
+        public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.Any();
 
         public bool Equals(NodesExt other)
         {
@@ -250,7 +252,7 @@ namespace Couchbase.Core.Configuration.Server
             VBucketServerMap = new VBucketServerMapDto();
         }
 
-        public string NetworkType { get; set; }
+        public string NetworkResolution { get; set; } = Couchbase.NetworkResolution.Auto;
 
         public string SurrogateHost { get; set; }
 
@@ -325,6 +327,32 @@ namespace Couchbase.Core.Configuration.Server
         public static bool operator !=(BucketConfig left, BucketConfig right)
         {
             return !Equals(left, right);
+        }
+
+        [OnDeserialized]
+        internal void OnDeserializedMethod(StreamingContext context)
+        {
+            ResolveHostName();
+        }
+
+        public void ResolveHostName()
+        {
+            for (var i = 0; i < VBucketServerMap.ServerList.Length; i++)
+            {
+                var nodeExt = NodesExt?.FirstOrDefault(x => x.Hostname != null && VBucketServerMap.ServerList[i].Contains(x.Hostname));
+                if (nodeExt != null && nodeExt.HasAlternateAddress)
+                {
+                    var effectiveNetworkResolution =
+                        string.Compare(NetworkResolution, Couchbase.NetworkResolution.Auto,
+                            StringComparison.CurrentCultureIgnoreCase) == 0
+                            ? Couchbase.NetworkResolution.External
+                            : NetworkResolution;
+
+                    //The SSL port is resolved later
+                    var alternateAddress = nodeExt.AlternateAddresses[effectiveNetworkResolution];
+                    VBucketServerMap.ServerList[i] = alternateAddress.Hostname + ":" + alternateAddress.Ports.Kv;
+                }
+            }
         }
     }
 

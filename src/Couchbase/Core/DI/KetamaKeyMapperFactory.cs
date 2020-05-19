@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -18,10 +19,12 @@ namespace Couchbase.Core.DI
     internal class KetamaKeyMapperFactory : IKetamaKeyMapperFactory
     {
         private readonly IIpEndPointService _ipEndPointService;
+        private readonly ILogger<IIpEndPointService> _logger;
 
-        public KetamaKeyMapperFactory(IIpEndPointService ipEndPointService)
+        public KetamaKeyMapperFactory(IIpEndPointService ipEndPointService, ILogger<IIpEndPointService> logger)
         {
             _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <inheritdoc />
@@ -37,6 +40,9 @@ namespace Couchbase.Core.DI
             var ipEndPoints = new List<IPEndPoint>();
             foreach (var node in config.GetNodes().Where(p => p.IsKvNode))
             {
+                //log any alternate address mapping
+                _logger.LogDebug(node.ToString());
+
                 var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(node, cancellationToken).ConfigureAwait(false);
                 if (ipEndPoint == null)
                 {

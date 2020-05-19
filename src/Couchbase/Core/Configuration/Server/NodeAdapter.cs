@@ -5,6 +5,8 @@ namespace Couchbase.Core.Configuration.Server
 {
     internal class NodeAdapter
     {
+        private string _mappedNodeInfo = string.Empty;
+
         public NodeAdapter()
         {
         }
@@ -12,6 +14,9 @@ namespace Couchbase.Core.Configuration.Server
         public NodeAdapter(Node node, NodesExt nodeExt, BucketConfig bucketConfig)
         {
             var node1 = node;
+
+            //Detect if we should be using alternate addresses for hostname
+            UseAlternateAddress = UseAlternateNetwork(nodeExt, bucketConfig);
 
             // get hostname (uses alternate network hostname if configured)
             Hostname = GetHostname(node, nodeExt, bucketConfig);
@@ -54,6 +59,8 @@ namespace Couchbase.Core.Configuration.Server
                 Views = new Uri(CouchbaseApiBase).Port;
             }
         }
+
+        private bool UseAlternateAddress { get; set; }
 
         private string GetHostname(Node node, NodesExt nodeExt, BucketConfig bucketConfig)
         {
@@ -100,30 +107,35 @@ namespace Couchbase.Core.Configuration.Server
         internal bool UseAlternateNetwork(NodesExt nodeExt, BucketConfig bucketConfig)
         {
             // make sure we have at least an alternate network hostname (alternate ports are optional)
-            if (string.IsNullOrWhiteSpace(nodeExt?.AlternateAddresses?.External?.Hostname))
+            if (nodeExt == null || !nodeExt.HasAlternateAddress || bucketConfig.NetworkResolution == NetworkResolution.Default)
             {
                 return false;
             }
 
-            switch (bucketConfig.NetworkType)
+            if (bucketConfig.NetworkResolution == NetworkResolution.Auto || bucketConfig.NetworkResolution == NetworkResolution.External)
             {
-                case NetworkTypes.Auto:
-                    // use alternate network if bucket config and nodeExt's hostname don't match
-                    return string.Compare(nodeExt.Hostname, bucketConfig.SurrogateHost, StringComparison.Ordinal) != 0;
-                case NetworkTypes.External:
-                    return true;
-                case NetworkTypes.Default:
-                    return false;
-                default:
-                    return false;
+                return string.Compare(nodeExt.Hostname, nodeExt.AlternateAddresses[Couchbase.NetworkResolution.External].Hostname, StringComparison.InvariantCultureIgnoreCase) != 0;
             }
+
+            //It's a custom configuration being used - try it.
+            if (nodeExt.AlternateAddresses.ContainsKey(bucketConfig.NetworkResolution))
+            {
+                return true;
+            }
+
+            throw new CouchbaseException($"Cannot resolve NetworkResolution - {bucketConfig.NetworkResolution}");
         }
 
         internal string GetHostname(NodesExt nodeExt, BucketConfig bucketConfig)
         {
-            if (UseAlternateNetwork(nodeExt, bucketConfig))
+            if (UseAlternateAddress)
             {
-                return nodeExt.AlternateAddresses.External.Hostname;
+                var networkResolution = bucketConfig.NetworkResolution == Couchbase.NetworkResolution.Auto
+                    ? Couchbase.NetworkResolution.External : bucketConfig.NetworkResolution;
+
+                var hostname = nodeExt.AlternateAddresses[networkResolution].Hostname;
+                _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] mapping {nodeExt.Hostname} to {hostname}.";
+                return hostname;
             }
 
             return nodeExt?.Hostname;
@@ -131,10 +143,16 @@ namespace Couchbase.Core.Configuration.Server
 
         internal Services GetServicePorts(NodesExt nodeExt, BucketConfig bucketConfig)
         {
-            if (UseAlternateNetwork(nodeExt, bucketConfig) &&
-                nodeExt.AlternateAddresses?.External?.Ports != null)
+            if (UseAlternateAddress)
             {
-                return nodeExt.AlternateAddresses.External.Ports;
+                var networkResolution = bucketConfig.NetworkResolution == Couchbase.NetworkResolution.Auto
+                    ? Couchbase.NetworkResolution.External : bucketConfig.NetworkResolution;
+
+                var ports = nodeExt.AlternateAddresses[networkResolution].Ports;
+                if (ports != null)
+                {
+                    return ports;
+                }
             }
 
             return nodeExt?.Services;
@@ -242,6 +260,11 @@ namespace Couchbase.Core.Configuration.Server
         /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
         /// </value>
         public bool IsAnalyticsNode => Analytics > 0 || AnalyticsSsl > 0;
+
+        public override string ToString()
+        {
+            return _mappedNodeInfo;
+        }
     }
 }
 
