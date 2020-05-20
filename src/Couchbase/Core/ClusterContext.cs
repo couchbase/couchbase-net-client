@@ -253,7 +253,7 @@ namespace Couchbase.Core
                 foreach (var nodeAdapter in GlobalConfig.GetNodes())//Initialize cluster nodes for global services
                 {
                     //log any alternate address mapping
-                    _logger.LogDebug(nodeAdapter.ToString());
+                    _logger.LogInformation(nodeAdapter.ToString());
 
                     if (server.Host.Equals(nodeAdapter.Hostname))//this is the bootstrap node so update
                     {
@@ -368,7 +368,7 @@ namespace Couchbase.Core
             foreach (var nodeAdapter in config.GetNodes())
             {
                 //log any alternate address mapping
-                _logger.LogDebug(nodeAdapter.ToString());
+                _logger.LogInformation(nodeAdapter.ToString());
 
                 var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken).ConfigureAwait(false);
                 if (Nodes.TryGet(endPoint, out var bootstrapNode))
@@ -432,7 +432,7 @@ namespace Couchbase.Core
             var removedEndpoints = Nodes.Where(x =>
                 !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Address.Equals(y.Address))));
 
-            _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision.}", removedEndpoints, config.Rev);
+            _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision}", removedEndpoints, config.Rev);
 
             foreach (var node in removedEndpoints)
             {

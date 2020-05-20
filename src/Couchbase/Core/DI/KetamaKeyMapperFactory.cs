@@ -41,7 +41,7 @@ namespace Couchbase.Core.DI
             foreach (var node in config.GetNodes().Where(p => p.IsKvNode))
             {
                 //log any alternate address mapping
-                _logger.LogDebug(node.ToString());
+                _logger.LogInformation(node.ToString());
 
                 var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(node, cancellationToken).ConfigureAwait(false);
                 if (ipEndPoint == null)

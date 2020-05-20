@@ -134,10 +134,11 @@ namespace Couchbase.Core.Configuration.Server
                     ? Couchbase.NetworkResolution.External : bucketConfig.NetworkResolution;
 
                 var hostname = nodeExt.AlternateAddresses[networkResolution].Hostname;
-                _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] mapping {nodeExt.Hostname} to {hostname}.";
+                _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] using alternate mapping {nodeExt.Hostname} to {hostname}.";
                 return hostname;
             }
 
+            _mappedNodeInfo = $"NetworkResolution [{bucketConfig.NetworkResolution}] using default {nodeExt?.Hostname}";
             return nodeExt?.Hostname;
         }
 

@@ -124,6 +124,7 @@ namespace Couchbase.Core.Configuration.Server
 
                         if (isNewOrUpdate)
                         {
+                            _logger.LogDebug("Publishing config revision {revision} to subscribers for processing.", stored.Rev);
                             List<IConfigUpdateEventSink> subscribers;
                             lock (_configChangedSubscribers)
                             {
