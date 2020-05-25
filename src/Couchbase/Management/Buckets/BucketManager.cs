@@ -95,10 +95,14 @@ namespace Couchbase.Management.Buckets
                 {"name", settings.Name},
                 {"bucketType", settings.BucketType.GetDescription()},
                 {"ramQuotaMB", settings.RamQuotaMB.ToString()},
-                {"replicaIndex", settings.ReplicaIndexes ? "1" : "0"},
-                {"replicaNumber", settings.NumReplicas.ToString()},
                 {"flushEnabled", settings.FlushEnabled ? "1" : "0"}
             };
+
+            if(settings.BucketType == BucketType.Couchbase)
+            {
+                values.Add("replicaNumber", settings.NumReplicas.ToString());
+                values.Add("replicaIndex", settings.ReplicaIndexes ? "1" : "0");
+            }
 
             if (settings.ConflictResolutionType.HasValue)
             {

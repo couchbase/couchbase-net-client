@@ -16,7 +16,7 @@ namespace Couchbase.IntegrationTests.Management
         }
 
         [Fact]
-        public async Task CreateAndDropBucket()
+        public async Task CreateAndDropCouchbaseBucket()
         {
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
@@ -25,6 +25,40 @@ namespace Couchbase.IntegrationTests.Management
                 BucketType = BucketType.Couchbase,
                 Name = "bucketmgr_test",
                 NumReplicas = 0,
+                RamQuotaMB = 100
+            }).ConfigureAwait(false);
+
+            await Task.Delay(5000).ConfigureAwait(false);
+
+            await cluster.Buckets.DropBucketAsync("bucketmgr_test").ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task CreateAndDropMemcached()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+
+            await cluster.Buckets.CreateBucketAsync(new BucketSettings
+            {
+                BucketType = BucketType.Memcached,
+                Name = "bucketmgr_test",
+                RamQuotaMB = 100
+            }).ConfigureAwait(false);
+
+            await Task.Delay(5000).ConfigureAwait(false);
+
+            await cluster.Buckets.DropBucketAsync("bucketmgr_test").ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task CreateAndDropEphemeral()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+
+            await cluster.Buckets.CreateBucketAsync(new BucketSettings
+            {
+                BucketType = BucketType.Ephemeral,
+                Name = "bucketmgr_test",
                 RamQuotaMB = 100
             }).ConfigureAwait(false);
 
