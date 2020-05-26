@@ -122,6 +122,20 @@ namespace Couchbase.Core.IO.Connections
                 }
             }
 
+            if (size < connectionPool.MinimumSize)
+            {
+                // We should scale up
+                // We'll reevaluate on the next cycle if we need to scale up more.
+
+                _logger.LogInformation(
+                    "Detected connection less than minimum, scaling up connection pool {endpoint}",
+                     _redactor.SystemData(connectionPool.EndPoint));
+                await connectionPool.ScaleAsync(connectionPool.MinimumSize - size).ConfigureAwait(false);
+
+                // Don't do any further checks
+                return;
+            }
+
             if (size < connectionPool.MaximumSize)
             {
                 // See if we should scale up

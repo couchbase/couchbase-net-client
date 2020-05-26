@@ -98,6 +98,31 @@ namespace Couchbase.UnitTests.Core.IO.Connections
                 Times.Never);
         }
 
+        [Fact]
+        public async Task RunScalingLogic_BelowMinimumSize_ScaleUp()
+        {
+            // Arrange
+            const int minConnectionPoolSize = 2;
+            var connectionPool = CreateMockConnectionPool(
+                0, minConnectionPoolSize, 5, 0,
+                Enumerable.Range(1, 1).Select(_ => CreateMockConnection(TimeSpan.Zero)));
+
+            var controller = new MockController
+            {
+                BackPressureThreshold = 4
+            };
+
+            // Act
+
+            await controller.RunScalingLogicPublic(connectionPool.Object);
+
+            // Assert
+
+            connectionPool.Verify(
+                m => m.ScaleAsync(minConnectionPoolSize),
+                Times.Once);
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(5)]
