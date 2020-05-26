@@ -51,8 +51,6 @@ namespace Couchbase.Management.Buckets
             {
                 Name = json.SelectToken("name").Value<string>(),
                 MaxTtl = json.SelectToken("maxTTL").Value<int>(),
-                NumReplicas = json.SelectToken("replicaNumber").Value<int>(),
-                ReplicaIndexes = json.SelectToken("replicaIndex").Value<bool>(),
                 RamQuotaMB = json.SelectToken("quota.rawRAM").Value<int>(),
                 FlushEnabled = json.SelectToken("controllers.flush") != null
             };
@@ -62,6 +60,12 @@ namespace Couchbase.Management.Buckets
                 EnumExtensions.TryGetFromDescription(bucketTypeToken.Value<string>(), out BucketType bucketType))
             {
                 settings.BucketType = bucketType;
+            }
+
+            if(settings.BucketType == BucketType.Couchbase)
+            {
+                settings.NumReplicas = json.SelectToken("replicaNumber").Value<int>();
+                settings.ReplicaIndexes = json.SelectToken("replicaIndex").Value<bool>();
             }
 
             var conflictResolutionToken = json.SelectToken("conflictResolutionType");
@@ -95,10 +99,14 @@ namespace Couchbase.Management.Buckets
                 {"name", settings.Name},
                 {"bucketType", settings.BucketType.GetDescription()},
                 {"ramQuotaMB", settings.RamQuotaMB.ToString()},
-                {"replicaIndex", settings.ReplicaIndexes ? "1" : "0"},
-                {"replicaNumber", settings.NumReplicas.ToString()},
                 {"flushEnabled", settings.FlushEnabled ? "1" : "0"}
             };
+
+            if (settings.BucketType == BucketType.Couchbase)
+            {
+                values.Add("replicaNumber", settings.NumReplicas.ToString());
+                values.Add("replicaIndex", settings.ReplicaIndexes ? "1" : "0");
+            }
 
             if (settings.ConflictResolutionType.HasValue)
             {

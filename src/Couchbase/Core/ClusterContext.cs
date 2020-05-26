@@ -288,7 +288,9 @@ namespace Couchbase.Core
                     {
                         bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType) type)
                             .ConfigureAwait(false);
-                        return bucket;
+
+                        if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
+                            return bucket;
                     }
                     catch (Exception e)
                     {
@@ -316,7 +318,9 @@ namespace Couchbase.Core
             try
             {
                 await bucket.BootstrapAsync(node).ConfigureAwait(false);
-                RegisterBucket(bucket);
+
+                if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
+                    RegisterBucket(bucket);
             }
             catch(Exception e)
             {
