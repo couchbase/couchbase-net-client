@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -199,6 +200,10 @@ namespace Couchbase.Diagnostics
             try
             {
                 await action().ConfigureAwait(false);
+                endpoint.State = ServiceState.Ok;
+            }
+            catch (ViewNotFoundException)
+            {
                 endpoint.State = ServiceState.Ok;
             }
             catch(Exception)

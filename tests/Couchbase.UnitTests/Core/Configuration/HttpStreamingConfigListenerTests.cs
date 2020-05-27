@@ -36,6 +36,12 @@ namespace Couchbase.UnitTests.Core.Configuration
             using var configListener = new HttpStreamingConfigListener(nameof(Should_Continue_After_Failures),
                 clusterOptions, httpClient, configHandler, mockLogger);
             configListener.StartListening();
+            var exitedSpinBeforeTimeout = SpinWait.SpinUntil(() => messageHandler.CallCount > 0, TimeSpan.FromSeconds(10));
+            if (!exitedSpinBeforeTimeout)
+            {
+                throw new TimeoutException($"{nameof(HttpStreamingConfigListener)} didn't start in time.");
+            }
+
             await Task.Delay(500);
             Assert.NotInRange(messageHandler.CallCount, 0, 2);
             configListener.Dispose();

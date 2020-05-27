@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,7 @@ using Couchbase.Core.Logging;
 
 namespace Couchbase.Core
 {
+    [DebuggerDisplay("Name = {Name}, BucketType = {BucketType}")]
     internal abstract class BucketBase : IBucket, IConfigUpdateEventSink, IBootstrappable
     {
         private ClusterState _clusterState;

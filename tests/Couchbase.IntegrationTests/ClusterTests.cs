@@ -1,5 +1,7 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
 using Xunit;
 
@@ -91,6 +93,22 @@ namespace Couchbase.IntegrationTests
         {
             var cluster = _fixture.Cluster;
             await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+        }
+
+        [Theory]
+        [InlineData(ServiceType.KeyValue)]
+        [InlineData(ServiceType.Views)]
+        [InlineData(ServiceType.KeyValue, ServiceType.Views, ServiceType.Analytics, ServiceType.Query)]
+        public async Task Test_WaitUntilReadyAsync_with_options(params ServiceType[] serviceTypes)
+        {
+            var cluster = _fixture.Cluster;
+            var options = new WaitUntilReadyOptions()
+            {
+                CancellationTokenValue = CancellationToken.None,
+                ServiceTypesValue = serviceTypes
+            };
+
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10), options).ConfigureAwait(false);
         }
     }
 }
