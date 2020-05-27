@@ -9,6 +9,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
+using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -89,7 +90,8 @@ namespace Couchbase.UnitTests.Utils
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,
-                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210))
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210),
+                BucketType.Couchbase)
             {
                 NodesAdapter = new NodeAdapter
                 {

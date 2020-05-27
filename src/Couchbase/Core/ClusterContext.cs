@@ -189,10 +189,10 @@ namespace Couchbase.Core
             }
         }
 
-        public IClusterNode GetUnassignedNode(HostEndpoint endpoint)
+        public IClusterNode GetUnassignedNode(HostEndpoint endpoint, BucketType bucketType)
         {
             return Nodes.FirstOrDefault(
-                x => !x.IsAssigned && x.BootstrapEndpoint.Equals(endpoint));
+                x => !x.IsAssigned && x.BootstrapEndpoint.Equals(endpoint) && x.BucketType == bucketType);
         }
 
         public async Task BootstrapGlobalAsync()
@@ -228,7 +228,7 @@ namespace Couchbase.Core
 
             foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
-                var node = await _clusterNodeFactory.CreateAndConnectAsync(server, CancellationToken).ConfigureAwait(false);
+                var node = await _clusterNodeFactory.CreateAndConnectAsync(server, BucketType.Couchbase, CancellationToken).ConfigureAwait(false);
 
                 try
                 {
@@ -264,7 +264,7 @@ namespace Couchbase.Core
                     else
                     {
                         var hostEndpoint = HostEndpoint.Create(nodeAdapter, ClusterOptions);
-                        var newNode = await _clusterNodeFactory.CreateAndConnectAsync(hostEndpoint, CancellationToken).ConfigureAwait(false);
+                        var newNode = await _clusterNodeFactory.CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, CancellationToken).ConfigureAwait(false);
                         newNode.NodesAdapter = nodeAdapter;
                         SupportsCollections = node.Supports(ServerFeatures.Collections);
                         AddNode(newNode);
@@ -284,8 +284,17 @@ namespace Couchbase.Core
             {
                 foreach (var type in Enum.GetValues(typeof(BucketType)))
                 {
-                    bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType) type).ConfigureAwait(false);
-                    return bucket;
+                    try
+                    {
+                        bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType) type)
+                            .ConfigureAwait(false);
+                        return bucket;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
+                            "Cannot bootstrap bucket {name} as {type}.", name, type);
+                    }
                 }
             }
 
@@ -294,10 +303,10 @@ namespace Couchbase.Core
 
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
         {
-            var node = GetUnassignedNode(endpoint);
+            var node = GetUnassignedNode(endpoint, type);
             if (node == null)
             {
-                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
+                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, type, CancellationToken).ConfigureAwait(false);
                 AddNode(node);
             }
 
@@ -313,6 +322,8 @@ namespace Couchbase.Core
             {
                 _logger.LogError(e, "Could not bootstrap bucket {name}.", _redactor.MetaData(name));
                 UnRegisterBucket(bucket);
+                await bucket.DisposeAsync().ConfigureAwait(false);
+                throw;
             }
             return bucket;
         }
@@ -335,10 +346,10 @@ namespace Couchbase.Core
                 foreach (var endpoint in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
                     .EnableTls))
                 {
-                    var node = GetUnassignedNode(endpoint);
+                    var node = GetUnassignedNode(endpoint, BucketType.Couchbase);
                     if (node == null)
                     {
-                        node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken)
+                        node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, BucketType.Couchbase, CancellationToken)
                             .ConfigureAwait(false);
                         AddNode(node);
                     }
@@ -373,7 +384,7 @@ namespace Couchbase.Core
                 var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken).ConfigureAwait(false);
                 if (Nodes.TryGet(endPoint, out var bootstrapNode))
                 {
-                    if (bootstrapNode.Owner == null)
+                    if (bootstrapNode.Owner == null && bucket.BucketType != BucketType.Memcached)
                     {
                         _logger.LogDebug(
                             "Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
@@ -392,6 +403,7 @@ namespace Couchbase.Core
                     }
                 }
 
+                //If the node already exists for the endpoint, ignore it.
                 if (bucket.Nodes.TryGet(endPoint, out var bucketNode))
                 {
                     continue;
@@ -400,9 +412,11 @@ namespace Couchbase.Core
                 _logger.LogDebug("Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
                     _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
+                var bucketType = config.NodeLocator == "ketama" ? BucketType.Memcached : BucketType.Couchbase;
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(
                     // We want the BootstrapEndpoint to use the host name, not just the IP
                     new HostEndpoint(nodeAdapter.Hostname, endPoint.Port),
+                    bucketType,
                     CancellationToken).ConfigureAwait(false);
 
                 node.NodesAdapter = nodeAdapter;
@@ -439,7 +453,6 @@ namespace Couchbase.Core
                 RemoveNode(node);
             }
         }
-
 
         public void Dispose()
         {

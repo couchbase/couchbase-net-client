@@ -11,6 +11,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
+using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
@@ -36,6 +37,7 @@ namespace Couchbase
             ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap, IRedactor redactor, IBootstrapperFactory bootstrapperFactory)
             : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory)
         {
+            BucketType = BucketType.Memcached;
             Name = name;
             _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
             _httpClusterMap = httpClusterMap;
@@ -96,30 +98,37 @@ namespace Couchbase
             var bucket = KeyMapper.MapKey(op.Key);
             var endPoint = bucket.LocatePrimary();
 
-            if (Context.Nodes.TryGet(endPoint, out var clusterNode))
+            if (Nodes.TryGet(endPoint, out var clusterNode))
             {
                 await clusterNode.ExecuteOp(op, token, timeout).ConfigureAwait(false);
             }
             else
             {
-                //raise exceptin that node is not found
+                //raise exception that node is not found
             }
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)
         {
-            //fetch the cluster map to avoid race condition with streaming http
-            BucketConfig = await _httpClusterMap.GetClusterMapAsync(
-                Name, node.BootstrapEndpoint, CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                //the initial bootstrapping endpoint;
+                await node.SelectBucketAsync(this).ConfigureAwait(false);
 
-            KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+                //fetch the cluster map to avoid race condition with streaming http
+                BucketConfig = await _httpClusterMap.GetClusterMapAsync(
+                    Name, node.BootstrapEndpoint, CancellationToken.None).ConfigureAwait(false);
 
-            //the initial bootstrapping endpoint;
-            await node.SelectBucketAsync(this).ConfigureAwait(false);
+                KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
-            LoadManifest();
-            await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
-            Bootstrapper.Start(this);
+                LoadManifest();
+                await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                Bootstrapper.Start(this);
+            }
+            catch (CouchbaseException e)
+            {
+                Logger.LogDebug(LoggingEvents.BootstrapEvent, e, "");
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
+using Couchbase.Management.Buckets;
 
 namespace Couchbase.Core
 {
@@ -17,6 +18,7 @@ namespace Couchbase.Core
         NodeAdapter NodesAdapter { get; set; }
         HostEndpoint BootstrapEndpoint { get; }
         IPEndPoint EndPoint { get; }
+        BucketType BucketType { get; }
 
         /// <summary>
         /// Endpoints by which this node may be referenced for key/value operations.

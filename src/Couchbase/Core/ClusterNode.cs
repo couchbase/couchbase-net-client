@@ -20,6 +20,7 @@ using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
+using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -42,7 +43,7 @@ namespace Couchbase.Core
         private readonly ObservableCollection<IPEndPoint> _keyEndPoints  = new ObservableCollection<IPEndPoint>();
         private readonly string _cachedToString;
 
-        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint)
+        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint, BucketType bucketType)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -50,6 +51,7 @@ namespace Couchbase.Core
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            BucketType = bucketType;
 
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
             _cachedToString = $"{EndPoint}-{_id}";
@@ -95,6 +97,7 @@ namespace Couchbase.Core
 
         public HostEndpoint BootstrapEndpoint { get; set; }
         public IPEndPoint EndPoint { get; }
+        public BucketType BucketType { get; internal set; } = BucketType.Memcached;
 
         /// <inheritdoc />
         public IReadOnlyCollection<IPEndPoint> KeyEndPoints { get; }
@@ -191,12 +194,16 @@ namespace Couchbase.Core
             var features = new List<short>
             {
                 (short) IO.Operations.ServerFeatures.SelectBucket,
-                (short) IO.Operations.ServerFeatures.Collections,
                 (short) IO.Operations.ServerFeatures.AlternateRequestSupport,
                 (short) IO.Operations.ServerFeatures.SynchronousReplication,
                 (short) IO.Operations.ServerFeatures.SubdocXAttributes,
                 (short) IO.Operations.ServerFeatures.XError
             };
+
+            if (BucketType != BucketType.Memcached)
+            {
+                features.Add((short) IO.Operations.ServerFeatures.Collections);
+            }
 
             if (_context.ClusterOptions.EnableMutationTokens)
             {

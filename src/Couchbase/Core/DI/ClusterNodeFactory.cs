@@ -6,6 +6,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Couchbase.Core.Logging;
+using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -41,12 +42,12 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, CancellationToken cancellationToken = default)
+        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, CancellationToken cancellationToken = default)
         {
             var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
 
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
-                _transcoder, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint)
+                _transcoder, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType)
             {
                 BootstrapEndpoint = endPoint
             };

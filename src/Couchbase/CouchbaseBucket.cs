@@ -5,6 +5,7 @@ using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -277,7 +278,14 @@ namespace Couchbase
             }
             catch (Exception e)
             {
-
+                if (e is CouchbaseException ce)
+                {
+                    if (ce.Context is KeyValueErrorContext ctx
+                        && ctx.Status == ResponseStatus.NotSupported)
+                    {
+                        throw new NotSupportedException();
+                    }
+                }
                 CaptureException(e);
             }
 

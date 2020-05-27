@@ -7,6 +7,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
+using Couchbase.Management.Buckets;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -84,7 +85,8 @@ namespace Couchbase.UnitTests.Core
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,
-                await service.GetIpEndPointAsync(hostname, port).ConfigureAwait(false));
+                await service.GetIpEndPointAsync(hostname, port).ConfigureAwait(false),
+                BucketType.Couchbase);
 
             return clusterNode;
         }

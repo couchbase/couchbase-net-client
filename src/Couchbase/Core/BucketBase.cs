@@ -129,7 +129,7 @@ namespace Couchbase.Core
             var subject = this as IBootstrappable;
 
             //The server supports collections so build them from the manifest
-            if (Context.SupportsCollections && subject.IsBootstrapped)
+            if (Context.SupportsCollections && subject.IsBootstrapped && BucketType != BucketType.Memcached)
             {
                 foreach (var scope in _scopeFactory.CreateScopes(this, Manifest!))
                 {
