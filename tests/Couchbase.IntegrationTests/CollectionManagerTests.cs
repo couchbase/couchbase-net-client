@@ -1,6 +1,8 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
 using Xunit;
@@ -16,7 +18,7 @@ namespace Couchbase.IntegrationTests
             _fixture = fixture;
         }
 
-        [Fact(Skip = "Not a 6.5.0-4960 feature.")]
+        [CouchbaseVersionDependentFact(MinVersion = "6.5.1")]
         public async Task Test_CollectionManager()
         {
             var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
