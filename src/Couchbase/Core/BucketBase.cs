@@ -282,7 +282,7 @@ namespace Couchbase.Core
             if (Disposed) return;
             Disposed = true;
             Bootstrapper?.Dispose();
-            Context.RemoveAllNodes();
+            Context.RemoveAllNodes(this);
         }
 
         /// <inheritdoc />

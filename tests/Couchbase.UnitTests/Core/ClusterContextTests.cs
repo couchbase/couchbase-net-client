@@ -86,7 +86,12 @@ namespace Couchbase.UnitTests.Core
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,
                 await service.GetIpEndPointAsync(hostname, port).ConfigureAwait(false),
-                BucketType.Couchbase);
+                BucketType.Couchbase,
+                new NodeAdapter
+                {
+                    Hostname = hostname,
+                    KeyValue = port
+                });
 
             return clusterNode;
         }

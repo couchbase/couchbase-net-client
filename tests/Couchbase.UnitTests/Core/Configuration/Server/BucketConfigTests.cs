@@ -154,7 +154,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var ipEndpointService = context.ServiceProvider.GetRequiredService<IIpEndPointService>();
 
             //load up the initial state after bootstrapping
-            foreach (var server in oldConfig.NodesExt)
+            foreach (var server in oldConfig.GetNodes())
             {
                 var endPoint = await ipEndpointService.GetIpEndPointAsync(server).ConfigureAwait(false);
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
@@ -163,13 +163,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     new Mock<ISaslMechanismFactory>().Object,
                     new Mock<IRedactor>().Object,
                     endPoint,
-                    BucketType.Couchbase);
+                    BucketType.Couchbase,
+                    server);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
             }
 
-            foreach (var nodesExt in newConfig.NodesExt)
+            foreach (var nodesExt in newConfig.GetNodes())
             {
                 var endPoint = await ipEndpointService.GetIpEndPointAsync(nodesExt).ConfigureAwait(false);
                 if (bucketNodes.ContainsKey(endPoint))
@@ -180,7 +181,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
                     new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object,
-                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached);
+                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);

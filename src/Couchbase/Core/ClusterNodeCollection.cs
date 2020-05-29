@@ -113,7 +113,8 @@ namespace Couchbase.Core
             {
                 if (_lookupDictionary.TryRemove(endPoint, out removedNode))
                 {
-                    _nodes.Remove(removedNode);
+                    //remove all nodes for the endpoint as multiple buckets may exist
+                    _nodes.RemoveWhere(x => x.EndPoint.Equals(endPoint));
 
                     removedNode.KeyEndPointsChanged -= OnKeyEndPointsChanged;
 
@@ -128,6 +129,27 @@ namespace Couchbase.Core
 
                 removedNode = null;
                 return false;
+            }
+        }
+
+        public IList<IClusterNode> Clear(IBucket bucket)
+        {
+            lock (_nodes)
+            {
+                var removed = new List<IClusterNode>(_nodes.Where(x=>x.Owner == bucket));
+
+                _nodes.RemoveWhere(x => x.Owner == bucket);
+                foreach (var clusterNode in removed.Where(clusterNode => _lookupDictionary.TryRemove(clusterNode.EndPoint, out _)))
+                {
+                    clusterNode.Dispose();
+                }
+
+                foreach (var removedNode in removed)
+                {
+                    removedNode.KeyEndPointsChanged -= OnKeyEndPointsChanged;
+                }
+
+                return removed;
             }
         }
 

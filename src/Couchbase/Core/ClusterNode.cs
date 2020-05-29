@@ -43,7 +43,7 @@ namespace Couchbase.Core
         private readonly ObservableCollection<IPEndPoint> _keyEndPoints  = new ObservableCollection<IPEndPoint>();
         private readonly string _cachedToString;
 
-        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint, BucketType bucketType)
+        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -52,8 +52,8 @@ namespace Couchbase.Core
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             BucketType = bucketType;
-
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
+
             _cachedToString = $"{EndPoint}-{_id}";
 
             KeyEndPoints = new ReadOnlyObservableCollection<IPEndPoint>(_keyEndPoints);
@@ -66,6 +66,11 @@ namespace Couchbase.Core
             }
 
             ConnectionPool = connectionPoolFactory.Create(this);
+
+            if (nodeAdapter != null)
+            {
+                NodesAdapter = nodeAdapter;
+            }
         }
 
         public ClusterNode(ClusterContext context)
@@ -91,7 +96,11 @@ namespace Couchbase.Core
             {
                 _nodesAdapter = value;
                 BuildServiceUris();
-                UpdateKeyEndPoints();
+
+                if (_nodesAdapter.IsKvNode)
+                {
+                    UpdateKeyEndPoints();
+                }
             }
         }
 
@@ -174,7 +183,11 @@ namespace Couchbase.Core
 
         public async Task InitializeAsync()
         {
-            await ConnectionPool.InitializeAsync(_context.CancellationToken).ConfigureAwait(false);
+            //If its the bootstrap node the node adapter cannot be applied until after fetching the config
+            if (NodesAdapter == null || NodesAdapter.IsKvNode)
+            {
+                await ConnectionPool.InitializeAsync(_context.CancellationToken).ConfigureAwait(false);
+            }
         }
 
         private async Task<ErrorMap> GetErrorMap(IConnection connection, CancellationToken cancellationToken = default)

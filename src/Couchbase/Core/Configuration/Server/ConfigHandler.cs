@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
+using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -72,7 +73,7 @@ namespace Couchbase.Core.Configuration.Server
                 {
                     await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token).ConfigureAwait(false);
 
-                    foreach (var clusterNode in _context.Nodes)
+                    foreach (var clusterNode in _context.Nodes.Where(x=>x.HasKv && x.BucketType != BucketType.Memcached))
                     {
                         try
                         {

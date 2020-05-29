@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DI;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
@@ -49,7 +50,11 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,
                 new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210),
-                BucketType.Couchbase)
+                BucketType.Couchbase,
+                new NodeAdapter
+                {
+                    Hostname = "127.0.0.1"
+                })
             {
                 ErrorMap = errorMap
             };

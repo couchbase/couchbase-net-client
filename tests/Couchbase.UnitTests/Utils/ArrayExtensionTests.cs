@@ -53,9 +53,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", MakeFakeClusterNode() },
-                {"127.0.0.2", MakeFakeClusterNode() },
-                {"127.0.0.3", MakeFakeClusterNode() }
+                {"127.0.0.1", MakeFakeClusterNode("127.0.0.1") },
+                {"127.0.0.2", MakeFakeClusterNode("127.0.0.2") },
+                {"127.0.0.3", MakeFakeClusterNode("127.0.0.3") }
             };
 
             var node = dict.GetRandom(x => x.Value.HasViews);
@@ -68,9 +68,9 @@ namespace Couchbase.UnitTests.Utils
         {
             var dict = new Dictionary<string, ClusterNode>
             {
-                {"127.0.0.1", MakeFakeClusterNode() },
-                {"127.0.0.2", MakeFakeClusterNode() },
-                {"127.0.0.3", MakeFakeClusterNode() }
+                {"127.0.0.1", MakeFakeClusterNode("127.0.0.1") },
+                {"127.0.0.2", MakeFakeClusterNode("127.0.0.2") },
+                {"127.0.0.3", MakeFakeClusterNode("127.0.0.3") }
             };
 
             var node = dict.GetRandom(x => x.Value.HasAnalytics);
@@ -80,7 +80,7 @@ namespace Couchbase.UnitTests.Utils
 
         #region Helpers
 
-        private ClusterNode MakeFakeClusterNode()
+        private ClusterNode MakeFakeClusterNode(string hostname)
         {
             return new ClusterNode(
                 new ClusterContext(null, new ClusterOptions()),
@@ -91,14 +91,12 @@ namespace Couchbase.UnitTests.Utils
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,
                 new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210),
-                BucketType.Couchbase)
-            {
-                NodesAdapter = new NodeAdapter
+                BucketType.Couchbase,
+                new NodeAdapter
                 {
-                    Hostname = "localhost",
-                    Views = 8092
-                }
-            };
+                    Hostname = hostname,
+                    Views = 8091
+                });
         }
 
         #endregion

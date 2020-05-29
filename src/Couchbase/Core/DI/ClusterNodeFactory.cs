@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
@@ -42,12 +43,18 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, CancellationToken cancellationToken = default)
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, CancellationToken cancellationToken = default)
+        {
+            return CreateAndConnectAsync(endPoint, bucketType, null, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
         {
             var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
 
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
-                _transcoder, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType)
+                _transcoder, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType, nodeAdapter)
             {
                 BootstrapEndpoint = endPoint
             };

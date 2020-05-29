@@ -178,6 +178,30 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
+        public void Remove_AnyMatching_InCollection_ReducesCount()
+        {
+            // Arrange
+
+            var node = CreateMockNode(CreateEndpoint(1)).Object;
+            var node1 = CreateMockNode(CreateEndpoint(1)).Object;
+
+            var nodes = new ClusterNodeCollection
+            {
+                node,
+                node1
+            };
+            Assert.Equal(2, nodes.Count);
+
+            // Act
+
+            var result = nodes.Remove(CreateEndpoint(1), out _);
+
+            // Assert
+
+            Assert.Equal(0, nodes.Count);
+        }
+
+        [Fact]
         public void Remove_InCollection_UnregistersAllEndpoints()
         {
             // Arrange

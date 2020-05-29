@@ -172,9 +172,10 @@ namespace Couchbase.Core
 
         public bool RemoveNode(IClusterNode removedNode)
         {
+            _logger.LogDebug("Removing {endPoint}", _redactor.SystemData(removedNode.EndPoint));
             if (Nodes.Remove(removedNode.EndPoint, out removedNode))
             {
-                _logger.LogDebug("Removing {endPoint}", _redactor.SystemData(removedNode.EndPoint));
+                _logger.LogDebug("Removed {endPoint}", _redactor.SystemData(removedNode.EndPoint));
                 removedNode.Dispose();
                 return true;
             }
@@ -184,6 +185,14 @@ namespace Couchbase.Core
         public void RemoveAllNodes()
         {
             foreach (var removedNode in Nodes.Clear())
+            {
+                removedNode.Dispose();
+            }
+        }
+
+        public void RemoveAllNodes(IBucket bucket)
+        {
+            foreach (var removedNode in Nodes.Clear(bucket))
             {
                 removedNode.Dispose();
             }
@@ -226,9 +235,13 @@ namespace Couchbase.Core
                 }
             }
 
+            //Try to bootstrap each node in the servers list - either from DNS-SRV lookup or from client configuration
             foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
-                var node = await _clusterNodeFactory.CreateAndConnectAsync(server, BucketType.Couchbase, CancellationToken).ConfigureAwait(false);
+                _logger.LogDebug("Bootstrapping with node {server}", server.Host);
+                var node = await _clusterNodeFactory.
+                    CreateAndConnectAsync(server, BucketType.Couchbase, CancellationToken).
+                    ConfigureAwait(false);
 
                 try
                 {
@@ -246,29 +259,37 @@ namespace Couchbase.Core
                     }
                 }
 
-                //Server is 6.5 and greater and supports GC3P so loop through the global config and
-                //create the nodes that are not associated with any buckets via Select Bucket.
-                GlobalConfig.IsGlobal = true;
-                GlobalConfig.NetworkResolution = ClusterOptions.NetworkResolution;
-                foreach (var nodeAdapter in GlobalConfig.GetNodes())//Initialize cluster nodes for global services
+                try
                 {
-                    //log any alternate address mapping
-                    _logger.LogInformation(nodeAdapter.ToString());
+                    //Server is 6.5 and greater and supports GC3P so loop through the global config and
+                    //create the nodes that are not associated with any buckets via Select Bucket.
+                    GlobalConfig.IsGlobal = true;
+                    GlobalConfig.NetworkResolution = ClusterOptions.NetworkResolution;
+                    foreach (var nodeAdapter in GlobalConfig.GetNodes()) //Initialize cluster nodes for global services
+                    {
+                        //log any alternate address mapping
+                        _logger.LogInformation(nodeAdapter.ToString());
 
-                    if (server.Host.Equals(nodeAdapter.Hostname))//this is the bootstrap node so update
-                    {
-                        node.NodesAdapter = nodeAdapter;
-                        SupportsCollections = node.Supports(ServerFeatures.Collections);
-                        AddNode(node);
+                        if (server.Host.Equals(nodeAdapter.Hostname)) //this is the bootstrap node so update
+                        {
+                            node.NodesAdapter = nodeAdapter;
+                            SupportsCollections = node.Supports(ServerFeatures.Collections);
+                            AddNode(node);
+                        }
+                        else
+                        {
+                            var hostEndpoint = HostEndpoint.Create(nodeAdapter, ClusterOptions);
+                            var newNode = await _clusterNodeFactory
+                                .CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, nodeAdapter,
+                                    CancellationToken).ConfigureAwait(false);
+                            SupportsCollections = node.Supports(ServerFeatures.Collections);
+                            AddNode(newNode);
+                        }
                     }
-                    else
-                    {
-                        var hostEndpoint = HostEndpoint.Create(nodeAdapter, ClusterOptions);
-                        var newNode = await _clusterNodeFactory.CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, CancellationToken).ConfigureAwait(false);
-                        newNode.NodesAdapter = nodeAdapter;
-                        SupportsCollections = node.Supports(ServerFeatures.Collections);
-                        AddNode(newNode);
-                    }
+                }
+                catch (Exception e)
+                {
+                    _logger.LogDebug("Attempted bootstrapping on endpoint {endpoint} has failed.", e, server);
                 }
             }
         }
@@ -397,10 +418,10 @@ namespace Couchbase.Core
                         if (bootstrapNode.HasKv)
                         {
                             await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
+                            SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
                         }
 
                         bootstrapNode.NodesAdapter = nodeAdapter;
-                        SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
                         bucket.Nodes.Add(bootstrapNode);
 
                         continue;
@@ -410,6 +431,10 @@ namespace Couchbase.Core
                 //If the node already exists for the endpoint, ignore it.
                 if (bucket.Nodes.TryGet(endPoint, out var bucketNode))
                 {
+                    if (bucketNode.NodesAdapter == null)
+                    {
+                        bucketNode.NodesAdapter = nodeAdapter;
+                    }
                     continue;
                 }
 
@@ -421,15 +446,15 @@ namespace Couchbase.Core
                     // We want the BootstrapEndpoint to use the host name, not just the IP
                     new HostEndpoint(nodeAdapter.Hostname, endPoint.Port),
                     bucketType,
+                    nodeAdapter,
                     CancellationToken).ConfigureAwait(false);
 
-                node.NodesAdapter = nodeAdapter;
                 if (node.HasKv)
                 {
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
+                    SupportsCollections = node.Supports(ServerFeatures.Collections);
                 }
 
-                SupportsCollections = node.Supports(ServerFeatures.Collections);
                 AddNode(node);
                 bucket.Nodes.Add(node);//may remove
             }
