@@ -36,16 +36,7 @@ namespace Couchbase.Core.DI
 
             foreach (var scopeDef in manifest.scopes)
             {
-                var collections = new List<ICouchbaseCollection>();
-                foreach (var collectionDef in scopeDef.collections)
-                {
-                    collections.Add(_collectionFactory.Create(bucket,
-                        Convert.ToUInt32(collectionDef.uid, 16),
-                        collectionDef.name,
-                        scopeDef.name));
-                }
-
-                yield return new Scope(scopeDef.name, scopeDef.uid, collections, bucket, _scopeLogger);
+                yield return new Scope(scopeDef, _collectionFactory, bucket, _scopeLogger);
             }
         }
 
@@ -57,13 +48,7 @@ namespace Couchbase.Core.DI
                 throw new ArgumentNullException(nameof(bucket));
             }
 
-            var collections = new List<ICouchbaseCollection>
-            {
-                _collectionFactory.Create(bucket, null,
-                    CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName)
-            };
-
-            return new Scope(Scope.DefaultScopeName, "0", collections, bucket, _scopeLogger);
+            return new Scope(null, _collectionFactory, bucket, _scopeLogger);
         }
     }
 }

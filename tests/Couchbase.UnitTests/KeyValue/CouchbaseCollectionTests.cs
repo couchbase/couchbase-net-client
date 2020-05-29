@@ -285,7 +285,7 @@ namespace Couchbase.UnitTests.KeyValue
             return new CouchbaseCollection(mockBucket.Object, new LegacyTranscoder(),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
                 new Mock<IRedactor>().Object,
-                null, CouchbaseCollection.DefaultCollectionName, Scope.DefaultScopeName);
+                null, CouchbaseCollection.DefaultCollectionName, Mock.Of<IScope>());
         }
     }
 }

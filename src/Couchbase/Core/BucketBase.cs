@@ -68,6 +68,9 @@ namespace Couchbase.Core
 
         public string Name { get; protected set; }
 
+        /// <inheritdoc />
+        public ICluster Cluster => Context.Cluster;
+
         #region Scopes
 
         public abstract IScope this[string scopeName] { get; }

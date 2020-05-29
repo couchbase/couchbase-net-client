@@ -27,7 +27,7 @@ namespace Couchbase.KeyValue
 
         internal CouchbaseCollection(BucketBase bucket, ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, IRedactor redactor,
-            uint? cid, string name, string scopeName)
+            uint? cid, string name, IScope scope)
         {
             Cid = cid;
             Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -36,16 +36,19 @@ namespace Couchbase.KeyValue
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
-            ScopeName = scopeName ?? throw new ArgumentNullException(nameof(scopeName));
+            Scope = scope ?? throw new ArgumentNullException(nameof(scope));
         }
 
         internal IRedactor Redactor { get; }
 
-        public string ScopeName { get; }
+        public string ScopeName => Scope.Name;
 
         public uint? Cid { get; internal set; }
 
         public string Name { get; }
+
+        /// <inheritdoc />
+        public IScope Scope { get; }
 
         public IBinaryCollection Binary => this;
 

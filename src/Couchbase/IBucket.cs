@@ -15,6 +15,11 @@ namespace Couchbase
     {
         string Name { get; }
 
+        /// <summary>
+        /// The cluster that owns this bucket.
+        /// </summary>
+        ICluster Cluster { get; }
+
         IScope Scope(string scopeName);
 
         IScope DefaultScope();

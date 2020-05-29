@@ -156,12 +156,13 @@ namespace Couchbase.UnitTests.Core.DI
             var mock = new Mock<ICollectionFactory>();
             mock
                 .Setup(m =>
-                    m.Create(It.IsAny<BucketBase>(), It.IsAny<uint?>(), It.IsAny<string>(), It.IsAny<string>()))
-                .Returns((BucketBase bucket, uint? cid, string name, string scopeName) =>
+                    m.Create(It.IsAny<BucketBase>(), It.IsAny<IScope>(), It.IsAny<uint?>(), It.IsAny<string>()))
+                .Returns((BucketBase bucket, IScope scope, uint? cid, string name) =>
                 {
                     var collection = new Mock<ICouchbaseCollection>();
                     collection.SetupGet(m => m.Name).Returns(name);
                     collection.SetupGet(m => m.Cid).Returns(cid);
+                    collection.SetupGet(m => m.Scope).Returns(scope);
 
                     return collection.Object;
                 });

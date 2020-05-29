@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -16,23 +18,45 @@ namespace Couchbase.KeyValue
     internal class Scope : IScope
     {
         public const string DefaultScopeName = "_default";
+        public const string DefaultScopeId = "0";
 
         private readonly BucketBase _bucket;
         private readonly ILogger<Scope> _logger;
         private readonly ConcurrentDictionary<string, ICouchbaseCollection> _collections;
 
-        public Scope(string name, string id, IEnumerable<ICouchbaseCollection> collections, BucketBase bucket, ILogger<Scope> logger)
+        public Scope(ScopeDef? scopeDef, ICollectionFactory collectionFactory, BucketBase bucket, ILogger<Scope> logger)
         {
-            Name = name ?? throw new ArgumentNullException(nameof(name));
-            Id = id ?? throw new ArgumentNullException(nameof(id));
-            _collections = new ConcurrentDictionary<string, ICouchbaseCollection>(collections.ToDictionary(x => x.Name, v => v));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            if (scopeDef != null)
+            {
+                Name = scopeDef.name;
+                Id = scopeDef.uid;
+
+                _collections = new ConcurrentDictionary<string, ICouchbaseCollection>(
+                    scopeDef.collections
+                        .Select(p => collectionFactory.Create(bucket, this, Convert.ToUInt32(p.uid, 16), p.name))
+                        .ToDictionary(x => x.Name, v => v));
+            }
+            else
+            {
+                Name = DefaultScopeName;
+                Id = DefaultScopeId;
+
+                _collections = new ConcurrentDictionary<string, ICouchbaseCollection>();
+                _collections.TryAdd(CouchbaseCollection.DefaultCollectionName,
+                    collectionFactory.Create(bucket, this, null, CouchbaseCollection.DefaultCollectionName));
+            }
+
         }
 
         public string Id { get; }
 
         public string Name { get; }
+
+        /// <inheritdoc />
+        public IBucket Bucket => _bucket;
 
         public ICouchbaseCollection this[string name]
         {

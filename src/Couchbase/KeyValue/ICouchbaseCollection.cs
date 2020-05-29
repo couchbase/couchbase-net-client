@@ -13,6 +13,11 @@ namespace Couchbase.KeyValue
 
         string Name { get; }
 
+        /// <summary>
+        /// Scope which owns this collection.
+        /// </summary>
+        IScope Scope { get; }
+
         IBinaryCollection Binary { get; }
 
         #region Basic
