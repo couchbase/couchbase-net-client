@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
-using OpenTracing;
-using OpenTracing.Tag;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
@@ -128,30 +126,6 @@ namespace Couchbase.Core.Diagnostics.Tracing
         public ISpan SetTag(string key, string value)
         {
             Tags.Add(key, value);
-            return this;
-        }
-
-        public ISpan SetTag(BooleanTag tag, bool value)
-        {
-            Tags.Add(tag.Key, value);
-            return this;
-        }
-
-        public ISpan SetTag(IntOrStringTag tag, string value)
-        {
-            Tags.Add(tag.Key, value);
-            return this;
-        }
-
-        public ISpan SetTag(IntTag tag, int value)
-        {
-            Tags.Add(tag.Key, value);
-            return this;
-        }
-
-        public ISpan SetTag(StringTag tag, string value)
-        {
-            Tags.Add(tag.Key, value);
             return this;
         }
 

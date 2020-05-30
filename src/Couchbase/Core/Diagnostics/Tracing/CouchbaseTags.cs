@@ -20,6 +20,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         public const string LocalAddress = "local.address";
         public const string PeerLatency = "peer.latency";
+
+        internal static class OpenTracingTags
+        {
+            public const string PeerHostIpv4 = "peer.ipv4";
+        }
     }
 }
 

@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
-using OpenTracing;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {

@@ -4,7 +4,7 @@ using System.Linq;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Utils;
 using Newtonsoft.Json;
-using OpenTracing.Tag;
+using Tags = Couchbase.Core.Diagnostics.Tracing.CouchbaseTags.OpenTracingTags;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
@@ -82,7 +82,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                             LastLocalAddress = local.ToString();
                         }
 
-                        if (span.Tags.TryGetValue(Tags.PeerHostIpv4.Key, out var remote))
+                        if (span.Tags.TryGetValue(Tags.PeerHostIpv4, out var remote))
                         {
                             LastRemoteAddress = remote.ToString();
                         }

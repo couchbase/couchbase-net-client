@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
-using OpenTracing;
 
 #nullable enable
 

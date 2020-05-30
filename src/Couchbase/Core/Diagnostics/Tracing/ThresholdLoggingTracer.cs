@@ -7,14 +7,10 @@ using System.Threading.Tasks;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OpenTracing;
-using OpenTracing.Mock;
-using OpenTracing.Propagation;
-using OpenTracing.Util;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
-    public class ThresholdLoggingTracer : ITracer, IDisposable
+    public class ThresholdLoggingTracer : IDisposable
     {
         private const int WorkerSleep = 100;
       //  private static readonly ILog Log = LogManager.GetLogger<ThresholdLoggingTracer>();
@@ -77,28 +73,9 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// </summary>
         internal int TotalSummaryCount => _kvSummaryCount + _viewSummaryCount + _querySummaryCount + _searchSummaryCount + _analyticsSummaryCount;
 
-        public IScopeManager ScopeManager { get; } = new AsyncLocalScopeManager();
-
-        public ISpan ActiveSpan => ScopeManager?.Active?.Span;
-
         public ThresholdLoggingTracer()
         {
             Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
-        }
-
-        public ISpanBuilder BuildSpan(string operationName)
-        {
-            return new SpanBuilder(this, operationName);
-        }
-
-        public void Inject<TCarrier>(ISpanContext spanContext, IFormat<TCarrier> format, TCarrier carrier)
-        {
-            throw new NotSupportedException();
-        }
-
-        public ISpanContext Extract<TCarrier>(IFormat<TCarrier> format, TCarrier carrier)
-        {
-            throw new NotSupportedException();
         }
 
         internal void ReportSpan(Span span)

@@ -1,4 +1,3 @@
-﻿using OpenTracing;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
