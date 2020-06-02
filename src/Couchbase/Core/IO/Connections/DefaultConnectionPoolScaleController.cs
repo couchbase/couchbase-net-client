@@ -130,7 +130,7 @@ namespace Couchbase.Core.IO.Connections
                 _logger.LogInformation(
                     "Detected connection less than minimum, scaling up connection pool {endpoint}",
                      _redactor.SystemData(connectionPool.EndPoint));
-                await connectionPool.ScaleAsync(1).ConfigureAwait(false);
+                await connectionPool.ScaleAsync(connectionPool.MinimumSize - size).ConfigureAwait(false);
 
                 // Don't do any further checks
                 return;

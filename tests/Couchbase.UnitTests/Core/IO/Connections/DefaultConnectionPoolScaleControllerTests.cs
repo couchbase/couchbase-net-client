@@ -102,9 +102,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         public async Task RunScalingLogic_BelowMinimumSize_ScaleUp()
         {
             // Arrange
-
+            const int minConnectionPoolSize = 2;
             var connectionPool = CreateMockConnectionPool(
-                0, 2, 5, 0,
+                0, minConnectionPoolSize, 5, 0,
                 Enumerable.Range(1, 1).Select(_ => CreateMockConnection(TimeSpan.Zero)));
 
             var controller = new MockController
@@ -119,7 +119,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             // Assert
 
             connectionPool.Verify(
-                m => m.ScaleAsync(1),
+                m => m.ScaleAsync(minConnectionPoolSize),
                 Times.Once);
         }
 
