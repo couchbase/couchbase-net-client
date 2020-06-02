@@ -76,6 +76,7 @@ namespace Couchbase.Core.Configuration.Server
         [JsonProperty("hostname")] public string Hostname { get; set; }
         [JsonProperty("ports")] public Ports Ports { get; set; }
         [JsonProperty("services")] public List<string> Services { get; set; }
+        [JsonProperty("version")] public string Version { get; set; }
 
         public bool Equals(Node other)
         {

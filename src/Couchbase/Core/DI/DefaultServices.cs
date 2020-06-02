@@ -15,6 +15,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
+using Couchbase.Core.Version;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Query;
@@ -105,6 +106,7 @@ namespace Couchbase.Core.DI
 
             yield return (typeof(ISaslMechanismFactory), new SingletonServiceFactory(typeof(SaslMechanismFactory)));
             yield return (typeof(IBootstrapperFactory), new SingletonServiceFactory(typeof(BootstrapperFactory)));
+            yield return (typeof(IClusterVersionProvider), new SingletonServiceFactory(typeof(ClusterVersionProvider)));
         }
     }
 }
