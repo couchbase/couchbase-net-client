@@ -84,6 +84,9 @@ namespace Couchbase
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
         }
 
+        /// <inheritdoc />
+        public IServiceProvider ClusterServices => _context.ServiceProvider;
+
         #region Connect
 
         public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)

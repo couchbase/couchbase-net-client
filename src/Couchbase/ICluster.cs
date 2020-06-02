@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Diagnostics;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
@@ -16,6 +17,11 @@ namespace Couchbase
 {
     public interface ICluster : IDisposable, IAsyncDisposable
     {
+        /// <summary>
+        /// An <see cref="IServiceProvider"/> which provides access to cluster services, such as <see cref="ITypeSerializer"/>.
+        /// </summary>
+        IServiceProvider ClusterServices { get; }
+
         ValueTask<IBucket> BucketAsync(string name);
 
         #region Diagnostics
