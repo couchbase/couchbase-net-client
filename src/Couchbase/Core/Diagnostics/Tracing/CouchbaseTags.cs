@@ -23,7 +23,12 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         internal static class OpenTracingTags
         {
+            public const string Component = "component";
+            public const string DbType = "db.type";
+            public const string DbStatement = "db.statement";
             public const string PeerHostIpv4 = "peer.ipv4";
+            public const string SpanKind = "span.kind";
+            public const string SpanKindClient = "client";
         }
     }
 }

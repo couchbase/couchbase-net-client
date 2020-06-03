@@ -37,7 +37,7 @@ namespace Couchbase.Views
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="decodeSpan">Span to complete once decoding is done.</param>
         protected ViewResultBase(HttpStatusCode statusCode, string message, Stream responseStream,
-            ISpan? decodeSpan = null)
+            IDisposable? decodeSpan = null)
             : this(statusCode, message)
         {
             ResponseStream = responseStream ?? throw new ArgumentNullException(nameof(responseStream));
@@ -52,7 +52,7 @@ namespace Couchbase.Views
         /// </summary>
         protected Stream? ResponseStream { get; }
 
-        protected ISpan? DecodeSpan { get; }
+        protected IDisposable? DecodeSpan { get; }
         public HttpStatusCode StatusCode { get; }
         public string Message { get; }
 
@@ -133,6 +133,7 @@ namespace Couchbase.Views
         public virtual void Dispose()
         {
             ResponseStream?.Dispose();
+            DecodeSpan?.Dispose();
         }
     }
 }

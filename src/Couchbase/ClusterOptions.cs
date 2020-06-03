@@ -180,6 +180,14 @@ namespace Couchbase
             return this;
         }
 
+        public IRequestTracer? RequestTracer { get; set; }
+
+        public ClusterOptions WithRequestTracer(IRequestTracer requestTracer)
+        {
+            RequestTracer = requestTracer;
+            return this;
+        }
+
         public string? UserName { get; set; }
         public string? Password { get; set; }
 
@@ -319,6 +327,11 @@ namespace Couchbase
         {
             AddSingletonService(this);
             AddSingletonService(Logging ?? new NullLoggerFactory());
+
+            if (RequestTracer != null)
+            {
+                AddSingletonService(RequestTracer);
+            }
 
             if (Serializer != null)
             {

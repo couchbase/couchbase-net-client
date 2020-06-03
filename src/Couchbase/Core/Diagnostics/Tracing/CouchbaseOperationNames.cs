@@ -1,10 +1,12 @@
-﻿namespace Couchbase.Core.Diagnostics.Tracing
+namespace Couchbase.Core.Diagnostics.Tracing
 {
     internal static class CouchbaseOperationNames
     {
         public const string RequestEncoding = "request_encoding";
         public const string DispatchToServer = "dispatch_to_server";
         public const string ResponseDecoding = "response_decoding";
+        public const string Prepare = "prepare";
+        public const string PrepareAndExecute = "prepare_and_execute";
     }
 }
 

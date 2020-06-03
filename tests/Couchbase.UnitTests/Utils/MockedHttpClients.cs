@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
@@ -47,7 +48,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<QueryClient>>().Object)
+                new Mock<ILogger<QueryClient>>().Object, NullRequestTracer.Instance)
             {
                 EnhancedPreparedStatementsEnabled = enableEnhancedPreparedStatements
             };

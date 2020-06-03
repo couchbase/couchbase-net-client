@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.HTTP;
@@ -29,18 +30,21 @@ namespace Couchbase.Query
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<QueryClient> _logger;
+        private readonly IRequestTracer _tracer;
         internal bool EnhancedPreparedStatementsEnabled;
 
         public QueryClient(
             CouchbaseHttpClient httpClient,
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer serializer,
-            ILogger<QueryClient> logger)
+            ILogger<QueryClient> logger,
+            IRequestTracer tracer)
             : base(httpClient)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
         }
 
         /// <inheritdoc />
@@ -54,6 +58,12 @@ namespace Couchbase.Query
         /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
+            using var rootSpan = _tracer.InternalSpan(CouchbaseTags.ServiceQuery, null)
+                .WithDefaultAttributes()
+                .SetAttribute(CouchbaseTags.OperationId, options.CurrentContextId)
+                .SetAttribute(CouchbaseTags.Service, CouchbaseTags.ServiceQuery)
+                .SetAttribute(CouchbaseTags.OpenTracingTags.DbStatement, statement);
+
             if (string.IsNullOrEmpty(options.CurrentContextId))
             {
                 options.ClientContextId(Guid.NewGuid().ToString());
@@ -64,7 +74,7 @@ namespace Couchbase.Query
             {
                 // don't use prepared plan, execute query directly
                 options.Statement(statement);
-                return await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
+                return await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
             }
 
             // try find cached query plan
@@ -73,9 +83,11 @@ namespace Couchbase.Query
                 // if an upgrade has happened, don't use query plans that have an encoded plan
                 if (!EnhancedPreparedStatementsEnabled || string.IsNullOrWhiteSpace(queryPlan.EncodedPlan))
                 {
+                    using var prepareAndExecuteSpan = _tracer.InternalSpan(CouchbaseOperationNames.PrepareAndExecute, rootSpan);
+
                     // plan is valid, execute query with it
                     options.Prepared(queryPlan, statement);
-                    return await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
+                    return await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
                 }
 
                 // entry is stale, remove from cache
@@ -98,7 +110,7 @@ namespace Couchbase.Query
                 _logger.LogDebug("Using enhanced prepared statement behavior for request {currentContextId}", options.CurrentContextId);
                 // execute combined prepare & execute query
                 options.AutoExecute(true);
-                var result = await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
+                var result = await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
 
                 // add/replace query plan name in query cache
                 if (result is StreamingQueryResult<T> streamingResult) // NOTE: hack to not make 'PreparedPlanName' property public
@@ -113,7 +125,7 @@ namespace Couchbase.Query
             _logger.LogDebug("Using legacy prepared statement behavior for request {currentContextId}", options.CurrentContextId);
 
             // older style, prepare then execute
-            var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanSerializer).ConfigureAwait(false);
+            var preparedResult = await ExecuteQuery<QueryPlan>(options, _queryPlanSerializer, rootSpan).ConfigureAwait(false);
             queryPlan = await preparedResult.FirstAsync().ConfigureAwait(false);
 
             // add plan to cache and execute
@@ -121,132 +133,136 @@ namespace Couchbase.Query
             options.Prepared(queryPlan, statement);
 
             // execute query using plan
-            return await ExecuteQuery<T>(options, options.Serializer ?? _serializer).ConfigureAwait(false);
+            return await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
         }
 
-        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer)
+        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IInternalSpan span)
         {
             // try get Query node
             var queryUri = _serviceUriProvider.GetRandomQueryUri();
+            using var encodingSpan = span.StartPayloadEncoding();
             var body = options.GetFormValuesAsJson();
+            encodingSpan.Finish();
 
             QueryResultBase<T> queryResult;
-            using (var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json))
+            using var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json);
+            try
             {
-                try
+                using var dispatchSpan = span.StartDispatch();
+                var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
+                dispatchSpan.Finish();
+
+                var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+                if (serializer is IStreamingTypeDeserializer streamingDeserializer)
                 {
-                    var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
-                    var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer);
+                }
+                else
+                {
+                    queryResult = new BlockQueryResult<T>(stream, serializer);
+                }
 
-                    if (serializer is IStreamingTypeDeserializer streamingDeserializer)
+                queryResult.HttpStatusCode = response.StatusCode;
+                queryResult.Success = response.StatusCode == HttpStatusCode.OK;
+
+                //read the header and stop when we reach the queried rows
+                await queryResult.InitializeAsync(options.Token).ConfigureAwait(false);
+
+                if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
+                {
+                    var currentContextId = options.CurrentContextId ?? Guid.Empty.ToString();
+
+                    _logger.LogDebug("Request {currentContextId} has failed because {status}.",
+                        currentContextId, queryResult.MetaData?.Status);
+
+                    if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
                     {
-                        queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer);
-                    }
-                    else
-                    {
-                        queryResult = new BlockQueryResult<T>(stream, serializer);
-                    }
-
-                    queryResult.HttpStatusCode = response.StatusCode;
-                    queryResult.Success = response.StatusCode == HttpStatusCode.OK;
-
-                    //read the header and stop when we reach the queried rows
-                    await queryResult.InitializeAsync(options.Token).ConfigureAwait(false);
-
-                    if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
-                    {
-                        var currentContextId = options.CurrentContextId ?? Guid.Empty.ToString();
-
-                        _logger.LogDebug("Request {currentContextId} has failed because {status}.",
-                            currentContextId, queryResult.MetaData?.Status);
-
-                        if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
+                        if(queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
                         {
-                            if(queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
+                            //clear the cache of stale query plan
+                            var statement = options.StatementValue ?? string.Empty;
+                            if (_queryCache.TryRemove(statement, out var queryPlan))
                             {
-                                //clear the cache of stale query plan
-                                var statement = options.StatementValue ?? string.Empty;
-                                if (_queryCache.TryRemove(statement, out var queryPlan))
-                                {
-                                    _logger.LogDebug("Query plan is stale for {currentContextId}. Purging plan {queryPlanName}.", currentContextId, queryPlan.Name);
-                                };
-                            }
-                            _logger.LogDebug("Request {currentContextId} is being retried.", currentContextId);
-                            return queryResult;
+                                _logger.LogDebug("Query plan is stale for {currentContextId}. Purging plan {queryPlanName}.", currentContextId, queryPlan.Name);
+                            };
                         }
+                        _logger.LogDebug("Request {currentContextId} is being retried.", currentContextId);
+                        return queryResult;
+                    }
 
-                        var context = new QueryErrorContext
+                    var context = new QueryErrorContext
+                    {
+                        ClientContextId = options.CurrentContextId,
+                        Parameters = options.GetAllParametersAsJson(),
+                        Statement = options.ToString(),
+                        Message = GetErrorMessage(queryResult, currentContextId),
+                        Errors = queryResult.Errors,
+                        HttpStatus = response.StatusCode,
+                        QueryStatus = queryResult.MetaData?.Status ?? QueryStatus.Fatal
+                    };
+
+                    if (queryResult.MetaData?.Status == QueryStatus.Timeout)
+                    {
+                        if (options.IsReadOnly)
                         {
-                            ClientContextId = options.CurrentContextId,
-                            Parameters = options.GetAllParametersAsJson(),
-                            Statement = options.ToString(),
-                            Message = GetErrorMessage(queryResult, currentContextId),
-                            Errors = queryResult.Errors,
-                            HttpStatus = response.StatusCode,
-                            QueryStatus = queryResult.MetaData?.Status ?? QueryStatus.Fatal
-                        };
-
-                        if (queryResult.MetaData?.Status == QueryStatus.Timeout)
-                        {
-                            if (options.IsReadOnly)
-                            {
-                                throw new AmbiguousTimeoutException
-                                {
-                                    Context = context
-                                };
-                            }
-
-                            throw new UnambiguousTimeoutException
+                            throw new AmbiguousTimeoutException
                             {
                                 Context = context
                             };
                         }
-                        queryResult.ThrowExceptionOnError(context);
-                    }
-                }
-                catch (OperationCanceledException e)
-                {
-                    var context = new QueryErrorContext
-                    {
-                        ClientContextId = options.CurrentContextId,
-                        Parameters = options.GetAllParametersAsJson(),
-                        Statement = options.ToString(),
-                        HttpStatus = HttpStatusCode.RequestTimeout,
-                        QueryStatus = QueryStatus.Fatal
-                    };
 
-                    _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
-                    if (options.IsReadOnly)
-                    {
-                        throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
+                        throw new UnambiguousTimeoutException
                         {
                             Context = context
                         };
                     }
-                    throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
-                    {
-                        Context = context
-                    };
-                }
-                catch (HttpRequestException e)
-                {
-                    _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
-
-                    var context = new QueryErrorContext
-                    {
-                        ClientContextId = options.CurrentContextId,
-                        Parameters = options.GetAllParametersAsJson(),
-                        Statement = options.ToString(),
-                        HttpStatus = HttpStatusCode.RequestTimeout,
-                        QueryStatus = QueryStatus.Fatal
-                    };
-
-                    throw new RequestCanceledException("The query was canceled.", e)
-                    {
-                        Context = context
-                    };
+                    queryResult.ThrowExceptionOnError(context);
                 }
             }
+            catch (OperationCanceledException e)
+            {
+                var context = new QueryErrorContext
+                {
+                    ClientContextId = options.CurrentContextId,
+                    Parameters = options.GetAllParametersAsJson(),
+                    Statement = options.ToString(),
+                    HttpStatus = HttpStatusCode.RequestTimeout,
+                    QueryStatus = QueryStatus.Fatal
+                };
+
+                _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request timeout.");
+                if (options.IsReadOnly)
+                {
+                    throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
+                    {
+                        Context = context
+                    };
+                }
+                throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
+                {
+                    Context = context
+                };
+            }
+            catch (HttpRequestException e)
+            {
+                _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
+
+                var context = new QueryErrorContext
+                {
+                    ClientContextId = options.CurrentContextId,
+                    Parameters = options.GetAllParametersAsJson(),
+                    Statement = options.ToString(),
+                    HttpStatus = HttpStatusCode.RequestTimeout,
+                    QueryStatus = QueryStatus.Fatal
+                };
+
+                throw new RequestCanceledException("The query was canceled.", e)
+                {
+                    Context = context
+                };
+            }
+
             _logger.LogDebug($"Request {options.CurrentContextId} has succeeded.");
             return queryResult;
         }
