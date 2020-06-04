@@ -286,6 +286,12 @@ namespace Couchbase
                         throw new NotSupportedException();
                     }
                 }
+
+                //Memcached not supported call to CCCP GET_MAP
+                if (e is DocumentNotFoundException)
+                {
+                    throw new NotSupportedException("CCCP is not supported by this bucket type.");
+                }
                 CaptureException(e);
             }
 

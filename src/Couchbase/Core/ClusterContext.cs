@@ -326,15 +326,16 @@ namespace Couchbase.Core
 
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
         {
+            var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
+            var bucket = bucketFactory.Create(name, type);
+
             var node = GetUnassignedNode(endpoint, type);
             if (node == null)
             {
                 node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, type, CancellationToken).ConfigureAwait(false);
+                node.Owner = bucket;
                 AddNode(node);
             }
-
-            var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
-            var bucket = bucketFactory.Create(name, type);
 
             try
             {
@@ -346,6 +347,7 @@ namespace Couchbase.Core
             catch(Exception e)
             {
                 _logger.LogError(e, "Could not bootstrap bucket {name}.", _redactor.MetaData(name));
+                RemoveAllNodes(bucket);
                 UnRegisterBucket(bucket);
                 await bucket.DisposeAsync().ConfigureAwait(false);
                 throw;
@@ -421,9 +423,15 @@ namespace Couchbase.Core
                             SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
                         }
 
+                        bootstrapNode.Owner = bucket;
                         bootstrapNode.NodesAdapter = nodeAdapter;
                         bucket.Nodes.Add(bootstrapNode);
-
+                        continue;
+                    }
+                    if (bootstrapNode.Owner != null && bootstrapNode.BucketType == BucketType.Memcached)
+                    {
+                        bootstrapNode.NodesAdapter = nodeAdapter;
+                        bucket.Nodes.Add(bootstrapNode);
                         continue;
                     }
                 }

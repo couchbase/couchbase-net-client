@@ -87,7 +87,7 @@ namespace Couchbase.Core
         }
 
         public bool IsAssigned => Owner != null;
-        public IBucket Owner { get; internal set; }
+        public IBucket Owner { get; set; }
 
         public NodeAdapter NodesAdapter
         {
@@ -96,11 +96,7 @@ namespace Couchbase.Core
             {
                 _nodesAdapter = value;
                 BuildServiceUris();
-
-                if (_nodesAdapter.IsKvNode)
-                {
-                    UpdateKeyEndPoints();
-                }
+                UpdateKeyEndPoints();
             }
         }
 

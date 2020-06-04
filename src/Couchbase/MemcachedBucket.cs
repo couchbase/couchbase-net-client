@@ -52,7 +52,6 @@ namespace Couchbase
         {
             get
             {
-
                 Logger.LogDebug("Fetching scope {scopeName}", Redactor.MetaData(scopeName));
 
                 if (scopeName == KeyValue.Scope.DefaultScopeName)
@@ -121,14 +120,18 @@ namespace Couchbase
 
                 KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
+                node.Owner = this;
                 LoadManifest();
                 await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
-                Bootstrapper.Start(this);
             }
             catch (CouchbaseException e)
             {
                 Logger.LogDebug(LoggingEvents.BootstrapEvent, e, "");
+                throw;
             }
+
+            //If we cannot bootstrap initially will loop and retry again.
+            Bootstrapper.Start(this);
         }
     }
 }
