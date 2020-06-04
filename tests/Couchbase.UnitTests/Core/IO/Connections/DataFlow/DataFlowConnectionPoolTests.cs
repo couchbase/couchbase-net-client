@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.DI;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.DataFlow;
 using Couchbase.Core.IO.Operations;
@@ -65,13 +64,15 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
         {
             // Arrange
 
+            var tcs = new TaskCompletionSource<bool>();
+            var cts = new CancellationTokenSource(10000); // prevent wait forever
+            cts.Token.Register(() => tcs.TrySetResult(false));  // set result to false on timeout
             var pool = CreatePool();
             await pool.InitializeAsync();
 
-            var wasSent = false;
             var operation = new FakeOperation
             {
-                SendStarted = _ => wasSent = true
+                SendStarted = _ => tcs.TrySetResult(true)
             };
 
             // Act
@@ -80,7 +81,38 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             // Assert
 
-            Assert.True(wasSent);
+            Assert.True(await tcs.Task, "Send was not started before timeout");
+        }
+
+        [Fact]
+        public async Task SendAsync_SingleOpCancelledBeforeDequeued_ThrowsCancelledException()
+        {
+            // Arrange
+
+            var connection = new Mock<IConnection>();
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connection.Setup(m => m.IsDead).Returns(true);
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => connection.Object);
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+
+            await pool.InitializeAsync();
+
+            var operation = new FakeOperation();
+
+            // Act
+
+            var sendTask = pool.SendAsync(operation, new CancellationTokenSource(50).Token);
+            await Task.WhenAny(Task.Delay(3000), operation.Completed);
+
+            // Assert
+
+            Assert.True(operation.Completed.IsCompleted);
+            Assert.True(operation.Completed.IsCanceled);
         }
 
         [Fact]
@@ -95,8 +127,13 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             await pool.InitializeAsync();
 
             var lockObject = new object();
+            var toSendCount = 10;
             var inProgressCount = 0;
             var maxInProgressCount = 0;
+            var totalSentCount = 0;
+            var tcs = new TaskCompletionSource<bool>();
+            var cts = new CancellationTokenSource(10000);
+            cts.Token.Register(() => tcs.TrySetResult(false)); // set result to false on timeout
 
             void SendStarted(IConnection _)
             {
@@ -112,10 +149,13 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                 lock (lockObject)
                 {
                     inProgressCount--;
+                    totalSentCount++;
+                    if (totalSentCount == toSendCount)
+                        tcs.TrySetResult(true);
                 }
             }
 
-            var operations = Enumerable.Range(1, 10)
+            var operations = Enumerable.Range(1, toSendCount)
                 .Select(_ => new FakeOperation
                 {
                     Delay = TimeSpan.FromMilliseconds(100),
@@ -128,10 +168,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             var tasks = operations.Select(p => pool.SendAsync(p)).ToList();
 
-            await Task.WhenAll(tasks);
-
             // Assert
 
+            Assert.True(await tcs.Task, "All sends were not started before timeout");
             Assert.Equal(1, maxInProgressCount);
             Assert.Equal(0, inProgressCount);
         }
@@ -149,9 +188,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             await pool.InitializeAsync();
 
+            var toSendCount = 10;
             var lockObject = new object();
             var inProgressCount = 0;
             var maxInProgressCount = 0;
+            var totalSentCount = 0;
+            var tcs = new TaskCompletionSource<bool>();
+            var cts = new CancellationTokenSource(10000); // prevent wait forever
+            cts.Token.Register(() => tcs.TrySetResult(false));  // set result to false on timeout
 
             void SendStarted(IConnection _)
             {
@@ -167,10 +211,13 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                 lock (lockObject)
                 {
                     inProgressCount--;
+                    totalSentCount++;
+                    if (totalSentCount == toSendCount)
+                        tcs.TrySetResult(true);
                 }
             }
 
-            var operations = Enumerable.Range(1, 10)
+            var operations = Enumerable.Range(1, toSendCount)
                 .Select(_ => new FakeOperation
                 {
                     Delay = TimeSpan.FromMilliseconds(100),
@@ -183,10 +230,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             var tasks = operations.Select(p => pool.SendAsync(p)).ToList();
 
-            await Task.WhenAll(tasks);
-
             // Assert
 
+            Assert.True(await tcs.Task, "All sends were not started before timeout");
             Assert.Equal(connections, maxInProgressCount);
             Assert.Equal(0, inProgressCount);
         }
@@ -197,6 +243,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             // Arrange
 
             var connectionCount = 0ul;
+            var tcs = new TaskCompletionSource<bool>();
+            var cts = new CancellationTokenSource(10000); // prevent wait forever
+            cts.Token.Register(() => tcs.TrySetResult(false));  // set result to false on timeout
 
             var connectionFactoryMock = new Mock<IConnectionFactory>();
             connectionFactoryMock
@@ -230,12 +279,17 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             var operationConnectionId = 0ul;
             var operation = new FakeOperation
             {
-                SendStarted = connection => operationConnectionId = connection.ConnectionId
+                SendStarted = connection =>
+                {
+                    operationConnectionId = connection.ConnectionId;
+                    tcs.TrySetResult(true);
+                }
             };
 
             // Act
 
             await pool.SendAsync(operation);
+            Assert.True(await tcs.Task, "Send was not started before timeout");
 
             // Assert
 

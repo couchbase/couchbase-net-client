@@ -24,9 +24,9 @@ namespace Couchbase.Core.Retry
         public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
         {
             var token = request.Token;
-            if (token == CancellationToken.None)
+            if (request.Timeout > TimeSpan.Zero)
             {
-                var cts = new CancellationTokenSource(request.Timeout);
+                var cts = CancellationTokenSource.CreateLinkedTokenSource(token, new CancellationTokenSource(request.Timeout).Token);
                 token = cts.Token;
             }
 

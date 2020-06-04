@@ -56,6 +56,8 @@ namespace Couchbase.Core.IO.Operations
 
         Task SendAsync(IConnection connection, CancellationToken cancellationToken = default);
 
+        void Cancel();
+
         void HandleClientError(string message, ResponseStatus responseStatus);
 
         BucketConfig GetConfig(ITypeTranscoder transcoder);

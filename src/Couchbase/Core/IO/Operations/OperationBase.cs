@@ -31,7 +31,7 @@ namespace Couchbase.Core.IO.Operations
         protected OperationBase()
         {
             Opaque = SequenceGenerator.GetNext();
-            Header = new OperationHeader {Status = ResponseStatus.None};
+            Header = new OperationHeader { Status = ResponseStatus.None };
             Key = string.Empty;
 
             //temporarily make a static - later should be pluggable/set externally
@@ -166,7 +166,7 @@ namespace Couchbase.Core.IO.Operations
 
                 var typeCode = (TypeCode)(ByteConverter.ToUInt16(buffer.Slice(26)) & 0xff);
                 Format = (DataFormat)format;
-                Compression = (Compression) compression;
+                Compression = (Compression)compression;
                 Flags.DataFormat = Format;
                 Flags.Compression = Compression;
                 Flags.TypeCode = typeCode;
@@ -200,7 +200,7 @@ namespace Couchbase.Core.IO.Operations
 
         public IOperationResult GetResult()
         {
-            var result = new OperationResult {Id = Key};
+            var result = new OperationResult { Id = Key };
             try
             {
                 result.Success = GetSuccess();
@@ -297,7 +297,7 @@ namespace Couchbase.Core.IO.Operations
             if (status == ResponseStatus.TemporaryFailure &&
                 responseBody.IndexOf("lock_error", StringComparison.OrdinalIgnoreCase) >= 0)
             {
-               // Exception = new TemporaryLockFailureException(ExceptionUtil.TemporaryLockErrorMsg.WithParams(Key));
+                // Exception = new TemporaryLockFailureException(ExceptionUtil.TemporaryLockErrorMsg.WithParams(Key));
             }
 
             // Try and figure out the most descriptive message
@@ -312,7 +312,7 @@ namespace Couchbase.Core.IO.Operations
             }
             else
             {
-                message = string.Format("Status code: {0} [{1}]", status, (int) status);
+                message = string.Format("Status code: {0} [{1}]", status, (int)status);
             }
 
             // If JSON bit is not set there is no additional information
@@ -328,8 +328,8 @@ namespace Couchbase.Core.IO.Operations
                 if (response != null && response.error != null)
                 {
                     // Read context and ref data from reponse body
-                    var context = (string) response.error.context;
-                    var reference = (string) response.error.@ref;
+                    var context = (string)response.error.context;
+                    var reference = (string)response.error.@ref;
 
                     // Append context and reference data to message
                     message = FormatMessage(message, context, reference);
@@ -346,7 +346,7 @@ namespace Couchbase.Core.IO.Operations
             catch (JsonReaderException)
             {
                 // This means the response body wasn't valid JSON
-               // _log.Warn("Expected response body to be JSON but is invalid. {0}", responseBody);
+                // _log.Warn("Expected response body to be JSON but is invalid. {0}", responseBody);
             }
 
             return message;
@@ -471,9 +471,14 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
+        public void Cancel()
+        {
+            _completed.TrySetCanceled();
+        }
+
         private void HandleOperationCancelled(object state)
         {
-            _completed.TrySetCanceled((CancellationToken) state);
+            _completed.TrySetCanceled((CancellationToken)state);
         }
 
         /// <summary>

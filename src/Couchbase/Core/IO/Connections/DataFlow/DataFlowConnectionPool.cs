@@ -23,11 +23,11 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         private readonly ILogger<DataFlowConnectionPool> _logger;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
-        private readonly List<(IConnection Connection, ActionBlock<SendOperationRequest> Block)> _connections =
-            new List<(IConnection Connection, ActionBlock<SendOperationRequest> Block)>();
+        private readonly List<(IConnection Connection, ActionBlock<IOperation> Block)> _connections =
+            new List<(IConnection Connection, ActionBlock<IOperation> Block)>();
 
-        private readonly BufferBlock<SendOperationRequest> _sendQueue =
-            new BufferBlock<SendOperationRequest>(new DataflowBlockOptions
+        private readonly BufferBlock<IOperation> _sendQueue =
+            new BufferBlock<IOperation>(new DataflowBlockOptions
             {
                 BoundedCapacity = 1024
             });
@@ -88,26 +88,33 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         public override Task SendAsync(IOperation operation, CancellationToken cancellationToken = default)
         {
             EnsureNotDisposed();
-
-            var operationRequest = new SendOperationRequest(operation, cancellationToken);
+            IDisposable? registration = null;
+            registration = cancellationToken.Register(() =>
+            {
+                operation.Cancel(); // cancel the operation so that its Completed task cast is completed
+                registration?.Dispose();
+            });
 
             if (Size > 0)
             {
-                _sendQueue.Post(operationRequest);
+                _sendQueue.Post(operation);
 
-                return operationRequest.CompletionTask;
+                return Task.CompletedTask;
             }
 
             // We had all connections die earlier and fail to restart, we need to restart them
             return CleanupDeadConnectionsAsync().ContinueWith(_ =>
             {
-                if (!_cts.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    operation.Cancel();
+                }
+                else
                 {
                     // Requeue the request
                     // Note: always requeues even if cleanup fails
                     // Since the exception on the task is ignored, we're also eating the exception
-
-                    _sendQueue.Post(operationRequest);
+                    _sendQueue.Post(operation);
                 }
             }, cancellationToken);
         }
@@ -248,7 +255,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 var connection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
 
                 // Create an ActionBlock to receive messages for this connection
-                var block = new ActionBlock<SendOperationRequest>(BuildHandler(connection),
+                var block = new ActionBlock<IOperation>(BuildHandler(connection),
                     new ExecutionDataflowBlockOptions
                     {
                         BoundedCapacity = 1, // Don't let the action block queue up requests, they should queue in the buffer block
@@ -289,10 +296,13 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// </summary>
         /// <param name="connection">The connection.</param>
         /// <returns>The handler.</returns>
-        private Func<SendOperationRequest, Task> BuildHandler(IConnection connection)
+        private Func<IOperation, Task> BuildHandler(IConnection connection)
         {
             return request =>
             {
+                // ignore request that timed out or was cancelled while in queue
+                if (request.Completed.IsCompleted)
+                    return Task.CompletedTask;
                 if (connection.IsDead)
                 {
                     // We need to return the task from CleanupDeadConnectionsAsync
@@ -301,12 +311,15 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     // unlinked to make sure no more bad requests hit it.
                     return CleanupDeadConnectionsAsync().ContinueWith(_ =>
                     {
-                        if (!_cts.IsCancellationRequested)
+                        if (_cts.IsCancellationRequested)
+                        {
+                            request.Cancel();
+                        }
+                        else
                         {
                             // Requeue the request for a different connection
                             // Note: always requeues even if cleanup fails
                             // Since the exception on the task is ignored, we're also eating the exception
-
                             _sendQueue.Post(request);
                         }
                     }, _cts.Token);
