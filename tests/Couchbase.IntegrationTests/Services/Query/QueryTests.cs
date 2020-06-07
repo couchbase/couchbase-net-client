@@ -108,6 +108,22 @@ namespace Couchbase.IntegrationTests.Services.Query
             result.Dispose();
         }
 
+        [Fact]
+        public async Task Test_RawQuery()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            using var result = await cluster.QueryAsync<string>("SELECT RAW name FROM `default` WHERE name IS VALUED LIMIT 1;").ConfigureAwait(false);
+
+            var found = false;
+            await foreach (var name in result.ConfigureAwait(false))
+            {
+                found = true;
+                _testOutputHelper.WriteLine(name);
+            }
+
+            Assert.True(found);
+        }
+
         // ReSharper disable UnusedType.Local
         private class Poco
         {

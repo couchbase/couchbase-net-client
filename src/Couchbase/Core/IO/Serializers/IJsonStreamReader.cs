@@ -54,6 +54,10 @@ namespace Couchbase.Core.IO.Serializers
         /// <typeparam name="T">Type of the object to read.</typeparam>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The object read.</returns>
+        /// <remarks>
+        /// This method also supports reading literals such as strings, numbers, nulls, etc,
+        /// given the correct type for <typeparamref name="T"/>.
+        /// </remarks>
         Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default);
 
         /// <summary>

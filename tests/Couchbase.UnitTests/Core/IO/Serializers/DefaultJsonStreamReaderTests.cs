@@ -258,11 +258,12 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
         }
 
         [Fact]
-        public async Task ReadObjectAsync_NotOnObject_InvalidOperationException()
+        public async Task ReadObjectAsync_OnString_ReadsString()
         {
             // Arrange
 
-            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
+            using var stream = new MemoryStream(
+                System.Text.Encoding.UTF8.GetBytes("{\"value\":\"string\"}"));
 
             using var reader = new DefaultJsonStreamReader(stream, CreateDefaultJsonSerializer());
 
@@ -271,7 +272,27 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             // Act/Assert
 
             await reader.ReadToNextAttributeAsync();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadObjectAsync<dynamic>());
+            var value = await reader.ReadObjectAsync<string>();
+            Assert.Equal("string", value);
+        }
+
+        [Fact]
+        public async Task ReadObjectAsync_OnNumber_ReadsNumber()
+        {
+            // Arrange
+
+            using var stream = new MemoryStream(
+                System.Text.Encoding.UTF8.GetBytes("{\"value\":0.105}"));
+
+            using var reader = new DefaultJsonStreamReader(stream, CreateDefaultJsonSerializer());
+
+            Assert.True(await reader.InitializeAsync());
+
+            // Act/Assert
+
+            await reader.ReadToNextAttributeAsync();
+            var value = await reader.ReadObjectAsync<double>();
+            Assert.Equal(0.105, value);
         }
 
         #endregion

@@ -85,11 +85,6 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         public async Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default)
         {
-            if (_reader.TokenType != JsonToken.StartObject)
-            {
-                throw new InvalidOperationException("Reader is not positioned at the start of an object.");
-            }
-
             var jObject = await JToken.ReadFromAsync(_reader, cancellationToken)
                 .ConfigureAwait(false);
             return jObject.ToObject<T>(Deserializer);
