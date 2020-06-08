@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Couchbase.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -54,6 +55,9 @@ namespace Couchbase.Core.Serialization
         #endregion
 
         #region Fields
+
+        private static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+        private const int DefaultBufferSize = 1024;
 
         private JsonSerializerSettings _deserializationSettings;
         private DeserializationOptions _deserializationOptions;
@@ -171,7 +175,7 @@ namespace Couchbase.Core.Serialization
         {
             using (var ms = MemoryStreamFactory.GetMemoryStream())
             {
-                using (var sw = new StreamWriter(ms))
+                using (var sw = new StreamWriter(ms, UTF8NoBOM, DefaultBufferSize, true))
                 {
                     using (var jr = new JsonTextWriter(sw))
                     {
