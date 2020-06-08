@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -177,9 +177,9 @@ namespace Couchbase.Core.Serialization
                     {
                         var serializer = JsonSerializer.Create(SerializerSettings);
                         serializer.Serialize(jr, obj);
+                        return ms.ToArray();
                     }
                 }
-                return ms.ToArray();
             }
         }
 
