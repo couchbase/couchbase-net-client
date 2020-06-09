@@ -239,6 +239,7 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Dispose()
         {
+            _logger.LogDebug("Disposing ConfigHandler!");
             if (_disposed)
             {
                 return;

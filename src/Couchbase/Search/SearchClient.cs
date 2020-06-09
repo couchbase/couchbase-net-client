@@ -50,12 +50,15 @@ namespace Couchbase.Search
         /// <returns>A <see cref="ISearchResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
         public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
         {
-            // try get Search node
+            // try get Search nodes
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
             var uriBuilder = new UriBuilder(searchUri)
             {
                 Path = $"api/index/{searchRequest.Index}/query"
             };
+
+            _logger.LogDebug("Sending FTS query with a context id {contextId} to server {searchUri}",
+                searchRequest.ClientContextId, searchUri);
 
             var searchResult = new SearchResult();
             var searchBody = searchRequest.ToJson();

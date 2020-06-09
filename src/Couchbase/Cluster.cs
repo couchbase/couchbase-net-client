@@ -297,6 +297,11 @@ namespace Couchbase
             options ??= new AnalyticsOptions();
             options.TimeoutValue ??= _context.ClusterOptions.AnalyticsTimeout;
 
+            if (string.IsNullOrWhiteSpace(options.ClientContextIdValue))
+            {
+                options.ClientContextId(Guid.NewGuid().ToString());
+            }
+
             ThrowIfNotBootstrapped();
 
             var query = new AnalyticsRequest(statement)

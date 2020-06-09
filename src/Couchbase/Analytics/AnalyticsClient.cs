@@ -46,6 +46,10 @@ namespace Couchbase.Analytics
         {
             // try get Analytics node
             var analyticsUri = _serviceUriProvider.GetRandomAnalyticsUri();
+
+            _logger.LogDebug("Sending analytics query with a context id {contextId} to server {searchUri}",
+                queryRequest.ClientContextId, analyticsUri);
+
             AnalyticsResultBase<T> result;
             var body = queryRequest.GetFormValuesAsJson();
 
