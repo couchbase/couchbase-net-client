@@ -436,16 +436,16 @@ namespace Couchbase.Core
                 await sender(op, state, token).ConfigureAwait(false);
 
                 var status = await op.Completed.ConfigureAwait(false);
-
-                if (status == ResponseStatus.VBucketBelongsToAnotherServer)
-                {
-                    var config = op.GetConfig(_transcoder);
-                    _context.PublishConfig(config);
-                }
-                else if (status != ResponseStatus.Success)
+                if (status != ResponseStatus.Success)
                 {
                     _logger.LogDebug("Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.",
                         EndPoint, status, op.OpCode, op.Key, op.Opaque);
+
+                    if (status == ResponseStatus.VBucketBelongsToAnotherServer)
+                    {
+                        var config = op.GetConfig(_transcoder);
+                        _context.PublishConfig(config);
+                    }
 
                     //sub-doc path failures are handled when the ContentAs() method is called.
                     //so we simply return back to the caller and let it be handled later.
@@ -480,6 +480,7 @@ namespace Couchbase.Core
             }
             catch (OperationCanceledException e)
             {
+                _logger.LogDebug("KV Operation timeout for {key} on server {endpoint}.", op.Key, EndPoint);
                 if (!e.CancellationToken.IsCancellationRequested)
                 {
                     //oddly IsCancellationRequested is false when timed out

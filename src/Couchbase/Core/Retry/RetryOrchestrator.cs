@@ -156,6 +156,7 @@ namespace Couchbase.Core.Retry
                                     operation.Key, reason);
 
                                 await backoff.Delay(operation).ConfigureAwait(false);
+                                operation.Reset();
                                 continue;
                             }
 

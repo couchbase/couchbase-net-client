@@ -26,7 +26,7 @@ namespace Couchbase.Core.IO.Operations
         private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
         private IMemoryOwner<byte> _data;
 
-        private readonly TaskCompletionSource<ResponseStatus> _completed = new TaskCompletionSource<ResponseStatus>();
+        private TaskCompletionSource<ResponseStatus> _completed = new TaskCompletionSource<ResponseStatus>();
 
         protected OperationBase()
         {
@@ -76,13 +76,14 @@ namespace Couchbase.Core.IO.Operations
 
         public virtual void Reset()
         {
-            Reset(ResponseStatus.Success);
+            Reset(ResponseStatus.None);
         }
 
         public virtual void Reset(ResponseStatus status)
         {
             _data?.Dispose();
             _data = null;
+            _completed = new TaskCompletionSource<ResponseStatus>();
 
             Header = new OperationHeader
             {
