@@ -37,6 +37,8 @@ namespace Couchbase.Core.IO
                     return new DurabilityImpossibleException { Context = ctx };
                 case ResponseStatus.SyncWriteInProgress:
                     return new DurableWriteInProgressException { Context = ctx };
+                case ResponseStatus.SyncWriteReCommitInProgress:
+                    return new DurableWriteReCommitInProgressException { Context = ctx };
                 case ResponseStatus.SyncWriteAmbiguous:
                     return new DurabilityAmbiguousException { Context = ctx };
                 case ResponseStatus.Eaccess:

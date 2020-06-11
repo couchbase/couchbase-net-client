@@ -10,6 +10,7 @@ using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
@@ -44,6 +45,54 @@ namespace Couchbase.UnitTests.Core.Retry
                 yield return new object[] {new MultiLookup<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new Config {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new Observe {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
+
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new ReplicaRead<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new MultiLookup<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new ReplicaRead<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new MultiLookup<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new ReplicaRead<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new MultiLookup<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Replace<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Delete { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Increment("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Decrement("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new MultiMutation<object> { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Replace<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Delete { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Increment("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Decrement("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new MultiMutation<object> { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -79,7 +128,7 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Operation_Throws_Timeout_After_N_Retries_Using_BestEffort_When_NotMyVBucket(
             object operation, Exception exception)
         {
-            await AssertRetryAsync((IOperation) operation, exception);
+            await AssertRetryAsync((IOperation) operation, exception).ConfigureAwait(false);
         }
 
         private async Task AssertRetryAsync(IOperation op, Exception exp)

@@ -320,6 +320,11 @@ namespace Couchbase.Core.IO.Operations
         /// The SyncWrite request has not completed in the specified time and has ambiguous result -
         /// it may Succeed or Fail; but the final value is not yet known.
         /// </summary>
-        SyncWriteAmbiguous = 0xa3
+        SyncWriteAmbiguous = 0xa3,
+
+        /// <summary>
+        /// A SyncWrite request re-commit is in progress.
+        /// </summary>
+        SyncWriteReCommitInProgress = 0xa4
     }
 }
