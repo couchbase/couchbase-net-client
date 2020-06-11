@@ -64,8 +64,8 @@ namespace Couchbase.Core.IO.Connections
                 _multiplexLogger.LogWarning(setKeepAliveMessage);
             }
 #else
-            _multiplexLogger.LogDebug("Setting TCP Keep-Alives using Socket.IOControl - enable tcp keep-alives {EnableTcpKeepAlives}, time {TcpKeepAliveTime}, interval {TcpKeepAliveInterval}",
-                _clusterOptions.EnableTcpKeepAlives, _clusterOptions.TcpKeepAliveTime, _clusterOptions.TcpKeepAliveInterval);
+            _multiplexLogger.LogDebug("Setting TCP Keep-Alives using Socket.IOControl on {endpoint} - enable tcp keep-alives {EnableTcpKeepAlives}, time {TcpKeepAliveTime}, interval {TcpKeepAliveInterval}",
+                endPoint, _clusterOptions.EnableTcpKeepAlives, _clusterOptions.TcpKeepAliveTime, _clusterOptions.TcpKeepAliveInterval);
 
              if (!socket.TrySetKeepAlives(_clusterOptions.EnableTcpKeepAlives,
                  (uint) _clusterOptions.TcpKeepAliveTime.TotalMilliseconds,

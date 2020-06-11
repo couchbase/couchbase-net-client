@@ -42,6 +42,7 @@ namespace Couchbase.Core
         private NodeAdapter _nodesAdapter;
         private readonly ObservableCollection<IPEndPoint> _keyEndPoints  = new ObservableCollection<IPEndPoint>();
         private readonly string _cachedToString;
+        private volatile bool _disposed;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter)
         {
@@ -420,7 +421,7 @@ namespace Couchbase.Core
         private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationToken token = default(CancellationToken),
             TimeSpan? timeout = null)
         {
-            _logger.LogDebug("Executing op {opcode} with key {key} and opaque {opaque}.", op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+            _logger.LogDebug("Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.", op.OpCode, EndPoint, _redactor.UserData(op.Key), op.Opaque);
 
             CancellationTokenSource cts = null;
             try
@@ -443,8 +444,8 @@ namespace Couchbase.Core
                 }
                 else if (status != ResponseStatus.Success)
                 {
-                    _logger.LogDebug("Server returned {status} for op {opcode} with key {key} and opaque {opaque}.",
-                        status, op.OpCode, op.Key, op.Opaque);
+                    _logger.LogDebug("Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.",
+                        EndPoint, status, op.OpCode, op.Key, op.Opaque);
 
                     //sub-doc path failures are handled when the ContentAs() method is called.
                     //so we simply return back to the caller and let it be handled later.
@@ -474,9 +475,8 @@ namespace Couchbase.Core
                     throw status.CreateException(ctx);
                 }
 
-                _logger.LogDebug("Completed executing op {opCode} with key {key} and opaque {opaque}", op.OpCode,
-                    _redactor.UserData(op.Key),
-                    op.Opaque);
+                _logger.LogDebug("Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}",
+                    EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
             }
             catch (OperationCanceledException e)
             {
@@ -531,14 +531,20 @@ namespace Couchbase.Core
 
         async Task IConnectionInitializer.InitializeConnectionAsync(IConnection connection, CancellationToken cancellationToken)
         {
-            ServerFeatures = await Hello(connection, cancellationToken).ConfigureAwait(false);
-            ErrorMap = await GetErrorMap(connection, cancellationToken).ConfigureAwait(false);
+            if (!_disposed)
+            {
+                _logger.LogDebug("Starting connection initialization on server {endpoint}.", EndPoint);
+                ServerFeatures = await Hello(connection, cancellationToken).ConfigureAwait(false);
+                ErrorMap = await GetErrorMap(connection, cancellationToken).ConfigureAwait(false);
 
-            var mechanismType = _context.ClusterOptions.EffectiveEnableTls ? MechanismType.Plain : MechanismType.ScramSha1;
-            var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
-                _context.ClusterOptions.Password);
+                var mechanismType = _context.ClusterOptions.EffectiveEnableTls
+                    ? MechanismType.Plain
+                    : MechanismType.ScramSha1;
+                var saslMechanism = _saslMechanismFactory.Create(mechanismType, _context.ClusterOptions.UserName,
+                    _context.ClusterOptions.Password);
 
-            await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
+                await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         async Task IConnectionInitializer.SelectBucketAsync(IConnection connection, string bucketName, CancellationToken cancellationToken)
@@ -558,7 +564,6 @@ namespace Couchbase.Core
                               "is unavailable or the node itself does not have the Data service enabled.";
 
                 _logger.LogError(LoggingEvents.BootstrapEvent, message);
-                throw new CouchbaseException(message);
             }
         }
 
@@ -566,6 +571,10 @@ namespace Couchbase.Core
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
+
+            _logger.LogDebug("Disposing cluster node for {endpoint}", EndPoint);
             ConnectionPool?.Dispose();
         }
 

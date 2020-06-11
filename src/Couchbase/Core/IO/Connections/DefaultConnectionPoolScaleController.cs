@@ -144,6 +144,7 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public void Dispose()
         {
+            _logger.LogDebug("Disposing scale controller for {endpoint}", _connectionPool?.EndPoint);
             if (_disposed)
             {
                 return;

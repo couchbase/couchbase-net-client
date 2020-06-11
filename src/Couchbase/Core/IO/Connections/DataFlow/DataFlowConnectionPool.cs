@@ -4,10 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Exception = System.Exception;
 
@@ -25,7 +23,6 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         private readonly ILogger<DataFlowConnectionPool> _logger;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
-
         private readonly List<(IConnection Connection, ActionBlock<SendOperationRequest> Block)> _connections =
             new List<(IConnection Connection, ActionBlock<SendOperationRequest> Block)>();
 
@@ -195,6 +192,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <inheritdoc />
         public override void Dispose()
         {
+            _logger.LogDebug("Disposing pool for {endpoint}.", EndPoint);
             if (_cts.IsCancellationRequested)
             {
                 return;
@@ -210,7 +208,6 @@ namespace Couchbase.Core.IO.Connections.DataFlow
             {
                 // Complete any queued commands
                 _sendQueue.Complete();
-                _sendQueue.Completion.GetAwaiter().GetResult();
 
                 // Dispose of the connections
                 foreach (var connection in _connections)

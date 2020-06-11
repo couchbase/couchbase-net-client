@@ -35,8 +35,8 @@ namespace Couchbase.Core.Configuration.Server
         private readonly HashSet<IConfigUpdateEventSink> _configChangedSubscribers =
             new HashSet<IConfigUpdateEventSink>();
 
-        private Thread? _thread;
-        private bool _disposed;
+        private volatile bool _running;
+        private volatile bool _disposed;
 
         public ConfigHandler(ClusterContext context, IHttpStreamingConfigListenerFactory configListenerFactory, ILogger<ConfigHandler> logger)
         {
@@ -47,17 +47,13 @@ namespace Couchbase.Core.Configuration.Server
 
         public void Start(bool withPolling = false)
         {
-            if (_thread != null)
+            if (_running)
             {
                 throw new InvalidOperationException($"{nameof(ConfigHandler)} has already been started.");
             }
 
-            _thread = new Thread(Process)
-            {
-                IsBackground = true,
-                Name = nameof(ConfigHandler)
-            };
-            _thread.Start();
+            Task.Run(ProcessAsync, _tokenSource.Token);
+            _running = true;
 
             if (withPolling)
             {
@@ -96,7 +92,7 @@ namespace Couchbase.Core.Configuration.Server
             }, _tokenSource.Token);
         }
 
-        private void Process()
+        private async Task ProcessAsync()
         {
             try
             {
@@ -133,7 +129,7 @@ namespace Couchbase.Core.Configuration.Server
                             }
 
                             var tasks = subscribers.Select(p => p.ConfigUpdatedAsync(stored));
-                            Task.WhenAll(tasks).GetAwaiter().GetResult();
+                            await Task.WhenAll(tasks).ConfigureAwait(false);
                         }
                     }
                     catch (Exception e)
@@ -245,6 +241,7 @@ namespace Couchbase.Core.Configuration.Server
                 return;
             }
 
+            _running = false;
             _disposed = true;
 
             _configQueue.CompleteAdding();
