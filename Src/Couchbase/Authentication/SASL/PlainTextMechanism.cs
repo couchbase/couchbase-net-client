@@ -96,12 +96,14 @@ namespace Couchbase.Authentication.SASL
 
         static string GetAuthData(string userName, string passWord)
         {
-            const string empty = "\0";
+            // see https://tools.ietf.org/html/rfc4616#section-2
+            const string utf8Null = "\0";
             var sb = new StringBuilder();
+
+            // authzid is optional, and not included at this time.
+            sb.Append(utf8Null);
             sb.Append(userName);
-            sb.Append(empty);
-            sb.Append(userName);
-            sb.Append(empty);
+            sb.Append(utf8Null);
             sb.Append(passWord);
             return sb.ToString();
         }
