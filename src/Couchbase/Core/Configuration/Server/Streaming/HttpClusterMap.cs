@@ -34,7 +34,9 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             {
                 Scheme = _context.ClusterOptions.EffectiveEnableTls ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
                 Host = hostEndpoint.Host,
-                Port = _context.ClusterOptions.BootstrapHttpPort,
+                Port = _context.ClusterOptions.EffectiveEnableTls
+                    ? _context.ClusterOptions.BootstrapHttpPortTls
+                    : _context.ClusterOptions.BootstrapHttpPort,
                 Path = Path + bucketName
             };
 

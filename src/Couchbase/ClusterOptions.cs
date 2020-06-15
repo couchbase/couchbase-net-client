@@ -249,6 +249,11 @@ namespace Couchbase
         public int BootstrapHttpPort { get; set; } = 8091;
 
         /// <summary>
+        /// Port used for TLS HTTP bootstrapping fallback if other bootstrap methods are not available.
+        /// </summary>
+        public int BootstrapHttpPortTls { get; set; } = 18091;
+
+        /// <summary>
         /// Used for checking that the SDK has bootstrapped and potentially retrying if not.
         /// </summary>
         public TimeSpan BootstrapPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
