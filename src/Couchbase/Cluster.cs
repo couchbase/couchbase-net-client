@@ -416,10 +416,15 @@ namespace Couchbase
 
                 //auth failed so bubble up exception and clean up resources
                 _logger.LogError(e,
-                    "Could not authenticate user {username}", _redactor.UserData(_context.ClusterOptions.UserName ?? string.Empty));
+                    "Could not authenticate user {username}",
+                    _redactor.UserData(_context.ClusterOptions.UserName ?? string.Empty));
 
                 _context.RemoveAllNodes();
                 throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogDebug("Error encountered bootstrapping cluster; if the cluster is 6.5 or earlier, this can be ignored. {exception}.", e);
             }
         }
 
