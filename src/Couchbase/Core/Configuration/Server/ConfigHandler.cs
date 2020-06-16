@@ -85,7 +85,7 @@ namespace Couchbase.Core.Configuration.Server
                         }
                         catch (Exception e)
                         {
-                            _logger.LogWarning(e, "Issue getting Cluster Map cluster!");
+                            _logger.LogWarning(LoggingEvents.ConfigEvent, e, "Issue getting Cluster Map on server {server}!", clusterNode.EndPoint);
                         }
                     }
                 }

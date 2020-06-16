@@ -454,7 +454,13 @@ namespace Couchbase.Core
                     var code = (short)status;
                     if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
                     {
-                        _logger.LogWarning("Unexpected Status for KeyValue operation not found in Error Map: 0x{code}", code.ToString("X4"));
+                        //We can ignore transport exceptions here as they are generated internally in cases a KV cannot be completed.
+                        if (code != 0x0500)
+                        {
+                            _logger.LogWarning(
+                                "Unexpected Status for KeyValue operation not found in Error Map: 0x{code}",
+                                code.ToString("X4"));
+                        }
                     }
 
                     //Contextual error information
@@ -558,6 +564,9 @@ namespace Couchbase.Core
             }
             catch (DocumentNotFoundException)
             {
+                //If DNF exception then BucketNotConnected was returned so close the connection and let it get cleaned up later
+                await connection.CloseAsync(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+
                 var message = "The Bucket [" + _redactor.MetaData(bucketName) + "] could not be selected. Either it does not exist, " +
                               "is unavailable or the node itself does not have the Data service enabled.";
 

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
@@ -94,6 +95,8 @@ namespace Couchbase.Core.IO
                     return new CouchbaseException { Context = ctx };
                 case ResponseStatus.UnknownCollection:
                     return new CollectionOutdatedException { Context = ctx };
+                case ResponseStatus.TransportFailure:
+                    return new RequestCanceledException{ Context = ctx };
                 default:
                     return new CouchbaseException { Context = ctx };
             }

@@ -254,6 +254,13 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 // Create and initialize a new connection
                 var connection = await CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
 
+                if (connection.IsDead)
+                {
+                    _logger.LogDebug("Connection for {endpoint} could not be started.", EndPoint);
+                    return;
+                }
+                _logger.LogDebug("Connection for {endpoint} has been started.", EndPoint);
+
                 // Create an ActionBlock to receive messages for this connection
                 var block = new ActionBlock<IOperation>(BuildHandler(connection),
                     new ExecutionDataflowBlockOptions

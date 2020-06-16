@@ -156,8 +156,8 @@ namespace Couchbase.Core
 
         internal abstract Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null);
 
-        public virtual Task RetryAsync(IOperation operation, CancellationToken token = default, TimeSpan? timeout = null) =>
-            RetryOrchestrator.RetryAsync(this, operation, token, timeout);
+        public virtual async Task RetryAsync(IOperation operation, CancellationToken token = default, TimeSpan? timeout = null) =>
+           await RetryOrchestrator.RetryAsync(this, operation, token, timeout).ConfigureAwait(false);
 
         #endregion
 
@@ -279,6 +279,7 @@ namespace Couchbase.Core
 
         public virtual void Dispose()
         {
+            Logger.LogDebug("Disposing bucket [{name}]!", Name);
             if (Disposed) return;
             Disposed = true;
             Bootstrapper?.Dispose();
