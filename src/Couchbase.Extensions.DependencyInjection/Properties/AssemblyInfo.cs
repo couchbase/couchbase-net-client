@@ -1,7 +1,9 @@
 using System.Runtime.CompilerServices;
 
-#if !SIGNING
+// These internals must be exposed in production builds to support dynamic proxy generation
 [assembly: InternalsVisibleTo("Couchbase.Extensions.DependencyInjection.Dynamic")]
-[assembly: InternalsVisibleTo("Couchbase.Extensions.DependencyInjection.UnitTests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
+
+#if !SIGNING
+[assembly: InternalsVisibleTo("Couchbase.Extensions.DependencyInjection.UnitTests")]
 #endif

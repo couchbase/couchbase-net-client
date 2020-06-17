@@ -104,7 +104,9 @@ namespace Couchbase.DataStructures
             return RemoveAsync(key).GetAwaiter().GetResult();
         }
 
+#pragma warning disable CS8767
         public bool TryGetValue(string key, [MaybeNullWhen(false)] out TValue value)
+#pragma warning restore CS8767
         {
             CreateBackingStore();
             var success = true;
