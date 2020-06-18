@@ -69,7 +69,10 @@ namespace Couchbase.Query
             }
             if (_hasFinishedReading)
             {
-                // empty collection
+                // empty collection OR non-success message
+                // Known Issue: Since we have to read the entire message in non-success cases to get the errors,
+                //              We can't stop the reader at the "results" section.  This shouldn't matter, since
+                //              query error results won't have useful "results" populated.
                 _hasReadResult = true;
                 yield break;
             }
@@ -161,10 +164,18 @@ namespace Couchbase.Query
                             .ToMetrics();
                         break;
                     case "results":
-                        // We've reached the result rows, return now
                         _hasReadToResult = true;
 
-                        return;
+                        if (this.Success)
+                        {
+                            // We've reached the result rows, return now
+                            return;
+                        }
+                        else
+                        {
+                            // In non-success situations, we want to populate all the error and warning fields.
+                            break;
+                        }
                     case "warnings":
                         await foreach (var warning in _reader.ReadObjectsAsync<QueryWarning>(cancellationToken)
                             .ConfigureAwait(false))

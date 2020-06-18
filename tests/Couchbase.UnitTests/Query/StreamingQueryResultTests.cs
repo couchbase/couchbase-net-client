@@ -52,6 +52,7 @@ namespace Couchbase.UnitTests.Query
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
             using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            streamingResult.Success = true;
             await streamingResult.InitializeAsync();
 
             // Act
@@ -206,6 +207,27 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(QueryStatus.Fatal, streamingResult.MetaData.Status);
             Assert.NotNull(streamingResult.MetaData.Metrics);
             Assert.Equal("134.7944us", streamingResult.MetaData.Metrics.ElaspedTime);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_Error_CreateIndexInternalServerError()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-create-index-500.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            Assert.Equal("d5017926-d7a4-41bf-bb13-b788885f9c08", streamingResult.MetaData.RequestId);
+            Assert.NotEmpty(streamingResult.Errors);
+            Assert.Equal(QueryStatus.Errors, streamingResult.MetaData.Status);
+            Assert.NotNull(streamingResult.MetaData.Metrics);
         }
 
         #endregion

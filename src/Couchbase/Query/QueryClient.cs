@@ -196,7 +196,7 @@ namespace Couchbase.Query
                         ClientContextId = options.CurrentContextId,
                         Parameters = options.GetAllParametersAsJson(),
                         Statement = options.ToString(),
-                        Message = GetErrorMessage(queryResult, currentContextId),
+                        Message = GetErrorMessage(queryResult, currentContextId, response.StatusCode),
                         Errors = queryResult.Errors,
                         HttpStatus = response.StatusCode,
                         QueryStatus = queryResult.MetaData?.Status ?? QueryStatus.Fatal
@@ -276,7 +276,7 @@ namespace Couchbase.Query
             }
         }
 
-        private string GetErrorMessage<T>(QueryResultBase<T> queryResult, string requestId)
+        private string GetErrorMessage<T>(QueryResultBase<T> queryResult, string requestId, HttpStatusCode statusCodeFallback)
         {
             var error = queryResult?.Errors?.FirstOrDefault();
             if (error != null)
@@ -285,7 +285,8 @@ namespace Couchbase.Query
                 return $"{error.Message} [{error.Code}]";
             }
 
-            return string.Empty;
+            _logger.LogDebug($"The request {{requestId}} failed for an unknown reason with HTTP {(int)statusCodeFallback}", requestId, statusCodeFallback);
+            return $"HTTP {(int)statusCodeFallback}";
         }
     }
 }

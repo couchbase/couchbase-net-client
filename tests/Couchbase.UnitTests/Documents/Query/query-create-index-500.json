@@ -1,0 +1,21 @@
+{
+  "requestID": "d5017926-d7a4-41bf-bb13-b788885f9c08",
+  "clientContextID": "62a37c17-b473-457d-b61e-bf553c2e9655",
+  "signature": null,
+  "results": [
+  ],
+  "errors": [
+    {
+      "code": 5000,
+      "msg": "GSI CreateIndex() - cause: Create index or Alter replica cannot proceed due to rebalance in progress, another concurrent create index request, network partition, node failover, indexer failure, or presence of duplicate index name."
+    }
+  ],
+  "status": "errors",
+  "metrics": {
+    "elapsedTime": "1.0006ms",
+    "executionTime": "1.0006ms",
+    "resultCount": 0,
+    "resultSize": 0,
+    "errorCount": 1
+  }
+}
