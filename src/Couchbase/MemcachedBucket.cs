@@ -88,7 +88,7 @@ namespace Couchbase
             }
         }
 
-        internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
+        internal override async Task SendAsync(IOperation op, CancellationToken token = default)
         {
             if (KeyMapper == null)
             {
@@ -100,7 +100,7 @@ namespace Couchbase
 
             if (Nodes.TryGet(endPoint, out var clusterNode))
             {
-                await clusterNode.ExecuteOp(op, token, timeout).ConfigureAwait(false);
+                await clusterNode.ExecuteOp(op, token).ConfigureAwait(false);
             }
             else
             {

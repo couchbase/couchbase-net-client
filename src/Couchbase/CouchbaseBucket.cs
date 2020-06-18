@@ -200,7 +200,7 @@ namespace Couchbase
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
-        internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
+        internal override async Task SendAsync(IOperation op, CancellationToken token = default)
         {
             if (KeyMapper == null)
             {
@@ -218,7 +218,7 @@ namespace Couchbase
             {
                 try
                 {
-                    await clusterNode.SendAsync(op, token, timeout).ConfigureAwait(false);
+                    await clusterNode.SendAsync(op, token).ConfigureAwait(false);
                 }
                 catch (Exception e)
                 {
@@ -226,7 +226,7 @@ namespace Couchbase
                     {
                         Logger.LogInformation("Updating stale manifest for collection and retrying.", e);
                         await RefreshCollectionId(op, clusterNode).ConfigureAwait(false);
-                        await clusterNode.SendAsync(op, token, timeout).ConfigureAwait(false);
+                        await clusterNode.SendAsync(op, token).ConfigureAwait(false);
                     }
                     else
                     {

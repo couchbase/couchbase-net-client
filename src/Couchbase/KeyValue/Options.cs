@@ -114,7 +114,7 @@ namespace Couchbase.KeyValue
     {
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public ExistsOptions Timeout(TimeSpan timeout)
         {
@@ -145,7 +145,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
 
@@ -203,7 +203,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
 
@@ -263,7 +263,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
 
@@ -327,7 +327,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public RemoveOptions Cas(ulong cas)
         {
@@ -370,7 +370,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public UnlockOptions Timeout(TimeSpan timeout)
         {
@@ -398,7 +398,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public TouchOptions Timeout(TimeSpan timeout)
         {
@@ -433,7 +433,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public IncrementOptions Initial(ulong initial)
         {
@@ -499,7 +499,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public DecrementOptions Initial(ulong initial)
         {
@@ -561,7 +561,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public AppendOptions Cas(ulong cas)
         {
@@ -611,8 +611,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         public PrependOptions Cas(ulong cas)
         {
@@ -654,7 +653,7 @@ namespace Couchbase.KeyValue
     {
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
 
@@ -690,7 +689,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
 
@@ -721,7 +720,7 @@ namespace Couchbase.KeyValue
     {
         internal TimeSpan? TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         internal bool ExpiryValue { get; set; }
 
@@ -770,7 +769,7 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan TimeoutValue { get; set; }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeSerializer? SerializerValue { get; set; }
 

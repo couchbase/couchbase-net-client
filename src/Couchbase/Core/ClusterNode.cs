@@ -367,7 +367,7 @@ namespace Couchbase.Core
             }
         }
 
-        public async Task SendAsync(IOperation op, CancellationToken token = default(CancellationToken), TimeSpan? timeout = null)
+        public async Task SendAsync(IOperation op, CancellationToken token = default)
         {
             _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
 
@@ -431,18 +431,13 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task ExecuteOp(Action<IOperation, object, CancellationToken> sender, IOperation op, object state, CancellationToken token = default(CancellationToken),
-            TimeSpan? timeout = null)
+        private async Task ExecuteOp(Action<IOperation, object, CancellationToken> sender, IOperation op, object state, CancellationToken token = default)
         {
             _logger.LogDebug("Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.", op.OpCode, EndPoint, _redactor.UserData(op.Key), op.Opaque);
 
-            CancellationTokenSource cts = null;
             try
             {
-                cts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                cts.CancelAfter(GetTimeout(timeout, op));
-                token = cts.Token;
-
+                // I don't think this needs to be awaited, sender does not need to return a task
                 sender(op, state, token);
 
                 var status = await op.Completed.ConfigureAwait(false);
@@ -505,43 +500,25 @@ namespace Couchbase.Core
 
                 throw;
             }
-            finally
-            {
-                //clean up the token if we used a default token
-                cts?.Dispose();
-            }
         }
 
-        public Task ExecuteOp(IOperation op, CancellationToken token = default(CancellationToken),
-            TimeSpan? timeout = null)
+        public Task ExecuteOp(IOperation op, CancellationToken token = default)
         {
             return ExecuteOp(ConnectionPool, op, token);
         }
 
-        private Task ExecuteOp(IConnectionPool connectionPool, IOperation op, CancellationToken token = default(CancellationToken),
-            TimeSpan? timeout = null)
+        private Task ExecuteOp(IConnectionPool connectionPool, IOperation op, CancellationToken token = default)
         {
             // op and connectionPool come back via lambda parameters to prevent an extra closure heap allocation
             return ExecuteOp((op2, state, effectiveToken) => ((IConnectionPool)state).SendAsync(op2, effectiveToken),
                 op, connectionPool, token);
         }
 
-        public Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default(CancellationToken),
-            TimeSpan? timeout = null)
+        public Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default)
         {
             // op and connection come back via lambda parameters to prevent an extra closure heap allocation
             return ExecuteOp((op2, state, effectiveToken) => op2.SendAsync((IConnection)state, effectiveToken),
                 op, connection, token);
-        }
-
-        private TimeSpan GetTimeout(TimeSpan? optionsTimeout, IOperation op)
-        {
-            if (op.HasDurability)
-            {
-                op.Timeout = optionsTimeout ?? _context.ClusterOptions.KvDurabilityTimeout;
-                return op.Timeout;
-            }
-            return optionsTimeout ?? _context.ClusterOptions.KvTimeout;
         }
 
         #region IConnectionInitializer

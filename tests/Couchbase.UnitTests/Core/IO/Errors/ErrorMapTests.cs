@@ -69,7 +69,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
 
             try
             {
-                await node.ExecuteOp(insert, CancellationToken.None, TimeSpan.FromMinutes(5)).ConfigureAwait(false);
+                await node.ExecuteOp(insert, CancellationToken.None).ConfigureAwait(false);
             }
             catch (DocumentExistsException e)
             {

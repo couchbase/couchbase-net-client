@@ -207,7 +207,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
-            internal override async Task SendAsync(IOperation op, CancellationToken token = default, TimeSpan? timeout = null)
+            internal override async Task SendAsync(IOperation op, CancellationToken token = default)
             {
                 var mockConnectionPool = new Mock<IConnectionPool>();
 
@@ -226,7 +226,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new NodeAdapter(),
                     NullRequestTracer.Instance);
 
-                await clusterNode.ExecuteOp(op, token, timeout);
+                await clusterNode.ExecuteOp(op, token).ConfigureAwait(false);
 
                 if (_statuses.TryDequeue(out ResponseStatus status))
                 {
@@ -262,9 +262,8 @@ namespace Couchbase.UnitTests.KeyValue
             mockBucket
                 .Setup(m => m.RetryAsync(
                     It.Is<IOperation>(p => p.OpCode == OpCode.MultiLookup),
-                    It.IsAny<CancellationToken>(),
-                    It.IsAny<TimeSpan>()))
-                .Returns((IOperation operation, CancellationToken cancellationToken, TimeSpan timeout) =>
+                    It.IsAny<CancellationToken>()))
+                .Returns((IOperation operation, CancellationToken cancellationToken) =>
                 {
                     operation.Header = new OperationHeader
                     {
@@ -276,9 +275,8 @@ namespace Couchbase.UnitTests.KeyValue
 
             mockBucket.Setup(m => m.SendAsync(
                 It.IsAny<IOperation>(),
-                It.IsAny<CancellationToken>(),
-                It.IsAny<TimeSpan?>()))
-                .Returns((IOperation operation, CancellationToken cancellationToken, TimeSpan timeout) =>
+                It.IsAny<CancellationToken>()))
+                .Returns((IOperation operation, CancellationToken cancellationToken) =>
                 {
                     operation.Header = new OperationHeader
                     {

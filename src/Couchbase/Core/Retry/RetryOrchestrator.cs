@@ -129,8 +129,7 @@ namespace Couchbase.Core.Retry
             } while (true);
         }
 
-        public async Task RetryAsync(BucketBase bucket, IOperation operation, CancellationToken token = default,
-            TimeSpan? timeout = null)
+        public async Task RetryAsync(BucketBase bucket, IOperation operation, CancellationToken token = default)
         {
             try
             {
@@ -140,7 +139,7 @@ namespace Couchbase.Core.Retry
                     try
                     {
                         operation.Attempts++;
-                        await bucket.SendAsync(operation, token, timeout).ConfigureAwait(false);
+                        await bucket.SendAsync(operation, token).ConfigureAwait(false);
                         break;
                     }
                     catch (CouchbaseException e)
@@ -182,13 +181,7 @@ namespace Couchbase.Core.Retry
                     }
                 } while (true);
             }
-            catch (TaskCanceledException){ ThrowTimeoutException(operation, timeout); }
-            catch (OperationCanceledException) { ThrowTimeoutException(operation, timeout); }
-        }
-
-        private static void ThrowTimeoutException(TimeSpan? timeout)
-        {
-            throw new TimeoutException($"The query timed out after {timeout}.");
+            catch (OperationCanceledException) { ThrowTimeoutException(operation, operation.Timeout); }
         }
 
         private static void ThrowTimeoutException(IOperation operation, TimeSpan? timeout)

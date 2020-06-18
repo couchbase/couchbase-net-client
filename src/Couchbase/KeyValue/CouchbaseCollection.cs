@@ -152,8 +152,10 @@ namespace Couchbase.KeyValue
                     Transcoder = _transcoder,
                     Span = rootSpan
                 };
-                await _bucket.RetryAsync(getMetaOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+                await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getMetaOp).ConfigureAwait(false);
                 var result = getMetaOp.GetValue();
+
                 return new ExistsResult
                 {
                     Cas = getMetaOp.Cas,
@@ -192,8 +194,18 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(upsertOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, upsertOp).ConfigureAwait(false);
             return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
+        }
+
+        private async Task RetryUntilTimeoutOrSuccessAsync(CancellationToken? token, TimeSpan? timeout, IOperation op)
+        {
+            using var cts = token.HasValue
+                ? CancellationTokenSource.CreateLinkedTokenSource(token.Value)
+                : new CancellationTokenSource(GetTimeout(timeout, op));
+
+            await _bucket.RetryAsync(op, cts.Token).ConfigureAwait(false);
         }
 
         #endregion
@@ -218,7 +230,8 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(insertOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, insertOp).ConfigureAwait(false);
             return new MutationResult(insertOp.Cas, null, insertOp.MutationToken);
         }
 
@@ -245,8 +258,8 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(replaceOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
 
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, replaceOp).ConfigureAwait(false);
             return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken);
         }
 
@@ -272,7 +285,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(removeOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, removeOp).ConfigureAwait(false);
         }
 
         #endregion
@@ -295,7 +309,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(unlockOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, unlockOp).ConfigureAwait(false);
         }
 
         #endregion
@@ -319,7 +334,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(touchOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, touchOp).ConfigureAwait(false);
         }
 
         #endregion
@@ -343,7 +359,8 @@ namespace Couchbase.KeyValue
                 Span = rootSpan
             };
 
-            await _bucket.RetryAsync(getAndTouchOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getAndTouchOp).ConfigureAwait(false);
+
             return new GetResult(getAndTouchOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getAndTouchOp.Key,
@@ -375,7 +392,7 @@ namespace Couchbase.KeyValue
                 Transcoder = transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(getAndLockOp, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getAndLockOp).ConfigureAwait(false);
             return new GetResult(getAndLockOp.ExtractData(), transcoder, _getLogger)
             {
                 Id = getAndLockOp.Key,
@@ -426,7 +443,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = span
             };
-            await _bucket.RetryAsync(lookup, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, lookup).ConfigureAwait(false);
             return lookup;
         }
 
@@ -475,10 +493,26 @@ namespace Couchbase.KeyValue
                 DocFlags = docFlags,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(mutation, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
 
-            return new MutateInResult(mutation.GetCommandValues(),mutation.Cas, mutation.MutationToken,
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, mutation).ConfigureAwait(false);
+
+            return new MutateInResult(mutation.GetCommandValues(), mutation.Cas, mutation.MutationToken,
                 options.SerializerValue ?? _transcoder.Serializer);
+        }
+
+        private TimeSpan GetTimeout(TimeSpan? optionsTimeout, IOperation op)
+        {
+            if (optionsTimeout == null || optionsTimeout.Value == TimeSpan.Zero)
+            {
+                if (op.HasDurability)
+                {
+                    op.Timeout = _bucket.Context.ClusterOptions.KvDurabilityTimeout;
+                    return op.Timeout;
+                }
+                optionsTimeout = _bucket.Context.ClusterOptions.KvTimeout;
+            }
+
+            return op.Timeout = optionsTimeout.Value;
         }
 
         #endregion
@@ -501,7 +535,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
 
@@ -525,7 +560,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
 
@@ -550,7 +586,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
 
@@ -575,7 +612,8 @@ namespace Couchbase.KeyValue
                 Transcoder = _transcoder,
                 Span = rootSpan
             };
-            await _bucket.RetryAsync(op, options.TokenValue, options.TimeoutValue).ConfigureAwait(false);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
 
