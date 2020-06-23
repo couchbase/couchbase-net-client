@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.DI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,6 +10,50 @@ namespace Couchbase.UnitTests
 {
     public class ConfigurationTests
     {
+        #region CircuitBreaker
+
+        [Fact]
+        public void CircuitBreakerConfiguration_DefaultCircuitBreakerConfiguration_LoadsInServiceProvider()
+        {
+            // Arrange
+
+            var config = new ClusterOptions();
+
+            // Act
+            // noop
+
+            // Assert
+
+            var serviceProvider = config.BuildServiceProvider();
+            var actualCircuitBreakerConfiguration = serviceProvider.GetService<CircuitBreakerConfiguration>();
+            Assert.Equal(CircuitBreakerConfiguration.Default, actualCircuitBreakerConfiguration);
+        }
+
+        [Fact]
+        public void CircuitBreakerConfiguration_CustomCircuitBreakerConfiguration_LoadsInServiceProvider()
+        {
+            // Arrange
+
+            var config = new ClusterOptions();
+
+            var expectedCircuitBreakerConfiguration = new CircuitBreakerConfiguration
+            {
+                Enabled = false
+            };
+
+            // Act
+
+            config.CircuitBreakerConfiguration = expectedCircuitBreakerConfiguration;
+
+            // Assert
+
+            var serviceProvider = config.BuildServiceProvider();
+            var actualCircuitBreakerConfiguration = serviceProvider.GetService<CircuitBreakerConfiguration>();
+            Assert.Equal(expectedCircuitBreakerConfiguration, actualCircuitBreakerConfiguration);
+        }
+
+        #endregion
+
         #region Logging
 
         [Fact]

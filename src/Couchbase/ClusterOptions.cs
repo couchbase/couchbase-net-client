@@ -353,6 +353,11 @@ namespace Couchbase
                 AddSingletonService(DnsResolver);
             }
 
+            if (CircuitBreakerConfiguration != null)
+            {
+                AddSingletonService(CircuitBreakerConfiguration);
+            }
+
             return new CouchbaseServiceProvider(_services);
         }
 
