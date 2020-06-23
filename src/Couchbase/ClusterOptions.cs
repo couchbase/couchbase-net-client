@@ -367,6 +367,11 @@ namespace Couchbase
                 this.AddClusterService(DnsResolver);
             }
 
+            if (CircuitBreakerConfiguration != null)
+            {
+                this.AddClusterService(CircuitBreakerConfiguration);
+            }
+
             return new CouchbaseServiceProvider(_services);
         }
 
