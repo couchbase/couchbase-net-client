@@ -43,18 +43,13 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         [Fact]
-        public async Task SubDoc_More_Than_One_XAttr_Throws_ArgumentException()
+        public async Task SubDoc_More_Than_One_XAttr_Is_Allowed()
         {
-            var collection = CreateTestCollection();
-
-            await Assert.ThrowsAsync<ArgumentException>(async () =>
-            {
-                await collection.LookupInAsync("docId", builder =>
-                {
-                    builder.Get("doc.path", isXattr: true);
-                    builder.Count("path", isXattr: true);
-                }, new LookupInOptions().Timeout(TimeSpan.FromHours(1)));
-            });
+            var builder = new LookupInSpecBuilder();
+            builder.Get("doc.path", isXattr: true)
+                   .Get("path", isXattr: true)
+                   .Get("notXattr", false);
+            builder.Specs.ToArray();
         }
 
         [Theory]
