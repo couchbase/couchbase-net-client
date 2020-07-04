@@ -43,7 +43,7 @@ namespace Couchbase.Core
             _tokenSource = tokenSource;
 
             // Register this instance of ClusterContext
-            options.AddSingletonService(this);
+            options.AddClusterService(this);
 
             ServiceProvider = options.BuildServiceProvider();
 

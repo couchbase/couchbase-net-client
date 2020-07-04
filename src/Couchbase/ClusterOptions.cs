@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -280,11 +281,11 @@ namespace Couchbase
 
                     if (value)
                     {
-                        AddSingletonService<IOrphanedResponseLogger, OrphanedResponseLogger>();
+                        this.AddClusterService<IOrphanedResponseLogger, OrphanedResponseLogger>();
                     }
                     else
                     {
-                        AddSingletonService<IOrphanedResponseLogger, NullOrphanedResponseLogger>();
+                        this.AddClusterService<IOrphanedResponseLogger, NullOrphanedResponseLogger>();
                     }
                 }
             }
@@ -330,47 +331,76 @@ namespace Couchbase
         /// <returns>The new <see cref="IServiceProvider"/>.</returns>
         internal IServiceProvider BuildServiceProvider()
         {
-            AddSingletonService(this);
-            AddSingletonService(Logging ?? new NullLoggerFactory());
+            this.AddClusterService(this);
+            this.AddClusterService(Logging ?? new NullLoggerFactory());
 
             if (RequestTracer != null)
             {
-                AddSingletonService(RequestTracer);
+                this.AddClusterService(RequestTracer);
             }
 
             if (Serializer != null)
             {
-                AddSingletonService(Serializer);
+                this.AddClusterService(Serializer);
             }
 
             if (Transcoder != null)
             {
-                AddSingletonService(Transcoder);
+                this.AddClusterService(Transcoder);
             }
 
             if (DnsResolver != null)
             {
-                AddSingletonService(DnsResolver);
+                this.AddClusterService(DnsResolver);
             }
 
             return new CouchbaseServiceProvider(_services);
         }
 
-        internal void AddTransientService<T>(Func<IServiceProvider, T> factory)
+        /// <summary>
+        /// Register a service with the cluster's <see cref="ICluster.ClusterServices"/>.
+        /// </summary>
+        /// <typeparam name="TService">The type of the service which will be requested.</typeparam>
+        /// <typeparam name="TImplementation">The type of the service implementation which is returned.</typeparam>
+        /// <param name="factory">Factory which will create the service.</param>
+        /// <param name="lifetime">Lifetime of the service.</param>
+        /// <returns>The <see cref="ClusterOptions"/>.</returns>
+        public ClusterOptions AddService<TService, TImplementation>(
+            Func<IServiceProvider, TImplementation> factory,
+            ClusterServiceLifetime lifetime)
+            where TImplementation : notnull, TService
         {
-            _services[typeof(T)] = new TransientServiceFactory(serviceProvider => factory(serviceProvider));
+            _services[typeof(TService)] = lifetime switch
+            {
+                ClusterServiceLifetime.Transient => new TransientServiceFactory(serviceProvider => factory(serviceProvider)),
+                ClusterServiceLifetime.Cluster => new SingletonServiceFactory(serviceProvider => factory(serviceProvider)),
+                _ => throw new InvalidEnumArgumentException(nameof(lifetime), (int) lifetime,
+                    typeof(ClusterServiceLifetime))
+            };
+
+            return this;
         }
 
-        internal void AddSingletonService<T>(T singleton)
-            where T : notnull
+        /// <summary>
+        /// Register a service with the cluster's <see cref="ICluster.ClusterServices"/>.
+        /// </summary>
+        /// <typeparam name="TService">The type of the service which will be requested.</typeparam>
+        /// <typeparam name="TImplementation">The type of the service implementation which is returned.</typeparam>
+        /// <param name="lifetime">Lifetime of the service.</param>
+        /// <returns>The <see cref="ClusterOptions"/>.</returns>
+        public ClusterOptions AddService<TService, TImplementation>(
+            ClusterServiceLifetime lifetime)
+            where TImplementation : TService
         {
-            _services[typeof(T)] = new SingletonServiceFactory(singleton);
-        }
+            _services[typeof(TService)] = lifetime switch
+            {
+                ClusterServiceLifetime.Transient => new TransientServiceFactory(typeof(TImplementation)),
+                ClusterServiceLifetime.Cluster => new SingletonServiceFactory(typeof(TImplementation)),
+                _ => throw new InvalidEnumArgumentException(nameof(lifetime), (int) lifetime,
+                    typeof(ClusterServiceLifetime))
+            };
 
-        internal void AddSingletonService<TService, TImplementation>()
-            where TImplementation: TService
-        {
-            _services[typeof(TService)] = new SingletonServiceFactory(typeof(TImplementation));
+            return this;
         }
 
         #endregion
