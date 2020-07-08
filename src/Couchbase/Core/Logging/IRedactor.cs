@@ -1,6 +1,9 @@
 namespace Couchbase.Core.Logging
 {
-    internal interface IRedactor
+    /// <summary>
+    /// An interface used for redacting specific log information.
+    /// </summary>
+    public interface IRedactor
     {
         /// <summary>
         /// Redact user data like username, statements, etc
