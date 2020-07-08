@@ -2,14 +2,16 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Converters;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
+using Couchbase.Views;
 
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
     internal class MultiLookup<T> : OperationBase<T>, IEquatable<MultiLookup<T>>
     {
         public LookupInBuilder<T> Builder { get; set; }
-        public readonly IList<OperationSpec> LookupCommands = new List<OperationSpec>();
+        private readonly List<OperationSpec> _lookupCommands = new List<OperationSpec>();
 
         public override void WriteExtras(OperationBuilder builder)
         {
@@ -21,20 +23,28 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public override void WriteBody(OperationBuilder builder)
         {
-            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength))
+            using var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
+            var buffer = bufferOwner.Memory.Span;
+
+            foreach (var lookup in Builder)
             {
-                var buffer = bufferOwner.Memory.Span;
+                _lookupCommands.Add(lookup);
+            }
 
-                foreach (var lookup in Builder)
-                {
-                    builder.BeginOperationSpec(false);
+            for (int i = 0; i < _lookupCommands.Count; i++)
+            {
+                _lookupCommands[i].OriginalIndex = i;
+            }
 
-                    var pathLength = ByteConverter.FromString(lookup.Path, buffer);
-                    builder.Write(bufferOwner.Memory.Slice(0, pathLength));
+            // re-order the specs so XAttrs come first.
+            _lookupCommands.Sort(OperationSpec.ByXattr);
 
-                    builder.CompleteOperationSpec(lookup);
-                    LookupCommands.Add(lookup);
-                }
+            foreach (var lookup in _lookupCommands)
+            {
+                var pathLength = ByteConverter.FromString(lookup.Path, buffer);
+                builder.BeginOperationSpec(false);
+                builder.Write(bufferOwner.Memory.Slice(0, pathLength));
+                builder.CompleteOperationSpec(lookup);
             }
         }
 
@@ -53,7 +63,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 var payLoad = new byte[bodyLength];
                 responseSpan.Slice(6, bodyLength).CopyTo(payLoad);
 
-                var command = LookupCommands[commandIndex++];
+                var command = _lookupCommands[commandIndex++];
                 command.Status = (ResponseStatus)ByteConverter.ToUInt16(responseSpan);
                 command.ValueIsJson = payLoad.AsSpan().IsJson();
                 command.Bytes = payLoad;
@@ -62,7 +72,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 if (responseSpan.Length <= 0) break;
             }
 
-            return LookupCommands;
+            return _lookupCommands;
         }
 
         public override IOperationResult<T> GetResultWithValue()

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -16,7 +17,8 @@ namespace Couchbase.KeyValue
 
         internal LookupInResult(IList<OperationSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer)
         {
-            _specs = specs;
+            var reOrdered = specs ?? throw new ArgumentNullException(nameof(specs));
+            _specs = reOrdered.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = cas;
             Expiry = expiry;
             _serializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));

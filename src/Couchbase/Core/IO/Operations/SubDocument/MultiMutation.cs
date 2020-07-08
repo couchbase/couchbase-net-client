@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Core.IO.Converters;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
@@ -10,7 +11,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     internal class MultiMutation<T> : OperationBase<T>, IEquatable<MultiMutation<T>>
     {
         public MutateInBuilder<T> Builder { get; set; }
-        private readonly IList<OperationSpec> _lookupCommands = new List<OperationSpec>();
+        private readonly List<OperationSpec> _mutateCommands = new List<OperationSpec>();
 
         public DurabilityLevel DurabilityLevel { get; set; }
 
@@ -64,6 +65,20 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 var buffer = bufferOwner.Memory.Span;
                 foreach (var mutate in Builder)
                 {
+
+                    _mutateCommands.Add(mutate);
+                }
+
+                for (int i = 0; i < _mutateCommands.Count; i++)
+                {
+                    _mutateCommands[i].OriginalIndex = i;
+                }
+
+                // re-order the specs so XAttrs come first.
+                _mutateCommands.Sort(OperationSpec.ByXattr);
+
+                foreach (var mutate in _mutateCommands)
+                {
                     builder.BeginOperationSpec(true);
 
                     var pathLength = ByteConverter.FromString(mutate.Path, buffer);
@@ -76,7 +91,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                     }
 
                     builder.CompleteOperationSpec(mutate);
-                    _lookupCommands.Add(mutate);
                 }
             }
         }
@@ -151,7 +165,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             //all mutations successful
             if (responseSpan.Length == OperationHeader.Length + Header.FramingExtrasLength)
             {
-                return _lookupCommands;
+                return _mutateCommands.OrderBy(spec => spec.OriginalIndex).ToList();
             }
 
             responseSpan = responseSpan.Slice(Header.BodyOffset);
@@ -162,7 +176,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             for (;;)
             {
                 var index = responseSpan[0];
-                var command = _lookupCommands[index];
+                var command = _mutateCommands[index];
                 command.Status = (ResponseStatus) ByteConverter.ToUInt16(responseSpan.Slice(1));
 
                 //if success read value and loop to next result - otherwise terminate loop here
@@ -178,10 +192,15 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
                     responseSpan = responseSpan.Slice(7 + valueLength);
                 }
+                else
+                {
+                    break;
+                }
 
                 if (responseSpan.Length <= 0) break;
             }
-            return _lookupCommands;
+
+            return _mutateCommands.OrderBy(spec => spec.OriginalIndex).ToList();
         }
 
         public override OpCode OpCode => OpCode.SubMultiMutation;

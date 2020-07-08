@@ -40,6 +40,24 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
+        public async Task LookupIn_Xattr_In_Any_Order()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            await collection.UpsertAsync(nameof(LookupIn_Xattr_In_Any_Order), new { foo = "bar", bar = "foo" }, options => options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
+            var result = await collection.LookupInAsync(nameof(LookupIn_Xattr_In_Any_Order), specs =>
+                specs.Get("$document", true)
+                    .Get("foo", false)
+                    .Get("$document.exptime", true)
+            );
+
+            var doc = result.ContentAs<dynamic>(2);
+            Assert.NotNull(doc);
+            var metadata = result.ContentAs<dynamic>(0);
+            Assert.NotNull(metadata);
+            Assert.Equal("bar", (string)result.ContentAs<string>(1));
+        }
+
+        [Fact]
         public async Task Can_perform_lookup_in()
         {
             var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
@@ -120,6 +138,41 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
+        public async Task MutateIn_Xattr_In_Any_Order()
+        {
+            var docId = nameof(MutateIn_Xattr_In_Any_Order);
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            await collection.UpsertAsync(docId, new { foo = "bar", bar = "foo", xxx = 0 }).ConfigureAwait(false);
+
+            var mutateResult = await collection.MutateInAsync(docId, ops =>
+            {
+                ops.Upsert("name", "mike", true);
+                ops.Upsert("txnid", "pretend_this_is_a_guid", createPath: true, isXattr: true);
+                ops.Decrement("xxx", 5, true);
+            },
+                options => options.StoreSemantics(StoreSemantics.Upsert)).ConfigureAwait(false);
+
+            // Upserts don't result in values from MutateIn, but Increment/Decrement do.
+            Assert.Equal(-5, mutateResult.ContentAs<int>(2));
+
+            // Attempting to get the result of an upsert/insert as a non-nullable value results in default(T)
+            Assert.Equal(default(int), mutateResult.ContentAs<int>(0));
+
+            // Attempting to get the result of an upsert/insert as a nullable type results in null.
+            Assert.Null(mutateResult.ContentAs<string>(0));
+
+            var lookupInResult = await collection.LookupInAsync(nameof(MutateIn_Xattr_In_Any_Order), specs =>
+                specs.Get("xxx")
+                    .Get("txnid", isXattr: true)
+                    .Get("name")
+            );
+
+            Assert.Equal(-5, lookupInResult.ContentAs<int>(0));
+            Assert.Equal("pretend_this_is_a_guid", (string)lookupInResult.ContentAs<string>(1));
+            Assert.Equal("mike", (string)lookupInResult.ContentAs<string>(2));
+        }
+
+        [Fact]
         public async Task Can_perform_mutate_in_with_array()
         {
             var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
@@ -174,9 +227,12 @@ namespace Couchbase.IntegrationTests
             var result = await collection.MutateInAsync("foo", specs =>
                 {
                     specs.Upsert("key", "value", true, true);
-                    specs.Upsert("name", "mike");
+                    specs.Upsert("name", "mikeSmith");
                 },
                 options => options.StoreSemantics(StoreSemantics.Upsert)).ConfigureAwait(false);
+
+            var lookupResult = await collection.LookupInAsync("foo", specs => specs.Get("key", true));
+            Assert.Equal("value", (string)lookupResult.ContentAs<string>(0));
         }
     }
 }

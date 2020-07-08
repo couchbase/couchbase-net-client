@@ -43,12 +43,22 @@ namespace Couchbase.UnitTests.KeyValue
         }
 
         [Fact]
-        public async Task SubDoc_More_Than_One_XAttr_Is_Allowed()
+        public void SubDoc_More_Than_One_XAttr_Is_Allowed()
         {
             var builder = new LookupInSpecBuilder();
             builder.Get("doc.path", isXattr: true)
                    .Get("path", isXattr: true)
                    .Get("notXattr", false);
+            builder.Specs.ToArray();
+        }
+
+        [Fact]
+        public void SubDoc_XAttr_Can_Come_Out_Of_Order()
+        {
+            var builder = new LookupInSpecBuilder();
+            builder.Get("doc.path", isXattr: true)
+                .Get("notXattr", false)
+                .Get("path", isXattr: true);
             builder.Specs.ToArray();
         }
 

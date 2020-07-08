@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.KeyValue;
 using Newtonsoft.Json;
 
@@ -30,6 +32,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             get => _path;
             set => _path = value ?? throw new ArgumentNullException(nameof(value));
         }
+
+        /// <summary>
+        /// Gets the original index in the spec list.
+        /// </summary>
+        internal int? OriginalIndex { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="OpCode"/> for the SubDocument operation.
@@ -166,6 +173,48 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         public override string ToString()
         {
             return JsonConvert.SerializeObject(this);
+        }
+
+        internal static XattrFirstComparer ByXattr { get; } = new XattrFirstComparer();
+
+        internal class XattrFirstComparer : IComparer<OperationSpec>
+        {
+            public int Compare([AllowNull] OperationSpec a, [AllowNull] OperationSpec b)
+            {
+                if (a == null && b == null)
+                {
+                    return 0;
+                }
+
+                if (a == null)
+                {
+                    return 1;
+                }
+
+                if (b == null)
+                {
+                    return -1;
+                }
+
+                var aIsXattr = a.PathFlags.HasFlag(SubdocPathFlags.Xattr);
+                var bIsXattr = b.PathFlags.HasFlag(SubdocPathFlags.Xattr);
+                if (aIsXattr && bIsXattr)
+                {
+                    return 0;
+                }
+
+                if (aIsXattr)
+                {
+                    return -1;
+                }
+
+                if (bIsXattr)
+                {
+                    return 1;
+                }
+
+                return 0;
+            }
         }
     }
 }

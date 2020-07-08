@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -16,7 +17,8 @@ namespace Couchbase.KeyValue
 
         public MutateInResult(IList<OperationSpec> specs, ulong cas, MutationToken? token, ITypeSerializer serializer)
         {
-            _specs = specs ?? throw new ArgumentNullException(nameof(specs));
+            var reOrdered  = specs ?? throw new ArgumentNullException(nameof(specs));
+            _specs = reOrdered.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = cas;
             MutationToken = token ?? MutationToken.Empty;
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
