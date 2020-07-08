@@ -7,7 +7,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
     internal class NullRequestTracer : IRequestTracer
     {
         internal static readonly NullRequestTracer Instance = new NullRequestTracer();
-        private static readonly NullSpan NullSpanInstance = new NullSpan();
+        internal static readonly IInternalSpan NullSpanInstance = new NullSpan();
         public IInternalSpan InternalSpan(string operationName, IRequestSpan parent) => NullSpanInstance;
 
         public IRequestSpan RequestSpan(string operationName, IRequestSpan parent) => NullSpanInstance;

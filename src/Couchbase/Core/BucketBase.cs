@@ -18,6 +18,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 
@@ -37,7 +38,14 @@ namespace Couchbase.Core
         protected BucketBase() { }
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
 
-        protected BucketBase(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, ILogger logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory)
+        protected BucketBase(string name,
+            ClusterContext context,
+            IScopeFactory scopeFactory,
+            IRetryOrchestrator retryOrchestrator,
+            ILogger logger,
+            IRedactor redactor,
+            IBootstrapperFactory bootstrapperFactory,
+            IRequestTracer tracer)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
@@ -45,6 +53,7 @@ namespace Couchbase.Core
             RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            Tracer = tracer;
 
             BootstrapperFactory = bootstrapperFactory ?? throw new ArgumentNullException(nameof(bootstrapperFactory));
             Bootstrapper = bootstrapperFactory.Create(Context.ClusterOptions.BootstrapPollInterval);
@@ -53,6 +62,7 @@ namespace Couchbase.Core
         public IBootstrapper Bootstrapper { get; }
         public IBootstrapperFactory BootstrapperFactory { get; }
         protected IRedactor Redactor { get; }
+        protected IRequestTracer Tracer { get; }
         public ILogger Logger { get; }
         public ClusterContext Context { get; }
         public IRetryOrchestrator RetryOrchestrator { get; }
@@ -166,7 +176,6 @@ namespace Couchbase.Core
         public async Task<IPingReport> PingAsync(PingOptions? options = null)
         {
             ThrowIfBootStrapFailed();
-
             options ??= new PingOptions();
             return await DiagnosticsReportProvider.CreatePingReportAsync(Context, BucketConfig, options)
                 .ConfigureAwait(false);

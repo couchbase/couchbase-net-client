@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Search;
@@ -52,7 +53,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object);
+                new Mock<ILogger<AnalyticsClient>>().Object, NullRequestTracer.Instance);
 
             var result = await client.QueryAsync<dynamic>(new AnalyticsRequest("SELECT * FROM `default`"), default);
 
@@ -89,7 +90,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object);
+                new Mock<ILogger<AnalyticsClient>>().Object, NullRequestTracer.Instance);
 
             var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
             queryRequest.Priority(priority);
@@ -113,7 +114,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object);
+                new Mock<ILogger<AnalyticsClient>>().Object, NullRequestTracer.Instance);
 
             Assert.Null(client.LastActivity);
 

@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
@@ -21,14 +22,20 @@ namespace Couchbase.Views
         private readonly ITypeSerializer _serializer;
         private readonly ILogger<ViewClient> _logger;
         private readonly IRedactor _redactor;
+        private readonly IRequestTracer _tracer;
         protected const string Success = "Success";
 
-        public ViewClient(CouchbaseHttpClient httpClient, ITypeSerializer serializer, ILogger<ViewClient> logger, IRedactor redactor)
+        public ViewClient(CouchbaseHttpClient httpClient,
+            ITypeSerializer serializer,
+            ILogger<ViewClient> logger,
+            IRedactor redactor,
+            IRequestTracer tracer)
             : base(httpClient)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _tracer = tracer;
 
             // set timeout to infinite so we can stream results without the connection
             // closing part way through
@@ -37,6 +44,9 @@ namespace Couchbase.Views
 
         public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQuery query)
         {
+            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceView, OperationNames.ViewQuery)
+                .SetAttribute(CouchbaseTags.Service, CouchbaseTags.ServiceView);
+            using var encodingSpan = rootSpan.StartPayloadEncoding();
             var uri = query.RawUri();
             ViewResultBase<TKey, TValue> viewResult;
 
@@ -45,7 +55,11 @@ namespace Couchbase.Views
             {
                 _logger.LogDebug("Sending view request to: {uri}", _redactor.SystemData(uri));
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
+                encodingSpan.Finish();
+
+                using var dispatchSpan = rootSpan.StartDispatch();
                 var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
+                dispatchSpan.Finish();
 
                 var serializer = query.Serializer ?? _serializer;
                 if (response.IsSuccessStatusCode)

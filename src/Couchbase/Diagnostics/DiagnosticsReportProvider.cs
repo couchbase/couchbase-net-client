@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
@@ -53,7 +54,7 @@ namespace Couchbase.Diagnostics
         }
 
        private static async Task<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
-           IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes, CancellationToken token)
+           IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes,CancellationToken token)
        {
            var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
 

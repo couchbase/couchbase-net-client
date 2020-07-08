@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Errors;
@@ -25,6 +26,7 @@ namespace Couchbase.Core.IO.Operations
         internal ErrorCode ErrorCode;
         private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
         private IMemoryOwner<byte> _data;
+        private IInternalSpan _span;
 
         private TaskCompletionSource<ResponseStatus> _completed = new TaskCompletionSource<ResponseStatus>();
 
@@ -55,6 +57,16 @@ namespace Couchbase.Core.IO.Operations
         public uint Expires { get; set; }
         public string CName { get; set; }
         public string SName { get; set; }
+
+        public IInternalSpan Span
+        {
+            get => _span ?? NullRequestTracer.NullSpanInstance;
+            internal set
+            {
+                _span = value;
+                _span.OperationId(this);
+            }
+        }
 
         #region RetryAsync SDK-3
 
@@ -440,6 +452,7 @@ namespace Couchbase.Core.IO.Operations
 
         public virtual async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
+            using var encodingSpan = Span.StartPayloadEncoding();
             BeginSend();
 
             var builder = OperationBuilderPool.Instance.Rent();
@@ -463,7 +476,9 @@ namespace Couchbase.Core.IO.Operations
 
                 builder.WriteHeader(CreateHeader());
 
-                await connection.SendAsync(builder.GetBuffer(), HandleOperationCompleted).ConfigureAwait(false);
+                var buffer = builder.GetBuffer();
+                encodingSpan.Finish();
+                await connection.SendAsync(buffer, HandleOperationCompleted).ConfigureAwait(false);
             }
             finally
             {

@@ -6,6 +6,7 @@ using Couchbase.Core;
 using Couchbase.Core.DI;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
@@ -54,7 +55,8 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 new NodeAdapter
                 {
                     Hostname = "127.0.0.1"
-                })
+                },
+                NullRequestTracer.Instance)
             {
                 ErrorMap = errorMap
             };
@@ -101,7 +103,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
             public override Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
                 HandleOperationCompleted(null, Header.Status);
-               return Task.CompletedTask;
+                return Task.CompletedTask;
             }
 
             public override OpCode OpCode => _operationCode;

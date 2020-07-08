@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
@@ -18,7 +19,8 @@ namespace Couchbase.Core.IO.Authentication
         private readonly string _username;
         private readonly string _password;
 
-        public PlainSaslMechanism(string username, string password, ILogger<PlainSaslMechanism> logger)
+        public PlainSaslMechanism(string username, string password, ILogger<PlainSaslMechanism> logger, IRequestTracer tracer)
+            : base(tracer)
         {
             _username = username ?? throw new ArgumentNullException(nameof(username));
             _password = password ?? throw new ArgumentNullException(nameof(password));
@@ -29,12 +31,14 @@ namespace Couchbase.Core.IO.Authentication
         /// <inheritdoc />
         public override async Task AuthenticateAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
+            using var rootSpan = Tracer.RootSpan(CouchbaseTags.Service, OperationNames.AuthenticatePlain);
             using var op = new SaslStart
             {
                 Key = MechanismType.GetDescription(),
                 Content = GetAuthData(_username, _password),
                 Opaque = SequenceGenerator.GetNext(),
-                Transcoder = new LegacyTranscoder()
+                Transcoder = new LegacyTranscoder(),
+                Span = rootSpan,
             };
 
             await SendAsync(op, connection, cancellationToken).ConfigureAwait(false);

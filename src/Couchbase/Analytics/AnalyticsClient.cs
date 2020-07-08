@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
@@ -21,18 +22,21 @@ namespace Couchbase.Analytics
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ITypeSerializer _typeSerializer;
         private readonly ILogger<AnalyticsClient> _logger;
+        private readonly IRequestTracer _tracer;
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(
             CouchbaseHttpClient client,
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer typeSerializer,
-            ILogger<AnalyticsClient> logger)
+            ILogger<AnalyticsClient> logger,
+            IRequestTracer tracer)
             : base(client)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _tracer = tracer;
         }
 
         /// <summary>
@@ -44,6 +48,10 @@ namespace Couchbase.Analytics
         /// <returns></returns>
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token = default)
         {
+            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceAnalytics, "analytics")
+                .SetAttribute(CouchbaseTags.OperationId, queryRequest.ClientContextId ?? Guid.NewGuid().ToString());
+            using var encodingSpan = rootSpan.StartPayloadEncoding();
+
             // try get Analytics node
             var analyticsUri = _serviceUriProvider.GetRandomAnalyticsUri();
 
@@ -67,7 +75,10 @@ namespace Couchbase.Analytics
                         request.Headers.Add(AnalyticsPriorityHeaderName, new[] {req.PriorityValue.ToString()});
                     }
 
+                    encodingSpan.Finish();
+                    using var dispatchSpan = rootSpan.StartDispatch();
                     var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
+                    dispatchSpan.Finish();
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
                     if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)

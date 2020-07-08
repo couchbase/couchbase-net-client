@@ -5,6 +5,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
@@ -47,6 +48,8 @@ namespace Couchbase.Core.IO.Operations
         IPEndPoint CurrentHost { get; set; }
 
         OperationHeader Header { get; set; }
+
+        IInternalSpan Span { get; }
 
         string GetMessage();
 

@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
@@ -18,9 +19,15 @@ namespace Couchbase.Core.IO.Authentication
     /// </summary>
     internal abstract class SaslMechanismBase : ISaslMechanism
     {
+        public IRequestTracer Tracer { get; }
         protected ILogger? Logger;
         protected ITypeTranscoder? Transcoder;
         private TimeSpan Timeout { get; set; } = TimeSpan.FromMilliseconds(2500);
+
+        protected SaslMechanismBase(IRequestTracer tracer)
+        {
+            Tracer = tracer;
+        }
 
         /// <summary>
         /// The type of SASL mechanism to use: SCRAM-SHA1.
@@ -30,36 +37,41 @@ namespace Couchbase.Core.IO.Authentication
         public abstract Task AuthenticateAsync(IConnection connection,
             CancellationToken cancellationToken = default);
 
-        protected async Task<string> SaslStart(IConnection connection,  string message, CancellationToken token)
+        protected async Task<string> SaslStart(IConnection connection,  string message, IInternalSpan span, CancellationToken token)
         {
+            using var childSpan = Tracer.InternalSpan(OperationNames.SaslStart, span);
             using var authOp = new SaslStart
             {
                 Key = MechanismType.GetDescription(),
                 Content = message,
                 Transcoder = Transcoder,
-                Timeout = Timeout
+                Timeout = Timeout,
+                Span = childSpan
             };
             return await SendAsync(authOp, connection, token).ConfigureAwait(false);
         }
 
-        protected async Task<string> SaslStep(IConnection connection, string message, CancellationToken token)
+        protected async Task<string> SaslStep(IConnection connection, string message, IInternalSpan span, CancellationToken token)
         {
-            using var op = new SaslStep
+            using var childSpan = Tracer.InternalSpan(OperationNames.SaslStep, span);
+            using var op = new SaslStep()
             {
                 Key = "SCRAM-SHA1",//MechanismType.GetDescription(),
                 Content = message,
                 Transcoder = Transcoder,
-                Timeout = Timeout
+                Timeout = Timeout,
+                Span = childSpan,
             };
             return await SendAsync(op, connection, token).ConfigureAwait(false);
         }
 
-        protected async Task<string> SaslList(IConnection connection, CancellationToken token)
+        protected async Task<string> SaslList(IConnection connection, IInternalSpan span, CancellationToken token)
         {
-            using var op = new SaslList
+            using var op = new SaslList()
             {
                 Transcoder = Transcoder,
-                Timeout = Timeout
+                Timeout = Timeout,
+                Span = span,
             };
             return await SendAsync(op, connection, token).ConfigureAwait(false);
         }

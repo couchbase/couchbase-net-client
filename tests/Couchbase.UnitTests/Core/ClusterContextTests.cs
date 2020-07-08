@@ -4,6 +4,7 @@ using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -91,7 +92,8 @@ namespace Couchbase.UnitTests.Core
                 {
                     Hostname = hostname,
                     KeyValue = port
-                });
+                },
+                NullRequestTracer.Instance);
 
             return clusterNode;
         }

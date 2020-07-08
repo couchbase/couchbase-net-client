@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -35,8 +36,15 @@ namespace Couchbase.Core.IO.Authentication
         /// <param name="password">The password for the user.</param>
         /// <param name="username">The user's name to authenticate.</param>
         /// <param name="logger">The configured logger.</param>
+        /// <param name="tracer">The request tracer.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        public ScramShaMechanism(ITypeTranscoder transcoder, MechanismType mechanismType, string password, string username, ILogger<ScramShaMechanism> logger)
+        public ScramShaMechanism(ITypeTranscoder transcoder,
+            MechanismType mechanismType,
+            string password,
+            string username,
+            ILogger<ScramShaMechanism> logger,
+            IRequestTracer tracer)
+        : base(tracer)
         {
             Transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             MechanismType = mechanismType;
@@ -58,10 +66,11 @@ namespace Couchbase.Core.IO.Authentication
         {
             try
             {
+                using var rootSpan = Tracer.RootSpan(CouchbaseTags.Service, OperationNames.AuthenticateScramSha);
                 var clientFirstMessage = "n,,n=" + _username + ",r=" + ClientNonce;
                 var clientFirstMessageBare = clientFirstMessage.Substring(3);
 
-                var serverFirstResult = await SaslStart(connection, clientFirstMessage, cancellationToken).ConfigureAwait(false);
+                var serverFirstResult = await SaslStart(connection, clientFirstMessage, rootSpan, cancellationToken).ConfigureAwait(false);
                 var serverFirstMessage = DecodeResponse(serverFirstResult);
 
                 var serverNonce = serverFirstMessage["r"];
@@ -77,7 +86,7 @@ namespace Couchbase.Core.IO.Authentication
                 var authMessage = $"{clientFirstMessageBare},{serverFirstResult},{clientFinalMessageNoProof}";
                 var clientFinalMessage = clientFinalMessageNoProof + ",p=" + Convert.ToBase64String(GetClientProof(saltedPassword, authMessage));
 
-                var finalServerResponse = await SaslStep(connection, clientFinalMessage, cancellationToken).ConfigureAwait(false);
+                var finalServerResponse = await SaslStep(connection, clientFinalMessage, rootSpan, cancellationToken).ConfigureAwait(false);
                 Logger.LogInformation(LoggingEvents.AuthenticationEvent, finalServerResponse);
             }
             catch (AuthenticationFailureException e)

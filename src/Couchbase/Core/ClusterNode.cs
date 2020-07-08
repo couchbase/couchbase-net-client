@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
@@ -31,6 +32,7 @@ namespace Couchbase.Core
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
         private readonly IRedactor _redactor;
+        private readonly IRequestTracer _tracer;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ITypeTranscoder _transcoder;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
@@ -43,7 +45,7 @@ namespace Couchbase.Core
         private readonly string _cachedToString;
         private volatile bool _disposed;
 
-        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter)
+        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -51,6 +53,7 @@ namespace Couchbase.Core
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _tracer = tracer;
             BucketType = bucketType;
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
 
@@ -186,19 +189,20 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task<ErrorMap> GetErrorMap(IConnection connection, CancellationToken cancellationToken = default)
+        private async Task<ErrorMap> GetErrorMap(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)
         {
+            using var childSpan = _tracer.InternalSpan(OperationNames.GetErrorMap, span);
             using var errorMapOp = new GetErrorMap
             {
                 Transcoder = _transcoder,
-                Opaque = SequenceGenerator.GetNext()
+                Opaque = SequenceGenerator.GetNext(),
+                Span = childSpan
             };
-
             await ExecuteOp(connection, errorMapOp, cancellationToken).ConfigureAwait(false);
             return errorMapOp.GetResultWithValue().Content;
         }
 
-        private async Task<short[]> Hello(IConnection connection, CancellationToken cancellationToken = default)
+        private async Task<short[]> Hello(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)
         {
             var features = new List<short>
             {
@@ -224,12 +228,14 @@ namespace Couchbase.Core
                 features.Add((short)IO.Operations.ServerFeatures.ServerDuration);
             }
 
+            using var childSpan = _tracer.InternalSpan(OperationNames.Hello, span);
             using var heloOp = new Hello
             {
                 Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
                 Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext(),
+                Span = childSpan,
             };
 
             await ExecuteOp(connection, heloOp, cancellationToken).ConfigureAwait(false);
@@ -238,10 +244,12 @@ namespace Couchbase.Core
 
         public async Task<Manifest> GetManifest()
         {
+            using var rootSpan = RootSpan(OperationNames.GetManifest);
             using var manifestOp = new GetManifest
             {
                 Transcoder = _transcoder,
-                Opaque = SequenceGenerator.GetNext()
+                Opaque = SequenceGenerator.GetNext(),
+                Span = rootSpan,
             };
             await ExecuteOp(ConnectionPool, manifestOp).ConfigureAwait(false);
             var manifestResult = manifestOp.GetResultWithValue();
@@ -257,12 +265,14 @@ namespace Couchbase.Core
 
         public async Task<BucketConfig> GetClusterMap()
         {
+            using var rootSpan = RootSpan(OperationNames.GetClusterMap);
             using var configOp = new Config
             {
                 CurrentHost = EndPoint,
                 Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
+                Span = rootSpan,
             };
             await ExecuteOp(ConnectionPool, configOp).ConfigureAwait(false);
 
@@ -279,14 +289,15 @@ namespace Couchbase.Core
 
         public async Task<uint?> GetCid(string fullyQualifiedName)
         {
+            using var rootSpan = RootSpan(OperationNames.GetCid);
             using var getCid = new GetCid
             {
                 Key = fullyQualifiedName,
                 Transcoder = _transcoder,
                 Opaque = SequenceGenerator.GetNext(),
-                Content = null
+                Content = null,
+                Span = rootSpan,
             };
-
             await ExecuteOp(ConnectionPool, getCid).ConfigureAwait(false);
             var resultWithValue = getCid.GetResultWithValue();
             return resultWithValue.Content;
@@ -351,9 +362,7 @@ namespace Couchbase.Core
             }
         }
 
-        public async Task SendAsync(IOperation op,
-            CancellationToken token = default(CancellationToken),
-            TimeSpan? timeout = null)
+        public async Task SendAsync(IOperation op, CancellationToken token = default(CancellationToken), TimeSpan? timeout = null)
         {
             _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
 
@@ -393,7 +402,7 @@ namespace Couchbase.Core
                             _logger.LogDebug("CB: Sending a canary to {endPoint}.", _redactor.SystemData(ConnectionPool.EndPoint));
                             using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
                             {
-                                await ExecuteOp(ConnectionPool, new Noop(), cts.Token).ConfigureAwait(false);
+                                await ExecuteOp(ConnectionPool, new Noop() { Span = op.Span }, cts.Token).ConfigureAwait(false);
                             }
 
                             _circuitBreaker.MarkSuccess();
@@ -429,10 +438,12 @@ namespace Couchbase.Core
                 cts.CancelAfter(GetTimeout(timeout, op));
                 token = cts.Token;
 
+                using var dispatchSpan = op.Span.StartDispatch();
                 // I dont think this needs to be awaited, sender does not need to return a task, 
                 sender(op, state, token);
 
                 var status = await op.Completed.ConfigureAwait(false);
+                dispatchSpan.Finish();
                 if (status != ResponseStatus.Success)
                 {
                     _logger.LogDebug("Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.",
@@ -538,8 +549,9 @@ namespace Couchbase.Core
             if (!_disposed)
             {
                 _logger.LogDebug("Starting connection initialization on server {endpoint}.", EndPoint);
-                ServerFeatures = await Hello(connection, cancellationToken).ConfigureAwait(false);
-                ErrorMap = await GetErrorMap(connection, cancellationToken).ConfigureAwait(false);
+                using var rootSpan = RootSpan("initialize_connection");
+                ServerFeatures = await Hello(connection, rootSpan, cancellationToken).ConfigureAwait(false);
+                ErrorMap = await GetErrorMap(connection, rootSpan, cancellationToken).ConfigureAwait(false);
 
                 var mechanismType = _context.ClusterOptions.EffectiveEnableTls
                     ? MechanismType.Plain
@@ -555,10 +567,12 @@ namespace Couchbase.Core
         {
             try
             {
+                using var rootSpan = RootSpan(OperationNames.SelectBucket);
                 using var selectBucketOp = new SelectBucket
                 {
                     Transcoder = _transcoder,
-                    Key = bucketName
+                    Key = bucketName,
+                    Span = rootSpan,
                 };
                 await ExecuteOp(connection, selectBucketOp, cancellationToken).ConfigureAwait(false);
             }
@@ -619,6 +633,14 @@ namespace Couchbase.Core
             return _cachedToString;
         }
 
+        #endregion
+
+        #region Tracing
+
+        private IInternalSpan RootSpan(string operation) =>
+            _tracer.RootSpan(CouchbaseTags.Service, operation);
+
+        private IInternalSpan RootSpan(string operation, OperationBase op) => RootSpan(operation).OperationId(op);
         #endregion
     }
 }

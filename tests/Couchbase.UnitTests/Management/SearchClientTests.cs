@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
@@ -37,7 +38,7 @@ namespace Couchbase.UnitTests.Management
                 .Returns(new Uri("http://localhost:8094"));
 
             var client = new SearchClient(httpClient, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object);
+                new Mock<ILogger<SearchClient>>().Object, NullRequestTracer.Instance);
 
             await client.QueryAsync(new SearchRequest{Index = indexName, Options = new SearchOptions()}).ConfigureAwait(false);
         }

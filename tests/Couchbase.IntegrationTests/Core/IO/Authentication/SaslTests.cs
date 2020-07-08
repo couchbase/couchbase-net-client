@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
@@ -42,7 +43,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 .ConfigureAwait(false);
 
             var sha1Mechanism = new ScramShaMechanism(new LegacyTranscoder(), MechanismType.ScramSha1, options.Password,
-                options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object);
+                options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance);
 
             await sha1Mechanism.AuthenticateAsync(connection).ConfigureAwait(false);
         }

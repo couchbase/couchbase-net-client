@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
@@ -17,18 +18,20 @@ namespace Couchbase.Core.DI
         private readonly ILogger<CouchbaseCollection> _logger;
         private readonly ILogger<GetResult> _getLogger;
         private readonly IRedactor _redactor;
+        private readonly IRequestTracer _tracer;
 
         public CollectionFactory(ITypeTranscoder transcoder, ILogger<CouchbaseCollection> logger,
-            ILogger<GetResult> getLogger, IRedactor redactor)
+            ILogger<GetResult> getLogger, IRedactor redactor, IRequestTracer tracer)
         {
             _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
+            _tracer = tracer;
         }
 
         /// <inheritdoc />
         public ICouchbaseCollection Create(BucketBase bucket, IScope scope, uint? cid, string name) =>
-            new CouchbaseCollection(bucket, _transcoder, _logger, _getLogger, _redactor, cid, name, scope);
+            new CouchbaseCollection(bucket, _transcoder, _logger, _getLogger, _redactor, cid, name, scope, _tracer);
     }
 }

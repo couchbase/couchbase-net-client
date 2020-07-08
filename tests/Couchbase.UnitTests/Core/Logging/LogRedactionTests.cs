@@ -17,7 +17,7 @@ namespace Couchbase.UnitTests.Core.Logging
             var redactor = new Redactor(ctx);
 
             Assert.Equal("1", redactor.UserData("1").ToString());
-            Assert.Equal(null, redactor.MetaData(null));
+            Assert.Null(redactor.MetaData(null));
             Assert.Equal("system", redactor.SystemData("system").ToString());
         }
 

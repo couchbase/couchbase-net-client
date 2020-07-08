@@ -7,6 +7,7 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -129,7 +130,8 @@ namespace Couchbase.UnitTests
                 new Mock<IKetamaKeyMapperFactory>().Object,
                 new Mock<ILogger<MemcachedBucket>>().Object,
                 new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object);
+                new Mock<IBootstrapperFactory>().Object,
+                NullRequestTracer.Instance);
         }
 
         #endregion

@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Transcoders;
 using Microsoft.Extensions.Logging;
@@ -23,7 +24,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             // ReSharper disable once ExpressionIsAlwaysNull
             Assert.Throws<ArgumentNullException>(() =>
                 new ScramShaMechanism(transcoder, MechanismType.ScramSha256, username, password,
-                    new Mock<ILogger<ScramShaMechanism>>().Object));
+                    new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance));
         }
 
         [Fact]
@@ -34,7 +35,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             var username = "authenticated";
 
             var mech = new ScramShaMechanism(transcoder, MechanismType.ScramSha256, username, password,
-                new Mock<ILogger<ScramShaMechanism>>().Object);
+                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance);
             Assert.True(!string.IsNullOrEmpty(mech.ClientNonce));
         }
 
@@ -46,7 +47,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             var username = "authenticated";
 
             var mech = new ScramShaMechanism(transcoder, MechanismType.ScramSha256, username, password,
-                new Mock<ILogger<ScramShaMechanism>>().Object);
+                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance);
             Assert.True(!string.IsNullOrEmpty(mech.ClientNonce));
         }
 
@@ -60,7 +61,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             // ReSharper disable once ExpressionIsAlwaysNull
             // ReSharper disable once ObjectCreationAsStatement
             Assert.Throws<ArgumentNullException>(() => new ScramShaMechanism(transcoder, MechanismType.ScramSha256,
-                username, password, new Mock<ILogger<ScramShaMechanism>>().Object));
+                username, password, new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance));
         }
     }
 }

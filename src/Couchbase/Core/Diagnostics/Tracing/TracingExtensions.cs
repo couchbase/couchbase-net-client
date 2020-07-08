@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.Diagnostics.Tracing
@@ -22,5 +24,17 @@ namespace Couchbase.Core.Diagnostics.Tracing
             span.SetAttribute(CouchbaseTags.OpenTracingTags.SpanKind, CouchbaseTags.OpenTracingTags.SpanKindClient);
             return span;
         }
+
+        internal static IInternalSpan OperationId(this IInternalSpan span, string operationId) =>
+            span.SetAttribute(CouchbaseTags.OperationId, operationId);
+
+        internal static IInternalSpan OperationId(this IInternalSpan span, OperationBase op) =>
+            span.OperationId(op.Opaque.ToString(CultureInfo.InvariantCulture));
+
+        internal static IInternalSpan RootSpan(this IRequestTracer tracer, string serviceName, string operation) =>
+            tracer.InternalSpan(operation, null)
+                .WithDefaultAttributes()
+                .SetAttribute(CouchbaseTags.Service, serviceName);
+
     }
 }

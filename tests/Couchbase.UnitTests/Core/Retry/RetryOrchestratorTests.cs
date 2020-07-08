@@ -9,6 +9,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Exceptions.Query;
@@ -137,7 +138,8 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object);
+                new Mock<IBootstrapperFactory>().Object,
+                NullRequestTracer.Instance);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>())).Throws(exp);
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             tokenSource.Token.ThrowIfCancellationRequested();
@@ -161,7 +163,8 @@ namespace Couchbase.UnitTests.Core.Retry
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object);
+                new Mock<IBootstrapperFactory>().Object,
+                NullRequestTracer.Instance);
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>(), It.IsAny<TimeSpan>()))
                 .Returns(Task.CompletedTask);
 
@@ -187,7 +190,8 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object)
+                new Mock<IBootstrapperFactory>().Object,
+                NullRequestTracer.Instance)
             {
                 CallBase = true
             };

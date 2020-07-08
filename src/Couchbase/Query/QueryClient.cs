@@ -58,10 +58,8 @@ namespace Couchbase.Query
         /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
-            using var rootSpan = _tracer.InternalSpan(CouchbaseTags.ServiceQuery, null)
-                .WithDefaultAttributes()
+            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceQuery, OperationNames.N1qlQuery)
                 .SetAttribute(CouchbaseTags.OperationId, options.CurrentContextId)
-                .SetAttribute(CouchbaseTags.Service, CouchbaseTags.ServiceQuery)
                 .SetAttribute(CouchbaseTags.OpenTracingTags.DbStatement, statement);
 
             if (string.IsNullOrEmpty(options.CurrentContextId))

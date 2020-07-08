@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Search;
 using Couchbase.Core.IO.HTTP;
@@ -26,6 +27,7 @@ namespace Couchbase.Search
     {
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ILogger<SearchClient> _logger;
+        private readonly IRequestTracer _tracer;
         private readonly IDataMapper _dataMapper;
 
         //for log redaction
@@ -34,11 +36,13 @@ namespace Couchbase.Search
         public SearchClient(
             CouchbaseHttpClient httpClient,
             IServiceUriProvider serviceUriProvider,
-            ILogger<SearchClient> logger)
+            ILogger<SearchClient> logger,
+            IRequestTracer tracer)
             : base(httpClient)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _tracer = tracer;
 
             // Always use the SearchDataMapper
             _dataMapper = new SearchDataMapper();
@@ -50,6 +54,9 @@ namespace Couchbase.Search
         /// <returns>A <see cref="ISearchResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
         public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
         {
+            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceSearch, "search");
+            using var encodingSpan = rootSpan.StartPayloadEncoding();
+
             // try get Search nodes
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
             var uriBuilder = new UriBuilder(searchUri)
@@ -67,7 +74,10 @@ namespace Couchbase.Search
             try
             {
                 using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
+                encodingSpan.Finish();
+                using var dispatchSpan = rootSpan.StartDispatch();
                 var response = await HttpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
+                dispatchSpan.Finish();
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)

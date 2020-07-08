@@ -9,6 +9,7 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
@@ -197,7 +198,7 @@ namespace Couchbase.UnitTests.KeyValue
             public FakeBucket(params ResponseStatus[] statuses)
                 : base(BucketName, new ClusterContext(), new Mock<IScopeFactory>().Object,
                     new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                    new Mock<IBootstrapperFactory>().Object)
+                    new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance)
             {
                 foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
             }
@@ -222,7 +223,8 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<IRedactor>().Object,
                     new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210),
                     BucketType.Couchbase,
-                    new NodeAdapter());
+                    new NodeAdapter(),
+                    NullRequestTracer.Instance);
 
                 await clusterNode.ExecuteOp(op, token, timeout);
 
@@ -291,7 +293,7 @@ namespace Couchbase.UnitTests.KeyValue
             return new CouchbaseCollection(mockBucket.Object, new LegacyTranscoder(),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
                 new Mock<IRedactor>().Object,
-                null, CouchbaseCollection.DefaultCollectionName, Mock.Of<IScope>());
+                null, CouchbaseCollection.DefaultCollectionName, Mock.Of<IScope>(), new NullRequestTracer());
         }
     }
 }

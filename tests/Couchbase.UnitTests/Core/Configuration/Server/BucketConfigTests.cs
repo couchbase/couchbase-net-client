@@ -7,6 +7,7 @@ using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -164,7 +165,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     new Mock<IRedactor>().Object,
                     endPoint,
                     BucketType.Couchbase,
-                    server);
+                    server,
+                    NullRequestTracer.Instance);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
@@ -181,7 +183,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
                     new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object,
-                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt);
+                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt, NullRequestTracer.Instance);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
