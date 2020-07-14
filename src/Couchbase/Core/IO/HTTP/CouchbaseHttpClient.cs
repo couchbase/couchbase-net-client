@@ -41,7 +41,7 @@ namespace Couchbase.Core.IO.HTTP
             HttpClientHandler handler;
 
             //for x509 cert authentication
-            if (context.ClusterOptions.EnableCertificateAuthentication)
+            if (context.ClusterOptions.X509CertificateFactory != null)
             {
                 handler = new NonAuthenticatingHttpClientHandler
                 {
@@ -49,7 +49,7 @@ namespace Couchbase.Core.IO.HTTP
                     SslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12
                 };
 
-                //handler.ClientCertificates.AddRange(config.CertificateFactory()); //TODO
+                handler.ClientCertificates.AddRange(context.ClusterOptions.X509CertificateFactory.GetCertificates());
             }
             else
             {

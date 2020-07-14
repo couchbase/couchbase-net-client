@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography.X509Certificates;
+using Couchbase.Core.IO.Authentication.X509;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -60,6 +62,41 @@ namespace Couchbase.UnitTests
             // Assert
 
             Assert.Equal(expectedResult, result);
+        }
+
+        #endregion
+
+        #region x509
+
+        [Fact]
+        public void X509Certificate_Is_Null_By_Default()
+        {
+            var options = new ClusterOptions();
+
+            Assert.Null(options.X509CertificateFactory);
+        }
+
+        [Fact]
+        public void When_Set_X509Certificate_Is_NotNull_And_EnableTls_True()
+        {
+            var options = new ClusterOptions().
+                WithX509CertificateFactory(CertificateFactory.GetCertificatesFromStore(
+                new CertificateStoreSearchCriteria
+                {
+                    FindValue = "value",
+                    X509FindType = X509FindType.FindBySubjectName,
+                    StoreLocation = StoreLocation.CurrentUser,
+                    StoreName = StoreName.CertificateAuthority
+                }));
+
+            Assert.NotNull(options.X509CertificateFactory);
+            Assert.True(options.EffectiveEnableTls);
+        }
+
+        [Fact]
+        public void When_X509Certificate_Is_Set_To_Null_Throw_NRE()
+        {
+           Assert.Throws<NullReferenceException>(()=> new ClusterOptions().WithX509CertificateFactory(null));
         }
 
         #endregion

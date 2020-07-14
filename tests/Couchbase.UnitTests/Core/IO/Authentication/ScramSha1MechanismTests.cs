@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
-namespace Couchbase.UnitTests.Core.Authentication
+namespace Couchbase.UnitTests.Core.IO.Authentication
 {
     public class ScramSha1MechanismTests
     {

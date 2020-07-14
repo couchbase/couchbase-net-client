@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -261,6 +262,9 @@ namespace Couchbase
 
         //Volatile or obsolete options
         public bool EnableExpect100Continue { get; set; }
+
+        [Obsolete("This property is ignored; set the ClusterOptions.X509CertificateFactory property to a "
+                  +" ICertificateFactory instance - Couchbase.Core.IO.Authentication.X509.CertificateStoreFactory for example.")]
         public bool EnableCertificateAuthentication { get; set; }
         public bool EnableCertificateRevocation { get; set; }
 
@@ -319,6 +323,15 @@ namespace Couchbase
             }
 
             return sslPolicyErrors == SslPolicyErrors.None;
+        }
+
+        public ICertificateFactory? X509CertificateFactory { get; set; }
+
+        public ClusterOptions WithX509CertificateFactory(ICertificateFactory certificateFactory)
+        {
+            X509CertificateFactory = certificateFactory ?? throw new NullReferenceException(nameof(certificateFactory));
+            EnableTls = true;
+            return this;
         }
 
         #region DI
