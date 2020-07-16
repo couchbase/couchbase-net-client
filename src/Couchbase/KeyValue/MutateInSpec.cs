@@ -51,6 +51,11 @@ namespace Couchbase.KeyValue
             return CreateSpec(OpCode.SubReplace, path, value, false, isXattr, removeBrackets);
         }
 
+        public static MutateInSpec SetDoc<T>(T value)
+        {
+            return CreateSpec(OpCode.Set, "", value, false, false, false);
+        }
+
         public static MutateInSpec Remove(string path, bool isXattr = false, bool removeBrackets = false)
         {
             return CreateSpec(OpCode.SubDelete, path, null, false, isXattr, removeBrackets);

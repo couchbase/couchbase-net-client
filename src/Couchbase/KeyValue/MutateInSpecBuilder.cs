@@ -26,6 +26,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        public MutateInSpecBuilder SetDoc<T>(T value)
+        {
+            Specs.Add(MutateInSpec.SetDoc(value));
+            return this;
+        }
+
         public MutateInSpecBuilder Remove(string path, bool isXattr = default(bool))
         {
             Specs.Add(MutateInSpec.Remove(path, isXattr));
