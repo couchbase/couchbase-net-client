@@ -19,6 +19,8 @@ namespace Couchbase.Utils
         {
             if (duration <= TimeSpan.FromDays(30))
             {
+                //round up so ttl is not infinite (0)
+                if (duration.TotalMilliseconds > 0 && duration.TotalMilliseconds < 1000) return 1;
                 return (uint)duration.TotalSeconds;
             }
             else
