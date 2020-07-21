@@ -439,7 +439,6 @@ namespace Couchbase.Core
                 token = cts.Token;
 
                 using var dispatchSpan = op.Span.StartDispatch();
-                // I dont think this needs to be awaited, sender does not need to return a task, 
                 sender(op, state, token);
 
                 var status = await op.Completed.ConfigureAwait(false);

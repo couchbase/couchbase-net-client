@@ -133,11 +133,18 @@ namespace Couchbase.Core
                     node = Nodes.GetRandom(x => x.HasAnalytics);
                     break;
                 default:
+                    _logger.LogDebug("No nodes available for service {service}", service);
                     throw new ServiceNotAvailableException(service);
             }
 
             if (node == null)
             {
+                _logger.LogDebug("Could not lookup node for service {service}.", service);
+
+                foreach (var node1 in Nodes)
+                {
+                    _logger.LogDebug("Using node owned by {bucket} using revision {endpoint}", node1.Owner?.Name, node1.EndPoint);
+                }
                 throw new ServiceNotAvailableException(service);
             }
 
@@ -164,18 +171,19 @@ namespace Couchbase.Core
 
         public void AddNode(IClusterNode node)
         {
+            _logger.LogDebug("Adding node {endPoint} to {nodes}.", _redactor.SystemData(node.EndPoint), Nodes);
             if (Nodes.Add(node))
             {
-                _logger.LogDebug("Added {endPoint}", _redactor.SystemData(node.EndPoint));
+                _logger.LogDebug("Added node {endPoint} to {nodes}", _redactor.SystemData(node.EndPoint), Nodes);
             }
         }
 
         public bool RemoveNode(IClusterNode removedNode)
         {
-            _logger.LogDebug("Removing {endPoint}", _redactor.SystemData(removedNode.EndPoint));
+            _logger.LogDebug("Removing node {endPoint} from {nodes}.", _redactor.SystemData(removedNode.EndPoint), Nodes);
             if (Nodes.Remove(removedNode.EndPoint, out removedNode))
             {
-                _logger.LogDebug("Removed {endPoint}", _redactor.SystemData(removedNode.EndPoint));
+                _logger.LogDebug("Removed node {endPoint} from {nodes}", _redactor.SystemData(removedNode.EndPoint), Nodes);
                 removedNode.Dispose();
                 return true;
             }
@@ -430,6 +438,7 @@ namespace Couchbase.Core
                     }
                     if (bootstrapNode.Owner != null && bootstrapNode.BucketType == BucketType.Memcached)
                     {
+                        _logger.LogDebug("Adding memcached node for endpoint {endpoint} using rev#{revision} for bucket {bucketName}.", _redactor.SystemData(endPoint), config.Rev, _redactor.MetaData(config.Name));
                         bootstrapNode.NodesAdapter = nodeAdapter;
                         bucket.Nodes.Add(bootstrapNode);
                         continue;
@@ -439,14 +448,12 @@ namespace Couchbase.Core
                 //If the node already exists for the endpoint, ignore it.
                 if (bucket.Nodes.TryGet(endPoint, out var bucketNode))
                 {
-                    if (bucketNode.NodesAdapter == null)
-                    {
-                        bucketNode.NodesAdapter = nodeAdapter;
-                    }
+                    _logger.LogDebug("The node already exists for the endpoint {endpoint} using rev#{revision} for bucket {bucketName}.", _redactor.SystemData(endPoint), config.Rev, _redactor.MetaData(config.Name));
+                    bucketNode.NodesAdapter = nodeAdapter;
                     continue;
                 }
 
-                _logger.LogDebug("Creating node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
+                _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
                     _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
                 var bucketType = config.NodeLocator == "ketama" ? BucketType.Memcached : BucketType.Couchbase;

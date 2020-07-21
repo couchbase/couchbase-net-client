@@ -38,6 +38,17 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             Assert.False(config2.Equals(config1));
         }
 
+
+        [Fact]
+        public void Test_Services_Are_Different()
+        {
+            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\revision-28957.json");
+            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\revision-28958.json");
+
+            Assert.False(config2.Equals(config1));
+            Assert.True(config2.ClusterNodesChanged);
+        }
+
         [Fact]
         public void Test_Equals_True()
         {

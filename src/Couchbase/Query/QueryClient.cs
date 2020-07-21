@@ -142,6 +142,8 @@ namespace Couchbase.Query
             var body = options.GetFormValuesAsJson();
             encodingSpan.Finish();
 
+            _logger.LogDebug("Sending query {contextId} to node {endpoint}.", options.CurrentContextId, queryUri);
+
             QueryResultBase<T> queryResult;
             using var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json);
             try

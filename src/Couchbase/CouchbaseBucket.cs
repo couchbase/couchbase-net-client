@@ -83,18 +83,18 @@ namespace Couchbase
         {
             if (config.Name == Name && (BucketConfig == null || config.Rev > BucketConfig.Rev))
             {
-                Logger.LogDebug("Processing cluster map for revision {revision} on {bucketName}", config.Rev, Name);
+                Logger.LogDebug("Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}", config.Rev, Name, BucketConfig?.Rev);
                 Logger.LogDebug(JsonConvert.SerializeObject(BucketConfig));
                 BucketConfig = config;
                 if (BucketConfig.VBucketMapChanged)
                 {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for revision {revision}", config.Rev);
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for rev#{revision} on {bucketName}", config.Rev, Name);
                     KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
                 }
 
                 if (BucketConfig.ClusterNodesChanged)
                 {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating cluster nodes for revision {revision}", config.Rev);
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating cluster nodes for rev#{revision} on {bucketName}", config.Rev, Name);
                     await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
                     var nodes = Context.GetNodes(Name);
 
@@ -109,6 +109,7 @@ namespace Couchbase
                     }
                 }
             }
+            Logger.LogDebug("Current revision for {bucketName} is rev#{revision}", Name, BucketConfig?.Rev);
         }
 
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though
