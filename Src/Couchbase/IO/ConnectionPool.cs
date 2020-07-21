@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,8 +75,7 @@ namespace Couchbase.IO
         {
             lock (_lock)
             {
-                // make sure all existing connections are authenticated and enable
-                // enhanved auth when required
+                // make sure all existing connections are authenticated and enable enhanced auth when required
                 foreach (var connection in _refs.Values)
                 {
                     Authenticate(connection);

@@ -149,6 +149,7 @@ namespace Couchbase.IO
                         var connection = CreateAndAuthConnection();
                         _connections.Add(connection);
                     }
+                    InitializationFailed = false;
                     //auth the connection used to select the SASL type to use for auth
                     foreach (var connection in _connections.Where(x=>!x.IsAuthenticated))
                     {
@@ -159,6 +160,7 @@ namespace Couchbase.IO
                         }
                         catch (Exception e)
                         {
+                            InitializationFailed = true;
                             Log.Debug($"Connection creation or authentication failed for {connection?.ConnectionId}", e);
                             connection?.Dispose();
                         }
@@ -181,10 +183,7 @@ namespace Couchbase.IO
                 _connections.ForEach(x =>
                 {
                     x.Dispose();
-                    if (Owner != null)
-                    {
-                        Owner.CheckOnline(x.IsDead);
-                    }
+                    Owner?.CheckOnline(x.IsDead);
                 });
                 _connections.Clear();
             }

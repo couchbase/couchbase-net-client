@@ -13,6 +13,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using Couchbase.N1QL;
 
 namespace Couchbase.Configuration
@@ -456,11 +457,9 @@ namespace Couchbase.Configuration
         {
             var connectionPool = ConnectionPoolFactory(poolConfiguration, endpoint);
             connectionPool.SaslMechanism = SaslFactory(UserName, Password, connectionPool, Transcoder);
-
-            var ioService = IOServiceFactory(connectionPool);
             connectionPool.Initialize();
 
-            return ioService;
+            return IOServiceFactory(connectionPool);
         }
 
         protected void SwapServers(Dictionary<IPEndPoint, IServer> servers)

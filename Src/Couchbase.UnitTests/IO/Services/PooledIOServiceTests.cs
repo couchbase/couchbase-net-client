@@ -196,6 +196,8 @@ namespace Couchbase.UnitTests.IO.Services
                     inUse = false;
                 });
 
+            mockConnectionPool.Setup(x => x.Connections).Returns(() => { return new [] {connection.Object}; });
+
             // create io service
             var ioService = new PooledIOService(mockConnectionPool.Object);
 
