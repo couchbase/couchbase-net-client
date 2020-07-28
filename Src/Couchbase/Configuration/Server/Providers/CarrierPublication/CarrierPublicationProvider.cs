@@ -181,6 +181,11 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
         /// <param name="force">if set to <c>true</c> [force].</param>
         public override void UpdateConfig(IBucketConfig bucketConfig, bool force = false)
         {
+            if (bucketConfig.Name == null)
+            {
+                Log.Debug("Config bucket name is null.");
+                return;
+            }
             IConfigObserver configObserver;
             if (ConfigObservers != null && ConfigObservers.TryGetValue(bucketConfig.Name, out configObserver))
             {

@@ -113,7 +113,16 @@ namespace Couchbase.Core
                         //will make logs verbose
                         Log.Trace("{0}", JsonConvert.SerializeObject(config));
 
-                        provider.UpdateConfig(config);
+                        try
+                        {
+                            provider.UpdateConfig(config);
+                        }
+                        catch (Exception e)
+                        {
+                            var message =
+                                $"An error has occurred while attempting to apply a cluster map configuration for rev#{config.Rev}.";
+                            Log.Debug(message, e);
+                        }
                     }
                 }
             }
