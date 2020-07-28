@@ -137,6 +137,14 @@ namespace Couchbase.IO.Operations
                 Data.Write(buffer, 0, buffer.Length);
                 LengthReceived += buffer.Length;
             }
+            else
+            {
+                var message = $"The response buffer is null indicating that the operation with opaque [{Opaque}] did not complete. " +
+                              "This is usually caused by a network transport failure of some kind causing the connection to close or " +
+                              "a timeout waiting for the response. Further investigation within the logs may determine the exact cause. ";
+
+                Exception = new SendTimeoutExpiredException(message);
+            }
         }
 
         [Obsolete]

@@ -37,7 +37,7 @@ namespace Couchbase.IO.Operations
             if (buffer == null || buffer.Length < OperationHeader.Length)
             {
                 errorCode = null;
-                return new OperationHeader {Status = ResponseStatus.None};
+                return new OperationHeader {Status = ResponseStatus.TransportFailure};
             }
 
             int keyLength, framingExtrasLength;
