@@ -13,7 +13,7 @@ namespace Couchbase.KeyValue
             var pathFlags = SubdocPathFlags.None;
             if (isXattr)
             {
-                pathFlags ^= SubdocPathFlags.Xattr;
+                pathFlags |= SubdocPathFlags.Xattr;
             }
 
             return new LookupInSpec

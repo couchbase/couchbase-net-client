@@ -13,17 +13,17 @@ namespace Couchbase.KeyValue
             var pathFlags = SubdocPathFlags.None;
             if (value is IMutationMacro)
             {
-                pathFlags ^= SubdocPathFlags.ExpandMacroValues;
-                pathFlags ^=SubdocPathFlags.Xattr;
+                pathFlags |= SubdocPathFlags.ExpandMacroValues;
+                pathFlags |= SubdocPathFlags.Xattr;
                 value = value.ToString();
             }
             if (createPath)
             {
-                pathFlags ^= SubdocPathFlags.CreatePath;
+                pathFlags |= SubdocPathFlags.CreatePath;
             }
             if (isXattr)
             {
-                pathFlags ^= SubdocPathFlags.Xattr;
+                pathFlags |= SubdocPathFlags.Xattr;
             }
 
             return new MutateInSpec
