@@ -469,6 +469,7 @@ namespace Couchbase.KeyValue
                 Builder = builder,
                 Cid = Cid,
                 CName = Name,
+                Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder,
                 DocFlags = docFlags,
