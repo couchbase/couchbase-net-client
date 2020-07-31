@@ -313,6 +313,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                CName = Name,
                 Expires = expiry.ToTtl(),
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Transcoder = _transcoder,
@@ -336,6 +337,7 @@ namespace Couchbase.KeyValue
             using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                CName = Name,
                 Expires = expiry.ToTtl(),
                 Transcoder = transcoder,
                 Span = rootSpan
@@ -368,6 +370,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                CName = Name,
                 Expiry = lockTime.ToTtl(),
                 Transcoder = transcoder,
                 Span = rootSpan
@@ -465,6 +468,7 @@ namespace Couchbase.KeyValue
                 BucketName = _bucket.Name,
                 Builder = builder,
                 Cid = Cid,
+                CName = Name,
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder,
                 DocFlags = docFlags,
@@ -490,6 +494,7 @@ namespace Couchbase.KeyValue
             using var op = new Append<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                CName = Name,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder,
@@ -513,6 +518,7 @@ namespace Couchbase.KeyValue
             using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
+                CName = Name,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Transcoder = _transcoder,
@@ -536,6 +542,7 @@ namespace Couchbase.KeyValue
             using var op = new Increment(_bucket.Name, id)
             {
                 Cid = Cid,
+                CName = Name,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
@@ -560,6 +567,7 @@ namespace Couchbase.KeyValue
             using var op = new Decrement(_bucket.Name, id)
             {
                 Cid = Cid,
+                CName = Name,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
@@ -634,6 +642,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                CName = Name,
                 Transcoder = transcoder,
                 Span = childSpan
             };
@@ -657,6 +666,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                CName = Name,
                 ReplicaIdx = index,
                 Transcoder = transcoder,
                 Span = childSpan
