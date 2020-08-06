@@ -459,7 +459,10 @@ namespace Couchbase.Configuration
             connectionPool.SaslMechanism = SaslFactory(UserName, Password, connectionPool, Transcoder);
             connectionPool.Initialize();
 
-            return IOServiceFactory(connectionPool);
+            var ioService = IOServiceFactory(connectionPool);
+            ioService.Initialize();
+
+            return ioService;
         }
 
         protected void SwapServers(Dictionary<IPEndPoint, IServer> servers)

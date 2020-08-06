@@ -101,6 +101,27 @@ namespace Couchbase.IO.Services
         /// </summary>
         public ErrorMap ErrorMap { get; internal set; }
 
+        public void Initialize()
+        {
+            IConnection connection = null;
+            try
+            {
+                connection = ConnectionPool.Connections.FirstOrDefault() ?? ConnectionPool.Acquire();
+                CheckEnabledServerFeatures(connection);
+                ConnectionPool.Release(connection);
+
+            }
+            catch (Exception e)
+            {
+                Log.Warn(e);
+                if (connection != null)
+                {
+                    connection.IsDead = true;
+                    ConnectionPool.Release(connection);
+                }
+            }
+        }
+
         protected ITracer Tracer => ConnectionPool.Configuration.ClientConfiguration.Tracer;
         public bool SupportsServerDuration { get; internal set; }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
@@ -256,6 +256,10 @@ namespace Couchbase.Tests.Fakes
         }
 
         public ErrorMap ErrorMap { get; protected set; }
+        public void Initialize()
+        {
+            throw new NotImplementedException();
+        }
 
 
         public bool SupportsEnhancedDurability { get; protected set; }

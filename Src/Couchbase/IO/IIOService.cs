@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Authentication.SASL;
@@ -141,6 +141,8 @@ namespace Couchbase.IO
         /// The Error Map that is used to map error codes from the server to error messages.
         /// </summary>
         ErrorMap ErrorMap { get; }
+
+        void Initialize();
     }
 }
 
