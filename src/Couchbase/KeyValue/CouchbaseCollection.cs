@@ -688,6 +688,6 @@ namespace Couchbase.KeyValue
         #endregion
 
         private IInternalSpan RootSpan(string operation) =>
-            _tracer.RootSpan(CouchbaseTags.ServiceKv, operation);
+            _tracer.RootSpan(RequestTracing.ServiceIdentifier.Kv, operation);
     }
 }

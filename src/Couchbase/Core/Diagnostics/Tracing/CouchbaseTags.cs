@@ -5,11 +5,6 @@ namespace Couchbase.Core.Diagnostics.Tracing
         public const string DbTypeCouchbase = "couchbase";
 
         public const string Service = "couchbase.service";
-        public const string ServiceKv = "kv";
-        public const string ServiceView = "view";
-        public const string ServiceQuery = "n1ql";
-        public const string ServiceSearch = "fts";
-        public const string ServiceAnalytics = "cbas";
 
         public const string OperationId = "couchbase.operation_id";
         public const string DocumentKey = "couchbase.document_key";
@@ -19,6 +14,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
         public const string ViewName = "couchbase.view_name";
 
         public const string LocalAddress = "local.address";
+        public const string RemoteAddress = "remote.address";
         public const string PeerLatency = "peer.latency";
 
         internal static class OpenTracingTags

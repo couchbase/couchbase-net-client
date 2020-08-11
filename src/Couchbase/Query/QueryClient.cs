@@ -58,14 +58,15 @@ namespace Couchbase.Query
         /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
-            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceQuery, OperationNames.N1qlQuery)
-                .SetAttribute(CouchbaseTags.OperationId, options.CurrentContextId)
-                .SetAttribute(CouchbaseTags.OpenTracingTags.DbStatement, statement);
-
             if (string.IsNullOrEmpty(options.CurrentContextId))
             {
                 options.ClientContextId(Guid.NewGuid().ToString());
             }
+
+            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.Query, OperationNames.N1qlQuery)
+                .WithTag(CouchbaseTags.OperationId, options.CurrentContextId!)
+                .WithTag(CouchbaseTags.OpenTracingTags.DbStatement, statement)
+                .WithLocalAddress();
 
             // does this query use a prepared plan?
             if (options.IsAdHoc)
@@ -81,7 +82,7 @@ namespace Couchbase.Query
                 // if an upgrade has happened, don't use query plans that have an encoded plan
                 if (!EnhancedPreparedStatementsEnabled || string.IsNullOrWhiteSpace(queryPlan.EncodedPlan))
                 {
-                    using var prepareAndExecuteSpan = _tracer.InternalSpan(CouchbaseOperationNames.PrepareAndExecute, rootSpan);
+                    using var prepareAndExecuteSpan = _tracer.InternalSpan(OperationNames.PrepareAndExecute, rootSpan);
 
                     // plan is valid, execute query with it
                     options.Prepared(queryPlan, statement);
@@ -138,9 +139,10 @@ namespace Couchbase.Query
         {
             // try get Query node
             var queryUri = _serviceUriProvider.GetRandomQueryUri();
+            span.WithRemoteAddress(queryUri);
             using var encodingSpan = span.StartPayloadEncoding();
             var body = options.GetFormValuesAsJson();
-            encodingSpan.Finish();
+            encodingSpan.Dispose();
 
             _logger.LogDebug("Sending query {contextId} to node {endpoint}.", options.CurrentContextId, queryUri);
 
@@ -150,7 +152,7 @@ namespace Couchbase.Query
             {
                 using var dispatchSpan = span.StartDispatch();
                 var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
-                dispatchSpan.Finish();
+                dispatchSpan.Dispose();
 
                 var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 

@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -13,6 +14,7 @@ using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
+using Couchbase.Diagnostics;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -452,6 +454,12 @@ namespace Couchbase.Core.IO.Operations
 
         public virtual async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
+            Span.WithTag(CouchbaseTags.RemoteAddress,
+                connection.EndPoint?.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue);
+            Span.WithTag(CouchbaseTags.LocalAddress,
+                connection.LocalEndPoint?.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue);
+            Span.WithTag(CouchbaseTags.LocalId, connection.ConnectionId.ToString(CultureInfo.InvariantCulture));
+
             using var encodingSpan = Span.StartPayloadEncoding();
             BeginSend();
 
@@ -477,8 +485,10 @@ namespace Couchbase.Core.IO.Operations
                 builder.WriteHeader(CreateHeader());
 
                 var buffer = builder.GetBuffer();
-                encodingSpan.Finish();
+                encodingSpan.Dispose();
+                using var dispatchSpan = Span.StartDispatch();
                 await connection.SendAsync(buffer, HandleOperationCompleted).ConfigureAwait(false);
+                dispatchSpan.Dispose();
             }
             finally
             {

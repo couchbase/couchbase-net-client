@@ -1,5 +1,7 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace Couchbase.Core.Diagnostics.Tracing
@@ -14,6 +16,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         IInternalSpan StartDispatch();
 
-        IInternalSpan SetAttribute(string key, string value);
+        IInternalSpan WithTag(string key, string value);
+
+        TimeSpan? Duration { get; }
     }
 }

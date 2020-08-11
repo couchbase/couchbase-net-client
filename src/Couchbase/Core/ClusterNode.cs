@@ -438,11 +438,9 @@ namespace Couchbase.Core
                 cts.CancelAfter(GetTimeout(timeout, op));
                 token = cts.Token;
 
-                using var dispatchSpan = op.Span.StartDispatch();
                 sender(op, state, token);
 
                 var status = await op.Completed.ConfigureAwait(false);
-                dispatchSpan.Finish();
                 if (status != ResponseStatus.Success)
                 {
                     _logger.LogDebug("Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.",

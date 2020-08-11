@@ -182,12 +182,29 @@ namespace Couchbase
             return this;
         }
 
+        [Obsolete("Use WithThresholdTracing instead.")]
         public IRequestTracer? RequestTracer { get; set; }
 
+        [Obsolete("Use WithThresholdTracing instead.")]
         public ClusterOptions WithRequestTracer(IRequestTracer requestTracer)
         {
             RequestTracer = requestTracer;
             return this;
+        }
+
+        public ThresholdOptions? ThresholdOptions { get; set; } = new ThresholdOptions();
+
+        public ClusterOptions WithThresholdTracing(ThresholdOptions? options = null)
+        {
+            ThresholdOptions = options;
+            return this;
+        }
+
+        public ClusterOptions WithThresholdTracing(Action<ThresholdOptions> configure)
+        {
+            var opts = new ThresholdOptions();
+            configure(opts);
+            return WithThresholdTracing(opts);
         }
 
         public string? UserName { get; set; }
@@ -347,9 +364,9 @@ namespace Couchbase
             this.AddClusterService(this);
             this.AddClusterService(Logging ?? new NullLoggerFactory());
 
-            if (RequestTracer != null)
+            if (ThresholdOptions != null)
             {
-                this.AddClusterService(RequestTracer);
+                _services[typeof(IRequestTracer)] = new SingletonServiceFactory(typeof(ActivityRequestTracer));
             }
 
             if (Serializer != null)

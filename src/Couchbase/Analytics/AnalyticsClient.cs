@@ -48,15 +48,18 @@ namespace Couchbase.Analytics
         /// <returns></returns>
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token = default)
         {
-            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceAnalytics, "analytics")
-                .SetAttribute(CouchbaseTags.OperationId, queryRequest.ClientContextId ?? Guid.NewGuid().ToString());
-            using var encodingSpan = rootSpan.StartPayloadEncoding();
+            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.Analytics, OperationNames.AnalyticsQuery)
+                .WithTag(CouchbaseTags.OperationId, queryRequest.ClientContextId ?? Guid.NewGuid().ToString())
+                .WithLocalAddress();
 
             // try get Analytics node
             var analyticsUri = _serviceUriProvider.GetRandomAnalyticsUri();
+            rootSpan.WithRemoteAddress(analyticsUri);
 
             _logger.LogDebug("Sending analytics query with a context id {contextId} to server {searchUri}",
                 queryRequest.ClientContextId, analyticsUri);
+
+            using var encodingSpan = rootSpan.StartPayloadEncoding();
 
             AnalyticsResultBase<T> result;
             var body = queryRequest.GetFormValuesAsJson();
@@ -75,10 +78,10 @@ namespace Couchbase.Analytics
                         request.Headers.Add(AnalyticsPriorityHeaderName, new[] {req.PriorityValue.ToString()});
                     }
 
-                    encodingSpan.Finish();
+                    encodingSpan.Dispose();
                     using var dispatchSpan = rootSpan.StartDispatch();
                     var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
-                    dispatchSpan.Finish();
+                    dispatchSpan.Dispose();
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
                     if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)

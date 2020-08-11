@@ -55,12 +55,12 @@ namespace Couchbase.Core.Diagnostics.Tracing
         public static OperationContext CreateKvContext(uint opaque)
         {
             const string hexPrefix = "0x", hexFormat = "x";
-            return new OperationContext(CouchbaseTags.ServiceKv, string.Join(hexPrefix, opaque.ToString(hexFormat)));
+            return new OperationContext(RequestTracing.ServiceIdentifier.Kv, string.Join(hexPrefix, opaque.ToString(hexFormat)));
         }
 
         public static OperationContext CreateViewContext(string bucketName, string remoteEndpoint)
         {
-            return new OperationContext(CouchbaseTags.ServiceView)
+            return new OperationContext(RequestTracing.ServiceIdentifier.View)
             {
                 RemoteEndpoint = remoteEndpoint
             };
@@ -68,7 +68,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         public static OperationContext CreateQueryContext(string contextId, string buckName, string remoteEndpoint)
         {
-            return new OperationContext(CouchbaseTags.ServiceQuery, contextId)
+            return new OperationContext(RequestTracing.ServiceIdentifier.Query, contextId)
             {
                 BucketName = buckName,
                 RemoteEndpoint = remoteEndpoint
@@ -77,7 +77,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         public static OperationContext CreateSearchContext(string bucketName, string remoteEndpoint)
         {
-            return new OperationContext(CouchbaseTags.ServiceSearch)
+            return new OperationContext(RequestTracing.ServiceIdentifier.Search)
             {
                 BucketName = bucketName,
                 RemoteEndpoint = remoteEndpoint
@@ -86,7 +86,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         public static OperationContext CreateAnalyticsContext(string contextId, string bucknameName, string remoteEndpoint)
         {
-            return new OperationContext(CouchbaseTags.ServiceAnalytics, contextId)
+            return new OperationContext(RequestTracing.ServiceIdentifier.Analytics, contextId)
             {
                 BucketName = bucknameName,
                 RemoteEndpoint = remoteEndpoint

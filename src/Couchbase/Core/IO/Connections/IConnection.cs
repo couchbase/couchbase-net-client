@@ -38,7 +38,7 @@ namespace Couchbase.Core.IO.Connections
         bool IsConnected { get; }
 
         /// <summary>
-        /// Gets the remove hosts <see cref="EndPoint"/> that this <see cref="IConnection"/> is connected to.
+        /// Gets the remote hosts <see cref="EndPoint"/> that this <see cref="IConnection"/> is connected to.
         /// </summary>
         /// <value>
         /// The end point.

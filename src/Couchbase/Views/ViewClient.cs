@@ -44,10 +44,14 @@ namespace Couchbase.Views
 
         public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQuery query)
         {
-            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceView, OperationNames.ViewQuery)
-                .SetAttribute(CouchbaseTags.Service, CouchbaseTags.ServiceView);
+            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.View, OperationNames.ViewQuery)
+                .WithTag(CouchbaseTags.Service, RequestTracing.ServiceIdentifier.View)
+                .WithLocalAddress();
+
             using var encodingSpan = rootSpan.StartPayloadEncoding();
             var uri = query.RawUri();
+            rootSpan.WithRemoteAddress(uri);
+
             ViewResultBase<TKey, TValue> viewResult;
 
             var body = query.CreateRequestBody();
@@ -55,11 +59,11 @@ namespace Couchbase.Views
             {
                 _logger.LogDebug("Sending view request to: {uri}", _redactor.SystemData(uri));
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
-                encodingSpan.Finish();
+                encodingSpan.Dispose();
 
                 using var dispatchSpan = rootSpan.StartDispatch();
                 var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
-                dispatchSpan.Finish();
+                dispatchSpan.Dispose();
 
                 var serializer = query.Serializer ?? _serializer;
                 if (response.IsSuccessStatusCode)

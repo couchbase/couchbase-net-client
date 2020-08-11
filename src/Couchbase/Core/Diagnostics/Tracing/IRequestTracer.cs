@@ -29,8 +29,18 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
     public class RequestTracing
     {
+        public const string SourceName = "couchbase-net-client";
         public const string DispatchSpanName = "dispatch_to_server";
         public const string PayloadEncodingSpanName = "request_encoding";
+
+        public static readonly ISet<string> CoreServices = new HashSet<string>()
+        {
+            ServiceIdentifier.Kv,
+            ServiceIdentifier.Query,
+            ServiceIdentifier.Search,
+            ServiceIdentifier.View,
+            ServiceIdentifier.Analytics
+        };
 
         public class ServiceIdentifier
         {
@@ -38,7 +48,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             public const string Query = "n1ql"; // the Java client has this as "query", but the RFC says "n1ql"
             public const string Search = "search";
             public const string View = "view";
-            public const string Analytics = "analytics";
+            public const string Analytics = "cbas";
         }
     }
 }

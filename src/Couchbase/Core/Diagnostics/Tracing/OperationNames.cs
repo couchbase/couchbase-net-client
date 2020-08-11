@@ -31,6 +31,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         public const string ViewQuery = "view";
         public const string N1qlQuery = "query";
+        public const string AnalyticsQuery = "analytics";
+        public const string SearchQuery = "search";
         public const string Hello = "hello";
         public const string GetManifest = "get_manifest";
         public const string GetClusterMap = "get_cluster_map";
@@ -39,10 +41,13 @@ namespace Couchbase.Core.Diagnostics.Tracing
         public const string GetAllReplicas = "get_all_replicas";
         public const string GetErrorMap = "get_error_map";
         public const string SelectBucket = "select_bucket";
+        public const string Prepare = "prepare";
+        public const string PrepareAndExecute = "prepare_and_execute";
 
         public const string AuthenticateScramSha = "authn_scramsha";
         public const string AuthenticatePlain = "authn_plain";
         public const string SaslStart = "sasl_start";
         public const string SaslStep = "sasl_step";
+
     }
 }

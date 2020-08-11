@@ -58,11 +58,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
                         if (_hasOrphans)
                         {
                             var result = new JArray();
-                            AddServiceToResult(result, CouchbaseTags.ServiceKv, _kvOrphans, ref _kvOrphanCount);
-                            AddServiceToResult(result, CouchbaseTags.ServiceView, _viewOrphans, ref _viewOrphanCount);
-                            AddServiceToResult(result, CouchbaseTags.ServiceQuery, _queryOrphans, ref _queryOrphanCount);
-                            AddServiceToResult(result, CouchbaseTags.ServiceSearch, _searchOrphans, ref _searchOrphanCount);
-                            AddServiceToResult(result, CouchbaseTags.ServiceAnalytics, _analyticsOrphans, ref _analyticsOrphanCount);
+                            AddServiceToResult(result, RequestTracing.ServiceIdentifier.Kv, _kvOrphans, ref _kvOrphanCount);
+                            AddServiceToResult(result, RequestTracing.ServiceIdentifier.View, _viewOrphans, ref _viewOrphanCount);
+                            AddServiceToResult(result, RequestTracing.ServiceIdentifier.Query, _queryOrphans, ref _queryOrphanCount);
+                            AddServiceToResult(result, RequestTracing.ServiceIdentifier.Search, _searchOrphans, ref _searchOrphanCount);
+                            AddServiceToResult(result, RequestTracing.ServiceIdentifier.Analytics, _analyticsOrphans, ref _analyticsOrphanCount);
 
                             if (result.Any())
                             {
@@ -85,19 +85,19 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
                         switch (context.ServiceType)
                         {
-                            case CouchbaseTags.ServiceKv:
+                            case RequestTracing.ServiceIdentifier.Kv:
                                 AddContextToService(_kvOrphans, context, ref _kvOrphanCount, SampleSize);
                                 break;
-                            case CouchbaseTags.ServiceView:
+                            case RequestTracing.ServiceIdentifier.View:
                                 AddContextToService(_viewOrphans, context, ref _viewOrphanCount, SampleSize);
                                 break;
-                            case CouchbaseTags.ServiceQuery:
+                            case RequestTracing.ServiceIdentifier.Query:
                                 AddContextToService(_queryOrphans, context, ref _queryOrphanCount, SampleSize);
                                 break;
-                            case CouchbaseTags.ServiceSearch:
+                            case RequestTracing.ServiceIdentifier.Search:
                                 AddContextToService(_searchOrphans, context, ref _searchOrphanCount, SampleSize);
                                 break;
-                            case CouchbaseTags.ServiceAnalytics:
+                            case RequestTracing.ServiceIdentifier.Analytics:
                                 AddContextToService(_analyticsOrphans, context, ref _analyticsOrphanCount, SampleSize);
                                 break;
                             default:

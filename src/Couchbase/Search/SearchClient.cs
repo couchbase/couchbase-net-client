@@ -54,11 +54,15 @@ namespace Couchbase.Search
         /// <returns>A <see cref="ISearchResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
         public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
         {
-            using var rootSpan = _tracer.RootSpan(CouchbaseTags.ServiceSearch, "search");
+            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.Search, OperationNames.SearchQuery)
+                .WithLocalAddress();
+
             using var encodingSpan = rootSpan.StartPayloadEncoding();
 
             // try get Search nodes
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
+            rootSpan.WithRemoteAddress(searchUri);
+
             var uriBuilder = new UriBuilder(searchUri)
             {
                 Path = $"api/index/{searchRequest.Index}/query"
@@ -74,10 +78,10 @@ namespace Couchbase.Search
             try
             {
                 using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
-                encodingSpan.Finish();
+                encodingSpan.Dispose();
                 using var dispatchSpan = rootSpan.StartDispatch();
                 var response = await HttpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
-                dispatchSpan.Finish();
+                dispatchSpan.Dispose();
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {
                     if (response.IsSuccessStatusCode)

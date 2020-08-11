@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -21,7 +22,7 @@ namespace Couchbase.Diagnostics
 {
     internal static class DiagnosticsReportProvider
     {
-        private const string UnknownEndpointValue = "Unknown";
+        internal const string UnknownEndpointValue = "Unknown";
         private const long TicksPerMicrosecond = 10;
         private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
 
@@ -153,7 +154,7 @@ namespace Couchbase.Diagnostics
         {
             return new EndpointDiagnostics
             {
-                Id = connection.ConnectionId.ToString(),
+                Id = connection.ConnectionId.ToString(CultureInfo.InvariantCulture),
                 Type = ServiceType.KeyValue,
                 LastActivity = CalculateLastActivity(createdAt, DateTime.UtcNow - connection.IdleTime),
                 Remote = connection.EndPoint.ToString() ?? UnknownEndpointValue,
