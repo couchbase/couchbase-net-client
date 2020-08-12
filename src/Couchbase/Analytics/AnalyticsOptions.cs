@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 
 #nullable enable
@@ -85,40 +84,9 @@ namespace Couchbase.Analytics
         }
 
         /// <summary>
-        /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
+        ///The alias for the namespace:bucket:scope:collection
         /// </summary>
-        /// <returns>
-        /// The <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
-        /// </returns>
-        internal IDictionary<string, object> GetFormValues(string statement)
-        {
-            var formValues = new Dictionary<string, object>
-            {
-                {"statement", statement}
-            };
-
-            foreach (var parameter in NamedParameters)
-            {
-                formValues.Add(parameter.Key, parameter.Value);
-            }
-
-            if (PositionalParameters.Any())
-            {
-                formValues.Add("args", PositionalParameters.ToArray());
-            }
-
-            if (TimeoutValue.HasValue)
-            {
-                formValues.Add("timeout", $"{TimeoutValue.Value.TotalMilliseconds}ms");
-            }
-
-            if (ClientContextIdValue != null)
-            {
-                formValues.Add("client_context_id", ClientContextIdValue);
-            }
-
-            return formValues;
-        }
-
+        /// <returns></returns>
+        internal string? QueryContext { get; set; }
     }
 }

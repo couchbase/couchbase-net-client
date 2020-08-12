@@ -2,12 +2,14 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.Logging;
+using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -23,6 +25,7 @@ namespace Couchbase.KeyValue
         private readonly BucketBase _bucket;
         private readonly ILogger<Scope> _logger;
         private readonly ConcurrentDictionary<string, ICouchbaseCollection> _collections;
+        private readonly string _queryContext;
 
         public Scope(ScopeDef? scopeDef, ICollectionFactory collectionFactory, BucketBase bucket, ILogger<Scope> logger)
         {
@@ -49,6 +52,7 @@ namespace Couchbase.KeyValue
                     collectionFactory.Create(bucket, this, null, CouchbaseCollection.DefaultCollectionName));
             }
 
+            _queryContext = $"{_bucket.Name}.{Name}";
         }
 
         public string Id { get; }
@@ -88,6 +92,36 @@ namespace Couchbase.KeyValue
         public ICouchbaseCollection Collection(string collectionName)
         {
             return this[collectionName];
+        }
+
+        /// <summary>
+        /// Collection N1QL querying
+        /// </summary>
+        /// <typeparam name="T">The Type of the row returned.</typeparam>
+        /// <param name="statement">The required statement to execute.</param>
+        /// <param name="options">Optional parameters.</param>
+        /// <returns>A <see cref="IQueryResult{T}"/> which can be enumerated.</returns>
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions? options = default)
+        {
+            options ??= new QueryOptions();
+            options.QueryContext = _queryContext;
+
+            return _bucket.Cluster.QueryAsync<T>(statement, options);
+        }
+
+        /// <summary>
+        /// Collection analytics querying
+        /// </summary>
+        /// <typeparam name="T">The Type of the row returned.</typeparam>
+        /// <param name="statement">The required statement to execute.</param>
+        /// <param name="options">Optional parameters.</param>
+        /// <returns>A <see cref="IAnalyticsResult{T}"/> which can be enumerated.</returns>
+        public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default)
+        {
+            options ??=new AnalyticsOptions();
+            options.QueryContext = _queryContext;
+
+            return _bucket.Cluster.AnalyticsQueryAsync<T>(statement, options);
         }
     }
 }

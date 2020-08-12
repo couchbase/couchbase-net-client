@@ -513,6 +513,12 @@ namespace Couchbase.Query
             return this;
         }
 
+        /// <summary>
+        ///The alias for the namespace:bucket:scope:collection
+        /// </summary>
+        /// <returns></returns>
+        internal string? QueryContext { get; set; }
+
         internal QueryOptions QueryPlan(QueryPlan queryPlan)
         {
             _preparedPayload = queryPlan;
@@ -610,6 +616,8 @@ namespace Couchbase.Query
 
             if (CurrentContextId != null) formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
 
+            if (QueryContext != null) formValues.Add(QueryParameters.QueryContext, QueryContext);
+
             return formValues;
         }
 
@@ -705,6 +713,7 @@ namespace Couchbase.Query
             public const string PipelineCapacity = "pipeline_cap";
             public const string Profile = "profile";
             public const string AutoExecute = "auto_execute";
+            public const string QueryContext = "query_context";
         }
     }
 }

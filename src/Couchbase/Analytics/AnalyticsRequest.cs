@@ -45,6 +45,12 @@ namespace Couchbase.Analytics
         public string ClientContextId { get; set; }
 
         /// <summary>
+        ///The alias for the namespace:bucket:scope:collection
+        /// </summary>
+        /// <returns></returns>
+        public string QueryContext { get; set; }
+
+        /// <summary>
         /// Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the analytics service.
         /// </summary>
         /// <returns>
@@ -69,6 +75,11 @@ namespace Couchbase.Analytics
 
             formValues.Add("timeout", $"{_timeout.TotalMilliseconds}ms");
             formValues.Add("client_context_id", ClientContextId ?? Guid.NewGuid().ToString());
+
+            if (!string.IsNullOrWhiteSpace(QueryContext))
+            {
+                formValues.Add("query_context", QueryContext);
+            }
 
             return formValues;
         }

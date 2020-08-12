@@ -42,5 +42,14 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal("default", values["$bucket"]);
             Assert.Equal("bill", values["$name"]);
         }
+
+        [Fact]
+        public void Test_QueryContext_Is_NotNull()
+        {
+            var options = new QueryOptions("SELECT * FROM WHAT") {QueryContext = "namespace:bucket:scope:collection"};
+            var args = options.GetFormValues();
+
+            Assert.Equal("namespace:bucket:scope:collection", args["query_context"]);
+        }
     }
 }
