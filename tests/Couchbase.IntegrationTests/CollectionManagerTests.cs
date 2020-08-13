@@ -481,5 +481,30 @@ namespace Couchbase.IntegrationTests
             var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(false);
             Assert.NotNull(getAllScopesResult);
         }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
+        public async Task Test_SingleScopeMaxNumberOfCollections()
+        {
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
+            var collectionManager = (CollectionManager)bucket.Collections;
+            string scopeName = "singlescope1";
+            var scopeSpec = new ScopeSpec(scopeName);
+            try
+            {
+                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                for (int i = 0; i < 1000; i++)
+                {
+                    var collectionSpec = new CollectionSpec(scopeName, (1000 + i).ToString());
+                    await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
+                    var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
+                    Assert.True(collectionExistsResult);
+                }
+            }
+            finally
+            {
+                // drop scope
+                await collectionManager.DropScopeAsync(scopeName).ConfigureAwait(false);
+            }
+        }
     }
 }
