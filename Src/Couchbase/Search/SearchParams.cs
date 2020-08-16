@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.N1QL;
@@ -23,6 +23,18 @@ namespace Couchbase.Search
         private TimeSpan _timeOut = new TimeSpan(0, 0, 0, 0, 75000);
         private ScanConsistency?  _scanConsistency;
         private readonly JArray _sort = new JArray();
+        private Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
+
+        public ISearchParams Raw(string name, object value)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Parameter name cannot be null or empty.");
+            }
+
+            _rawParameters.Add(name, value);
+            return this;
+        }
 
         /// <summary>
         /// Limits the number of matching results from a returned result-set.
@@ -243,6 +255,12 @@ namespace Couchbase.Search
             {
                 parameters.Add(new JProperty("sort", _sort));
             }
+
+            foreach (var rawParameter in _rawParameters)
+            {
+                parameters.Add(new JProperty(rawParameter.Key, rawParameter.Value));
+            }
+
             return parameters;
         }
 

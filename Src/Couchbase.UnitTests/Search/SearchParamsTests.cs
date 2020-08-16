@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Couchbase.N1QL;
 using Couchbase.Search;
@@ -173,6 +173,31 @@ namespace Couchbase.UnitTests.Search
                     {
                         foo = "bar"
                     }
+                }
+            }, Formatting.None);
+
+            Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public void Raw_To_Output_Json()
+        {
+            var searchParams = new SearchParams();
+            searchParams.Raw("raw1", "abc");
+            searchParams.Raw("raw2", new JObject
+            {
+                new JProperty("value", 6)
+            });
+
+            var result = searchParams.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { timeout = 75000 },
+                raw1 = "abc",
+                raw2 = new
+                {
+                    value = 6
                 }
             }, Formatting.None);
 
