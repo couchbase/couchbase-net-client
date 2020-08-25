@@ -228,6 +228,11 @@ namespace Couchbase.Core
                 features.Add((short)IO.Operations.ServerFeatures.ServerDuration);
             }
 
+            if (_context.ClusterOptions.UnorderedExecutionEnabled)
+            {
+                features.Add((short)IO.Operations.ServerFeatures.UnorderedExecution);
+            }
+
             using var childSpan = _tracer.InternalSpan(OperationNames.Hello, span);
             using var heloOp = new Hello
             {

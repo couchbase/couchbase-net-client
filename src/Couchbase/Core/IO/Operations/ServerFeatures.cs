@@ -62,7 +62,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Indicates if the server supports scoped collections.
         /// </summary>
-        Collections = 0x12
+        Collections = 0x12,
+
+        /// <summary>
+        /// Support unordered execution of operations.
+        /// </summary>
+        UnorderedExecution = 0x0e
     }
 }
 

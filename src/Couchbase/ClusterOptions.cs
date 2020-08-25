@@ -351,6 +351,8 @@ namespace Couchbase
             return this;
         }
 
+        public bool UnorderedExecutionEnabled { get; set; } = false;
+
         #region DI
 
         private readonly IDictionary<Type, IServiceFactory> _services = DefaultServices.GetDefaultServices();
