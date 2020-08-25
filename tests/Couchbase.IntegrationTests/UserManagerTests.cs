@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,21 +26,21 @@ namespace Couchbase.IntegrationTests
             const string username = "test_user", displayName = "Test User", password = "pa$$w0rd", groupName = "test_group";
             var roles = new List<Role>
             {
-                new Role {Name = "bucket_admin", Bucket = "default"}
+                new Role("bucket_admin","default")
             };
 
             try
             {
                 // available roles
                 var availableRoles = await userManager.GetRolesAsync().ConfigureAwait(false);
-                Assert.Contains(availableRoles, role => role.Role.Name == "admin");
+                Assert.Contains(availableRoles, role => role.Role == "admin");
 
                 // upsert group
                 var group = new Group(groupName)
                 {
                     Description = "test_description",
                     LdapGroupReference = "asda=price",
-                    Roles = new[] {new Role {Name = "admin"}, new Role{Name = "bucket_admin", Bucket = "*"}}
+                    Roles = new[] {new Role("admin"), new Role("bucket_admin", "*")}
                 };
                 await userManager.UpsertGroupAsync(@group).ConfigureAwait(false);
 
@@ -64,7 +65,7 @@ namespace Couchbase.IntegrationTests
                 var user = new User(username)
                 {
                     DisplayName = displayName,
-                    Groups = new [] {groupName},
+                    Groups = new[] {groupName},
                     Roles = roles,
                     Password = password
                 };
@@ -76,8 +77,7 @@ namespace Couchbase.IntegrationTests
                 Assert.Equal(displayName, userResult.DisplayName);
                 Assert.Equal("local", userResult.Domain);
                 Assert.NotEqual(default, userResult.PasswordChanged);
-                Assert.Contains(userResult.EffectiveRoles, role => role.Name == "admin");
-                Assert.Contains(userResult.EffectiveRoles, role => role.Name == "bucket_admin" && role.Bucket == "*");
+                Assert.Contains(userResult.EffectiveRoles, role => role.Name == "bucket_admin" && role.Bucket == "default");
                 Assert.Contains(userResult.Groups, x => x == groupName);
 
                 // get all users with meta

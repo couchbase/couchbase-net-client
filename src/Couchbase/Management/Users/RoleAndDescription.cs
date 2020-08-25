@@ -4,7 +4,7 @@ namespace Couchbase.Management.Users
 {
     public class RoleAndDescription
     {
-        public Role Role { get; internal set; }
+        public string Role { get; internal set; }
         public string DisplayName { get; internal set; }
         public string Description { get; internal set; }
 
@@ -14,11 +14,7 @@ namespace Couchbase.Management.Users
             {
                 Description = json["desc"].Value<string>(),
                 DisplayName = json["name"].Value<string>(),
-                Role = new Role
-                {
-                    Name = json["role"].Value<string>(),
-                    Bucket = json["bucket_name"]?.Value<string>()
-                }
+                Role = json["role"].Value<string>()
             };
         }
     }

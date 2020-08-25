@@ -70,38 +70,6 @@ namespace Couchbase.Management.Users
             return builder.Uri;
         }
 
-        private static IEnumerable<KeyValuePair<string, string>> GetUserFormValues(User user)
-        {
-            var values = new Dictionary<string, string>();
-
-            if (!string.IsNullOrWhiteSpace(user.DisplayName))
-            {
-                values.Add("name", user.DisplayName);
-            }
-
-            if (!string.IsNullOrWhiteSpace(user.Password))
-            {
-                values.Add("password", user.Password);
-            }
-
-            if (user.Roles?.Any() ?? false)
-            {
-                values.Add("roles", string.Join(",",
-                    user.Roles.Select(role => string.IsNullOrWhiteSpace(role.Bucket)
-                        ? role.Name
-                        : $"{role.Name}[{role.Bucket}]")
-                    )
-                );
-            }
-
-            if (user.Groups?.Any() ?? false)
-            {
-                values.Add("groups", string.Join(",", user.Groups!));
-            }
-
-            return values;
-        }
-
         private static IEnumerable<KeyValuePair<string, string>> GetGroupFormValues(Group group)
         {
             return new Dictionary<string, string>
@@ -181,7 +149,7 @@ namespace Couchbase.Management.Users
             try
             {
                 // upsert user
-                var content = new FormUrlEncodedContent(GetUserFormValues(user));
+                var content = new FormUrlEncodedContent(user.GetUserFormValues());
                 var result = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }

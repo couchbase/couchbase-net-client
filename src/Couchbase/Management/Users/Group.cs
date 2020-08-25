@@ -22,11 +22,11 @@ namespace Couchbase.Management.Users
             {
                 Description = json["description"].Value<string>(),
                 LdapGroupReference = json["ldap_group_ref"].Value<string>(),
-                Roles = json["roles"].Select(role => new Role
-                {
-                    Name = Extensions.Value<string>(role["role"]),
-                    Bucket = role["bucket_name"]?.Value<string>()
-                })
+                Roles = json["roles"].Select(role =>
+                    new Role(role["role"].Value<string>(),
+                        role["bucket_name"]?.Value<string>(),
+                        role["scope_name"]?.Value<string>(),
+                        role["collection_name"]?.Value<string>()))
             };
         }
     }

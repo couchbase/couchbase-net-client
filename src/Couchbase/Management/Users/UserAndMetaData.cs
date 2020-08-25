@@ -41,11 +41,10 @@ namespace Couchbase.Management.Users
             {
                 foreach (var row in json["roles"])
                 {
-                    var role = new Role
-                    {
-                        Name = row["role"].Value<string>(),
-                        Bucket = row["bucket_name"]?.Value<string>()
-                    };
+                    var role = new Role(row["role"].Value<string>(),
+                        row["bucket_name"]?.Value<string>(),
+                        row["scope_name"]?.Value<string>(),
+                        row["collection_name"]?.Value<string>());
 
                     roles.Add(role);
                     rolesAndOrigins.Add(new RoleAndOrigins
