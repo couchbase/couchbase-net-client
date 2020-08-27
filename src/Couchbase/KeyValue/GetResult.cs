@@ -92,6 +92,11 @@ namespace Couchbase.KeyValue
             var root = new JObject();
             foreach (var spec in _specs)
             {
+                //skip the expiry if it was included; it must fetched from this.Expiry
+                if (spec.Path == VirtualXttrs.DocExpiryTime)
+                {
+                    continue;
+                }
                 var content = _serializer.Deserialize<JToken>(spec.Bytes);
                 if (spec.OpCode == OpCode.Get)
                 {
@@ -123,6 +128,11 @@ namespace Couchbase.KeyValue
                     //for example "attributes" and "attributes.hair" will cause exceptions
                     _logger.LogInformation(e, "Deserialization failed.");
                 }
+            }
+
+            if (root.Path == string.Empty && typeof(T).IsPrimitive)
+            {
+                return root.First.ToObject<T>();
             }
             return root.ToObject<T>();
         }

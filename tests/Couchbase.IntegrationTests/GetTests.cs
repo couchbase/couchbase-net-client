@@ -366,5 +366,33 @@ namespace Couchbase.IntegrationTests
                 await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
+
+        [Fact]
+        public async Task Test()
+        {
+            var id1 = "foo2";
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+
+            try
+            {
+                var mutResult1 = await collection.InsertAsync(id1, 5, insertOptions => insertOptions
+                    .Expiry(TimeSpan.FromMilliseconds(10000))).ConfigureAwait(false);
+
+                var getResult1 = await collection.GetAsync(id1).ConfigureAwait(false);
+                var value1 = getResult1.ContentAs<int>();
+                Assert.Equal(5, value1);
+
+                var getResult2 =
+                    await collection.GetAsync(id1, getOptions => getOptions.Expiry()).ConfigureAwait(false);
+                var expiry = getResult2.Expiry;
+
+                var value2 = getResult2.ContentAs<int>();
+                Assert.Equal(5, value2);
+            }
+            finally
+            {
+                await collection.RemoveAsync(id1).ConfigureAwait(false);
+            }
+        }
     }
 }
