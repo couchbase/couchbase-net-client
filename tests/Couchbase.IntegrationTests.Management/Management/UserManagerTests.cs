@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Couchbase.IntegrationTests.Management
 {
+    [Collection("NonParallel")]
     public class UserManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

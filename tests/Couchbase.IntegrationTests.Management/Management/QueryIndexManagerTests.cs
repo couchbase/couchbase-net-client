@@ -10,6 +10,7 @@ using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests.Management
 {
+    [Collection("NonParallel")]
     public class QueryIndexManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

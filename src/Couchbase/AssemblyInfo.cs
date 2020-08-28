@@ -17,9 +17,11 @@ using System.Runtime.InteropServices;
 [assembly: Guid("a877a9c8-b003-44de-bd70-8bb90b1b9f9e")]
 
 #if !SIGNING
+[assembly: InternalsVisibleTo("Couchbase.Test.Common")]
 [assembly: InternalsVisibleTo("Couchbase.UnitTests")]
 [assembly: InternalsVisibleTo("Couchbase.LoadTests")]
 [assembly: InternalsVisibleTo("Couchbase.IntegrationTests")]
+[assembly: InternalsVisibleTo("Couchbase.IntegrationTests.Management")]
 [assembly: InternalsVisibleTo("Sdkd")]
 [assembly: InternalsVisibleTo("SdkdConsole")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

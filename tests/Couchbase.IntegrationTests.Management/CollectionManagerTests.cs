@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Couchbase.IntegrationTests
 {
+    [Collection("NonParallel")]
     public class CollectionManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

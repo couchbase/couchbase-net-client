@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Couchbase.IntegrationTests.Management
 {
+    [Collection("NonParallel")]
     public class ViewIndexManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

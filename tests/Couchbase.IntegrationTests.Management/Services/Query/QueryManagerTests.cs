@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Couchbase.IntegrationTests.Services.Query
 {
+    [Collection("NonParallel")]
     public class QueryManagerTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;

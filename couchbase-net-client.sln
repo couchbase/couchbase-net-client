@@ -15,6 +15,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Extensions.Depend
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Extensions.DependencyInjection.UnitTests", "tests\Couchbase.Extensions.DependencyInjection.UnitTests\Couchbase.Extensions.DependencyInjection.UnitTests.csproj", "{48772953-9E60-4F2C-9753-D0E19A2D2F5E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Test.Common", "tests\Couchbase.Test.Common\Couchbase.Test.Common.csproj", "{D1C5041C-7D29-4D0D-A02A-86A03F70A1BF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.IntegrationTests.Management", "tests\Couchbase.IntegrationTests.Management\Couchbase.IntegrationTests.Management.csproj", "{FF2CED5A-BD07-4E9A-9715-18DB4E9CDDE9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,14 @@ Global
 		{48772953-9E60-4F2C-9753-D0E19A2D2F5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{48772953-9E60-4F2C-9753-D0E19A2D2F5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48772953-9E60-4F2C-9753-D0E19A2D2F5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1C5041C-7D29-4D0D-A02A-86A03F70A1BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1C5041C-7D29-4D0D-A02A-86A03F70A1BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1C5041C-7D29-4D0D-A02A-86A03F70A1BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1C5041C-7D29-4D0D-A02A-86A03F70A1BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF2CED5A-BD07-4E9A-9715-18DB4E9CDDE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF2CED5A-BD07-4E9A-9715-18DB4E9CDDE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF2CED5A-BD07-4E9A-9715-18DB4E9CDDE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF2CED5A-BD07-4E9A-9715-18DB4E9CDDE9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
