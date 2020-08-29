@@ -7,32 +7,30 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
 {
     internal class ClusterProvider : IClusterProvider
     {
-        private readonly IOptions<ClusterOptions> _options;
         private readonly ILoggerFactory _loggerFactory;
-        private ICluster _cluster;
+        private AsyncLazy<ICluster> _cluster;
         private bool _disposed = false;
 
         public ClusterProvider(IOptions<ClusterOptions> options, ILoggerFactory loggerFactory)
         {
-            _options = options ?? throw new ArgumentNullException(nameof(options));
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+
+            _cluster = new AsyncLazy<ICluster>(() => CreateClusterAsync(options.Value));
         }
 
-        public virtual async ValueTask<ICluster> GetClusterAsync()
+        public virtual ValueTask<ICluster> GetClusterAsync()
         {
             if (_disposed)
             {
                 throw new ObjectDisposedException(nameof(ClusterProvider));
             }
 
-            if (_cluster != null)
-            {
-                return _cluster;
-            }
-
-            _cluster = await CreateClusterAsync(_options.Value).ConfigureAwait(false);
-
-            return _cluster;
+            return new ValueTask<ICluster>(_cluster.Value);
         }
 
         /// <summary>
@@ -51,8 +49,19 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             {
                 _disposed = true;
 
-                _cluster?.Dispose();
-                _cluster = null;
+                if (_cluster?.IsValueCreated ?? false)
+                {
+                    try
+                    {
+                        _cluster?.GetAwaiter().GetResult().Dispose();
+                    }
+                    catch
+                    {
+                        // Eat any exception that was thrown during cluster creation
+                    }
+
+                    _cluster = null;
+                }
             }
         }
 
@@ -62,8 +71,14 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             {
                 _disposed = true;
 
-                await (_cluster?.DisposeAsync() ?? default).ConfigureAwait(false);
-                _cluster = null;
+                if (_cluster?.IsValueCreated ?? false)
+                {
+                    var cluster = await _cluster.Value.ConfigureAwait(false);
+
+                    await cluster.DisposeAsync().ConfigureAwait(false);
+
+                    _cluster = null;
+                }
             }
         }
     }
