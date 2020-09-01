@@ -81,7 +81,7 @@ namespace Couchbase.IntegrationTests
            }).ConfigureAwait(false);
         }
 
-        [Fact]
+        [Fact(Skip = "NCBC-2559")]
         public async Task Test_BootStrap_Error_Propagates_To_View_Operations()
         {
             var settings = ClusterFixture.GetSettings();
