@@ -8,16 +8,20 @@ namespace Couchbase.IntegrationTests
 {
     public class BootstrapFailedTests
     {
-        [Fact]
+        [Fact(Skip = "NCBC-2559")]
         public async Task Test_BootStrap_Error_Propagates_To_Collection_Operations()
         {
             const string id = "key;";
-            var value = new {x = "y"};
+            var value = new { x = "y" };
 
             var settings = ClusterFixture.GetSettings();
             var cluster = await Cluster.ConnectAsync(settings.ConnectionString, "Administrator", "password").ConfigureAwait(false);
+
+            // This test may be invalid.  It is throwing BucketNotFoundException here, and that is appropriate,. as far as I can tell.
             var bucket = await cluster.BucketAsync("doesnotexist").ConfigureAwait(false);
             var defaultCollection = bucket.DefaultCollection();
+
+           // We would have to inject a bootstrapping error *after* BucketAsync succeeds, to continue with the test.
 
            await Assert.ThrowsAsync<AuthenticationFailureException>(async ()=>
            {

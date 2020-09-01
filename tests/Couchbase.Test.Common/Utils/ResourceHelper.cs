@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,12 +13,13 @@ namespace Couchbase.IntegrationTests.Utils
 
         public static T ReadResource<T>(string resourcePath)
         {
-            return JsonConvert.DeserializeObject<T>(ReadResource(resourcePath));
+            var assembly = typeof(T).Assembly;
+            return JsonConvert.DeserializeObject<T>(ReadResource(assembly, resourcePath));
         }
 
-        public static string ReadResource(string resourcePath)
+        public static string ReadResource(Assembly assembly, string resourcePath)
         {
-            using (var stream = ReadResourceAsStream(resourcePath))
+            using (var stream = ReadResourceAsStream(assembly, resourcePath))
             {
                 if (stream == null)
                 {
@@ -32,9 +33,9 @@ namespace Couchbase.IntegrationTests.Utils
             }
         }
 
-        public static List<string> ReadResourceAsArray(string resourcePath)
+        public static List<string> ReadResourceAsArray(Assembly assembly, string resourcePath)
         {
-            using (var stream = ReadResourceAsStream(resourcePath))
+            using (var stream = ReadResourceAsStream(assembly, resourcePath))
             {
                 if (stream == null)
                 {
@@ -55,14 +56,14 @@ namespace Couchbase.IntegrationTests.Utils
             }
         }
 
-        public static Stream ReadResourceAsStream(string resourcePath)
+        public static Stream ReadResourceAsStream(Assembly assembly, string resourcePath)
         {
             //NOTE: buildOptions.embed for .NET Core ignores the path structure so do a lookup by name
             var index = resourcePath.LastIndexOf("\\", StringComparison.Ordinal) + 1;
             var name = resourcePath.Substring(index, resourcePath.Length-index);
-            var resourceName = Assembly.GetManifestResourceNames().FirstOrDefault(x => x.Contains(name));
+            var resourceName = assembly.GetManifestResourceNames().FirstOrDefault(x => x.Contains(name));
 
-            return Assembly.GetManifestResourceStream(resourceName);
+            return assembly.GetManifestResourceStream(resourceName);
         }
     }
 }
