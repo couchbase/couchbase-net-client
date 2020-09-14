@@ -51,5 +51,32 @@ namespace Couchbase.UnitTests.Query
 
             Assert.Equal("namespace:bucket:scope:collection", args["query_context"]);
         }
+
+        [Fact]
+        public void Test_FlexIndex_When_True_Sends_Parameter()
+        {
+            var options =  new QueryOptions("SELECT * FROM WHAT").FlexIndex(true);
+
+            var values = options.GetFormValues();
+            Assert.Equal(true, actual: values["use_fts"]);
+        }
+
+        [Fact]
+        public void Test_FlexIndex_When_False_Sends_Nothing()
+        {
+            var options = new QueryOptions("SELECT * FROM WHAT").FlexIndex(false);
+
+            var values = options.GetFormValues();
+            Assert.False(values.Keys.Contains("use_fts"));
+        }
+
+        [Fact]
+        public void Test_FlexIndex_When_Default_Sends_Nothing()
+        {
+            var options = new QueryOptions("SELECT * FROM WHAT").FlexIndex(false);
+
+            var values = options.GetFormValues();
+            Assert.False(values.Keys.Contains("use_fts"));
+        }
     }
 }

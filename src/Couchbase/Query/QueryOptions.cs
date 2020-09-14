@@ -33,6 +33,7 @@ namespace Couchbase.Query
         private TimeSpan? _scanWait;
         private string? _statement;
         private TimeSpan? _timeOut;
+        private bool _flexIndex;
 
         /// <summary>
         /// Creates a new QueryOptions object.
@@ -514,6 +515,18 @@ namespace Couchbase.Query
         }
 
         /// <summary>
+        /// Tells the query engine to use a flex index (utilizing the search service).
+        /// </summary>
+        /// <param name="flexIndex">true if a flex index should be used, false is the default</param>
+        /// <returns>A reference to the current <see cref="QueryOptions" /> for method chaining.</returns>
+        /// <remarks>This feature is Uncommitted and may change in the future.</remarks>
+        public QueryOptions FlexIndex(bool flexIndex)
+        {
+            _flexIndex = flexIndex;
+            return this;
+        }
+
+        /// <summary>
         ///The alias for the namespace:bucket:scope:collection
         /// </summary>
         /// <returns></returns>
@@ -618,6 +631,8 @@ namespace Couchbase.Query
 
             if (QueryContext != null) formValues.Add(QueryParameters.QueryContext, QueryContext);
 
+            if(_flexIndex) formValues.Add(QueryParameters.FlexIndex, _flexIndex);
+
             return formValues;
         }
 
@@ -714,6 +729,7 @@ namespace Couchbase.Query
             public const string Profile = "profile";
             public const string AutoExecute = "auto_execute";
             public const string QueryContext = "query_context";
+            public const string FlexIndex = "use_fts";
         }
     }
 }
