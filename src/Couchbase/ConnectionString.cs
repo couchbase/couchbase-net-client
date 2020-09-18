@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -143,6 +144,54 @@ namespace Couchbase
             }
 
             return Hosts.Single().Port == null;
+        }
+
+        public bool TryGetParameter(string key, out string parameter)
+        {
+            if (Parameters.TryGetValue(key, out var value))
+            {
+                parameter = value;
+                return true;
+            }
+
+            parameter = string.Empty;
+            return false;
+        }
+
+        public bool TryGetParameter(string key, out int parameter)
+        {
+            if (TryGetParameter(key, out string value))
+            {
+                parameter =  Convert.ToInt32(value);
+                return true;
+            }
+
+            parameter = default;
+            return false;
+        }
+
+        public bool TryGetParameter(string key, out TimeSpan parameter)
+        {
+            if (TryGetParameter(key, out string value))
+            {
+                parameter = TimeSpan.FromMilliseconds(Convert.ToUInt32(value));
+                return true;
+            }
+
+            parameter = default;
+            return false;
+        }
+
+        public bool TryGetParameter(string key, out bool parameter)
+        {
+            if (TryGetParameter(key, out string value))
+            {
+                parameter = Convert.ToBoolean(value);
+                return true;
+            }
+
+            parameter = default;
+            return false;
         }
 
         public override string ToString()

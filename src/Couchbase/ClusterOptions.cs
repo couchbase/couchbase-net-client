@@ -40,6 +40,90 @@ namespace Couchbase
                 {
                     UserName = ConnectionStringValue!.Username;
                 }
+
+                if (ConnectionStringValue != null)
+                {
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.KvTimeout, out TimeSpan kvTimeout))
+                    {
+                        KvTimeout = kvTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.AnalyticsTimeout, out TimeSpan analyticsTimeout))
+                    {
+                        AnalyticsTimeout = analyticsTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.ConfigIdleRedialTimeout, out TimeSpan configIdleRedialTimeout))
+                    {
+                        ConfigIdleRedialTimeout = configIdleRedialTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.ConfigPollFloorInterval, out TimeSpan configPollFloorInterval))
+                    {
+                        ConfigPollFloorInterval = configPollFloorInterval;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.ConfigPollInterval, out TimeSpan configPollInterval))
+                    {
+                        ConfigPollInterval = configPollInterval;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.EnableMutationTokens, out bool enableMutationTokens))
+                    {
+                        EnableMutationTokens = enableMutationTokens;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.EnableTcpKeepAlives, out bool enableTcpAlives))
+                    {
+                        EnableTcpKeepAlives = enableTcpAlives;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.EnableTls, out bool enableTls))
+                    {
+                        EnableTls = enableTls;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.ForceIpv4, out bool forceIp4))
+                    {
+                        ForceIPv4 = forceIp4;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.KvConnectTimeout, out TimeSpan kvConnectTimeout))
+                    {
+                        KvConnectTimeout = kvConnectTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.KvDurableTimeout, out TimeSpan kvDurableTimeout))
+                    {
+                        KvDurabilityTimeout = kvDurableTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.QueryTimeout, out TimeSpan queryTimeout))
+                    {
+                        QueryTimeout = queryTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.ManagementTimeout, out TimeSpan managementTimeout))
+                    {
+                        ManagementTimeout = managementTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.MaxHttpConnections, out int maxHttpConnections))
+                    {
+                        MaxHttpConnections = maxHttpConnections;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.NumKvConnections, out int numKvConnections))
+                    {
+                        NumKvConnections = numKvConnections;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.ViewTimeout, out TimeSpan viewTimeout))
+                    {
+                        ViewTimeout = viewTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.SearchTimeout, out TimeSpan searchTimeout))
+                    {
+                        SearchTimeout = searchTimeout;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.TcpKeepAliveTime, out TimeSpan tcpKeepAliveTime))
+                    {
+                        TcpKeepAliveTime = tcpKeepAliveTime;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.TcpKeepAliveInterval, out TimeSpan tcpKeepAliveInterval))
+                    {
+                        TcpKeepAliveInterval = tcpKeepAliveInterval;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.MaxKvConnections, out int maxKvConnections))
+                    {
+                        MaxKvConnections = maxKvConnections;
+                    }
+                }
             }
         }
 
