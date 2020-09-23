@@ -149,9 +149,9 @@ namespace Couchbase.Core.Retry
                             var reason = e.ResolveRetryReason();
                             if (reason.AlwaysRetry())
                             {
-                                if (token.IsCancellationRequested) token.ThrowIfCancellationRequested();
+                                token.ThrowIfCancellationRequested();
 
-                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason}.", operation.Opaque,
+                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and always retry.", operation.Opaque,
                                     operation.Key, reason);
 
                                 await backoff.Delay(operation).ConfigureAwait(false);
@@ -162,11 +162,12 @@ namespace Couchbase.Core.Retry
                             var strategy = operation.RetryStrategy;
                             var action = strategy.RetryAfter(operation, reason);
 
-                            if (action.DurationValue.HasValue)
+                            if (action.Retry)
                             {
-                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason}.", operation.Opaque,
+                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and action duration.", operation.Opaque,
                                     operation.Key, reason);
 
+                                operation.Reset();
                                 await Task.Delay(action.DurationValue.Value, token).ConfigureAwait(false);
                             }
                             else

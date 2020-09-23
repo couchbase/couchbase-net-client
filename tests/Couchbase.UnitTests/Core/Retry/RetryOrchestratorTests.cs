@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
@@ -123,13 +124,53 @@ namespace Couchbase.UnitTests.Core.Retry
             }
         }
 
+        [Theory]
+        [ClassData(typeof(RetryTestData))]
+        public async Task Operation_Succeeds_After_N_Retries_Using_BestEffort_When_TemporaryFailure(
+            object operation, Exception exception)
+        {
+            await AssertRetryThenSuccessAsync((OperationBase)operation, exception).ConfigureAwait(false);
+        }
+
+        private async Task AssertRetryThenSuccessAsync(OperationBase op, Exception exp)
+        {
+            var retryOrchestrator = CreateRetryOrchestrator();
+
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
+            var handleOperationCompletedMethod = op.GetType().GetMethod("HandleOperationCompleted", (BindingFlags.Instance | BindingFlags.NonPublic));
+
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>())).Callback((IOperation op, CancellationToken ct) =>
+            {
+                if (op.Completed.IsCompleted)
+                    Assert.True(false, "operation result should be reset before retry");
+                // complete the operation (ResponseStatus does not matter for this test)
+                handleOperationCompletedMethod.Invoke(op, new object[] { null, ResponseStatus.TemporaryFailure });
+                if (op.Attempts == 1)
+                {
+                    throw exp;
+                }
+            }).Returns(op.Completed);
+
+            var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
+            try
+            {
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                Assert.True(false, "Expected operation to succeed after retry");
+            }
+            Assert.True(op.Attempts > 1);
+        }
 
         [Theory]
         [ClassData(typeof(RetryTestData))]
         public async Task Operation_Throws_Timeout_After_N_Retries_Using_BestEffort_When_NotMyVBucket(
             object operation, Exception exception)
         {
-            await AssertRetryAsync((IOperation) operation, exception).ConfigureAwait(false);
+            await AssertRetryAsync((IOperation)operation, exception).ConfigureAwait(false);
         }
 
         private async Task AssertRetryAsync(IOperation op, Exception exp)
@@ -143,7 +184,6 @@ namespace Couchbase.UnitTests.Core.Retry
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>())).Throws(exp);
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
-            tokenSource.Token.ThrowIfCancellationRequested();
             try
             {
                 await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token).ConfigureAwait(false);
@@ -156,7 +196,7 @@ namespace Couchbase.UnitTests.Core.Retry
         }
 
         [Fact]
-        private async Task Operation_Succeeds_Without_Retry()
+        public async Task Operation_Succeeds_Without_Retry()
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
@@ -169,7 +209,6 @@ namespace Couchbase.UnitTests.Core.Retry
                 .Returns(Task.CompletedTask);
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
-            tokenSource.Token.ThrowIfCancellationRequested();
 
             await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token).ConfigureAwait(false);
 
@@ -197,7 +236,6 @@ namespace Couchbase.UnitTests.Core.Retry
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>())).Throws(exp);
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
-            tokenSource.Token.ThrowIfCancellationRequested();
 
             try
             {
