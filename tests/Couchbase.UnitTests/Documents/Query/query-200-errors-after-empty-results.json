@@ -1,0 +1,21 @@
+{
+  "requestID": "033651a5-4138-4617-9bb6-6e0e0d0eb218",
+  "signature": {
+    "*": "*"
+  },
+  "results": [],
+  "errors": [
+    {
+      "code": 13014,
+      "msg": "User does not have credentials to run SELECT queries on the default bucket. Add role query_select on default to allow the query to run."
+    }
+  ],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "7.574158ms",
+    "executionTime": "7.510357ms",
+    "resultCount": 0,
+    "resultSize": 0,
+    "errorCount": 1
+  }
+}

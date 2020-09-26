@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Serializers;
 
 #nullable enable
@@ -18,8 +20,9 @@ namespace Couchbase.Query
     internal class StreamingQueryResult<T> : QueryResultBase<T>
     {
         private readonly IStreamingTypeDeserializer _deserializer;
+        private readonly Func<QueryResultBase<T>, HttpStatusCode, QueryErrorContext> _errorContextFactory;
         private IJsonStreamReader? _reader;
-        private bool _hasReadToResult;
+        private IAsyncEnumerator<T>? _resultEnumerator;
         private bool _hasReadResult;
         private bool _hasFinishedReading;
 
@@ -28,10 +31,13 @@ namespace Couchbase.Query
         /// </summary>
         /// <param name="responseStream"><see cref="Stream"/> to read.</param>
         /// <param name="deserializer"><see cref="ITypeSerializer"/> used to deserialize objects.</param>
-        public StreamingQueryResult(Stream responseStream, IStreamingTypeDeserializer deserializer)
+        /// <param name="errorContextFactory">Factory to create an error context if there is an error found after the results array.</param>
+        public StreamingQueryResult(Stream responseStream, IStreamingTypeDeserializer deserializer,
+            Func<QueryResultBase<T>, HttpStatusCode, QueryErrorContext> errorContextFactory)
             : base(responseStream)
         {
             _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            _errorContextFactory = errorContextFactory ?? throw new ArgumentNullException(nameof(errorContextFactory));
         }
 
         /// <inheritdoc />
@@ -70,35 +76,46 @@ namespace Couchbase.Query
             if (_hasFinishedReading)
             {
                 // empty collection OR non-success message
-                // Known Issue: Since we have to read the entire message in non-success cases to get the errors,
-                //              We can't stop the reader at the "results" section.  This shouldn't matter, since
-                //              query error results won't have useful "results" populated.
+
                 _hasReadResult = true;
+
+                if (!Success)
+                {
+                    // Handle errors found without iterating results
+                    this.ThrowExceptionOnError(_errorContextFactory(this, HttpStatusCode.OK));
+                }
+
                 yield break;
             }
-            if (!_hasReadToResult)
+            if (_resultEnumerator == null)
             {
                 throw new InvalidOperationException(
                     $"{nameof(StreamingQueryResult<T>)} has not been initialized, call InitializeAsync first");
             }
 
-            if (_reader == null)
-            {
-                // Should not be possible
-                throw new InvalidOperationException("_reader is null");
-            }
-
             // Read isn't complete, so the stream is currently waiting to deserialize the results
 
-            await foreach (var result in _reader.ReadObjectsAsync<T>(cancellationToken).ConfigureAwait(false))
+            // Yield the first result, which we already advanced to when we checked to see if the array was empty
+            yield return _resultEnumerator.Current;
+
+            // Yield the remaining results
+            while (await _resultEnumerator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
             {
-                yield return result;
+                yield return _resultEnumerator.Current;
             }
 
+            await _resultEnumerator.DisposeAsync().ConfigureAwait(false);
+            _resultEnumerator = null;
             _hasReadResult = true;
 
             // Read any remaining attributes after the results
             await ReadResponseAttributes(cancellationToken).ConfigureAwait(false);
+
+            if (!Success)
+            {
+                // Handle errors found after iterating the results
+                this.ThrowExceptionOnError(_errorContextFactory(this, HttpStatusCode.OK));
+            }
         }
 
         /// <summary>
@@ -118,7 +135,7 @@ namespace Couchbase.Query
                 MetaData = new QueryMetaData();
             }
 
-            _hasReadToResult = false;
+            _resultEnumerator = null;
 
             while (true)
             {
@@ -164,18 +181,23 @@ namespace Couchbase.Query
                             .ToMetrics();
                         break;
                     case "results":
-                        _hasReadToResult = true;
-
                         if (this.Success)
                         {
-                            // We've reached the result rows, return now
-                            return;
+                            _resultEnumerator = _reader.ReadObjectsAsync<T>(cancellationToken).GetAsyncEnumerator(cancellationToken);
+
+                            if (await _resultEnumerator.MoveNextAsync().ConfigureAwait(false))
+                            {
+                                // We've reached the result rows, and there is at least one item in the results, return now
+                                return;
+                            }
+
+                            // Result set was empty, cleanup
+                            await _resultEnumerator.DisposeAsync().ConfigureAwait(false);
+                            _resultEnumerator = null;
                         }
-                        else
-                        {
-                            // In non-success situations, we want to populate all the error and warning fields.
-                            break;
-                        }
+
+                        // In non-success situations or when the result set is empty, we want to populate all the error and warning fields.
+                        break;
                     case "warnings":
                         await foreach (var warning in _reader.ReadObjectsAsync<QueryWarning>(cancellationToken)
                             .ConfigureAwait(false))

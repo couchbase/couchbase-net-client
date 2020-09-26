@@ -25,6 +25,8 @@ namespace Couchbase.Query
     {
         internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
 
+        private static readonly string DefaultClientContextId = Guid.Empty.ToString();
+
         private readonly ConcurrentDictionary<string, QueryPlan> _queryCache = new ConcurrentDictionary<string, QueryPlan>();
         private readonly ITypeSerializer _queryPlanSerializer = new DefaultSerializer();
         private readonly IServiceUriProvider _serviceUriProvider;
@@ -137,6 +139,24 @@ namespace Couchbase.Query
 
         private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IInternalSpan span)
         {
+            var currentContextId = options.CurrentContextId ?? DefaultClientContextId;
+
+            QueryErrorContext ErrorContextFactory(QueryResultBase<T> failedQueryResult, HttpStatusCode statusCode)
+            {
+                // We use a local function to capture context like options and currentContextId
+
+                return new QueryErrorContext
+                {
+                    ClientContextId = options.CurrentContextId,
+                    Parameters = options.GetAllParametersAsJson(),
+                    Statement = options.ToString(),
+                    Message = GetErrorMessage(failedQueryResult, currentContextId, statusCode),
+                    Errors = failedQueryResult.Errors,
+                    HttpStatus = statusCode,
+                    QueryStatus = failedQueryResult.MetaData?.Status ?? QueryStatus.Fatal
+                };
+            }
+
             // try get Query node
             var queryUri = _serviceUriProvider.GetRandomQueryUri();
             span.WithRemoteAddress(queryUri);
@@ -158,7 +178,7 @@ namespace Couchbase.Query
 
                 if (serializer is IStreamingTypeDeserializer streamingDeserializer)
                 {
-                    queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer);
+                    queryResult = new StreamingQueryResult<T>(stream, streamingDeserializer, ErrorContextFactory);
                 }
                 else
                 {
@@ -173,8 +193,6 @@ namespace Couchbase.Query
 
                 if (response.StatusCode != HttpStatusCode.OK || queryResult.MetaData?.Status != QueryStatus.Success)
                 {
-                    var currentContextId = options.CurrentContextId ?? Guid.Empty.ToString();
-
                     _logger.LogDebug("Request {currentContextId} has failed because {status}.",
                         currentContextId, queryResult.MetaData?.Status);
 
@@ -193,16 +211,7 @@ namespace Couchbase.Query
                         return queryResult;
                     }
 
-                    var context = new QueryErrorContext
-                    {
-                        ClientContextId = options.CurrentContextId,
-                        Parameters = options.GetAllParametersAsJson(),
-                        Statement = options.ToString(),
-                        Message = GetErrorMessage(queryResult, currentContextId, response.StatusCode),
-                        Errors = queryResult.Errors,
-                        HttpStatus = response.StatusCode,
-                        QueryStatus = queryResult.MetaData?.Status ?? QueryStatus.Fatal
-                    };
+                    var context = ErrorContextFactory(queryResult, response.StatusCode);
 
                     if (queryResult.MetaData?.Status == QueryStatus.Timeout)
                     {

@@ -1,7 +1,9 @@
 using System;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
@@ -28,16 +30,65 @@ namespace Couchbase.UnitTests.Query
 
             using var stream = ResourceHelper.ReadResourceAsStream(fileName);
 
-            using var blockResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
-            await blockResult.InitializeAsync().ConfigureAwait(false);
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
+            await streamingResult.InitializeAsync().ConfigureAwait(false);
 
             // Act
 
-            var actual = blockResult.ShouldRetry(enableEnhancedPreparedStatements);
+            var actual = streamingResult.ShouldRetry(enableEnhancedPreparedStatements);
 
             // Assert
 
             Assert.Equal(shouldRetry, actual);
+        }
+
+        #endregion
+
+        #region InitializeAsync
+
+        [Theory]
+        [InlineData(@"Documents\Query\query-n1ql-error-response-400.json", QueryStatus.Fatal)]
+        [InlineData(@"Documents\Query\query-service-error-response-503.json", QueryStatus.Errors)]
+        [InlineData(@"Documents\Query\query-timeout-response-200.json", QueryStatus.Timeout)]
+        public async Task InitializeAsync_NoResults_HasErrors(string filename, QueryStatus expectedStatus)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(filename);
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            Assert.False(streamingResult.Success);
+            Assert.Equal(expectedStatus, streamingResult.MetaData.Status);
+            Assert.NotEmpty(streamingResult.Errors);
+        }
+
+        [Fact]
+        public async Task InitializeAsync_ErrorAfterEmptyResults_HasErrors()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-errors-after-empty-results.json");
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+            await streamingResult.InitializeAsync();
+
+            // Act
+
+            await streamingResult.InitializeAsync();
+
+            // Assert
+
+            Assert.False(streamingResult.Success);
+            Assert.Equal(QueryStatus.Fatal, streamingResult.MetaData.Status);
+            Assert.NotEmpty(streamingResult.Errors);
         }
 
         #endregion
@@ -51,7 +102,7 @@ namespace Couchbase.UnitTests.Query
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
             streamingResult.Success = true;
             await streamingResult.InitializeAsync();
 
@@ -71,9 +122,9 @@ namespace Couchbase.UnitTests.Query
         {
             // Arrange
 
-            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success-empty.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
             await streamingResult.InitializeAsync();
 
             // Act
@@ -92,23 +143,21 @@ namespace Couchbase.UnitTests.Query
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
 
             // Act/Assert
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => streamingResult.ToListAsync().AsTask());
         }
 
-        [Theory]
-        [InlineData(@"Documents\Query\query-200-success.json")]
-        [InlineData(@"Documents\Query\query-n1ql-error-response-400.json")]
-        public async Task GetAsyncEnumerator_CalledTwice_StreamAlreadyReadException(string filename)
+        [Fact]
+        public async Task GetAsyncEnumerator_CalledTwice_StreamAlreadyReadException()
         {
             // Arrange
 
-            using var stream = ResourceHelper.ReadResourceAsStream(filename);
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
             await streamingResult.InitializeAsync();
 
             // Act/Assert
@@ -118,28 +167,21 @@ namespace Couchbase.UnitTests.Query
         }
 
         [Theory]
-        [InlineData(@"Documents\Query\query-n1ql-error-response-400.json", QueryStatus.Fatal)]
-        [InlineData(@"Documents\Query\query-service-error-response-503.json", QueryStatus.Errors)]
-        [InlineData(@"Documents\Query\query-timeout-response-200.json", QueryStatus.Timeout)]
-        public async Task GetAsyncEnumerator_AfterEnumeration_HasErrors(string filename, QueryStatus expectedStatus)
+        [InlineData(@"Documents\Query\query-200-errors-after-empty-results.json")]
+        [InlineData(@"Documents\Query\query-200-errors-after-some-results.json")]
+        public async Task GetAsyncEnumerator_ErrorAfterResults_Throws(string filename)
         {
             // Arrange
 
             using var stream = ResourceHelper.ReadResourceAsStream(filename);
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
             await streamingResult.InitializeAsync();
 
-            // Act
+            // Act/Assert
 
-            await streamingResult.ToListAsync();
-            var result = streamingResult.MetaData.Status;
-
-            // Assert
-
-            Assert.False(streamingResult.Success);
-            Assert.Equal(expectedStatus, result);
-            Assert.NotEmpty(streamingResult.Errors);
+            await Assert.ThrowsAsync<CouchbaseException>(() => streamingResult.ToListAsync().AsTask());
         }
 
         [Fact]
@@ -149,7 +191,8 @@ namespace Couchbase.UnitTests.Query
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
             await streamingResult.InitializeAsync();
 
             // Act
@@ -174,7 +217,7 @@ namespace Couchbase.UnitTests.Query
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
 
             // Act
 
@@ -194,7 +237,7 @@ namespace Couchbase.UnitTests.Query
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-n1ql-error-response-400.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
 
             // Act
 
@@ -216,7 +259,7 @@ namespace Couchbase.UnitTests.Query
 
             using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-create-index-500.json");
 
-            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer());
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
 
             // Act
 
@@ -229,6 +272,23 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(QueryStatus.Errors, streamingResult.MetaData.Status);
             Assert.NotNull(streamingResult.MetaData.Metrics);
         }
+
+        #endregion
+
+        #region Helpers
+
+        private QueryErrorContext ErrorContextFactory<T>(QueryResultBase<T> failedQueryResult,
+            HttpStatusCode statusCode) =>
+            new QueryErrorContext
+            {
+                ClientContextId = Guid.Empty.ToString(),
+                Parameters = "{}",
+                Statement = "",
+                Message = "Error Message",
+                Errors = failedQueryResult.Errors,
+                HttpStatus = statusCode,
+                QueryStatus = failedQueryResult.MetaData?.Status ?? QueryStatus.Fatal
+            };
 
         #endregion
     }

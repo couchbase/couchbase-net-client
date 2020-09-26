@@ -1,0 +1,26 @@
+{
+  "requestID": "033651a5-4138-4617-9bb6-6e0e0d0eb218",
+  "clientContextID": "1e6df61d-29ef-4821-9e49-02b3edd06ce5",
+  "signature": {
+    "*": "*"
+  },
+  "results": [
+    {
+      "some": "result"
+    }
+  ],
+  "errors": [
+    {
+      "code": 99999,
+      "msg": "Some fatal error that may occur after result streaming from the server"
+    }
+  ],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "7.574158ms",
+    "executionTime": "7.510357ms",
+    "resultCount": 0,
+    "resultSize": 0,
+    "errorCount": 1
+  }
+}
