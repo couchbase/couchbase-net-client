@@ -45,6 +45,8 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
                         var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(DynamicAssemblyName,
                             AssemblyBuilderAccess.Run);
                         _moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
+
+                        IgnoresAccessChecksToAttributeGenerator.Generate(assemblyBuilder, _moduleBuilder);
                     }
                 }
             }
@@ -64,10 +66,10 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             ilGenerator.Emit(OpCodes.Ldarg_0); // push "this"
             ilGenerator.Emit(OpCodes.Ldarg_1); // push the I
             ilGenerator.Emit(OpCodes.Ldarg_2); // push the param
-            ilGenerator.Emit(OpCodes.Call, baseConstructor);
+            ilGenerator.Emit(OpCodes.Call, baseConstructor!);
             ilGenerator.Emit(OpCodes.Ret);
 
-            return typeBuilder.CreateTypeInfo().AsType();
+            return typeBuilder.CreateTypeInfo()!.AsType();
         }
 
 #if SIGNING
