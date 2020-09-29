@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.CircuitBreakers
 {
-    public class CircuitBreakerException : Exception
+    public class CircuitBreakerException : CouchbaseException, IRetryable
     {
     }
 }

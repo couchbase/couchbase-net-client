@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
@@ -203,9 +204,14 @@ namespace Couchbase.Core.Retry
                                 operation.Opaque,
                                 operation.Key, reason);
 
-                            operation.Reset(); // Reset first so operation is not marked as sent if canceled during the delay
-
                             await backoff.Delay(operation).ConfigureAwait(false);
+
+                            // no need to reset op in this case as it was not actually sent
+                            if (reason != RetryReason.CircuitBreakerOpen)
+                            {
+                                operation.Reset();
+                            }
+
                             continue;
                         }
 

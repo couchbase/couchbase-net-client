@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -58,14 +59,14 @@ namespace Couchbase.UnitTests.Core.Retry
                 yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
                 yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
 
-                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
 
                 yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
                 yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
@@ -155,8 +156,11 @@ namespace Couchbase.UnitTests.Core.Retry
             {
                 if (op.Completed.IsCompleted)
                     Assert.True(false, "operation result should be reset before retry");
-                // complete the operation (ResponseStatus does not matter for this test)
-                op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.TemporaryFailure));
+
+                // complete the operation if circuit breaker is not open (ResponseStatus does not matter for this test)
+                if (exp.GetType() != typeof(CircuitBreakerException) || op.Attempts != 1)
+                    op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.TemporaryFailure));
+
                 if (op.Attempts == 1)
                 {
                     throw exp;
@@ -168,8 +172,9 @@ namespace Couchbase.UnitTests.Core.Retry
             {
                 await retryOrchestrator.RetryAsync(bucketMock.Object, op, CancellationTokenPair.FromInternalToken(tokenSource.Token)).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                var msg = ex.Message;
                 Assert.True(false, "Expected operation to succeed after retry");
             }
             Assert.True(op.Attempts > 1);

@@ -11,7 +11,8 @@ namespace Couchbase.Core.Retry
         {
             return reason == RetryReason.KvNotMyVBucket ||
                    reason == RetryReason.KvCollectionOutdated ||
-                   reason == RetryReason.ViewsNoActivePartition;
+                   reason == RetryReason.ViewsNoActivePartition ||
+                   reason == RetryReason.CircuitBreakerOpen;
         }
     }
 }
