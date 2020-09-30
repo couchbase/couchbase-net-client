@@ -7,6 +7,7 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Couchbase.Management.Collections;
+using Couchbase.Query;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -500,6 +501,71 @@ namespace Couchbase.IntegrationTests
                     var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
                     Assert.True(collectionExistsResult);
                 }
+            }
+            finally
+            {
+                // drop scope
+                await collectionManager.DropScopeAsync(scopeName).ConfigureAwait(false);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
+        public async System.Threading.Tasks.Task Test_Collections_QueryOptionsAsync()
+        {
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
+            var collectionManager = (CollectionManager)bucket.Collections;
+            string scopeName = "query_test_scope1";
+            string collectionName = "query_test_collection1";
+            string docId = "mydoc1";
+            var scopeSpec = new ScopeSpec(scopeName);
+            try
+            {
+                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                var collectionSpec = new CollectionSpec(scopeName, collectionName);
+                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
+                Assert.True(collectionExistsResult);
+                var collection = bucket.Scope(scopeName).Collection(collectionName);
+                var task = await collection.InsertAsync(docId, new { }).ConfigureAwait(false);
+                var options = new QueryOptions("select * from `" + collectionName + "` where meta().id=\"" + docId + "\"") { QueryContext = "namespace:bucket:scope:collection" };
+                var args = options.GetFormValues();
+                Assert.Equal("namespace:bucket:scope:collection", args["query_context"]);
+            }
+            finally
+            {
+                // drop scope
+                await collectionManager.DropScopeAsync(scopeName).ConfigureAwait(false);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
+        public async System.Threading.Tasks.Task Test_Collections_QueryOps()
+        {
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
+            var collectionManager = (CollectionManager)bucket.Collections;
+            string scopeName = "query_test_scope2";
+            string collectionName = "query_test_collection2";
+            string docId = "mydoc2";
+            var scopeSpec = new ScopeSpec(scopeName);
+            try
+            {
+                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                var collectionSpec = new CollectionSpec(scopeName, collectionName);
+                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
+                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
+                Assert.True(collectionExistsResult);
+                var collection = bucket.Scope(scopeName).Collection(collectionName);
+                var task = await collection.InsertAsync(docId, new { }).ConfigureAwait(false);
+                var options = new QueryOptions("select * from `" + collectionName + "` where meta().id=\"" + docId + "\"") { QueryContext = "namespace:bucket:scope:collection" };
+                var args = options.GetFormValues();
+                Assert.Equal("namespace:bucket:scope:collection", args["query_context"]);
+                options = new QueryOptions("SELECT * FROM `$bucket` WHERE collectionName=$name").
+                    Parameter("bucket", "default").
+                    Parameter("collectionName", "query_test_collection2");
+
+                var values = options.GetFormValues();
+                Assert.Equal("default", values["$bucket"]);
+                Assert.Equal("query_test_collection2", values["$name"]);
             }
             finally
             {
