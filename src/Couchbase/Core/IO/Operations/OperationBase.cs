@@ -516,7 +516,8 @@ namespace Couchbase.Core.IO.Operations
                 if (data != null && (status == ResponseStatus.Success
                                      || status == ResponseStatus.VBucketBelongsToAnotherServer
                                      || status == ResponseStatus.AuthenticationContinue
-                                     || status == ResponseStatus.SubDocMultiPathFailure))
+                                     || status == ResponseStatus.SubDocMultiPathFailure
+                                     || status ==  ResponseStatus.SubDocSuccessDeletedDocument))
                 {
                     Read(data);
 

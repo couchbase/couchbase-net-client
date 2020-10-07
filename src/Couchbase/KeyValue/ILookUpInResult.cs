@@ -8,6 +8,8 @@ namespace Couchbase.KeyValue
     {
         bool Exists(int index);
 
+        bool IsDeleted { get; }
+
         T ContentAs<T>(int index);
     }
 }

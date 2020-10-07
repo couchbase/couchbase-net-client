@@ -1,7 +1,9 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Newtonsoft.Json;
 using Xunit;
@@ -233,6 +235,30 @@ namespace Couchbase.IntegrationTests
 
             var lookupResult = await collection.LookupInAsync("foo", specs => specs.Get("key", true));
             Assert.Equal("value", (string)lookupResult.ContentAs<string>(0));
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "6.6.0")]
+        public async Task MutateIn_CreateAsDeleted_Creates_Tombstone()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_CreateAsDeleted_Creates_Tombstone) + Guid.NewGuid().ToString();
+            var result = await collection.MutateInAsync(documentKey, specs =>
+                {
+                    specs.Upsert("key", "value", true, true);
+                 },
+                options =>
+                    options.StoreSemantics(StoreSemantics.Upsert)
+                        .Expiry(TimeSpan.FromSeconds(30))
+                        .CreateAsDeleted(true)).ConfigureAwait(false);
+
+            _ = await Assert.ThrowsAnyAsync<DocumentNotFoundException>(() => collection.GetAsync(documentKey));
+
+            var lookupResult = await collection.LookupInAsync(documentKey,
+                specs => specs.Get("key", true),
+                opts => opts.AccessDeleted(true));
+            Assert.Equal("value", (string)lookupResult.ContentAs<string>(0));
+
+            Assert.True(lookupResult.IsDeleted);
         }
     }
 }

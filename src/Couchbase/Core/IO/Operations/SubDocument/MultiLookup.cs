@@ -12,9 +12,17 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     {
         public LookupInBuilder<T> Builder { get; set; }
         private readonly List<OperationSpec> _lookupCommands = new List<OperationSpec>();
+        public SubdocDocFlags DocFlags { get; set; }
 
         public override void WriteExtras(OperationBuilder builder)
         {
+            if (DocFlags != SubdocDocFlags.None)
+            {
+                //Add the doc flags
+                Span<byte> buffer = stackalloc byte[sizeof(byte)];
+                buffer[0] = (byte)DocFlags;
+                builder.Write(buffer);
+            }
         }
 
         public override void WriteFramingExtras(OperationBuilder builder)

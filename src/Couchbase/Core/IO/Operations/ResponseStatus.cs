@@ -256,6 +256,11 @@ namespace Couchbase.Core.IO.Operations
         SubDocMultiPathFailure = 0xcc,
 
         /// <summary>
+        /// SubDocument status indicating that the subdoc operation completed successfully on the deleted document.
+        /// </summary>
+        SubDocSuccessDeletedDocument = 0xcd,
+
+        /// <summary>
         /// Subdocument error indicating the flag combination for an XATTR operation was invalid.
         /// </summary>
         SubDocXattrInvalidFlagCombo = 0xce,

@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Converters;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
@@ -166,6 +167,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             if (responseSpan.Length == OperationHeader.Length + Header.FramingExtrasLength)
             {
                 return _mutateCommands.OrderBy(spec => spec.OriginalIndex).ToList();
+            }
+
+            if (Header.BodyOffset > responseSpan.Length)
+            {
+                throw new DecodingFailureException();
             }
 
             responseSpan = responseSpan.Slice(Header.BodyOffset);

@@ -5,7 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -415,8 +417,11 @@ namespace Couchbase.KeyValue
             using var rootSpan = RootSpan(OperationNames.MultiLookupSubdocGet);
             options ??= new LookupInOptions();
             using var lookup = await ExecuteLookupIn(id, specs, options, rootSpan).ConfigureAwait(false);
+            var responseStatus = lookup.Header.Status;
+            var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
+                            responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
             return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
-                options.SerializerValue ?? _transcoder.Serializer);
+                options.SerializerValue ?? _transcoder.Serializer, isDeleted);
         }
 
         private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<LookupInSpec> specs,
@@ -440,6 +445,7 @@ namespace Couchbase.KeyValue
                 Builder = builder,
                 Cid = Cid,
                 CName = Name,
+                DocFlags = options.AccessDeletedValue ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None,
                 Transcoder = _transcoder,
                 Span = span
             };
@@ -474,9 +480,20 @@ namespace Couchbase.KeyValue
                     docFlags |= SubdocDocFlags.InsertDocument;
                     break;
                 case StoreSemantics.AccessDeleted:
+                    docFlags |= SubdocDocFlags.AccessDeleted;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+
+            if (options.CreateAsDeletedValue)
+            {
+                if (!_bucket.BucketConfig?.BucketCapabilities.Contains(BucketCapabilities.CREATE_AS_DELETED) == true)
+                {
+                    throw new FeatureNotAvailableException(nameof(BucketCapabilities.CREATE_AS_DELETED));
+                }
+
+                docFlags |= SubdocDocFlags.CreateAsDeleted;
             }
 
             using var rootSpan = RootSpan(OperationNames.MultiMutationSubdocMutate);

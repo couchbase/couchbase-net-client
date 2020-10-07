@@ -726,6 +726,8 @@ namespace Couchbase.KeyValue
 
         internal ITypeSerializer? SerializerValue { get; set; }
 
+        internal bool AccessDeletedValue { get; set; }
+
         public LookupInOptions Serializer(ITypeSerializer? serializer)
         {
             SerializerValue = serializer;
@@ -747,6 +749,12 @@ namespace Couchbase.KeyValue
         public LookupInOptions Expiry(bool expiry)
         {
             ExpiryValue = expiry;
+            return this;
+        }
+
+        public LookupInOptions AccessDeleted(bool accessDeleted)
+        {
+            AccessDeletedValue = accessDeleted;
             return this;
         }
     }
@@ -772,6 +780,8 @@ namespace Couchbase.KeyValue
         internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeSerializer? SerializerValue { get; set; }
+
+        internal bool CreateAsDeletedValue { get; set; }
 
         public MutateInOptions StoreSemantics(StoreSemantics storeSemantics)
         {
@@ -818,6 +828,12 @@ namespace Couchbase.KeyValue
         public MutateInOptions CancellationToken(CancellationToken token)
         {
             TokenValue = token;
+            return this;
+        }
+
+        public MutateInOptions CreateAsDeleted(bool createAsDeleted)
+        {
+            CreateAsDeletedValue = true;
             return this;
         }
     }

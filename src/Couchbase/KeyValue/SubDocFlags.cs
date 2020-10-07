@@ -28,6 +28,12 @@ namespace Couchbase.KeyValue
         /// Allows access to a deleted document's attributes section.
         /// Only for internal diagnostic use only and is an unsupported feature.
         /// </summary>
-        AccessDeleted = 0x04
+        AccessDeleted = 0x04,
+
+        /// <summary>
+        /// If theserver needs to create a new document, it will create it as a tombstone.
+        /// Any system or user xattrs provided in the request will be stored, but a document body will not be.
+        /// </summary>
+        CreateAsDeleted = 0x08
     }
 }

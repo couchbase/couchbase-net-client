@@ -30,7 +30,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             // Assert
 
-            var expected = $@"{{""Value"":{TestUnixMilliseconds}}}";
+            var expected = $@"{{""value"":{TestUnixMilliseconds}}}";
             Assert.Equal(expected, json);
         }
 
@@ -199,6 +199,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
         public class NonNullablePoco
         {
+            [JsonProperty("value")]
             [JsonConverter(typeof(UnixMillisecondsConverter))]
             public DateTime Value { get; set; }
         }

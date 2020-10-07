@@ -459,6 +459,12 @@ namespace Couchbase.Core
                         return;
                     }
 
+                    // The sub-doc operation was a success, but the doc remains deleted/tombstone.
+                    if (status == ResponseStatus.SubDocSuccessDeletedDocument)
+                    {
+                        return;
+                    }
+
                     var code = (short)status;
                     if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
                     {
@@ -489,6 +495,7 @@ namespace Couchbase.Core
                 _logger.LogDebug("Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}",
                     EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
             }
+
             catch (OperationCanceledException e)
             {
                 _logger.LogDebug("KV Operation timeout for {key} on server {endpoint}.", op.Key, EndPoint);
@@ -498,6 +505,11 @@ namespace Couchbase.Core
                     throw new TimeoutException();
                 }
 
+                throw;
+            }
+            catch (Exception e)
+            {
+                _logger.LogDebug($"Op failed: {op}: {e.ToString()}");
                 throw;
             }
         }

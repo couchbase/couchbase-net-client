@@ -15,18 +15,21 @@ namespace Couchbase.KeyValue
         private readonly IList<OperationSpec> _specs;
         private readonly ITypeSerializer _serializer;
 
-        internal LookupInResult(IList<OperationSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer)
+        internal LookupInResult(IList<OperationSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false)
         {
             var reOrdered = specs ?? throw new ArgumentNullException(nameof(specs));
             _specs = reOrdered.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = cas;
             Expiry = expiry;
             _serializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
+            IsDeleted = isDeleted;
         }
 
         public ulong Cas { get; }
 
         public TimeSpan? Expiry { get; }
+
+        public bool IsDeleted { get; }
 
         public T ContentAs<T>(int index)
         {

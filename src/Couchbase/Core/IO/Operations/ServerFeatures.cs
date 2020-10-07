@@ -67,7 +67,13 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Support unordered execution of operations.
         /// </summary>
-        UnorderedExecution = 0x0e
+        UnorderedExecution = 0x0e,
+
+        /// <summary>
+        /// Enables the "create as deleted" flag, allowing a document to be created in a tombstoned state.
+        /// </summary>
+        /// <remarks>Requires Couchbase Server 6.6 or greater.</remarks>
+        CreateAsDeleted = 0x17
     }
 }
 
