@@ -81,5 +81,24 @@ namespace Couchbase.IntegrationTests.Management
 
             await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
         }
+
+        [Fact]
+        public async Task Test_CanAssignCollectionsAwareRoles()
+        {
+            var name = "usermgr_collection_role_test1";
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            await cluster.Users.UpsertUserAsync(new User(name)
+            {
+                Password = "password",
+                Roles = new List<Role>
+                {
+                    new Role("data_reader", "default"),
+                    new Role("data_reader", "default", "_default", null),
+                    new Role("data_reader", "default", "_default", "_default")
+                }
+            }).ConfigureAwait(false);
+
+            await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
+        }
     }
 }

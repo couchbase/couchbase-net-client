@@ -100,5 +100,37 @@ namespace Couchbase.IntegrationTests
                 await userManager.DropGroupAsync(groupName).ConfigureAwait(false);
             }
         }
+
+        [Fact]
+        public async Task Test_UserInheritsCollectionAwareRoles()
+        {
+            var userManager = _fixture.Cluster.Users;
+            const string groupName = "test_group1", username = "test_user1";
+
+            try
+            {
+                var group = new Group(groupName)
+                {
+                    Description = "test_description",
+                    LdapGroupReference = "asda=price",
+                    Roles = new[] {
+                    new Role("admin"), new Role("bucket_admin", "*"),
+                    new Role("data_reader", "default", "_default", null),
+                    new Role("data_reader", "default", "_default", "_default")
+                }};
+                await userManager.UpsertGroupAsync(@group).ConfigureAwait(false);
+                var groupResult = await userManager.GetGroupAsync(groupName).ConfigureAwait(false);
+                Assert.Equal(group.Name, groupResult.Name);
+                Assert.Equal(group.Description, groupResult.Description);
+            }
+            finally
+            {
+                // drop user
+                await userManager.DropUserAsync(username).ConfigureAwait(false);
+
+                // drop group
+                await userManager.DropGroupAsync(groupName).ConfigureAwait(false);
+            }
+        }
     }
 }
