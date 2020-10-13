@@ -87,8 +87,9 @@ namespace Couchbase.IntegrationTests
                 ops.Exists("bwar");
             }).ConfigureAwait(false);
 
+            Assert.True(result.Exists(0));
             Assert.Equal("bar", result.ContentAs<string>(0));
-            Assert.True(result.Exists(1));
+            Assert.False(result.Exists(1));
         }
 
         [Fact]

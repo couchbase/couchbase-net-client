@@ -50,7 +50,7 @@ namespace Couchbase.KeyValue
             }
 
             var spec = _specs[index];
-            return spec.Status == ResponseStatus.SubDocPathNotFound;
+            return spec.Status == ResponseStatus.Success;
         }
     }
 }
