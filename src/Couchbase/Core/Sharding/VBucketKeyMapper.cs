@@ -81,13 +81,10 @@ namespace Couchbase.Core.Sharding
 
         public short GetIndex(string key)
         {
-            using (var crc32 = new Crc32())
-            {
-                var keyBytes = Encoding.UTF8.GetBytes(key);
-                var hashedKeyBytes = crc32.ComputeHash(keyBytes);
-                var hash = BitConverter.ToInt16(hashedKeyBytes, 0);
-                return (short) (hash & _mask);
-            }
+            var keyBytes = Encoding.UTF8.GetBytes(key);
+            var hash = Crc32.ComputeHash(keyBytes);
+
+            return (short) (hash & _mask);
         }
 
         /// <summary>
