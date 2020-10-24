@@ -70,7 +70,35 @@ namespace Couchbase.KeyValue
             // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
             using var rootSpan = RootSpan(OperationNames.Get);
             options ??= new GetOptions();
+
+            var projectList = options.ProjectListValue;
+
+            var specCount = projectList.Count;
+            if (options.IncludeExpiryValue)
+            {
+                specCount++;
+            }
+
+            if (specCount == 0)
+            {
+                // We aren't including the expiry value and we have no projections so fetch the whole doc using a Get operation
+
+                var getOp = await ExecuteGet(id, options, rootSpan).ConfigureAwait(false);
+                rootSpan.OperationId(getOp);
+
+                return new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
+                {
+                    Id = getOp.Key,
+                    Cas = getOp.Cas,
+                    OpCode = getOp.OpCode,
+                    Flags = getOp.Flags,
+                    Header = getOp.Header,
+                    Opaque = getOp.Opaque
+                };
+            }
+
             var specs = new List<LookupInSpec>();
+
             if (options.IncludeExpiryValue)
             {
                 specs.Add(new LookupInSpec
@@ -81,32 +109,9 @@ namespace Couchbase.KeyValue
                 });
             }
 
-            var projectList = options.ProjectListValue;
-            if (projectList.Any())
+            if (projectList.Count == 0 || specCount > 16)
             {
-                //we have succeeded the max #fields returnable by sub-doc so fetch the whole doc
-                if (projectList.Count + specs.Count > 16)
-                {
-                    specs.Add(new LookupInSpec
-                    {
-                        Path = "",
-                        OpCode = OpCode.Get,
-                        DocFlags = SubdocDocFlags.None
-                    });
-                }
-                else
-                {
-                    //Add the projections for fetching
-                    projectList.ForEach(path=>specs.Add(new LookupInSpec
-                    {
-                        OpCode = OpCode.SubGet,
-                        Path = path
-                    }));
-                }
-            }
-            else
-            {
-                //Project list is empty so fetch the whole doc
+                // No projections or we have exceeded the max #fields returnable by sub-doc so fetch the whole doc
                 specs.Add(new LookupInSpec
                 {
                     Path = "",
@@ -114,12 +119,20 @@ namespace Couchbase.KeyValue
                     DocFlags = SubdocDocFlags.None
                 });
             }
+            else
+            {
+                //Add the projections for fetching
+                projectList.ForEach(path => specs.Add(new LookupInSpec
+                {
+                    OpCode = OpCode.SubGet,
+                    Path = path
+                }));
+            }
 
             var lookupOp = await ExecuteLookupIn(id,
                     specs, new LookupInOptions().Timeout(options.TimeoutValue), rootSpan)
                 .ConfigureAwait(false);
             rootSpan.OperationId(lookupOp);
-            _operationConfigurator.Configure(lookupOp, options);
 
             return new GetResult(lookupOp.ExtractBody(), lookupOp.Transcoder, _getLogger, specs, projectList)
             {
@@ -130,6 +143,24 @@ namespace Couchbase.KeyValue
                 Header = lookupOp.Header,
                 Opaque = lookupOp.Opaque
             };
+        }
+
+        private async Task<Get<byte[]>> ExecuteGet(string id, GetOptions options, IInternalSpan span)
+        {
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+
+            var get = new Get<byte[]>
+            {
+                Key = id,
+                Cid = Cid,
+                CName = Name,
+                Span = span
+            };
+            _operationConfigurator.Configure(get, options);
+
+            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, get).ConfigureAwait(false);
+            return get;
         }
 
         #endregion
