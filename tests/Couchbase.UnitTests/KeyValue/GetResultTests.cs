@@ -132,7 +132,7 @@ namespace Couchbase.UnitTests.KeyValue
             var getRequest = new MultiLookup<byte[]>();
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
-            var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
+            var readResult = new GetResult(getRequest.ExtractBody(),
                 new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
                 _lookupInSpecs)
             {
@@ -151,7 +151,7 @@ namespace Couchbase.UnitTests.KeyValue
             var getRequest = new MultiLookup<byte[]>();
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
-            var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
+            var readResult = new GetResult(getRequest.ExtractBody(),
                 new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
                 _lookupInSpecs)
             {
@@ -170,7 +170,7 @@ namespace Couchbase.UnitTests.KeyValue
             var getRequest = new MultiLookup<byte[]>();
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
-            var readResult = new GetResult(new FakeMemoryOwner<byte>(_lookupInPacket),
+            var readResult = new GetResult(getRequest.ExtractBody(),
                 new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
                 _lookupInSpecs)
             {

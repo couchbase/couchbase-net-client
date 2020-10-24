@@ -76,7 +76,7 @@ namespace Couchbase.KeyValue
             //basic GET or other non-projection operation
             if (OpCode == OpCode.Get || OpCode == OpCode.ReplicaRead || OpCode == OpCode.GetL || OpCode == OpCode.GAT)
             {
-                return _transcoder.Decode<T>(_contentBytes.Memory.Slice(Header.BodyOffset), Flags, OpCode);
+                return _transcoder.Decode<T>(_contentBytes.Memory, Flags, OpCode);
             }
 
             //oh mai, its a projection
@@ -142,7 +142,7 @@ namespace Couchbase.KeyValue
             //we already parsed the response from the server but not each element
             if(_isParsed) return;
 
-            var response = _contentBytes.Memory.Slice(Header.BodyOffset);
+            var response = _contentBytes.Memory;
             var commandIndex = 0;
 
             for (;;)

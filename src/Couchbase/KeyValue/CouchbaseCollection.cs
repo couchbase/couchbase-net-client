@@ -121,7 +121,7 @@ namespace Couchbase.KeyValue
             rootSpan.OperationId(lookupOp);
             var transcoder = options.TranscoderValue ?? _transcoder;
 
-            return new GetResult(lookupOp.ExtractData(), transcoder, _getLogger, specs, projectList)
+            return new GetResult(lookupOp.ExtractBody(), transcoder, _getLogger, specs, projectList)
             {
                 Id = lookupOp.Key,
                 Cas = lookupOp.Cas,
@@ -363,7 +363,7 @@ namespace Couchbase.KeyValue
 
             await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getAndTouchOp).ConfigureAwait(false);
 
-            return new GetResult(getAndTouchOp.ExtractData(), transcoder, _getLogger)
+            return new GetResult(getAndTouchOp.ExtractBody(), transcoder, _getLogger)
             {
                 Id = getAndTouchOp.Key,
                 Cas = getAndTouchOp.Cas,
@@ -395,7 +395,7 @@ namespace Couchbase.KeyValue
                 Span = rootSpan
             };
             await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getAndLockOp).ConfigureAwait(false);
-            return new GetResult(getAndLockOp.ExtractData(), transcoder, _getLogger)
+            return new GetResult(getAndLockOp.ExtractBody(), transcoder, _getLogger)
             {
                 Id = getAndLockOp.Key,
                 Cas = getAndLockOp.Cas,
@@ -704,7 +704,7 @@ namespace Couchbase.KeyValue
             };
 
             await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
-            return new GetReplicaResult(getOp.ExtractData(), transcoder, _getLogger)
+            return new GetReplicaResult(getOp.ExtractBody(), transcoder, _getLogger)
             {
                 Id = getOp.Key,
                 Cas = getOp.Cas,
@@ -729,7 +729,7 @@ namespace Couchbase.KeyValue
             };
 
             await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
-            return new GetReplicaResult(getOp.ExtractData(), transcoder, _getLogger)
+            return new GetReplicaResult(getOp.ExtractBody(), transcoder, _getLogger)
             {
                 Id = getOp.Key,
                 Cas = getOp.Cas,

@@ -110,9 +110,19 @@ namespace Couchbase.Core.IO.Operations
             };
         }
 
-        public IMemoryOwner<byte> ExtractData()
+        /// <summary>
+        /// Returns a block of memory containing the body of the operation response. May only be called once.
+        /// Ownership of the block of memory is transferred to the caller, which is then responsible for disposing it.
+        /// </summary>
+        /// <returns>An owned block of memory containing the body of the operation response.</returns>
+        public IMemoryOwner<byte> ExtractBody()
         {
-            var data = _data;
+            if (_data == null)
+            {
+                return null;
+            }
+
+            var data = new SlicedMemoryOwner<byte>(_data, Header.BodyOffset);
             _data = null;
             return data;
         }
