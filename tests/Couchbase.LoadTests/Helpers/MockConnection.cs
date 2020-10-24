@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -27,6 +28,7 @@ namespace Couchbase.LoadTests.Helpers
         public EndPoint LocalEndPoint { get; set; }
         public bool IsDead { get; set; }
         public TimeSpan IdleTime { get; set; }
+        public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
         public Task SendAsync(ReadOnlyMemory<byte> buffer, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap errorMap = null)
         {

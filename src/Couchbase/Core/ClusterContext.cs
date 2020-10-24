@@ -281,7 +281,7 @@ namespace Couchbase.Core
                         if (server.Host.Equals(nodeAdapter.Hostname)) //this is the bootstrap node so update
                         {
                             node.NodesAdapter = nodeAdapter;
-                            SupportsCollections = node.Supports(ServerFeatures.Collections);
+                            SupportsCollections = node.ServerFeatures.Collections;
                             AddNode(node);
                         }
                         else
@@ -290,7 +290,7 @@ namespace Couchbase.Core
                             var newNode = await _clusterNodeFactory
                                 .CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, nodeAdapter,
                                     CancellationToken).ConfigureAwait(false);
-                            SupportsCollections = node.Supports(ServerFeatures.Collections);
+                            SupportsCollections = node.ServerFeatures.Collections;
                             AddNode(newNode);
                         }
                     }
@@ -428,7 +428,7 @@ namespace Couchbase.Core
                         if (bootstrapNode.HasKv)
                         {
                             await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
-                            SupportsCollections = bootstrapNode.Supports(ServerFeatures.Collections);
+                            SupportsCollections = bootstrapNode.ServerFeatures.Collections;
                         }
 
                         bootstrapNode.Owner = bucket;
@@ -467,7 +467,7 @@ namespace Couchbase.Core
                 if (node.HasKv)
                 {
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
-                    SupportsCollections = node.Supports(ServerFeatures.Collections);
+                    SupportsCollections = node.ServerFeatures.Collections;
                 }
 
                 AddNode(node);

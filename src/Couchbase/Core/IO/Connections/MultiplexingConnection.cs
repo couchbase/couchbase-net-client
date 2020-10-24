@@ -77,6 +77,9 @@ namespace Couchbase.Core.IO.Connections
         public bool IsDead { get; set; }
 
         /// <inheritdoc />
+        public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
+
+        /// <inheritdoc />
         public async Task SendAsync(ReadOnlyMemory<byte> request, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap? errorMap = null)
         {
             if (request.Length >= MaxDocSize)

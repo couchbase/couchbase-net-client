@@ -60,6 +60,13 @@ namespace Couchbase.Core.IO.Connections
         public TimeSpan IdleTime => _multiplexingConnection.IdleTime;
 
         /// <inheritdoc />
+        public ServerFeatureSet ServerFeatures
+        {
+            get => _multiplexingConnection.ServerFeatures;
+            set => _multiplexingConnection.ServerFeatures = value;
+        }
+
+        /// <inheritdoc />
         public Task SendAsync(ReadOnlyMemory<byte> request, Action<IMemoryOwner<byte>, ResponseStatus> callback,
             ErrorMap? errorMap = null) =>
             _multiplexingConnection.SendAsync(request, callback, errorMap);

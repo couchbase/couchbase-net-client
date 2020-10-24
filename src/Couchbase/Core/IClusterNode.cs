@@ -34,7 +34,7 @@ namespace Couchbase.Core
         Uri ViewsUri { get; set; }
         Uri ManagementUri { get; set; }
         ErrorMap ErrorMap { get; set; }
-        short[] ServerFeatures { get; set; }
+        ServerFeatureSet ServerFeatures { get; }
         IConnectionPool ConnectionPool { get; }
         List<Exception> Exceptions { get; set; } //TODO catch and hold until first operation per RFC
         bool IsAssigned { get; }
@@ -43,7 +43,6 @@ namespace Couchbase.Core
         bool HasQuery { get; }
         bool HasSearch { get; }
         bool HasKv { get; }
-        bool Supports(ServerFeatures feature);
         DateTime? LastViewActivity { get; }
         DateTime? LastQueryActivity { get; }
         DateTime? LastSearchActivity { get; }

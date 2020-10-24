@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations
 {
-    internal class Hello : OperationBase<short[]>
+    internal class Hello : OperationBase<ServerFeatures[]>
     {
         public override OpCode OpCode => OpCode.Helo;
 
@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO.Operations
 
                 for (var i = 0; i < contentLength; i++)
                 {
-                    ByteConverter.FromInt16(Content[i], body);
+                    ByteConverter.FromInt16((short) Content[i], body);
                     body = body.Slice(2);
                 }
 
@@ -32,19 +32,19 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
-        public override short[] GetValue()
+        public override ServerFeatures[] GetValue()
         {
-            var result = default(short[]);
+            var result = default(ServerFeatures[]);
             if (Success && Data.Length > 0)
             {
                 try
                 {
                     var buffer = Data.Span.Slice(Header.BodyOffset);
-                    result = new short[Header.BodyLength/2];
+                    result = new ServerFeatures[Header.BodyLength/2];
 
                     for (int i = 0; i < result.Length; i++)
                     {
-                        result[i] = ByteConverter.ToInt16(buffer);
+                        result[i] = (ServerFeatures) ByteConverter.ToInt16(buffer);
 
                         buffer = buffer.Slice(2);
                         if (buffer.Length <= 0) break;

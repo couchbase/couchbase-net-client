@@ -64,6 +64,11 @@ namespace Couchbase.Core.IO.Connections
         TimeSpan IdleTime { get; }
 
         /// <summary>
+        /// Features supported by the connection.
+        /// </summary>
+        ServerFeatureSet ServerFeatures { get; set; }
+
+        /// <summary>
         /// Sends a request packet as an asynchronous operation.
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>

@@ -152,7 +152,7 @@ namespace Couchbase.Core
 
         public Uri ManagementUri { get; set; }
         public ErrorMap ErrorMap { get; set; }
-        public short[] ServerFeatures { get; set; }
+        public ServerFeatureSet ServerFeatures { get; private set; }
         public IConnectionPool ConnectionPool { get; }
         public List<Exception> Exceptions { get; set; }//TODO catch and hold until first operation per RFC
         public bool HasViews => NodesAdapter?.IsViewNode ?? false;
@@ -160,12 +160,6 @@ namespace Couchbase.Core
         public bool HasQuery => NodesAdapter?.IsQueryNode ?? false;
         public bool HasSearch => NodesAdapter?.IsSearchNode ?? false;
         public bool HasKv => NodesAdapter?.IsKvNode ?? false;
-
-        public bool Supports(ServerFeatures feature)
-        {
-            return ServerFeatures.Contains((short)feature);
-        }
-
         public DateTime? LastViewActivity { get; private set; }
         public DateTime? LastQueryActivity { get; private set; }
         public DateTime? LastSearchActivity { get; private set; }
@@ -202,35 +196,35 @@ namespace Couchbase.Core
             return errorMapOp.GetResultWithValue().Content;
         }
 
-        private async Task<short[]> Hello(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)
+        private async Task<ServerFeatures[]> Hello(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)
         {
-            var features = new List<short>
+            var features = new List<ServerFeatures>
             {
-                (short) IO.Operations.ServerFeatures.SelectBucket,
-                (short) IO.Operations.ServerFeatures.AlternateRequestSupport,
-                (short) IO.Operations.ServerFeatures.SynchronousReplication,
-                (short) IO.Operations.ServerFeatures.SubdocXAttributes,
-                (short) IO.Operations.ServerFeatures.XError
+                IO.Operations.ServerFeatures.SelectBucket,
+                IO.Operations.ServerFeatures.AlternateRequestSupport,
+                IO.Operations.ServerFeatures.SynchronousReplication,
+                IO.Operations.ServerFeatures.SubdocXAttributes,
+                IO.Operations.ServerFeatures.XError
             };
 
             if (BucketType != BucketType.Memcached)
             {
-                features.Add((short) IO.Operations.ServerFeatures.Collections);
+                features.Add(IO.Operations.ServerFeatures.Collections);
             }
 
             if (_context.ClusterOptions.EnableMutationTokens)
             {
-                features.Add((short)IO.Operations.ServerFeatures.MutationSeqno);
+                features.Add(IO.Operations.ServerFeatures.MutationSeqno);
             }
 
             if (_context.ClusterOptions.EnableOperationDurationTracing)
             {
-                features.Add((short)IO.Operations.ServerFeatures.ServerDuration);
+                features.Add(IO.Operations.ServerFeatures.ServerDuration);
             }
 
             if (_context.ClusterOptions.UnorderedExecutionEnabled)
             {
-                features.Add((short)IO.Operations.ServerFeatures.UnorderedExecution);
+                features.Add(IO.Operations.ServerFeatures.UnorderedExecution);
             }
 
             using var childSpan = _tracer.InternalSpan(OperationNames.Hello, span);
@@ -541,7 +535,13 @@ namespace Couchbase.Core
             {
                 _logger.LogDebug("Starting connection initialization on server {endpoint}.", EndPoint);
                 using var rootSpan = RootSpan("initialize_connection");
-                ServerFeatures = await Hello(connection, rootSpan, cancellationToken).ConfigureAwait(false);
+
+                var serverFeatureList = await Hello(connection, rootSpan, cancellationToken).ConfigureAwait(false);
+                connection.ServerFeatures = serverFeatureList != null
+                    ? new ServerFeatureSet(serverFeatureList)
+                    : ServerFeatureSet.Empty;
+                ServerFeatures = connection.ServerFeatures;
+
                 ErrorMap = await GetErrorMap(connection, rootSpan, cancellationToken).ConfigureAwait(false);
 
                 var mechanismType = _context.ClusterOptions.EffectiveEnableTls
