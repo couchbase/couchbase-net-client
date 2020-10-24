@@ -7,6 +7,8 @@ namespace Couchbase.Core.IO.Operations
 
         public override OpCode OpCode => OpCode.Add;
 
+        protected override bool SupportsRequestCompression => true;
+
         public override IOperation Clone()
         {
             var cloned = new Add<T>(BucketName, Key)

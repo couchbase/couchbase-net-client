@@ -44,6 +44,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.SelectBucket"/>
         public bool SelectBucket { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.SnappyCompression"/>
+        public bool SnappyCompression { get; private set; }
+
         /// <inheritdoc cref="ServerFeatures.AlternateRequestSupport"/>
         public bool AlternateRequestSupport { get; private set; }
 
@@ -116,6 +119,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.SelectBucket:
                         SelectBucket = true;
+                        break;
+
+                    case ServerFeatures.SnappyCompression:
+                        SnappyCompression = true;
                         break;
 
                     case ServerFeatures.ServerDuration:

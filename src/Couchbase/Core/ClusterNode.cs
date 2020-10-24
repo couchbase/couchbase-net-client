@@ -13,6 +13,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
@@ -225,6 +226,16 @@ namespace Couchbase.Core
             if (_context.ClusterOptions.UnorderedExecutionEnabled)
             {
                 features.Add(IO.Operations.ServerFeatures.UnorderedExecution);
+            }
+
+            if (_context.ClusterOptions.Compression)
+            {
+                switch (_context.ServiceProvider.GetRequiredService<ICompressionAlgorithm>().Algorithm)
+                {
+                    case CompressionAlgorithm.Snappy:
+                        features.Add(IO.Operations.ServerFeatures.SnappyCompression);
+                        break;
+                }
             }
 
             using var childSpan = _tracer.InternalSpan(OperationNames.Hello, span);

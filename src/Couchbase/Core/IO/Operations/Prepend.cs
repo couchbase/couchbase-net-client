@@ -18,6 +18,8 @@ namespace Couchbase.Core.IO.Operations
 
         public override OpCode OpCode => OpCode.Prepend;
 
+        protected override bool SupportsRequestCompression => true;
+
         public override IOperation Clone()
         {
             var cloned = new Prepend<T>(BucketName, Key)

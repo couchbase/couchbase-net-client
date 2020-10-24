@@ -68,7 +68,8 @@ namespace Couchbase.UnitTests
                           "&management_timeout=1007&enable_tls=true&enable_mutation_tokens=true&tcp_keepalive_time=1000" +
                           "&enable_tcp_keepalives=true&force_ipv4=true&config_poll_interval=1008&config_poll_floor_interval=1000" +
                           "&config_idle_redial_timeout=1009&num_kv_connections=10&max_kv_connections=20&max_http_connections=5"+
-                          "&idle_http_connection_timeout=1000&enable_config_polling=true";
+                          "&idle_http_connection_timeout=1000&enable_config_polling=true&compression=off&compression_min_size=512" +
+                          "&compression_min_ratio=0.50";
 
             var options = new ClusterOptions
             {
@@ -96,6 +97,9 @@ namespace Couchbase.UnitTests
             Assert.Equal(20, options.MaxKvConnections);
             Assert.Equal(5, options.MaxHttpConnections);
             Assert.True(options.EnableConfigPolling);
+            Assert.False(options.Compression);
+            Assert.Equal(512, options.CompressionMinSize);
+            Assert.Equal(0.50f, options.CompressionMinRatio);
         }
         #endregion
     }

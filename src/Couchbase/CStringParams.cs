@@ -23,5 +23,8 @@ namespace Couchbase
         public const string MaxKvConnections = "max_kv_connections";
         public const string MaxHttpConnections = "max_http_connections";
         public const string IdleHttpConnectionTimeout = "idle_http_connection_timeout";
+        public const string Compression = "compression";
+        public const string CompressionMinSize = "compression_min_size";
+        public const string CompressionMinRatio = "compression_min_ratio";
     }
 }

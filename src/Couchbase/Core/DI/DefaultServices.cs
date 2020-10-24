@@ -8,6 +8,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
@@ -83,6 +84,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(IKetamaKeyMapperFactory), new SingletonServiceFactory(typeof(KetamaKeyMapperFactory)));
             yield return (typeof(IVBucketServerMapFactory), new SingletonServiceFactory(typeof(VBucketServerMapFactory)));
             yield return (typeof(IOperationConfigurator), new SingletonServiceFactory(typeof(OperationConfigurator)));
+            yield return (typeof(IOperationCompressor), new SingletonServiceFactory(typeof(OperationCompressor)));
+            yield return (typeof(ICompressionAlgorithm), new SingletonServiceFactory(typeof(NullCompressionAlgorithm)));
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));

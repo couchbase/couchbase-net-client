@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +11,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.IO;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
@@ -22,7 +21,6 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
-using Couchbase.Query;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -288,7 +286,7 @@ namespace Couchbase.UnitTests.KeyValue
                     return Task.CompletedTask;
                 });
 
-            return new CouchbaseCollection(mockBucket.Object, new OperationConfigurator(new LegacyTranscoder()),
+            return new CouchbaseCollection(mockBucket.Object, new OperationConfigurator(new LegacyTranscoder(), Mock.Of<IOperationCompressor>()),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
                 new Mock<IRedactor>().Object,
                 null, CouchbaseCollection.DefaultCollectionName, Mock.Of<IScope>(), new NullRequestTracer());

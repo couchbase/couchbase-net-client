@@ -170,6 +170,18 @@ namespace Couchbase
             return false;
         }
 
+        public bool TryGetParameter(string key, out float parameter)
+        {
+            if (TryGetParameter(key, out string value))
+            {
+                parameter =  Convert.ToSingle(value);
+                return true;
+            }
+
+            parameter = default;
+            return false;
+        }
+
         public bool TryGetParameter(string key, out TimeSpan parameter)
         {
             if (TryGetParameter(key, out string value))
@@ -186,6 +198,18 @@ namespace Couchbase
         {
             if (TryGetParameter(key, out string value))
             {
+                if (value == "on")
+                {
+                    parameter = true;
+                    return true;
+                }
+
+                if (value == "off")
+                {
+                    parameter = false;
+                    return true;
+                }
+
                 parameter = Convert.ToBoolean(value);
                 return true;
             }

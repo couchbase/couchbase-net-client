@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Utils;
@@ -66,7 +67,16 @@ namespace Couchbase.Core.IO.Operations
                     ReadExtras(buffer.Span);
                     var offset = Header.BodyOffset;
                     var length = Header.TotalLength - Header.BodyOffset;
-                    result = Transcoder.Decode<T>(buffer.Slice(offset, length), Flags, OpCode);
+
+                    if ((Header.DataType & DataType.Snappy) != DataType.None)
+                    {
+                        using var decompressed = OperationCompressor.Decompress(buffer.Slice(offset, length));
+                        result = Transcoder.Decode<T>(decompressed.Memory, Flags, OpCode);
+                    }
+                    else
+                    {
+                        result = Transcoder.Decode<T>(buffer.Slice(offset, length), Flags, OpCode);
+                    }
                 }
                 catch (Exception e)
                 {

@@ -32,7 +32,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.String,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -52,7 +52,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.String,
                 TypeCode = Convert.GetTypeCode(value)
             };
@@ -70,7 +70,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.String,
                 TypeCode = Convert.GetTypeCode(value)
             };

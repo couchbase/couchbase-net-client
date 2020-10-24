@@ -5,9 +5,11 @@ using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -122,6 +124,18 @@ namespace Couchbase
                     if (ConnectionStringValue.TryGetParameter(CStringParams.MaxKvConnections, out int maxKvConnections))
                     {
                         MaxKvConnections = maxKvConnections;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.Compression, out bool compression))
+                    {
+                        Compression = compression;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.CompressionMinSize, out int compressionMinSize))
+                    {
+                        CompressionMinSize = compressionMinSize;
+                    }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.CompressionMinRatio, out float compressionMinRatio))
+                    {
+                        CompressionMinRatio = compressionMinRatio;
                     }
                 }
             }
@@ -266,6 +280,33 @@ namespace Couchbase
             return this;
         }
 
+        /// <summary>
+        /// Provide a custom <see cref="ICompressionAlgorithm"/> for key/value body compression.
+        /// </summary>
+        /// <param name="compressionAlgorithm">Compression algorithm to use.</param>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithCompressionAlgorithm(ICompressionAlgorithm compressionAlgorithm) =>
+            this.AddClusterService(compressionAlgorithm);
+
+        /// <summary>
+        /// Provide a custom <see cref="ICompressionAlgorithm"/> for key/value body compression.
+        /// </summary>
+        /// <typeparam name="TImplementation">Compression algorithm to use.</typeparam>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions WithCompressionAlgorithm<TImplementation>()
+            where TImplementation : class, ICompressionAlgorithm
+        {
+            _services[typeof(ICompressionAlgorithm)] = new SingletonServiceFactory(typeof(TImplementation));
+
+            return this;
+        }
+
         [Obsolete("Use WithThresholdTracing instead.")]
         public IRequestTracer? RequestTracer { get; set; }
 
@@ -400,6 +441,31 @@ namespace Couchbase
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableDnsSrvResolution { get; set; } = true;
         public string NetworkResolution => Couchbase.NetworkResolution.Auto;
+
+        /// <summary>
+        /// Enables compression for key/value operations.
+        /// </summary>
+        /// <remarks>
+        /// The value is ignored if no compression algorithm is supplied via <see cref="WithCompressionAlgorithm"/>.
+        /// Defaults to true.
+        /// </remarks>
+        public bool Compression { get; set; } = true;
+
+        /// <summary>
+        /// If compression is enabled, the minimum document size considered for compression (in bytes).
+        /// Documents smaller than this size are always sent to the server uncompressed.
+        /// </summary>
+        public int CompressionMinSize { get; set; } = 32;
+
+        /// <summary>
+        /// If compression is enabled, the minimum compression ratio to accept when sending documents to the server.
+        /// Documents which don't achieve this compression ratio are sent to the server uncompressed.
+        /// </summary>
+        /// <remarks>
+        /// 1.0 means no compression was achieved. A value of 0.75 would result in documents which compress to at least
+        /// 75% of their original size to be transmitted compressed. The default is 0.83 (83%).
+        /// </remarks>
+        public float CompressionMinRatio { get; set; } = 0.83f;
 
         /// <summary>
         /// Provides a default implementation of <see cref="ClusterOptions"/>.

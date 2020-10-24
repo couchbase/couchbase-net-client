@@ -11,6 +11,8 @@ namespace Couchbase.Core.IO.Operations
         public ulong Cas { get; set; }
 
         public short? VBucketId { get; set; }
+
+        public DataType DataType { get; set; }
     }
 }
 

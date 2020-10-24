@@ -11,6 +11,8 @@ namespace Couchbase.Core.IO.Operations
 
         public override OpCode OpCode => OpCode.Set;
 
+        protected override bool SupportsRequestCompression => true;
+
         public override IOperation Clone()
         {
             var cloned = new Set<T>(BucketName, Key)

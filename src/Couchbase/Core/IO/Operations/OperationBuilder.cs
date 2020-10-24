@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.ComponentModel;
 using System.IO;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Operations.SubDocument;
 using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
@@ -219,6 +220,7 @@ namespace Couchbase.Core.IO.Operations
             }
 
             headerBytes[HeaderOffsets.Opcode] = (byte) header.OpCode;
+            headerBytes[HeaderOffsets.Datatype] = (byte) header.DataType;
             headerBytes[HeaderOffsets.ExtrasLength] = (byte) _extrasLength;
 
             if (header.VBucketId.HasValue)
@@ -315,6 +317,37 @@ namespace Couchbase.Core.IO.Operations
             _stream.Position = _stream.Length;
 
             CurrentSegment = OperationSegment.Body;
+        }
+
+        /// <summary>
+        /// Replaces the body of the operation in the stream with a compressed body, if requirements are met.
+        /// </summary>
+        /// <param name="operationCompressor">The <see cref="IOperationCompressor"/>.</param>
+        /// <returns>True if the body was compressed, otherwise false.</returns>
+        public bool AttemptBodyCompression(IOperationCompressor operationCompressor)
+        {
+            if (_bodyLength <= 0)
+            {
+                // Fast short circuit for operations with no body..
+                return false;
+            }
+
+            var bodyStart = OperationHeader.Length + _framingExtrasLength + _extrasLength + _keyLength;
+            var body = _stream.GetBuffer().AsMemory(bodyStart, _bodyLength);
+
+            using var compressed = operationCompressor.Compress(body);
+            if (compressed == null)
+            {
+                return false;
+            }
+
+            var compressedSpan = compressed.Memory.Span;
+
+            // Replace the body with the compressed body
+            compressedSpan.CopyTo(body.Span);
+            _stream.SetLength(bodyStart + compressedSpan.Length);
+            _bodyLength = compressedSpan.Length;
+            return true;
         }
 
         /// <summary>

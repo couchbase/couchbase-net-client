@@ -12,7 +12,7 @@ namespace Couchbase.Core.IO.Transcoders
             if (typeof(T) == typeof(byte[]) || typeof(T) == typeof(string))
             {
                 var dataFormat = DataFormat.Json;
-                return new Flags { Compression = Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
+                return new Flags { Compression = Operations.Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
             }
 
             throw new InvalidOperationException("The RawJsonTranscoder only supports byte arrays as input.");

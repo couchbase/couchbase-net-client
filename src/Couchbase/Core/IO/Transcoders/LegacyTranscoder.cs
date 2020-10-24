@@ -58,7 +58,7 @@ namespace Couchbase.Core.IO.Transcoders
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            return new Flags() { Compression = Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
+            return new Flags() { Compression = Operations.Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
         }
 
         /// <inheritdoc />

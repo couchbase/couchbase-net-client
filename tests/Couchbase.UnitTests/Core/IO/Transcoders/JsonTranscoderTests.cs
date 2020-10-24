@@ -87,7 +87,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -108,7 +108,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -129,7 +129,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -149,7 +149,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -169,7 +169,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -189,7 +189,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -209,7 +209,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(data)
             };
@@ -228,7 +228,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = TypeCode.Empty
             };
@@ -248,7 +248,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(value)
             };
@@ -270,7 +270,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Type.GetTypeCode(typeof(Person))
             };
@@ -290,7 +290,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(five)
             };
@@ -309,7 +309,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = TypeCode.Empty
             };
@@ -330,7 +330,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(value)
             };
@@ -355,7 +355,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Json,
                 TypeCode = Convert.GetTypeCode(value)
             };
@@ -379,7 +379,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                Compression = Compression.None,
+                Compression = Couchbase.Core.IO.Operations.Compression.None,
                 DataFormat = DataFormat.Binary,
                 TypeCode = Convert.GetTypeCode(value)
             };

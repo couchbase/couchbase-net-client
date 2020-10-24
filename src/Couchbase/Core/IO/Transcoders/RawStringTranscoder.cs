@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.Transcoders
             if (typeCode == TypeCode.String)
             {
                 var dataFormat = DataFormat.String;
-                return new Flags {Compression = Compression.None, DataFormat = dataFormat, TypeCode = typeCode};
+                return new Flags {Compression = Operations.Compression.None, DataFormat = dataFormat, TypeCode = typeCode};
             }
 
             throw new InvalidOperationException("The RawStringTranscoder only supports strings as input.");

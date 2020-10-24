@@ -43,6 +43,12 @@ namespace Couchbase.Core.IO.Operations
         SelectBucket = 0x08,
 
         /// <summary>
+        /// Requests that the connection use Snappy compression on request, and indicates if the server supports
+        /// Snappy compression on response.
+        /// </summary>
+        SnappyCompression = 0x0a,
+
+        /// <summary>
         /// Retrieve the Server Duration of the operation. This enables the server to return responds
         /// with magic <see cref="Magic.AltResponse"/>.
         /// </summary>

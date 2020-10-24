@@ -2,12 +2,14 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations.Errors;
@@ -46,6 +48,7 @@ namespace Couchbase.Core.IO.Operations
         public OperationHeader Header { get; set; }
         public DataFormat Format { get; set; }
         public Compression Compression { get; set; }
+        public DataType DataType { get; set; }
         public string Key { get; set; }
         public Exception Exception { get; set; }
         public ulong Cas { get; set; }
@@ -122,9 +125,22 @@ namespace Couchbase.Core.IO.Operations
                 return null;
             }
 
-            var data = new SlicedMemoryOwner<byte>(_data, Header.BodyOffset);
-            _data = null;
-            return data;
+            if ((Header.DataType & DataType.Snappy) != DataType.None)
+            {
+                var result = OperationCompressor.Decompress(_data.Memory.Slice(Header.BodyOffset));
+
+                // We can free the compressed memory now. Don't do this until after decompression in case an exception is thrown.
+                _data.Dispose();
+                _data = null;
+
+                return result;
+            }
+            else
+            {
+                var data = new SlicedMemoryOwner<byte>(_data, Header.BodyOffset);
+                _data = null;
+                return data;
+            }
         }
 
         public virtual bool HasDurability => false;
@@ -168,7 +184,8 @@ namespace Couchbase.Core.IO.Operations
                 OpCode = OpCode,
                 VBucketId = VBucketId,
                 Opaque = Opaque,
-                Cas = Cas
+                Cas = Cas,
+                DataType = DataType
             };
         }
 
@@ -441,6 +458,18 @@ namespace Couchbase.Core.IO.Operations
 
         public ITypeTranscoder Transcoder { get; set; }
 
+        /// <summary>
+        /// Service for compressing and decompressing operation bodies. Typically set by the <see cref="IOperationConfigurator"/>.
+        /// </summary>
+        public IOperationCompressor OperationCompressor { get; set; }
+
+        /// <summary>
+        /// Overriden in derived operation classes that support request body compression. If true is returned,
+        /// and if compression has been negotiated with the server, the body will be compressed after the call
+        /// to <see cref="WriteBody"/>.
+        /// </summary>
+        protected virtual bool SupportsRequestCompression => false;
+
         public MutationToken MutationToken { get; protected set; }
 
         public virtual void WriteExtras(OperationBuilder builder)
@@ -491,6 +520,14 @@ namespace Couchbase.Core.IO.Operations
 
                 builder.AdvanceToSegment(OperationSegment.Body);
                 WriteBody(builder);
+
+                if (SupportsRequestCompression && OperationCompressor != null && connection.ServerFeatures.SnappyCompression)
+                {
+                    if (builder.AttemptBodyCompression(OperationCompressor))
+                    {
+                        DataType |= DataType.Snappy;
+                    }
+                }
 
                 builder.WriteHeader(CreateHeader());
 
