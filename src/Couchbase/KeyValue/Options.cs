@@ -11,7 +11,7 @@ namespace Couchbase.KeyValue
 {
     #region GetOptions
 
-    public class GetOptions
+    public class GetOptions : ITranscoderOverrideOptions
     {
         internal IRetryStrategy RetryStrategyValue { get; set; } = new BestEffortRetryStrategy();
 
@@ -24,6 +24,7 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -60,11 +61,12 @@ namespace Couchbase.KeyValue
 
     #region GetAnyReplicaOptions
 
-    public class GetAllReplicasOptions
+    public class GetAllReplicasOptions : ITranscoderOverrideOptions
     {
         internal CancellationToken TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAllReplicasOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -85,9 +87,10 @@ namespace Couchbase.KeyValue
 
     #region GetAllReplicaOptions
 
-    public class GetAnyReplicaOptions
+    public class GetAnyReplicaOptions : ITranscoderOverrideOptions
     {
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAnyReplicaOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -110,7 +113,7 @@ namespace Couchbase.KeyValue
 
     #region Exists Options
 
-    public class ExistsOptions
+    public class ExistsOptions : IKeyValueOptions
     {
         internal TimeSpan? TimeoutValue { get; set; }
 
@@ -133,7 +136,7 @@ namespace Couchbase.KeyValue
 
     #region Upsert Options
 
-    public class UpsertOptions
+    public class UpsertOptions : ITranscoderOverrideOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -148,6 +151,7 @@ namespace Couchbase.KeyValue
         internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public UpsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -191,7 +195,7 @@ namespace Couchbase.KeyValue
 
     #region Insert Options
 
-    public class InsertOptions
+    public class InsertOptions : ITranscoderOverrideOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -206,6 +210,7 @@ namespace Couchbase.KeyValue
         internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public InsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -249,7 +254,7 @@ namespace Couchbase.KeyValue
 
     #region Replace Options
 
-    public class ReplaceOptions
+    public class ReplaceOptions : ITranscoderOverrideOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -266,6 +271,7 @@ namespace Couchbase.KeyValue
         internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public ReplaceOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -315,7 +321,7 @@ namespace Couchbase.KeyValue
 
     #region Remove Options
 
-    public class RemoveOptions
+    public class RemoveOptions : IKeyValueOptions
     {
         internal ulong CasValue { get; set; }
 
@@ -365,7 +371,7 @@ namespace Couchbase.KeyValue
 
     #region Unlock Options
 
-    public class UnlockOptions
+    public class UnlockOptions : IKeyValueOptions
     {
 
         internal TimeSpan? TimeoutValue { get; set; }
@@ -389,7 +395,7 @@ namespace Couchbase.KeyValue
 
     #region Touch Options
 
-    public class TouchOptions
+    public class TouchOptions : IKeyValueOptions
     {
 
         internal ReplicateTo ReplicateTo { get; set; }
@@ -417,7 +423,7 @@ namespace Couchbase.KeyValue
 
     #region Increment Options
 
-    public class IncrementOptions
+    public class IncrementOptions : IKeyValueOptions
     {
         internal ulong InitialValue { get; set; } = 1;
 
@@ -483,7 +489,7 @@ namespace Couchbase.KeyValue
 
     #region Decrement options
 
-    public class DecrementOptions
+    public class DecrementOptions : IKeyValueOptions
     {
         internal ulong InitialValue { get; set; } = 1;
 
@@ -549,7 +555,7 @@ namespace Couchbase.KeyValue
 
     #region Append Options
 
-    public class AppendOptions
+    public class AppendOptions : IKeyValueOptions
     {
         internal ulong CasValue { get; set; }
 
@@ -599,7 +605,7 @@ namespace Couchbase.KeyValue
 
     #region Prepend Options
 
-    public class PrependOptions
+    public class PrependOptions : IKeyValueOptions
     {
         internal ulong CasValue { get; set; }
 
@@ -649,13 +655,14 @@ namespace Couchbase.KeyValue
 
     #region GetAndLock Options
 
-    public class GetAndLockOptions
+    public class GetAndLockOptions : ITranscoderOverrideOptions
     {
         internal TimeSpan? TimeoutValue { get; set; }
 
         internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAndLockOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -680,7 +687,7 @@ namespace Couchbase.KeyValue
 
     #region GetAndTouch Options
 
-    public class GetAndTouchOptions
+    public class GetAndTouchOptions : ITranscoderOverrideOptions
     {
 
         internal ReplicateTo ReplicateTo { get; set; }
@@ -692,6 +699,7 @@ namespace Couchbase.KeyValue
         internal CancellationToken? TokenValue { get; set; }
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAndTouchOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -716,7 +724,7 @@ namespace Couchbase.KeyValue
 
     #region LookupInOptions
 
-    public class LookupInOptions
+    public class LookupInOptions : IKeyValueOptions
     {
         internal TimeSpan? TimeoutValue { get; set; }
 
@@ -763,7 +771,7 @@ namespace Couchbase.KeyValue
 
     #region MutateInOptions
 
-    public class MutateInOptions
+    public class MutateInOptions : IKeyValueOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -854,7 +862,7 @@ namespace Couchbase.KeyValue
 
     #region MutateIn Options
 
-    public abstract class MutateInXattrOperation
+    public abstract class MutateInXattrOperation : IKeyValueOptions
     {
         internal bool XAttrValue { get; set; }
 

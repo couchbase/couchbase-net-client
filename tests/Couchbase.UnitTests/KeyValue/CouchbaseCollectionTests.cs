@@ -288,7 +288,7 @@ namespace Couchbase.UnitTests.KeyValue
                     return Task.CompletedTask;
                 });
 
-            return new CouchbaseCollection(mockBucket.Object, new LegacyTranscoder(),
+            return new CouchbaseCollection(mockBucket.Object, new OperationConfigurator(new LegacyTranscoder()),
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
                 new Mock<IRedactor>().Object,
                 null, CouchbaseCollection.DefaultCollectionName, Mock.Of<IScope>(), new NullRequestTracer());

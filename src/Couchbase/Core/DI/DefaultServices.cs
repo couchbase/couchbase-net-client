@@ -10,6 +10,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -81,6 +82,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(IVBucketFactory), new SingletonServiceFactory(typeof(VBucketFactory)));
             yield return (typeof(IKetamaKeyMapperFactory), new SingletonServiceFactory(typeof(KetamaKeyMapperFactory)));
             yield return (typeof(IVBucketServerMapFactory), new SingletonServiceFactory(typeof(VBucketServerMapFactory)));
+            yield return (typeof(IOperationConfigurator), new SingletonServiceFactory(typeof(OperationConfigurator)));
 
             yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
