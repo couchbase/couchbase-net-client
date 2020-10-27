@@ -33,6 +33,7 @@ namespace Couchbase
 
         #region Analytics
 
+        [Obsolete("Use the async version instead.")]
         public static IAnalyticsResult<T> AnalyticsQuery<T>(this ICluster cluster, string statement,
             Action<AnalyticsOptions> configureOptions)
         {
@@ -45,6 +46,7 @@ namespace Couchbase
                 .GetResult();
         }
 
+        [Obsolete("Use the async version instead.")]
         public static IAnalyticsResult<T> AnalyticsQuery<T>(this ICluster cluster, string statement,
             AnalyticsOptions options = default)
         {
