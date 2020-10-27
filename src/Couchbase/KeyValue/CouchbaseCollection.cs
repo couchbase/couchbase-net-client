@@ -602,7 +602,8 @@ namespace Couchbase.KeyValue
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                Expires = options.ExpiryValue.ToTtl()
             };
             _operationConfigurator.Configure(op, options);
 
@@ -628,7 +629,8 @@ namespace Couchbase.KeyValue
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                Expires = options.ExpiryValue.ToTtl()
             };
             _operationConfigurator.Configure(op, options);
 

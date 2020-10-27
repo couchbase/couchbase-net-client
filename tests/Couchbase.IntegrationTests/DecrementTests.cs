@@ -60,5 +60,28 @@ namespace Couchbase.IntegrationTests
                 await collection.RemoveAsync(key).ConfigureAwait(false);
             }
         }
+
+        [Fact]
+        public async Task Test_Expiry()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                // doc doesn't exist, create it and use initial value (1)
+                var result = await collection.Binary.DecrementAsync(key, options => options.Expiry(TimeSpan.FromMilliseconds(500))).ConfigureAwait(false);
+                Assert.True(result.Cas > 0);
+
+                await Task.Delay(TimeSpan.FromMilliseconds(600)).ConfigureAwait(false);
+
+                var notFound = await collection.ExistsAsync(key).ConfigureAwait(false);
+                Assert.True(notFound.Exists);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
     }
 }
