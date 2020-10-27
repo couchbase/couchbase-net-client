@@ -496,6 +496,11 @@ namespace Couchbase.KeyValue
                 docFlags |= SubdocDocFlags.CreateAsDeleted;
             }
 
+            if (options.AccessDeletedValue)
+            {
+                docFlags |= SubdocDocFlags.AccessDeleted;
+            }
+
             using var rootSpan = RootSpan(OperationNames.MultiMutationSubdocMutate);
             using var mutation = new MultiMutation<byte[]>
             {

@@ -783,6 +783,8 @@ namespace Couchbase.KeyValue
 
         internal bool CreateAsDeletedValue { get; set; }
 
+        internal bool AccessDeletedValue { get; set; }
+
         public MutateInOptions StoreSemantics(StoreSemantics storeSemantics)
         {
             StoreSemanticsValue = storeSemantics;
@@ -833,7 +835,17 @@ namespace Couchbase.KeyValue
 
         public MutateInOptions CreateAsDeleted(bool createAsDeleted)
         {
-            CreateAsDeletedValue = true;
+            CreateAsDeletedValue = createAsDeleted;
+            return this;
+        }
+
+        /// <summary>
+        /// Allows access to a deleted document's attributes section.
+        /// Only for internal diagnostic use only and is an unsupported feature.
+        /// </summary>
+        public MutateInOptions AccessDeleted(bool accessDeleted)
+        {
+            AccessDeletedValue = accessDeleted;
             return this;
         }
     }
