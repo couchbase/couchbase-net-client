@@ -5,23 +5,40 @@ using Couchbase.Core.IO.Serializers;
 
 namespace Couchbase.Core.IO.Transcoders
 {
-    public class RawJsonTranscoder : ITypeTranscoder
+    public class RawJsonTranscoder : BaseTranscoder
     {
-        public Flags GetFormat<T>(T value)
+        public override Flags GetFormat<T>(T value)
         {
-            throw new NotImplementedException();
+            var typeCode = Type.GetTypeCode(typeof(T));
+            if (typeof(T) == typeof(byte[]))
+            {
+                var dataFormat = DataFormat.Json;
+                return new Flags { Compression = Compression.None, DataFormat = dataFormat, TypeCode = typeCode };
+            }
+
+            throw new InvalidOperationException("The RawJsonTranscoder only supports byte arrays as input.");
         }
 
-        public void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode)
+        public override void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode)
         {
-            throw new NotImplementedException();
+            if (value is byte[] bytes && flags.DataFormat == DataFormat.Json)
+            {
+                stream.Write(bytes, 0, bytes.Length);
+                return;
+            }
+
+            throw new InvalidOperationException("The RawJsonTranscoder can only encode byte arrays.");
         }
 
-        public T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
+        public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
-            throw new NotImplementedException();
-        }
+            if (flags.DataFormat == DataFormat.Json)
+            {
+                object value = DecodeBinary(buffer.Span);
+                return (T)value;
+            }
 
-        public ITypeSerializer Serializer { get; set; }
+            throw new InvalidOperationException("The RawJsonTranscoder can only decode byte arrays.");
+        }
     }
 }
