@@ -1,7 +1,7 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
-using Couchbase.Management;
 using Couchbase.Management.Buckets;
 using Xunit;
 
@@ -76,6 +76,125 @@ namespace Couchbase.IntegrationTests
             Assert.Equal(expected.CompressionMode, actual.CompressionMode);
             Assert.Equal(expected.ConflictResolutionType, actual.ConflictResolutionType);
             Assert.Equal(expected.EjectionMethod, actual.EjectionMethod);
+        }
+
+        [Fact]
+        public async Task CreateEphemeralBucketWithDefaultEvictionPolicy()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Ephemeral,
+                RamQuotaMB = 100
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(EvictionPolicyType.NoEviction, result.EvictionPolicy);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task CreateEphemeralBucketWithNruEvictionPolicy()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Ephemeral,
+                RamQuotaMB = 100,
+                EvictionPolicy = EvictionPolicyType.NotRecentlyUsed
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(EvictionPolicyType.NotRecentlyUsed, result.EvictionPolicy);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task CreateCouchbaseBucketWithFullEvictionPolicy()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Couchbase,
+                RamQuotaMB = 100,
+                EvictionPolicy = EvictionPolicyType.ValueOnly
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(EvictionPolicyType.ValueOnly, result.EvictionPolicy);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task CreateCouchbaseBucketWithDefaultEvictionPolicy()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Couchbase,
+                RamQuotaMB = 100,
+                EvictionPolicy = EvictionPolicyType.FullEviction
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(EvictionPolicyType.FullEviction, result.EvictionPolicy);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
         }
     }
 }

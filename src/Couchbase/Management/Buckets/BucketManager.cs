@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -62,9 +63,13 @@ namespace Couchbase.Management.Buckets
                 settings.BucketType = bucketType;
             }
 
-            if(settings.BucketType == BucketType.Couchbase)
+            if(settings.BucketType != BucketType.Memcached)
             {
                 settings.NumReplicas = json.SelectToken("replicaNumber").Value<int>();
+            }
+
+            if (settings.BucketType == BucketType.Couchbase)
+            {
                 settings.ReplicaIndexes = json.SelectToken("replicaIndex").Value<bool>();
             }
 
@@ -86,7 +91,7 @@ namespace Couchbase.Management.Buckets
             if (evictionPolicyToken != null &&
                 EnumExtensions.TryGetFromDescription(evictionPolicyToken.Value<string>(), out EvictionPolicyType evictionPolicyType))
             {
-                settings.EjectionMethod = evictionPolicyType;
+                settings.EvictionPolicy = evictionPolicyType;
             }
 
             return settings;
@@ -102,9 +107,13 @@ namespace Couchbase.Management.Buckets
                 {"flushEnabled", settings.FlushEnabled ? "1" : "0"}
             };
 
-            if (settings.BucketType == BucketType.Couchbase)
+            if (settings.BucketType != BucketType.Memcached)
             {
                 values.Add("replicaNumber", settings.NumReplicas.ToString());
+            }
+
+            if (settings.BucketType == BucketType.Couchbase)
+            {
                 values.Add("replicaIndex", settings.ReplicaIndexes ? "1" : "0");
             }
 
@@ -113,9 +122,38 @@ namespace Couchbase.Management.Buckets
                 values.Add("conflictResolutionType", settings.ConflictResolutionType.GetDescription());
             }
 
-            if (settings.EjectionMethod.HasValue)
+            /*Policy-assignment depends on bucket type. For a Couchbase bucket, the policy can be valueOnly (which is the default)
+                or fullEviction. For an Ephemeral bucket, the policy can be noEviction (which is the default) or nruEviction. No policy
+                can be assigned to a Memcached bucket.*/
+
+            if (settings.EvictionPolicy.HasValue)
             {
-                values.Add("evictionPolicy", settings.EjectionMethod.GetDescription());
+                if (settings.BucketType == BucketType.Couchbase)
+                {
+                    if (settings.EvictionPolicy == EvictionPolicyType.NoEviction ||
+                        settings.EvictionPolicy == EvictionPolicyType.NotRecentlyUsed)
+                    {
+                        throw new InvalidArgumentException(
+                            "For a Couchbase bucket, the eviction policy can be valueOnly (which is the default) or fullEviction.");
+                    }
+                }
+
+                if (settings.BucketType == BucketType.Ephemeral)
+                {
+                    if (settings.EvictionPolicy == EvictionPolicyType.ValueOnly ||
+                        settings.EvictionPolicy == EvictionPolicyType.FullEviction)
+                    {
+                        throw new InvalidArgumentException(
+                            "For an Ephemeral bucket, the eviction policy can be noEviction (which is the default) or nruEviction.");
+                    }
+                }
+
+                if (settings.BucketType == BucketType.Memcached)
+                {
+                    throw new InvalidArgumentException("No eviction policy can be assigned to a Memcached bucket.");
+                }
+
+                values.Add("evictionPolicy", settings.EvictionPolicy.GetDescription());
             }
 
             if (settings.MaxTtl > 0)
