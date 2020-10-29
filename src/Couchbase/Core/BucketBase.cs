@@ -188,6 +188,7 @@ namespace Couchbase.Core
         /// <param name="options">The optional arguments.</param>
         public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
         {
+            options ??= new WaitUntilReadyOptions();
             if (options?.DesiredStateValue == ClusterState.Offline)
                 throw new ArgumentException(nameof(options.DesiredStateValue));
 

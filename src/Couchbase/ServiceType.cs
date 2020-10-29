@@ -5,21 +5,21 @@ namespace Couchbase
     public enum ServiceType
     {
         [Description("kv")]
-        KeyValue,
+        KeyValue = 0,
 
         [Description("views")]
-        Views,
+        Views = 1,
 
         [Description("n1ql")]
-        Query,
+        Query = 2,
 
         [Description("fts")]
-        Search,
+        Search = 3,
 
         [Description("config")]
-        Config,
+        Config = 4,
 
         [Description("cbas")]
-        Analytics
+        Analytics = 5
     }
 }
