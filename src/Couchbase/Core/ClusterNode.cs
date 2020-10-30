@@ -425,14 +425,14 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task ExecuteOp(Action<IOperation, object, CancellationToken> sender, IOperation op, object state, CancellationToken token = default)
+        private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationToken token = default)
         {
             _logger.LogDebug("Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.", op.OpCode, EndPoint, _redactor.UserData(op.Key), op.Opaque);
 
             try
             {
-                // I don't think this needs to be awaited, sender does not need to return a task
-                sender(op, state, token);
+                // Await the send in case the send throws an exception (i.e. SendQueueFullException)
+                await sender(op, state, token).ConfigureAwait(false);
 
                 var status = await op.Completed.ConfigureAwait(false);
                 if (status != ResponseStatus.Success)

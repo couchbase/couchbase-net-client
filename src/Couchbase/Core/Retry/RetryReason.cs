@@ -22,6 +22,7 @@ namespace Couchbase.Core.Retry
         AnalyticsTemporaryFailure,
         SearchTooManyRequests,
         ViewsTemporaryFailure,
-        ViewsNoActivePartition
+        ViewsNoActivePartition,
+        SendQueueFull
     }
 }

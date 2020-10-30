@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -88,16 +89,19 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         public override Task SendAsync(IOperation operation, CancellationToken cancellationToken = default)
         {
             EnsureNotDisposed();
-            IDisposable? registration = null;
-            registration = cancellationToken.Register(() =>
+
+            if (cancellationToken.CanBeCanceled)
             {
-                operation.Cancel(); // cancel the operation so that its Completed task cast is completed
-                registration?.Dispose();
-            });
+                // cancel the operation so that its Completed task cast is completed
+                cancellationToken.Register(operation.Cancel);
+            }
 
             if (Size > 0)
             {
-                _sendQueue.Post(operation);
+                if (!_sendQueue.Post(operation))
+                {
+                    throw new SendQueueFullException();
+                }
 
                 return Task.CompletedTask;
             }
@@ -114,7 +118,11 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     // Requeue the request
                     // Note: always requeues even if cleanup fails
                     // Since the exception on the task is ignored, we're also eating the exception
-                    _sendQueue.Post(operation);
+
+                    if (!_sendQueue.Post(operation))
+                    {
+                        throw new SendQueueFullException();
+                    }
                 }
             }, cancellationToken);
         }

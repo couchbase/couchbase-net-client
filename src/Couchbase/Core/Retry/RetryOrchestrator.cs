@@ -172,7 +172,7 @@ namespace Couchbase.Core.Retry
                             }
                             else
                             {
-                               break; //don't retry
+                               throw; //don't retry
                             }
                         }
                         else

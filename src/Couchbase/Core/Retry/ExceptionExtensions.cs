@@ -25,6 +25,7 @@ namespace Couchbase.Core.Retry
                 //case ServiceResponseRetryException _: return RetryReason.ServiceResponseCodeIndicated;
                 case PreparedStatementException _: return RetryReason.QueryPreparedStatementFailure;
                 case IndexFailureException _: return RetryReason.QueryIndexNotFound;
+                case SendQueueFullException _: return RetryReason.SendQueueFull;
                 default:
                 {
                     return RetryReason.NoRetry;
