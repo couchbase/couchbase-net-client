@@ -14,7 +14,7 @@ namespace Couchbase.IntegrationTests.Services.Search
     public class SearchTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
-        internal const string IndexName = "travel-sample-index";
+        internal const string IndexName = "idx-travel";
 
         public SearchTests(ClusterFixture fixture)
         {

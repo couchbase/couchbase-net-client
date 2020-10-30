@@ -107,6 +107,15 @@ namespace Couchbase.IntegrationTests
             var userManager = _fixture.Cluster.Users;
             const string groupName = "test_group1", username = "test_user1";
 
+            var user = new User(username)
+            {
+                DisplayName = nameof(Test_UserInheritsCollectionAwareRoles),
+                Groups = new[] { groupName },
+                Password = nameof(Test_UserInheritsCollectionAwareRoles)
+            };
+
+            await userManager.UpsertUserAsync(user);
+
             try
             {
                 var group = new Group(groupName)

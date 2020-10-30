@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry.Query;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
@@ -146,9 +147,10 @@ namespace Couchbase.Management.Query
 
             try
             {
-                var statement = $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=\"{bucketName}\" AND `using`=\"gsi\";";
+                var statement = $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=$bucketName AND `using`=\"gsi\";";
+
                 var result = await _queryClient.QueryAsync<QueryIndex>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue)
+                    queryOptions => queryOptions.Parameter("bucketName", bucketName).CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
 
                 var indexes = new List<QueryIndex>();

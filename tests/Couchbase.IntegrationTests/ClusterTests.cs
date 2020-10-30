@@ -4,16 +4,19 @@ using System.Threading.Tasks;
 using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests
 {
     public class ClusterTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
+        private readonly ITestOutputHelper _outputHelper;
 
-        public ClusterTests(ClusterFixture fixture)
+        public ClusterTests(ClusterFixture fixture, ITestOutputHelper outputHelper)
         {
             _fixture = fixture;
+            _outputHelper = outputHelper;
         }
 
         [Fact]
@@ -85,6 +88,7 @@ namespace Couchbase.IntegrationTests
             var results = await bucket.ViewQueryAsync<object, object>("beer", "brewery_beers").ConfigureAwait(false);
             await foreach (var result in results)
             {
+                _outputHelper.WriteLine($"id={result.Id},key={result.Key},value={result.Value}");
             }
         }
 
