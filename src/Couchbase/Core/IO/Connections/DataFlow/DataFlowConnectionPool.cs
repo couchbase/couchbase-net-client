@@ -313,19 +313,24 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <returns>The handler.</returns>
         private Func<IOperation, Task> BuildHandler(IConnection connection)
         {
-            return request =>
+            return async request =>
             {
-                // ignore request that timed out or was cancelled while in queue
-                if (request.Completed.IsCompleted)
-                    return Task.CompletedTask;
-                if (connection.IsDead)
+                try
                 {
-                    // We need to return the task from CleanupDeadConnectionsAsync
-                    // Because as long as the task is not completed, this connection won't
-                    // receive more requests. We need to wait until the dead connection is
-                    // unlinked to make sure no more bad requests hit it.
-                    return CleanupDeadConnectionsAsync().ContinueWith(_ =>
+                    // ignore request that timed out or was cancelled while in queue
+                    if (request.Completed.IsCompleted)
                     {
+                        return;
+                    }
+
+                    if (connection.IsDead)
+                    {
+                        // We need to return the task from CleanupDeadConnectionsAsync
+                        // Because as long as the task is not completed, this connection won't
+                        // receive more requests. We need to wait until the dead connection is
+                        // unlinked to make sure no more bad requests hit it.
+                        await CleanupDeadConnectionsAsync().ConfigureAwait(false);
+
                         if (_cts.IsCancellationRequested)
                         {
                             request.Cancel();
@@ -337,10 +342,17 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                             // Since the exception on the task is ignored, we're also eating the exception
                             _sendQueue.Post(request);
                         }
-                    }, _cts.Token);
+                    }
+                    else
+                    {
+                        await request.SendAsync(connection).ConfigureAwait(false);
+                    }
                 }
-
-                return request.SendAsync(connection);
+                catch (Exception ex)
+                {
+                    // Catch serialization and other similar errors and forward them to the operation
+                    request.TrySetException(ex);
+                }
             };
         }
 

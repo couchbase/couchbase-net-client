@@ -516,6 +516,9 @@ namespace Couchbase.Core.IO.Operations
             _completed.TrySetCanceled((CancellationToken)state);
         }
 
+        /// <inheritdoc />
+        public bool TrySetException(Exception ex) =>_completed.TrySetException(ex);
+
         /// <summary>
         /// Internal for testing purposes only, do not use in SDK.
         /// </summary>
@@ -542,7 +545,7 @@ namespace Couchbase.Core.IO.Operations
             }
             catch (Exception ex)
             {
-                _completed.TrySetException(ex);
+                TrySetException(ex);
                 data?.Dispose();
             }
         }

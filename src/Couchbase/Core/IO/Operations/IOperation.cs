@@ -61,6 +61,13 @@ namespace Couchbase.Core.IO.Operations
 
         void Cancel();
 
+        /// <summary>
+        /// Marks the operation as completed with the given exception, if it isn't already completed.
+        /// </summary>
+        /// <param name="ex">Exception which occurred.</param>
+        /// <returns>True if the operation was completed with the provided exception.</returns>
+        bool TrySetException(Exception ex);
+
         void HandleClientError(string message, ResponseStatus responseStatus);
 
         BucketConfig GetConfig(ITypeTranscoder transcoder);

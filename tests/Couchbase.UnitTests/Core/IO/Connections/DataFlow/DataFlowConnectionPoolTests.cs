@@ -297,6 +297,32 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             Assert.Equal(2ul, operationConnectionId);
         }
 
+        [Fact]
+        public async Task SendAsync_SendHasException_OperationExceptionIsSet()
+        {
+            // Arrange
+
+            var tcs = new TaskCompletionSource<bool>();
+            var cts = new CancellationTokenSource(10000); // prevent wait forever
+            cts.Token.Register(() => tcs.TrySetResult(false));  // set result to false on timeout
+            var pool = CreatePool();
+            await pool.InitializeAsync();
+
+            var operation = new FakeOperation
+            {
+                SendStarted = _ => throw new InvalidOperationException("testing")
+            };
+
+            // Act
+
+            await pool.SendAsync(operation);
+
+            // Assert
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => operation.Completed);
+            Assert.Equal("testing", ex.Message);
+        }
+
         #endregion
 
         #region Dispose

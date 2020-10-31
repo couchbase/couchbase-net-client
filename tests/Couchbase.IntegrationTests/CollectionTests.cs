@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
@@ -52,6 +54,31 @@ namespace Couchbase.IntegrationTests
                 // drop collection
                 //await collectionManager.DropCollectionAsync(collectionSpec);
                 //await collectionManager.DropScopeAsync(scopeName);
+            }
+        }
+
+        [Fact]
+        public async Task InsertByteArray_DefaultConverter_UnsupportedException()
+        {
+            const string key = nameof(InsertByteArray_DefaultConverter_UnsupportedException);
+
+            var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
+            var collection = bucket.DefaultCollection();
+
+            try
+            {
+                await Assert.ThrowsAsync<UnsupportedException>(
+                    () => collection.InsertAsync(key, new byte[] { 1, 2, 3 }));
+            }
+            finally
+            {
+                try
+                {
+                    await collection.RemoveAsync(key);
+                }
+                catch (DocumentNotFoundException)
+                {
+                }
             }
         }
     }
