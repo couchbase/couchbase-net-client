@@ -67,7 +67,7 @@ namespace Couchbase.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(bucketName));
             }
 
-            services.AddSingleton(serviceProvider =>
+            services.AddScoped(serviceProvider =>
             {
                 var generator = serviceProvider.GetRequiredService<NamedBucketProxyGenerator>();
 
@@ -93,7 +93,7 @@ namespace Couchbase.Extensions.DependencyInjection
                 throw new ArgumentNullException(nameof(bucketName));
             }
 
-            services.TryAddSingleton(serviceProvider =>
+            services.TryAddScoped(serviceProvider =>
             {
                 var generator = serviceProvider.GetRequiredService<NamedBucketProxyGenerator>();
 
