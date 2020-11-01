@@ -40,8 +40,8 @@ namespace Couchbase.Extensions.DependencyInjection
 
             services.AddSingleton<NamedBucketProxyGenerator>();
             services.TryAddSingleton<ICouchbaseLifetimeService, CouchbaseLifetimeService>();
-            services.TryAddSingleton<IClusterProvider, ClusterProvider>();
-            services.TryAddSingleton<IBucketProvider, BucketProvider>();
+            services.TryAddScoped<IClusterProvider, ClusterProvider>();
+            services.TryAddScoped<IBucketProvider, BucketProvider>();
 
             if (options != null)
             {
