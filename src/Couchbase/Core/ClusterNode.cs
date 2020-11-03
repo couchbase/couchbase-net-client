@@ -569,10 +569,12 @@ namespace Couchbase.Core
             }
             catch (DocumentNotFoundException)
             {
-                //If DNF exception then BucketNotConnected was returned so close the connection and let it get cleaned up later
-                await connection.CloseAsync(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+                // If DNF exception then BucketNotConnected was returned so close the connection and let it get cleaned up later
+                // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
+                connection.Dispose();
 
-                var message = "The Bucket [" + _redactor.MetaData(bucketName) + "] could not be selected. Either it does not exist, " +
+                var message = "The Bucket [" + _redactor.MetaData(bucketName) +
+                              "] could not be selected. Either it does not exist, " +
                               "is unavailable or the node itself does not have the Data service enabled.";
 
                 _logger.LogError(LoggingEvents.BootstrapEvent, message);

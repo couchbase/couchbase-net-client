@@ -65,14 +65,26 @@ namespace Couchbase.Core.IO.Connections
             var connection = await _connectionFactory.CreateAndConnectAsync(EndPoint, cancellationToken)
                 .ConfigureAwait(false);
 
-            await _connectionInitializer.InitializeConnectionAsync(connection, cancellationToken).ConfigureAwait(false);
-
-            if (BucketName != null)
+            try
             {
-                await _connectionInitializer.SelectBucketAsync(connection, BucketName, cancellationToken).ConfigureAwait(false);
-            }
+                await _connectionInitializer.InitializeConnectionAsync(connection, cancellationToken)
+                    .ConfigureAwait(false);
 
-            return connection;
+                if (BucketName != null)
+                {
+                    await _connectionInitializer.SelectBucketAsync(connection, BucketName, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                return connection;
+            }
+            catch
+            {
+                // Be sure to cleanup the connection if bootstrap fails.
+                // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
+                connection.Dispose();
+                throw;
+            }
         }
 
         /// <inheritdoc />
@@ -81,8 +93,21 @@ namespace Couchbase.Core.IO.Connections
             await using ((await FreezePoolAsync(cancellationToken).ConfigureAwait(false)).ConfigureAwait(false))
             {
                 var tasks = GetConnections()
-                    .Select(connection =>
-                        _connectionInitializer.SelectBucketAsync(connection, name, cancellationToken))
+                    .Select(connection => Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _connectionInitializer.SelectBucketAsync(connection, name, cancellationToken)
+                                .ConfigureAwait(false);
+                        }
+                        catch
+                        {
+                            // Be sure to cleanup the connection if bootstrap fails.
+                            // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
+                            connection.Dispose();
+                            throw;
+                        }
+                    }, cancellationToken))
                     .ToList();
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
