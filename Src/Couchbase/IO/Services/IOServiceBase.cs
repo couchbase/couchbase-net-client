@@ -109,7 +109,6 @@ namespace Couchbase.IO.Services
                 connection = ConnectionPool.Connections.FirstOrDefault() ?? ConnectionPool.Acquire();
                 CheckEnabledServerFeatures(connection);
                 ConnectionPool.Release(connection);
-
             }
             catch (Exception e)
             {

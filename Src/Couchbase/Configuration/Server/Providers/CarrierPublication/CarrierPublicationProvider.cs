@@ -62,6 +62,7 @@ namespace Couchbase.Configuration.Server.Providers.CarrierPublication
 
                     // setup IO service, this does SASL negotiation & hello
                     ioService = IOServiceFactory(connectionPool);
+                    ioService.Initialize();
 
                     var operation = new Config(Transcoder, ClientConfig.DefaultOperationLifespan, endPoint);
 
