@@ -50,6 +50,9 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
                 IOperationResult<T> operationResult = new OperationResult<T>
@@ -110,6 +113,9 @@ namespace Couchbase.Core.Buckets
         /// <returns>An <see cref="IOperationResult"/> with the status of the request.</returns>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
                 IOperationResult operationResult = new OperationResult
@@ -178,6 +184,9 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult<T>> tcs = null,
             CancellationTokenSource cts = null)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
                 tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
@@ -226,6 +235,9 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult> tcs = null,
             CancellationTokenSource cts = null)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
                 tcs = tcs ?? new TaskCompletionSource<IOperationResult>();

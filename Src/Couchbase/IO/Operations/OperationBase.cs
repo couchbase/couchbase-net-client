@@ -22,6 +22,7 @@ namespace Couchbase.IO.Operations
     {
         private readonly ILog _log = LogManager.GetLogger<OperationBase>();
 
+        private const int MaxKeylength = 250;
         private bool _timedOut;
         protected IByteConverter Converter;
         protected Flags Flags;
@@ -526,6 +527,14 @@ namespace Couchbase.IO.Operations
             }
 
             return ErrorCode.GetNextInterval(Attempts, defaultTimeout);
+        }
+
+        public virtual void Validate()
+        {
+            if (KeyLength > MaxKeylength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(KeyLength), "Keys must be 250 bytes or smaller.");
+            }
         }
 
         protected void TryReadMutationToken(byte[] buffer)

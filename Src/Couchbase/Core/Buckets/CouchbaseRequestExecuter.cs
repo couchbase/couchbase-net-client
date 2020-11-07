@@ -105,6 +105,9 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithDurability<T>(IOperation<T> operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
                 IOperationResult<T> result;
@@ -195,6 +198,9 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithDurability(IOperation operation, bool deletion, ReplicateTo replicateTo, PersistTo persistTo)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
                 IOperationResult result;
@@ -293,6 +299,9 @@ namespace Couchbase.Core.Buckets
             bool deletion, ReplicateTo replicateTo, PersistTo persistTo, TaskCompletionSource<IOperationResult<T>> tcs = null,
             CancellationTokenSource cts = null)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
                 tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
@@ -428,6 +437,9 @@ namespace Couchbase.Core.Buckets
             ReplicateTo replicateTo, PersistTo persistTo, TaskCompletionSource<IOperationResult> tcs = null,
             CancellationTokenSource cts = null)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName, true))
             {
                 var config = ConfigInfo.ClientConfig.BucketConfigs[BucketName];
@@ -557,6 +569,9 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult SendWithRetry(IOperation operation)
         {
+            //Validate key length
+            operation.Validate();
+
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
             {
@@ -635,6 +650,9 @@ namespace Couchbase.Core.Buckets
         /// <exception cref="ServiceNotSupportedException">The cluster does not support Data services.</exception>
         public override IOperationResult<T> SendWithRetry<T>(IOperation<T> operation)
         {
+            //Validate key length
+            operation.Validate();
+
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
             {
@@ -717,6 +735,9 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult<T>> tcs = null,
             CancellationTokenSource cts = null)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
                 tcs = tcs ?? new TaskCompletionSource<IOperationResult<T>>();
@@ -771,6 +792,9 @@ namespace Couchbase.Core.Buckets
             TaskCompletionSource<IOperationResult> tcs = null,
             CancellationTokenSource cts = null)
         {
+            //Validate key length
+            operation.Validate();
+
             using (Tracer.StartParentScope(operation, ConfigInfo.BucketName))
             {
                 tcs = tcs ?? new TaskCompletionSource<IOperationResult>();

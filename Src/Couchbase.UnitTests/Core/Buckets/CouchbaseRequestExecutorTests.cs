@@ -15,6 +15,7 @@ using Couchbase.Core.Transcoders;
 using Couchbase.IO;
 using Couchbase.IO.Operations;
 using Couchbase.IO.Operations.EnhancedDurability;
+using Couchbase.UnitTests.IO.Operations;
 using Couchbase.UnitTests.IO.Operations.Subdocument;
 using Couchbase.Utils;
 using Couchbase.Views;
@@ -523,6 +524,49 @@ namespace Couchbase.UnitTests.Core.Buckets
             Assert.AreEqual(Durability.Satisfied, result.Durability);
 
             mockServer.Verify(x => x.Send(It.IsAny<IOperation<ObserveSeqno>>()), Times.Never);
+        }
+
+        const string keyTooBig =
+            "componentLoad::11467#e2dNmmCWZe+UM7m0qCPrYLn7nPGu9oi3QDUD6/8oGDFsMDxoOyvAWBf3YqVN/vU6tCWZhHqproDTS8/F+U9OFEQAapyUrJvZXrF7i" +
+            "NAVBZw2S4sH/Ux8a/yM3e5zKUwxGqoDO52+pGrH4qNl84Rxir0c8yFBSTalFTd1TGkshIz8v0twRuBFqbTj+jRkWPSw76G5OcoJ4gjKGJm7jFIuMhhKbQoY3NB" +
+            "Cpop2WgE7jNSGH74ZKbGGqF4/QrYGpt67ZFP3MZf1P1zlllA+70j3knVpfqkNGs4SQXDbMdyq1DfKP+Ogj4j6j75CM+QTbm6WR/JGWhVFzzGmuaUGF/sGFwumBOy" +
+            "fI4FT0Ox+KbnczB/aw+RX52bxY5XiVQ80fsP6Jr53QTg++4uuh9iQHSWbOGEkTdZL2fdGPjdBkzxlLW3zbkqc0RV2rKUgqiijgNNTx+fbQiRvkUGiQPlD7c9Oxdy5" +
+            "zl937+MggrP1MdxTUCt806prNj4q/MqniZCCGQ0vvh5ixKXCbAVjP2UV9SzINxgwobadrVGugvO1HSUt8yFFnIODQ47wHss6jCswBW9uzEr3nLn0hCnNxQ4YgRwl+3" +
+            "G6HmqAB2wvtAVibjnugqcok8/VeQRJtFmH8+SE1hQb";
+
+        [Test]
+        public void When_Key_Exceeds_250Bytes_IOperationT_Throw_InvalidArgumentException()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.IsDataCapable).Returns(false);
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var mockBuilder = new Mock<ISubDocBuilder<dynamic>>();
+            var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
+
+            Assert.Throws<ArgumentOutOfRangeException>((() => executor.SendWithRetry(new FakeSubDocumentOperation<dynamic>(mockBuilder.Object, keyTooBig, null, new DefaultTranscoder(), 0))));
+        }
+
+
+        [Test]
+        public void When_Key_Exceeds_250Bytes_IOperation_Throw_InvalidArgumentException()
+        {
+            var mockController = new Mock<IClusterController>();
+            mockController.Setup(x => x.Configuration).Returns(new ClientConfiguration());
+
+            var mockConfig = new Mock<IConfigInfo>();
+            mockConfig.Setup(x => x.IsDataCapable).Returns(false);
+            mockConfig.Setup(x => x.ClientConfig).Returns(new ClientConfiguration());
+
+            var pending = new ConcurrentDictionary<uint, IOperation>();
+            var mockBuilder = new Mock<ISubDocBuilder<dynamic>>();
+            var executor = new CouchbaseRequestExecuter(mockController.Object, mockConfig.Object, "default", pending);
+
+            Assert.Throws<ArgumentOutOfRangeException>((() => executor.SendWithRetry(new FakeOperationWithRequiredKey(keyTooBig, null,new DefaultTranscoder(), 0))));
         }
     }
 }

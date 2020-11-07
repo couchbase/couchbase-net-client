@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Couchbase.Configuration.Server.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Transcoders;
@@ -96,6 +96,8 @@ namespace Couchbase.IO.Operations
         string BucketName { get; set; }
 
         int GetRetryTimeout(int defaultTimeout);
+
+        void Validate();
     }
 }
 

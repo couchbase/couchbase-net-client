@@ -367,6 +367,9 @@ namespace Couchbase.Core.Buckets
         /// </returns>
         public IOperationResult<T> ReadFromReplica<T>(ReplicaRead<T> operation)
         {
+            //Validate key length
+            operation.Validate();
+
             //Is the cluster configured for Data services?
             if (!ConfigInfo.IsDataCapable)
                 throw new ServiceNotSupportedException("The cluster does not support Data services.");
@@ -428,6 +431,9 @@ namespace Couchbase.Core.Buckets
         /// </returns>
         public async Task<IOperationResult<T>> ReadFromReplicaAsync<T>(ReplicaRead<T> operation)
         {
+            //Validate key length
+            operation.Validate();
+
             var tcs = new TaskCompletionSource<IOperationResult<T>>();
             var cts = new CancellationTokenSource(OperationLifeSpan);
             cts.CancelAfter(OperationLifeSpan);
