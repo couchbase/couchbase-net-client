@@ -7824,7 +7824,7 @@ namespace Couchbase
             if (result.Exception is DocumentDoesNotExistException && createDoc)
             {
                 // try and insert the document
-                var insertResult = Insert(key, defaultValue, timeout);
+                var insertResult = Insert(key, defaultValue);
                 if (insertResult.Success)
                 {
                     return new DefaultResult
@@ -7871,7 +7871,7 @@ namespace Couchbase
             if (result.Exception is DocumentDoesNotExistException && createDoc)
             {
                 // try and insert the document
-                var insertResult = await InsertAsync(key, defaultValue, timeout).ContinueOnAnyContext();
+                var insertResult = await InsertAsync(key, defaultValue).ContinueOnAnyContext();
                 if (insertResult.Success)
                 {
                     return new DefaultResult
