@@ -40,14 +40,19 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             Assert.Throws<InvalidOperationException>(()=>transcoder.Encode(stream, new object(), flags, OpCode.Add));
         }
 
-        [Fact]
-        public void Test_Decode_ByteArrays()
+        [Theory]
+        [InlineData(DataFormat.String)]
+        [InlineData(DataFormat.Binary)]
+        [InlineData(DataFormat.Json)]
+        [InlineData(DataFormat.Private)]
+        [InlineData(DataFormat.Reserved)]
+        public void Test_Decode_ByteArrays(DataFormat dataFormat)
         {
             var transcoder = new RawBinaryTranscoder();
 
             var flags = new Flags
             {
-                DataFormat = DataFormat.Binary
+                DataFormat = dataFormat //Note flags type is independent of T - everything is byte[]
             };
 
             var memory = new ReadOnlyMemory<byte>(new byte[]{0x0, 0x1});
