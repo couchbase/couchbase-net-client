@@ -272,17 +272,36 @@ namespace Couchbase.Core
             await Context.RebootStrapAsync(Name).ConfigureAwait(false);
         }
 
-        bool IBootstrappable.IsBootstrapped => !_deferredExceptions.Any();
+        /// <summary>
+        /// Private implementation of <see cref="IBootstrappable.IsBootstrapped"/> which supports
+        /// inlining. The IBootstrappable implementation of IsBootstrapped cannot be inlined.
+        /// </summary>
+        private bool IsBootstrapped => _deferredExceptions.Count == 0;
+        bool IBootstrappable.IsBootstrapped => IsBootstrapped;
 
         List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
 
+        /// <summary>
+        /// Throw an exception if the bucket is not bootstrapped successfully.
+        /// </summary>
         internal void ThrowIfBootStrapFailed()
         {
-            var subject = this as IBootstrappable;
-            if (!subject.IsBootstrapped)
+            if (!IsBootstrapped)
             {
-                throw new AggregateException($"Bootstrapping for bucket {Name} as failed.", subject.DeferredExceptions);
+                ThrowBootStrapFailed();
             }
+        }
+
+        /// <summary>
+        /// Throw am AggregateException with deferred bootstrap exceptions.
+        /// </summary>
+        /// <remarks>
+        /// This is a separate method from <see cref="ThrowIfBootStrapFailed"/> to allow that method to
+        /// be inlined for the fast, common path where there the bucket is bootstrapped.
+        /// </remarks>
+        private void ThrowBootStrapFailed()
+        {
+            throw new AggregateException($"Bootstrapping for bucket {Name} as failed.", _deferredExceptions);
         }
 
 #endregion
