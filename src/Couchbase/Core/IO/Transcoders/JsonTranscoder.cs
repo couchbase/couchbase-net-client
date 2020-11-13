@@ -7,7 +7,7 @@ using Couchbase.Core.IO.Serializers;
 
 namespace Couchbase.Core.IO.Transcoders
 {
-    internal class JsonTranscoder : BaseTranscoder
+    public class JsonTranscoder : BaseTranscoder
     {
         public JsonTranscoder()
             : this(new DefaultSerializer())

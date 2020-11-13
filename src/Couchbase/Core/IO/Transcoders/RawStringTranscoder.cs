@@ -12,7 +12,7 @@ namespace Couchbase.Core.IO.Transcoders
         public override Flags GetFormat<T>(T value)
         {
             var typeCode = Type.GetTypeCode(typeof(T));
-            if (typeCode == TypeCode.Char || typeCode == TypeCode.String)
+            if (typeCode == TypeCode.String)
             {
                 var dataFormat = DataFormat.String;
                 return new Flags {Compression = Compression.None, DataFormat = dataFormat, TypeCode = typeCode};
@@ -23,12 +23,12 @@ namespace Couchbase.Core.IO.Transcoders
 
         public override void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode)
         {
-            if (value is byte[] bytes && flags.DataFormat == DataFormat.String)
+            if (value is byte[] bytes)
             {
                 stream.Write(bytes, 0, bytes.Length);
                 return;
             }
-            if (value is string str && flags.DataFormat == DataFormat.String)
+            if (value is string str)
             {
                 using var bufferOwner = MemoryPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str));
                 var length = ByteConverter.FromString(str, bufferOwner.Memory.Span);
@@ -42,7 +42,7 @@ namespace Couchbase.Core.IO.Transcoders
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
             var type = typeof(T);
-            if (type == typeof(string) && flags.DataFormat == DataFormat.String)
+            if (type == typeof(string))
             {
                 object value = DecodeString(buffer.Span);
                 return (T) value;

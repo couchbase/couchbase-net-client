@@ -82,23 +82,6 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         }
 
         [Fact]
-        public void Test_Deserialize_Char()
-        {
-            var transcoder = new RawStringTranscoder();
-            var value = 'o';
-
-            var flags = new Flags
-            {
-                Compression = Compression.None,
-                DataFormat = DataFormat.String,
-                TypeCode = Convert.GetTypeCode(value)
-            };
-
-            var bytes = Encoding.UTF8.GetBytes(value.ToString());
-            Assert.Throws<InvalidOperationException>(()=>transcoder.Decode<char>(bytes.AsMemory(), flags, OpCode.Get));
-        }
-
-        [Fact]
         public void Test_Encode_Object_Fails()
         {
             var transcoder = new RawStringTranscoder();
@@ -119,7 +102,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
 
             var flags = new Flags
             {
-                DataFormat = DataFormat.String
+                DataFormat = DataFormat.Json
             };
 
             var memory = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject("Hello, world!")));

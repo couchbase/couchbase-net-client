@@ -135,7 +135,7 @@ namespace Couchbase.Core.IO.Serializers
             if (buffer.Length == 0) return value;
             using (var ms = new MemoryReaderStream(buffer))
             {
-                using (var sr = new StreamReader(ms))
+                using (var sr = new StreamReader(ms, Utf8NoBomEncoding))
                 {
                     using (var jr = new JsonTextReader(sr)
                     {

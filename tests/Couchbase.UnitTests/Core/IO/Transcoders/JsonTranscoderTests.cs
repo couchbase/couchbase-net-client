@@ -342,6 +342,36 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
         }
 
         [Fact]
+        public void Test_Deserialize_JsonString()
+        {
+            var transcoder = new JsonTranscoder();
+            // ReSharper disable once StringLiteralTypo
+            var value = "{\"name\":\"astring\"}";
+
+            var json = JsonConvert.SerializeObject(new Hmm
+            {
+                name = "astring"
+            });
+
+            var flags = new Flags
+            {
+                Compression = Compression.None,
+                DataFormat = DataFormat.Json,
+                TypeCode = Convert.GetTypeCode(value)
+            };
+
+            using var stream = new MemoryStream();
+            transcoder.Encode(stream, json, flags, OpCode.Get);
+            var actual = transcoder.Decode<string>(stream.ToArray(), flags, OpCode.Get);
+            Assert.Equal(value, actual);
+        }
+
+        public class Hmm
+        {
+            public string name { get; set; }
+        }
+
+        [Fact]
         public void Test_Deserialize_Char()
         {
             var transcoder = new JsonTranscoder();

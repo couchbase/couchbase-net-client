@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
             };
 
             var memory = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject("Hello, world!")));
-            Assert.Throws<InvalidOperationException>(() => transcoder.Decode<byte[]>(memory, flags, OpCode.NoOp));
+            Assert.Throws<InvalidOperationException>(() => transcoder.Decode<object>(memory, flags, OpCode.NoOp));
         }
 
         [Fact]

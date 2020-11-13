@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO.Transcoders
 
         public override void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode)
         {
-            if(value is byte[] bytes && flags.DataFormat == DataFormat.Binary)
+            if(value is byte[] bytes)
             {
                 stream.Write(bytes, 0, bytes.Length);
                 return;
@@ -31,7 +31,7 @@ namespace Couchbase.Core.IO.Transcoders
 
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
-            if (flags.DataFormat == DataFormat.Binary)
+            if (typeof(T) == typeof(byte[]))
             {
                 object value = DecodeBinary(buffer.Span);
                 return (T) value;
