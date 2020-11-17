@@ -1,0 +1,6 @@
+
+- name: API Documentation
+  href: obj/api/
+  homepage: api/index.md
+- name: Release Notes
+  href: https://docs.couchbase.com/dotnet-sdk/current/project-docs/sdk-release-notes.html

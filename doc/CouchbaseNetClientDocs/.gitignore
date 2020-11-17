@@ -1,0 +1,6 @@
+_site/
+api/
+bin/
+obj/
+packages/
+log.txt
