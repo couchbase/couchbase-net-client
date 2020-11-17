@@ -29,6 +29,13 @@ namespace Couchbase.Search
         internal TimeSpan? TimeoutValue { get; set; }
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
+        private bool _disableScoring;
+
+        public SearchOptions DisableScoring(bool disableScoring)
+        {
+            _disableScoring = disableScoring;
+            return this;
+        }
 
         public SearchOptions CancellationToken(CancellationToken token)
         {
@@ -323,6 +330,10 @@ namespace Couchbase.Search
             foreach (var rawParameter in _rawParameters)
             {
                 parameters.Add(new JProperty(rawParameter.Key, rawParameter.Value));
+            }
+            if (_disableScoring)
+            {
+                parameters.Add(new JProperty("score", "none"));
             }
             return parameters;
         }

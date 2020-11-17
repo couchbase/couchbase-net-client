@@ -182,6 +182,54 @@ namespace Couchbase.UnitTests.Search
 
             Assert.Equal(expected, result);
         }
+
+        [Fact]
+        public void When_DisableScore_True_None_In_Output()
+        {
+            var searchOptions = new SearchOptions();
+            searchOptions.DisableScoring(true);
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { },
+                score = "none"
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_DisableScore_False_Nothing_In_Output()
+        {
+            var searchOptions = new SearchOptions();
+            searchOptions.DisableScoring(false);
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void When_DisableScore_Default_Nothing_In_Output()
+        {
+            var searchOptions = new SearchOptions();
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
     }
 }
 
