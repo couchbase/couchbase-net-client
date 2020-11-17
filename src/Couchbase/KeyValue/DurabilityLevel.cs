@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Couchbase.KeyValue
 {
     /// <summary>
@@ -8,21 +10,25 @@ namespace Couchbase.KeyValue
         /// <summary>
         /// No durability requirements.
         /// </summary>
-        None,
+        [Description("none")]
+        None = 0x00,
 
         /// <summary>
         /// Mutation must be replicated to (i.e. held in memory of that node) a majority of the configured nodes of the bucket.
         /// </summary>
+        [Description("majority")]
         Majority = 0x01,
 
         /// <summary>
         /// Same as majority, but additionally persisted to the active node.
         /// </summary>
+        [Description("majorityAndPersistActive")]
         MajorityAndPersistToActive = 0x02,
 
         /// <summary>
         /// Mutation must be persisted to (i.e. written and fsync'd to disk) a majority of the configured nodes of the bucket.
         /// </summary>
+        [Description("persistToMajority")]
         PersistToMajority = 0x03
     }
 }

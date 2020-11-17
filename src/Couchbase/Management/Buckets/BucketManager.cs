@@ -8,6 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -94,6 +95,14 @@ namespace Couchbase.Management.Buckets
                 settings.EvictionPolicy = evictionPolicyType;
             }
 
+            var durabilityMinLevelToken = json.SelectToken("durabilityMinLevel");
+            if (durabilityMinLevelToken != null &&
+                EnumExtensions.TryGetFromDescription(durabilityMinLevelToken.Value<string>(),
+                    out DurabilityLevel durabilityMinLevel))
+            {
+                settings.DurabilityMinimumLevel = durabilityMinLevel;
+            }
+
             return settings;
         }
 
@@ -164,6 +173,11 @@ namespace Couchbase.Management.Buckets
             if (settings.CompressionMode.HasValue)
             {
                 values.Add("compressionMode", settings.CompressionMode.GetDescription());
+            }
+
+            if (settings.DurabilityMinimumLevel != DurabilityLevel.None)
+            {
+                values.Add("durabilityMinLevel", settings.DurabilityMinimumLevel.GetDescription());
             }
 
             return values;

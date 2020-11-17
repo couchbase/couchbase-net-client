@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Xunit;
 
@@ -189,6 +190,67 @@ namespace Couchbase.IntegrationTests
                 // get
                 var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
                 Assert.Equal(EvictionPolicyType.FullEviction, result.EvictionPolicy);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task CreateCouchbaseBucketWith_DurabilityMinLevel_None()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Couchbase,
+                RamQuotaMB = 100,
+                EvictionPolicy = EvictionPolicyType.FullEviction
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(DurabilityLevel.None, result.DurabilityMinimumLevel);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task CreateCouchbaseBucketWith_DurabilityMinLevel_Majority()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Couchbase,
+                RamQuotaMB = 100,
+                EvictionPolicy = EvictionPolicyType.FullEviction,
+                DurabilityMinimumLevel = DurabilityLevel.Majority
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(DurabilityLevel.Majority, result.DurabilityMinimumLevel);
             }
             finally
             {
