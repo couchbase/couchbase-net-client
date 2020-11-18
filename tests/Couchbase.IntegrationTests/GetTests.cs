@@ -394,5 +394,62 @@ namespace Couchbase.IntegrationTests
                 await collection.RemoveAsync(id1).ConfigureAwait(false);
             }
         }
+
+        [Fact]
+        public async Task Test_ExpiryTime_Default_Infinite_TTL()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var key = nameof(Test_ExpiryTime_Default_Infinite_TTL);
+
+            try
+            {
+                await collection.InsertAsync(key, Person.Create()).ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options=>options.Expiry()).ConfigureAwait(false);
+                var content = result.ExpiryTime;
+                Assert.NotNull(content);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Test_ExpiryTime_30_Seconds_TTL()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                await collection.InsertAsync(key, Person.Create(), options=>options.Expiry(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options => options.Expiry()).ConfigureAwait(false);
+                var content = result.ExpiryTime;
+                Assert.NotNull(content);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Test_ExpiryTime_Null_When_Expiry_Flag_Not_Set()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                await collection.InsertAsync(key, Person.Create(), options => options.Expiry(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+                var result = await collection.GetAsync(key).ConfigureAwait(false);
+                var content = result.ExpiryTime;
+                Assert.Null(content);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
     }
 }

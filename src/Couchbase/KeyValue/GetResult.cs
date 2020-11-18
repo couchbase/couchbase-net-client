@@ -24,6 +24,7 @@ namespace Couchbase.KeyValue
         private readonly ILogger<GetResult> _logger;
         private bool _isParsed;
         private TimeSpan? _expiry;
+        private DateTime? _expiryTime;
 
         internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
             List<LookupInSpec>? specs = null, List<string>? projectList = null)
@@ -64,6 +65,41 @@ namespace Couchbase.KeyValue
                 }
 
                 return _expiry;
+            }
+        }
+
+        public DateTime? ExpiryTime
+        {
+            get
+            {
+                //If this is a GET et al then no sub doc specs to parse
+                if (_specs.Count > 0)
+                {
+                    ParseSpecs();
+                }
+
+                if (_expiryTime.HasValue)
+                {
+                    return _expiryTime;
+                }
+
+                var spec = _specs.FirstOrDefault(x => x.Path == VirtualXttrs.DocExpiryTime);
+                if (spec != null)
+                {
+                    var ms = _serializer.Deserialize<long>(spec.Bytes);
+                    if (ms == 0)
+                    {
+                        return DateTime.MaxValue;
+                    }
+#if NETSTANDARD2_1
+                    _expiryTime = DateTime.UnixEpoch.AddMilliseconds(ms).ToLocalTime();
+#else
+                    var unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                    _expiryTime = unixEpoch.AddSeconds(ms).ToLocalTime();
+#endif
+                }
+
+                return _expiryTime;
             }
         }
 
@@ -207,7 +243,7 @@ namespace Couchbase.KeyValue
             return projection;
         }
 
-        #region Finalization and Dispose
+#region Finalization and Dispose
 
         ~GetResult()
         {
@@ -236,6 +272,6 @@ namespace Couchbase.KeyValue
             }
         }
 
-        #endregion
+#endregion
     }
 }

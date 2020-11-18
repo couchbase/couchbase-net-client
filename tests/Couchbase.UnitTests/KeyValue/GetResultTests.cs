@@ -182,5 +182,24 @@ namespace Couchbase.UnitTests.KeyValue
             var result = readResult.ContentAs<Dictionary<string, dynamic>>();
             Assert.Equal(result["name"], "Emmy-lou Dickerson");
         }
+
+        [Fact]
+        public void Test_ExpiryTime_Returns_Null_When_Expiry_Not_An_Option()
+        {
+            var getRequest = new MultiLookup<byte[]>();
+            getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
+
+            var readResult = new GetResult(getRequest.ExtractBody(),
+                new LegacyTranscoder(), new Mock<ILogger<GetResult>>().Object,
+                _lookupInSpecs)
+            {
+                OpCode = OpCode.MultiLookup,
+                Flags = getRequest.Flags,
+                Header = getRequest.Header
+            };
+
+            var expiryTime = readResult.ExpiryTime;
+            Assert.Null(expiryTime);
+        }
     }
 }

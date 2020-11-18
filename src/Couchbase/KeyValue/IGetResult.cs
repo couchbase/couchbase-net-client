@@ -8,6 +8,9 @@ namespace Couchbase.KeyValue
     {
         T ContentAs<T>();
 
+        [Obsolete("This property is no longer supported; use ExpiryTime instead.")]
         TimeSpan? Expiry { get; }
+
+        DateTime? ExpiryTime { get; }
     }
 }
