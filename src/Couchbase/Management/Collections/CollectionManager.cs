@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 #nullable enable
@@ -154,30 +157,15 @@ namespace Couchbase.Management.Collections
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
                 var scopes = json.SelectToken("scopes");
 
-                if (scopes.Type != JTokenType.Array) // TODO: remove after SDK beta as per RFC
-                {
-                    // older style - scopes is a map
-                    return scopes.Select(scope =>
-                    {
-                        var scopeName = scope.Path.Substring(scope.Path.LastIndexOf(".", StringComparison.InvariantCulture) + 1);
-                        var collections = scope.First()["collections"].Select(collection =>
-                        {
-                            var collectionName = collection.Path.Substring(collection.Path.LastIndexOf(".", StringComparison.InvariantCulture) + 1);
-                            return new CollectionSpec(scopeName, collectionName);
-                        }).ToList();
-
-                        return new ScopeSpec(scopeName)
-                        {
-                            Collections = collections
-                        };
-                    }).ToList();
-                }
-
-                // newer style - scopes is an array
                 return scopes.Select(scope => new ScopeSpec(scope["name"].Value<string>())
                 {
                     Collections = scope["collections"].Select(collection =>
-                        new CollectionSpec(collection["name"].Value<string>(), scope["name"].Value<string>())
+                        new CollectionSpec(scope["name"].Value<string>(), collection["name"].Value<string>())
+                        {
+                            MaxExpiry = collection["maxTTL"] == null
+                                ? (TimeSpan?) null
+                                : TimeSpan.FromSeconds(collection["maxTTL"].Value<long>())
+                        }
                     ).ToList()
                 }).ToList();
             }
@@ -202,6 +190,11 @@ namespace Couchbase.Management.Collections
                 {
                     {"name", spec.Name}
                 };
+
+                if (spec.MaxExpiry.HasValue)
+                {
+                    keys.Add("maxTTL", spec.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
+                }
                 var content = new FormUrlEncodedContent(keys);
                 var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();
