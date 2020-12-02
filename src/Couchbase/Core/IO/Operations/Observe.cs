@@ -22,18 +22,15 @@ namespace Couchbase.Core.IO.Operations
 
         public override void WriteBody(OperationBuilder builder)
         {
-            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationHeader.MaxKeyLength + Leb128.MaxLength + 4))
-            {
-                var buffer = bufferOwner.Memory.Span;
+            Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength + 4];
 
-                var keyLength = WriteKey(buffer.Slice(4));
+            var keyLength = WriteKey(buffer.Slice(4));
 
-                // ReSharper disable once PossibleInvalidOperationException
-                ByteConverter.FromInt16(VBucketId.Value, buffer);
-                ByteConverter.FromInt16((short) keyLength, buffer.Slice(2));
+            // ReSharper disable once PossibleInvalidOperationException
+            ByteConverter.FromInt16(VBucketId.Value, buffer);
+            ByteConverter.FromInt16((short) keyLength, buffer.Slice(2));
 
-                builder.Write(bufferOwner.Memory.Slice(0, keyLength + 4));
-            }
+            builder.Write(buffer.Slice(0, keyLength + 4));
         }
 
         public override ObserveState GetValue()

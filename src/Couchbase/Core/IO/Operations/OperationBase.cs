@@ -235,12 +235,11 @@ namespace Couchbase.Core.IO.Operations
 
         public virtual void WriteKey(OperationBuilder builder)
         {
-            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationHeader.MaxKeyLength + Leb128.MaxLength))
-            {
-                var length = WriteKey(bufferOwner.Memory.Span);
+            Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength];
 
-                builder.Write(bufferOwner.Memory.Slice(0, length));
-            }
+            var length = WriteKey(buffer);
+
+            builder.Write(buffer.Slice(0, length));
         }
 
         protected int WriteKey(Span<byte> buffer)
@@ -249,7 +248,7 @@ namespace Couchbase.Core.IO.Operations
 
             if (Cid.HasValue)
             {
-                length += Leb128.Write(buffer, Cid.Value);
+                length += Leb128.Write(buffer, Cid.GetValueOrDefault());
             }
 
             length += ByteConverter.FromString(Key, buffer.Slice(length));
