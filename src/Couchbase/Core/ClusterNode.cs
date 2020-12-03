@@ -35,8 +35,9 @@ namespace Couchbase.Core
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly ICircuitBreaker _circuitBreaker;
-        private readonly ITypeTranscoder _transcoder;
+        private readonly ITypeTranscoder _transcoder; //for operations
         private readonly ISaslMechanismFactory _saslMechanismFactory;
+        private static readonly ITypeTranscoder GlobalTranscoder = new JsonTranscoder(); //for system level calls
         private Uri _queryUri;
         private Uri _analyticsUri;
         private Uri _searchUri;
@@ -189,7 +190,7 @@ namespace Couchbase.Core
             using var childSpan = _tracer.InternalSpan(OperationNames.GetErrorMap, span);
             using var errorMapOp = new GetErrorMap
             {
-                Transcoder = _transcoder,
+                Transcoder = GlobalTranscoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = childSpan
             };
@@ -243,7 +244,7 @@ namespace Couchbase.Core
             {
                 Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
-                Transcoder = _transcoder,
+                Transcoder = GlobalTranscoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = childSpan,
             };
@@ -257,7 +258,7 @@ namespace Couchbase.Core
             using var rootSpan = RootSpan(OperationNames.GetManifest);
             using var manifestOp = new GetManifest
             {
-                Transcoder = _transcoder,
+                Transcoder = GlobalTranscoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = rootSpan,
             };
@@ -279,7 +280,7 @@ namespace Couchbase.Core
             using var configOp = new Config
             {
                 CurrentHost = EndPoint,
-                Transcoder = _transcoder,
+                Transcoder = GlobalTranscoder,
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
                 Span = rootSpan,
@@ -303,7 +304,7 @@ namespace Couchbase.Core
             using var getCid = new GetCid
             {
                 Key = fullyQualifiedName,
-                Transcoder = _transcoder,
+                Transcoder = GlobalTranscoder,
                 Opaque = SequenceGenerator.GetNext(),
                 Content = null,
                 Span = rootSpan,
@@ -572,7 +573,7 @@ namespace Couchbase.Core
                 using var rootSpan = RootSpan(OperationNames.SelectBucket);
                 using var selectBucketOp = new SelectBucket
                 {
-                    Transcoder = _transcoder,
+                    Transcoder = GlobalTranscoder,
                     Key = bucketName,
                     Span = rootSpan,
                 };

@@ -112,6 +112,7 @@ namespace Couchbase.KeyValue
             //basic GET or other non-projection operation
             if (OpCode == OpCode.Get || OpCode == OpCode.ReplicaRead || OpCode == OpCode.GetL || OpCode == OpCode.GAT)
             {
+                _logger.LogDebug("using the {transcoder} Transcoder.", _transcoder.GetType());
                 return _transcoder.Decode<T>(_contentBytes.Memory, Flags, OpCode);
             }
 

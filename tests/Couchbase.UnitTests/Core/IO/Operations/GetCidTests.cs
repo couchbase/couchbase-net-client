@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core.IO.Operations.Collections;
+using Couchbase.Core.IO.Transcoders;
 using Xunit;
 using Couchbase.Utils;
 
@@ -21,7 +22,10 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             var response = MemoryPool<byte>.Shared.RentAndSlice(packet.Length);
             packet.AsMemory(0, packet.Length).CopyTo(response.Memory);
-            var op = new GetCid();
+            var op = new GetCid()
+            {
+                Transcoder = new LegacyTranscoder()
+            };
             op.Read(response);
 
             var result = op.GetResultWithValue();

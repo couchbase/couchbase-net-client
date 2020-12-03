@@ -4,6 +4,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
 using Moq;
@@ -36,7 +37,8 @@ namespace Couchbase.UnitTests.KeyValue
 
             var op = new MultiMutation<byte[]>
             {
-                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs)
+                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs),
+                Transcoder = new JsonTranscoder()
             };
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(responsePacket));
@@ -61,7 +63,8 @@ namespace Couchbase.UnitTests.KeyValue
 
             var op = new MultiMutation<byte[]>
             {
-                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs)
+                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs),
+                Transcoder = new JsonTranscoder()
             };
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));
@@ -92,7 +95,8 @@ namespace Couchbase.UnitTests.KeyValue
 
             var op = new MultiMutation<byte[]>
             {
-                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs)
+                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs),
+                Transcoder = new JsonTranscoder()
             };
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));

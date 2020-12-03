@@ -28,7 +28,6 @@ namespace Couchbase.Core.IO.Operations
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
         internal ErrorCode ErrorCode;
-        private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
         private IMemoryOwner<byte> _data;
         private IInternalSpan _span;
         private List<RetryReason> _retryReasons;
@@ -41,9 +40,6 @@ namespace Couchbase.Core.IO.Operations
             Opaque = SequenceGenerator.GetNext();
             Header = new OperationHeader { Status = ResponseStatus.None };
             Key = string.Empty;
-
-            //temporarily make a static - later should be pluggable/set externally
-            Transcoder = DefaultTranscoder;
         }
 
         public abstract OpCode OpCode { get; }

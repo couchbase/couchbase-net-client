@@ -461,7 +461,7 @@ namespace Couchbase.KeyValue
             // convert new style specs into old style builder
             var builder = new LookupInBuilder<byte[]>(null, null, id, specs);
 
-            //add the virtual xttar attribute to get the doc expiration time
+            //add the virtual xattr attribute to get the doc expiration time
             if (options.ExpiryValue)
             {
                 builder.Get(VirtualXttrs.DocExpiryTime, SubdocPathFlags.Xattr);
@@ -687,10 +687,11 @@ namespace Couchbase.KeyValue
                 Logger.LogWarning($"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
             }
 
-            var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
-
             // get primary
-            tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
+            var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1)
+            {
+                GetPrimary(id, rootSpan, options.TokenValue, options)
+            };
 
             // get replicas
             tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
@@ -711,10 +712,11 @@ namespace Couchbase.KeyValue
                 Logger.LogWarning($"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
             }
 
-            var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1);
-
             // get primary
-            tasks.Add(GetPrimary(id, rootSpan, options.TokenValue, options));
+            var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1)
+            {
+                GetPrimary(id, rootSpan, options.TokenValue, options)
+            };
 
             // get replicas
             tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
