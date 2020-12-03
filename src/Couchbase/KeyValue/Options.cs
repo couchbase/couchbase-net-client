@@ -11,15 +11,17 @@ namespace Couchbase.KeyValue
 {
     #region GetOptions
 
-    public class GetOptions : ITranscoderOverrideOptions
+    public class GetOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal bool IncludeExpiryValue { get; set; }
 
         internal List<string> ProjectListValue { get; set; } = new List<string>();
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
         internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -59,9 +61,12 @@ namespace Couchbase.KeyValue
 
     #region GetAnyReplicaOptions
 
-    public class GetAllReplicasOptions : ITranscoderOverrideOptions
+    public class GetAllReplicasOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
+        TimeSpan? ITimeoutOptions.Timeout => default;
+
         internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -85,8 +90,10 @@ namespace Couchbase.KeyValue
 
     #region GetAllReplicaOptions
 
-    public class GetAnyReplicaOptions : ITranscoderOverrideOptions
+    public class GetAnyReplicaOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
+        TimeSpan? ITimeoutOptions.Timeout => default;
+
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
@@ -97,6 +104,7 @@ namespace Couchbase.KeyValue
         }
 
         internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public GetAnyReplicaOptions CancellationToken(CancellationToken token)
         {
@@ -111,11 +119,13 @@ namespace Couchbase.KeyValue
 
     #region Exists Options
 
-    public class ExistsOptions : IKeyValueOptions
+    public class ExistsOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public ExistsOptions Timeout(TimeSpan timeout)
         {
@@ -134,7 +144,7 @@ namespace Couchbase.KeyValue
 
     #region Upsert Options
 
-    public class UpsertOptions : ITranscoderOverrideOptions
+    public class UpsertOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -145,8 +155,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -193,7 +205,7 @@ namespace Couchbase.KeyValue
 
     #region Insert Options
 
-    public class InsertOptions : ITranscoderOverrideOptions
+    public class InsertOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -204,8 +216,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -252,7 +266,7 @@ namespace Couchbase.KeyValue
 
     #region Replace Options
 
-    public class ReplaceOptions : ITranscoderOverrideOptions
+    public class ReplaceOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -265,8 +279,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -319,7 +335,7 @@ namespace Couchbase.KeyValue
 
     #region Remove Options
 
-    public class RemoveOptions : IKeyValueOptions
+    public class RemoveOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal ulong CasValue { get; set; }
 
@@ -330,8 +346,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public RemoveOptions Cas(ulong cas)
         {
@@ -369,12 +387,13 @@ namespace Couchbase.KeyValue
 
     #region Unlock Options
 
-    public class UnlockOptions : IKeyValueOptions
+    public class UnlockOptions : IKeyValueOptions, ITimeoutOptions
     {
-
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public UnlockOptions Timeout(TimeSpan timeout)
         {
@@ -393,16 +412,17 @@ namespace Couchbase.KeyValue
 
     #region Touch Options
 
-    public class TouchOptions : IKeyValueOptions
+    public class TouchOptions : IKeyValueOptions, ITimeoutOptions
     {
-
         internal ReplicateTo ReplicateTo { get; set; }
 
         internal PersistTo PersistTo { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public TouchOptions Timeout(TimeSpan timeout)
         {
@@ -421,7 +441,7 @@ namespace Couchbase.KeyValue
 
     #region Increment Options
 
-    public class IncrementOptions : IKeyValueOptions
+    public class IncrementOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal ulong InitialValue { get; set; } = 1;
 
@@ -436,8 +456,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -538,7 +560,7 @@ namespace Couchbase.KeyValue
 
     #region Decrement options
 
-    public class DecrementOptions : IKeyValueOptions
+    public class DecrementOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal ulong InitialValue { get; set; } = 1;
 
@@ -553,8 +575,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -612,7 +636,7 @@ namespace Couchbase.KeyValue
 
     #region Append Options
 
-    public class AppendOptions : IKeyValueOptions
+    public class AppendOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal ulong CasValue { get; set; }
 
@@ -623,8 +647,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public AppendOptions Cas(ulong cas)
         {
@@ -662,7 +688,7 @@ namespace Couchbase.KeyValue
 
     #region Prepend Options
 
-    public class PrependOptions : IKeyValueOptions
+    public class PrependOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal ulong CasValue { get; set; }
 
@@ -673,8 +699,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public PrependOptions Cas(ulong cas)
         {
@@ -712,11 +740,13 @@ namespace Couchbase.KeyValue
 
     #region GetAndLock Options
 
-    public class GetAndLockOptions : ITranscoderOverrideOptions
+    public class GetAndLockOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -744,7 +774,7 @@ namespace Couchbase.KeyValue
 
     #region GetAndTouch Options
 
-    public class GetAndTouchOptions : ITranscoderOverrideOptions
+    public class GetAndTouchOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
 
         internal ReplicateTo ReplicateTo { get; set; }
@@ -752,8 +782,10 @@ namespace Couchbase.KeyValue
         internal PersistTo PersistTo { get; set; }
 
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
@@ -781,11 +813,13 @@ namespace Couchbase.KeyValue
 
     #region LookupInOptions
 
-    public class LookupInOptions : IKeyValueOptions
+    public class LookupInOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal TimeSpan? TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal bool ExpiryValue { get; set; }
 
@@ -828,7 +862,7 @@ namespace Couchbase.KeyValue
 
     #region MutateInOptions
 
-    public class MutateInOptions : IKeyValueOptions
+    public class MutateInOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal TimeSpan ExpiryValue { get; set; }
 
@@ -841,8 +875,10 @@ namespace Couchbase.KeyValue
         internal DurabilityLevel DurabilityLevel { get; set; }
 
         internal TimeSpan TimeoutValue { get; set; }
+        TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken? TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; set; }
+        CancellationToken ITimeoutOptions.Token => TokenValue;
 
         internal ITypeSerializer? SerializerValue { get; set; }
 

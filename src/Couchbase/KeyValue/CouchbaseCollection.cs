@@ -159,7 +159,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(get, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, get).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, get);
+            await _bucket.RetryAsync(get, cts.Token).ConfigureAwait(false);
             return get;
         }
 
@@ -186,7 +187,8 @@ namespace Couchbase.KeyValue
                 };
                 _operationConfigurator.Configure(getMetaOp, options);
 
-                await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getMetaOp).ConfigureAwait(false);
+                using var cts = CreateRetryTimeoutCancellationTokenSource(options, getMetaOp);
+                await _bucket.RetryAsync(getMetaOp, cts.Token).ConfigureAwait(false);
                 var result = getMetaOp.GetValue();
 
                 return new ExistsResult
@@ -228,18 +230,15 @@ namespace Couchbase.KeyValue
 
             _operationConfigurator.Configure(upsertOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, upsertOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, upsertOp);
+            await _bucket.RetryAsync(upsertOp, cts.Token).ConfigureAwait(false);
             return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
         }
 
-        private async Task RetryUntilTimeoutOrSuccessAsync(CancellationToken? token, TimeSpan? timeout, IOperation op)
-        {
-            using var cts = token.HasValue
-                ? CancellationTokenSource.CreateLinkedTokenSource(token.Value)
-                : new CancellationTokenSource(GetTimeout(timeout, op));
-
-            await _bucket.RetryAsync(op, cts.Token).ConfigureAwait(false);
-        }
+        private CancellationTokenSource CreateRetryTimeoutCancellationTokenSource(ITimeoutOptions options, IOperation op) =>
+            options.Token.CanBeCanceled
+                ? CancellationTokenSource.CreateLinkedTokenSource(options.Token)
+                : new CancellationTokenSource(GetTimeout(options.Timeout, op));
 
         #endregion
 
@@ -263,7 +262,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(insertOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, insertOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, insertOp);
+            await _bucket.RetryAsync(insertOp, cts.Token).ConfigureAwait(false);
             return new MutationResult(insertOp.Cas, null, insertOp.MutationToken);
         }
 
@@ -290,7 +290,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(replaceOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, replaceOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, replaceOp);
+            await _bucket.RetryAsync(replaceOp, cts.Token).ConfigureAwait(false);
             return new MutationResult(replaceOp.Cas, null, replaceOp.MutationToken);
         }
 
@@ -317,7 +318,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(removeOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, removeOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, removeOp);
+            await _bucket.RetryAsync(removeOp, cts.Token).ConfigureAwait(false);
         }
 
         #endregion
@@ -341,7 +343,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(unlockOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, unlockOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, unlockOp);
+            await _bucket.RetryAsync(unlockOp, cts.Token).ConfigureAwait(false);
         }
 
         #endregion
@@ -366,7 +369,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(touchOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, touchOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, touchOp);
+            await _bucket.RetryAsync(touchOp, cts.Token).ConfigureAwait(false);
         }
 
         #endregion
@@ -389,7 +393,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(getAndTouchOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getAndTouchOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, getAndTouchOp);
+            await _bucket.RetryAsync(getAndTouchOp, cts.Token).ConfigureAwait(false);
 
             return new GetResult(getAndTouchOp.ExtractBody(), getAndTouchOp.Transcoder, _getLogger)
             {
@@ -422,7 +427,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(getAndLockOp, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, getAndLockOp).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, getAndLockOp);
+            await _bucket.RetryAsync(getAndLockOp, cts.Token).ConfigureAwait(false);
             return new GetResult(getAndLockOp.ExtractBody(), getAndLockOp.Transcoder, _getLogger)
             {
                 Id = getAndLockOp.Key,
@@ -478,7 +484,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(lookup, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, lookup).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, lookup);
+            await _bucket.RetryAsync(lookup, cts.Token).ConfigureAwait(false);
             return lookup;
         }
 
@@ -544,7 +551,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(mutation, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, mutation).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, mutation);
+            await _bucket.RetryAsync(mutation, cts.Token).ConfigureAwait(false);
 
             return new MutateInResult(mutation.GetCommandValues(), mutation.Cas, mutation.MutationToken,
                 options.SerializerValue ?? mutation.Transcoder.Serializer);
@@ -586,7 +594,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(op, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, op);
+            await _bucket.RetryAsync(op, cts.Token).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
 
@@ -611,7 +620,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(op, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, op);
+            await _bucket.RetryAsync(op, cts.Token).ConfigureAwait(false);
             return new MutationResult(op.Cas, null, op.MutationToken);
         }
 
@@ -638,7 +648,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(op, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, op);
+            await _bucket.RetryAsync(op, cts.Token).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
 
@@ -665,7 +676,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(op, options);
 
-            await RetryUntilTimeoutOrSuccessAsync(options.TokenValue, options.TimeoutValue, op).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, op);
+            await _bucket.RetryAsync(op, cts.Token).ConfigureAwait(false);
             return new CounterResult(op.GetValue(), op.Cas, null, op.MutationToken);
         }
 
