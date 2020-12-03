@@ -166,8 +166,8 @@ namespace Couchbase.Core
 
         internal abstract Task SendAsync(IOperation op, CancellationToken token = default);
 
-        public virtual async Task RetryAsync(IOperation operation, CancellationToken token = default) =>
-           await RetryOrchestrator.RetryAsync(this, operation, token).ConfigureAwait(false);
+        public virtual Task RetryAsync(IOperation operation, CancellationToken token = default) =>
+           RetryOrchestrator.RetryAsync(this, operation, token);
 
         #endregion
 

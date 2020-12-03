@@ -373,7 +373,7 @@ namespace Couchbase.Core
             }
         }
 
-        public async Task SendAsync(IOperation op, CancellationToken token = default)
+        public Task SendAsync(IOperation op, CancellationToken token = default)
         {
             _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
 
@@ -382,50 +382,66 @@ namespace Couchbase.Core
                 if (_circuitBreaker.AllowsRequest())
                 {
                     _circuitBreaker.Track();
-                    try
-                    {
 
-                        _logger.LogDebug("CB: Sending {opaque} to {endPoint}.", op.Opaque,
-                            _redactor.SystemData(EndPoint));
+                    var sendTask = ExecuteOp(ConnectionPool, op, token);
 
-                        await ExecuteOp(ConnectionPool, op, token).ConfigureAwait(false);
-                        _circuitBreaker.MarkSuccess();
-                    }
-                    catch (Exception e)
+                    sendTask.ContinueWith(task =>
                     {
-                        if (_circuitBreaker.CompletionCallback(e))
+                        if (task.Status == TaskStatus.RanToCompletion)
                         {
-                            _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
-                                _redactor.SystemData(ConnectionPool.EndPoint));
-
-                            _circuitBreaker.MarkFailure();
+                            _circuitBreaker.MarkSuccess();
                         }
+                        else if (task.Status == TaskStatus.Faulted)
+                        {
+                            if (_circuitBreaker.CompletionCallback(task.Exception))
+                            {
+                                _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
+                                    _redactor.SystemData(ConnectionPool.EndPoint));
 
-                        throw;
-                    }
+                                _circuitBreaker.MarkFailure();
+                            }
+                        }
+                    }, TaskContinuationOptions.RunContinuationsAsynchronously);
+
+                    // Returning sendTask will still propagate the result/exception to the caller.
+                    // However, circuit breaker handling will be asynchronous on another thread.
+                    // This approach helps avoid an extra Task and await on the call stack delaying operation
+                    // completion from propagating to the caller.
+                    return sendTask;
                 }
                 else
                 {
                     if (_circuitBreaker.State == CircuitBreakerState.HalfOpen)
                     {
-                        try
-                        {
-                            _logger.LogDebug("CB: Sending a canary to {endPoint}.", _redactor.SystemData(ConnectionPool.EndPoint));
-                            using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
-                            {
-                                await ExecuteOp(ConnectionPool, new Noop() { Span = op.Span }, cts.Token).ConfigureAwait(false);
-                            }
+                        // Run half-open test in a separate thread to avoid an await in SendAsync.
+                        // This approach helps avoid an extra Task and await on the call stack delaying operation
+                        // completion from propagating to the caller.
 
-                            _circuitBreaker.MarkSuccess();
-                        }
-                        catch (Exception e)
+                        // ReSharper disable once MethodSupportsCancellation
+                        Task.Run(async () =>
                         {
-                            if (_circuitBreaker.CompletionCallback(e))
+                            try
                             {
-                                _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.", _redactor.SystemData(ConnectionPool.EndPoint));
-                                _circuitBreaker.MarkFailure();
+                                _logger.LogDebug("CB: Sending a canary to {endPoint}.",
+                                    _redactor.SystemData(ConnectionPool.EndPoint));
+                                using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
+                                {
+                                    await ExecuteOp(ConnectionPool, new Noop() {Span = op.Span}, cts.Token)
+                                        .ConfigureAwait(false);
+                                }
+
+                                _circuitBreaker.MarkSuccess();
                             }
-                        }
+                            catch (Exception e)
+                            {
+                                if (_circuitBreaker.CompletionCallback(e))
+                                {
+                                    _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.",
+                                        _redactor.SystemData(ConnectionPool.EndPoint));
+                                    _circuitBreaker.MarkFailure();
+                                }
+                            }
+                        });
                     }
 
                     throw new CircuitBreakerException();
@@ -433,7 +449,7 @@ namespace Couchbase.Core
             }
             else
             {
-                await ExecuteOp(ConnectionPool, op, token).ConfigureAwait(false);
+                return ExecuteOp(ConnectionPool, op, token);
             }
         }
 
