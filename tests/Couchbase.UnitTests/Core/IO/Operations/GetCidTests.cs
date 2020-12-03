@@ -16,8 +16,9 @@ namespace Couchbase.UnitTests.Core.IO.Operations
         {
             var packet = new byte[]
             {
-                129, 187, 0, 0, 12, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0, 45, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 85, 0, 0, 0, 34
+                0x18, 0xbb, 0x03, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x1a,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x17
             };
 
             var response = MemoryPool<byte>.Shared.RentAndSlice(packet.Length);
@@ -31,7 +32,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             var result = op.GetResultWithValue();
 
             Assert.True(result.Content.HasValue);
-            Assert.Equal(85u, result.Content.Value);
+            Assert.Equal(0x17u, result.Content.Value);
         }
     }
 }

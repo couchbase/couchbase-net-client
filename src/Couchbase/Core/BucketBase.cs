@@ -148,7 +148,7 @@ namespace Couchbase.Core
             {
                 foreach (var scope in _scopeFactory.CreateScopes(this, Manifest!))
                 {
-                    Scopes.TryAdd(scope.Name, scope);
+                    Scopes.AddOrUpdate(scope.Name, scope, (_, oldScope) => scope);
                 }
             }
             else

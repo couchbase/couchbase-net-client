@@ -492,7 +492,19 @@ namespace Couchbase.UnitTests.Core.Retry
             }
         }
 
-        private static RetryOrchestrator CreateRetryOrchestrator() =>
-            new RetryOrchestrator(new Mock<ILogger<RetryOrchestrator>>().Object, new Mock<IRedactor>().Object);
+        private static RetryOrchestrator CreateRetryOrchestrator()
+        {
+            var mock = new Mock<RetryOrchestrator>(new Mock<ILogger<RetryOrchestrator>>().Object,
+                new Mock<IRedactor>().Object)
+            {
+                CallBase = true
+            };
+
+            mock
+                .Setup(m => m.RefreshCollectionId(It.IsAny<BucketBase>(), It.IsAny<IOperation>()))
+                .ReturnsAsync(false);
+
+            return mock.Object;
+        }
     }
 }

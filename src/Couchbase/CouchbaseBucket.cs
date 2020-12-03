@@ -15,6 +15,7 @@ using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
+using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -200,7 +201,7 @@ namespace Couchbase
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
-        internal override async Task SendAsync(IOperation op, CancellationToken token = default)
+        internal override Task SendAsync(IOperation op, CancellationToken token = default)
         {
             if (KeyMapper == null)
             {
@@ -216,23 +217,7 @@ namespace Couchbase
 
             if (Nodes.TryGet(endPoint!, out var clusterNode))
             {
-                try
-                {
-                    await clusterNode.SendAsync(op, token).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    if (e is CollectionOutdatedException)
-                    {
-                        Logger.LogInformation("Updating stale manifest for collection and retrying.", e);
-                        await RefreshCollectionId(op, clusterNode).ConfigureAwait(false);
-                        await clusterNode.SendAsync(op, token).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        throw;//propagate up
-                    }
-                }
+                return clusterNode.SendAsync(op, token);
             }
             else
             {
@@ -248,13 +233,18 @@ namespace Couchbase
             }
         }
 
-        private async Task RefreshCollectionId(IOperation op, IClusterNode node)
+        /// <summary>
+        /// Currently used to support integration tests, this method uses a random cluster node to refresh
+        /// the manifest after scope/collection changes using the management APIs.
+        /// </summary>
+        internal async Task RefreshManifestAsync()
         {
-            var scope = Scope(op.SName);
-            var collection = (CouchbaseCollection)scope.Collection(op.CName);
-            var newCid = await node.GetCid($"{op.SName}.{op.CName}").ConfigureAwait(false);
-            collection.Cid = newCid;
-            op.Cid = collection.Cid;
+            if (Context.SupportsCollections)
+            {
+                Manifest = await Nodes.GetRandom().GetManifest().ConfigureAwait(false);
+
+                LoadManifest();
+            }
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)

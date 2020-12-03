@@ -16,7 +16,7 @@ namespace Couchbase.Core.IO.Operations.Collections
                 {
                     var buffer = Data;
                     ReadExtras(buffer.Span);
-                    return Transcoder.Decode<uint>(buffer.Slice(31, 4), Flags, OpCode.GetCidByName);
+                    return Converters.ByteConverter.ToUInt32(buffer.Span.Slice(Header.ExtrasOffset + 8, 4));
                 }
                 catch (Exception e)
                 {
@@ -29,6 +29,10 @@ namespace Couchbase.Core.IO.Operations.Collections
         }
 
         public override void WriteExtras(OperationBuilder builder)
+        {
+        }
+
+        public override void WriteBody(OperationBuilder builder)
         {
         }
     }

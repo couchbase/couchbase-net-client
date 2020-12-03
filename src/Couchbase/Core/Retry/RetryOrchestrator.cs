@@ -2,10 +2,14 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
+using Couchbase.Core.Sharding;
+using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Retry
@@ -139,8 +143,26 @@ namespace Couchbase.Core.Retry
                     try
                     {
                         operation.Attempts++;
-                        await bucket.SendAsync(operation, token).ConfigureAwait(false);
-                        break;
+
+                        try
+                        {
+                            await bucket.SendAsync(operation, token).ConfigureAwait(false);
+                            break;
+                        }
+                        catch (CollectionOutdatedException e)
+                        {
+                            // We catch CollectionOutdatedException separately from the CouchbaseException catch block
+                            // in case RefreshCollectionId fails. This causes that failure to trigger normal retry logic.
+
+                            _logger.LogInformation("Updating stale manifest for collection and retrying.", e);
+                            if (!await RefreshCollectionId(bucket, operation)
+                                .ConfigureAwait(false))
+                            {
+                                // rethrow if we fail to refresh he collection ID so we hit retry logic
+                                // otherwise we'll loop and retry immediately
+                                throw;
+                            }
+                        }
                     }
                     catch (CouchbaseException e)
                     {
@@ -151,7 +173,8 @@ namespace Couchbase.Core.Retry
                             {
                                 token.ThrowIfCancellationRequested();
 
-                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and always retry.", operation.Opaque,
+                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and always retry.",
+                                    operation.Opaque,
                                     operation.Key, reason);
 
                                 await backoff.Delay(operation).ConfigureAwait(false);
@@ -164,7 +187,8 @@ namespace Couchbase.Core.Retry
 
                             if (action.Retry)
                             {
-                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and action duration.", operation.Opaque,
+                                _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and action duration.",
+                                    operation.Opaque,
                                     operation.Key, reason);
 
                                 operation.Reset();
@@ -172,7 +196,7 @@ namespace Couchbase.Core.Retry
                             }
                             else
                             {
-                               throw; //don't retry
+                                throw; //don't retry
                             }
                         }
                         else
@@ -190,6 +214,37 @@ namespace Couchbase.Core.Retry
             throw new TimeoutException(
                 $"The operation {operation.Opaque}/{operation.Opaque} timed out after {timeout}. " +
                 $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}.");
+        }
+
+        // protected internal for a unit test seam
+        protected internal virtual async Task<bool> RefreshCollectionId(BucketBase bucket, IOperation op)
+        {
+            try
+            {
+                var vBucket = (VBucket) bucket.KeyMapper!.MapKey(op.Key);
+                var endPoint = op.ReplicaIdx > 0 ? vBucket.LocateReplica(op.ReplicaIdx) : vBucket.LocatePrimary();
+
+                if (bucket.Nodes.TryGet(endPoint!, out var clusterNode))
+                {
+                    var scope = bucket.Scope(op.SName);
+                    var collection = (CouchbaseCollection) scope.Collection(op.CName);
+
+                    var newCid = await clusterNode.GetCid($"{op.SName}.{op.CName}").ConfigureAwait(false);
+                    collection.Cid = newCid;
+
+                    op.Reset();
+                    op.Cid = newCid;
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting new collection id.");
+            }
+
+            op.Reset();
+            return false;
         }
     }
 }

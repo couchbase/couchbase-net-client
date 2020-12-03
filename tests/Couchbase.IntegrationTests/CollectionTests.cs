@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -79,6 +77,41 @@ namespace Couchbase.IntegrationTests
                 catch (DocumentNotFoundException)
                 {
                 }
+            }
+        }
+
+        [Fact]
+        public async Task CollectionIdChanged_RetriesAutomatically()
+        {
+            const string scopeName = "CollectionIdChanged";
+            const string collectionName = "coll";
+            const string key = nameof(CollectionIdChanged_RetriesAutomatically);
+
+            var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
+            var collectionManager = bucket.Collections;
+
+            try
+            {
+                await collectionManager.CreateScopeAsync(new ScopeSpec(scopeName));
+                await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
+
+                await Task.Delay(500);
+                await ((CouchbaseBucket) bucket).RefreshManifestAsync();
+
+                ICouchbaseCollection collection = bucket.Scope(scopeName).Collection(collectionName);
+
+                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
+
+                await collectionManager.DropCollectionAsync(new CollectionSpec(scopeName, collectionName));
+                await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
+
+                await Task.Delay(500);
+
+                await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
+            }
+            finally
+            {
+                await collectionManager.DropScopeAsync(scopeName);
             }
         }
     }
