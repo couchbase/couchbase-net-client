@@ -13,8 +13,6 @@ namespace Couchbase.KeyValue
 
     public class GetOptions : ITranscoderOverrideOptions
     {
-        internal IRetryStrategy RetryStrategyValue { get; set; } = new BestEffortRetryStrategy();
-
         internal bool IncludeExpiryValue { get; set; }
 
         internal List<string> ProjectListValue { get; set; } = new List<string>();

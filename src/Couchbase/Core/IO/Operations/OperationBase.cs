@@ -31,6 +31,8 @@ namespace Couchbase.Core.IO.Operations
         private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
         private IMemoryOwner<byte> _data;
         private IInternalSpan _span;
+        private List<RetryReason> _retryReasons;
+        private IRetryStrategy _retryStrategy;
 
         private TaskCompletionSource<ResponseStatus> _completed = new TaskCompletionSource<ResponseStatus>();
 
@@ -78,8 +80,19 @@ namespace Couchbase.Core.IO.Operations
         public uint Attempts { get; set; }
         public virtual bool Idempotent { get; } = false;
         public Dictionary<RetryReason, Exception> Exceptions { get; set; }
-        public List<RetryReason> RetryReasons { get; set; } = new List<RetryReason>();
-        public IRetryStrategy RetryStrategy { get; set; } = new BestEffortRetryStrategy(new ControlledBackoff());
+
+        public List<RetryReason> RetryReasons
+        {
+            get => _retryReasons ??= new List<RetryReason>();
+            set => _retryReasons = value;
+        }
+
+        public IRetryStrategy RetryStrategy
+        {
+            get => _retryStrategy ??= new BestEffortRetryStrategy(new ControlledBackoff());
+            set => _retryStrategy = value;
+        }
+
         public TimeSpan Timeout { get; set; }
         public CancellationToken Token { get; set; }
         public string ClientContextId { get; set; }
