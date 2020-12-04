@@ -19,22 +19,20 @@ namespace Couchbase.Core.Utils
         {
             var index = 0;
 
-            do
+            while (true)
             {
                 // get next 7 lower bits
                 var @byte = (byte) (value & 0x7f);
                 value >>= 7;
 
-                if (value != 0) // more bytes to come
+                if (value == 0) // this was the last byte
                 {
-                    @byte ^= 0x80; // set highest bit
+                    buffer[index++] = @byte;
+                    return index;
                 }
 
-                buffer[index] = @byte;
-                index++;
-            } while (value != 0);
-
-            return index;
+                buffer[index++] = (byte)(@byte | 0x80);
+            }
         }
 
         public static uint Read(ReadOnlySpan<byte> bytes)
