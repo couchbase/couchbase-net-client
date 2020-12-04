@@ -1,3 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+
+#nullable enable
+
 namespace Couchbase.Core.Logging
 {
     /// <summary>
@@ -10,20 +14,23 @@ namespace Couchbase.Core.Logging
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        object UserData(object message);
+        [return: NotNullIfNotNull("message")]
+        object? UserData(object? message);
 
         /// <summary>
         /// Redact meta data like bucket names, etc
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        object MetaData(object message);
+        [return: NotNullIfNotNull("message")]
+        object? MetaData(object? message);
 
         /// <summary>
         /// Redact system data like hostnames, etc.
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        object SystemData(object message);
+        [return: NotNullIfNotNull("message")]
+        object? SystemData(object? message);
     }
 }
