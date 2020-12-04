@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.TestData;
 using Couchbase.KeyValue;
@@ -449,6 +451,32 @@ namespace Couchbase.IntegrationTests
             finally
             {
                 await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public async Task GetEmptyDoc_LegacyTranscoder(string content)
+        {
+            const string id = nameof(GetEmptyDoc_LegacyTranscoder);
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var transcoder = new LegacyTranscoder(new DefaultSerializer());
+
+            try
+            {
+                await collection.InsertAsync(id, content, insertOptions => insertOptions.Transcoder(transcoder))
+                    .ConfigureAwait(false);
+
+                var getResult = await collection.GetAsync(id, getOptions => getOptions.Transcoder(transcoder))
+                    .ConfigureAwait(false);
+                var value = getResult.ContentAs<string>();
+
+                Assert.Null(value);
+            }
+            finally
+            {
+                await collection.RemoveAsync(id).ConfigureAwait(false);
             }
         }
     }

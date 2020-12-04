@@ -138,6 +138,15 @@ namespace Couchbase.Core.IO.Operations
                 return null;
             }
 
+            if (Header.BodyOffset >= _data.Memory.Length)
+            {
+                // Empty body, just free the memory
+                _data.Dispose();
+                _data = null;
+
+                return new EmptyMemoryOwner<byte>();
+            }
+
             if ((Header.DataType & DataType.Snappy) != DataType.None)
             {
                 var result = OperationCompressor.Decompress(_data.Memory.Slice(Header.BodyOffset));
