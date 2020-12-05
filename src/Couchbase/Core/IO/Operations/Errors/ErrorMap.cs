@@ -1,32 +1,53 @@
+using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Linq;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations.Errors
 {
     /// <summary>
     /// A map of errors provided by the server that can be used to lookup messages.
     /// </summary>
-    public class ErrorMap
+    internal class ErrorMap
     {
-        private const string HexFormat = "X";
-
         /// <summary>
         /// Gets or sets the version of the error map.
         /// </summary>
-        [JsonProperty("version")]
-        public int Version { get; set; }
+        public int Version { get; }
 
         /// <summary>
         /// Gets or sets the revision of the error map.
         /// </summary>
-        [JsonProperty("revision")]
-        public int Revision { get; set; }
+        public int Revision { get; }
 
         /// <summary>
         /// Gets or sets the dictionary of errors codes.
         /// </summary>
-        [JsonProperty("errors")]
-        public Dictionary<string, ErrorCode> Errors { get; set; }
+        public Dictionary<short, ErrorCode> Errors { get; }
+
+        public ErrorMap(ErrorMapDto source)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            Version = source.Version;
+            Revision = source.Revision;
+            Errors = source.Errors.ToDictionary(
+                p => short.Parse(p.Key, NumberStyles.HexNumber),
+                p => p.Value);
+        }
+
+        public ErrorMap(int version, int revision, Dictionary<short, ErrorCode> errors)
+        {
+            Version = version;
+            Revision = revision;
+            Errors = errors ?? throw new ArgumentNullException(nameof(errors));
+        }
 
         /// <summary>
         /// Tries the get get error code.
@@ -34,9 +55,9 @@ namespace Couchbase.Core.IO.Operations.Errors
         /// <param name="code">The code.</param>
         /// <param name="errorCode">The error code.</param>
         /// <returns>True if the provided error code was in the error code map, otherwise false.</returns>
-        public bool TryGetGetErrorCode(short code, out ErrorCode errorCode)
+        public bool TryGetGetErrorCode(short code, [MaybeNullWhen(false)] out ErrorCode? errorCode)
         {
-            if (Errors.TryGetValue(code.ToString(HexFormat).ToLower(), out errorCode))
+            if (Errors.TryGetValue(code, out errorCode))
             {
                 return true;
             }

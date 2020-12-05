@@ -195,7 +195,7 @@ namespace Couchbase.Core
                 Span = childSpan
             };
             await ExecuteOp(connection, errorMapOp, cancellationToken).ConfigureAwait(false);
-            return errorMapOp.GetResultWithValue().Content;
+            return new ErrorMap(errorMapOp.GetResultWithValue().Content);
         }
 
         private async Task<ServerFeatures[]> Hello(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)

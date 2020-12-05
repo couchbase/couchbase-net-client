@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
         [Fact]
         public async Task When_Status_Indicates_Failure_Context_Is_Populated()
         {
-            var errorMap = JsonConvert.DeserializeObject<ErrorMap>(ResourceHelper.ReadResource("kv-error-map.json"));
+            var errorMap = new ErrorMap(JsonConvert.DeserializeObject<ErrorMapDto>(ResourceHelper.ReadResource("kv-error-map.json")));
 
             var mockConnection = new Mock<IConnection>();
 

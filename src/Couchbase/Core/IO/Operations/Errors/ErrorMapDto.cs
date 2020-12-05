@@ -1,37 +1,31 @@
-using System;
-using Couchbase.Core.IO.Converters;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations.Errors
 {
-    internal class GetErrorMap : OperationBase<ErrorMapDto>
+    /// <summary>
+    /// A map of errors provided by the server that can be used to lookup messages.
+    /// This is the version of <see cref="ErrorMap"/> designed for JSON deserialization.
+    /// </summary>
+    internal class ErrorMapDto
     {
-        private const int DefaultVersion = 1; // will be configurable at some point
+        /// <summary>
+        /// Gets or sets the version of the error map.
+        /// </summary>
+        [JsonProperty("version")]
+        public int Version { get; set; }
 
-        public ErrorMap ErrorMap { get; set; }
+        /// <summary>
+        /// Gets or sets the revision of the error map.
+        /// </summary>
+        [JsonProperty("revision")]
+        public int Revision { get; set; }
 
-        public override void WriteKey(OperationBuilder builder)
-        {
-        }
-
-        public override void WriteExtras(OperationBuilder builder)
-        {
-        }
-
-        public override void WriteBody(OperationBuilder builder)
-        {
-            Span<byte> body = stackalloc byte[2];
-            ByteConverter.FromInt16(DefaultVersion, body);
-            builder.Write(body);
-        }
-
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
-        {
-            // no extras to read
-        }
-
-        public override OpCode OpCode => OpCode.GetErrorMap;
-
-        public override bool RequiresKey => false;
+        /// <summary>
+        /// Gets or sets the dictionary of errors codes.
+        /// </summary>
+        [JsonProperty("errors")]
+        public Dictionary<string, ErrorCode> Errors { get; set; }
     }
 }
 
