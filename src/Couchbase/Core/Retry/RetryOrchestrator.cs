@@ -28,109 +28,133 @@ namespace Couchbase.Core.Retry
         public async Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult
         {
             var token = request.Token;
+            CancellationTokenSource cts1 = null;
+            CancellationTokenSource cts2 = null;
+
             if (request.Timeout > TimeSpan.Zero)
             {
-                var cts = CancellationTokenSource.CreateLinkedTokenSource(token, new CancellationTokenSource(request.Timeout).Token);
-                token = cts.Token;
+                cts1 = new CancellationTokenSource(request.Timeout);
+
+                if (token.CanBeCanceled)
+                {
+                    cts2 = CancellationTokenSource.CreateLinkedTokenSource(token, cts1.Token);
+                    token = cts2.Token;
+                }
+                else
+                {
+                    token = cts1.Token;
+                }
             }
 
-            //for measuring the capped duration
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            var backoff = ControlledBackoff.Create();
-            do
+            try
             {
-                if (token.IsCancellationRequested)
+                //for measuring the capped duration
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                var backoff = ControlledBackoff.Create();
+                do
                 {
-                    if (request.Idempotent)
+                    if (token.IsCancellationRequested)
                     {
-                        UnambiguousTimeoutException.ThrowWithRetryReasons(request);
-                    }
-                    AmbiguousTimeoutException.ThrowWithRetryReasons(request);
-                }
+                        if (request.Idempotent)
+                        {
+                            UnambiguousTimeoutException.ThrowWithRetryReasons(request);
+                        }
 
-                try
-                {
-                    var result = await send().ConfigureAwait(false);
-                    var reason = result.RetryReason;
-                    if (reason == RetryReason.NoRetry) return result;
-
-                    if (reason.AlwaysRetry())
-                    {
-                        _logger.LogDebug(
-                            "Retrying query {clientContextId}/{statement} because {reason}.", request.ClientContextId,
-                            _redactor.UserData(request.Statement), reason);
-
-                        await backoff.Delay(request).ConfigureAwait(false);
-                        request.IncrementAttempts(reason);
-                        continue;
+                        AmbiguousTimeoutException.ThrowWithRetryReasons(request);
                     }
 
-                    var strategy = request.RetryStrategy;
-                    var action = strategy.RetryAfter(request, reason);
-                    if (action.Retry)
+                    try
                     {
-                        _logger.LogDebug(LoggingEvents.QueryEvent,
-                            "Retrying query {clientContextId}/{statement} because {reason}.", request.ClientContextId,
-                            request.Statement, reason);
+                        var result = await send().ConfigureAwait(false);
+                        var reason = result.RetryReason;
+                        if (reason == RetryReason.NoRetry) return result;
 
-
-                        var duration = action.DurationValue;
-                        if (duration.HasValue)
+                        if (reason.AlwaysRetry())
                         {
                             _logger.LogDebug(
-                                "Timeout for {clientContextId} is {timeout} and duration is {duration} and elapsed is {elapsed}",
-                                request.ClientContextId, request.Timeout.TotalMilliseconds,
-                                duration.Value.TotalMilliseconds, stopwatch.ElapsedMilliseconds);
+                                "Retrying query {clientContextId}/{statement} because {reason}.",
+                                request.ClientContextId,
+                                _redactor.UserData(request.Statement), reason);
 
-                            var cappedDuration =
-                                request.Timeout.CappedDuration(duration.Value, stopwatch.Elapsed);
-
-                            _logger.LogDebug(
-                                "Timeout for {clientContextId} capped duration is {duration} and elapsed is {elapsed}",
-                                request.ClientContextId, cappedDuration.TotalMilliseconds,
-                                stopwatch.ElapsedMilliseconds);
-
-                            await Task.Delay(cappedDuration,
-                                CancellationTokenSource.CreateLinkedTokenSource(token).Token).ConfigureAwait(false);
+                            await backoff.Delay(request).ConfigureAwait(false);
                             request.IncrementAttempts(reason);
+                            continue;
+                        }
 
-                            //temp fix for query unit tests
-                            if (request.Attempts > 9)
+                        var strategy = request.RetryStrategy;
+                        var action = strategy.RetryAfter(request, reason);
+                        if (action.Retry)
+                        {
+                            _logger.LogDebug(LoggingEvents.QueryEvent,
+                                "Retrying query {clientContextId}/{statement} because {reason}.",
+                                request.ClientContextId,
+                                request.Statement, reason);
+
+
+                            var duration = action.DurationValue;
+                            if (duration.HasValue)
+                            {
+                                _logger.LogDebug(
+                                    "Timeout for {clientContextId} is {timeout} and duration is {duration} and elapsed is {elapsed}",
+                                    request.ClientContextId, request.Timeout.TotalMilliseconds,
+                                    duration.Value.TotalMilliseconds, stopwatch.ElapsedMilliseconds);
+
+                                var cappedDuration =
+                                    request.Timeout.CappedDuration(duration.Value, stopwatch.Elapsed);
+
+                                _logger.LogDebug(
+                                    "Timeout for {clientContextId} capped duration is {duration} and elapsed is {elapsed}",
+                                    request.ClientContextId, cappedDuration.TotalMilliseconds,
+                                    stopwatch.ElapsedMilliseconds);
+
+                                await Task.Delay(cappedDuration,
+                                    CancellationTokenSource.CreateLinkedTokenSource(token).Token).ConfigureAwait(false);
+                                request.IncrementAttempts(reason);
+
+                                //temp fix for query unit tests
+                                if (request.Attempts > 9)
+                                {
+                                    if (request.Idempotent)
+                                    {
+                                        UnambiguousTimeoutException.ThrowWithRetryReasons(request,
+                                            new InvalidOperationException($"Too many retries: {request.Attempts}."));
+                                    }
+
+                                    AmbiguousTimeoutException.ThrowWithRetryReasons(request,
+                                        new InvalidOperationException($"Too many retries: {request.Attempts}."));
+                                }
+                            }
+                            else
                             {
                                 if (request.Idempotent)
                                 {
-                                    UnambiguousTimeoutException.ThrowWithRetryReasons(request,
-                                        new InvalidOperationException($"Too many retries: {request.Attempts}."));
+                                    UnambiguousTimeoutException.ThrowWithRetryReasons(request);
                                 }
-                                AmbiguousTimeoutException.ThrowWithRetryReasons(request,
-                                    new InvalidOperationException($"Too many retries: {request.Attempts}."));
-                            }
-                        }
-                        else
-                        {
-                            if (request.Idempotent)
-                            {
-                                UnambiguousTimeoutException.ThrowWithRetryReasons(request);
-                            }
 
-                            AmbiguousTimeoutException.ThrowWithRetryReasons(request);
+                                AmbiguousTimeoutException.ThrowWithRetryReasons(request);
+                            }
                         }
                     }
-                }
-                catch (TaskCanceledException _)
-                {
-                    _logger.LogDebug("Request was canceled after {elapsed}.", stopwatch.ElapsedMilliseconds);
-                    //timed out while waiting
-                    if (request.Idempotent)
+                    catch (TaskCanceledException _)
                     {
-                        UnambiguousTimeoutException.ThrowWithRetryReasons(request, _);
-                    }
+                        _logger.LogDebug("Request was canceled after {elapsed}.", stopwatch.ElapsedMilliseconds);
+                        //timed out while waiting
+                        if (request.Idempotent)
+                        {
+                            UnambiguousTimeoutException.ThrowWithRetryReasons(request, _);
+                        }
 
-                    AmbiguousTimeoutException.ThrowWithRetryReasons(request, _);
-                }
-            } while (true);
+                        AmbiguousTimeoutException.ThrowWithRetryReasons(request, _);
+                    }
+                } while (true);
+            }
+            finally
+            {
+                cts2?.Dispose();
+                cts1?.Dispose();
+            }
         }
 
         public async Task RetryAsync(BucketBase bucket, IOperation operation, CancellationToken token = default)
