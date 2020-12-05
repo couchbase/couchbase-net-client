@@ -3,6 +3,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.Serializers
 {
     /// <summary>

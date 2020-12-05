@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Serializers
 {
@@ -20,7 +19,7 @@ namespace Couchbase.Core.IO.Serializers
         /// Provides custom deserialization options.  Options not listed in <see cref="IExtendedTypeSerializer.SupportedDeserializationOptions"/>
         /// will be ignored.  If null, then defaults will be used.
         /// </summary>
-        DeserializationOptions DeserializationOptions { get; set; }
+        DeserializationOptions? DeserializationOptions { get; set; }
 
         /// <summary>
         /// Get the name which will be used for a given member during serialization/deserialization.
@@ -30,6 +29,6 @@ namespace Couchbase.Core.IO.Serializers
         /// The name which will be used for a given member during serialization/deserialization,
         /// or null if if will not be serialized.
         /// </returns>
-        string GetMemberName(MemberInfo member);
+        string? GetMemberName(MemberInfo member);
     }
 }

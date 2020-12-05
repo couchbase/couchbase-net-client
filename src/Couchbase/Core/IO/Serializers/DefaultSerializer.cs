@@ -10,6 +10,8 @@ using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.Serializers
 {
      /// <summary>
@@ -27,31 +29,28 @@ namespace Couchbase.Core.IO.Serializers
 
         public DefaultSerializer(JsonSerializerSettings deserializationSettings, JsonSerializerSettings serializerSettings)
         {
+            if (deserializationSettings == null)
+            {
+                throw new ArgumentNullException(nameof(deserializationSettings));
+            }
+            if (serializerSettings == null)
+            {
+                throw new ArgumentNullException(nameof(serializerSettings));
+            }
+
+            // If unassigned, set default ContractResolver for both DeserializationSettings and SerializerSettings
+            deserializationSettings.ContractResolver ??= GetDefaultContractResolver();
+            serializerSettings.ContractResolver ??= GetDefaultContractResolver();
+
             DeserializationSettings = deserializationSettings;
             SerializerSettings = serializerSettings;
-
-            // If unassigned, set default ContractResovler for both DeserializationSettings and SerializerSettingssettings
-            if (DeserializationSettings.ContractResolver == null)
-            {
-                DeserializationSettings.ContractResolver = GetDefaultContractResolver();
-            }
-            if (SerializerSettings.ContractResolver == null)
-            {
-                SerializerSettings.ContractResolver = GetDefaultContractResolver();
-            }
         }
 
         private static IContractResolver GetDefaultContractResolver()
         {
-            // Would be nice to use null propagation here (requires C# 6)
-            if (JsonConvert.DefaultSettings != null &&
-                JsonConvert.DefaultSettings() != null &&
-                JsonConvert.DefaultSettings().ContractResolver != null)
-            {
-                return JsonConvert.DefaultSettings().ContractResolver;
-            }
+            var defaultResolver = JsonConvert.DefaultSettings?.Invoke()?.ContractResolver;
 
-            return new DefaultContractResolver();
+            return defaultResolver ?? new DefaultContractResolver();
         }
 
         #endregion
@@ -60,8 +59,12 @@ namespace Couchbase.Core.IO.Serializers
 
         private static readonly Encoding Utf8NoBomEncoding = new UTF8Encoding(false);
 
-        private JsonSerializerSettings _deserializationSettings;
-        private DeserializationOptions _deserializationOptions;
+        private JsonSerializerSettings _serializationSettings = null!;
+        private JsonSerializerSettings _deserializationSettings = null!;
+        private DeserializationOptions? _deserializationOptions;
+
+        private JsonSerializer _serializer = null!;
+        private JsonSerializer _deserializer = null!;
 
         #endregion
 
@@ -87,7 +90,16 @@ namespace Couchbase.Core.IO.Serializers
         /// <value>
         /// The outgoing serializer settings; controls the format of the JSON you are storing in Couchbase.
         /// </value>
-        public JsonSerializerSettings SerializerSettings { get; private set; }
+        public JsonSerializerSettings SerializerSettings
+        {
+            get => _serializationSettings;
+            private set
+            {
+                _serializationSettings = value ?? throw new ArgumentNullException(nameof(value));
+
+                _serializer = JsonSerializer.Create(SerializerSettings);
+            }
+        }
 
         /// <summary>
         /// Gets the incoming de-serializer settings; controls the format of the incoming JSON for de-serialization into POCOs.
@@ -96,13 +108,15 @@ namespace Couchbase.Core.IO.Serializers
         /// The incoming serializer settings.
         /// </value>
         public JsonSerializerSettings DeserializationSettings {
-            get { return _deserializationSettings; }
+            get => _deserializationSettings;
             private set
             {
-                _deserializationSettings = value;
+                _deserializationSettings = value ?? throw new ArgumentNullException(nameof(value));
 
                 EffectiveDeserializationSettings = GetDeserializationSettings(_deserializationSettings,
                     _deserializationOptions);
+
+                _deserializer = JsonSerializer.Create(EffectiveDeserializationSettings);
             }
         }
 
@@ -110,7 +124,7 @@ namespace Couchbase.Core.IO.Serializers
         /// Provides custom deserialization options.  Options not listed in <see cref="IExtendedTypeSerializer.SupportedDeserializationOptions"/>
         /// will be ignored.  If null, then defaults will be used.
         /// </summary>
-        public DeserializationOptions DeserializationOptions
+        public DeserializationOptions? DeserializationOptions
         {
             get { return _deserializationOptions; }
             set
@@ -119,10 +133,12 @@ namespace Couchbase.Core.IO.Serializers
 
                 EffectiveDeserializationSettings = GetDeserializationSettings(_deserializationSettings,
                     _deserializationOptions);
+
+                _deserializer = JsonSerializer.Create(EffectiveDeserializationSettings);
             }
         }
 
-        internal JsonSerializerSettings EffectiveDeserializationSettings { get; set; }
+        internal JsonSerializerSettings EffectiveDeserializationSettings { get; set; } = null!;
 
         #endregion
 
@@ -131,8 +147,8 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         public T Deserialize<T>(ReadOnlyMemory<byte> buffer)
         {
-            T value = default(T);
-            if (buffer.Length == 0) return value;
+            T value = default(T)!;
+            if (buffer.Length == 0) return value!;
             using (var ms = new MemoryReaderStream(buffer))
             {
                 using (var sr = new StreamReader(ms, Utf8NoBomEncoding))
@@ -142,31 +158,29 @@ namespace Couchbase.Core.IO.Serializers
                         ArrayPool = JsonArrayPool.Instance
                     })
                     {
-                        var serializer = JsonSerializer.Create(EffectiveDeserializationSettings);
-
                         //use the following code block only for value types
                         //strangely enough Nullable<T> itself is a value type so we need to filter it out
                         if (typeof(T).GetTypeInfo().IsValueType && (!typeof(T).GetTypeInfo().IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
                         {
                             //we can't declare Nullable<T> because T is not restricted to struct in this method scope
-                            object nullableVal = serializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
+                            object nullableVal = _deserializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
                             //either we have a null or an instance of Nullabte<T> that can be cast directly to T
-                            value = nullableVal == null ? default(T) : (T)nullableVal;
+                            value = nullableVal == null ? default(T)! : (T)nullableVal;
                         }
                         else
                         {
-                            value = serializer.Deserialize<T>(jr);
+                            value = _deserializer.Deserialize<T>(jr);
                         }
                     }
                 }
             }
-            return value;
+            return value!;
         }
 
         /// <inheritdoc />
         public ValueTask<T> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default)
         {
-            return new ValueTask<T>(Deserialize<T>(stream));
+            return new ValueTask<T>(Deserialize<T>(stream)!);
         }
 
         /// <inheritdoc />
@@ -180,8 +194,7 @@ namespace Couchbase.Core.IO.Serializers
                     ArrayPool = JsonArrayPool.Instance
                 })
                 {
-                    var serializer = JsonSerializer.Create(SerializerSettings);
-                    serializer.Serialize(jr, obj);
+                    _serializer.Serialize(jr, obj);
                 }
             }
         }
@@ -204,8 +217,7 @@ namespace Couchbase.Core.IO.Serializers
                     ArrayPool = JsonArrayPool.Instance
                 })
                 {
-                    var serializer = JsonSerializer.Create(EffectiveDeserializationSettings);
-                    return serializer.Deserialize<T>(reader);
+                    return _deserializer.Deserialize<T>(reader);
                 }
             }
         }
@@ -215,7 +227,7 @@ namespace Couchbase.Core.IO.Serializers
         /// DefaultSerializer uses <see cref="JsonSerializerSettings.ContractResolver"/> from <see cref="SerializerSettings"/>
         /// to determine the member name.
         /// </remarks>
-        public string GetMemberName(MemberInfo member)
+        public string? GetMemberName(MemberInfo member)
         {
             if (member == null)
             {
@@ -242,10 +254,10 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         public IJsonStreamReader CreateJsonStreamReader(Stream stream)
         {
-            return new DefaultJsonStreamReader(stream, JsonSerializer.Create(EffectiveDeserializationSettings));
+            return new DefaultJsonStreamReader(stream, _deserializer);
         }
 
-        protected internal virtual JsonSerializerSettings GetDeserializationSettings(JsonSerializerSettings baseSettings, DeserializationOptions options)
+        protected internal virtual JsonSerializerSettings GetDeserializationSettings(JsonSerializerSettings baseSettings, DeserializationOptions? options)
         {
             if ((options == null) || !options.HasSettings)
             {
@@ -275,28 +287,11 @@ namespace Couchbase.Core.IO.Serializers
                 ObjectCreationHandling = baseSettings.ObjectCreationHandling,
                 PreserveReferencesHandling = baseSettings.PreserveReferencesHandling,
                 ReferenceLoopHandling = baseSettings.ReferenceLoopHandling,
+                ReferenceResolverProvider = baseSettings.ReferenceResolverProvider,
                 StringEscapeHandling = baseSettings.StringEscapeHandling,
                 TraceWriter = baseSettings.TraceWriter,
                 TypeNameHandling = baseSettings.TypeNameHandling,
-#if NET45
-                // There is an incompatibility between the .Net Desktop and .Net Standard assembilies of Newtonsoft.Json
-                // Which causes these settings to fail if the .Net Standard version of Couchbase is consumed by a .Net Desktop
-                // assembly.  As a workaround, don't try to copy them in the .Net Standard version.
-
-                Binder = baseSettings.Binder,
-                TypeNameAssemblyFormat = baseSettings.TypeNameAssemblyFormat,
-#endif
             };
-
-#pragma warning disable 618
-            if (baseSettings.ReferenceResolver != null)
-#pragma warning restore 618
-            {
-                // Backwards compatibility issue in Newtonsoft.Json 7.0.1 causes setting a null reference resolver to error instead of using default
-#pragma warning disable 618
-                settings.ReferenceResolver = baseSettings.ReferenceResolver;
-#pragma warning restore 618
-            }
 
             if (options.CustomObjectCreator != null)
             {
