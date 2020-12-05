@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
@@ -19,8 +20,8 @@ namespace Couchbase.Core.Configuration.Server
     {
         private readonly ILogger<ConfigHandler> _logger;
 
-        private readonly BlockingCollection<BucketConfig> _configQueue =
-            new BlockingCollection<BucketConfig>(new ConcurrentQueue<BucketConfig>());
+        private BufferBlock<BucketConfig>? _configQueue;
+        private ActionBlock<BucketConfig>? _configHandler;
 
         private readonly ConcurrentDictionary<string, BucketConfig> _configs =
             new ConcurrentDictionary<string, BucketConfig>();
@@ -52,7 +53,25 @@ namespace Couchbase.Core.Configuration.Server
                 throw new InvalidOperationException($"{nameof(ConfigHandler)} has already been started.");
             }
 
-            Task.Run(ProcessAsync, _tokenSource.Token);
+            _configQueue = new BufferBlock<BucketConfig>(new DataflowBlockOptions
+            {
+                EnsureOrdered = true,
+                CancellationToken = _tokenSource.Token
+            });
+
+            _configHandler = new ActionBlock<BucketConfig>(ProcessAsync, new ExecutionDataflowBlockOptions
+            {
+                BoundedCapacity = 1,
+                MaxDegreeOfParallelism = 1,
+                EnsureOrdered = true,
+                SingleProducerConstrained = true
+            });
+
+            _configQueue.LinkTo(_configHandler, new DataflowLinkOptions
+            {
+                PropagateCompletion = true
+            });
+
             _running = true;
 
             if (withPolling)
@@ -92,76 +111,62 @@ namespace Couchbase.Core.Configuration.Server
             }, _tokenSource.Token);
         }
 
-        private async Task ProcessAsync()
+        private async Task ProcessAsync(BucketConfig newMap)
         {
             try
             {
-                // Don't use cancellation token for GetConsumingEnumerable, causes some strange exceptions
-                // The call to _configQueue.CompleteAdding will exit the loop instead
-                foreach (var newMap in _configQueue.GetConsumingEnumerable())
+                _logger.LogDebug(LoggingEvents.ConfigEvent, "Receiving new map revision {revision}", newMap.Rev);
+                var isNewOrUpdate = false;
+                var stored = _configs.AddOrUpdate(newMap.Name, key =>
+                    {
+                        _logger.LogDebug(LoggingEvents.ConfigEvent, "Storing new map revision {revision}", newMap.Rev);
+                        isNewOrUpdate = true;
+                        return newMap;
+                    },
+                    (key, map) =>
+                    {
+                        _logger.LogDebug(LoggingEvents.ConfigEvent, "Updating new map revision {revision}", newMap.Rev);
+                        if (newMap.Equals(map)) return map;
+
+                        isNewOrUpdate = true;
+                        return newMap.Rev > map.Rev ? newMap : map;
+                    });
+
+                if (isNewOrUpdate)
                 {
-                    try
+                    _logger.LogDebug("Publishing config revision {revision} to subscribers for processing.", stored.Rev);
+                    List<IConfigUpdateEventSink> subscribers;
+                    lock (_configChangedSubscribers)
                     {
-                        _logger.LogDebug(LoggingEvents.ConfigEvent, "Receiving new map revision {revision}", newMap.Rev);
-                        var isNewOrUpdate = false;
-                        var stored = _configs.AddOrUpdate(newMap.Name, key =>
-                            {
-                                _logger.LogDebug(LoggingEvents.ConfigEvent, "Storing new map revision {revision}", newMap.Rev);
-                                isNewOrUpdate = true;
-                                return newMap;
-                            },
-                            (key, map) =>
-                            {
-                                _logger.LogDebug(LoggingEvents.ConfigEvent, "Updating new map revision {revision}", newMap.Rev);
-                                if (newMap.Equals(map)) return map;
-
-                                isNewOrUpdate = true;
-                                return newMap.Rev > map.Rev ? newMap : map;
-                            });
-
-                        if (isNewOrUpdate)
-                        {
-                            _logger.LogDebug("Publishing config revision {revision} to subscribers for processing.", stored.Rev);
-                            List<IConfigUpdateEventSink> subscribers;
-                            lock (_configChangedSubscribers)
-                            {
-                                subscribers = _configChangedSubscribers.ToList();
-                            }
-
-                            var tasks = subscribers.Select(p => p.ConfigUpdatedAsync(stored));
-                            await Task.WhenAll(tasks).ConfigureAwait(false);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogWarning(e, "Error processing new clusterOptions");
+                        subscribers = _configChangedSubscribers.ToList();
                     }
 
-                    if (_tokenSource.IsCancellationRequested)
-                    {
-                        break;
-                    }
+                    var tasks = subscribers.Select(p => p.ConfigUpdatedAsync(stored));
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
                 }
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                // There is a problem in older versions of SemaphoreSlim used by BlockingCollection than can
-                // cause an NRE if GetConsumingEnumerable is still enumerating when BlockingCollection is
-                // disposed. We need to eat that error to prevent crashes. https://github.com/dotnet/coreclr/pull/24776
-                _logger.LogDebug(ex, "Ignoring unhandled exception in ConfigHandler.");
+                _logger.LogWarning(e, "Error processing new clusterOptions");
             }
         }
 
         public void Publish(BucketConfig config)
         {
-            try
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
+                // Only log if debug logging is enabled to avoid serialization cost
                 _logger.LogDebug(LoggingEvents.ConfigEvent, JsonConvert.SerializeObject(config));
-                _configQueue.Add(config);
             }
-            catch (ObjectDisposedException e)
+
+            if (_configQueue?.Completion.IsCompleted ?? true)
             {
-                throw new ContextStoppedException("ConfigHandler is in stopped mode.", e);
+                throw new ContextStoppedException("ConfigHandler is in stopped mode.");
+            }
+
+            if (!_configQueue.Post(config))
+            {
+                _logger.LogWarning(LoggingEvents.ConfigEvent, "Failed to queue new cluster configuration.");
             }
         }
 
@@ -244,11 +249,11 @@ namespace Couchbase.Core.Configuration.Server
             _running = false;
             _disposed = true;
 
-            _configQueue.CompleteAdding();
-            _configQueue.Dispose();
-
             _tokenSource.Cancel();
             _tokenSource.Dispose();
+
+            _configQueue?.Complete();
+            _configQueue = null;
 
             lock (_configChangedSubscribers)
             {
