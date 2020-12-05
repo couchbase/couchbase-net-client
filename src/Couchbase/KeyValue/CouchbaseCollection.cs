@@ -83,7 +83,21 @@ namespace Couchbase.KeyValue
             {
                 // We aren't including the expiry value and we have no projections so fetch the whole doc using a Get operation
 
-                var getOp = await ExecuteGet(id, options, rootSpan).ConfigureAwait(false);
+                //sanity check for deferred bootstrapping errors
+                _bucket.ThrowIfBootStrapFailed();
+
+                var getOp = new Get<byte[]>
+                {
+                    Key = id,
+                    Cid = Cid,
+                    CName = Name,
+                    Span = rootSpan
+                };
+                _operationConfigurator.Configure(getOp, options);
+
+                using var cts = CreateRetryTimeoutCancellationTokenSource(options, getOp);
+                await _bucket.RetryAsync(getOp, cts.Token).ConfigureAwait(false);
+
                 rootSpan.OperationId(getOp);
 
                 return new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
@@ -143,25 +157,6 @@ namespace Couchbase.KeyValue
                 Header = lookupOp.Header,
                 Opaque = lookupOp.Opaque
             };
-        }
-
-        private async Task<Get<byte[]>> ExecuteGet(string id, GetOptions options, IInternalSpan span)
-        {
-            //sanity check for deferred bootstrapping errors
-            _bucket.ThrowIfBootStrapFailed();
-
-            var get = new Get<byte[]>
-            {
-                Key = id,
-                Cid = Cid,
-                CName = Name,
-                Span = span
-            };
-            _operationConfigurator.Configure(get, options);
-
-            using var cts = CreateRetryTimeoutCancellationTokenSource(options, get);
-            await _bucket.RetryAsync(get, cts.Token).ConfigureAwait(false);
-            return get;
         }
 
         #endregion
