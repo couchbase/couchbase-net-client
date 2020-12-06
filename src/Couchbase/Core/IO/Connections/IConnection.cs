@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Net;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 
@@ -83,5 +84,11 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="timeout">Time to wait for in-flight operations.</param>
         /// <returns>Task to observe for completion.</returns>
         ValueTask CloseAsync(TimeSpan timeout);
+
+        /// <summary>
+        /// Add tags related to this connection to a tracing span.
+        /// </summary>
+        /// <param name="span">The tracing span to update.</param>
+        void AddTags(IInternalSpan span);
     }
 }

@@ -510,11 +510,7 @@ namespace Couchbase.Core.IO.Operations
 
         public virtual async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
-            Span.WithTag(CouchbaseTags.RemoteAddress,
-                connection.EndPoint?.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue);
-            Span.WithTag(CouchbaseTags.LocalAddress,
-                connection.LocalEndPoint?.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue);
-            Span.WithTag(CouchbaseTags.LocalId, connection.ConnectionId.ToString(CultureInfo.InvariantCulture));
+            connection.AddTags(Span);
 
             using var encodingSpan = Span.StartPayloadEncoding();
             BeginSend();

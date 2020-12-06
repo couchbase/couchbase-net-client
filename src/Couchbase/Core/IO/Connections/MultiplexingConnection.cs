@@ -1,15 +1,18 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
+using Couchbase.Diagnostics;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -27,6 +30,10 @@ namespace Couchbase.Core.IO.Connections
         private int _receiveBufferLength;
         private readonly object _syncObj = new object();
         private volatile bool _disposed;
+
+        private readonly string _endPointString;
+        private readonly string _localEndPointString;
+        private readonly string _connectionIdString;
 
         // Connection pooling normally prevents simultaneous writes, but there are cases where they may occur,
         // such as when running Diagnostics pings). We therefore use an AsyncMutex instead of the slightly
@@ -51,6 +58,10 @@ namespace Couchbase.Core.IO.Connections
             _receiveBufferLength = 0;
 
             ConnectionId = ConnectionIdProvider.GetNextId();
+
+            _endPointString = EndPoint.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
+            _localEndPointString = LocalEndPoint.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
+            _connectionIdString = ConnectionId.ToString(CultureInfo.InvariantCulture);
 
             Task.Run(ReceiveResponsesAsync);
         }
@@ -97,7 +108,7 @@ namespace Couchbase.Core.IO.Connections
                 EndPoint = (IPEndPoint)EndPoint,
                 ConnectionId = ConnectionId,
                 ErrorMap = errorMap,
-                LocalEndpoint = LocalEndPoint.ToString()
+                LocalEndpoint = _localEndPointString
             };
 
             _statesInFlight.Add(state, 75000);
@@ -304,6 +315,14 @@ namespace Couchbase.Core.IO.Connections
         {
             if (_disposed) return;
             Close();
+        }
+
+        /// <inheritdoc />
+        public void AddTags(IInternalSpan span)
+        {
+            span.WithTag(CouchbaseTags.RemoteAddress, _endPointString);
+            span.WithTag(CouchbaseTags.LocalAddress, _localEndPointString);
+            span.WithTag(CouchbaseTags.LocalId, _connectionIdString);
         }
     }
 }

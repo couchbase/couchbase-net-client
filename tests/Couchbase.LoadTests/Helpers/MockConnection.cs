@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -52,6 +53,10 @@ namespace Couchbase.LoadTests.Helpers
         {
             Dispose();
             return default;
+        }
+
+        public void AddTags(IInternalSpan span)
+        {
         }
     }
 }

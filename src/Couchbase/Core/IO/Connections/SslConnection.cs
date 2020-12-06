@@ -7,6 +7,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
 using Microsoft.Extensions.Logging;
@@ -79,6 +80,9 @@ namespace Couchbase.Core.IO.Connections
 
         /// <inheritdoc />
         public ValueTask CloseAsync(TimeSpan timeout) => _multiplexingConnection.CloseAsync(timeout);
+
+        /// <inheritdoc />
+        public void AddTags(IInternalSpan span) => _multiplexingConnection.AddTags(span);
     }
 }
 
