@@ -16,7 +16,6 @@ namespace Couchbase.Core.IO.Operations.Authentication
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
-            Format = DataFormat.String;
             Flags = new Flags
             {
                 Compression = Compression.None,
@@ -27,7 +26,6 @@ namespace Couchbase.Core.IO.Operations.Authentication
 
         protected override void BeginSend()
         {
-            Format = DataFormat.String;
             Flags = new Flags
             {
                 Compression = Compression.None,

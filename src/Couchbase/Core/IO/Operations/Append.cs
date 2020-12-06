@@ -8,8 +8,6 @@ namespace Couchbase.Core.IO.Operations
         protected override void BeginSend()
         {
             Flags = Transcoder.GetFormat(Content);
-            Format = Flags.DataFormat;
-            Compression = Flags.Compression;
         }
 
         public override void WriteExtras(OperationBuilder builder)

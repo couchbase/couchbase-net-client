@@ -92,23 +92,8 @@ namespace Couchbase.Core.IO.Operations
             Span<byte> extras = stackalloc byte[8];
 
             Flags = Transcoder.GetFormat(Content);
-            Format = Flags.DataFormat;
-            Compression = Flags.Compression;
+            Flags.Write(extras);
 
-            byte format = (byte)Format;
-            byte compression = (byte)Compression;
-
-            BitUtils.SetBit(ref extras[0], 0, BitUtils.GetBit(format, 0));
-            BitUtils.SetBit(ref extras[0], 1, BitUtils.GetBit(format, 1));
-            BitUtils.SetBit(ref extras[0], 2, BitUtils.GetBit(format, 2));
-            BitUtils.SetBit(ref extras[0], 3, BitUtils.GetBit(format, 3));
-            BitUtils.SetBit(ref extras[0], 4, false);
-            BitUtils.SetBit(ref extras[0], 5, BitUtils.GetBit(compression, 0));
-            BitUtils.SetBit(ref extras[0], 6, BitUtils.GetBit(compression, 1));
-            BitUtils.SetBit(ref extras[0], 7, BitUtils.GetBit(compression, 2));
-
-            var typeCode = (ushort)Flags.TypeCode;
-            ByteConverter.FromUInt16(typeCode, extras.Slice(2));
             ByteConverter.FromUInt32(Expires, extras.Slice(4));
 
             builder.Write(extras);

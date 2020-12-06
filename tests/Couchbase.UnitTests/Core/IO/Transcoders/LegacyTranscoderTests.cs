@@ -474,25 +474,7 @@ namespace Couchbase.UnitTests.Core.IO.Transcoders
                 0, 250, 82, 116, 101, 115, 116
             };
 
-            var format = new byte();
-
-            var temp = legacyByteArray[24];
-            BitUtils.SetBit(ref format, 0, BitUtils.GetBit(temp, 0));
-            BitUtils.SetBit(ref format, 1, BitUtils.GetBit(temp, 1));
-            BitUtils.SetBit(ref format, 2, BitUtils.GetBit(temp, 2));
-            BitUtils.SetBit(ref format, 3, BitUtils.GetBit(temp, 3));
-
-            var compression = new byte();
-            BitUtils.SetBit(ref compression, 4, BitUtils.GetBit(temp, 4));
-            BitUtils.SetBit(ref compression, 5, BitUtils.GetBit(temp, 5));
-            BitUtils.SetBit(ref compression, 6, BitUtils.GetBit(temp, 6));
-
-            var flags = new Flags
-            {
-                DataFormat = (DataFormat)format,
-                Compression = (Couchbase.Core.IO.Operations.Compression)compression,
-                TypeCode = (TypeCode)(ByteConverter.ToUInt16(legacyByteArray.AsSpan(26)) & 0xff),
-            };
+            var flags = Flags.Read(legacyByteArray.AsSpan(24));
 
             var transcoder = new LegacyTranscoder();
             var result = transcoder.Decode<byte[]>(legacyByteArray.AsMemory(28, 4), flags, OpCode.Get);

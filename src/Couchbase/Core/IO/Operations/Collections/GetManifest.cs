@@ -11,7 +11,6 @@ namespace Couchbase.Core.IO.Operations.Collections
 
         protected override void BeginSend()
         {
-            Format = DataFormat.Json;
             Flags = new Flags
             {
                 Compression = Compression.None,
@@ -27,7 +26,6 @@ namespace Couchbase.Core.IO.Operations.Collections
         public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             //force it to treat the result as JSON for serialization
-            Format = DataFormat.Json;
             Flags = new Flags
             {
                 Compression = Compression.None,

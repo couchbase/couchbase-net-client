@@ -44,8 +44,8 @@ namespace Couchbase.Core.IO.Operations
 
         public abstract OpCode OpCode { get; }
         public OperationHeader Header { get; set; }
-        public DataFormat Format { get; set; }
-        public Compression Compression { get; set; }
+        public DataFormat Format => Flags.DataFormat;
+        public Compression Compression => Flags.Compression;
         public DataType DataType { get; set; }
         public string Key { get; set; }
         public Exception Exception { get; set; }
@@ -211,24 +211,8 @@ namespace Couchbase.Core.IO.Operations
         {
             if (buffer.Length > Header.ExtrasOffset)
             {
-                var format = new byte();
-                var flags = buffer[Header.ExtrasOffset];
-                BitUtils.SetBit(ref format, 0, BitUtils.GetBit(flags, 0));
-                BitUtils.SetBit(ref format, 1, BitUtils.GetBit(flags, 1));
-                BitUtils.SetBit(ref format, 2, BitUtils.GetBit(flags, 2));
-                BitUtils.SetBit(ref format, 3, BitUtils.GetBit(flags, 3));
+                Flags = Flags.Read(buffer.Slice(Header.ExtrasOffset));
 
-                var compression = new byte();
-                BitUtils.SetBit(ref compression, 4, BitUtils.GetBit(flags, 4));
-                BitUtils.SetBit(ref compression, 5, BitUtils.GetBit(flags, 5));
-                BitUtils.SetBit(ref compression, 6, BitUtils.GetBit(flags, 6));
-
-                var typeCode = (TypeCode)(ByteConverter.ToUInt16(buffer.Slice(26)) & 0xff);
-                Format = (DataFormat)format;
-                Compression = (Compression)compression;
-                Flags.DataFormat = Format;
-                Flags.Compression = Compression;
-                Flags.TypeCode = typeCode;
                 Expires = ByteConverter.ToUInt32(buffer.Slice(25));
             }
         }

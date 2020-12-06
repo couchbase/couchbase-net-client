@@ -11,7 +11,6 @@ namespace Couchbase.Core.IO.Operations
 
         protected override void BeginSend()
         {
-            Format = DataFormat.Json;
             Flags = new Flags
             {
                 Compression = Compression.None,
@@ -26,7 +25,6 @@ namespace Couchbase.Core.IO.Operations
 
         public override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
-            Format = DataFormat.String;
             Flags = new Flags
             {
                 Compression = Compression.None,
