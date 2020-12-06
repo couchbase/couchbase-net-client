@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Operations.SubDocument;
 using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
@@ -73,24 +74,25 @@ namespace Couchbase.Core.IO.Operations
         /// <param name="segment">New segment for subsequent writes.</param>
         /// <exception cref="InvalidEnumArgumentException"><paramref name="segment"/> is not a valid value.</exception>
         /// <exception cref="InvalidOperationException">Attempt to move the segment backwards, or the header has already been written.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AdvanceToSegment(OperationSegment segment)
         {
             if (segment < OperationSegment.FramingExtras || segment > OperationSegment.OperationSpecFragment)
             {
-                throw new InvalidEnumArgumentException(nameof(segment), (int) segment, typeof(OperationSegment));
+                ThrowInvalidEnumArgumentException(nameof(segment), (int) segment, typeof(OperationSegment));
             }
 
             if (segment < CurrentSegment)
             {
-                throw new InvalidOperationException("Segment cannot be moved backwards");
+                ThrowInvalidOperationException("Segment cannot be moved backwards");
             }
             if (CurrentSegment <= OperationSegment.Body && segment > OperationSegment.Body)
             {
-                throw new InvalidOperationException("Operation specs must be started with BeginOperationSpec");
+                ThrowInvalidOperationException("Operation specs must be started with BeginOperationSpec");
             }
             if (segment == OperationSegment.OperationSpecFragment && !_operationSpecIsMutation)
             {
-                throw new InvalidOperationException("This operation spec is not a mutation");
+                ThrowInvalidOperationException("This operation spec is not a mutation");
             }
 
             EnsureHeaderNotWritten();
@@ -117,7 +119,7 @@ namespace Couchbase.Core.IO.Operations
         {
             if (!_headerWritten)
             {
-                throw new InvalidOperationException("The header has not been written.");
+                ThrowInvalidOperationException("The header has not been written.");
             }
 
             return _stream.GetBuffer().AsMemory(0, (int) _stream.Length);
@@ -179,7 +181,10 @@ namespace Couchbase.Core.IO.Operations
             try
             {
                 buffer.CopyTo(byteBuffer);
-                Write(byteBuffer, 0, buffer.Length);
+
+                _stream.Write(byteBuffer, 0, buffer.Length);
+
+                Advance(buffer.Length);
             }
             finally
             {
@@ -195,16 +200,18 @@ namespace Couchbase.Core.IO.Operations
         /// <remarks>
         /// After the header is written, the stream cannot receive any other write operations.
         /// </remarks>
-        public void WriteHeader(OperationRequestHeader header)
+        public void WriteHeader(in OperationRequestHeader header)
         {
             EnsureHeaderNotWritten();
 
             if (CurrentSegment > OperationSegment.Body)
             {
-                throw new InvalidOperationException("An operation spec is still in progress.");
+                ThrowInvalidOperationException("An operation spec is still in progress.");
             }
 
-            Span<byte> headerBytes = stackalloc byte[OperationHeader.Length];
+            // Make sure we slice this span so the length is known to the JIT compiler.
+            // This allows it to optimize away length checks for calls below.
+            Span<byte> headerBytes = _stream.GetBuffer().AsSpan(0, OperationHeader.Length);
             headerBytes.Fill(0);
 
             if (_framingExtrasLength > 0)
@@ -225,16 +232,13 @@ namespace Couchbase.Core.IO.Operations
 
             if (header.VBucketId.HasValue)
             {
-                ByteConverter.FromInt16(header.VBucketId.Value, headerBytes.Slice(HeaderOffsets.VBucket));
+                ByteConverter.FromInt16(header.VBucketId.GetValueOrDefault(), headerBytes.Slice(HeaderOffsets.VBucket));
             }
 
             var totalLength = _framingExtrasLength + _extrasLength + _keyLength + _bodyLength;
             ByteConverter.FromInt32(totalLength, headerBytes.Slice(HeaderOffsets.BodyLength));
             ByteConverter.FromUInt32(header.Opaque, headerBytes.Slice(HeaderOffsets.Opaque));
             ByteConverter.FromUInt64(header.Cas, headerBytes.Slice(HeaderOffsets.Cas));
-
-            _stream.Position = 0;
-            Write(headerBytes);
 
             _headerWritten = true;
         }
@@ -299,7 +303,7 @@ namespace Couchbase.Core.IO.Operations
         {
             if (CurrentSegment < OperationSegment.Body)
             {
-                throw new InvalidOperationException("An operation spec is not in progress.");
+                ThrowInvalidOperationException("An operation spec is not in progress.");
             }
 
             Span<byte> buffer = stackalloc byte[_operationSpecIsMutation ? 8 : 4];
@@ -354,6 +358,7 @@ namespace Couchbase.Core.IO.Operations
         /// After writing to the stream, records the number of bytes written to the current segment.
         /// </summary>
         /// <param name="bytes">Number of bytes written.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Advance(int bytes)
         {
             switch (CurrentSegment)
@@ -393,8 +398,18 @@ namespace Couchbase.Core.IO.Operations
         {
             if (_headerWritten)
             {
-                throw new InvalidOperationException("Cannot write data after the header has been written");
+                ThrowInvalidOperationException("Cannot write data after the header has been written");
             }
+        }
+
+        private static void ThrowInvalidOperationException(string message)
+        {
+            throw new InvalidOperationException(message);
+        }
+
+        private static void ThrowInvalidEnumArgumentException(string argumentName, int invalidValue, Type enumClass)
+        {
+            throw new InvalidEnumArgumentException(argumentName, invalidValue, enumClass);
         }
 
         protected override void Dispose(bool disposing)

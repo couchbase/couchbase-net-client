@@ -195,7 +195,7 @@ namespace Couchbase.Core.IO.Operations
             return new OperationHeader();
         }
 
-        protected virtual OperationRequestHeader CreateHeader()
+        protected OperationRequestHeader CreateHeader()
         {
             return new OperationRequestHeader
             {
