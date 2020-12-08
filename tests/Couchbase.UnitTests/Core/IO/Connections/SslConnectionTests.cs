@@ -12,6 +12,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.UnitTests.Core.IO.Transcoders;
 using Microsoft.Extensions.Logging;
+using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -29,12 +30,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var bytes = Encoding.UTF8.GetBytes(json);
 
             await Assert.ThrowsAsync<ValueToolargeException>(() =>
-                conn.SendAsync(bytes, HandleOperationCompleted)).ConfigureAwait(false);
-        }
-
-        internal void HandleOperationCompleted(IMemoryOwner<byte> data, ResponseStatus status)
-        {
-            //noop
+                conn.SendAsync(bytes, Mock.Of<IOperation>())).ConfigureAwait(false);
         }
     }
 }

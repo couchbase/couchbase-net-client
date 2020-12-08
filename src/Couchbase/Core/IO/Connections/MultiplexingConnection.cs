@@ -100,7 +100,7 @@ namespace Couchbase.Core.IO.Connections
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
         /// <inheritdoc />
-        public async Task SendAsync(ReadOnlyMemory<byte> request, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap? errorMap = null)
+        public async Task SendAsync(ReadOnlyMemory<byte> request, IOperation operation, ErrorMap? errorMap = null)
         {
             if (request.Length >= MaxDocSize)
             {
@@ -112,7 +112,7 @@ namespace Couchbase.Core.IO.Connections
             }
 
             var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
-            var state = new AsyncState(callback, opaque)
+            var state = new AsyncState(operation, opaque)
             {
                 EndPoint = (IPEndPoint)EndPoint,
                 ConnectionId = ConnectionId,

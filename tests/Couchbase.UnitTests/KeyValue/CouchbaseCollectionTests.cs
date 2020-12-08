@@ -11,6 +11,7 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -228,7 +229,7 @@ namespace Couchbase.UnitTests.KeyValue
 
                 if (_statuses.TryDequeue(out ResponseStatus status))
                 {
-                    (op as OperationBase)?.HandleOperationCompleted(null, status);
+                    (op as OperationBase)?.HandleOperationCompleted(AsyncState.BuildErrorResponse(0, status));
                 }
                 else
                 {

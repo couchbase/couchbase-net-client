@@ -26,7 +26,7 @@ namespace Couchbase.Core.IO
         private volatile bool _isCompleted;
 
         public IPEndPoint? EndPoint { get; set; }
-        public Action<IMemoryOwner<byte>, ResponseStatus> Callback { get; set; }
+        public IOperation Operation { get; set; }
         public uint Opaque { get; }
         public Timer? Timer { get; set; }
         public ulong ConnectionId { get; set; }
@@ -57,9 +57,9 @@ namespace Couchbase.Core.IO
             }
         }
 
-        public AsyncState(Action<IMemoryOwner<byte>, ResponseStatus> callback, uint opaque)
+        public AsyncState(IOperation operation, uint opaque)
         {
-            Callback = callback ?? throw new ArgumentNullException(nameof(callback));
+            Operation = operation ?? throw new ArgumentNullException(nameof(operation));
             Opaque = opaque;
         }
 
@@ -71,10 +71,9 @@ namespace Couchbase.Core.IO
             Timer?.Dispose();
             Timer = null;
 
-            var response = MemoryPool<byte>.Shared.RentAndSlice(24);
-            ByteConverter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
+            var response = BuildErrorResponse(Opaque, status);
 
-            Callback(response, status);
+            Operation.HandleOperationCompleted(response);
 
             _isCompleted = true;
             _tcs?.TrySetCanceled();
@@ -85,19 +84,10 @@ namespace Couchbase.Core.IO
             Timer?.Dispose();
             Timer = null;
 
-            ResponseStatus status;
-
             if (response == null)
             {
                 //this means the request never completed - assume a transport failure
-                response = MemoryPool<byte>.Shared.RentAndSlice(24);
-                ByteConverter.FromUInt32(Opaque, response.Memory.Span.Slice(HeaderOffsets.Opaque));
-                status = ResponseStatus.TransportFailure;
-            }
-            else
-            {
-                //defaults
-                status = (ResponseStatus) ByteConverter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status));
+                response = BuildErrorResponse(Opaque, ResponseStatus.TransportFailure);
             }
 
             // We don't need the execution context to flow to callback execution
@@ -105,7 +95,7 @@ namespace Couchbase.Core.IO
             using (ExecutionContext.SuppressFlow())
             {
                 // Run callback in a new task to avoid blocking the connection read process
-                Task.Factory.StartNew(() => Callback(response, status));
+                Task.Factory.StartNew(state => Operation.HandleOperationCompleted((IMemoryOwner<byte>) state!), response);
             }
 
             _isCompleted = true;
@@ -116,6 +106,17 @@ namespace Couchbase.Core.IO
         {
             Timer?.Dispose();
             Timer = null;
+        }
+
+        internal static IMemoryOwner<byte> BuildErrorResponse(uint opaque, ResponseStatus status)
+        {
+            var response = MemoryPool<byte>.Shared.RentAndSlice(24);
+            var responseSpan = response.Memory.Span;
+
+            ByteConverter.FromUInt32(opaque, responseSpan.Slice(HeaderOffsets.Opaque));
+            ByteConverter.FromInt16((short) status, responseSpan.Slice(HeaderOffsets.Status));
+
+            return response;
         }
     }
 }

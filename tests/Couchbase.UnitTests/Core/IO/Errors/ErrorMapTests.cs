@@ -102,7 +102,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
 
             public override Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
-                HandleOperationCompleted(null, Header.Status);
+                HandleOperationCompleted(AsyncState.BuildErrorResponse(0, Header.Status));
                 return Task.CompletedTask;
             }
 

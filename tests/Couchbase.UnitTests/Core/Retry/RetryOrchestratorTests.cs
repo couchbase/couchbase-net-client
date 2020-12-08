@@ -148,14 +148,13 @@ namespace Couchbase.UnitTests.Core.Retry
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
-            var handleOperationCompletedMethod = op.GetType().GetMethod("HandleOperationCompleted", (BindingFlags.Instance | BindingFlags.NonPublic));
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>())).Callback((IOperation op, CancellationToken ct) =>
             {
                 if (op.Completed.IsCompleted)
                     Assert.True(false, "operation result should be reset before retry");
                 // complete the operation (ResponseStatus does not matter for this test)
-                handleOperationCompletedMethod.Invoke(op, new object[] { null, ResponseStatus.TemporaryFailure });
+                op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.TemporaryFailure));
                 if (op.Attempts == 1)
                 {
                     throw exp;

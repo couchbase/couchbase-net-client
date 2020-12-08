@@ -73,9 +73,9 @@ namespace Couchbase.Core.IO.Connections
         /// Sends a request packet as an asynchronous operation.
         /// </summary>
         /// <param name="buffer">A memcached request buffer.</param>
-        /// <param name="callback">The callback that will be fired after the operation is completed.</param>
+        /// <param name="operation">Operation being sent which will receive the completion notification.</param>
         /// <param name="errorMap"><see cref="ErrorMap"/>, or null if not available.</param>
-        Task SendAsync(ReadOnlyMemory<byte> buffer, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap? errorMap = null);
+        Task SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap? errorMap = null);
 
         /// <summary>
         /// Closes the connection gracefully, waiting up to timeout for all in-flight operations

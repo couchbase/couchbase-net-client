@@ -3,7 +3,9 @@ using System.Buffers;
 using System.Threading.Tasks;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.IO.Connections
@@ -35,9 +37,14 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             // Arrange
 
-            var tcs = new TaskCompletionSource<ResponseStatus>();
+            var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
 
-            var state = MakeState(5, (_, status) => { tcs.TrySetResult(status); });
+            var operation = new Mock<IOperation>();
+            operation
+                .Setup(m => m.HandleOperationCompleted(It.IsAny<IMemoryOwner<byte>>()))
+                .Callback((IMemoryOwner<byte> response) => tcs.TrySetResult(response));
+
+            var state = MakeState(5, operation.Object);
 
             using var set = new InFlightOperationSet();
 
@@ -51,7 +58,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             // Assert
 
             Assert.True(tcs.Task.IsCompleted);
-            Assert.Equal(ResponseStatus.OperationTimeout, tcs.Task.Result);
+
+            using var data = tcs.Task.Result;
+            var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
+            Assert.Equal(ResponseStatus.OperationTimeout, status);
         }
 
         #endregion
@@ -172,8 +182,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
         #region Helpers
 
-        private static AsyncState MakeState(uint opaque, Action<IMemoryOwner<byte>, ResponseStatus> callback = null) =>
-            new AsyncState(callback ?? ((data, status) => { }), opaque);
+        private static AsyncState MakeState(uint opaque, IOperation operation = null) =>
+            new AsyncState(operation ?? Mock.Of<IOperation>(), opaque);
 
         #endregion
     }

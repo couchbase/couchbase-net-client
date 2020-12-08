@@ -31,7 +31,7 @@ namespace Couchbase.LoadTests.Helpers
         public TimeSpan IdleTime { get; set; }
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
-        public Task SendAsync(ReadOnlyMemory<byte> buffer, Action<IMemoryOwner<byte>, ResponseStatus> callback, ErrorMap errorMap = null)
+        public Task SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap errorMap = null)
         {
             return Task.CompletedTask;
         }

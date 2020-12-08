@@ -8,6 +8,7 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Microsoft.Extensions.Logging;
+using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
@@ -15,11 +16,6 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 {
     public class SslConnectionTests
     {
-        internal void HandleOperationCompleted(IMemoryOwner<byte> data, ResponseStatus status)
-        {
-            //noop
-        }
-
         [Fact]
         public async Task When_Packet_Exceeds_MaxDocSize_ThrowValueTooLargeException()
         {
@@ -31,7 +27,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var bytes = Encoding.UTF8.GetBytes(json);
 
             await Assert.ThrowsAsync<ValueToolargeException>(() =>
-                conn.SendAsync(bytes, HandleOperationCompleted)).ConfigureAwait(false);
+                conn.SendAsync(bytes, Mock.Of<IOperation>())).ConfigureAwait(false);
         }
     }
 }

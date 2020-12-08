@@ -531,7 +531,7 @@ namespace Couchbase.Core.IO.Operations
                 var buffer = builder.GetBuffer();
                 encodingSpan.Dispose();
                 using var dispatchSpan = Span.StartDispatch();
-                await connection.SendAsync(buffer, HandleOperationCompleted).ConfigureAwait(false);
+                await connection.SendAsync(buffer, this).ConfigureAwait(false);
                 dispatchSpan.Dispose();
             }
             finally
@@ -553,18 +553,18 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public bool TrySetException(Exception ex) =>_completed.TrySetException(ex);
 
-        /// <summary>
-        /// Internal for testing purposes only, do not use in SDK.
-        /// </summary>
-        internal void HandleOperationCompleted(IMemoryOwner<byte> data, ResponseStatus status)
+        /// <inheritdoc />
+        public void HandleOperationCompleted(IMemoryOwner<byte> data)
         {
+            var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
+
             try
             {
-                if (data != null && (status == ResponseStatus.Success
-                                     || status == ResponseStatus.VBucketBelongsToAnotherServer
-                                     || status == ResponseStatus.AuthenticationContinue
-                                     || status == ResponseStatus.SubDocMultiPathFailure
-                                     || status ==  ResponseStatus.SubDocSuccessDeletedDocument))
+                if (status == ResponseStatus.Success
+                    || status == ResponseStatus.VBucketBelongsToAnotherServer
+                    || status == ResponseStatus.AuthenticationContinue
+                    || status == ResponseStatus.SubDocMultiPathFailure
+                    || status ==  ResponseStatus.SubDocSuccessDeletedDocument)
                 {
                     Read(data);
 
@@ -572,7 +572,7 @@ namespace Couchbase.Core.IO.Operations
                 }
                 else
                 {
-                    data?.Dispose();
+                    data.Dispose();
                 }
 
                 _completed.TrySetResult(status);
@@ -580,7 +580,7 @@ namespace Couchbase.Core.IO.Operations
             catch (Exception ex)
             {
                 TrySetException(ex);
-                data?.Dispose();
+                data.Dispose();
             }
         }
 

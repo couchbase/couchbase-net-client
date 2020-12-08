@@ -70,6 +70,16 @@ namespace Couchbase.Core.IO.Operations
 
         void HandleClientError(string message, ResponseStatus responseStatus);
 
+        /// <summary>
+        /// Called by the connection when a complete response packet is received.
+        /// </summary>
+        /// <param name="data">Data which was received.</param>
+        /// <remarks>
+        /// Ownership of the data buffer is passed to the caller, which is then responsible
+        /// for disposing of the buffer. Failure to dispose may call memory leaks.
+        /// </remarks>
+        void HandleOperationCompleted(IMemoryOwner<byte> data);
+
         BucketConfig GetConfig(ITypeTranscoder transcoder);
 
         /// <summary>
