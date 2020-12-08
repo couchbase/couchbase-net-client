@@ -1,8 +1,6 @@
 #nullable enable
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
@@ -18,9 +16,10 @@ namespace Couchbase.Core.Diagnostics.Tracing
         {
             public Activity? Activity => null;
 
-            public void Dispose() { }
+            /// <inheritdoc />
+            public bool IsNullSpan => true;
 
-            public void Finish() { }
+            public void Dispose() { }
 
             public TimeSpan? Duration => null;
 

@@ -20,6 +20,9 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         public Activity? Activity { get; }
 
+        /// <inheritdoc />
+        public bool IsNullSpan => false;
+
         public void Dispose()
         {
             if (Activity == null)

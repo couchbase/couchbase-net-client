@@ -516,7 +516,7 @@ namespace Couchbase
             this.AddClusterService(this);
             this.AddClusterService(Logging ?? new NullLoggerFactory());
 
-            if (ThresholdOptions != null)
+            if (ThresholdOptions?.Enabled ?? false)
             {
                 _services[typeof(IRequestTracer)] = new SingletonServiceFactory(typeof(ActivityRequestTracer));
             }

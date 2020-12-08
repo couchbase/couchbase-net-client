@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Core.Compatibility;
 using static Couchbase.Core.Diagnostics.Tracing.RequestTracing;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
+    [InterfaceStability(Level.Volatile)]
     public class ThresholdOptions
     {
         public IReadOnlyDictionary<string, TimeSpan> GetServiceThresholds() => new Dictionary<string, TimeSpan>()
@@ -23,6 +25,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
         public static readonly TimeSpan DefaultQueryThreshold = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan DefaultSearchThreshold = TimeSpan.FromSeconds(1);
         public static readonly TimeSpan DefaultAnalyticsThreshold = TimeSpan.FromSeconds(1);
+
+        /// <summary>
+        /// Enables threshold tracing. Defaults to disabled.
+        /// </summary>
+        public bool Enabled { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum number of items to log per service.
