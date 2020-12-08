@@ -375,7 +375,10 @@ namespace Couchbase.Core
 
         public Task SendAsync(IOperation op, CancellationToken token = default)
         {
-            _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
+            }
 
             if (_circuitBreaker.Enabled)
             {
@@ -460,7 +463,12 @@ namespace Couchbase.Core
 
         private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationToken token = default)
         {
-            _logger.LogDebug("Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.", op.OpCode, EndPoint, _redactor.UserData(op.Key), op.Opaque);
+            var debugLoggingEnabled = _logger.IsEnabled(LogLevel.Debug);
+            if (debugLoggingEnabled)
+            {
+                _logger.LogDebug("Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.", op.OpCode,
+                    EndPoint, _redactor.UserData(op.Key), op.Opaque);
+            }
 
             try
             {
@@ -470,8 +478,12 @@ namespace Couchbase.Core
                 var status = await op.Completed.ConfigureAwait(false);
                 if (status != ResponseStatus.Success)
                 {
-                    _logger.LogDebug("Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.",
-                        EndPoint, status, op.OpCode, op.Key, op.Opaque);
+                    if (debugLoggingEnabled)
+                    {
+                        _logger.LogDebug(
+                            "Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.",
+                            EndPoint, status, op.OpCode, op.Key, op.Opaque);
+                    }
 
                     if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                     {
@@ -519,13 +531,20 @@ namespace Couchbase.Core
                     throw status.CreateException(ctx);
                 }
 
-                _logger.LogDebug("Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}",
-                    EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+                if (debugLoggingEnabled)
+                {
+                    _logger.LogDebug("Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}",
+                        EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+                }
             }
 
             catch (OperationCanceledException e)
             {
-                _logger.LogDebug("KV Operation timeout for {key} on server {endpoint}.", op.Key, EndPoint);
+                if (debugLoggingEnabled)
+                {
+                    _logger.LogDebug("KV Operation timeout for {key} on server {endpoint}.", op.Key, EndPoint);
+                }
+
                 if (!e.CancellationToken.IsCancellationRequested)
                 {
                     //oddly IsCancellationRequested is false when timed out
@@ -536,7 +555,11 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                _logger.LogDebug($"Op failed: {op}: {e.ToString()}");
+                if (debugLoggingEnabled)
+                {
+                    _logger.LogDebug(e, "Op failed: {op}", op);
+                }
+
                 throw;
             }
         }
