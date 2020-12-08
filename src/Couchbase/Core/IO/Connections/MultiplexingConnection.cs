@@ -6,6 +6,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -63,7 +64,11 @@ namespace Couchbase.Core.IO.Connections
             _localEndPointString = LocalEndPoint.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
             _connectionIdString = ConnectionId.ToString(CultureInfo.InvariantCulture);
 
-            Task.Run(ReceiveResponsesAsync);
+            // We don't need the execution context to flow to the receive loop
+            using (ExecutionContext.SuppressFlow())
+            {
+                Task.Run(ReceiveResponsesAsync);
+            }
         }
 
         /// <inheritdoc />

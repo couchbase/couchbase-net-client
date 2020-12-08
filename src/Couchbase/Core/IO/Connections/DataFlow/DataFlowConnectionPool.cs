@@ -98,9 +98,17 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
             if (Size > 0)
             {
-                if (!_sendQueue.Post(operation))
+                // We don't need the execution context to flow to sends
+                // so we can reduce heap allocations by not flowing.
+                using (ExecutionContext.SuppressFlow())
                 {
-                    throw new SendQueueFullException();
+                    if (!_sendQueue.Post(operation))
+                    {
+                        if (!_sendQueue.Post(operation))
+                        {
+                            throw new SendQueueFullException();
+                        }
+                    }
                 }
 
                 return Task.CompletedTask;
@@ -119,9 +127,14 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     // Note: always requeues even if cleanup fails
                     // Since the exception on the task is ignored, we're also eating the exception
 
-                    if (!_sendQueue.Post(operation))
+                    // We don't need the execution context to flow to sends
+                    // so we can reduce heap allocations by not flowing.
+                    using (ExecutionContext.SuppressFlow())
                     {
-                        throw new SendQueueFullException();
+                        if (!_sendQueue.Post(operation))
+                        {
+                            throw new SendQueueFullException();
+                        }
                     }
                 }
             }, cancellationToken);
@@ -337,10 +350,15 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                         }
                         else
                         {
-                            // Requeue the request for a different connection
-                            // Note: always requeues even if cleanup fails
-                            // Since the exception on the task is ignored, we're also eating the exception
-                            _sendQueue.Post(request);
+                            // We don't need the execution context to flow to sends
+                            // so we can reduce heap allocations by not flowing.
+                            using (ExecutionContext.SuppressFlow())
+                            {
+                                // Requeue the request for a different connection
+                                // Note: always requeues even if cleanup fails
+                                // Since the exception on the task is ignored, we're also eating the exception
+                                _sendQueue.Post(request);
+                            }
                         }
                     }
                     else

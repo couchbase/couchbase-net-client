@@ -385,23 +385,28 @@ namespace Couchbase.Core
 
                     var sendTask = ExecuteOp(ConnectionPool, op, token);
 
-                    sendTask.ContinueWith(task =>
+                    // We don't need the execution context to flow to circuit breaker handling
+                    // so we can reduce heap allocations by not flowing.
+                    using (ExecutionContext.SuppressFlow())
                     {
-                        if (task.Status == TaskStatus.RanToCompletion)
+                        sendTask.ContinueWith(task =>
                         {
-                            _circuitBreaker.MarkSuccess();
-                        }
-                        else if (task.Status == TaskStatus.Faulted)
-                        {
-                            if (_circuitBreaker.CompletionCallback(task.Exception))
+                            if (task.Status == TaskStatus.RanToCompletion)
                             {
-                                _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
-                                    _redactor.SystemData(ConnectionPool.EndPoint));
-
-                                _circuitBreaker.MarkFailure();
+                                _circuitBreaker.MarkSuccess();
                             }
-                        }
-                    }, TaskContinuationOptions.RunContinuationsAsynchronously);
+                            else if (task.Status == TaskStatus.Faulted)
+                            {
+                                if (_circuitBreaker.CompletionCallback(task.Exception))
+                                {
+                                    _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
+                                        _redactor.SystemData(ConnectionPool.EndPoint));
+
+                                    _circuitBreaker.MarkFailure();
+                                }
+                            }
+                        }, TaskContinuationOptions.RunContinuationsAsynchronously);
+                    }
 
                     // Returning sendTask will still propagate the result/exception to the caller.
                     // However, circuit breaker handling will be asynchronous on another thread.

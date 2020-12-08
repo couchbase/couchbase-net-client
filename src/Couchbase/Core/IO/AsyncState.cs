@@ -100,8 +100,13 @@ namespace Couchbase.Core.IO
                 status = (ResponseStatus) ByteConverter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status));
             }
 
-            // Run callback in a new task to avoid blocking the connection read process
-            Task.Factory.StartNew(() => Callback(response, status));
+            // We don't need the execution context to flow to callback execution
+            // so we can reduce heap allocations by not flowing.
+            using (ExecutionContext.SuppressFlow())
+            {
+                // Run callback in a new task to avoid blocking the connection read process
+                Task.Factory.StartNew(() => Callback(response, status));
+            }
 
             _isCompleted = true;
             _tcs?.TrySetResult(true);
