@@ -361,7 +361,10 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                                 // Requeue the request for a different connection
                                 // Note: always requeues even if cleanup fails
                                 // Since the exception on the task is ignored, we're also eating the exception
-                                _sendQueue.Post(request);
+                                if (!_sendQueue.Post(request))
+                                {
+                                    throw new SendQueueFullException();
+                                }
                             }
                         }
                     }

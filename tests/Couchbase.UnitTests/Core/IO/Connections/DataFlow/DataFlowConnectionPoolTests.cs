@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Connections.DataFlow;
 using Couchbase.Core.IO.Operations;
@@ -20,6 +21,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
     {
         private readonly ITestOutputHelper _testOutput;
         private readonly IPEndPoint _ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);
+        const int queueSize = 1024;
 
         public DataFlowConnectionPoolTests(ITestOutputHelper testOutput)
         {
@@ -57,6 +59,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
         #endregion
 
+
         #region SendAsync
 
         [Fact]
@@ -91,7 +94,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             var connection = new Mock<IConnection>();
             var connectionFactory = new Mock<IConnectionFactory>();
-            connection.Setup(m => m.IsDead).Returns(true);
+            connection.Setup(m => m.IsDead).Returns(false);
             connectionFactory
                 .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => connection.Object);
@@ -113,6 +116,88 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             Assert.True(operation.Completed.IsCompleted);
             Assert.True(operation.Completed.IsCanceled);
+        }
+
+        [Fact]
+        public async Task SendAsync_QueueFull_ThrowsSendQueueFullException()
+        {
+            // Arrange
+            var connection = new Mock<IConnection>();
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connection.Setup(m => m.IsDead).Returns(false);
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => connection.Object);
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+
+            await pool.InitializeAsync();
+
+            // Act
+            // Assert
+            await Assert.ThrowsAsync<SendQueueFullException>(async () => {
+                // Send 2 more operations than queueSize to fill up the queue
+                // since the fake op has a delay, at most one op will be dequeued before queue full exception
+                for (int i = 0; i < queueSize + 2; i++)
+                {
+                    await pool.SendAsync(new FakeOperation() { Delay = TimeSpan.FromSeconds(3) });
+                }
+            });
+        }
+
+        [Fact]
+        public async Task SendAsync_QueueFull_After_CleaningUpDeadConnections_SetsExceptionOnOperation()
+        {
+            // Arrange
+            int count = 0;
+            var connection = new Mock<IConnection>();
+            var connectionFactory = new Mock<IConnectionFactory>();
+            connectionFactory
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() => connection.Object);
+
+            var pool = CreatePool(connectionFactory: connectionFactory.Object);
+            pool.MinimumSize = 1;
+            pool.MaximumSize = 1;
+            connection.Setup(m => m.IsDead).Returns(() => {
+                count++;
+                // The first time IsDead is checked is during pool.InitializeAsync
+                // The second time is done after dequeueing the first op
+                if (count == 2)
+                {
+                    // simulate queue filling up during cleanup
+                    while (true)
+                    {
+                        try
+                        {
+                            pool.SendAsync(new FakeOperation()).GetAwaiter().GetResult();
+                        }
+                        catch (SendQueueFullException)
+                        {
+                            break;
+                        }
+                    }
+                    return true; // simulate dead connection
+                }
+                return false;
+            });
+            await pool.InitializeAsync();
+
+            var operation = new FakeOperation() { Delay = TimeSpan.FromSeconds(3), Cid = 1 };
+
+            // Act
+
+            // queue the operation we expect to be requeued after cleanup
+            await pool.SendAsync(operation);
+
+            // wait for operation to fail but not forever
+            await Task.WhenAny(operation.Completed, Task.Delay(3000));
+
+            // Assert
+            Assert.True(operation.Completed.IsCompleted);
+            await Assert.ThrowsAsync<SendQueueFullException>(() => operation.Completed);
         }
 
         [Fact]
@@ -367,7 +452,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             Assert.All(
                 Enumerable.Range(1, 5),
-                p => Assert.Contains((ulong) p, disposed));
+                p => Assert.Contains((ulong)p, disposed));
         }
 
         #endregion
