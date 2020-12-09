@@ -42,7 +42,7 @@ namespace Couchbase
         public async Task<IPAddress?> GetIpAddressAsync(string hostName,
             CancellationToken cancellationToken = default)
         {
-            var addresses = (IEnumerable<IPAddress>) await _dotNetDnsClient.GetHostAddressesAsync(hostName);
+            var addresses = (IEnumerable<IPAddress>) await _dotNetDnsClient.GetHostAddressesAsync(hostName).ConfigureAwait(false);
 
             if (IpAddressMode == IpAddressMode.ForceIpv6)
             {
