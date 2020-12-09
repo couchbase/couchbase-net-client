@@ -769,7 +769,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             return new DataFlowConnectionPool(connectionInitializer, connectionFactory,
                 new Mock<IConnectionPoolScaleController>().Object,
                 new Mock<IRedactor>().Object,
-                new Logger(_testOutput));
+                new Logger(_testOutput),
+                new ClusterOptions().KvSendQueueCapacity);
         }
 
         private class FakeOperation : OperationBase

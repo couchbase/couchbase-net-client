@@ -42,7 +42,7 @@ namespace Couchbase.Core.IO.Connections
                 var scaleController = _scaleControllerFactory.Create();
 
                 return new DataFlowConnectionPool(clusterNode, _connectionFactory, scaleController,
-                    _redactor, _dataFlowLogger)
+                    _redactor, _dataFlowLogger, _clusterOptions.KvSendQueueCapacity)
                 {
                     MinimumSize = _clusterOptions.NumKvConnections,
                     MaximumSize = _clusterOptions.MaxKvConnections

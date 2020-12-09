@@ -7,6 +7,18 @@ namespace Couchbase.UnitTests
 {
     public class ClusterOptionsTests
     {
+
+        #region KvSendQueueCapacity
+
+        [Fact]
+        public void KvSendQueueCapacity_Defaults_To_1024()
+        {
+            var options = new ClusterOptions();
+            Assert.Equal(1024u, options.KvSendQueueCapacity);
+        }
+
+        #endregion
+
         #region ConfigPollInterval
 
         [Fact]

@@ -346,6 +346,14 @@ namespace Couchbase
         public TimeSpan ManagementTimeout { get; set; } = TimeSpan.FromSeconds(75);
 
         /// <summary>
+        /// Gets or sets the maximum number of operations that will be queued for processing per node.
+        /// If this value is exceeded, any additional operations will be put into  the retry loop.
+        /// </summary>
+        /// <remarks>Defaults to 1024 operations.</remarks>
+        [InterfaceStability(Level.Volatile)]
+        public uint KvSendQueueCapacity { get; set; } = 1024;
+
+        /// <summary>
         /// Overrides the TLS behavior in <see cref="ConnectionString"/>, enabling or
         /// disabling TLS.
         /// </summary>

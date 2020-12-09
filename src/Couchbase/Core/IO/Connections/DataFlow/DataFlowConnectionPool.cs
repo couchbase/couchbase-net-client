@@ -22,16 +22,13 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         private readonly IConnectionPoolScaleController _scaleController;
         private readonly IRedactor _redactor;
         private readonly ILogger<DataFlowConnectionPool> _logger;
+        private readonly uint _kvSendQueueCapacity;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
         private readonly List<(IConnection Connection, ActionBlock<IOperation> Block)> _connections =
             new List<(IConnection Connection, ActionBlock<IOperation> Block)>();
 
-        private readonly BufferBlock<IOperation> _sendQueue =
-            new BufferBlock<IOperation>(new DataflowBlockOptions
-            {
-                BoundedCapacity = 1024
-            });
+        private readonly BufferBlock<IOperation> _sendQueue;
 
         private bool _initialized;
 
@@ -55,16 +52,23 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// <param name="scaleController">Scale controller.</param>
         /// <param name="redactor">Log redactor.</param>
         /// <param name="logger">Logger.</param>
+        /// <param name="kvSendQueueCapacity"></param>
         public DataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger)
+            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger, uint kvSendQueueCapacity)
             : base(connectionInitializer, connectionFactory)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _kvSendQueueCapacity = kvSendQueueCapacity;
 
             MinimumSize = 2;
             MaximumSize = 5;
+
+           _sendQueue = new BufferBlock<IOperation>(new DataflowBlockOptions
+            {
+                BoundedCapacity = (int)_kvSendQueueCapacity
+            });
         }
 
         /// <inheritdoc />
