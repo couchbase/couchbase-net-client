@@ -180,7 +180,7 @@ namespace Couchbase.Core.IO.Connections
 
                     _receiveBufferLength += receivedByteCount;
 
-                    ParseReceivedData();
+                    ParseReceivedData(_receiveBuffer, ref _receiveBufferLength);
                 }
                 HandleDisconnect(new Exception("socket closed."));
             }
@@ -206,21 +206,27 @@ namespace Couchbase.Core.IO.Connections
         /// Parses the received data checking the buffer to see if a completed response has arrived.
         /// If it has, the request is completed and the <see cref="AsyncState"/> is removed from the pending queue.
         /// </summary>
-        internal void ParseReceivedData()
+        internal void ParseReceivedData(byte[] receiveBuffer, ref int receiveBufferLength)
         {
-            var parsedOffset = 0;
-            while (parsedOffset + HeaderOffsets.BodyLength < _receiveBufferLength)
-            {
-                var responseSize = ByteConverter.ToInt32(_receiveBuffer.AsSpan(parsedOffset + HeaderOffsets.BodyLength)) + 24;
-                if (parsedOffset + responseSize > _receiveBufferLength) break;
+            Span<byte> operation = receiveBuffer.AsSpan(0, receiveBufferLength);
 
-                var opaque = ByteConverter.ToUInt32(_receiveBuffer.AsSpan(parsedOffset + HeaderOffsets.Opaque));
+            while (operation.Length >= HeaderOffsets.HeaderLength)
+            {
+                var responseSize = ByteConverter.ToInt32(operation.Slice(HeaderOffsets.BodyLength)) + HeaderOffsets.HeaderLength;
+                if (responseSize > operation.Length)
+                {
+                    // Not enough data for the whole response
+                    break;
+                }
+
+                var opaque = ByteConverter.ToUInt32(operation.Slice(HeaderOffsets.Opaque));
                 var response = MemoryPool<byte>.Shared.RentAndSlice(responseSize);
                 try
                 {
-                    _receiveBuffer.AsMemory(parsedOffset, responseSize).CopyTo(response.Memory);
+                    operation.Slice(0, responseSize).CopyTo(response.Memory.Span);
 
-                    parsedOffset += responseSize;
+                    // Increment for the next operation, if any
+                    operation = operation.Slice(responseSize);
 
                     if (_statesInFlight.TryRemove(opaque, out var state))
                     {
@@ -248,13 +254,15 @@ namespace Couchbase.Core.IO.Connections
                 UpdateLastActivity();
             }
 
-            if (parsedOffset > 0)
+            if (operation.Length < receiveBufferLength)
             {
-                if (parsedOffset < _receiveBufferLength)
+                if (operation.Length > 0)
                 {
-                    Buffer.BlockCopy(_receiveBuffer, parsedOffset, _receiveBuffer, 0, _receiveBufferLength-parsedOffset);
+                    // Move the remaining bytes to the beginning of the buffer
+                    operation.CopyTo(receiveBuffer.AsSpan());
                 }
-                _receiveBufferLength -= parsedOffset;
+
+                receiveBufferLength = operation.Length;
             }
         }
 
