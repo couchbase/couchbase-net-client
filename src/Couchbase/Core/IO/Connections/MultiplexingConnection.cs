@@ -1,6 +1,6 @@
 using System;
 using System.Buffers;
-using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -27,6 +27,7 @@ namespace Couchbase.Core.IO.Connections
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly InFlightOperationSet _statesInFlight = new InFlightOperationSet();
+        private readonly Stopwatch _stopwatch;
         private byte[] _receiveBuffer;
         private int _receiveBufferLength;
         private readonly object _syncObj = new object();
@@ -63,6 +64,9 @@ namespace Couchbase.Core.IO.Connections
             _endPointString = EndPoint.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
             _localEndPointString = LocalEndPoint.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
             _connectionIdString = ConnectionId.ToString(CultureInfo.InvariantCulture);
+
+            _stopwatch = new Stopwatch();
+            _stopwatch.Start();
 
             // We don't need the execution context to flow to the receive loop
             using (ExecutionContext.SuppressFlow())
@@ -266,14 +270,12 @@ namespace Couchbase.Core.IO.Connections
             Close();
         }
 
-        private DateTime _lastActivity = DateTime.UtcNow;
-
         /// <inheritdoc />
-        public TimeSpan IdleTime => DateTime.UtcNow - _lastActivity;
+        public TimeSpan IdleTime => _stopwatch.Elapsed;
 
         private void UpdateLastActivity()
         {
-            _lastActivity = DateTime.UtcNow;
+            _stopwatch.Restart();
         }
 
         public void Close()
