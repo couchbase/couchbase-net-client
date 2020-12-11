@@ -109,8 +109,7 @@ namespace Couchbase.Core.Retry
                                     request.ClientContextId, cappedDuration.TotalMilliseconds,
                                     stopwatch.ElapsedMilliseconds);
 
-                                await Task.Delay(cappedDuration,
-                                    CancellationTokenSource.CreateLinkedTokenSource(token).Token).ConfigureAwait(false);
+                                await Task.Delay(cappedDuration, token).ConfigureAwait(false);
                                 request.IncrementAttempts(reason);
 
                                 //temp fix for query unit tests
