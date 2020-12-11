@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Transcoders;
@@ -6,6 +7,7 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -260,6 +262,27 @@ namespace Couchbase.IntegrationTests
             Assert.Equal("value", (string)lookupResult.ContentAs<string>(0));
 
             Assert.True(lookupResult.IsDeleted);
+        }
+
+        [Fact]
+        public async Task MutateIn_Remove_Succeeds()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_Remove_Succeeds);
+            var o = JObject.FromObject(new
+            {
+                title = "Sample",
+
+                description = (string) null
+            });
+
+            await collection.UpsertAsync("test", o);
+            var result = await collection.MutateInAsync("test", specs =>
+            {
+                specs.Remove("title").Insert<string>("title", null);
+                specs.Insert<string>("newKey", null, true);
+                specs.Upsert<string>("title", null, true);
+            });
         }
     }
 }

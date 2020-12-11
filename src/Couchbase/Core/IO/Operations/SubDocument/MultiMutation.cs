@@ -85,7 +85,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                     var pathLength = ByteConverter.FromString(mutate.Path, buffer);
                     builder.Write(bufferOwner.Memory.Slice(0, pathLength));
 
-                    if (mutate.Value != null)
+                    if (mutate.OpCode != OpCode.SubDelete)
                     {
                         builder.AdvanceToSegment(OperationSegment.OperationSpecFragment);
                         WriteSpecValue(builder, mutate);
