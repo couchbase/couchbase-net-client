@@ -1,12 +1,12 @@
 using System;
 using System.Text.RegularExpressions;
-//using Couchbase.Logging;
 
 namespace Couchbase.Utils
 {
     public static class TimeSpanExtensions
     {
-        //private static readonly ILog Log = LogManager.GetLogger(typeof(TimeSpanExtensions));
+        private static readonly TimeSpan RelativeTtlThreshold = TimeSpan.FromDays(30);
+        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1);
 
         /// <summary>
         /// Converts a <see cref="TimeSpan" /> into an uint correctly representing a Time-To-Live,
@@ -17,16 +17,21 @@ namespace Couchbase.Utils
         /// <returns>The TTL, expressed as a suitable uint.</returns>
         public static uint ToTtl(this TimeSpan duration)
         {
-            if (duration <= TimeSpan.FromDays(30))
+            if (duration <= RelativeTtlThreshold)
             {
+                var totalSeconds = duration.TotalSeconds;
+
                 //round up so ttl is not infinite (0)
-                if (duration.TotalMilliseconds > 0 && duration.TotalMilliseconds < 1000) return 1;
-                return (uint)duration.TotalSeconds;
+                return totalSeconds >= 1
+                    ? (uint) totalSeconds
+                    : totalSeconds >= 0
+                        ? 1u
+                        : 0u;
             }
             else
             {
                 var dateExpiry = DateTime.UtcNow + duration;
-                var unixTimeStamp = (uint) (dateExpiry.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+                var unixTimeStamp = (uint) dateExpiry.Subtract(UnixEpoch).TotalSeconds;
                 return unixTimeStamp;
             }
         }
