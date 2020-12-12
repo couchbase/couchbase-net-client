@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.Core.Sharding
 {
@@ -79,9 +81,17 @@ namespace Couchbase.Core.Sharding
             return _vForwardBuckets.Count > 0;
         }
 
+        [SkipLocalsInit] // Avoid unnecessary cost of zero-filling keyBytes in Span scenario
         public short GetIndex(string key)
         {
+#if NETSTANDARD2_0
             var keyBytes = Encoding.UTF8.GetBytes(key);
+#else
+            Span<byte> keyBytes = stackalloc byte[OperationHeader.MaxKeyLength];
+            var bytes = Encoding.UTF8.GetBytes(key.AsSpan(), keyBytes);
+            keyBytes = keyBytes.Slice(0, bytes);
+#endif
+
             var hash = Crc32.ComputeHash(keyBytes);
 
             return (short) (hash & _mask);

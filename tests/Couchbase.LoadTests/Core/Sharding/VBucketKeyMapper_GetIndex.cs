@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Sharding;
@@ -9,8 +8,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Couchbase.LoadTests.Core.Sharding
 {
-    [SimpleJob(RuntimeMoniker.NetCoreApp21)]
-    [SimpleJob(RuntimeMoniker.NetCoreApp30)]
     [MemoryDiagnoser]
     // ReSharper disable once InconsistentNaming
     public class VBucketKeyMapper_GetIndex
@@ -32,7 +29,7 @@ namespace Couchbase.LoadTests.Core.Sharding
         }
 
         [Benchmark(Baseline = true)]
-        public short Span()
+        public short Current()
         {
             return _keyMapper.GetIndex(_key);
         }
