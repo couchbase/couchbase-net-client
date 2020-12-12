@@ -196,7 +196,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             public FakeBucket(params ResponseStatus[] statuses)
                 : base(BucketName, new ClusterContext(), new Mock<IScopeFactory>().Object,
-                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                    CreateRetryOrchestrator(), new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                     new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance)
             {
                 foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
@@ -253,13 +253,32 @@ namespace Couchbase.UnitTests.KeyValue
             {
                 throw new NotImplementedException();
             }
+
+            public virtual Task MockableRetryAsync(IOperation operation, CancellationToken cancellationToken)
+            {
+                // BucketBase.RetryAsync forwards to our mock IRetryOrchestrator, which forwards back to this method
+                // This allows us to mock retry behavior, while BucketBase.RetryAsync remains non-virtual for performance.
+
+                return Task.CompletedTask;
+            }
+
+            private static IRetryOrchestrator CreateRetryOrchestrator()
+            {
+                var mock = new Mock<IRetryOrchestrator>();
+
+                mock
+                    .Setup(m => m.RetryAsync(It.IsAny<FakeBucket>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                    .Returns((BucketBase bucket, IOperation op, CancellationToken ct) => ((FakeBucket) bucket).MockableRetryAsync(op, ct));
+
+                return mock.Object;
+            }
         }
 
         private static CouchbaseCollection CreateTestCollection(ResponseStatus getResult = ResponseStatus.Success)
         {
             var mockBucket = new Mock<FakeBucket>();
             mockBucket
-                .Setup(m => m.RetryAsync(
+                .Setup(m => m.MockableRetryAsync(
                     It.Is<IOperation>(p => p.OpCode == OpCode.MultiLookup),
                     It.IsAny<CancellationToken>()))
                 .Returns((IOperation operation, CancellationToken cancellationToken) =>
