@@ -59,7 +59,12 @@ namespace Couchbase.Core.IO
 
         public AsyncState(IOperation operation, uint opaque)
         {
-            Operation = operation ?? throw new ArgumentNullException(nameof(operation));
+            if (operation == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(operation));
+            }
+
+            Operation = operation;
             Opaque = opaque;
         }
 

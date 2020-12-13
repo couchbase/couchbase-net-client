@@ -1,5 +1,6 @@
 using System;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -27,7 +28,12 @@ namespace Couchbase
         /// <param name="port">Port number, if any.</param>
         public HostEndpoint(string host, int? port)
         {
-            Host = host ?? throw new ArgumentNullException(nameof(host));
+            if (host == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(host));
+            }
+
+            Host = host;
             Port = port;
         }
 

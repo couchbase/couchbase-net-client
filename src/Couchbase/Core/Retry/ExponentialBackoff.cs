@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Retry
 {
@@ -27,7 +28,7 @@ namespace Couchbase.Core.Retry
         {
             if (request.Attempts == _maxRetries)
             {
-                throw new OperationCanceledException();
+                ThrowHelper.ThrowOperationCanceledException();
             }
 
             if (request.Attempts < 31)

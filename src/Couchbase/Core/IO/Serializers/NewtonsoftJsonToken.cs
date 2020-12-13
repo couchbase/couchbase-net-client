@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -22,8 +23,17 @@ namespace Couchbase.Core.IO.Serializers
         /// <param name="deserializer">Deserializer to use for <seealso cref="ToObject{T}"/> calls.</param>
         public NewtonsoftJsonToken(JToken token, JsonSerializer deserializer)
         {
-            _token = token ?? throw new ArgumentNullException(nameof(token));
-            _deserializer = deserializer ?? throw new ArgumentNullException(nameof(deserializer));
+            if (token == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(token));
+            }
+            if (deserializer == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(deserializer));
+            }
+
+            _token = token;
+            _deserializer = deserializer;
         }
 
         /// <inheritdoc />

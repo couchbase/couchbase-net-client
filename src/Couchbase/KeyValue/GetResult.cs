@@ -29,10 +29,19 @@ namespace Couchbase.KeyValue
         internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
             List<LookupInSpec>? specs = null, List<string>? projectList = null)
         {
+            if (transcoder == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(transcoder));
+            }
+            if (logger == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(logger));
+            }
+
             _contentBytes = contentBytes;
-            _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
+            _transcoder = transcoder;
             _serializer = transcoder.Serializer;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger;
             _specs = specs ?? (IList<LookupInSpec>) Array.Empty<LookupInSpec>();
             _projectList = projectList;
         }

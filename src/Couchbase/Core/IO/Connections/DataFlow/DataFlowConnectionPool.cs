@@ -7,6 +7,7 @@ using System.Threading.Tasks.Dataflow;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Exception = System.Exception;
 
@@ -217,7 +218,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         {
             if (_cts.IsCancellationRequested)
             {
-                throw new ObjectDisposedException(nameof(DataFlowConnectionPool));
+                ThrowHelper.ThrowObjectDisposedException(nameof(DataFlowConnectionPool));
             }
         }
 

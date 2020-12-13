@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 
 #nullable enable
@@ -30,7 +31,15 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         internal string Path
         {
             get => _path;
-            set => _path = value ?? throw new ArgumentNullException(nameof(value));
+            set
+            {
+                if (value == null)
+                {
+                    ThrowHelper.ThrowArgumentNullException(nameof(value));
+                }
+
+                _path = value;
+            }
         }
 
         /// <summary>

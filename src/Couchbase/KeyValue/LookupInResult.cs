@@ -5,6 +5,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -17,11 +18,19 @@ namespace Couchbase.KeyValue
 
         internal LookupInResult(IList<OperationSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false)
         {
-            var reOrdered = specs ?? throw new ArgumentNullException(nameof(specs));
-            _specs = reOrdered.OrderBy(spec => spec.OriginalIndex).ToList();
+            if (specs == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(specs));
+            }
+            if (typeSerializer == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(typeSerializer));
+            }
+
+            _specs = specs.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = cas;
             Expiry = expiry;
-            _serializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
+            _serializer = typeSerializer;
             IsDeleted = isDeleted;
         }
 

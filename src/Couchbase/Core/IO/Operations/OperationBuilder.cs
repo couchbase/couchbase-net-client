@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Utils;
 using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
 namespace Couchbase.Core.IO.Operations
@@ -79,20 +80,20 @@ namespace Couchbase.Core.IO.Operations
         {
             if (segment < OperationSegment.FramingExtras || segment > OperationSegment.OperationSpecFragment)
             {
-                ThrowInvalidEnumArgumentException(nameof(segment), (int) segment, typeof(OperationSegment));
+                ThrowHelper.ThrowInvalidEnumArgumentException(nameof(segment), (int) segment, typeof(OperationSegment));
             }
 
             if (segment < CurrentSegment)
             {
-                ThrowInvalidOperationException("Segment cannot be moved backwards");
+                ThrowHelper.ThrowInvalidOperationException("Segment cannot be moved backwards");
             }
             if (CurrentSegment <= OperationSegment.Body && segment > OperationSegment.Body)
             {
-                ThrowInvalidOperationException("Operation specs must be started with BeginOperationSpec");
+                ThrowHelper.ThrowInvalidOperationException("Operation specs must be started with BeginOperationSpec");
             }
             if (segment == OperationSegment.OperationSpecFragment && !_operationSpecIsMutation)
             {
-                ThrowInvalidOperationException("This operation spec is not a mutation");
+                ThrowHelper.ThrowInvalidOperationException("This operation spec is not a mutation");
             }
 
             EnsureHeaderNotWritten();
@@ -119,7 +120,7 @@ namespace Couchbase.Core.IO.Operations
         {
             if (!_headerWritten)
             {
-                ThrowInvalidOperationException("The header has not been written.");
+                ThrowHelper.ThrowInvalidOperationException("The header has not been written.");
             }
 
             return _stream.GetBuffer().AsMemory(0, (int) _stream.Length);
@@ -206,7 +207,7 @@ namespace Couchbase.Core.IO.Operations
 
             if (CurrentSegment > OperationSegment.Body)
             {
-                ThrowInvalidOperationException("An operation spec is still in progress.");
+                ThrowHelper.ThrowInvalidOperationException("An operation spec is still in progress.");
             }
 
             // Make sure we slice this span so the length is known to the JIT compiler.
@@ -262,7 +263,7 @@ namespace Couchbase.Core.IO.Operations
             }
             else if (CurrentSegment > OperationSegment.Body)
             {
-                throw new InvalidOperationException("Operation spec is already in progress");
+                ThrowHelper.ThrowInvalidOperationException("Operation spec is already in progress");
             }
 
             var headerSize = isMutation ? 8 : 4;
@@ -303,7 +304,7 @@ namespace Couchbase.Core.IO.Operations
         {
             if (CurrentSegment < OperationSegment.Body)
             {
-                ThrowInvalidOperationException("An operation spec is not in progress.");
+                ThrowHelper.ThrowInvalidOperationException("An operation spec is not in progress.");
             }
 
             Span<byte> buffer = stackalloc byte[_operationSpecIsMutation ? 8 : 4];
@@ -398,18 +399,8 @@ namespace Couchbase.Core.IO.Operations
         {
             if (_headerWritten)
             {
-                ThrowInvalidOperationException("Cannot write data after the header has been written");
+                ThrowHelper.ThrowInvalidOperationException("Cannot write data after the header has been written");
             }
-        }
-
-        private static void ThrowInvalidOperationException(string message)
-        {
-            throw new InvalidOperationException(message);
-        }
-
-        private static void ThrowInvalidEnumArgumentException(string argumentName, int invalidValue, Type enumClass)
-        {
-            throw new InvalidEnumArgumentException(argumentName, invalidValue, enumClass);
         }
 
         protected override void Dispose(bool disposing)

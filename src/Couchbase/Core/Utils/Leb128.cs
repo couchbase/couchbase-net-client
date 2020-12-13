@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Utils
 {
@@ -50,7 +51,7 @@ namespace Couchbase.Core.Utils
 
             if ((current & 0x80) == 0x80)
             {
-                throw new Exception("Invalid LEB128 sequence.");
+                ThrowHelper.ThrowInvalidOperationException("Invalid LEB128 sequence.");
             }
             return result;
         }

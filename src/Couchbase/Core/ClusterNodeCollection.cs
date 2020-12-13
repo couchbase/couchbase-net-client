@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -57,9 +58,10 @@ namespace Couchbase.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGet(IPEndPoint endPoint, [NotNullWhen(true)] out IClusterNode? node)
         {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (endPoint == null)
             {
-                throw new ArgumentNullException(nameof(endPoint));
+                ThrowHelper.ThrowArgumentNullException(nameof(endPoint));
             }
 
             // ReSharper disable once InconsistentlySynchronizedField

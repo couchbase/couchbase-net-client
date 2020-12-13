@@ -33,9 +33,14 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </exception>
         internal LookupInBuilder(ISubdocInvoker invoker, Func<ITypeSerializer> serializer, string key)
         {
+            if (key == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(key));
+            }
+
             _invoker = invoker;
             _serializer = serializer;
-            Key = key ?? throw new ArgumentNullException(nameof(key));
+            Key = key;
         }
 
         /// <summary>
@@ -54,7 +59,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <summary>
         /// Gets the <see cref="ITypeSerializer" /> related to the object.
         /// </summary>
-        public ITypeSerializer Serializer => _cachedSerializer ?? (_cachedSerializer = _serializer.Invoke());
+        public ITypeSerializer Serializer => _cachedSerializer ??= _serializer.Invoke();
 
         /// <summary>
         /// Gets or sets the unique identifier for the document.

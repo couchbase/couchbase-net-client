@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -68,8 +69,12 @@ namespace Couchbase.Core
         /// <param name="features">Features that are available.</param>
         public ServerFeatureSet(ServerFeatures[] features)
         {
-            Features = new ReadOnlyCollection<ServerFeatures>(features ??
-                                                              throw new ArgumentNullException(nameof(features)));
+            if (features == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(features));
+            }
+
+            Features = new ReadOnlyCollection<ServerFeatures>(features);
 
             ParseFeatures(features);
         }

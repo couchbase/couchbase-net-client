@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -29,7 +30,7 @@ namespace Couchbase.Core.IO.Connections
         {
             if (state == null)
             {
-                throw new ArgumentNullException(nameof(state));
+                ThrowHelper.ThrowArgumentNullException(nameof(state));
             }
 
             _statesInFlight.TryAdd(state.Opaque, state);

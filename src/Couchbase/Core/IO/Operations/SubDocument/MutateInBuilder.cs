@@ -33,9 +33,14 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </exception>
         internal MutateInBuilder(ISubdocInvoker invoker, Func<ITypeSerializer> serializer, string key)
         {
+            if (key == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(key));
+            }
+
             _invoker = invoker;
             _serializer = serializer;
-            Key = key ?? throw new ArgumentNullException(nameof(key));
+            Key = key;
 
             Cas = 0L;
             Expiry = new TimeSpan();
@@ -132,7 +137,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Path cannot be empty for an Insert.");
+                ThrowHelper.ThrowArgumentException("Path cannot be empty for an Insert.", nameof(path));
             }
 
             _commands.Enqueue(new MutateInSpec
@@ -173,7 +178,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Path cannot be empty for an Upsert.");
+                ThrowHelper.ThrowArgumentException("Path cannot be empty for an Upsert.", nameof(path));
             }
 
             _commands.Enqueue(new MutateInSpec
@@ -213,7 +218,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Path cannot be empty for an Upsert.");
+                ThrowHelper.ThrowArgumentException("Path cannot be empty for an Upsert.", nameof(path));
             }
 
             _commands.Enqueue(new MutateInSpec
@@ -251,7 +256,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Path cannot be empty for an Remove.");
+                ThrowHelper.ThrowArgumentException("Path cannot be empty for an Remove.", nameof(path));
             }
 
             _commands.Enqueue(new MutateInSpec
@@ -490,7 +495,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Path cannot be empty for an ArrayInsert.");
+                ThrowHelper.ThrowArgumentException("Path cannot be empty for an ArrayInsert.", nameof(path));
             }
 
             _commands.Enqueue(new MutateInSpec
@@ -534,7 +539,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Path cannot be empty for an ArrayInsert.");
+                ThrowHelper.ThrowArgumentException("Path cannot be empty for an ArrayInsert.", nameof(path));
             }
 
             _commands.Enqueue(new MutateInSpec
@@ -631,7 +636,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Path cannot be empty for a Counter.");
+                ThrowHelper.ThrowArgumentException("Path cannot be empty for a Counter.", nameof(path));
             }
 
             _commands.Enqueue(new MutateInSpec

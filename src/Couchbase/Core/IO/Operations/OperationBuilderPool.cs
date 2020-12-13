@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -53,7 +54,7 @@ namespace Couchbase.Core.IO.Operations
         {
             if (builder == null)
             {
-                throw new ArgumentNullException(nameof(builder));
+                ThrowHelper.ThrowArgumentNullException(nameof(builder));
             }
 
             if (builder.Capacity > MaximumOperationBuilderCapacity ||

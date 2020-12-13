@@ -20,7 +20,12 @@ namespace Couchbase.Core.Sharding
 
         public VBucketServerMapFactory(IIpEndPointService ipEndPointService)
         {
-            _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
+            if (ipEndPointService == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(ipEndPointService));
+            }
+
+            _ipEndPointService = ipEndPointService;
         }
 
         /// <inheritdoc />
@@ -39,14 +44,14 @@ namespace Couchbase.Core.Sharding
                 if (port == null)
                 {
                     // Should not happen with data from BucketConfig
-                    throw new InvalidOperationException("Server list is missing port numbers.");
+                    ThrowHelper.ThrowInvalidOperationException("Server list is missing port numbers.");
                 }
 
                 var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(hostName, port.Value, cancellationToken)
                     .ConfigureAwait(false);
                 if (ipEndPoint == null)
                 {
-                    throw new ArgumentException($"Unable to resolve '{server}'.", nameof(serverList));
+                    ThrowHelper.ThrowArgumentException($"Unable to resolve '{server}'.", nameof(serverList));
                 }
 
                 yield return ipEndPoint;

@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -20,13 +21,13 @@ namespace Couchbase.Core.DI
         {
             if (serviceProvider == null)
             {
-                throw new ArgumentNullException(nameof(serviceProvider));
+                ThrowHelper.ThrowArgumentNullException(nameof(serviceProvider));
             }
 
             var service = serviceProvider.GetService(type);
             if (service == null)
             {
-                throw new InvalidOperationException($"Service {type.FullName} is not registered.");
+                ThrowHelper.ThrowInvalidOperationException($"Service {type.FullName} is not registered.");
             }
 
             return service;
@@ -43,7 +44,7 @@ namespace Couchbase.Core.DI
         {
             if (serviceProvider == null)
             {
-                throw new ArgumentNullException(nameof(serviceProvider));
+                ThrowHelper.ThrowArgumentNullException(nameof(serviceProvider));
             }
 
             return (T) serviceProvider.GetService(typeof(T));
@@ -55,14 +56,7 @@ namespace Couchbase.Core.DI
         /// <typeparam name="T">Service being requested.</typeparam>
         /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
         /// <returns>The service.</returns>
-        public static T GetRequiredService<T>(this IServiceProvider serviceProvider)
-        {
-            if (serviceProvider == null)
-            {
-                throw new ArgumentNullException(nameof(serviceProvider));
-            }
-
-            return (T) serviceProvider.GetRequiredService(typeof(T));
-        }
+        public static T GetRequiredService<T>(this IServiceProvider serviceProvider) =>
+            (T) serviceProvider.GetRequiredService(typeof(T));
     }
 }

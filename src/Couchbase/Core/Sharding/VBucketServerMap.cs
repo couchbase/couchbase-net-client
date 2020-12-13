@@ -14,11 +14,11 @@ namespace Couchbase.Core.Sharding
         {
             if (serverMapDto == null)
             {
-                throw new ArgumentNullException(nameof(serverMapDto));
+                ThrowHelper.ThrowArgumentNullException(nameof(serverMapDto));
             }
             if (ipEndPoints == null)
             {
-                throw new ArgumentNullException(nameof(ipEndPoints));
+                ThrowHelper.ThrowArgumentNullException(nameof(ipEndPoints));
             }
 
             HashAlgorithm = serverMapDto.HashAlgorithm;

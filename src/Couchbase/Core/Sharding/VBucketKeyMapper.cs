@@ -6,6 +6,7 @@ using System.Text;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Sharding
 {
@@ -29,12 +30,21 @@ namespace Couchbase.Core.Sharding
         {
             if (config == null)
             {
-                throw new ArgumentNullException(nameof(config));
+                ThrowHelper.ThrowArgumentNullException(nameof(config));
             }
-            _vBucketFactory = vBucketFactory ?? throw new ArgumentNullException(nameof(vBucketFactory));
+            if (vBucketServerMap == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(vBucketServerMap));
+            }
+            if (vBucketFactory == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(vBucketFactory));
+            }
+
+            _vBucketFactory = vBucketFactory;
 
             Rev = config.Rev;
-            _vBucketServerMap = vBucketServerMap ?? throw new ArgumentNullException(nameof(vBucketServerMap));
+            _vBucketServerMap = vBucketServerMap;
             _endPoints = _vBucketServerMap.IPEndPoints;
             _bucketName = config.Name;
             _vBuckets = CreateVBucketMap();

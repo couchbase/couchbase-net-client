@@ -22,6 +22,11 @@ namespace Couchbase.Core.Sharding
         public VBucket(ICollection<IPEndPoint> endPoints, short index, short primary, short[] replicas, uint rev,
             VBucketServerMap vBucketServerMap, string bucketName, ILogger<VBucket> logger)
         {
+            if (logger == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(logger));
+            }
+
             _endPoints = endPoints;
             Index = index;
             Primary = primary;
@@ -29,7 +34,7 @@ namespace Couchbase.Core.Sharding
             Rev = rev;
             _vBucketServerMap = vBucketServerMap;
             BucketName = bucketName;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger;
         }
 
         /// <summary>

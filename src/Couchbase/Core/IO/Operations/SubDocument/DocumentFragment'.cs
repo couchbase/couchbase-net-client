@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
@@ -15,7 +16,12 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public DocumentFragment(ITypeSerializerProvider sourceTypeSerializerProvider)
         {
-            _sourceTypeSerializerProvider = sourceTypeSerializerProvider ?? throw new ArgumentNullException(nameof(sourceTypeSerializerProvider));
+            if (sourceTypeSerializerProvider == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(sourceTypeSerializerProvider));
+            }
+
+            _sourceTypeSerializerProvider = sourceTypeSerializerProvider;
             Value = new List<OperationSpec>();
         }
 

@@ -46,18 +46,20 @@ namespace Couchbase.Utils
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> or <paramref name="length"/> is out of bounds.</exception>
         public SlicedMemoryOwner(IMemoryOwner<T> memoryOwner, int start, int length)
         {
-            _memoryOwner = memoryOwner ?? throw new ArgumentNullException(nameof(memoryOwner));
-
+            if (memoryOwner == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(memoryOwner));
+            }
             if (start < 0 || start >= memoryOwner.Memory.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(start));
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(start));
             }
-
             if (length < 0 || start + length > memoryOwner.Memory.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(length));
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(length));
             }
 
+            _memoryOwner = memoryOwner;
             _start = start;
             _length = length;
         }
