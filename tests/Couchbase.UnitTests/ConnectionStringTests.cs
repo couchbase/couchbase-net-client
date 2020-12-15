@@ -5,6 +5,14 @@ namespace Couchbase.UnitTests
 {
     public class ConnectionStringTests
     {
+        [Theory]
+        [InlineData("couchbase://,localhost")]
+        [InlineData("couchbase://localhost,")]
+        [InlineData("couchbase://localhost1,,localhost")]
+        public void Empty_Host_Throws_ArgumentNullException(string connectionString)
+        {
+            Assert.Throws<ArgumentNullException>(() => ConnectionString.Parse(connectionString));
+        }
         #region IsValidDnsSrv
 
         [Theory]

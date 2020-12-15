@@ -95,7 +95,7 @@ namespace Couchbase
         /// <param name="server">The server to parse.</param>
         /// <returns>The <see cref="HostEndpoint"/>.</returns>
         public static HostEndpoint Parse(string server) =>
-            (server ?? throw new ArgumentNullException(nameof(server)))
+            (!string.IsNullOrWhiteSpace(server) ? server : throw new ArgumentNullException(nameof(server)))
                 .StartsWith("[", StringComparison.Ordinal) ?
                     ParseIpv6Server(server) :
                     ParseBasicServer(server);
