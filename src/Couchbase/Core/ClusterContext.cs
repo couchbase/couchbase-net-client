@@ -246,13 +246,14 @@ namespace Couchbase.Core
             //Try to bootstrap each node in the servers list - either from DNS-SRV lookup or from client configuration
             foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
-                _logger.LogDebug("Bootstrapping with node {server}", server.Host);
-                var node = await _clusterNodeFactory.
-                    CreateAndConnectAsync(server, BucketType.Couchbase, CancellationToken).
-                    ConfigureAwait(false);
-
+                IClusterNode node = null;
                 try
                 {
+                    _logger.LogDebug("Bootstrapping with node {server}", server.Host);
+                    node = await _clusterNodeFactory
+                        .CreateAndConnectAsync(server, BucketType.Couchbase, CancellationToken)
+                        .ConfigureAwait(false);
+
                     GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
                 }
                 catch (CouchbaseException e)
@@ -265,6 +266,12 @@ namespace Couchbase.Core
                             return;
                         }
                     }
+                }
+                catch (Exception e)
+                {
+                    //something else failed, try the next hostname
+                    _logger.LogDebug(e, "Attempted bootstrapping on endpoint {endpoint} has failed.", server.Host);
+                    continue;
                 }
 
                 try
