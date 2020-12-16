@@ -1,8 +1,7 @@
 using System;
-using System.Buffers;
+using System.Runtime.CompilerServices;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.Utils;
-using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -20,6 +19,7 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
+        [SkipLocalsInit]
         public override void WriteBody(OperationBuilder builder)
         {
             Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength + 4];

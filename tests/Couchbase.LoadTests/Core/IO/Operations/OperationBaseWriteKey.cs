@@ -8,13 +8,19 @@ namespace Couchbase.LoadTests.Core.IO.Operations
     public class OperationBaseWriteKey
     {
         private readonly OperationBuilder _builder = new OperationBuilder();
-        private readonly OperationBase _operation = new Get<string>
+        private readonly OperationBase _operation = new Get<string>();
+
+        [Params(10, 40, 100)]
+        public int KeySize { get; set; }
+
+        [GlobalSetup]
+        public void Setup()
         {
-            Key = "some_document_key"
-        };
+            _operation.Key = new string('0', KeySize);
+        }
 
         [Benchmark(Baseline = true)]
-        public void WriteKey()
+        public void Current()
         {
             _builder.Reset();
 

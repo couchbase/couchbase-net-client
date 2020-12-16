@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -217,6 +218,7 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
+        [SkipLocalsInit]
         public virtual void WriteKey(OperationBuilder builder)
         {
             Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength];
