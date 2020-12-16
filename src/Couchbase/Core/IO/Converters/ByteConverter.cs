@@ -170,10 +170,14 @@ namespace Couchbase.Core.IO.Converters
         /// </returns>
         public static unsafe string ToString(ReadOnlySpan<byte> buffer)
         {
+#if NETSTANDARD2_0
             fixed (byte* bytes = &MemoryMarshal.GetReference(buffer))
             {
                 return Encoding.UTF8.GetString(bytes, buffer.Length);
             }
+#else
+            return Encoding.UTF8.GetString(buffer);
+#endif
         }
 
         #endregion
@@ -306,6 +310,7 @@ namespace Couchbase.Core.IO.Converters
         /// <returns>Number of bytes written to the buffer.</returns>
         public static unsafe int FromString(string value, Span<byte> buffer)
         {
+#if NETSTANDARD2_0
             fixed (char* chars = value)
             {
                 fixed (byte* bytes = &MemoryMarshal.GetReference(buffer))
@@ -313,6 +318,9 @@ namespace Couchbase.Core.IO.Converters
                     return Encoding.UTF8.GetBytes(chars, value.Length, bytes, buffer.Length);
                 }
             }
+#else
+            return Encoding.UTF8.GetBytes(value.AsSpan(), buffer);
+#endif
         }
 
         #endregion
