@@ -537,6 +537,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 BucketName = _bucket.Name,
                 Builder = builder,
+                Cas = options.CasValue,
                 Cid = Cid,
                 CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
