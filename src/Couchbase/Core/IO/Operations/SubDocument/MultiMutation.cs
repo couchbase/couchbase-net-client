@@ -229,6 +229,13 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             };
         }
 
+        /// <inheritdoc />
+        public override void Reset()
+        {
+            base.Reset();
+            _mutateCommands.Clear();
+        }
+
         /// <summary>
         /// Indicates whether the current object is equal to another object of the same type.
         /// </summary>
