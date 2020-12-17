@@ -1,15 +1,16 @@
+using System;
 using System.Text;
 
 namespace Couchbase.Core
 {
-        /// <summary>
+    /// <summary>
     /// An object for tracking changes if enhanced durability is enabled.
     /// </summary>
     public sealed class MutationToken
     {
         public MutationToken(string bucketRef, short vBucketId, long vBucketUuid, long sequenceNumber)
         {
-            BucketRef = bucketRef;
+            BucketRef = bucketRef ?? throw new ArgumentNullException(nameof(bucketRef));
             VBucketId = vBucketId;
             VBucketUuid = vBucketUuid;
             SequenceNumber = sequenceNumber;
@@ -36,16 +37,7 @@ namespace Couchbase.Core
 
         public override int GetHashCode()
         {
-            var result = VBucketId ^ (VBucketId >> 32);
-            result = 31*result + (int) (VBucketUuid ^ (VBucketUuid >> 32));
-            result = 31*result + (int) (SequenceNumber ^ (SequenceNumber >> 32));
-
-            if (BucketRef != null)
-            {
-                result = 31*result + BucketRef.GetHashCode();
-            }
-
-            return result;
+            return (VBucketId, VBucketUuid, SequenceNumber, BucketRef).GetHashCode();
         }
 
         public override string ToString()
