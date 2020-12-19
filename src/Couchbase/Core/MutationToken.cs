@@ -10,7 +10,7 @@ namespace Couchbase.Core
     {
         public MutationToken(string bucketRef, short vBucketId, long vBucketUuid, long sequenceNumber)
         {
-            BucketRef = bucketRef ?? throw new ArgumentNullException(nameof(bucketRef));
+            BucketRef = bucketRef;
             VBucketId = vBucketId;
             VBucketUuid = vBucketUuid;
             SequenceNumber = sequenceNumber;
@@ -37,7 +37,7 @@ namespace Couchbase.Core
 
         public override int GetHashCode()
         {
-            return (VBucketId, VBucketUuid, SequenceNumber, BucketRef).GetHashCode();
+            return (VBucketId, VBucketUuid, SequenceNumber, (BucketRef ?? "PLACEHOLDER:0081076b-1975-4407-a834-b8abe53fe0fa")).GetHashCode();
         }
 
         public override string ToString()
