@@ -24,6 +24,13 @@ namespace Couchbase.UnitTests.Utils
         }
 
         [Fact]
+        public void When_Zero_Returns_Zero()
+        {
+            var lifespan = TimeSpan.Zero.ToTtl();
+            Assert.Equal(0u, lifespan);
+        }
+
+        [Fact]
         public void When_Negative_Value_Returns_Zero()
         {
             var lifespan = TimeSpan.FromMilliseconds(-1).ToTtl();

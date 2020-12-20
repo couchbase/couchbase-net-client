@@ -24,7 +24,7 @@ namespace Couchbase.Utils
                 //round up so ttl is not infinite (0)
                 return totalSeconds >= 1
                     ? (uint) totalSeconds
-                    : totalSeconds >= 0
+                    : totalSeconds > 0
                         ? 1u
                         : 0u;
             }
