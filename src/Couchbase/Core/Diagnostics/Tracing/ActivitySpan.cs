@@ -11,14 +11,24 @@ namespace Couchbase.Core.Diagnostics.Tracing
         private readonly ActivityRequestTracer _tracer;
         private readonly DiagnosticListener _diagListener;
 
-        public ActivitySpan(ActivityRequestTracer tracer, DiagnosticListener diagListener, Activity? activity)
+        public ActivitySpan(ActivityRequestTracer tracer, DiagnosticListener diagListener, Activity? activity, IRequestSpan? parentSpan)
         {
             _tracer = tracer;
             _diagListener = diagListener;
             Activity = activity;
+            ParentSpan = parentSpan;
         }
 
         public Activity? Activity { get; }
+
+        /// <summary>
+        /// Parent span, if any. Otherwise, null.
+        /// </summary>
+        /// <remarks>
+        /// Used to propagate tags upwards to only Couchbase related spans. The parent of <see cref="Activity"/> may
+        /// be a span that doesn't belong to this SDK.
+        /// </remarks>
+        public IRequestSpan? ParentSpan { get; }
 
         /// <inheritdoc />
         public bool IsNullSpan => false;
@@ -36,7 +46,13 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         private void PropagateTagsUpwards()
         {
-            if (Activity?.Parent == null)
+            if (Activity == null)
+            {
+                return;
+            }
+
+            var parent = ParentSpan?.Activity;
+            if (parent == null)
             {
                 return;
             }
@@ -47,11 +63,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 switch (Activity.OperationName)
                 {
                     case RequestTracing.DispatchSpanName:
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.last_dispatch_us), microseconds);
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.dispatch_us), microseconds);
+                        parent.AddTag(nameof(ThresholdSummary.last_dispatch_us), microseconds);
+                        parent.AddTag(nameof(ThresholdSummary.dispatch_us), microseconds);
                         break;
                     case RequestTracing.PayloadEncodingSpanName:
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.encode_us), microseconds);
+                        parent.AddTag(nameof(ThresholdSummary.encode_us), microseconds);
                         break;
                 }
             }
@@ -61,29 +77,27 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 switch (tag.Key)
                 {
                     case CouchbaseTags.OperationId:
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.last_operation_id), tag.Value);
+                        parent.AddTag(nameof(ThresholdSummary.last_operation_id), tag.Value);
                         break;
                     case CouchbaseTags.LocalAddress:
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.last_local_address), tag.Value);
+                        parent.AddTag(nameof(ThresholdSummary.last_local_address), tag.Value);
                         break;
                     case CouchbaseTags.RemoteAddress:
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.last_remote_address), tag.Value);
+                        parent.AddTag(nameof(ThresholdSummary.last_remote_address), tag.Value);
                         break;
                     case CouchbaseTags.LocalId:
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.last_local_id), tag.Value);
+                        parent.AddTag(nameof(ThresholdSummary.last_local_id), tag.Value);
                         break;
                     case CouchbaseTags.PeerLatency:
-                        Activity.Parent.AddTag(nameof(ThresholdSummary.server_us), tag.Value);
+                        parent.AddTag(nameof(ThresholdSummary.server_us), tag.Value);
                         break;
                     case nameof(ThresholdSummary.server_us):
                     case nameof(ThresholdSummary.dispatch_us):
                     case nameof(ThresholdSummary.encode_us):
-                        Activity.Parent.AddTag(tag.Key, tag.Value);
+                        parent.AddTag(tag.Key, tag.Value);
                         break;
                 }
             }
-
-
         }
 
         public IInternalSpan StartPayloadEncoding() => StartChild(RequestTracing.PayloadEncodingSpanName);

@@ -28,7 +28,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             }
 
 
-            var span = new ActivitySpan(this, _diagnosticListener, activity);
+            var span = new ActivitySpan(this, _diagnosticListener, activity, parent);
             _diagnosticListener.StartActivity(activity, span);
             return span;
         }

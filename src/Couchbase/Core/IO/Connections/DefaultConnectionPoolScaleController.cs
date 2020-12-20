@@ -60,7 +60,13 @@ namespace Couchbase.Core.IO.Connections
                 "Starting connection pool monitor on {endpoint}, idle timeout {idleTimeout}, back pressure threshold {backPressureThreshold}",
                 _redactor.SystemData(_connectionPool.EndPoint), IdleConnectionTimeout, BackPressureThreshold);
 
-            Task.Run(MonitorAsync, _cts.Token);
+            using (ExecutionContext.SuppressFlow())
+            {
+                // We must suppress flow so that the tracing Activity which is current during bootstrap doesn't live on forever
+                // as the parent span for all scaling activities.
+
+                Task.Run(MonitorAsync, _cts.Token);
+            }
         }
 
         protected virtual async Task MonitorAsync()

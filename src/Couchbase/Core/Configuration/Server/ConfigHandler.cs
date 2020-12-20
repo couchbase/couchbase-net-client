@@ -76,7 +76,13 @@ namespace Couchbase.Core.Configuration.Server
 
             if (withPolling)
             {
-                Poll();
+                using (ExecutionContext.SuppressFlow())
+                {
+                    // We must suppress flow so that the tracing Activity which is current during bootstrap doesn't live on forever
+                    // as the parent span for all polling activities.
+
+                    Poll();
+                }
             }
         }
 
