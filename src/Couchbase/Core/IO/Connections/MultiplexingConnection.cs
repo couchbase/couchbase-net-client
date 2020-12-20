@@ -1,8 +1,10 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.IO.Pipelines;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -28,8 +30,6 @@ namespace Couchbase.Core.IO.Connections
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly InFlightOperationSet _statesInFlight = new InFlightOperationSet();
         private readonly Stopwatch _stopwatch;
-        private byte[] _receiveBuffer;
-        private int _receiveBufferLength;
         private readonly object _syncObj = new object();
         private volatile bool _disposed;
 
@@ -54,10 +54,6 @@ namespace Couchbase.Core.IO.Connections
             LocalEndPoint = localEndPoint ?? throw new ArgumentNullException(nameof(localEndPoint));
             EndPoint = remoteEndPoint ?? throw new ArgumentNullException(nameof(remoteEndPoint));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            //allocate a buffer
-            _receiveBuffer = new byte[1024 * 16];
-            _receiveBufferLength = 0;
 
             ConnectionId = ConnectionIdProvider.GetNextId();
 
@@ -150,38 +146,72 @@ namespace Couchbase.Core.IO.Connections
 
         /// <summary>
         /// Continuously running task which constantly listens for responses
-        /// coming back from the server, writes them to the <see cref="_receiveBuffer"/>,
-        /// and processes the responses once complete.
+        /// coming back from the server and processes the responses once complete.
         /// </summary>
         internal async Task ReceiveResponsesAsync()
         {
+            // bufferSize is the minimum buffer size to rent from ArrayPool<byte>.Shared. We can actually
+            // buffer much more than this value, it is merely the size of the buffer segments which will be used.
+            // When operations larger than this size are encountered, additional segments will be requested from
+            // the pool and retained only until that operation is completed.
+            //
+            // minimumReadSize is the minimum block of data to read into a buffer segment from the stream. If there is
+            // not enough space left in a segment, a new segment will be requested from the pool. This is set to 1500
+            // to match the default IP MTU on most systems.
+            var reader = PipeReader.Create(_stream, new StreamPipeReaderOptions(
+                bufferSize: 65536,
+                minimumReadSize: 1500));
+
             try
             {
                 while (true)
                 {
-                    if (_receiveBuffer.Length < _receiveBufferLength*2)
+                    ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
+                    ReadOnlySequence<byte> buffer = result.Buffer;
+
+                    // Process as many complete operation as we have in the buffer
+                    while (TryReadOperation(ref buffer, out IMemoryOwner<byte>? operationResponse))
                     {
-                        var buffer = new byte[_receiveBuffer.Length*2];
-                        Buffer.BlockCopy(_receiveBuffer, 0, buffer, 0, _receiveBufferLength);
-                        _receiveBuffer = buffer;
+                        try
+                        {
+                            var opaque = ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque));
+
+                            if (_statesInFlight.TryRemove(opaque, out var state))
+                            {
+                                state.Complete(operationResponse);
+                            }
+                            else
+                            {
+                                operationResponse.Dispose();
+
+                                // create orphaned response context
+                                // var context = CreateOperationContext(opaque);
+
+                                // send to orphaned response reporter
+                                //  ClusterOptions.ClientConfiguration.OrphanedResponseLogger.Add(context);
+                            }
+                        }
+                        catch
+                        {
+                            // Ownership of the buffer was not accepted by state.Complete due to an exception
+                            // Make sure we release the buffer
+                            operationResponse.Dispose();
+                            throw;
+                        }
+
+                        UpdateLastActivity();
                     }
 
-                    #if NETCOREAPP2_1 || NETCOREAPP3_0 || NETSTANDARD2_1
-                    var receivedByteCount = await _stream.ReadAsync(
-                            _receiveBuffer.AsMemory(_receiveBufferLength, _receiveBuffer.Length - _receiveBufferLength))
-                        .ConfigureAwait(false);
-                    #else
-                    var receivedByteCount = await _stream.ReadAsync(
-                            _receiveBuffer, _receiveBufferLength, _receiveBuffer.Length - _receiveBufferLength)
-                        .ConfigureAwait(false);
-                    #endif
+                    // Tell the reader how much data we've actually consumed, the rest will remain for the next read
+                    reader.AdvanceTo(buffer.Start, buffer.End);
 
-                    if (receivedByteCount == 0) break; // Disconnected
-
-                    _receiveBufferLength += receivedByteCount;
-
-                    ParseReceivedData(_receiveBuffer, ref _receiveBufferLength);
+                    // Stop reading if there's no more data
+                    if (result.IsCompleted)
+                    {
+                        break;
+                    }
                 }
+
                 HandleDisconnect(new Exception("socket closed."));
             }
 #if NET452
@@ -200,69 +230,69 @@ namespace Couchbase.Core.IO.Connections
             {
                 HandleDisconnect(e);
             }
+            finally
+            {
+                await reader.CompleteAsync().ConfigureAwait(false);
+            }
         }
 
         /// <summary>
         /// Parses the received data checking the buffer to see if a completed response has arrived.
-        /// If it has, the request is completed and the <see cref="AsyncState"/> is removed from the pending queue.
+        /// If it has, the operation is copied to a new, complete buffer and true is returned.
         /// </summary>
-        internal void ParseReceivedData(byte[] receiveBuffer, ref int receiveBufferLength)
+        internal bool TryReadOperation(ref ReadOnlySequence<byte> buffer, [MaybeNullWhen(false)] out IMemoryOwner<byte> operationResponse)
         {
-            Span<byte> operation = receiveBuffer.AsSpan(0, receiveBufferLength);
-
-            while (operation.Length >= HeaderOffsets.HeaderLength)
+            if (buffer.Length < HeaderOffsets.HeaderLength)
             {
-                var responseSize = ByteConverter.ToInt32(operation.Slice(HeaderOffsets.BodyLength)) + HeaderOffsets.HeaderLength;
-                if (responseSize > operation.Length)
-                {
-                    // Not enough data for the whole response
-                    break;
-                }
-
-                var opaque = ByteConverter.ToUInt32(operation.Slice(HeaderOffsets.Opaque));
-                var response = MemoryPool<byte>.Shared.RentAndSlice(responseSize);
-                try
-                {
-                    operation.Slice(0, responseSize).CopyTo(response.Memory.Span);
-
-                    // Increment for the next operation, if any
-                    operation = operation.Slice(responseSize);
-
-                    if (_statesInFlight.TryRemove(opaque, out var state))
-                    {
-                        state.Complete(response);
-                    }
-                    else
-                    {
-                        response.Dispose();
-
-                        // create orphaned response context
-                        // var context = CreateOperationContext(opaque);
-
-                        // send to orphaned response reporter
-                        //  ClusterOptions.ClientConfiguration.OrphanedResponseLogger.Add(context);
-                    }
-                }
-                catch
-                {
-                    // Ownership of the buffer was not accepted by state.Complete due to an exception
-                    // Make sure we release the buffer
-                    response.Dispose();
-                    throw;
-                }
-
-                UpdateLastActivity();
+                // Not enough data to read the body length from the header
+                operationResponse = null;
+                return false;
             }
 
-            if (operation.Length < receiveBufferLength)
+            int responseSize = HeaderOffsets.HeaderLength;
+            var sizeSegment = buffer.Slice(HeaderOffsets.BodyLength, sizeof(int));
+            if (sizeSegment.IsSingleSegment)
             {
-                if (operation.Length > 0)
-                {
-                    // Move the remaining bytes to the beginning of the buffer
-                    operation.CopyTo(receiveBuffer.AsSpan());
-                }
+                responseSize += ByteConverter.ToInt32(sizeSegment.First.Span);
+            }
+            else
+            {
+                // Edge case, we're split across segments in the buffer
+                Span<byte> tempSpan = stackalloc byte[sizeof(int)];
 
-                receiveBufferLength = operation.Length;
+                sizeSegment.CopyTo(tempSpan);
+
+                responseSize += ByteConverter.ToInt32(tempSpan);
+            }
+
+            if (buffer.Length < responseSize)
+            {
+                // Insufficient data, keep filling the buffer
+                operationResponse = null;
+                return false;
+            }
+
+            // Slice to get operationBuffer, which is just the operation
+            // And slice the original buffer to start after this operation,
+            // we pass this back by ref so it's ready for the next operation
+
+            var position = buffer.GetPosition(responseSize);
+            var operationBuffer = buffer.Slice(0, position);
+            buffer = buffer.Slice(position);
+
+            // Copy the response to a separate, contiguous memory buffer
+
+            operationResponse = MemoryPool<byte>.Shared.RentAndSlice(responseSize);
+            try
+            {
+                operationBuffer.CopyTo(operationResponse.Memory.Span);
+                return true;
+            }
+            catch
+            {
+                // Cleanup the memory in case of exception
+                operationResponse.Dispose();
+                throw;
             }
         }
 
