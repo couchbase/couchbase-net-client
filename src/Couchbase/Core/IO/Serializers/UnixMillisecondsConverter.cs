@@ -25,10 +25,10 @@ namespace Couchbase.Core.IO.Serializers
             {
                 return null;
             }
-            else
-            {
-                return UnixEpoch.AddMilliseconds(Convert.ToDouble(reader.Value));
-            }
+
+            var dbl = Convert.ToDouble(reader.Value);
+            var ticks = (long) (dbl * TimeSpan.TicksPerMillisecond);
+            return new DateTime(UnixEpoch.Ticks + ticks, DateTimeKind.Utc);
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)

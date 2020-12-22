@@ -1,7 +1,12 @@
 using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
 using Couchbase.Core.IO.Serializers;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.IO.Serializers
 {
@@ -11,6 +16,14 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
         private static readonly double TestUnixMilliseconds =
             (TestTime - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+
+        private readonly ITestOutputHelper _output;
+
+        public UnixMillisecondsConverterTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
 
         #region Serialization
 
@@ -217,6 +230,32 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             public DateTime? Value { get; set; }
         }
 
+        #endregion
+
+        #region Datetime
+        public class UnitTestPOCO
+        {
+            public int Id { get; set; }
+            [JsonConverter(typeof(UnixMillisecondsConverter))]
+            public DateTime Value { get; set; }
+        }
+
+        [Fact]
+        public void TestStdCouchbaseUnixMillisecondsConverter()
+        {
+            var dateTime = DateTime.UtcNow;
+            var originalDate = new UnitTestPOCO
+            {
+                Id = 10,
+                Value = dateTime
+            };
+            var json = JsonConvert.SerializeObject(originalDate);
+            var convertedDate = JsonConvert.DeserializeObject<UnitTestPOCO>(json);
+            Assert.Equal(10, convertedDate.Id);
+
+            //compare string representation due to rounding loss
+            Assert.Equal(dateTime.ToString(CultureInfo.InvariantCulture), convertedDate.Value.ToString(CultureInfo.InvariantCulture));
+        }
         #endregion
     }
 }
