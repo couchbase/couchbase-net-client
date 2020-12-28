@@ -6,7 +6,10 @@
   "couchbase": {
     "connectionString": "couchbase://localhost",
     "username": "Administrator",
-    "password": "password"
+    "password": "password",
+    "experiments": {
+      "channelConnectionPools": true
+    }
   },
   "couchbaseSsl": {
     "connectionString": "couchbases://localhost",

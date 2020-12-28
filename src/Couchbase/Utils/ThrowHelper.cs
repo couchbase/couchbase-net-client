@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.Utils
@@ -41,6 +42,9 @@ namespace Couchbase.Utils
             throw new OperationCanceledException();
 
         [DoesNotReturn]
+        public static void ThrowSendQueueFullException() =>
+            throw new SendQueueFullException();
+            
         public static void ThrowTimeoutException(IOperation operation)
         {
             var message = $"The operation {operation.Opaque}/{operation.Opaque} timed out after {operation.Timeout}. " +

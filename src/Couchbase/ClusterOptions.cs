@@ -10,6 +10,8 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Compression;
+using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -477,6 +479,9 @@ namespace Couchbase
 
         /// <inheritdoc cref="TuningOptions"/>
         public TuningOptions Tuning { get; set; } = new();
+        
+        /// <inheritdoc cref="ExperimentalOptions"/>
+        public ExperimentalOptions Experiments { get; set; } = new();
 
         /// <summary>
         /// Provides a default implementation of <see cref="ClusterOptions"/>.
@@ -530,6 +535,11 @@ namespace Couchbase
             if (ThresholdOptions?.Enabled ?? false)
             {
                 _services[typeof(IRequestTracer)] = new SingletonServiceFactory(typeof(ActivityRequestTracer));
+            }
+
+            if (Experiments.ChannelConnectionPools)
+            {
+                this.AddClusterService<IConnectionPoolFactory, ChannelConnectionPoolFactory>();
             }
 
             if (Serializer != null)

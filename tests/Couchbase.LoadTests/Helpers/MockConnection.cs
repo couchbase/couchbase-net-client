@@ -35,6 +35,7 @@ namespace Couchbase.LoadTests.Helpers
         public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap errorMap = null,
             CancellationToken cancellationToken = default)
         {
+            operation.HandleOperationCompleted(AsyncState.BuildErrorResponse(0, ResponseStatus.KeyNotFound));
             return default;
         }
 
