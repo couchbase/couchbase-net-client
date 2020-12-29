@@ -20,6 +20,9 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public SubdocDocFlags DocFlags { get; set; }
 
+        /// <inheritdoc />
+        public override bool IsReadOnly => false;
+
         public override void WriteExtras(OperationBuilder builder)
         {
             if (Expires > 0)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -26,10 +27,10 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         private readonly uint _kvSendQueueCapacity;
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
-        private readonly List<(IConnection Connection, ActionBlock<IOperation> Block)> _connections =
-            new List<(IConnection Connection, ActionBlock<IOperation> Block)>();
+        private readonly List<(IConnection Connection, ActionBlock<QueueItem> Block)> _connections =
+            new List<(IConnection Connection, ActionBlock<QueueItem> Block)>();
 
-        private readonly BufferBlock<IOperation> _sendQueue;
+        private readonly BufferBlock<QueueItem> _sendQueue;
 
         private bool _initialized;
 
@@ -66,7 +67,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
             MinimumSize = 2;
             MaximumSize = 5;
 
-           _sendQueue = new BufferBlock<IOperation>(new DataflowBlockOptions
+           _sendQueue = new BufferBlock<QueueItem>(new DataflowBlockOptions
             {
                 BoundedCapacity = (int)_kvSendQueueCapacity
             });
@@ -95,11 +96,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         {
             EnsureNotDisposed();
 
-            if (cancellationToken.CanBeCanceled)
-            {
-                // cancel the operation so that its Completed task cast is completed
-                cancellationToken.Register(operation.Cancel);
-            }
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (Size > 0)
             {
@@ -107,12 +104,9 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 // so we can reduce heap allocations by not flowing.
                 using (ExecutionContext.SuppressFlow())
                 {
-                    if (!_sendQueue.Post(operation))
+                    if (!_sendQueue.Post(new QueueItem { Operation = operation, CancellationToken = cancellationToken }))
                     {
-                        if (!_sendQueue.Post(operation))
-                        {
-                            throw new SendQueueFullException();
-                        }
+                        throw new SendQueueFullException();
                     }
                 }
 
@@ -122,24 +116,19 @@ namespace Couchbase.Core.IO.Connections.DataFlow
             // We had all connections die earlier and fail to restart, we need to restart them
             return CleanupDeadConnectionsAsync().ContinueWith(_ =>
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    operation.Cancel();
-                }
-                else
-                {
-                    // Requeue the request
-                    // Note: always requeues even if cleanup fails
-                    // Since the exception on the task is ignored, we're also eating the exception
+                cancellationToken.ThrowIfCancellationRequested();
 
-                    // We don't need the execution context to flow to sends
-                    // so we can reduce heap allocations by not flowing.
-                    using (ExecutionContext.SuppressFlow())
+                // Requeue the request
+                // Note: always requeues even if cleanup fails
+                // Since the exception on the task is ignored, we're also eating the exception
+
+                // We don't need the execution context to flow to sends
+                // so we can reduce heap allocations by not flowing.
+                using (ExecutionContext.SuppressFlow())
+                {
+                    if (!_sendQueue.Post(new QueueItem { Operation = operation, CancellationToken = cancellationToken }))
                     {
-                        if (!_sendQueue.Post(operation))
-                        {
-                            throw new SendQueueFullException();
-                        }
+                        throw new SendQueueFullException();
                     }
                 }
             }, cancellationToken);
@@ -288,7 +277,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                 _logger.LogDebug("Connection for {endpoint} has been started.", EndPoint);
 
                 // Create an ActionBlock to receive messages for this connection
-                var block = new ActionBlock<IOperation>(BuildHandler(connection),
+                var block = new ActionBlock<QueueItem>(BuildHandler(connection),
                     new ExecutionDataflowBlockOptions
                     {
                         BoundedCapacity = 1, // Don't let the action block queue up requests, they should queue in the buffer block
@@ -329,14 +318,14 @@ namespace Couchbase.Core.IO.Connections.DataFlow
         /// </summary>
         /// <param name="connection">The connection.</param>
         /// <returns>The handler.</returns>
-        private Func<IOperation, Task> BuildHandler(IConnection connection)
+        private Func<QueueItem, Task> BuildHandler(IConnection connection)
         {
             return async request =>
             {
                 try
                 {
                     // ignore request that timed out or was cancelled while in queue
-                    if (request.Completed.IsCompleted)
+                    if (request.CancellationToken.IsCancellationRequested)
                     {
                         return;
                     }
@@ -349,11 +338,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                         // unlinked to make sure no more bad requests hit it.
                         await CleanupDeadConnectionsAsync().ConfigureAwait(false);
 
-                        if (_cts.IsCancellationRequested)
-                        {
-                            request.Cancel();
-                        }
-                        else
+                        if (!_cts.IsCancellationRequested && !request.CancellationToken.IsCancellationRequested)
                         {
                             // We don't need the execution context to flow to sends
                             // so we can reduce heap allocations by not flowing.
@@ -371,13 +356,18 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     }
                     else
                     {
-                        await request.SendAsync(connection).ConfigureAwait(false);
+                        await request.Operation.SendAsync(connection, request.CancellationToken).ConfigureAwait(false);
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation during send shouldn't be sent back to the operation, only the send was cancelled.
+                    // The caller who originally queued the send will handle the operation itself.
                 }
                 catch (Exception ex)
                 {
                     // Catch serialization and other similar errors and forward them to the operation
-                    request.TrySetException(ex);
+                    request.Operation.TrySetException(ex);
                 }
             };
         }
@@ -453,6 +443,13 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
                 return default;
             }
+        }
+
+        [StructLayout(LayoutKind.Auto)]
+        private struct QueueItem
+        {
+            public IOperation Operation { get; set; }
+            public CancellationToken CancellationToken { get; set; }
         }
     }
 }

@@ -149,7 +149,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
 
-            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>())).Callback((IOperation op, CancellationToken ct) =>
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op, CancellationTokenPair ct) =>
             {
                 if (op.Completed.IsCompleted)
                     Assert.True(false, "operation result should be reset before retry");
@@ -164,7 +164,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             try
             {
-                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token).ConfigureAwait(false);
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op, CancellationTokenPair.FromInternalToken(tokenSource.Token)).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -178,10 +178,70 @@ namespace Couchbase.UnitTests.Core.Retry
         public async Task Operation_Throws_Timeout_After_N_Retries_Using_BestEffort_When_NotMyVBucket(
             object operation, Exception exception)
         {
-            await AssertRetryAsync((IOperation)operation, exception).ConfigureAwait(false);
+            await AssertRetryAsync<UnambiguousTimeoutException>((IOperation)operation, exception).ConfigureAwait(false);
         }
 
-        private async Task AssertRetryAsync(IOperation op, Exception exp)
+        [Fact]
+        public async Task Operation_Throws_UnambiguousTimeout_When_ReadOnly_Op_Sent()
+        {
+            var operation = new Get<dynamic>
+            {
+                RetryStrategy = new BestEffortRetryStrategy()
+            };
+
+            var exception = new OperationCanceledException();
+
+            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 1)
+                .ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task Operation_Throws_OperationCanceledException_After_External_Cancellation()
+        {
+            var operation = new Get<dynamic>
+            {
+                RetryStrategy = new BestEffortRetryStrategy()
+            };
+
+            var exception = new NotMyVBucketException();
+
+            using var cts = new CancellationTokenSource(500);
+
+            await AssertRetryAsync<OperationCanceledException>(operation, exception, minAttempts: 1,
+                externalCancellationToken: cts.Token).ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task Operation_Throws_UnambiguousTimeout_After_Timeout_When_Mutation_Op_Not_Sent()
+        {
+            var operation = new Set<dynamic>("fake", "fakeKey")
+            {
+                RetryStrategy = new BestEffortRetryStrategy(),
+                IsSent = false
+            };
+
+            var exception = new OperationCanceledException();
+
+            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 1).ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task Operation_Throws_AmbiguousTimeout_After_Timeout_When_Mutation_Op_Sent()
+        {
+            var operation = new Set<dynamic>("fake", "fakeKey")
+            {
+                RetryStrategy = new BestEffortRetryStrategy(),
+                IsSent = true
+            };
+
+            var exception = new OperationCanceledException();
+
+            await AssertRetryAsync<AmbiguousTimeoutException>(operation, exception, minAttempts: 1).ConfigureAwait(false);
+        }
+
+        private async Task AssertRetryAsync<TExpected>(IOperation op, Exception exp, int minAttempts = 2,
+            CancellationToken externalCancellationToken = default)
+            where TExpected : Exception
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
@@ -189,17 +249,20 @@ namespace Couchbase.UnitTests.Core.Retry
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
 
-            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>())).Throws(exp);
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
-            var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
+            using var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             try
             {
-                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token).ConfigureAwait(false);
+                var tokenPair = new CancellationTokenPair(externalCancellationToken, tokenSource.Token);
+
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair).ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                Assert.IsType<TimeoutException>(e);
-                Assert.True(op.Attempts > 1);
+                Assert.IsAssignableFrom<TExpected>(e);
+
+                Assert.True(op.Attempts >= minAttempts);
             }
         }
 
@@ -213,12 +276,12 @@ namespace Couchbase.UnitTests.Core.Retry
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
 
-            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>()))
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
                 .Returns(Task.CompletedTask);
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
 
-            await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token).ConfigureAwait(false);
+            await retryOrchestrator.RetryAsync(bucketMock.Object, op, CancellationTokenPair.FromInternalToken(tokenSource.Token)).ConfigureAwait(false);
 
             Assert.Equal(1u, op.Attempts);
         }
@@ -241,13 +304,13 @@ namespace Couchbase.UnitTests.Core.Retry
             {
                 CallBase = true
             };
-            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationToken>())).Throws(exp);
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
 
             try
             {
-                await bucketMock.Object.RetryAsync(op, tokenSource.Token).ConfigureAwait(false);
+                await bucketMock.Object.RetryAsync(op, CancellationTokenPair.FromInternalToken(tokenSource.Token)).ConfigureAwait(false);
             }
             catch (Exception e)
             {

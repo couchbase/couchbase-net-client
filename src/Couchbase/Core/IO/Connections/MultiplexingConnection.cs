@@ -96,7 +96,8 @@ namespace Couchbase.Core.IO.Connections
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
         /// <inheritdoc />
-        public async Task SendAsync(ReadOnlyMemory<byte> request, IOperation operation, ErrorMap? errorMap = null)
+        public async ValueTask SendAsync(ReadOnlyMemory<byte> request, IOperation operation, ErrorMap? errorMap = null,
+            CancellationToken cancellationToken = default)
         {
             if (request.Length >= MaxDocSize)
             {
@@ -117,7 +118,7 @@ namespace Couchbase.Core.IO.Connections
 
             _statesInFlight.Add(state, 75000);
 
-            await _writeMutex.GetLockAsync().ConfigureAwait(false);
+            await _writeMutex.GetLockAsync(cancellationToken).ConfigureAwait(false);
             try
             {
 #if SPAN_SUPPORT
@@ -129,7 +130,7 @@ namespace Couchbase.Core.IO.Connections
                     arraySegment = new ArraySegment<byte>(request.ToArray());
                 }
 
-                await _stream.WriteAsync(arraySegment.Array, arraySegment.Offset, arraySegment.Count)
+                await _stream.WriteAsync(arraySegment.Array, arraySegment.Offset, arraySegment.Count, cancellationToken)
                     .ConfigureAwait(false);
 #endif
             }

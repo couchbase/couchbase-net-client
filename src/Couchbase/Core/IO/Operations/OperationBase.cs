@@ -1,8 +1,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -17,7 +15,6 @@ using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
-using Couchbase.Diagnostics;
 using Couchbase.Utils;
 using Microsoft.Extensions.ObjectPool;
 using Newtonsoft.Json;
@@ -74,6 +71,18 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
+        /// <inheritdoc />
+        public virtual bool IsReadOnly => true;
+
+        private volatile bool _isSent;
+
+        /// <inheritdoc />
+        public bool IsSent
+        {
+            get => _isSent;
+            internal set => _isSent = value; // For unit tests
+        }
+
         #region RetryAsync SDK-3
 
         public uint Attempts { get; set; }
@@ -123,6 +132,8 @@ namespace Couchbase.Core.IO.Operations
                 Key = Key,
                 Status = status
             };
+
+            _isSent = false;
         }
 
         /// <summary>
@@ -511,11 +522,6 @@ namespace Couchbase.Core.IO.Operations
             var builder = OperationBuilderPool.Get();
             try
             {
-                if (cancellationToken.CanBeCanceled)
-                {
-                    cancellationToken.Register(HandleOperationCancelled, cancellationToken);
-                }
-
                 WriteFramingExtras(builder);
 
                 builder.AdvanceToSegment(OperationSegment.Extras);
@@ -539,8 +545,10 @@ namespace Couchbase.Core.IO.Operations
 
                 var buffer = builder.GetBuffer();
                 encodingSpan.Dispose();
+
                 using var dispatchSpan = Span.StartDispatch();
-                await connection.SendAsync(buffer, this).ConfigureAwait(false);
+                await connection.SendAsync(buffer, this, cancellationToken: cancellationToken).ConfigureAwait(false);
+                _isSent = true;
                 dispatchSpan.Dispose();
             }
             finally
@@ -549,15 +557,8 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
-        public void Cancel()
-        {
-            _completed.TrySetCanceled();
-        }
-
-        private void HandleOperationCancelled(object state)
-        {
-            _completed.TrySetCanceled((CancellationToken)state);
-        }
+        public bool TrySetCanceled(CancellationToken cancellationToken = default) =>
+            _completed.TrySetCanceled(cancellationToken);
 
         /// <inheritdoc />
         public bool TrySetException(Exception ex) =>_completed.TrySetException(ex);
@@ -577,8 +578,6 @@ namespace Couchbase.Core.IO.Operations
                     || status ==  ResponseStatus.SubDocSuccessDeletedDocument)
                 {
                     Read(data);
-
-                    _completed.TrySetResult(status);
                 }
                 else
                 {

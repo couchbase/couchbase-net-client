@@ -81,7 +81,7 @@ namespace Couchbase.Diagnostics
                            {
                                var op = new Noop();
                                operationConfigurator.Configure(op);
-                               await clusterNode.ExecuteOp(connection, op, token).ConfigureAwait(false);
+                               await clusterNode.ExecuteOp(connection, op, CancellationTokenPair.FromExternalToken(token)).ConfigureAwait(false);
                            }).ConfigureAwait(false);
                        }
 

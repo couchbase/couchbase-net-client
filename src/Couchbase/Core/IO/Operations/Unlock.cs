@@ -2,6 +2,9 @@ namespace Couchbase.Core.IO.Operations
 {
     internal class Unlock : OperationBase
     {
+        /// <inheritdoc />
+        public override bool IsReadOnly => false;
+
         public override OpCode OpCode => OpCode.Unlock;
 
         public override IOperation Clone()

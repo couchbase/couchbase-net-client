@@ -23,7 +23,7 @@ namespace Couchbase.Core.IO
 
         // Used to track the completion state when there is not _tcs, so if it's requested later we can still
         // mark the task as complete before returning. This also helps with thread sync.
-        private volatile bool _isCompleted;
+        private volatile int _isCompleted;
 
         public IPEndPoint? EndPoint { get; set; }
         public IOperation Operation { get; set; }
@@ -47,7 +47,7 @@ namespace Couchbase.Core.IO
                 var newTcs = new TaskCompletionSource<bool>();
                 Interlocked.CompareExchange(ref _tcs, newTcs, null);
 
-                if (_isCompleted)
+                if (_isCompleted == 1)
                 {
                     // Just in case we were completing at the same time we were creating the _tcs
                     _tcs.TrySetResult(true);
@@ -72,6 +72,13 @@ namespace Couchbase.Core.IO
         /// </summary>
         public void Cancel(ResponseStatus status)
         {
+            var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
+            if (prevCompleted == 1)
+            {
+                // Operation is already completed
+                return;
+            }
+
             Timer?.Dispose();
             Timer = null;
 
@@ -79,12 +86,19 @@ namespace Couchbase.Core.IO
 
             Operation.HandleOperationCompleted(response);
 
-            _isCompleted = true;
             _tcs?.TrySetCanceled();
         }
 
         public void Complete(IMemoryOwner<byte>? response)
         {
+            var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
+            if (prevCompleted == 1)
+            {
+                // Operation is already completed
+                response?.Dispose();
+                return;
+            }
+
             Timer?.Dispose();
             Timer = null;
 
@@ -102,7 +116,6 @@ namespace Couchbase.Core.IO
                 Task.Factory.StartNew(state => Operation.HandleOperationCompleted((IMemoryOwner<byte>) state!), response);
             }
 
-            _isCompleted = true;
             _tcs?.TrySetResult(true);
         }
 

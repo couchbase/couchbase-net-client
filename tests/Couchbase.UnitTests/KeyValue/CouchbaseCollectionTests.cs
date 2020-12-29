@@ -207,7 +207,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
-            internal override async Task SendAsync(IOperation op, CancellationToken token = default)
+            internal override async Task SendAsync(IOperation op, CancellationTokenPair token = default)
             {
                 var mockConnectionPool = new Mock<IConnectionPool>();
 
@@ -255,7 +255,7 @@ namespace Couchbase.UnitTests.KeyValue
                 throw new NotImplementedException();
             }
 
-            public virtual Task MockableRetryAsync(IOperation operation, CancellationToken cancellationToken)
+            public virtual Task MockableRetryAsync(IOperation operation, CancellationTokenPair cancellationToken)
             {
                 // BucketBase.RetryAsync forwards to our mock IRetryOrchestrator, which forwards back to this method
                 // This allows us to mock retry behavior, while BucketBase.RetryAsync remains non-virtual for performance.
@@ -268,8 +268,8 @@ namespace Couchbase.UnitTests.KeyValue
                 var mock = new Mock<IRetryOrchestrator>();
 
                 mock
-                    .Setup(m => m.RetryAsync(It.IsAny<FakeBucket>(), It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
-                    .Returns((BucketBase bucket, IOperation op, CancellationToken ct) => ((FakeBucket) bucket).MockableRetryAsync(op, ct));
+                    .Setup(m => m.RetryAsync(It.IsAny<FakeBucket>(), It.IsAny<IOperation>(), It.IsAny<CancellationTokenPair>()))
+                    .Returns((BucketBase bucket, IOperation op, CancellationTokenPair ct) => ((FakeBucket) bucket).MockableRetryAsync(op, ct));
 
                 return mock.Object;
             }
@@ -281,8 +281,8 @@ namespace Couchbase.UnitTests.KeyValue
             mockBucket
                 .Setup(m => m.MockableRetryAsync(
                     It.Is<IOperation>(p => p.OpCode == OpCode.MultiLookup),
-                    It.IsAny<CancellationToken>()))
-                .Returns((IOperation operation, CancellationToken cancellationToken) =>
+                    It.IsAny<CancellationTokenPair>()))
+                .Returns((IOperation operation, CancellationTokenPair cancellationTokenPair) =>
                 {
                     operation.Header = new OperationHeader
                     {
@@ -294,7 +294,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             mockBucket.Setup(m => m.SendAsync(
                 It.IsAny<IOperation>(),
-                It.IsAny<CancellationToken>()))
+                It.IsAny<CancellationTokenPair>()))
                 .Returns((IOperation operation, CancellationToken cancellationToken) =>
                 {
                     operation.Header = new OperationHeader

@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
@@ -75,7 +76,12 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="buffer">A memcached request buffer.</param>
         /// <param name="operation">Operation being sent which will receive the completion notification.</param>
         /// <param name="errorMap"><see cref="ErrorMap"/>, or null if not available.</param>
-        Task SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap? errorMap = null);
+        /// <param name="cancellationToken">Cancellation token which cancels the send. The operation is unaffected if cancelled.</param>
+        /// <remarks>
+        /// Completion of the returned task indicates that the operation has been sent on the wire.
+        /// The operation will be marked as complete when a response is received.
+        /// </remarks>
+        ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap? errorMap = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Closes the connection gracefully, waiting up to timeout for all in-flight operations

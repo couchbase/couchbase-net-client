@@ -88,7 +88,7 @@ namespace Couchbase
             }
         }
 
-        internal override async Task SendAsync(IOperation op, CancellationToken token = default)
+        internal override Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
         {
             if (KeyMapper == null)
             {
@@ -100,11 +100,12 @@ namespace Couchbase
 
             if (Nodes.TryGet(endPoint, out var clusterNode))
             {
-                await clusterNode.ExecuteOp(op, token).ConfigureAwait(false);
+                return clusterNode.ExecuteOp(op, tokenPair);
             }
             else
             {
                 //raise exception that node is not found
+                return Task.CompletedTask;
             }
         }
 

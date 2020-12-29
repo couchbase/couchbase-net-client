@@ -30,7 +30,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var bytes = Encoding.UTF8.GetBytes(json);
 
             await Assert.ThrowsAsync<ValueToolargeException>(() =>
-                conn.SendAsync(bytes, Mock.Of<IOperation>())).ConfigureAwait(false);
+                conn.SendAsync(bytes, Mock.Of<IOperation>()).AsTask()).ConfigureAwait(false);
         }
     }
 }

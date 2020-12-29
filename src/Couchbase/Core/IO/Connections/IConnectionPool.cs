@@ -50,10 +50,11 @@ namespace Couchbase.Core.IO.Connections
         /// Send an operation via a connection in the pool.
         /// </summary>
         /// <param name="op"><see cref="IOperation"/> to send.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="cancellationToken">Cancellation token which cancels the send. The operation is unaffected if cancelled.</param>
         /// <returns>Task to observe for completion.</returns>
         /// <remarks>
-        /// The task is completed when the operation is sent, it does not wait for a response.
+        /// Completion of the returned task indicates that the operation has been either sent or queued to be sent.
+        /// The operation will be marked as complete when a response is received.
         /// </remarks>
         Task SendAsync(IOperation op, CancellationToken cancellationToken = default);
 

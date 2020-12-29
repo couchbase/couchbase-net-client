@@ -5,6 +5,9 @@ namespace Couchbase.Core.IO.Operations
 {
     internal class GetL<T> : Get<T>
     {
+        /// <inheritdoc />
+        public override bool IsReadOnly => false;
+
         public override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[4];

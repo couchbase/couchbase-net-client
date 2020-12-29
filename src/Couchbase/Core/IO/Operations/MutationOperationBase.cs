@@ -16,6 +16,9 @@ namespace Couchbase.Core.IO.Operations
         public DurabilityLevel DurabilityLevel { get; set; }
         public TimeSpan? DurabilityTimeout { get; set; }
 
+        /// <inheritdoc />
+        public override bool IsReadOnly => false;
+
         /// <summary>
         /// Reads the VBucketUUID and Sequence Number from the extras if the instance has a <see cref="OperationBase.VBucketId"/> -
         /// only persistent Couchbase buckets that use VBucket Hashing support mutation tokens.

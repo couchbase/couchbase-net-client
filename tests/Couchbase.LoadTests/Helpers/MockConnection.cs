@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -31,9 +32,10 @@ namespace Couchbase.LoadTests.Helpers
         public TimeSpan IdleTime { get; set; }
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
-        public Task SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap errorMap = null)
+        public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap errorMap = null,
+            CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            return default;
         }
 
         public bool InUse { get; set; }

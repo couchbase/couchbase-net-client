@@ -68,9 +68,9 @@ namespace Couchbase.Core.IO.Connections
         }
 
         /// <inheritdoc />
-        public Task SendAsync(ReadOnlyMemory<byte> request, IOperation operation,
-            ErrorMap? errorMap = null) =>
-            _multiplexingConnection.SendAsync(request, operation, errorMap);
+        public ValueTask SendAsync(ReadOnlyMemory<byte> request, IOperation operation,
+            ErrorMap? errorMap = null, CancellationToken cancellationToken = default) =>
+            _multiplexingConnection.SendAsync(request, operation, errorMap, cancellationToken);
 
         /// <inheritdoc />
         public void Dispose()

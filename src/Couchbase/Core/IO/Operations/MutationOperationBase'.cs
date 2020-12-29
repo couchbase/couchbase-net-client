@@ -11,6 +11,9 @@ namespace Couchbase.Core.IO.Operations
     /// <typeparam name="T"></typeparam>
     internal abstract class MutationOperationBase<T> : OperationBase<T>
     {
+        /// <inheritdoc />
+        public override bool IsReadOnly => false;
+
         protected MutationOperationBase(string bucketName, string key)
         {
             BucketName = bucketName;

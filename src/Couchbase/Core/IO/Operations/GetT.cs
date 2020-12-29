@@ -5,6 +5,9 @@ namespace Couchbase.Core.IO.Operations
 {
     internal class GetT<T> : MutationOperationBase<T>
     {
+        /// <inheritdoc />
+        public override bool IsReadOnly => false;
+
         internal GetT(string bucketName, string key) : base(bucketName, key)
         { }
 

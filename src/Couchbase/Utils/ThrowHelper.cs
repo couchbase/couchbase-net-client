@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Operations;
 
 namespace Couchbase.Utils
 {
@@ -38,5 +39,19 @@ namespace Couchbase.Utils
         [DoesNotReturn]
         public static void ThrowOperationCanceledException() =>
             throw new OperationCanceledException();
+
+        [DoesNotReturn]
+        public static void ThrowTimeoutException(IOperation operation)
+        {
+            var message = $"The operation {operation.Opaque}/{operation.Opaque} timed out after {operation.Timeout}. " +
+                          $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}.";
+
+            if (operation.IsSent && !operation.IsReadOnly)
+            {
+                throw new AmbiguousTimeoutException(message);
+            }
+
+            throw new UnambiguousTimeoutException(message);
+        }
     }
 }

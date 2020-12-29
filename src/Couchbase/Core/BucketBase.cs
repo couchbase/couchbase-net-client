@@ -164,10 +164,10 @@ namespace Couchbase.Core
 
         #region Send and Retry
 
-        internal abstract Task SendAsync(IOperation op, CancellationToken token = default);
+        internal abstract Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default);
 
-        public Task RetryAsync(IOperation operation, CancellationToken token = default) =>
-           RetryOrchestrator.RetryAsync(this, operation, token);
+        public Task RetryAsync(IOperation operation, CancellationTokenPair tokenPair = default) =>
+           RetryOrchestrator.RetryAsync(this, operation, tokenPair);
 
         #endregion
 

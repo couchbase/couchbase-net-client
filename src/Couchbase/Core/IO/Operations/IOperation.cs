@@ -61,7 +61,12 @@ namespace Couchbase.Core.IO.Operations
 
         Task SendAsync(IConnection connection, CancellationToken cancellationToken = default);
 
-        void Cancel();
+        /// <summary>
+        /// Marks the operation as canceled with an optional reference to the cancellation token, if it isn't already completed.
+        /// </summary>
+        /// <param name="cancellationToken">Optional cancellation token which triggered the cancellation.</param>
+        /// <returns>True if the operation was canceled.</returns>
+        bool TrySetCanceled(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Marks the operation as completed with the given exception, if it isn't already completed.
@@ -89,6 +94,16 @@ namespace Couchbase.Core.IO.Operations
         /// the result has been received and, if successful, read.
         /// </summary>
         Task<ResponseStatus> Completed { get; }
+
+        /// <summary>
+        /// Indicates if this operation is only performing a read operation and not changing state.
+        /// </summary>
+        bool IsReadOnly { get; }
+
+        /// <summary>
+        /// Indicates if this operation has been sent down the wire to the server.
+        /// </summary>
+        bool IsSent { get; }
 
         bool CanRetry();
 

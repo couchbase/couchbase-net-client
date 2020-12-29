@@ -201,7 +201,7 @@ namespace Couchbase
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
-        internal override Task SendAsync(IOperation op, CancellationToken token = default)
+        internal override Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
         {
             if (KeyMapper == null)
             {
@@ -217,7 +217,7 @@ namespace Couchbase
 
             if (Nodes.TryGet(endPoint!, out var clusterNode))
             {
-                return clusterNode.SendAsync(op, token);
+                return clusterNode.SendAsync(op, tokenPair);
             }
             else
             {

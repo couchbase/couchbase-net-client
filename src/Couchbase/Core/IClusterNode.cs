@@ -60,11 +60,11 @@ namespace Couchbase.Core
         Task<BucketConfig> GetClusterMap();
         Task<uint?> GetCid(string fullyQualifiedName);
 
-        Task ExecuteOp(IOperation op, CancellationToken token = default);
+        Task ExecuteOp(IOperation op, CancellationTokenPair tokenPair = default);
 
-        Task ExecuteOp(IConnection connection, IOperation op, CancellationToken token = default);
+        Task ExecuteOp(IConnection connection, IOperation op, CancellationTokenPair tokenPair = default);
 
-        Task SendAsync(IOperation op, CancellationToken token = default);
+        Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default);
 
         /// <summary>
         /// Notifies when the <see cref="KeyEndPoints"/> collection is changed.
