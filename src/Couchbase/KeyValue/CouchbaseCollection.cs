@@ -69,7 +69,7 @@ namespace Couchbase.KeyValue
 
             // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
             using var rootSpan = RootSpan(OperationNames.Get);
-            options ??= new GetOptions();
+            options ??= GetOptions.Default;
 
             var projectList = options.ProjectListValue;
 
@@ -136,15 +136,22 @@ namespace Couchbase.KeyValue
             else
             {
                 //Add the projections for fetching
-                projectList.ForEach(path => specs.Add(new LookupInSpec
+                foreach (var path in projectList)
                 {
-                    OpCode = OpCode.SubGet,
-                    Path = path
-                }));
+                    specs.Add(new LookupInSpec
+                    {
+                        OpCode = OpCode.SubGet,
+                        Path = path
+                    });
+                }
             }
 
+            var lookupInOptions = !ReferenceEquals(options, GetOptions.Default)
+                ? new LookupInOptions().Timeout(options.TimeoutValue)
+                : LookupInOptions.Default;
+
             var lookupOp = await ExecuteLookupIn(id,
-                    specs, new LookupInOptions().Timeout(options.TimeoutValue), rootSpan)
+                    specs, lookupInOptions, rootSpan)
                 .ConfigureAwait(false);
             rootSpan.OperationId(lookupOp);
 
@@ -170,7 +177,7 @@ namespace Couchbase.KeyValue
                 //sanity check for deferred bootstrapping errors
                 _bucket.ThrowIfBootStrapFailed();
 
-                options ??= new ExistsOptions();
+                options ??= ExistsOptions.Default;
 
                 using var rootSpan = RootSpan(OperationNames.GetMetaExists);
                 using var getMetaOp = new GetMeta
@@ -210,7 +217,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new UpsertOptions();
+            options ??= UpsertOptions.Default;
             using var rootSpan = RootSpan(OperationNames.SetUpsert);
             using var upsertOp = new Set<T>(_bucket.Name, id)
             {
@@ -244,7 +251,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new InsertOptions();
+            options ??= InsertOptions.Default;
             using var rootSpan = RootSpan(OperationNames.AddInsert);
             using var insertOp = new Add<T>(_bucket.Name, id)
             {
@@ -271,7 +278,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new ReplaceOptions();
+            options ??= ReplaceOptions.Default;
             using var rootSpan = RootSpan(OperationNames.Replace);
             using var replaceOp = new Replace<T>(_bucket.Name, id)
             {
@@ -299,7 +306,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new RemoveOptions();
+            options ??= RemoveOptions.Default;
             using var rootSpan = RootSpan(OperationNames.DeleteRemove);
             using var removeOp = new Delete
             {
@@ -326,7 +333,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new UnlockOptions();
+            options ??= UnlockOptions.Default;
             using var rootSpan = RootSpan(OperationNames.Unlock);
             using var unlockOp = new Unlock
             {
@@ -351,7 +358,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new TouchOptions();
+            options ??= TouchOptions.Default;
             using var rootSpan = RootSpan(OperationNames.Touch);
             using var touchOp = new Touch
             {
@@ -377,7 +384,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new GetAndTouchOptions();
+            options ??= GetAndTouchOptions.Default;
             using var rootSpan = RootSpan(OperationNames.GetAndTouch);
             using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
@@ -410,7 +417,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new GetAndLockOptions();
+            options ??= GetAndLockOptions.Default;
             using var rootSpan = RootSpan(OperationNames.GetAndLock);
             using var getAndLockOp = new GetL<byte[]>
             {
@@ -444,7 +451,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             using var rootSpan = RootSpan(OperationNames.MultiLookupSubdocGet);
-            options ??= new LookupInOptions();
+            options ??= LookupInOptions.Default;
             using var lookup = await ExecuteLookupIn(id, specs, options, rootSpan).ConfigureAwait(false);
             var responseStatus = lookup.Header.Status;
             var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
@@ -493,7 +500,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new MutateInOptions();
+            options ??= MutateInOptions.Default;
             // convert new style specs into old style builder
             var builder = new MutateInBuilder<byte[]>(null, null, id, specs);
 
@@ -578,7 +585,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new AppendOptions();
+            options ??= AppendOptions.Default;
             using var rootSpan = RootSpan(OperationNames.Append);
             using var op = new Append<byte[]>(_bucket.Name, id)
             {
@@ -604,7 +611,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new PrependOptions();
+            options ??= PrependOptions.Default;
             using var rootSpan = RootSpan(OperationNames.Prepend);
             using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
@@ -630,7 +637,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new IncrementOptions();
+            options ??= IncrementOptions.Default;
             using var rootSpan = RootSpan(OperationNames.Increment);
             using var op = new Increment(_bucket.Name, id)
             {
@@ -658,7 +665,7 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            options ??= new DecrementOptions();
+            options ??= DecrementOptions.Default;
             using var rootSpan = RootSpan(OperationNames.Decrement);
             using var op = new Decrement(_bucket.Name, id)
             {
@@ -687,7 +694,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             using var rootSpan = RootSpan(OperationNames.GetAnyReplica);
-            options ??= new GetAnyReplicaOptions();
+            options ??= GetAnyReplicaOptions.Default;
             var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
 
             if (!vBucket.HasReplicas)
@@ -713,7 +720,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             using var rootSpan = RootSpan(OperationNames.GetAllReplicas);
-            options ??= new GetAllReplicasOptions();
+            options ??= GetAllReplicasOptions.Default;
             var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
             if (!vBucket.HasReplicas)
             {

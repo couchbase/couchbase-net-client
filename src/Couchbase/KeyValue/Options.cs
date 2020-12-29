@@ -1,9 +1,10 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
-using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -13,45 +14,65 @@ namespace Couchbase.KeyValue
 
     public class GetOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        internal bool IncludeExpiryValue { get; set; }
+        private static readonly ReadOnlyCollection<string> EmptyProjectList = new(Array.Empty<string>());
+        internal static GetOptions Default { get; }
 
-        internal List<string> ProjectListValue { get; set; } = new List<string>();
+        static GetOptions()
+        {
+            // Initialize Default in a static constructor so we can ensure that it happens after EmptyProjectList
+            // is initialized. Otherwise ProjectListValue may be null.
+            Default = new GetOptions();
+        }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal bool IncludeExpiryValue { get; private set; }
+
+        internal ReadOnlyCollection<string> ProjectListValue { get; private set; } = EmptyProjectList;
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
             return this;
         }
 
         public GetOptions Expiry()
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             IncludeExpiryValue = true;
             return this;
         }
 
         public GetOptions Projection(params string[] fields)
         {
-            ProjectListValue.AddRange(fields);
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            if (fields.Length > 0)
+            {
+                ProjectListValue = ProjectListValue.Count == 0
+                    ? new ReadOnlyCollection<string>(fields)
+                    : new ReadOnlyCollection<string>(ProjectListValue.Concat(fields).ToArray());
+            }
             return this;
         }
 
         public GetOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public GetOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -65,25 +86,41 @@ namespace Couchbase.KeyValue
     {
         TimeSpan? ITimeoutOptions.Timeout => default;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAllReplicasOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            if (ReferenceEquals(this, Default) && transcoder != null)
+            {
+                return new GetAllReplicasOptions
+                {
+                    TranscoderValue = transcoder
+                };
+            }
+
             TranscoderValue = transcoder;
             return this;
         }
 
         public GetAllReplicasOptions CancellationToken(CancellationToken token)
         {
+            if (ReferenceEquals(this, Default) && token != default)
+            {
+                return new GetAllReplicasOptions
+                {
+                    TokenValue = token
+                };
+            }
+
             TokenValue = token;
             return this;
         }
 
-        public static GetAllReplicasOptions Default => new GetAllReplicasOptions();
+        public static GetAllReplicasOptions Default { get; } = new();
     }
 
     #endregion
@@ -94,25 +131,41 @@ namespace Couchbase.KeyValue
     {
         TimeSpan? ITimeoutOptions.Timeout => default;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAnyReplicaOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            if (ReferenceEquals(this, Default) && transcoder != null)
+            {
+                return new GetAnyReplicaOptions
+                {
+                    TranscoderValue = transcoder
+                };
+            }
+
             TranscoderValue = transcoder;
             return this;
         }
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public GetAnyReplicaOptions CancellationToken(CancellationToken token)
         {
+            if (ReferenceEquals(this, Default) && token != default)
+            {
+                return new GetAnyReplicaOptions
+                {
+                    TokenValue = token
+                };
+            }
+
             TokenValue = token;
             return this;
         }
 
-        public static GetAnyReplicaOptions Default => new GetAnyReplicaOptions();
+        public static GetAnyReplicaOptions Default { get; } = new();
     }
 
     #endregion
@@ -121,20 +174,24 @@ namespace Couchbase.KeyValue
 
     public class ExistsOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal static ExistsOptions Default { get; } = new();
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public ExistsOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public ExistsOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -146,37 +203,42 @@ namespace Couchbase.KeyValue
 
     public class UpsertOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        internal TimeSpan ExpiryValue { get; set; }
+        internal static UpsertOptions Default { get; } = new();
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal TimeSpan ExpiryValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public UpsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
             return this;
         }
 
         public UpsertOptions Expiry(TimeSpan expiry)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             ExpiryValue = expiry;
             return this;
         }
 
         public UpsertOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -184,18 +246,21 @@ namespace Couchbase.KeyValue
 
         public UpsertOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public UpsertOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public UpsertOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -207,37 +272,42 @@ namespace Couchbase.KeyValue
 
     public class InsertOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        internal TimeSpan ExpiryValue { get; set; }
+        internal static InsertOptions Default { get; } = new();
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal TimeSpan ExpiryValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public InsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
             return this;
         }
 
         public InsertOptions Expiry(TimeSpan expiry)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             ExpiryValue = expiry;
             return this;
         }
 
         public InsertOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -245,18 +315,21 @@ namespace Couchbase.KeyValue
 
         public InsertOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public InsertOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public InsertOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -268,45 +341,51 @@ namespace Couchbase.KeyValue
 
     public class ReplaceOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        internal TimeSpan ExpiryValue { get; set; }
+        internal static ReplaceOptions Default { get; } = new();
 
-        internal ulong CasValue { get; set; }
+        internal TimeSpan ExpiryValue { get; private set; }
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal ulong CasValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public ReplaceOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
             return this;
         }
 
         public ReplaceOptions Expiry(TimeSpan expiry)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             ExpiryValue = expiry;
             return this;
         }
 
         public ReplaceOptions Cas(ulong cas)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CasValue = cas;
             return this;
         }
 
         public ReplaceOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -314,18 +393,21 @@ namespace Couchbase.KeyValue
 
         public ReplaceOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public ReplaceOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public ReplaceOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -337,28 +419,32 @@ namespace Couchbase.KeyValue
 
     public class RemoveOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal ulong CasValue { get; set; }
+        internal static RemoveOptions Default { get; } = new();
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal ulong CasValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public RemoveOptions Cas(ulong cas)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CasValue = cas;
             return this;
         }
 
         public RemoveOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -366,18 +452,21 @@ namespace Couchbase.KeyValue
 
         public RemoveOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public RemoveOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public RemoveOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -389,20 +478,24 @@ namespace Couchbase.KeyValue
 
     public class UnlockOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal static UnlockOptions Default { get; } = new();
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public UnlockOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public UnlockOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -414,24 +507,24 @@ namespace Couchbase.KeyValue
 
     public class TouchOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal static TouchOptions Default { get; } = new();
 
-        internal PersistTo PersistTo { get; set; }
-
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public TouchOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public TouchOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -443,25 +536,27 @@ namespace Couchbase.KeyValue
 
     public class IncrementOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal ulong InitialValue { get; set; } = 1;
+        internal static IncrementOptions Default { get; } = new();
 
-        internal ulong DeltaValue { get; set; } = 1;
+        internal ulong InitialValue { get; private set; } = 1;
 
-        internal ulong CasValue { get; set; }
+        internal ulong DeltaValue { get; private set; } = 1;
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal ulong CasValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal TimeSpan ExpiryValue { get; set; }
+        internal TimeSpan ExpiryValue { get; private set; }
 
         /// <summary>
         /// The document's lifetime before being evicted by the server.
@@ -470,6 +565,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object.</returns>
         public IncrementOptions Expiry(TimeSpan expiry)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             ExpiryValue = expiry;
             return this;
         }
@@ -481,6 +577,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object for chaining options.</returns>
         public IncrementOptions Initial(ulong initial)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             InitialValue = initial;
             return this;
         }
@@ -492,6 +589,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object for chaining options.</returns>
         public IncrementOptions Delta(ulong delta)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DeltaValue = delta;
             return this;
         }
@@ -503,6 +601,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object for chaining options.</returns>
         public IncrementOptions Cas(ulong cas)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CasValue = cas;
             return this;
         }
@@ -516,6 +615,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object for chaining options.</returns>
         public IncrementOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -529,6 +629,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object for chaining options.</returns>
         public IncrementOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
@@ -540,6 +641,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object for chaining options.</returns>
         public IncrementOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
@@ -551,6 +653,7 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IncrementOptions"/> object for chaining options.</returns>
         public IncrementOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -562,52 +665,59 @@ namespace Couchbase.KeyValue
 
     public class DecrementOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal ulong InitialValue { get; set; } = 1;
+        internal static DecrementOptions Default { get; } = new();
 
-        internal ulong DeltaValue { get; set; } = 1;
+        internal ulong InitialValue { get; private set; } = 1;
 
-        internal ulong CasValue { get; set; }
+        internal ulong DeltaValue { get; private set; } = 1;
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal ulong CasValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal TimeSpan ExpiryValue { get; set; }
+        internal TimeSpan ExpiryValue { get; private set; }
 
         public DecrementOptions Expiry(TimeSpan expiry)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             ExpiryValue = expiry;
             return this;
         }
 
         public DecrementOptions Initial(ulong initial)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             InitialValue = initial;
             return this;
         }
 
         public DecrementOptions Delta(ulong delta)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DeltaValue = delta;
             return this;
         }
 
         public DecrementOptions Cas(ulong cas)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CasValue = cas;
             return this;
         }
 
         public DecrementOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -615,18 +725,21 @@ namespace Couchbase.KeyValue
 
         public DecrementOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public DecrementOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public DecrementOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -638,28 +751,32 @@ namespace Couchbase.KeyValue
 
     public class AppendOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal ulong CasValue { get; set; }
+        internal static AppendOptions Default { get; } = new();
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal ulong CasValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public AppendOptions Cas(ulong cas)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CasValue = cas;
             return this;
         }
 
         public AppendOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -667,18 +784,21 @@ namespace Couchbase.KeyValue
 
         public AppendOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public AppendOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public AppendOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -690,28 +810,32 @@ namespace Couchbase.KeyValue
 
     public class PrependOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal ulong CasValue { get; set; }
+        internal static PrependOptions Default { get; } = new();
 
-        internal ReplicateTo ReplicateTo { get; set; }
+        internal ulong CasValue { get; private set; }
 
-        internal PersistTo PersistTo { get; set; }
+        internal ReplicateTo ReplicateTo { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal PersistTo PersistTo { get; private set; }
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
         public PrependOptions Cas(ulong cas)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CasValue = cas;
             return this;
         }
 
         public PrependOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             PersistTo = persistTo;
             ReplicateTo = replicateTo;
             return this;
@@ -719,18 +843,21 @@ namespace Couchbase.KeyValue
 
         public PrependOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public PrependOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public PrependOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -742,29 +869,34 @@ namespace Couchbase.KeyValue
 
     public class GetAndLockOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal static GetAndLockOptions Default { get; } = new();
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAndLockOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
             return this;
         }
 
         public GetAndLockOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public GetAndLockOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -776,34 +908,34 @@ namespace Couchbase.KeyValue
 
     public class GetAndTouchOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
+        internal static GetAndTouchOptions Default { get; } = new();
 
-        internal ReplicateTo ReplicateTo { get; set; }
-
-        internal PersistTo PersistTo { get; set; }
-
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeTranscoder? TranscoderValue { get; set; }
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         public GetAndTouchOptions Transcoder(ITypeTranscoder? transcoder)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
             return this;
         }
 
         public GetAndTouchOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public GetAndTouchOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
@@ -815,44 +947,51 @@ namespace Couchbase.KeyValue
 
     public class LookupInOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal static LookupInOptions Default { get; } = new();
+
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal bool ExpiryValue { get; set; }
+        internal bool ExpiryValue { get; private set; }
 
-        internal ITypeSerializer? SerializerValue { get; set; }
+        internal ITypeSerializer? SerializerValue { get; private set; }
 
-        internal bool AccessDeletedValue { get; set; }
+        internal bool AccessDeletedValue { get; private set; }
 
         public LookupInOptions Serializer(ITypeSerializer? serializer)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             SerializerValue = serializer;
             return this;
         }
 
         public LookupInOptions Timeout(TimeSpan? timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public LookupInOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
 
         public LookupInOptions Expiry(bool expiry)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             ExpiryValue = expiry;
             return this;
         }
 
         public LookupInOptions AccessDeleted(bool accessDeleted)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             AccessDeletedValue = accessDeleted;
             return this;
         }
@@ -864,78 +1003,89 @@ namespace Couchbase.KeyValue
 
     public class MutateInOptions : IKeyValueOptions, ITimeoutOptions
     {
-        internal TimeSpan ExpiryValue { get; set; }
+        internal static MutateInOptions Default { get; } = new();
 
-        internal StoreSemantics StoreSemanticsValue { get; set; }
+        internal TimeSpan ExpiryValue { get; private set; }
 
-        internal ulong CasValue { get; set; }
+        internal StoreSemantics StoreSemanticsValue { get; private set; }
 
-        internal ValueTuple<PersistTo, ReplicateTo> DurabilityValue { get; set; }
+        internal ulong CasValue { get; private set; }
 
-        internal DurabilityLevel DurabilityLevel { get; set; }
+        internal ValueTuple<PersistTo, ReplicateTo> DurabilityValue { get; private set; }
 
-        internal TimeSpan TimeoutValue { get; set; }
+        internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal TimeSpan TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
-        internal CancellationToken TokenValue { get; set; }
+        internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
-        internal ITypeSerializer? SerializerValue { get; set; }
+        internal ITypeSerializer? SerializerValue { get; private set; }
 
-        internal bool CreateAsDeletedValue { get; set; }
+        internal bool CreateAsDeletedValue { get; private set; }
 
-        internal bool AccessDeletedValue { get; set; }
+        internal bool AccessDeletedValue { get; private set; }
 
         public MutateInOptions StoreSemantics(StoreSemantics storeSemantics)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             StoreSemanticsValue = storeSemantics;
             return this;
         }
 
         public MutateInOptions Serializer(ITypeSerializer? serializer)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             SerializerValue = serializer;
             return this;
         }
 
         public MutateInOptions Expiry(TimeSpan expiry)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             ExpiryValue = expiry;
             return this;
         }
 
         public MutateInOptions Cas(ulong cas)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CasValue = cas;
             return this;
         }
 
         public MutateInOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityValue = new ValueTuple<PersistTo, ReplicateTo>(persistTo, replicateTo);
             return this;
         }
 
         public MutateInOptions Durability(DurabilityLevel durabilityLevel)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             DurabilityLevel = durabilityLevel;
             return this;
         }
 
         public MutateInOptions Timeout(TimeSpan timeout)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TimeoutValue = timeout;
             return this;
         }
 
         public MutateInOptions CancellationToken(CancellationToken token)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TokenValue = token;
             return this;
         }
 
         public MutateInOptions CreateAsDeleted(bool createAsDeleted)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             CreateAsDeletedValue = createAsDeleted;
             return this;
         }
@@ -946,6 +1096,7 @@ namespace Couchbase.KeyValue
         /// </summary>
         public MutateInOptions AccessDeleted(bool accessDeleted)
         {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             AccessDeletedValue = accessDeleted;
             return this;
         }
@@ -957,7 +1108,7 @@ namespace Couchbase.KeyValue
 
     public abstract class MutateInXattrOperation : IKeyValueOptions
     {
-        internal bool XAttrValue { get; set; }
+        internal bool XAttrValue { get; private set; }
 
         public MutateInXattrOperation XAttr()
         {
@@ -968,7 +1119,7 @@ namespace Couchbase.KeyValue
 
     public abstract class MutateInOperationOptions :  MutateInXattrOperation
     {
-        internal bool CreatePathValue { get; set; }
+        internal bool CreatePathValue { get; private set; }
 
         public MutateInOperationOptions CreatePath()
         {
