@@ -183,7 +183,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         #region Helpers
 
         private static AsyncState MakeState(uint opaque, IOperation operation = null) =>
-            new AsyncState(operation ?? Mock.Of<IOperation>(), opaque);
+            new AsyncState(operation ?? Mock.Of<IOperation>(op => op.Opaque == opaque));
 
         #endregion
     }

@@ -107,8 +107,7 @@ namespace Couchbase.Core.IO.Connections
                 throw new ObjectDisposedException(nameof(MultiplexingConnection));
             }
 
-            var opaque = ByteConverter.ToUInt32(request.Span.Slice(HeaderOffsets.Opaque));
-            var state = new AsyncState(operation, opaque)
+            var state = new AsyncState(operation)
             {
                 EndPoint = (IPEndPoint)EndPoint,
                 ConnectionId = ConnectionId,

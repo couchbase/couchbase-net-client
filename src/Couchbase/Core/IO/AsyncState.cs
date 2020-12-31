@@ -27,7 +27,7 @@ namespace Couchbase.Core.IO
 
         public IPEndPoint? EndPoint { get; set; }
         public IOperation Operation { get; set; }
-        public uint Opaque { get; }
+        public uint Opaque => Operation.Opaque;
         public Timer? Timer { get; set; }
         public ulong ConnectionId { get; set; }
         public ErrorMap? ErrorMap { get; set; }
@@ -57,7 +57,7 @@ namespace Couchbase.Core.IO
             }
         }
 
-        public AsyncState(IOperation operation, uint opaque)
+        public AsyncState(IOperation operation)
         {
             if (operation == null)
             {
@@ -65,7 +65,6 @@ namespace Couchbase.Core.IO
             }
 
             Operation = operation;
-            Opaque = opaque;
         }
 
         /// <summary>
