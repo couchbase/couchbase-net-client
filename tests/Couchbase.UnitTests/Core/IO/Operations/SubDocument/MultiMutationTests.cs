@@ -2,11 +2,13 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.UnitTests.Helpers;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
@@ -35,6 +37,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
                 Builder = new MutateInBuilder<byte[]>(null, null, "thekey", builder.Specs),
                 Transcoder = new JsonTranscoder()
             };
+            op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
 
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));

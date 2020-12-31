@@ -2,6 +2,7 @@ using System;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -21,7 +22,8 @@ namespace Couchbase.UnitTests.Core.DI
 
             var saslMechanismFactory = new SaslMechanismFactory(
                 new Mock<ILogger<PlainSaslMechanism>>().Object,
-                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance);
+                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
+                Mock.Of<IOperationConfigurator>());
 
             var result = saslMechanismFactory.Create(mechanismType, username, password);
 
@@ -39,7 +41,8 @@ namespace Couchbase.UnitTests.Core.DI
 
             var saslMechanismFactory = new SaslMechanismFactory(
                 new Mock<ILogger<PlainSaslMechanism>>().Object,
-                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance);
+                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
+                Mock.Of<IOperationConfigurator>());
 
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 saslMechanismFactory.Create(mechanismType, username, password));

@@ -30,6 +30,7 @@ using Couchbase.Views;
 using DnsClient;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Couchbase.Core.DI
 {
@@ -113,6 +114,18 @@ namespace Couchbase.Core.DI
             yield return (typeof(ISaslMechanismFactory), new SingletonServiceFactory(typeof(SaslMechanismFactory)));
             yield return (typeof(IBootstrapperFactory), new SingletonServiceFactory(typeof(BootstrapperFactory)));
             yield return (typeof(IClusterVersionProvider), new SingletonServiceFactory(typeof(ClusterVersionProvider)));
+
+            yield return (typeof(ObjectPoolProvider), new SingletonServiceFactory(serviceProvider => new DefaultObjectPoolProvider
+            {
+                MaximumRetained = serviceProvider.GetRequiredService<ClusterOptions>().Tuning.MaximumRetainedOperationBuilders
+            }));
+            yield return (typeof(ObjectPool<OperationBuilder>), new SingletonServiceFactory(serviceProvider =>
+                serviceProvider.GetRequiredService<ObjectPoolProvider>().Create(
+                    new OperationBuilderPoolPolicy
+                    {
+                        MaximumOperationBuilderCapacity = serviceProvider.GetRequiredService<ClusterOptions>()
+                            .Tuning.MaximumOperationBuilderCapacity
+                    })));
         }
     }
 }

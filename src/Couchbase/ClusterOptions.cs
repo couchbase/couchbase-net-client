@@ -475,6 +475,9 @@ namespace Couchbase
         /// </remarks>
         public float CompressionMinRatio { get; set; } = 0.83f;
 
+        /// <inheritdoc cref="TuningOptions"/>
+        public TuningOptions Tuning { get; set; } = new();
+
         /// <summary>
         /// Provides a default implementation of <see cref="ClusterOptions"/>.
         /// </summary>

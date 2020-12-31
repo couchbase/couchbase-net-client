@@ -9,12 +9,14 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
@@ -170,7 +172,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             {
                 var endPoint = await ipEndpointService.GetIpEndPointAsync(server).ConfigureAwait(false);
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
-                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
+                    new Mock<ILogger<ClusterNode>>().Object,
+                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object,
                     new Mock<ISaslMechanismFactory>().Object,
                     new Mock<IRedactor>().Object,
@@ -192,7 +195,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 }
 
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
-                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
+                    new Mock<ILogger<ClusterNode>>().Object,
+                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object,
                     new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt, NullRequestTracer.Instance);
 

@@ -3,12 +3,15 @@ using System.Threading.Tasks;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
+using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Utils;
 using DnsClient;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
@@ -42,8 +45,10 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 .CreateAndConnectAsync(ipEndPoint)
                 .ConfigureAwait(false);
 
-            var sha1Mechanism = new ScramShaMechanism(new LegacyTranscoder(), MechanismType.ScramSha1, options.Password,
-                options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance);
+            var sha1Mechanism = new ScramShaMechanism(MechanismType.ScramSha1, options.Password,
+                options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
+                new OperationConfigurator(new JsonTranscoder(), Mock.Of<IOperationCompressor>(),
+                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy())));
 
             await sha1Mechanism.AuthenticateAsync(connection).ConfigureAwait(false);
         }

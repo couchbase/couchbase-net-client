@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
@@ -59,6 +60,10 @@ namespace Couchbase.Diagnostics
        {
            var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
 
+           IOperationConfigurator operationConfigurator = ping
+               ? context.ServiceProvider.GetRequiredService<IOperationConfigurator>()
+               : null;
+
            foreach (var clusterNode in clusterNodes)
            {
                if (serviceTypes.Contains(ServiceType.KeyValue) && clusterNode.HasKv)
@@ -75,6 +80,7 @@ namespace Couchbase.Diagnostics
                            await RecordLatencyAsync(endPointDiagnostics, async () =>
                            {
                                var op = new Noop();
+                               operationConfigurator.Configure(op);
                                await clusterNode.ExecuteOp(connection, op, token).ConfigureAwait(false);
                            }).ConfigureAwait(false);
                        }

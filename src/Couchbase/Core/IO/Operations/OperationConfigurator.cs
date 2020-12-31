@@ -2,6 +2,7 @@ using System;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
+using Microsoft.Extensions.ObjectPool;
 
 #nullable enable
 
@@ -14,11 +15,14 @@ namespace Couchbase.Core.IO.Operations
     {
         private readonly ITypeTranscoder _typeTranscoder;
         private readonly IOperationCompressor _operationCompressor;
+        private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
 
-        public OperationConfigurator(ITypeTranscoder typeTranscoder, IOperationCompressor operationCompressor)
+        public OperationConfigurator(ITypeTranscoder typeTranscoder, IOperationCompressor operationCompressor,
+            ObjectPool<OperationBuilder> operationBuilderPool)
         {
             _typeTranscoder = typeTranscoder ?? throw new ArgumentNullException(nameof(typeTranscoder));
             _operationCompressor = operationCompressor ?? throw new ArgumentNullException(nameof(operationCompressor));
+            _operationBuilderPool = operationBuilderPool;
         }
 
         /// <inheritdoc />
@@ -26,6 +30,7 @@ namespace Couchbase.Core.IO.Operations
         {
             operation.Transcoder = (options as ITranscoderOverrideOptions)?.Transcoder ?? _typeTranscoder;
             operation.OperationCompressor = _operationCompressor;
+            operation.OperationBuilderPool = _operationBuilderPool;
         }
     }
 }

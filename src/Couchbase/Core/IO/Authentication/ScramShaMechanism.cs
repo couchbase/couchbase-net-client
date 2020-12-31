@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -31,22 +32,21 @@ namespace Couchbase.Core.IO.Authentication
         /// <summary>
         /// Initializes a new instance of the <see cref="ScramShaMechanism"/> class.
         /// </summary>
-        /// <param name="transcoder">The transcoder.</param>
         /// <param name="mechanismType">Type of the mechanism.</param>
         /// <param name="password">The password for the user.</param>
         /// <param name="username">The user's name to authenticate.</param>
         /// <param name="logger">The configured logger.</param>
         /// <param name="tracer">The request tracer.</param>
+        /// <param name="operationConfigurator">Operation configurator.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        public ScramShaMechanism(ITypeTranscoder transcoder,
-            MechanismType mechanismType,
+        public ScramShaMechanism(MechanismType mechanismType,
             string password,
             string username,
             ILogger<ScramShaMechanism> logger,
-            IRequestTracer tracer)
-        : base(tracer)
+            IRequestTracer tracer,
+            IOperationConfigurator operationConfigurator)
+        : base(tracer, operationConfigurator)
         {
-            Transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             MechanismType = mechanismType;
             _username = username ?? throw new ArgumentNullException(nameof(username));
             _password = password ?? throw new ArgumentNullException(nameof(password));

@@ -8,11 +8,13 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
@@ -87,7 +89,7 @@ namespace Couchbase.UnitTests.Utils
                 new ClusterContext(null, new ClusterOptions()),
                 new Mock<IConnectionPoolFactory>().Object,
                 new Mock<ILogger<ClusterNode>>().Object,
-                new Mock<ITypeTranscoder>().Object,
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,

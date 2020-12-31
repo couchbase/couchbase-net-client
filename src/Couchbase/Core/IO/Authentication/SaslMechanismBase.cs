@@ -7,8 +7,10 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 
 #nullable enable
 
@@ -21,11 +23,12 @@ namespace Couchbase.Core.IO.Authentication
     {
         public IRequestTracer Tracer { get; }
         protected ILogger? Logger;
-        protected ITypeTranscoder? Transcoder;
         private TimeSpan Timeout { get; set; } = TimeSpan.FromMilliseconds(2500);
+        protected readonly IOperationConfigurator OperationConfigurator;
 
-        protected SaslMechanismBase(IRequestTracer tracer)
+        protected SaslMechanismBase(IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
+            OperationConfigurator = operationConfigurator;
             Tracer = tracer;
         }
 
@@ -44,10 +47,10 @@ namespace Couchbase.Core.IO.Authentication
             {
                 Key = MechanismType.GetDescription(),
                 Content = message,
-                Transcoder = Transcoder,
                 Timeout = Timeout,
                 Span = childSpan
             };
+            OperationConfigurator.Configure(authOp, SaslOptions.Instance);
             return await SendAsync(authOp, connection, token).ConfigureAwait(false);
         }
 
@@ -58,10 +61,10 @@ namespace Couchbase.Core.IO.Authentication
             {
                 Key = "SCRAM-SHA1",//MechanismType.GetDescription(),
                 Content = message,
-                Transcoder = Transcoder,
                 Timeout = Timeout,
                 Span = childSpan,
             };
+            OperationConfigurator.Configure(op, SaslOptions.Instance);
             return await SendAsync(op, connection, token).ConfigureAwait(false);
         }
 
@@ -69,10 +72,10 @@ namespace Couchbase.Core.IO.Authentication
         {
             using var op = new SaslList()
             {
-                Transcoder = Transcoder,
                 Timeout = Timeout,
                 Span = span,
             };
+            OperationConfigurator.Configure(op, SaslOptions.Instance);
             return await SendAsync(op, connection, token).ConfigureAwait(false);
         }
 
@@ -89,6 +92,16 @@ namespace Couchbase.Core.IO.Authentication
             }
 
             return op.GetResultWithValue().Content;
+        }
+
+        /// <summary>
+        /// Provides the transcoder override for SASL operations.
+        /// </summary>
+        protected class SaslOptions : ITranscoderOverrideOptions
+        {
+            public static SaslOptions Instance { get; } = new();
+
+            public ITypeTranscoder? Transcoder { get; } = new LegacyTranscoder(); //required so that SASL strings are not JSON encoded
         }
     }
 }

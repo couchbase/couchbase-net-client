@@ -19,6 +19,7 @@ using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
 using Couchbase.Diagnostics;
 using Couchbase.Utils;
+using Microsoft.Extensions.ObjectPool;
 using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations
@@ -468,6 +469,11 @@ namespace Couchbase.Core.IO.Operations
         public IOperationCompressor OperationCompressor { get; set; }
 
         /// <summary>
+        /// Service which providers <see cref="OperationBuilder"/> instances as needed.
+        /// </summary>
+        public ObjectPool<OperationBuilder> OperationBuilderPool { get; set; }
+
+        /// <summary>
         /// Overriden in derived operation classes that support request body compression. If true is returned,
         /// and if compression has been negotiated with the server, the body will be compressed after the call
         /// to <see cref="WriteBody"/>.
@@ -502,7 +508,7 @@ namespace Couchbase.Core.IO.Operations
             using var encodingSpan = Span.StartPayloadEncoding();
             BeginSend();
 
-            var builder = OperationBuilderPool.Instance.Rent();
+            var builder = OperationBuilderPool.Get();
             try
             {
                 if (cancellationToken.CanBeCanceled)
@@ -539,7 +545,7 @@ namespace Couchbase.Core.IO.Operations
             }
             finally
             {
-                OperationBuilderPool.Instance.Return(builder);
+                OperationBuilderPool.Return(builder);
             }
         }
 

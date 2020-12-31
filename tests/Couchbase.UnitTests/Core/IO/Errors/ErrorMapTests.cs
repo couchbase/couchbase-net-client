@@ -18,6 +18,7 @@ using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Newtonsoft.Json;
 using Xunit;
@@ -46,7 +47,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
             var node = new ClusterNode(new ClusterContext(new CancellationTokenSource(),
                     new ClusterOptions()), mockConnectionPoolFactory.Object,
                 new Mock<ILogger<ClusterNode>>().Object,
-                new Mock<ITypeTranscoder>().Object,
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,

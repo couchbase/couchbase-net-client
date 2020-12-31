@@ -5,11 +5,13 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 
 #nullable enable
 
@@ -23,7 +25,7 @@ namespace Couchbase.Core.DI
         private readonly ClusterContext _clusterContext;
         private readonly IConnectionPoolFactory _connectionPoolFactory;
         private readonly ILogger<ClusterNode> _logger;
-        private readonly ITypeTranscoder _transcoder;
+        private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
         private readonly IIpEndPointService _ipEndPointService;
@@ -31,13 +33,13 @@ namespace Couchbase.Core.DI
         private readonly IRequestTracer _tracer;
 
         public ClusterNodeFactory(ClusterContext clusterContext, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
-            ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
+            ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
             IIpEndPointService ipEndPointService, IRedactor redactor, IRequestTracer tracer)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
+            _operationBuilderPool = operationBuilderPool ?? throw new ArgumentNullException(nameof(operationBuilderPool));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
             _saslMechanismFactory = saslMechanismFactory;
             _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
@@ -57,7 +59,7 @@ namespace Couchbase.Core.DI
             var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
 
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
-                _transcoder, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType, nodeAdapter, _tracer)
+                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType, nodeAdapter, _tracer)
             {
                 BootstrapEndpoint = endPoint
             };

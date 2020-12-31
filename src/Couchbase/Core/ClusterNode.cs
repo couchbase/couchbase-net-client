@@ -24,18 +24,20 @@ using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 
 namespace Couchbase.Core
 {
     internal class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
     {
+
         private readonly Guid _id = Guid.NewGuid();
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly ICircuitBreaker _circuitBreaker;
-        private readonly ITypeTranscoder _transcoder; //for operations
+        private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
         private static readonly ITypeTranscoder GlobalTranscoder = new JsonTranscoder(); //for system level calls
         private Uri _queryUri;
@@ -47,12 +49,15 @@ namespace Couchbase.Core
         private readonly string _cachedToString;
         private volatile bool _disposed;
 
-        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory, IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
+        public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
+            ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
+            IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _transcoder = transcoder ?? throw new ArgumentNullException(nameof(transcoder));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
+            _operationBuilderPool =
+                operationBuilderPool ?? throw new ArgumentNullException(nameof(operationBuilderPool));
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
@@ -79,15 +84,15 @@ namespace Couchbase.Core
         }
 
         public ClusterNode(ClusterContext context)
-            : this(context, context.ServiceProvider.GetRequiredService<ITypeTranscoder>(),
+            : this(context, context.ServiceProvider.GetRequiredService<ObjectPool<OperationBuilder>>(),
                 context.ServiceProvider.GetRequiredService<CircuitBreaker>())
         {
         }
 
-        public ClusterNode(ClusterContext context, ITypeTranscoder transcoder, ICircuitBreaker circuitBreaker)
+        public ClusterNode(ClusterContext context, ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker)
         {
             _context = context;
-            _transcoder = transcoder;
+            _operationBuilderPool = operationBuilderPool;
             _circuitBreaker = circuitBreaker;
         }
 
@@ -191,6 +196,7 @@ namespace Couchbase.Core
             using var errorMapOp = new GetErrorMap
             {
                 Transcoder = GlobalTranscoder,
+                OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = childSpan
             };
@@ -245,6 +251,7 @@ namespace Couchbase.Core
                 Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
                 Transcoder = GlobalTranscoder,
+                OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = childSpan,
             };
@@ -259,6 +266,7 @@ namespace Couchbase.Core
             using var manifestOp = new GetManifest
             {
                 Transcoder = GlobalTranscoder,
+                OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = rootSpan,
             };
@@ -281,6 +289,7 @@ namespace Couchbase.Core
             {
                 CurrentHost = EndPoint,
                 Transcoder = GlobalTranscoder,
+                OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
                 Span = rootSpan,
@@ -305,6 +314,7 @@ namespace Couchbase.Core
             {
                 Key = fullyQualifiedName,
                 Transcoder = GlobalTranscoder,
+                OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 Content = null,
                 Span = rootSpan,
@@ -487,7 +497,7 @@ namespace Couchbase.Core
 
                     if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                     {
-                        var config = op.GetConfig(_transcoder);
+                        var config = op.GetConfig(GlobalTranscoder);
                         _context.PublishConfig(config);
                     }
 
@@ -619,6 +629,7 @@ namespace Couchbase.Core
                 using var selectBucketOp = new SelectBucket
                 {
                     Transcoder = GlobalTranscoder,
+                    OperationBuilderPool = _operationBuilderPool,
                     Key = bucketName,
                     Span = rootSpan,
                 };

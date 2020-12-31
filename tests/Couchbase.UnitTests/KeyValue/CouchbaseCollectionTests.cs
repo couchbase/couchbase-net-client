@@ -24,6 +24,7 @@ using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using Xunit;
 
@@ -216,7 +217,7 @@ namespace Couchbase.UnitTests.KeyValue
                     .Returns(mockConnectionPool.Object);
 
                 var clusterNode = new ClusterNode(new ClusterContext(), mockConnectionPoolFactory.Object,
-                    new Mock<ILogger<ClusterNode>>().Object, new Mock<ITypeTranscoder>().Object,
+                    new Mock<ILogger<ClusterNode>>().Object, new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object,
                     new Mock<ISaslMechanismFactory>().Object,
                     new Mock<IRedactor>().Object,
@@ -306,7 +307,11 @@ namespace Couchbase.UnitTests.KeyValue
                     return Task.CompletedTask;
                 });
 
-            return new CouchbaseCollection(mockBucket.Object, new OperationConfigurator(new LegacyTranscoder(), Mock.Of<IOperationCompressor>()),
+            var operationConfigurator = new OperationConfigurator(new LegacyTranscoder(),
+                Mock.Of<IOperationCompressor>(),
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()));
+
+            return new CouchbaseCollection(mockBucket.Object, operationConfigurator,
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
                 new Mock<IRedactor>().Object,
                 null, CouchbaseCollection.DefaultCollectionName, Mock.Of<IScope>(), new NullRequestTracer());
