@@ -27,7 +27,7 @@ namespace Couchbase.Core.IO.Operations
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
         internal ErrorCode ErrorCode;
-        private IMemoryOwner<byte> _data;
+        private SlicedMemoryOwner<byte> _data;
         private IInternalSpan _span;
         private List<RetryReason> _retryReasons;
         private IRetryStrategy _retryStrategy;
@@ -50,7 +50,7 @@ namespace Couchbase.Core.IO.Operations
         public Exception Exception { get; set; }
         public ulong Cas { get; set; }
         public uint? Cid { get; set; }
-        public Memory<byte> Data => _data?.Memory ?? Memory<byte>.Empty;
+        public ReadOnlyMemory<byte> Data => _data.Memory;
         public uint Opaque { get; set; }
         public short? VBucketId { get; set; }
         public short ReplicaIdx { get; set; }
@@ -119,8 +119,8 @@ namespace Couchbase.Core.IO.Operations
 
         public virtual void Reset(ResponseStatus status)
         {
-            _data?.Dispose();
-            _data = null;
+            _data.Dispose();
+            _data = SlicedMemoryOwner<byte>.Empty;
             _completed = new TaskCompletionSource<ResponseStatus>();
 
             Header = new OperationHeader
@@ -141,20 +141,15 @@ namespace Couchbase.Core.IO.Operations
         /// Ownership of the block of memory is transferred to the caller, which is then responsible for disposing it.
         /// </summary>
         /// <returns>An owned block of memory containing the body of the operation response.</returns>
-        public IMemoryOwner<byte> ExtractBody()
+        public SlicedMemoryOwner<byte> ExtractBody()
         {
-            if (_data == null)
-            {
-                return null;
-            }
-
             if (Header.BodyOffset >= _data.Memory.Length)
             {
                 // Empty body, just free the memory
                 _data.Dispose();
-                _data = null;
+                _data = SlicedMemoryOwner<byte>.Empty;
 
-                return new EmptyMemoryOwner<byte>();
+                return SlicedMemoryOwner<byte>.Empty;
             }
 
             if ((Header.DataType & DataType.Snappy) != DataType.None)
@@ -163,14 +158,14 @@ namespace Couchbase.Core.IO.Operations
 
                 // We can free the compressed memory now. Don't do this until after decompression in case an exception is thrown.
                 _data.Dispose();
-                _data = null;
+                _data = SlicedMemoryOwner<byte>.Empty;
 
-                return result;
+                return new SlicedMemoryOwner<byte>(result);
             }
             else
             {
-                var data = new SlicedMemoryOwner<byte>(_data, Header.BodyOffset);
-                _data = null;
+                var data = _data.Slice(Header.BodyOffset);
+                _data = SlicedMemoryOwner<byte>.Empty;
                 return data;
             }
         }
@@ -186,15 +181,15 @@ namespace Couchbase.Core.IO.Operations
             msgBytes.AsSpan().CopyTo(_data.Memory.Span);
         }
 
-        public void Read(IMemoryOwner<byte> buffer, ErrorMap errorMap = null)
+        public void Read(in SlicedMemoryOwner<byte> buffer, ErrorMap errorMap = null)
         {
             EnsureNotDisposed();
 
             var header = buffer.Memory.Span.CreateHeader(errorMap, out var errorCode);
-            Read(buffer, header, errorCode);
+            Read(in buffer, header, errorCode);
         }
 
-        private void Read(IMemoryOwner<byte> buffer, OperationHeader header, ErrorCode errorCode = null)
+        private void Read(in SlicedMemoryOwner<byte> buffer, OperationHeader header, ErrorCode errorCode = null)
         {
             Header = header;
             ErrorCode = errorCode;
@@ -202,11 +197,6 @@ namespace Couchbase.Core.IO.Operations
             _data = buffer;
 
             ReadExtras(_data.Memory.Span);
-        }
-
-        public OperationHeader ReadHeader()
-        {
-            return new OperationHeader();
         }
 
         protected OperationRequestHeader CreateHeader()
@@ -290,7 +280,7 @@ namespace Couchbase.Core.IO.Operations
             }
             finally
             {
-                if (_data != null && !result.IsNmv())
+                if (!_data.IsEmpty && !result.IsNmv())
                 {
                     Dispose();
                 }
@@ -564,7 +554,7 @@ namespace Couchbase.Core.IO.Operations
         public bool TrySetException(Exception ex) =>_completed.TrySetException(ex);
 
         /// <inheritdoc />
-        public void HandleOperationCompleted(IMemoryOwner<byte> data)
+        public void HandleOperationCompleted(in SlicedMemoryOwner<byte> data)
         {
             var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
 
@@ -577,7 +567,7 @@ namespace Couchbase.Core.IO.Operations
                     || status == ResponseStatus.SubdocMultiPathFailureDeleted
                     || status ==  ResponseStatus.SubDocSuccessDeletedDocument)
                 {
-                    Read(data);
+                    Read(in data);
                 }
                 else
                 {
@@ -644,8 +634,8 @@ namespace Couchbase.Core.IO.Operations
         private void Dispose(bool disposing)
         {
             _disposed = true;
-            _data?.Dispose();
-            _data = null;
+            _data.Dispose();
+            _data = SlicedMemoryOwner<byte>.Empty;
         }
 
         protected void EnsureNotDisposed()

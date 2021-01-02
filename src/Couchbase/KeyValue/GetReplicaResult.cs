@@ -1,5 +1,6 @@
 using System.Buffers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -10,9 +11,9 @@ namespace Couchbase.KeyValue
     {
         public bool IsActive { get; internal set; }
 
-        public GetReplicaResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder,
+        public GetReplicaResult(in SlicedMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder,
             ILogger<GetResult> logger)
-            : base(contentBytes, transcoder, logger)
+            : base(in contentBytes, transcoder, logger)
         { }
     }
 }

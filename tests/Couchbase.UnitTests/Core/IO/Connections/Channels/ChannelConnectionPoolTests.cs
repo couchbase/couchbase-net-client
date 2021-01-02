@@ -600,8 +600,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             // Assert
 
             var closedConnections = connections
-                .Where(p => p.Invocations.Any(q => q.Method == typeof(IConnection).GetMethod("CloseAsync")))
-                .Select(p => p.Object);
+                .Select(p => p.Object)
+                .Except(pool.GetConnections());
 
             var closedConnection = Assert.Single(closedConnections);
             Assert.NotNull(closedConnection);
@@ -685,8 +685,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.Equal(pool.MinimumSize, pool.Size);
 
             var closedConnections = connections
-                .Where(p => p.Invocations.Any(q => q.Method == typeof(IConnection).GetMethod("CloseAsync")))
                 .Select(p => p.Object)
+                .Except(pool.GetConnections())
                 .ToList();
 
             Assert.Equal(2, closedConnections.Count);

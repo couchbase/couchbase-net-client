@@ -1,9 +1,10 @@
 using System;
 using System.Buffers;
+using Couchbase.Utils;
 
 namespace Couchbase.LoadTests.Helpers
 {
-    public class FakeMemoryOwner<T> : IMemoryOwner<T>
+    internal class FakeMemoryOwner<T> : IMemoryOwner<T>
     {
         private T[] _array;
 
@@ -32,5 +33,8 @@ namespace Couchbase.LoadTests.Helpers
             _array = null;
             Disposed = true;
         }
+
+        public static implicit operator SlicedMemoryOwner<T>(FakeMemoryOwner<T> fakeMemoryOwner) =>
+            new SlicedMemoryOwner<T>(fakeMemoryOwner);
     }
 }

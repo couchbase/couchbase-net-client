@@ -1,9 +1,10 @@
 using System;
 using System.Buffers;
+using Couchbase.Utils;
 
 namespace Couchbase.UnitTests.Helpers
 {
-    public class FakeMemoryOwner<T> : IMemoryOwner<T>
+    internal class FakeMemoryOwner<T> : IMemoryOwner<T>
     {
         private readonly Memory<T> _memory;
 
@@ -31,5 +32,8 @@ namespace Couchbase.UnitTests.Helpers
         {
             Disposed = true;
         }
+
+        public static implicit operator SlicedMemoryOwner<T>(FakeMemoryOwner<T> fakeMemoryOwner) =>
+            new SlicedMemoryOwner<T>(fakeMemoryOwner);
     }
 }

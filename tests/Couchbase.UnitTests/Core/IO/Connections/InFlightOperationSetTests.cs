@@ -1,10 +1,18 @@
 using System;
-using System.Buffers;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
+using Couchbase.UnitTests.Utils;
+using Couchbase.Utils;
 using Moq;
 using Xunit;
 
@@ -37,14 +45,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             // Arrange
 
-            var tcs = new TaskCompletionSource<IMemoryOwner<byte>>();
+            var operation = new FakeOperation();
 
-            var operation = new Mock<IOperation>();
-            operation
-                .Setup(m => m.HandleOperationCompleted(It.IsAny<IMemoryOwner<byte>>()))
-                .Callback((IMemoryOwner<byte> response) => tcs.TrySetResult(response));
-
-            var state = MakeState(5, operation.Object);
+            var state = MakeState(5, operation);
 
             using var set = new InFlightOperationSet();
 
@@ -53,15 +56,12 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             set.Add(state, 10);
 
             // Wait up to 15 seconds for the task to complete
-            await Task.WhenAny(tcs.Task, Task.Delay(15000));
+            await Task.WhenAny(operation.Completed, Task.Delay(15000));
 
             // Assert
 
-            Assert.True(tcs.Task.IsCompleted);
-
-            using var data = tcs.Task.Result;
-            var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
-            Assert.Equal(ResponseStatus.OperationTimeout, status);
+            Assert.True(operation.Completed.IsCompleted);
+            Assert.Equal(ResponseStatus.OperationTimeout, operation.Completed.Result);
         }
 
         #endregion
@@ -152,11 +152,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             await Task.Delay(10).ConfigureAwait(false);
             Assert.False(task.IsCompleted);
 
-            state1.Complete(null);
+            state1.Complete(SlicedMemoryOwner<byte>.Empty);
             await Task.Delay(10).ConfigureAwait(false);
             Assert.False(task.IsCompleted);
 
-            state2.Complete(null);
+            state2.Complete(SlicedMemoryOwner<byte>.Empty);
             await Task.Delay(10).ConfigureAwait(false);
             Assert.True(task.IsCompleted);
         }

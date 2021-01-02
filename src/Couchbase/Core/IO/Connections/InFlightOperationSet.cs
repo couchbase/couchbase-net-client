@@ -88,7 +88,7 @@ namespace Couchbase.Core.IO.Connections
             {
                 foreach (var state in _statesInFlight.Values)
                 {
-                    state.Complete(null);
+                    state.Complete(SlicedMemoryOwner<byte>.Empty);
                     state.Dispose();
                 }
             }

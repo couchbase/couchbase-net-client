@@ -22,7 +22,7 @@ namespace Couchbase.UnitTests.Utils
         [Theory]
         [InlineData(-100)]
         [InlineData(-1)]
-        [InlineData(32)]
+        [InlineData(33)]
         [InlineData(100)]
         public void ctor1_StartOutsideRange_ArgumentOutOfRangeException(int start)
         {

@@ -18,6 +18,10 @@ namespace Couchbase.Utils
             throw new ArgumentNullException(paramName);
 
         [DoesNotReturn]
+        public static void ThrowArgumentOutOfRangeException() =>
+            throw new ArgumentOutOfRangeException();
+
+        [DoesNotReturn]
         public static void ThrowArgumentOutOfRangeException(string paramName) =>
             throw new ArgumentOutOfRangeException(paramName);
 
@@ -48,7 +52,7 @@ namespace Couchbase.Utils
         [DoesNotReturn]
         public static void ThrowSendQueueFullException() =>
             throw new SendQueueFullException();
-            
+
         public static void ThrowTimeoutException(IOperation operation)
         {
             var message = $"The operation {operation.Opaque}/{operation.Opaque} timed out after {operation.Timeout}. " +

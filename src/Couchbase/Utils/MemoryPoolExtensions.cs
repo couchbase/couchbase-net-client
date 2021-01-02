@@ -20,18 +20,11 @@ namespace Couchbase.Utils
         /// This method will reduce the size of the returned memory if more is returned than requested.
         /// Note that a greater amount of memory may still be reserved, it is just unused.
         /// </remarks>
-        public static IMemoryOwner<T> RentAndSlice<T>(this MemoryPool<T> memoryPool, int length)
+        public static SlicedMemoryOwner<T> RentAndSlice<T>(this MemoryPool<T> memoryPool, int length)
         {
             var memoryOwner = memoryPool.Rent(length);
 
-            if (memoryOwner.Memory.Length == length)
-            {
-                return memoryOwner;
-            }
-            else
-            {
-                return new SlicedMemoryOwner<T>(memoryOwner, 0, length);
-            }
+            return new SlicedMemoryOwner<T>(memoryOwner, 0, length);
         }
     }
 }

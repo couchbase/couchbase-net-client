@@ -10,6 +10,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -37,7 +38,7 @@ namespace Couchbase.Core.IO.Operations
 
         string SName { get; set; }
 
-        Memory<byte> Data { get; }
+        ReadOnlyMemory<byte> Data { get; }
 
         uint LastConfigRevisionTried { get; set; }
 
@@ -85,7 +86,7 @@ namespace Couchbase.Core.IO.Operations
         /// Ownership of the data buffer is passed to the caller, which is then responsible
         /// for disposing of the buffer. Failure to dispose may call memory leaks.
         /// </remarks>
-        void HandleOperationCompleted(IMemoryOwner<byte> data);
+        void HandleOperationCompleted(in SlicedMemoryOwner<byte> data);
 
         BucketConfig GetConfig(ITypeTranscoder transcoder);
 

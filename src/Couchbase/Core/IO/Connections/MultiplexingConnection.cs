@@ -170,7 +170,7 @@ namespace Couchbase.Core.IO.Connections
                     ReadOnlySequence<byte> buffer = result.Buffer;
 
                     // Process as many complete operation as we have in the buffer
-                    while (TryReadOperation(ref buffer, out IMemoryOwner<byte>? operationResponse))
+                    while (TryReadOperation(ref buffer, out SlicedMemoryOwner<byte> operationResponse))
                     {
                         try
                         {
@@ -178,7 +178,7 @@ namespace Couchbase.Core.IO.Connections
 
                             if (_statesInFlight.TryRemove(opaque, out var state))
                             {
-                                state.Complete(operationResponse);
+                                state.Complete(in operationResponse);
                             }
                             else
                             {
@@ -240,12 +240,12 @@ namespace Couchbase.Core.IO.Connections
         /// Parses the received data checking the buffer to see if a completed response has arrived.
         /// If it has, the operation is copied to a new, complete buffer and true is returned.
         /// </summary>
-        internal bool TryReadOperation(ref ReadOnlySequence<byte> buffer, [MaybeNullWhen(false)] out IMemoryOwner<byte> operationResponse)
+        internal bool TryReadOperation(ref ReadOnlySequence<byte> buffer, out SlicedMemoryOwner<byte> operationResponse)
         {
             if (buffer.Length < HeaderOffsets.HeaderLength)
             {
                 // Not enough data to read the body length from the header
-                operationResponse = null;
+                operationResponse = default;
                 return false;
             }
 
@@ -268,7 +268,7 @@ namespace Couchbase.Core.IO.Connections
             if (buffer.Length < responseSize)
             {
                 // Insufficient data, keep filling the buffer
-                operationResponse = null;
+                operationResponse = default;
                 return false;
             }
 

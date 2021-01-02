@@ -17,7 +17,7 @@ namespace Couchbase.KeyValue
 {
     internal class GetResult : IGetResult
     {
-        private readonly IMemoryOwner<byte> _contentBytes;
+        private SlicedMemoryOwner<byte> _contentBytes;
         private readonly IList<LookupInSpec> _specs;
         private readonly IReadOnlyCollection<string>? _projectList;
         private readonly ITypeTranscoder _transcoder;
@@ -27,7 +27,7 @@ namespace Couchbase.KeyValue
         private TimeSpan? _expiry;
         private DateTime? _expiryTime;
 
-        internal GetResult(IMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
+        internal GetResult(in SlicedMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
             List<LookupInSpec>? specs = null, IReadOnlyCollection<string>? projectList = null)
         {
             if (transcoder == null)
@@ -297,7 +297,8 @@ namespace Couchbase.KeyValue
         private void Dispose(bool disposing)
         {
             _disposed = true;
-            _contentBytes?.Dispose();
+            _contentBytes.Dispose();
+            _contentBytes = SlicedMemoryOwner<byte>.Empty;
         }
 
         protected void EnsureNotDisposed()
