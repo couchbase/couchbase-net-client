@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -43,7 +44,7 @@ namespace Couchbase.Core.IO.Operations.Errors
             return string.Format("KV Error: {{Name=\"{0}\", Description=\"{1}\", Attributes=\"{2}\"}}",
                 Name,
                 Desc ?? string.Empty,
-                string.Join(",", Attrs ?? new string[0])
+                string.Join(",", Attrs ?? Array.Empty<string>())
             );
         }
 

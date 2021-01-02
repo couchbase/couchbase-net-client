@@ -1,5 +1,7 @@
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Utils;
 using Newtonsoft.Json;
@@ -42,12 +44,16 @@ namespace Couchbase.Core.IO.Operations
                     var buffer = Data.Span.Slice(Header.BodyOffset);
                     result = new ServerFeatures[Header.BodyLength/2];
 
-                    for (int i = 0; i < result.Length; i++)
-                    {
-                        result[i] = (ServerFeatures) ByteConverter.ToInt16(buffer);
+                    // Other than some range checking, this is basically a straight memcpy, very fast
+                    MemoryMarshal.Cast<byte, ServerFeatures>(buffer).CopyTo(result);
 
-                        buffer = buffer.Slice(2);
-                        if (buffer.Length <= 0) break;
+                    if (BitConverter.IsLittleEndian) // If statement is optimized out during JIT compilation
+                    {
+                        // The ServerFeature values are sent to us big endian, we need to reverse
+                        for (var i = 0; i < result.Length; i++)
+                        {
+                            result[i] = (ServerFeatures) BinaryPrimitives.ReverseEndianness((ushort) result[i]);
+                        }
                     }
                 }
                 catch (Exception e)

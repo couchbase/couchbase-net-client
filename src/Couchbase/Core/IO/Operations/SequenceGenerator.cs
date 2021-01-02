@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Couchbase.Core.IO.Operations
@@ -21,6 +22,7 @@ namespace Couchbase.Core.IO.Operations
 
         public static ulong GetRandomLong()
         {
+#if NETSTANDARD2_0
             var bytes = new byte[8];
             lock (Random)
             {
@@ -28,6 +30,15 @@ namespace Couchbase.Core.IO.Operations
             }
 
             return BitConverter.ToUInt64(bytes, 0);
+#else
+            Span<byte> bytes = stackalloc byte[8];
+            lock (Random)
+            {
+                Random.NextBytes(bytes);
+            }
+
+            return MemoryMarshal.Read<ulong>(bytes);
+#endif
         }
     }
 }

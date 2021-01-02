@@ -155,23 +155,21 @@ namespace Couchbase.Core.IO.Authentication
             var storedKey = ComputeDigest(clientKey);
             var clientSignature = ComputeHash(storedKey, authMessage);
 
-            return XOR(clientKey, clientSignature);
+            XorInPlace(clientKey, clientSignature);
+            return clientKey;
         }
 
         /// <summary>
-        /// XOR's the specified result.
+        /// XOR's the specified result with an operand, updating the result.
         /// </summary>
-        /// <param name="result">The result.</param>
-        /// <param name="other">The other.</param>
-        /// <returns></returns>
-        internal byte[] XOR(byte[] result, byte[] other)
+        /// <param name="result">The input and result.</param>
+        /// <param name="other">The operand.</param>
+        internal void XorInPlace(Span<byte> result, ReadOnlySpan<byte> other)
         {
-            var buffer = new byte[result.Length];
             for (var i = 0; i < result.Length; ++i)
             {
-                buffer[i] = (byte)(result[i] ^ other[i]);
+                result[i] ^= other[i];
             }
-            return buffer;
         }
 
         /// <summary>
@@ -181,7 +179,13 @@ namespace Couchbase.Core.IO.Authentication
         internal string GenerateClientNonce()
         {
             const int nonceLength = 21;
+
+#if NETSTANDARD2_0
             var bytes = new byte[nonceLength];
+#else
+            Span<byte> bytes = stackalloc byte[nonceLength];
+#endif
+
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(bytes);
             return Convert.ToBase64String(bytes);

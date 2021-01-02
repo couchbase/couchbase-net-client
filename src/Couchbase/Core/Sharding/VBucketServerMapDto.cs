@@ -12,9 +12,9 @@ namespace Couchbase.Core.Sharding
         {
             HashAlgorithm = string.Empty;
             NumReplicas = 0;
-            ServerList = new string[0];
-            VBucketMap = new short[0][];
-            VBucketMapForward = new short[0][];
+            ServerList = Array.Empty<string>();
+            VBucketMap = Array.Empty<short[]>();
+            VBucketMapForward = Array.Empty<short[]>();
         }
 
         [JsonProperty("hashAlgorithm")]

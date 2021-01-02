@@ -113,17 +113,26 @@ namespace Couchbase.Core.Sharding
         /// <returns>A mapping of indexes and Vbuckets.</returns>
         Dictionary<short, IVBucket> CreateVBucketMap()
         {
-            var vBuckets = new Dictionary<short, IVBucket>();
             var vBucketMap = _vBucketServerMap.VBucketMap;
+            var vBuckets = new Dictionary<short, IVBucket>(vBucketMap.Length);
 
             for (var i = 0; i < vBucketMap.Length; i++)
             {
-                var primary = vBucketMap[i][0];
-                var replicas = new short[vBucketMap[i].Length-1];
-                for (var r = 1; r < vBucketMap[i].Length; r++)
+                var currentMap = vBucketMap[i];
+                var primary = currentMap[0];
+
+                var numReplicas = currentMap.Length - 1;
+                short[] replicas;
+                if (numReplicas <= 0)
                 {
-                    replicas[r - 1] = vBucketMap[i][r];
+                    replicas = Array.Empty<short>();
                 }
+                else
+                {
+                    replicas = new short[numReplicas];
+                    currentMap.AsSpan(1).CopyTo(replicas);
+                }
+
                 vBuckets.Add((short)i,
                     _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
             }
@@ -136,23 +145,35 @@ namespace Couchbase.Core.Sharding
         /// <returns>A mapping of indexes and Vbuckets.</returns>
         Dictionary<short, IVBucket> CreateVBucketMapForwards()
         {
-            var vBucketMapForwards = new Dictionary<short, IVBucket>();
             var vBucketMapForward = _vBucketServerMap.VBucketMapForward;
-
-            if (vBucketMapForward != null)
+            if (vBucketMapForward == null)
             {
-                for (var i = 0; i < vBucketMapForward.Length; i++)
-                {
-                    var primary = vBucketMapForward[i][0];
-                    var replicas = new short[vBucketMapForward[i].Length-1];
-                    for (var r = 1; r < vBucketMapForward[i].Length; r++)
-                    {
-                        replicas[r - 1] = vBucketMapForward[i][r];
-                    }
-                    vBucketMapForwards.Add((short)i,
-                        _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
-                }
+                return new Dictionary<short, IVBucket>(0);
             }
+
+            var vBucketMapForwards = new Dictionary<short, IVBucket>(vBucketMapForward.Length);
+
+            for (var i = 0; i < vBucketMapForward.Length; i++)
+            {
+                var currentForward = vBucketMapForward[i];
+                var primary = currentForward[0];
+
+                var numReplicas = vBucketMapForward.Length - 1;
+                short[] replicas;
+                if (numReplicas <= 0)
+                {
+                    replicas = Array.Empty<short>();
+                }
+                else
+                {
+                    replicas = new short[numReplicas];
+                    currentForward.AsSpan(1).CopyTo(replicas);
+                }
+
+                vBucketMapForwards.Add((short)i,
+                    _vBucketFactory.Create(_endPoints, (short)i, primary, replicas, Rev, _vBucketServerMap, _bucketName));
+            }
+
             return vBucketMapForwards;
         }
 

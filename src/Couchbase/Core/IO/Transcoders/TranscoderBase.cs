@@ -86,6 +86,11 @@ namespace Couchbase.Core.IO.Transcoders
         /// <returns></returns>
         protected byte[] DecodeBinary(ReadOnlySpan<byte> buffer)
         {
+            if (buffer.Length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
             var temp = new byte[buffer.Length];
             buffer.CopyTo(temp.AsSpan());
             return temp;

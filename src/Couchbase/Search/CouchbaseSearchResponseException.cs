@@ -42,7 +42,7 @@ namespace Couchbase.Search
             base(message, innerException)
         {
             Status = status;
-            Errors = new ReadOnlyCollection<string>(errors ?? new string[] {});
+            Errors = new ReadOnlyCollection<string>(errors ?? Array.Empty<string>());
         }
 
         ///// <summary>

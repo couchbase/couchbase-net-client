@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
@@ -22,11 +23,13 @@ namespace Couchbase.Core.IO
 
             try
             {
-                const uint temp = 0;
-                var values = new byte[Marshal.SizeOf(temp) * 3];
-                BitConverter.GetBytes((uint)(on ? 1 : 0)).CopyTo(values, 0);
-                BitConverter.GetBytes(time).CopyTo(values, Marshal.SizeOf(temp));
-                BitConverter.GetBytes(interval).CopyTo(values, Marshal.SizeOf(temp) * 2);
+                var values = new byte[sizeof(uint) * 3];
+
+                var valueSpan = MemoryMarshal.Cast<byte, uint>(values.AsSpan());
+                valueSpan[0] = on ? 1u : 0u;
+                valueSpan[1] = time;
+                valueSpan[2] = interval;
+
                 socket.IOControl(IOControlCode.KeepAliveValues, values, null);
             }
             catch (NotSupportedException e)
