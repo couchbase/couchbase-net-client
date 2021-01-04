@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
@@ -47,6 +48,7 @@ namespace Couchbase.Query
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+			HttpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
         /// <inheritdoc />
