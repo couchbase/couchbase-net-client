@@ -16,6 +16,10 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.KeyNotFound:
                     return new DocumentNotFoundException {Context = ctx};
                 case ResponseStatus.KeyExists:
+                    if (ctx.OpCode != OpCode.Add)
+                    {
+                        return new CasMismatchException { Context = ctx };
+                    }
                     return new DocumentExistsException { Context = ctx };
                 case ResponseStatus.ValueTooLarge:
                     return new ValueToolargeException { Context = ctx };

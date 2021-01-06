@@ -7,7 +7,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
     {
         public string DispatchedFrom { get; internal set; } //state.localendpoint
 
-        public string DispatchedTo { get; internal set; } //state.endpoint 
+        public string DispatchedTo { get; internal set; } //state.endpoint
 
         public string DocumentKey { get; internal set; } //op.Id
 
@@ -24,5 +24,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
         public string ScopeName { get; internal set; }//scope.name
 
         public string Message { get; internal set; } //errorcode
+
+        internal OpCode OpCode { get; set; }
     }
 }
