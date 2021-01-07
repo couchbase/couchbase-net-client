@@ -744,7 +744,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(getOp, options);
 
-            await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions)options, getOp);
+            await _bucket.RetryAsync(getOp, cts.Token).ConfigureAwait(false);
             return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
             {
                 Id = getOp.Key,
@@ -769,7 +770,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(getOp, options);
 
-            await _bucket.RetryAsync(getOp, cancellationToken).ConfigureAwait(false);
+            using var cts = CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions)options, getOp);
+            await _bucket.RetryAsync(getOp, cts.Token).ConfigureAwait(false);
             return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
             {
                 Id = getOp.Key,
