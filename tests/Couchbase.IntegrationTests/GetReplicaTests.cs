@@ -29,7 +29,7 @@ namespace Couchbase.IntegrationTests
 
                 var result = await collection.GetAnyReplicaAsync(key).ConfigureAwait(false);
                 Assert.NotEqual(ulong.MinValue, result.Cas);
-                Assert.Null(result.Expiry);
+                Assert.Null(result.ExpiryTime);
 
                 var retrievedPerson = result.ContentAs<Person>();
                 Assert.Equal(person.name, retrievedPerson.name);
@@ -58,7 +58,7 @@ namespace Couchbase.IntegrationTests
                 foreach (var p in result)
                 {
                     Assert.NotEqual(ulong.MinValue, p.Cas);
-                    Assert.Null(p.Expiry);
+                    Assert.Null(p.ExpiryTime);
 
                     var retrievedPerson = p.ContentAs<Person>();
                     Assert.Equal(person.name, retrievedPerson.name);
