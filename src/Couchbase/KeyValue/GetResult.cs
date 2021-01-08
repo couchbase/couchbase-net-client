@@ -185,8 +185,8 @@ namespace Couchbase.KeyValue
 
         private void ParseSpecs()
         {
-            //we already parsed the response from the server but not each element
-            if(_isParsed) return;
+            //we already parsed the response from the server but not each element or nothing to parse
+            if(_isParsed || _specs.Count == 0) return;
 
             var response = _contentBytes.Memory;
             var commandIndex = 0;
