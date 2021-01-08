@@ -43,6 +43,8 @@ namespace Couchbase.Core.IO.Operations
 
         string BucketName { get; set; }
 
+        bool IsReplicaRead { get; }
+
         int TotalLength { get; }
 
         IPEndPoint CurrentHost { get; set; }

@@ -56,6 +56,7 @@ namespace Couchbase.Core.IO.Operations
         public uint Opaque { get; set; }
         public short? VBucketId { get; set; }
         public short ReplicaIdx { get; set; }
+        public virtual bool IsReplicaRead => false;
         public int TotalLength => Header.TotalLength;
         public virtual bool Success => GetSuccess();
         public uint Expires { get; set; }

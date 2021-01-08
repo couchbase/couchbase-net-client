@@ -4,6 +4,8 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.ReplicaRead;
 
+        public override bool IsReplicaRead => true;
+
         public override void WriteExtras(OperationBuilder builder)
         {
         }
