@@ -73,8 +73,7 @@ namespace Couchbase.Utils
             return count;
         }
 
-#if NETCOREAPP2_1 || NETCOREAPP3_0 || NETSTANDARD2_1
-
+#if SPAN_SUPPORT
         public override int Read(Span<byte> buffer)
         {
             EnsureNotDisposed();
@@ -94,7 +93,6 @@ namespace Couchbase.Utils
 
             return count;
         }
-
 #endif
 
         public override long Seek(long offset, SeekOrigin origin)

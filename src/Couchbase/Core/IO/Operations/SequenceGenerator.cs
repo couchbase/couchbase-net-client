@@ -22,7 +22,7 @@ namespace Couchbase.Core.IO.Operations
 
         public static ulong GetRandomLong()
         {
-#if NETSTANDARD2_0
+#if !SPAN_SUPPORT
             var bytes = new byte[8];
             lock (Random)
             {

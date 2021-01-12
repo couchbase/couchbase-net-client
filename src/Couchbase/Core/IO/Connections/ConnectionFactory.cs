@@ -57,7 +57,7 @@ namespace Couchbase.Core.IO.Connections
                 throw;
             }
 
-#if NETCOREAPP3_0
+#if NETCOREAPP_GTE_3_0
             _multiplexLogger.LogDebug("Setting TCP Keep-Alives using SocketOptions - enable keep-alives {EnableTcpKeepAlives}, time {TcpKeepAliveTime}, interval {TcpKeepAliveInterval}.",
                 _clusterOptions.EnableTcpKeepAlives, _clusterOptions.TcpKeepAliveTime, _clusterOptions.TcpKeepAliveInterval);
 

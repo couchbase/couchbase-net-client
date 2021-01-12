@@ -94,7 +94,7 @@ namespace Couchbase.Core.Sharding
         [SkipLocalsInit] // Avoid unnecessary cost of zero-filling keyBytes in Span scenario
         public short GetIndex(string key)
         {
-#if NETSTANDARD2_0
+#if !SPAN_SUPPORT
             var keyBytes = Encoding.UTF8.GetBytes(key);
 #else
             Span<byte> keyBytes = stackalloc byte[OperationHeader.MaxKeyLength];

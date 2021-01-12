@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
     <VersionPrefix>3.0.0</VersionPrefix>
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
@@ -15,6 +15,7 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</PackageIconUrl>
+    <PackageIconUrl>couchbase-logo.png</PackageIconUrl>
     <PackageReleaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</PackageReleaseNotes>
 
     <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
@@ -45,6 +46,12 @@
     <DefineConstants>$(DefineConstants);SIGNING</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(TargetFramework)' != 'netstandard2.0'">
+    <DefineConstants>$(DefineConstants);SPAN_SUPPORT</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework.StartsWith(`netcoreapp`))'=='true' And '$(TargetFramework.StartsWith(`netcoreapp2.`))'=='false' And '$(TargetFramework.StartsWith(`netcoreapp1.`))'=='false'">
+    <DefineConstants>$(DefineConstants);NETCOREAPP_GTE_3_0</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Core\Diagnostics\Tracing\TracerExtensions.cs" />
     <Compile Remove="Core\Diagnostics\Tracing\TracerFactory.cs" />

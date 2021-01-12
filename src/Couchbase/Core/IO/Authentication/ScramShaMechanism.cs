@@ -180,7 +180,7 @@ namespace Couchbase.Core.IO.Authentication
         {
             const int nonceLength = 21;
 
-#if NETSTANDARD2_0
+#if !SPAN_SUPPORT
             var bytes = new byte[nonceLength];
 #else
             Span<byte> bytes = stackalloc byte[nonceLength];

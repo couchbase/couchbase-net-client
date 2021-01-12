@@ -120,7 +120,7 @@ namespace Couchbase.Core.IO.Connections
             await _writeMutex.GetLockAsync().ConfigureAwait(false);
             try
             {
-#if NETCOREAPP2_1 || NETCOREAPP3_0 || NETSTANDARD2_1
+#if SPAN_SUPPORT
                 await _stream.WriteAsync(request).ConfigureAwait(false);
 #else
                 if (!MemoryMarshal.TryGetArray<byte>(request, out var arraySegment))
