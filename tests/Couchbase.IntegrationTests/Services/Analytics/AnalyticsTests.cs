@@ -18,7 +18,6 @@ namespace Couchbase.IntegrationTests.Services.Analytics
     public class AnalyticsTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
-        private static AnalyticsIndexManager analytics;
         private static string scopeName = "myScope" + randomString();
         private static string collectionName = "myCollection" + randomString();
 
@@ -61,8 +60,8 @@ namespace Couchbase.IntegrationTests.Services.Analytics
             const string statement = "SELECT \"hello\" as greeting;";
 
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
-            var result = await cluster.AnalyticsQuery<TestRequest>(statement)
-                .ToListAsync().ConfigureAwait(false);
+            var analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+            var result = await analyticsResult.ToListAsync();
 
             Assert.Single(result);
             Assert.Equal("hello", result.First().Greeting);
@@ -95,13 +94,14 @@ namespace Couchbase.IntegrationTests.Services.Analytics
             string dataverseName = bucket.Name + "." + scopeName;
             var collectionManager = (CollectionManager)bucket.Collections;
             var scopeSpec = new ScopeSpec(scopeName);
+            var analytics = cluster.AnalyticsIndexes;
             await analytics.CreateDataverseAsync(dataverseName);
             string statement = "CREATE ANALYTICS COLLECTION `" + dataverseName + "`.`" + collectionName + "` ON `" + bucket.Name + "`.`" + scopeName + "`.`" + collectionName + "`";
 
             try
             {
-                var result = await cluster.AnalyticsQuery<TestRequest>(statement)
-               .ToListAsync().ConfigureAwait(false);
+                var analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+                var result = await analyticsResult.ToListAsync().ConfigureAwait(false);
                 await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
                 var collectionSpec = new CollectionSpec(scopeName, collectionName);
                 await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
@@ -109,7 +109,8 @@ namespace Couchbase.IntegrationTests.Services.Analytics
                 Assert.True(collectionExistsResult);
                 var scope = bucket.Scope(scopeName);
                 statement = "SELECT * FROM `" + collectionName + "` where `" + collectionName + "`.foo= \"bar\"";
-                result = await cluster.AnalyticsQuery<TestRequest>(statement).ToListAsync().ConfigureAwait(false);
+                analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+                result = await analyticsResult.ToListAsync().ConfigureAwait(false);
                 Assert.True(result.Any());
 
             }

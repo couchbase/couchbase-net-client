@@ -13,16 +13,16 @@ namespace Couchbase.LoadTests
     {
         public StandardConfig()
         {
-            Add(DefaultColumnProviders.Instance);
-            Add(RankColumn.Arabic);
+            AddColumnProvider(DefaultColumnProviders.Instance);
+            AddColumn(RankColumn.Arabic);
 
-            Add(DefaultExporters.CsvMeasurements);
-            Add(DefaultExporters.Csv);
-            Add(DefaultExporters.RPlot);
-            Add(DefaultExporters.Markdown);
-            Add(DefaultExporters.Html);
+            AddExporter(DefaultExporters.CsvMeasurements);
+            AddExporter(DefaultExporters.Csv);
+            AddExporter(DefaultExporters.RPlot);
+            AddExporter(DefaultExporters.Markdown);
+            AddExporter(DefaultExporters.Html);
 
-            Add(ConsoleLogger.Default);
+            AddLogger(ConsoleLogger.Default);
         }
     }
 }

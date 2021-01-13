@@ -386,7 +386,7 @@ namespace Couchbase.IntegrationTests
 
                 var getResult2 =
                     await collection.GetAsync(id1, getOptions => getOptions.Expiry()).ConfigureAwait(false);
-                var expiry = getResult2.Expiry;
+                var expiry = getResult2.ExpiryTime;
 
                 var value2 = getResult2.ContentAs<int>();
                 Assert.Equal(5, value2);

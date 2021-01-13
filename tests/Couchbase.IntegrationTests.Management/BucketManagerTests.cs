@@ -33,7 +33,7 @@ namespace Couchbase.IntegrationTests
                 FlushEnabled = true,
                 CompressionMode = CompressionMode.Active,
                 ConflictResolutionType = ConflictResolutionType.Timestamp,
-                EjectionMethod = EvictionPolicyType.FullEviction
+                EvictionPolicy = EvictionPolicyType.FullEviction
             };
 
             try
@@ -76,7 +76,7 @@ namespace Couchbase.IntegrationTests
             Assert.Equal(expected.FlushEnabled, actual.FlushEnabled);
             Assert.Equal(expected.CompressionMode, actual.CompressionMode);
             Assert.Equal(expected.ConflictResolutionType, actual.ConflictResolutionType);
-            Assert.Equal(expected.EjectionMethod, actual.EjectionMethod);
+            Assert.Equal(expected.EvictionPolicy, actual.EvictionPolicy);
         }
 
         [Fact]

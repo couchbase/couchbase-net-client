@@ -29,7 +29,7 @@ namespace Couchbase.IntegrationTests
             await collection.UpsertAsync("Can_Return_Expiry()", new {foo = "bar", bar = "foo"}, options =>options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
 
             var result = await collection.GetAsync("Can_Return_Expiry()", options=>options.Expiry()).ConfigureAwait(false);
-            Assert.NotNull(result.Expiry);
+            Assert.NotNull(result.ExpiryTime);
         }
 
         [Fact]
@@ -276,8 +276,8 @@ namespace Couchbase.IntegrationTests
                 description = (string) null
             });
 
-            await collection.UpsertAsync("test", o);
-            var result = await collection.MutateInAsync("test", specs =>
+            await collection.UpsertAsync(documentKey, o);
+            var result = await collection.MutateInAsync(documentKey, specs =>
             {
                 specs.Remove("title").Insert<string>("title", null);
                 specs.Insert<string>("newKey", null, true);

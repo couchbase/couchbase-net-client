@@ -166,7 +166,7 @@ namespace Couchbase.UnitTests.Core.Retry
             {
                 await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenSource.Token).ConfigureAwait(false);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Assert.True(false, "Expected operation to succeed after retry");
             }
