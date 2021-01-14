@@ -14,8 +14,6 @@
 
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
-    <PackageIconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</PackageIconUrl>
-    <PackageIconUrl>couchbase-logo.png</PackageIconUrl>
     <PackageReleaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</PackageReleaseNotes>
 
     <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
@@ -79,10 +77,19 @@
     <PackageReference Include="System.Memory" Version="4.5.4" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <PackageIcon>couchbase.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="couchbase.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
   <!-- Because we're building commits pulled from Gerrit, SourceLink can't find our repository URL -->
   <!-- This will manually fill it in (though we'll still see some warnings) -->
   <PropertyGroup>
     <SourceLinkUrlInitializerTargets>SupplySourceRootRepositoryUrl;$(SourceLinkUrlInitializerTargets)</SourceLinkUrlInitializerTargets>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
   <Target Name="SupplySourceRootRepositoryUrl">
     <ItemGroup>
