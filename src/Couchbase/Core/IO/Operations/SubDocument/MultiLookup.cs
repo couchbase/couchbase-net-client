@@ -62,6 +62,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public IList<OperationSpec> GetCommandValues()
         {
+            if (Data.IsEmpty)
+            {
+                return _lookupCommands;
+            }
+
             var responseSpan = Data.Span.Slice(Header.BodyOffset);
             var commandIndex = 0;
 

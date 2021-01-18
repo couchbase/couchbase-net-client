@@ -509,10 +509,13 @@ namespace Couchbase.Core
                     }
 
                     // The sub-doc operation was a success, but the doc remains deleted/tombstone.
-                    if (status == ResponseStatus.SubDocSuccessDeletedDocument)
+                    if (status == ResponseStatus.SubDocSuccessDeletedDocument
+                        || status == ResponseStatus.SubdocMultiPathFailureDeleted)
                     {
                         return;
                     }
+
+
 
                     var code = (short)status;
                     if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))

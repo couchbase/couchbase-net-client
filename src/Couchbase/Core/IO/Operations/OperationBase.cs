@@ -573,6 +573,7 @@ namespace Couchbase.Core.IO.Operations
                     || status == ResponseStatus.VBucketBelongsToAnotherServer
                     || status == ResponseStatus.AuthenticationContinue
                     || status == ResponseStatus.SubDocMultiPathFailure
+                    || status == ResponseStatus.SubdocMultiPathFailureDeleted
                     || status ==  ResponseStatus.SubDocSuccessDeletedDocument)
                 {
                     Read(data);

@@ -262,6 +262,13 @@ namespace Couchbase.IntegrationTests
             Assert.Equal("value", (string)lookupResult.ContentAs<string>(0));
 
             Assert.True(lookupResult.IsDeleted);
+
+            var lookupWithMissingXattr = await collection.LookupInAsync(documentKey,
+                specs => specs.Get("txn.id", isXattr: true).Get("txn.stgd", isXattr: true).Get("$document", isXattr: true),
+                opts => opts.AccessDeleted(true));
+            Assert.True(lookupWithMissingXattr.IsDeleted);
+            var docMeta = lookupWithMissingXattr.ContentAs<JObject>(2);
+            Assert.NotNull(docMeta);
         }
 
         [Fact]
