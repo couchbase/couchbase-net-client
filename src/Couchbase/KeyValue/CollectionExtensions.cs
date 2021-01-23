@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core.Compatibility;
+using Couchbase.Core.DI;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.DataStructures;
 
 #nullable enable
@@ -269,6 +272,35 @@ namespace Couchbase.KeyValue
 
         #endregion
 
+        #region LookupIn Typed
+
+        [InterfaceStability(Level.Volatile)]
+        public static Task<ILookupInResult<TDocument>> LookupInAsync<TDocument>(this ICouchbaseCollection collection,
+            string id, Action<LookupInSpecBuilder<TDocument>> configureBuilder,
+            Action<LookupInOptions> configureOptions)
+        {
+            var options = new LookupInOptions();
+            configureOptions(options);
+
+            return collection.LookupInAsync(id, configureBuilder, options);
+        }
+
+        [InterfaceStability(Level.Volatile)]
+        public static async Task<ILookupInResult<TDocument>> LookupInAsync<TDocument>(this ICouchbaseCollection collection,
+            string id, Action<LookupInSpecBuilder<TDocument>> configureBuilder, LookupInOptions? options = null)
+        {
+            var serializer = options?.SerializerValue ??
+                             collection.Scope.Bucket.Cluster.ClusterServices.GetRequiredService<ITypeSerializer>();
+
+            var specBuilder = new LookupInSpecBuilder<TDocument>(serializer);
+            configureBuilder(specBuilder);
+
+            return new LookupInResult<TDocument>(await collection.LookupInAsync(id, specBuilder.Specs, options)
+                .ConfigureAwait(false));
+        }
+
+        #endregion
+
         #region MutateIn
 
         public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
@@ -314,6 +346,35 @@ namespace Couchbase.KeyValue
             configureOptions(options);
 
             return collection.MutateInAsync(id, specs, options);
+        }
+
+        #endregion
+
+        #region MutateIn Typed
+
+        [InterfaceStability(Level.Volatile)]
+        public static Task<IMutateInResult<TDocument>> MutateInAsync<TDocument>(this ICouchbaseCollection collection,
+            string id, Action<MutateInSpecBuilder<TDocument>> configureBuilder, Action<MutateInOptions> configureOptions)
+        {
+            var options = new MutateInOptions();
+            configureOptions(options);
+
+            return collection.MutateInAsync(id, configureBuilder, options);
+        }
+
+        [InterfaceStability(Level.Volatile)]
+        public static async Task<IMutateInResult<TDocument>> MutateInAsync<TDocument>(
+            this ICouchbaseCollection collection, string id,  Action<MutateInSpecBuilder<TDocument>> configureBuilder,
+            MutateInOptions? options = null)
+        {
+            var serializer = options?.SerializerValue ??
+                             collection.Scope.Bucket.Cluster.ClusterServices.GetRequiredService<ITypeSerializer>();
+
+            var mutateInSpec = new MutateInSpecBuilder<TDocument>(serializer);
+            configureBuilder(mutateInSpec);
+
+            return new MutateInResult<TDocument>(
+                await collection.MutateInAsync(id, mutateInSpec.Specs, options).ConfigureAwait(false));
         }
 
         #endregion

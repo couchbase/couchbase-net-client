@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Utils;
@@ -10,13 +11,16 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    public class MutateInResult : IMutateInResult
+    public class MutateInResult : IMutateInResult, ITypeSerializerProvider
     {
         private readonly IList<OperationSpec> _specs;
-        private readonly ITypeSerializer _serializer;
+
+        /// <inheritdoc />
+        public ITypeSerializer Serializer { get; }
 
         public MutateInResult(IList<OperationSpec> specs, ulong cas, MutationToken? token, ITypeSerializer serializer)
         {
+            // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (specs == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(specs));
@@ -25,11 +29,12 @@ namespace Couchbase.KeyValue
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(serializer));
             }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalse
 
             _specs = specs.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = cas;
             MutationToken = token ?? MutationToken.Empty;
-            _serializer = serializer;
+            Serializer = serializer;
         }
 
         public ulong Cas { get; }
@@ -42,7 +47,28 @@ namespace Couchbase.KeyValue
             }
 
             var spec = _specs[index];
-            return _serializer.Deserialize<T>(spec.Bytes);
+            return Serializer.Deserialize<T>(spec.Bytes);
+        }
+
+        /// <inheritdoc />
+        [InterfaceStability(Level.Volatile)]
+        public int IndexOf(string path)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            if (path == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(path));
+            }
+
+            for (var i = 0; i < _specs.Count; i++)
+            {
+                if (_specs[i].Path == path)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
     }
 }

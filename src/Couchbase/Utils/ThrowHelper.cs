@@ -34,6 +34,10 @@ namespace Couchbase.Utils
             throw new InvalidOperationException(message);
 
         [DoesNotReturn]
+        public static void ThrowNotSupportedException(string message) =>
+            throw new NotSupportedException(message);
+
+        [DoesNotReturn]
         public static void ThrowObjectDisposedException(string objectName) =>
             throw new ObjectDisposedException(objectName);
 

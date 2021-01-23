@@ -78,6 +78,31 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
+        public async Task Can_perform_lookup_in_via_lambda()
+        {
+            var key = Guid.NewGuid().ToString();
+
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            await collection.UpsertAsync(key, new TestDoc {Foo = "bar", Bar = "foo"}).ConfigureAwait(false);
+
+            try
+            {
+                var result = await collection.LookupInAsync<TestDoc>(key, ops =>
+                {
+                    ops.Get(p => p.Foo);
+                    ops.Get(p => p.Bar);
+                }).ConfigureAwait(false);
+
+                Assert.Equal("bar", result.ContentAs(p => p.Foo));
+                Assert.Equal("foo", result.ContentAs(p => p.Bar));
+            }
+            finally
+            {
+                await collection.RemoveAsync(key);
+            }
+        }
+
+        [Fact]
         public async Task Can_perform_lookup_in_with_Exists()
         {
             var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
@@ -139,6 +164,48 @@ namespace Couchbase.IntegrationTests
                     xxx = -5
                 };
                 Assert.Equal(JsonConvert.SerializeObject(expected), content);
+            }
+        }
+
+        [Fact]
+        public async Task Can_perform_mutate_in_via_lambda()
+        {
+            var key = Guid.NewGuid().ToString();
+
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            await collection.UpsertAsync(key, new TestDoc {Foo = "bar", Bar = "foo"}).ConfigureAwait(false);
+
+            try
+            {
+                var res = await collection.MutateInAsync<TestDoc>(key, ops =>
+                {
+                    ops.Upsert(p => p.Name, "mike");
+                    ops.Replace(p => p.Bar, "bar");
+                    ops.Insert(p => p.Bah, 0);
+                    ops.Increment(p => p.Zzz, 10, true);
+                    ops.Decrement(p => p.Xxx, 5, true);
+                }).ConfigureAwait(false);
+
+                using (var getResult = await collection
+                    .GetAsync(key, options => options.Transcoder(new LegacyTranscoder())).ConfigureAwait(false))
+                {
+                    var content = getResult.ContentAs<string>();
+
+                    var expected = new
+                    {
+                        foo = "bar",
+                        bar = "bar",
+                        name = "mike",
+                        bah = 0,
+                        zzz = 10,
+                        xxx = -5
+                    };
+                    Assert.Equal(JsonConvert.SerializeObject(expected), content);
+                }
+            }
+            finally
+            {
+                await collection.RemoveAsync(key);
             }
         }
 
@@ -291,5 +358,28 @@ namespace Couchbase.IntegrationTests
                 specs.Upsert<string>("title", null, true);
             });
         }
+
+        #region Helpers
+
+        private class TestDoc
+        {
+            public string Foo { get; set; }
+
+            public string Bar { get; set; }
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public string Name { get; set; }
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public int Bah { get; set;}
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public int Zzz { get; set; }
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public int Xxx { get; set; }
+        }
+
+        #endregion
     }
 }

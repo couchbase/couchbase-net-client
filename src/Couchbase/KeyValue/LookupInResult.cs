@@ -11,13 +11,16 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
-    internal class LookupInResult : ILookupInResult
+    internal class LookupInResult : ILookupInResult, ITypeSerializerProvider
     {
         private readonly IList<OperationSpec> _specs;
-        private readonly ITypeSerializer _serializer;
+
+        /// <inheritdoc />
+        public ITypeSerializer Serializer { get; }
 
         internal LookupInResult(IList<OperationSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false)
         {
+            // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (specs == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(specs));
@@ -26,11 +29,12 @@ namespace Couchbase.KeyValue
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(typeSerializer));
             }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalse
 
             _specs = specs.OrderBy(spec => spec.OriginalIndex).ToList();
             Cas = cas;
             Expiry = expiry;
-            _serializer = typeSerializer;
+            Serializer = typeSerializer;
             IsDeleted = isDeleted;
         }
 
@@ -48,7 +52,7 @@ namespace Couchbase.KeyValue
             }
 
             var spec = _specs[index];
-            return _serializer.Deserialize<T>(spec.Bytes);
+            return Serializer.Deserialize<T>(spec.Bytes);
         }
 
         public bool Exists(int index)
@@ -60,6 +64,26 @@ namespace Couchbase.KeyValue
 
             var spec = _specs[index];
             return spec.Status == ResponseStatus.Success;
+        }
+
+        /// <inheritdoc />
+        public int IndexOf(string path)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            if (path == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(path));
+            }
+
+            for (var i = 0; i < _specs.Count; i++)
+            {
+                if (_specs[i].Path == path)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
         }
     }
 }
