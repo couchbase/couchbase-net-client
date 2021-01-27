@@ -88,7 +88,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(IOperationCompressor), new SingletonServiceFactory(typeof(OperationCompressor)));
             yield return (typeof(ICompressionAlgorithm), new SingletonServiceFactory(typeof(NullCompressionAlgorithm)));
 
-            yield return (typeof(ITypeSerializer), new SingletonServiceFactory(new DefaultSerializer()));
+            yield return (typeof(ITypeSerializer), new SingletonServiceFactory(DefaultSerializer.Instance));
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
             yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(JsonTranscoder)));
 

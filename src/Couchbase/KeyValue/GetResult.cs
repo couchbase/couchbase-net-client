@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
@@ -20,7 +21,7 @@ namespace Couchbase.KeyValue
         private readonly IList<LookupInSpec> _specs;
         private readonly IReadOnlyCollection<string>? _projectList;
         private readonly ITypeTranscoder _transcoder;
-        private readonly ITypeSerializer _serializer;
+        private readonly ITypeSerializer? _serializer;
         private readonly ILogger<GetResult> _logger;
         private bool _isParsed;
         private TimeSpan? _expiry;
@@ -69,7 +70,8 @@ namespace Couchbase.KeyValue
                 var spec = _specs.FirstOrDefault(x => x.Path == VirtualXttrs.DocExpiryTime);
                 if (spec != null)
                 {
-                    var ms = _serializer.Deserialize<long>(spec.Bytes);
+                    // Always use our default serializer, it provides consistent behavior and is guaranteed to not be null
+                    var ms = DefaultSerializer.Instance.Deserialize<long>(spec.Bytes);
                     _expiry = TimeSpan.FromMilliseconds(ms);
                 }
 
@@ -95,7 +97,8 @@ namespace Couchbase.KeyValue
                 var spec = _specs.FirstOrDefault(x => x.Path == VirtualXttrs.DocExpiryTime);
                 if (spec != null)
                 {
-                    var ms = _serializer.Deserialize<long>(spec.Bytes);
+                    // Always use our default serializer, it provides consistent behavior and is guaranteed to not be null
+                    var ms = DefaultSerializer.Instance.Deserialize<long>(spec.Bytes);
                     if (ms == 0)
                     {
                         return DateTime.MaxValue;
@@ -135,7 +138,7 @@ namespace Couchbase.KeyValue
                 return _transcoder.Decode<T>(spec.Bytes, Flags, OpCode.Get);
             }
 
-            var root = new JObject();
+            JObject? root = null;
             foreach (var spec in _specs)
             {
                 //skip the expiry if it was included; it must fetched from this.Expiry
@@ -143,14 +146,20 @@ namespace Couchbase.KeyValue
                 {
                     continue;
                 }
-                var content = _serializer.Deserialize<JToken>(spec.Bytes);
+
                 if (spec.OpCode == OpCode.Get)
                 {
                     //a full doc is returned if the projection count exceeds the server limit
                     //so we remove any non-requested fields from the content returned.
                     if (_projectList?.Count > 16)
                     {
-                        foreach (var child in content.Children())
+                        if (_serializer == null)
+                        {
+                            ThrowHelper.ThrowInvalidOperationException("Transcoder must have a serializer for projections.");
+                        }
+
+                        root ??= new JObject();
+                        foreach (var child in _serializer.Deserialize<JToken>(spec.Bytes).Children())
                         {
                             if (_projectList.Contains(child.Path))
                             {
@@ -161,11 +170,27 @@ namespace Couchbase.KeyValue
                         //root projection for empty path
                         return root.ToObject<T>();
                     }
+                    else
+                    {
+                        // A full doc was requested with expiry
+                        // We should use the transcoder for the full doc, it may not be JSON
+
+                        _logger.LogDebug("using the {transcoder} Transcoder.", _transcoder.GetType());
+                        return _transcoder.Decode<T>(spec.Bytes, Flags, OpCode);
+                    }
                 }
+
+                if (_serializer == null)
+                {
+                    ThrowHelper.ThrowInvalidOperationException("Transcoder must have a serializer for projections.");
+                }
+
+                var content = _serializer.Deserialize<JToken>(spec.Bytes);
                 var projection = CreateProjection(spec.Path, content);
 
                 try
                 {
+                    root ??= new JObject();
                     root.Add(projection.First);
                 }
                 catch (Exception e)
@@ -176,7 +201,8 @@ namespace Couchbase.KeyValue
                 }
             }
 
-            if (root.Path == string.Empty && typeof(T).IsPrimitive)
+            Debug.Assert(root != null);
+            if (root!.Path == string.Empty && typeof(T).IsPrimitive)
             {
                 return root.First.ToObject<T>();
             }

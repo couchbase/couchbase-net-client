@@ -945,7 +945,7 @@ namespace Couchbase.KeyValue
 
     #region LookupInOptions
 
-    public class LookupInOptions : IKeyValueOptions, ITimeoutOptions
+    public class LookupInOptions : IKeyValueOptions, ITimeoutOptions, ITranscoderOverrideOptions
     {
         internal static LookupInOptions Default { get; } = new();
 
@@ -959,12 +959,26 @@ namespace Couchbase.KeyValue
 
         internal ITypeSerializer? SerializerValue { get; private set; }
 
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
         internal bool AccessDeletedValue { get; private set; }
 
         public LookupInOptions Serializer(ITypeSerializer? serializer)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             SerializerValue = serializer;
+            return this;
+        }
+
+        /// <summary>
+        /// Only used internally for full doc gets which also need the expiry. Should not be used for JSON-based LookupIn ops.
+        /// Not exposed for public consumption.
+        /// </summary>
+        internal LookupInOptions Transcoder(ITypeTranscoder? transcoder)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TranscoderValue = transcoder;
             return this;
         }
 

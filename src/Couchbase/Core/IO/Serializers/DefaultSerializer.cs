@@ -19,6 +19,8 @@ namespace Couchbase.Core.IO.Serializers
     /// </summary>
     public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer
     {
+        internal static DefaultSerializer Instance { get; } = new();
+
         #region Constructors
 
         public DefaultSerializer() : this(

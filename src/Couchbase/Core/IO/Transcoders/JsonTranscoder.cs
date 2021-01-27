@@ -10,7 +10,7 @@ namespace Couchbase.Core.IO.Transcoders
     public class JsonTranscoder : BaseTranscoder
     {
         public JsonTranscoder()
-            : this(new DefaultSerializer())
+            : this(DefaultSerializer.Instance)
         {
         }
 

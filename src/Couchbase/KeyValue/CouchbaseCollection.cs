@@ -147,7 +147,9 @@ namespace Couchbase.KeyValue
             }
 
             var lookupInOptions = !ReferenceEquals(options, GetOptions.Default)
-                ? new LookupInOptions().Timeout(options.TimeoutValue)
+                ? new LookupInOptions()
+                    .Timeout(options.TimeoutValue)
+                    .Transcoder(options.TranscoderValue)
                 : LookupInOptions.Default;
 
             var lookupOp = await ExecuteLookupIn(id,

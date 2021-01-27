@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
@@ -447,6 +448,32 @@ namespace Couchbase.IntegrationTests
                 var result = await collection.GetAsync(key).ConfigureAwait(false);
                 var content = result.ExpiryTime;
                 Assert.Null(content);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Test_ExpiryTime_With_RawBinaryTranscoder()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                var data = Enumerable.Range(1, 128).Select(p => (byte) p).ToArray();
+                var transcoder = new RawBinaryTranscoder();
+
+                await collection.InsertAsync(key, data, options => options.Expiry(TimeSpan.FromSeconds(30)).Transcoder(transcoder))
+                    .ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options => options.Expiry().Transcoder(transcoder))
+                    .ConfigureAwait(false);
+
+                var content = result.ExpiryTime;
+                Assert.NotNull(content);
+                Assert.Equal(data, result.ContentAs<byte[]>());
             }
             finally
             {

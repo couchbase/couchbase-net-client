@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.Transcoders
     public class LegacyTranscoder : BaseTranscoder
      {
         public LegacyTranscoder()
-            : this(new DefaultSerializer())
+            : this(DefaultSerializer.Instance)
         {
         }
 
