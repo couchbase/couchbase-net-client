@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 
 #nullable enable
@@ -16,26 +15,52 @@ namespace Couchbase.Core.IO.Connections
     /// </summary>
     internal class InFlightOperationSet : IDisposable
     {
-        private readonly ConcurrentDictionary<uint, AsyncState> _statesInFlight =
-            new ConcurrentDictionary<uint, AsyncState>();
+        private readonly ConcurrentDictionary<uint, AsyncState> _statesInFlight = new();
+        private volatile CancellationTokenSource? _cts = new();
 
         public int Count => _statesInFlight.Count;
+
+        public TimeSpan Timeout { get; }
+        public TimeSpan CleanupInterval { get; }
+
+        /// <summary>
+        /// Creates a new InFlightOperationSet.
+        /// </summary>
+        /// <param name="timeout">Timeout after which an operation is canceled.</param>
+        /// <param name="cleanupInterval">How frequently the in flight set is scanned for orphaned operations.</param>
+        public InFlightOperationSet(TimeSpan timeout, TimeSpan? cleanupInterval = null)
+        {
+            if (timeout <= TimeSpan.Zero)
+            {
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(timeout));
+            }
+            if (cleanupInterval.HasValue && cleanupInterval.GetValueOrDefault() <= TimeSpan.Zero)
+            {
+                ThrowHelper.ThrowArgumentOutOfRangeException(nameof(cleanupInterval));
+            }
+
+            Timeout = timeout;
+            CleanupInterval = cleanupInterval ?? TimeSpan.FromSeconds(30);
+
+            using (ExecutionContext.SuppressFlow())
+            {
+                Task.Run(CleanupLoop);
+            }
+        }
 
         /// <summary>
         /// Adds a operation to the set.
         /// </summary>
         /// <param name="state">Operation to add.</param>
-        /// <param name="timeoutMilliseconds">Automatically cancel the operation, and remove it from the set, after this timeout is exceeded.</param>
-        public void Add(AsyncState state, int timeoutMilliseconds)
+        public void Add(AsyncState state)
         {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (state == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(state));
             }
 
             _statesInFlight.TryAdd(state.Opaque, state);
-
-            state.Timer = new Timer(TimeoutHandler, state, timeoutMilliseconds, Timeout.Infinite);
         }
 
         /// <summary>
@@ -73,16 +98,52 @@ namespace Couchbase.Core.IO.Connections
             }
         }
 
-        private void TimeoutHandler(object? state)
+        /// <summary>
+        /// Loop which runs until disposed to check for orphaned operations. Any found running
+        /// more than the configured timeout are disposed and removed from the collection.
+        /// </summary>
+        private async Task CleanupLoop()
         {
-            AsyncState a = (AsyncState) state!;
-            _statesInFlight.TryRemove(a.Opaque, out _);
-            a.Cancel(ResponseStatus.OperationTimeout);
+            var cancellationToken = _cts?.Token ?? default;
+            if (cancellationToken == default)
+            {
+                // Already disposed before the loop started
+                return;
+            }
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await Task.Delay(CleanupInterval, cancellationToken).ConfigureAwait(false);
+
+                try
+                {
+                    foreach (var stateInFlight in _statesInFlight.Values)
+                    {
+                        if (stateInFlight.TimeInFlight > Timeout)
+                        {
+                            if (_statesInFlight.TryRemove(stateInFlight.Opaque, out _))
+                            {
+                                stateInFlight.Dispose();
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // Don't let exceptions kill the loop
+                }
+            }
         }
 
-        /// <inheritdoc />
         public void Dispose()
         {
+            var cts = Interlocked.Exchange(ref _cts, null);
+            if (cts != null)
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+
             // free up all states in flight
             lock (_statesInFlight)
             {

@@ -28,7 +28,7 @@ namespace Couchbase.Core.IO.Connections
         private const uint MaxDocSize = 20971520;
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
-        private readonly InFlightOperationSet _statesInFlight = new InFlightOperationSet();
+        private readonly InFlightOperationSet _statesInFlight = new(TimeSpan.FromSeconds(75));
         private readonly Stopwatch _stopwatch;
         private readonly object _syncObj = new object();
         private volatile bool _disposed;
@@ -116,13 +116,13 @@ namespace Couchbase.Core.IO.Connections
                 LocalEndpoint = _localEndPointString
             };
 
-            _statesInFlight.Add(state, 75000);
+            _statesInFlight.Add(state);
 
             await _writeMutex.GetLockAsync(cancellationToken).ConfigureAwait(false);
             try
             {
 #if SPAN_SUPPORT
-                await _stream.WriteAsync(request).ConfigureAwait(false);
+                await _stream.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 #else
                 if (!MemoryMarshal.TryGetArray<byte>(request, out var arraySegment))
                 {

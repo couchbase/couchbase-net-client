@@ -1,16 +1,8 @@
 using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Transcoders;
-using Couchbase.Core.Retry;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Moq;
@@ -29,11 +21,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var state = MakeState(5);
 
-            using var set = new InFlightOperationSet();
+            using var set = new InFlightOperationSet(TimeSpan.FromSeconds(75));
 
             // Act
 
-            set.Add(state, 75000);
+            set.Add(state);
 
             // Assert
 
@@ -49,19 +41,18 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var state = MakeState(5, operation);
 
-            using var set = new InFlightOperationSet();
+            using var set = new InFlightOperationSet(TimeSpan.FromMilliseconds(10), TimeSpan.FromSeconds(1));
 
             // Act
 
-            set.Add(state, 10);
+            set.Add(state);
 
             // Wait up to 15 seconds for the task to complete
-            await Task.WhenAny(operation.Completed, Task.Delay(15000));
+            await Task.WhenAny(state.CompletionTask, Task.Delay(15000));
 
             // Assert
 
-            Assert.True(operation.Completed.IsCompleted);
-            Assert.Equal(ResponseStatus.OperationTimeout, operation.Completed.Result);
+            Assert.True(state.CompletionTask.IsCompleted);
         }
 
         #endregion
@@ -75,8 +66,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var state = MakeState(5);
 
-            using var set = new InFlightOperationSet();
-            set.Add(state, 75000);
+            using var set = new InFlightOperationSet(TimeSpan.FromSeconds(75));
+            set.Add(state);
 
             // Act
 
@@ -96,8 +87,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var state = MakeState(5);
 
-            using var set = new InFlightOperationSet();
-            set.Add(state, 75000);
+            using var set = new InFlightOperationSet(TimeSpan.FromSeconds(75));
+            set.Add(state);
 
             // Act
 
@@ -120,7 +111,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             // Arrange
 
 
-            using var set = new InFlightOperationSet();
+            using var set = new InFlightOperationSet(TimeSpan.FromSeconds(75));
 
             // Act
 
@@ -139,9 +130,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var state1 = MakeState(5);
             var state2 = MakeState(6);
 
-            using var set = new InFlightOperationSet();
-            set.Add(state1, 75000);
-            set.Add(state2, 75000);
+            using var set = new InFlightOperationSet(TimeSpan.FromSeconds(75));
+            set.Add(state1);
+            set.Add(state2);
 
             // Act
 
@@ -169,9 +160,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections
             var state1 = MakeState(5);
             var state2 = MakeState(6);
 
-            using var set = new InFlightOperationSet();
-            set.Add(state1, 75000);
-            set.Add(state2, 75000);
+            using var set = new InFlightOperationSet(TimeSpan.FromSeconds(75));
+            set.Add(state1);
+            set.Add(state2);
 
             // Act
 

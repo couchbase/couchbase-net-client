@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ namespace Couchbase.Core.IO
     /// <summary>
     /// Represents an asynchronous Memcached request in flight.
     /// </summary>
-    internal class AsyncState
+    internal class AsyncState : IDisposable
     {
         private static readonly Action<object?> SendResponseInternalAction = SendResponseInternal;
 
@@ -27,13 +28,16 @@ namespace Couchbase.Core.IO
         // mark the task as complete before returning. This also helps with thread sync.
         private volatile int _isCompleted;
 
+        private readonly Stopwatch _stopwatch;
+
         public IPEndPoint? EndPoint { get; set; }
         public IOperation Operation { get; set; }
         public uint Opaque => Operation.Opaque;
-        public Timer? Timer { get; set; }
         public ulong ConnectionId { get; set; }
         public ErrorMap? ErrorMap { get; set; }
         public string? LocalEndpoint { get; set; }
+
+        public TimeSpan TimeInFlight => _stopwatch.Elapsed;
 
         /// <summary>
         /// Temporary storage for response data used by SendResponse. This avoids closure related heap allocations.
@@ -73,28 +77,7 @@ namespace Couchbase.Core.IO
             }
 
             Operation = operation;
-        }
-
-        /// <summary>
-        /// Cancels the current Memcached request that is in-flight.
-        /// </summary>
-        public void Cancel(ResponseStatus status)
-        {
-            var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
-            if (prevCompleted == 1)
-            {
-                // Operation is already completed
-                return;
-            }
-
-            Timer?.Dispose();
-            Timer = null;
-
-            var response = BuildErrorResponse(Opaque, status);
-
-            SendResponse(in response);
-
-            _tcs?.TrySetCanceled();
+            _stopwatch = Stopwatch.StartNew();
         }
 
         public void Complete(in SlicedMemoryOwner<byte> response)
@@ -106,9 +89,6 @@ namespace Couchbase.Core.IO
                 response.Dispose();
                 return;
             }
-
-            Timer?.Dispose();
-            Timer = null;
 
             if (response.IsEmpty)
             {
@@ -128,8 +108,8 @@ namespace Couchbase.Core.IO
             // Note: Don't dispose _response, this needs to live until the SendResponse task is executed.
             // The SendResponse task passes dispose responsibility forward to the operation.
 
-            Timer?.Dispose();
-            Timer = null;
+            _isCompleted = 1;
+            _tcs?.TrySetCanceled();
         }
 
         internal static SlicedMemoryOwner<byte> BuildErrorResponse(uint opaque, ResponseStatus status)
