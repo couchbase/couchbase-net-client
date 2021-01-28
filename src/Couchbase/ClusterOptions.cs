@@ -29,6 +29,32 @@ namespace Couchbase
     /// </summary>
     public sealed class ClusterOptions
     {
+        public ClusterOptions()
+        {
+            HttpCertificateCallbackValidation  = (sender, certificate, chain, sslPolicyErrors) =>
+            {
+                if (HttpIgnoreRemoteCertificateMismatch)
+                {
+                    // mask out the name mismatch error, and the chain error that comes along with it
+                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+                }
+
+                return sslPolicyErrors == SslPolicyErrors.None;
+            };
+
+            KvCertificateCallbackValidation = (sender, certificate, chain, sslPolicyErrors) =>
+            {
+                if (KvIgnoreRemoteCertificateNameMismatch)
+                {
+                    // mask out the name mismatch error, and the chain error that comes along with it
+                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+                }
+
+                return sslPolicyErrors == SslPolicyErrors.None;
+            };
+        }
         internal ConnectionString? ConnectionStringValue { get; set; }
 
         /// <summary>
@@ -423,7 +449,12 @@ namespace Couchbase
         /// <summary>
         /// Ignore CertificateNameMismatch and CertificateChainMismatch, since they happen together.
         /// </summary>
-        public bool IgnoreRemoteCertificateNameMismatch { get; set; }
+        [Obsolete("Use KvIgnoreRemoteCertificateNameMismatch and/or HttpIgnoreRemoteCertificateMismatch instead of this property.")]
+        public bool IgnoreRemoteCertificateNameMismatch
+        {
+            get => KvIgnoreRemoteCertificateNameMismatch && HttpIgnoreRemoteCertificateMismatch;
+            set => KvIgnoreRemoteCertificateNameMismatch = HttpIgnoreRemoteCertificateMismatch = value;
+        }
 
         private bool _enableOrphanedResponseLogging;
         public bool EnableOrphanedResponseLogging
@@ -479,7 +510,7 @@ namespace Couchbase
 
         /// <inheritdoc cref="TuningOptions"/>
         public TuningOptions Tuning { get; set; } = new();
-        
+
         /// <inheritdoc cref="ExperimentalOptions"/>
         public ExperimentalOptions Experiments { get; set; } = new();
 
@@ -493,20 +524,31 @@ namespace Couchbase
         /// </summary>
         internal bool EffectiveEnableTls => EnableTls ?? ConnectionStringValue?.Scheme == Scheme.Couchbases;
 
-        internal bool ValidateCertificateCallback(object sender,
-            X509Certificate certificate,
-            X509Chain chain,
-            SslPolicyErrors sslPolicyErrors)
-        {
-            if (IgnoreRemoteCertificateNameMismatch)
-            {
-                // mask out the name mismatch error, and the chain error that comes along with it
-                sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
-                sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
-            }
+        /// <summary>
+        /// Ignore CertificateNameMismatch and CertificateChainMismatch for Key/Value operations, since they happen together.
+        /// </summary>
+        public bool KvIgnoreRemoteCertificateNameMismatch { get; set; }
 
-            return sslPolicyErrors == SslPolicyErrors.None;
-        }
+        /// <summary>
+        /// The default RemoteCertificateValidationCallback called by .NET to validate the TLS/SSL certificates being used for
+        /// Key/Value operations. To ignore RemoteCertificateNameMismatch and RemoteCertificateChainErrors errors caused when the
+        /// subject and subject alternative name do not match the requesting DNS name, set ClusterOptions.KvCertificateCallbackValidation
+        /// to true.
+        /// </summary>
+        public RemoteCertificateValidationCallback KvCertificateCallbackValidation { get; set; }
+
+        /// <summary>
+        /// Ignore CertificateNameMismatch and CertificateChainMismatch for HTTP services (Query, FTS, Analytics, etc), since they happen together.
+        /// </summary>
+        public bool HttpIgnoreRemoteCertificateMismatch { get; set; }
+
+        /// <summary>
+        /// The default RemoteCertificateValidationCallback called by .NET to validate the TLS/SSL certificates being used for
+        /// HTTP services (Query, FTS, Analytics, etc). To ignore RemoteCertificateNameMismatch and RemoteCertificateChainErrors
+        /// errors caused when the subject and subject alternative name do not match the requesting DNS name, set
+        /// ClusterOptions.KvCertificateCallbackValidation to true.
+        /// </summary>
+        public RemoteCertificateValidationCallback HttpCertificateCallbackValidation { get; set; }
 
         public ICertificateFactory? X509CertificateFactory { get; set; }
 
