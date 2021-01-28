@@ -259,7 +259,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             // Assert
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => operation.Completed);
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => operation.Completed.AsTask());
             Assert.Equal("testing", ex.Message);
         }
 

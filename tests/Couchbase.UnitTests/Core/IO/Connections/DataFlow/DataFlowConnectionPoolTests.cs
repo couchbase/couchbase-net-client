@@ -162,11 +162,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             await pool.SendAsync(operation);
 
             // wait for operation to fail but not forever
-            await Task.WhenAny(operation.Completed, Task.Delay(3000));
+            await Task.WhenAny(operation.Completed.AsTask(), Task.Delay(3000));
 
             // Assert
             Assert.True(operation.Completed.IsCompleted);
-            await Assert.ThrowsAsync<SendQueueFullException>(() => operation.Completed);
+            await Assert.ThrowsAsync<SendQueueFullException>(() => operation.Completed.AsTask());
         }
 
         [Fact]
@@ -373,7 +373,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
             // Assert
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => operation.Completed);
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => operation.Completed.AsTask());
             Assert.Equal("testing", ex.Message);
         }
 

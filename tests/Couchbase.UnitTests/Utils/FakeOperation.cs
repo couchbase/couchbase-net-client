@@ -19,7 +19,7 @@ namespace Couchbase.UnitTests.Utils
     {
         private TaskCompletionSource<ResponseStatus> _tcs = new TaskCompletionSource<ResponseStatus>();
 
-        public Task<ResponseStatus> Completed => _tcs.Task;
+        public ValueTask<ResponseStatus> Completed => new ValueTask<ResponseStatus>(_tcs.Task);
 
         public void Reset()
         {

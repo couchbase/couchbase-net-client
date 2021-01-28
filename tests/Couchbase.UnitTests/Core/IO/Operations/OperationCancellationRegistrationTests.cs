@@ -29,7 +29,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed.AsTask());
         }
 
         [Theory]
@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed.AsTask());
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed.AsTask());
         }
 
         [Fact]
@@ -97,7 +97,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed.AsTask());
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed.AsTask());
         }
 
         [Fact]
@@ -143,7 +143,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Assert
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation.Completed.AsTask());
             Assert.True(internalCts.IsCancellationRequested);
         }
 

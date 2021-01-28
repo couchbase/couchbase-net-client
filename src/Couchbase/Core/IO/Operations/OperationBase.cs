@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Sources;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
@@ -21,7 +22,7 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations
 {
-    internal abstract class OperationBase : IOperation
+    internal abstract class OperationBase : IOperation, IValueTaskSource<ResponseStatus>
     {
         internal Flags Flags;
         public const int DefaultRetries = 2;
@@ -31,8 +32,6 @@ namespace Couchbase.Core.IO.Operations
         private IInternalSpan _span;
         private List<RetryReason> _retryReasons;
         private IRetryStrategy _retryStrategy;
-
-        private TaskCompletionSource<ResponseStatus> _completed = new TaskCompletionSource<ResponseStatus>();
 
         protected OperationBase()
         {
@@ -110,7 +109,29 @@ namespace Couchbase.Core.IO.Operations
 
         public DateTime CreationTime { get; set; }
 
-        public Task<ResponseStatus> Completed => _completed.Task;
+        #region Async Completion
+
+        /// <summary>
+        /// Allows us to add TryXXX completions on top of ManualResetValueTaskSourceCore by using Interlocked.Exchange
+        /// on this value. 1 = completed (in any form), 0 = not completed.
+        /// </summary>
+        private volatile int _isCompleted = 0;
+
+        private ManualResetValueTaskSourceCore<ResponseStatus> _valueTaskSource;
+
+        /// <inheritdoc />
+        public ValueTask<ResponseStatus> Completed => new(this, _valueTaskSource.Version);
+
+        /// <inheritdoc />
+        public ResponseStatus GetResult(short token) => _valueTaskSource.GetResult(token);
+
+        /// <inheritdoc />
+        public ValueTaskSourceStatus GetStatus(short token) => _valueTaskSource.GetStatus(token);
+
+        /// <inheritdoc />
+        public void OnCompleted(Action<object> continuation, object state, short token,
+            ValueTaskSourceOnCompletedFlags flags) =>
+            _valueTaskSource.OnCompleted(continuation, state, token, flags);
 
         public virtual void Reset()
         {
@@ -121,7 +142,6 @@ namespace Couchbase.Core.IO.Operations
         {
             _data.Dispose();
             _data = SlicedMemoryOwner<byte>.Empty;
-            _completed = new TaskCompletionSource<ResponseStatus>();
 
             Header = new OperationHeader
             {
@@ -134,7 +154,12 @@ namespace Couchbase.Core.IO.Operations
             };
 
             _isSent = false;
+
+            _valueTaskSource.Reset();
+            _isCompleted = 0;
         }
+
+        #endregion
 
         /// <summary>
         /// Returns a block of memory containing the body of the operation response. May only be called once.
@@ -547,15 +572,39 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
+        /// <inheritdoc />
         public bool TrySetCanceled(CancellationToken cancellationToken = default) =>
-            _completed.TrySetCanceled(cancellationToken);
+            TrySetException(new OperationCanceledException(cancellationToken));
 
         /// <inheritdoc />
-        public bool TrySetException(Exception ex) =>_completed.TrySetException(ex);
+        public bool TrySetException(Exception ex) =>
+            TrySetException(ex, false);
+
+        private bool TrySetException(Exception ex, bool ignoreIsCompleted)
+        {
+            if (!ignoreIsCompleted)
+            {
+                var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
+                if (prevCompleted == 1)
+                {
+                    return false;
+                }
+            }
+
+            _valueTaskSource.SetException(ex);
+            return true;
+        }
 
         /// <inheritdoc />
         public void HandleOperationCompleted(in SlicedMemoryOwner<byte> data)
         {
+            var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
+            if (prevCompleted == 1)
+            {
+                data.Dispose();
+                return;
+            }
+
             var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
 
             try
@@ -574,11 +623,11 @@ namespace Couchbase.Core.IO.Operations
                     data.Dispose();
                 }
 
-                _completed.TrySetResult(status);
+                _valueTaskSource.SetResult(status);
             }
             catch (Exception ex)
             {
-                TrySetException(ex);
+                TrySetException(ex, true);
                 data.Dispose();
             }
         }

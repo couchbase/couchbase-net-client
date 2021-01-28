@@ -159,7 +159,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 {
                     throw exp;
                 }
-            }).Returns(op.Completed);
+            }).Returns(op.Completed.AsTask());
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             try

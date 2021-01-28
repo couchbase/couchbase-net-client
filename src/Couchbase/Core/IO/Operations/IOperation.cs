@@ -94,7 +94,14 @@ namespace Couchbase.Core.IO.Operations
         /// Task which indicates completion of the operation. Once this task is complete,
         /// the result has been received and, if successful, read.
         /// </summary>
-        Task<ResponseStatus> Completed { get; }
+        /// <remarks>
+        /// It is important that rules about ValueTask be followed here. The task should only
+        /// be awaited once, never more than once. Calling <see cref="Reset"/> will reset the
+        /// task, after which it may be awaited again.
+        ///
+        /// For more information, see https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/#valid-consumption-patterns-for-valuetasks
+        /// </remarks>
+        ValueTask<ResponseStatus> Completed { get; }
 
         /// <summary>
         /// Indicates if this operation is only performing a read operation and not changing state.
