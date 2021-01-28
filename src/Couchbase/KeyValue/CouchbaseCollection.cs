@@ -82,10 +82,6 @@ namespace Couchbase.KeyValue
             if (specCount == 0)
             {
                 // We aren't including the expiry value and we have no projections so fetch the whole doc using a Get operation
-
-                //sanity check for deferred bootstrapping errors
-                _bucket.ThrowIfBootStrapFailed();
-
                 var getOp = new Get<byte[]>
                 {
                     Key = id,
