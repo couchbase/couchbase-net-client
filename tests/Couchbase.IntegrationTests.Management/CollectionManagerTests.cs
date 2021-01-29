@@ -1,16 +1,14 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
-using Couchbase.Management;
 using Couchbase.Management.Collections;
 using Couchbase.Query;
 using Xunit;
 
-namespace Couchbase.IntegrationTests
+namespace Couchbase.IntegrationTests.Management
 {
     [Collection("NonParallel")]
     public class CollectionManagerTests : IClassFixture<ClusterFixture>
@@ -29,7 +27,6 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope", collectionName = "test_collection";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName)
             {
                 MaxExpiry = TimeSpan.FromMinutes(10)
@@ -38,7 +35,7 @@ namespace Couchbase.IntegrationTests
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // scope exists
                 var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(false);
@@ -78,13 +75,12 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope", collectionName = "test_collection";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // scope exists
                 var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(false);
@@ -123,13 +119,12 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope1", collectionName = "test_collection1";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
             var collectionSpecInvalid = new CollectionSpec("noscope", "emptycollection");
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
 
                 // get scope
@@ -166,12 +161,11 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope2", collectionName = "test_collection2";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
                 var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
@@ -207,13 +201,12 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope3", collectionName = "test_collection3";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             try
             {
                 // create scope
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // create collection
                 await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
@@ -240,12 +233,11 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope4", collectionName = "test_collection4";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
                 var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
@@ -262,7 +254,7 @@ namespace Couchbase.IntegrationTests
                 var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(false);
                 Assert.True(scopeExistsResult);
 
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
             }
             catch (ScopeExistsException e)
@@ -288,12 +280,11 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope5", collectionName = "test_collection5";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
                 var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
@@ -337,13 +328,11 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope6", collectionName = "test_collection6";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
-
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
                 var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
@@ -377,7 +366,6 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "test_scope6", collectionName = "test_collection6";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             var collectionSpecNone = new CollectionSpec("scope_only", "collection_null");
@@ -385,7 +373,7 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
                 var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
@@ -439,11 +427,10 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope1", collectionName = "my_collection1";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             // create scope
-            await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+            await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
             // create collection
             await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
@@ -465,11 +452,10 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope1", collectionName = "my_collection1";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             // create scope
-            await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+            await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
             // create collection
             await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
@@ -491,11 +477,10 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope1", collectionName = "my_collection1";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             // create scope
-            await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+            await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
             // create collection
             await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
@@ -517,16 +502,12 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName1 = "test_scopex1", collectionName = "test_collection1", scopeName2 = "test_scopex2", scopeName3 = "test_scopex3", scopeName4 = "test_scopex4";
-            var scopeSpec1 = new ScopeSpec(scopeName1);
-            var scopeSpec2 = new ScopeSpec(scopeName2);
-            var scopeSpec3 = new ScopeSpec(scopeName3);
-            var scopeSpec4 = new ScopeSpec(scopeName4);
-            var collectionSpec = new CollectionSpec(scopeName1, collectionName);
+
             // create scope
-            await collectionManager.CreateScopeAsync(scopeSpec1).ConfigureAwait(false);
-            await collectionManager.CreateScopeAsync(scopeSpec2).ConfigureAwait(false);
-            await collectionManager.CreateScopeAsync(scopeSpec3).ConfigureAwait(false);
-            await collectionManager.CreateScopeAsync(scopeSpec4).ConfigureAwait(false);
+            await collectionManager.CreateScopeAsync(scopeName1).ConfigureAwait(false);
+            await collectionManager.CreateScopeAsync(scopeName2).ConfigureAwait(false);
+            await collectionManager.CreateScopeAsync(scopeName3).ConfigureAwait(false);
+            await collectionManager.CreateScopeAsync(scopeName4).ConfigureAwait(false);
 
             // get all scopes
             var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(false);
@@ -539,10 +520,10 @@ namespace Couchbase.IntegrationTests
             var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
             var collectionManager = (CollectionManager)bucket.Collections;
             string scopeName = "singlescope1";
-            var scopeSpec = new ScopeSpec(scopeName);
+
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
                 for (int i = 0; i < 1000; i++)
                 {
                     var collectionSpec = new CollectionSpec(scopeName, (1000 + i).ToString());
@@ -566,10 +547,10 @@ namespace Couchbase.IntegrationTests
             string scopeName = "query_test_scope1";
             string collectionName = "query_test_collection1";
             string docId = "mydoc1";
-            var scopeSpec = new ScopeSpec(scopeName);
+
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
                 var collectionSpec = new CollectionSpec(scopeName, collectionName);
                 await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
                 var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
@@ -595,10 +576,10 @@ namespace Couchbase.IntegrationTests
             string scopeName = "query_test_scope2";
             string collectionName = "query_test_collection2";
             string docId = "mydoc2";
-            var scopeSpec = new ScopeSpec(scopeName);
+ 
             try
             {
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
+                await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
                 var collectionSpec = new CollectionSpec(scopeName, collectionName);
                 await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
                 var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Management.Buckets;
@@ -17,7 +18,10 @@ namespace Couchbase.Management.Collections
 
         Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions? options = null);
 
+        [Obsolete("Use other overloaded CreateScopeAsync method that does not take a ScopeSpec instead.")]
         Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions? options = null);
+
+        Task CreateScopeAsync(string scopeName, CreateScopeOptions? options = null);
 
         Task DropScopeAsync(string scopeName, DropScopeOptions? options = null);
     }

@@ -228,28 +228,47 @@ namespace Couchbase.Management.Collections
             }
         }
 
-        public async Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions? options = null)
+        /// <summary>
+        /// Creates a scope given a unique name.
+        /// </summary>
+        /// <param name="scopeName">The name of the scope to create.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>A <see cref="Task"/> that can be awaited.</returns>
+        public async Task CreateScopeAsync(string scopeName, CreateScopeOptions? options = null)
         {
             options ??= CreateScopeOptions.Default;
             var uri = GetUri();
-            _logger.LogInformation("Attempting create scope {spec.Name} - {uri}", spec.Name, _redactor.SystemData(uri));
+            _logger.LogInformation("Attempting create scope {spec.Name} - {uri}", scopeName, _redactor.SystemData(uri));
 
             try
             {
                 // create scope
                 var content = new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    {"name", spec.Name}
+                    {"name", scopeName}
                 });
                 var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 createResult.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Failed to create scope {spec.Name} - {uri}", spec.Name,
+                _logger.LogError(exception, "Failed to create scope {spec.Name} - {uri}", scopeName,
                     _redactor.SystemData(uri));
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Creates a scope given a unique name.
+        /// </summary>
+        /// <param name="spec">The <see cref="ScopeSpec"/> of the scope including its name.</param>
+        /// <remarks>Does not create the collections if any are included in the <see cref="ScopeSpec"/></remarks>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>A <see cref="Task"/> that can be awaited.</returns>
+        [Obsolete("Use other overloaded CreateScopeAsync method that does not take a ScopeSpec instead.")]
+        public Task CreateScopeAsync(ScopeSpec spec, CreateScopeOptions? options = null)
+        {
+            return CreateScopeAsync(spec.Name, options);
         }
 
         public async Task DropScopeAsync(string scopeName, DropScopeOptions? options = null)

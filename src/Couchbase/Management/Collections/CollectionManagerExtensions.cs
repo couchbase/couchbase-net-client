@@ -9,17 +9,33 @@ namespace Couchbase.Management.Collections
 {
     public static class CollectionManagerExtensions
     {
-        public static Task CreateScopeAsync(this ICouchbaseCollectionManager manager, ScopeSpec scopeSpec)
+        public static Task CreateScopeAsync(this ICouchbaseCollectionManager manager, string scopeName)
         {
-            return manager.CreateScopeAsync(scopeSpec, CreateScopeOptions.Default);
+            return manager.CreateScopeAsync(scopeName, CreateScopeOptions.Default);
         }
 
+        [Obsolete("Use other overloaded CreateScopeAsync method that does not take a ScopeSpec instead.")]
+        public static Task CreateScopeAsync(this ICouchbaseCollectionManager manager, ScopeSpec scopeSpec)
+        {
+            return manager.CreateScopeAsync(scopeSpec.Name, CreateScopeOptions.Default);
+        }
+
+        public static Task CreateScopeAsync(this ICouchbaseCollectionManager manager, string scopeName, Action<CreateScopeOptions> configureOptions)
+        {
+            var options = new CreateScopeOptions();
+            configureOptions(options);
+
+            return manager.CreateScopeAsync(scopeName, options);
+        }
+
+
+        [Obsolete("Use other overloaded CreateScopeAsync method that does not take a ScopeSpec instead.")]
         public static Task CreateScopeAsync(this ICouchbaseCollectionManager manager, ScopeSpec scopeSpec, Action<CreateScopeOptions> configureOptions)
         {
             var options = new CreateScopeOptions();
             configureOptions(options);
 
-            return manager.CreateScopeAsync(scopeSpec, options);
+            return manager.CreateScopeAsync(scopeSpec.Name, options);
         }
 
         public static Task<ScopeSpec> GetScopeAsync(this ICouchbaseCollectionManager manager, string scopeName)
