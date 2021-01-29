@@ -399,6 +399,28 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
+        public async Task Test_ExpiryTime()
+        {
+            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var key = nameof(Test_ExpiryTime_Default_Infinite_TTL);
+
+            try
+            {
+                await collection.InsertAsync(key, Person.Create(), options=>options.Expiry(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options => options.Expiry()).ConfigureAwait(false);
+                var content = result.ExpiryTime;
+
+                //Estimate the time comparision by range
+                Assert.True(content < DateTime.Now.Add(TimeSpan.FromSeconds(30)).ToLocalTime());
+                Assert.True(content > DateTime.Now.Add(TimeSpan.FromSeconds(-30)).ToLocalTime());
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
         public async Task Test_ExpiryTime_Default_Infinite_TTL()
         {
             var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);

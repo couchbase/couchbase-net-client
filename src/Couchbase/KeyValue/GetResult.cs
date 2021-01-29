@@ -98,16 +98,16 @@ namespace Couchbase.KeyValue
                 if (spec != null)
                 {
                     // Always use our default serializer, it provides consistent behavior and is guaranteed to not be null
-                    var ms = DefaultSerializer.Instance.Deserialize<long>(spec.Bytes);
-                    if (ms == 0)
+                    var secondsUntilExpiry = DefaultSerializer.Instance.Deserialize<long>(spec.Bytes);
+                    if (secondsUntilExpiry == 0)
                     {
                         return DateTime.MaxValue;
                     }
 #if NETSTANDARD2_1
-                    _expiryTime = DateTime.UnixEpoch.AddMilliseconds(ms).ToLocalTime();
+                    _expiryTime = DateTime.UnixEpoch.AddSeconds(secondsUntilExpiry).ToLocalTime();
 #else
                     var unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                    _expiryTime = unixEpoch.AddSeconds(ms).ToLocalTime();
+                    _expiryTime = unixEpoch.AddSeconds(secondsUntilExpiry).ToLocalTime();
 #endif
                 }
 
