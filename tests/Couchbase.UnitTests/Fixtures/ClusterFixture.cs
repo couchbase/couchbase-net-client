@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Couchbase.KeyValue;
 
 namespace Couchbase.UnitTests.Fixtures
@@ -23,10 +24,10 @@ namespace Couchbase.UnitTests.Fixtures
         }
 
 
-        public ICouchbaseCollection GetDefaultCollection()
+        public async Task<ICouchbaseCollection> GetDefaultCollectionAsync()
         {
             var bucket = GetDefaultBucket();
-            return bucket.DefaultCollection();
+            return await bucket.DefaultCollectionAsync().ConfigureAwait(false);
         }
 
         public void Dispose()

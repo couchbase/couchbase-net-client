@@ -44,11 +44,13 @@ namespace Couchbase
             _httpClusterMap = httpClusterMap;
         }
 
+        [Obsolete("Use asynchronous equivalent instead.")]
         public override IScope Scope(string scopeName)
         {
             return this[scopeName];
         }
 
+        [Obsolete("Use asynchronous equivalent instead.")]
         public override IScope this[string scopeName]
         {
             get

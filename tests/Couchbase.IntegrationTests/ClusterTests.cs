@@ -33,16 +33,16 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                var result1 = await bucket1.DefaultCollection().InsertAsync(key, new {Whoah = "buddy!"})
+                var result1 = await (await bucket1.DefaultCollectionAsync()).InsertAsync(key, new {Whoah = "buddy!"})
                     .ConfigureAwait(false);
 
-                var result2 = await bucket2.DefaultCollection().InsertAsync(key, new { Whoah = "buddy!" })
+                var result2 = await (await bucket2.DefaultCollectionAsync()).InsertAsync(key, new { Whoah = "buddy!" })
                     .ConfigureAwait(false);
             }
             finally
             {
-                await bucket1.DefaultCollection().RemoveAsync(key).ConfigureAwait(false);
-                await bucket2.DefaultCollection().RemoveAsync(key).ConfigureAwait(false);
+                await (await bucket1.DefaultCollectionAsync()).RemoveAsync(key).ConfigureAwait(false);
+                await (await bucket2.DefaultCollectionAsync()).RemoveAsync(key).ConfigureAwait(false);
             }
         }
 

@@ -59,7 +59,7 @@ namespace Couchbase.IntegrationTests.DataStructures
 
         private async Task<IPersistentList<Foo>> GetPersistentList(string id)
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             return new PersistentList<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
         }
 

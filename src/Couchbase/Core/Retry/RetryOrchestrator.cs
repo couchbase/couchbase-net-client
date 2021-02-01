@@ -243,8 +243,8 @@ namespace Couchbase.Core.Retry
 
                 if (bucket.Nodes.TryGet(endPoint!, out var clusterNode))
                 {
-                    var scope = bucket.Scope(op.SName);
-                    var collection = (CouchbaseCollection) scope.Collection(op.CName);
+                    var scope = await bucket.ScopeAsync(op.SName).ConfigureAwait(false);
+                    var collection = (CouchbaseCollection) await scope.CollectionAsync(op.CName).ConfigureAwait(false);
 
                     var newCid = await clusterNode.GetCid($"{op.SName}.{op.CName}").ConfigureAwait(false);
                     collection.Cid = newCid;

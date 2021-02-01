@@ -20,7 +20,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_decrement_value()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
@@ -42,7 +42,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_specify_initial_and_delta_values()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try
@@ -64,7 +64,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Expiry()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try

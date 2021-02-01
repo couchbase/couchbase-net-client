@@ -19,7 +19,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections
         public async Task ParallelOperations()
         {
             var bucket = await _fixture.GetDefaultBucket().ConfigureAwait(false);
-            var collection = bucket.DefaultCollection();
+            var collection = await bucket.DefaultCollectionAsync();
             var key = Guid.NewGuid().ToString();
 
             try

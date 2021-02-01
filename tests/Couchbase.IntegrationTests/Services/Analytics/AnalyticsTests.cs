@@ -75,7 +75,7 @@ namespace Couchbase.IntegrationTests.Services.Analytics
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
             var result = await cluster.IngestAsync<dynamic>(
                 statement,
-                await _fixture.GetDefaultCollection().ConfigureAwait(false),
+                await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false),
                 options =>
                 {
                     options.Timeout(TimeSpan.FromSeconds(75));

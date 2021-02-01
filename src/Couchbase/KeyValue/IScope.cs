@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Query;
@@ -18,9 +19,13 @@ namespace Couchbase.KeyValue
         /// </summary>
         IBucket Bucket { get; }
 
+        [Obsolete("Use asynchronous equivalent instead.")]
         ICouchbaseCollection this[string name] { get; }
 
+        [Obsolete("Use asynchronous equivalent instead.")]
         ICouchbaseCollection Collection(string collectionName);
+
+        Task<ICouchbaseCollection> CollectionAsync(string collectionName);
 
         /// <summary>
         /// Scope level querying of collections.

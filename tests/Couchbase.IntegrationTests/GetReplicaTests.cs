@@ -19,7 +19,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_get_any_replica()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
             var person = Person.Create();
 
@@ -43,7 +43,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_get_all_replicas()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
             var person = Person.Create();
 

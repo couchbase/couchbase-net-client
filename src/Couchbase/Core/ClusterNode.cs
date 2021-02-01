@@ -325,6 +325,28 @@ namespace Couchbase.Core
             return resultWithValue.Content;
         }
 
+        /// <summary>
+        /// Gets the Scope Identifier given a fully qualified name.
+        /// </summary>
+        /// <param name="fullyQualifiedName"></param>
+        /// <returns></returns>
+        public async Task<uint?> GetSid(string fullyQualifiedName)
+        {
+            using var rootSpan = RootSpan(OperationNames.GetCid);
+            using var getCid = new GetSid
+            {
+                Key = fullyQualifiedName,
+                Transcoder = GlobalTranscoder,
+                OperationBuilderPool = _operationBuilderPool,
+                Opaque = SequenceGenerator.GetNext(),
+                Content = null,
+                Span = rootSpan,
+            };
+            await ExecuteOp(ConnectionPool, getCid).ConfigureAwait(false);
+            var resultWithValue = getCid.GetResultWithValue();
+            return resultWithValue.Content;
+        }
+
         private void BuildServiceUris()
         {
             QueryUri = NodesAdapter?.GetQueryUri(_context.ClusterOptions);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -49,6 +50,25 @@ namespace Couchbase.Core.DI
             }
 
             return new Scope(null, _collectionFactory, bucket, _scopeLogger);
+        }
+
+        /// <inheritdoc />
+        public IScope CreateScope(string name, string scopeIdentifier, BucketBase bucket)
+        {
+            if (name == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(name));
+            }
+            if (scopeIdentifier == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(scopeIdentifier));
+            }
+            if (bucket == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(bucket));
+            }
+
+            return new Scope(name, scopeIdentifier, bucket,_collectionFactory, _scopeLogger);
         }
     }
 }

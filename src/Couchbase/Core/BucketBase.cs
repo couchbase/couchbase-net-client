@@ -21,6 +21,7 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -30,7 +31,7 @@ namespace Couchbase.Core
     internal abstract class BucketBase : IBucket, IConfigUpdateEventSink, IBootstrappable
     {
         private ClusterState _clusterState;
-        private readonly IScopeFactory _scopeFactory;
+        protected readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
         public readonly ClusterNodeCollection Nodes = new ClusterNodeCollection();
 
@@ -83,10 +84,16 @@ namespace Couchbase.Core
 
         #region Scopes
 
+        [Obsolete("Use asynchronous equivalent instead.")]
         public abstract IScope this[string scopeName] { get; }
 
+        [Obsolete("Use asynchronous equivalent instead.")]
         public virtual IScope Scope(string scopeName)
         {
+            if (Scopes.Count == 0)
+            {
+                LoadManifest();
+            }
             if (!Scopes.ContainsKey(scopeName))
             {
                 LoadManifest();
@@ -99,10 +106,49 @@ namespace Couchbase.Core
             throw new ScopeNotFoundException(scopeName);
         }
 
+        /// <inheritdoc />
+        public async Task<IScope> ScopeAsync(string scopeName)
+        {
+            Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
+            if (scopeName == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(scopeName));
+            }
+
+            // ReSharper disable once AssignNullToNotNullAttribute
+            if (Scopes.TryGetValue(scopeName, out var scope))
+            {
+                return scope;
+            }
+
+            var clusterNode = Nodes.FirstOrDefault();
+            if (clusterNode == null)
+            {
+                ThrowHelper.ThrowNodeUnavailableException($"Could not select a node while fetching scope {scopeName} for bucket {Name}");
+            }
+
+            // ReSharper disable once PossibleNullReferenceException
+            var scopeIdentifier = await clusterNode.GetSid(scopeName).ConfigureAwait(false);
+            var newScope = _scopeFactory.CreateScope(scopeName, Convert.ToString(scopeIdentifier.Value), this);
+            if (Scopes.TryAdd(scopeName, newScope))
+            {
+                return newScope;
+            }
+
+            throw new ScopeNotFoundException(scopeName);
+        }
+
         /// <remarks>Volatile</remarks>
+        [Obsolete("Use asynchronous equivalent instead.")]
         public IScope DefaultScope()
         {
             return Scope(KeyValue.Scope.DefaultScopeName);
+        }
+
+        /// <inheritdoc />
+        public Task<IScope> DefaultScopeAsync()
+        {
+            return ScopeAsync(KeyValue.Scope.DefaultScopeName);
         }
 
         #endregion
@@ -111,13 +157,32 @@ namespace Couchbase.Core
 
         public abstract ICouchbaseCollectionManager Collections { get; }
 
+        /// <inheritdoc />
+        public Task<ICouchbaseCollection> DefaultCollectionAsync()
+        {
+            return CollectionAsync(CouchbaseCollection.DefaultCollectionName);
+        }
+
         /// <remarks>Volatile</remarks>
+        [Obsolete("Use asynchronous equivalent instead.")]
         public ICouchbaseCollection Collection(string collectionName)
         {
+            if (Scopes.Count == 0)
+            {
+                LoadManifest();
+            }
             var scope = DefaultScope();
             return scope[collectionName];
         }
 
+        /// <inheritdoc />
+        public async Task<ICouchbaseCollection> CollectionAsync(string collectionName)
+        {
+            var scope = await DefaultScopeAsync().ConfigureAwait(false);
+            return await scope.CollectionAsync(collectionName).ConfigureAwait(false);
+        }
+
+        [Obsolete("Use asynchronous equivalent instead.")]
         public ICouchbaseCollection DefaultCollection()
         {
             return Collection(CouchbaseCollection.DefaultCollectionName);

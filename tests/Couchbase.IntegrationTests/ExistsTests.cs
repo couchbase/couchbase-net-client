@@ -20,7 +20,7 @@ namespace Couchbase.IntegrationTests
         public async Task Exists_returns_true_when_key_exists()
         {
             var key = Guid.NewGuid().ToString();
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
 
             try
             {
@@ -41,7 +41,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Exists_returns_cas()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try

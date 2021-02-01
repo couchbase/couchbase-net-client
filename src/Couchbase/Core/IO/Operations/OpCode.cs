@@ -88,8 +88,15 @@ namespace Couchbase.Core.IO.Operations
         //the collections manifest
         GetCollectionsManifest = 0xBA,
 
-        //Get the CID by name
+        /// <summary>
+        /// Get the Collection Identifier (CID) by name
+        /// </summary>
         GetCidByName = 0xbb,
+
+        /// <summary>
+        /// Gets the Scope Identifier (SID) by name.
+        /// </summary>
+        GetSidByName = 0xBC,
 
         GetMeta = 0xa0
     }

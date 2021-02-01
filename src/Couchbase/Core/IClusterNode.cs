@@ -58,7 +58,10 @@ namespace Couchbase.Core
         Task SelectBucketAsync(IBucket bucket, CancellationToken cancellationToken = default);
 
         Task<BucketConfig> GetClusterMap();
+
         Task<uint?> GetCid(string fullyQualifiedName);
+
+        Task<uint?> GetSid(string fullyQualifiedName);
 
         Task ExecuteOp(IOperation op, CancellationTokenPair tokenPair = default);
 

@@ -53,6 +53,10 @@ namespace Couchbase.Utils
         public static void ThrowSendQueueFullException() =>
             throw new SendQueueFullException();
 
+        [DoesNotReturn]
+        public static void ThrowNodeUnavailableException(string message) =>
+            throw new NodeNotAvailableException(message);
+
         public static void ThrowTimeoutException(IOperation operation)
         {
             var message = $"The operation {operation.Opaque}/{operation.Opaque} timed out after {operation.Timeout}. " +

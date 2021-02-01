@@ -57,6 +57,7 @@ namespace Couchbase
             );
         }
 
+        [Obsolete("Use asynchronous equivalent instead.")]
         public override IScope this[string scopeName]
         {
             get
@@ -257,9 +258,6 @@ namespace Couchbase
                 {
                     Manifest = await node.GetManifest().ConfigureAwait(false);
                 }
-
-                //we still need to add a default collection
-                LoadManifest();
 
                 BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
                 BucketConfig.NetworkResolution = Context.ClusterOptions.NetworkResolution;

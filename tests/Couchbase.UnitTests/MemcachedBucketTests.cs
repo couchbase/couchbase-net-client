@@ -45,7 +45,7 @@ namespace Couchbase.UnitTests
         {
             var bucket = CreateMemcachedBucket();
 
-            Assert.Throws<NotSupportedException>(() => bucket["xxxxx"]);
+            Assert.ThrowsAsync<NotSupportedException>(async () => await bucket.ScopeAsync("xxxxx"));
         }
 
         [Fact(Skip = "Will be enabled in later commit.")]
@@ -68,7 +68,7 @@ namespace Couchbase.UnitTests
             var bucket = CreateMemcachedBucket();
             await bucket.BootstrapAsync(mockClusterNode.Object).ConfigureAwait(false);
 
-            var scope = bucket[Scope.DefaultScopeName];
+            var scope = await bucket.ScopeAsync(Scope.DefaultScopeName);
             Assert.Equal(Scope.DefaultScopeName, scope.Name);
         }
 

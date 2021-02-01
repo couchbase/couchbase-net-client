@@ -47,7 +47,7 @@ namespace Couchbase.IntegrationTests.DataStructures
 
         private async Task<IPersistentSet<Foo>> GetPersistentSet(string id)
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             return new PersistentSet<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
         }
 

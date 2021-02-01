@@ -25,33 +25,31 @@ namespace Couchbase.IntegrationTests
             var collectionManager = (CollectionManager)bucket.Collections;
 
             const string scopeName = "my_scope", collectionName = "my_collection";
-            var scopeSpec = new ScopeSpec(scopeName);
             var collectionSpec = new CollectionSpec(scopeName, collectionName);
 
             try
             {
                 // create scope
-                //await collectionManager.CreateScopeAsync(scopeSpec);
+                await collectionManager.CreateScopeAsync(scopeName);
 
-                // create collection
-                // await collectionManager.CreateCollectionAsync(collectionSpec);
+                //create collection
+                await collectionManager.CreateCollectionAsync(collectionSpec);
 
-                var collection = bucket.Scope(scopeName).Collection(collectionName);
-                var result = await collection.UpsertAsync("key3", new { });
+                await Task.Delay(1000);
 
-                var result2 = await collection.UpsertAsync("key3", new { boo="bee"}, new UpsertOptions().Expiry(TimeSpan.FromMilliseconds(100000)));
+                var scope = await bucket.ScopeAsync(scopeName).ConfigureAwait(false);
+                var collection = await scope.CollectionAsync(collectionName).ConfigureAwait(false);
+                var result = await collection.UpsertAsync("key3", new { }).ConfigureAwait(false);
+
+                var result2 = await collection.UpsertAsync("key3", new { boo="bee"}, new UpsertOptions().Expiry(TimeSpan.FromMilliseconds(100000))).ConfigureAwait(false);
 
 
-            }
-            catch
-            {
-                // ???
             }
             finally
             {
                 // drop collection
-                //await collectionManager.DropCollectionAsync(collectionSpec);
-                //await collectionManager.DropScopeAsync(scopeName);
+                await collectionManager.DropCollectionAsync(collectionSpec);
+                await collectionManager.DropScopeAsync(scopeName);
             }
         }
 
@@ -61,18 +59,18 @@ namespace Couchbase.IntegrationTests
             const string key = nameof(InsertByteArray_DefaultConverter_UnsupportedException);
 
             var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
-            var collection = bucket.DefaultCollection();
+            var collection = await bucket.DefaultCollectionAsync().ConfigureAwait(false);
 
             try
             {
                 await Assert.ThrowsAsync<UnsupportedException>(
-                    () => collection.InsertAsync(key, new byte[] { 1, 2, 3 }));
+                    () => collection.InsertAsync(key, new byte[] { 1, 2, 3 })).ConfigureAwait(false);
             }
             finally
             {
                 try
                 {
-                    await collection.RemoveAsync(key);
+                    await collection.RemoveAsync(key).ConfigureAwait(false);
                 }
                 catch (DocumentNotFoundException)
                 {
@@ -92,13 +90,14 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collectionManager.CreateScopeAsync(new ScopeSpec(scopeName));
+                await collectionManager.CreateScopeAsync(scopeName);
                 await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
+                await Task.Delay(1000);
 
-                await Task.Delay(500);
                 await ((CouchbaseBucket) bucket).RefreshManifestAsync();
 
-                ICouchbaseCollection collection = bucket.Scope(scopeName).Collection(collectionName);
+                var scope = await bucket.ScopeAsync(scopeName);
+                ICouchbaseCollection collection = await scope.CollectionAsync(collectionName);
 
                 await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
 

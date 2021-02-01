@@ -408,7 +408,7 @@ namespace Couchbase.IntegrationTests.Management
         public async Task Test_BatchingCollectionGet()
         {
             var tasks = new List<Task>();
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
 
             for (var i = 0; i < 20; i++)
             {

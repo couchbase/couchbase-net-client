@@ -31,7 +31,7 @@ namespace Couchbase.LoadTests
             const int mutationPercent = 10;
             var maxSimultaneous = Environment.ProcessorCount * 2;
 
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollectionAsync();
             var docGenerator = new JsonDocumentGenerator(32, 1024);
             var keyGenerator = new GuidKeyGenerator();
             var random = new Random();
@@ -73,7 +73,7 @@ namespace Couchbase.LoadTests
             const int mutationPercent = 10;
             var maxSimultaneous = Environment.ProcessorCount * 2;
 
-            var collection = await _fixture.GetDefaultCollection();
+            var collection = await _fixture.GetDefaultCollectionAsync();
             var docGenerator = new JsonDocumentGenerator(65536, 524288);
             var keyGenerator = new GuidKeyGenerator();
             var random = new Random();

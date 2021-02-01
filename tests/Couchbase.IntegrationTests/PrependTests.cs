@@ -20,7 +20,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_prepend()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var key = Guid.NewGuid().ToString();
 
             try

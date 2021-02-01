@@ -25,7 +25,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_Return_Expiry()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync("Can_Return_Expiry()", new {foo = "bar", bar = "foo"}, options =>options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
 
             var result = await collection.GetAsync("Can_Return_Expiry()", options=>options.Expiry()).ConfigureAwait(false);
@@ -35,7 +35,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task LookupIn_Can_Return_FullDoc()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync("LookupIn_Can_Return_FullDoc()", new {foo = "bar", bar = "foo"}, options =>options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
 
             var result = await collection.LookupInAsync("LookupIn_Can_Return_FullDoc()", builder=>builder.GetFull());
@@ -46,7 +46,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task LookupIn_Xattr_In_Any_Order()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(nameof(LookupIn_Xattr_In_Any_Order), new { foo = "bar", bar = "foo" }, options => options.Expiry(TimeSpan.FromHours(1))).ConfigureAwait(false);
             var result = await collection.LookupInAsync(nameof(LookupIn_Xattr_In_Any_Order), specs =>
                 specs.Get("$document", true)
@@ -64,7 +64,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_perform_lookup_in()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
             var result = await collection.LookupInAsync(DocumentKey, ops =>
@@ -82,7 +82,7 @@ namespace Couchbase.IntegrationTests
         {
             var key = Guid.NewGuid().ToString();
 
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(key, new TestDoc {Foo = "bar", Bar = "foo"}).ConfigureAwait(false);
 
             try
@@ -105,7 +105,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_perform_lookup_in_with_Exists()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new { foo = "bar", bar = "foo" }).ConfigureAwait(false);
 
             var result = await collection.LookupInAsync(DocumentKey, ops =>
@@ -122,7 +122,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_do_lookup_in_with_array()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
             var result = await collection.LookupInAsync(DocumentKey, new[]
@@ -138,7 +138,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_perform_mutate_in()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
             await collection.MutateInAsync(DocumentKey, ops =>
@@ -172,7 +172,7 @@ namespace Couchbase.IntegrationTests
         {
             var key = Guid.NewGuid().ToString();
 
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(key, new TestDoc {Foo = "bar", Bar = "foo"}).ConfigureAwait(false);
 
             try
@@ -213,7 +213,7 @@ namespace Couchbase.IntegrationTests
         public async Task MutateIn_Xattr_In_Any_Order()
         {
             var docId = nameof(MutateIn_Xattr_In_Any_Order);
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(docId, new { foo = "bar", bar = "foo", xxx = 0 }).ConfigureAwait(false);
 
             var mutateResult = await collection.MutateInAsync(docId, ops =>
@@ -247,7 +247,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Can_perform_mutate_in_with_array()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey, new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
 
             var result = await collection.MutateInAsync(DocumentKey, new[]
@@ -271,7 +271,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_When_Connection_Fails_It_Is_Recreated()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
 
             try
             {
@@ -294,7 +294,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_MutateInAsync_Upsert_And_Xattr_Doc()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
 
             var result = await collection.MutateInAsync("foo", specs =>
                 {
@@ -310,7 +310,7 @@ namespace Couchbase.IntegrationTests
         [CouchbaseVersionDependentFact(MinVersion = "6.6.0")]
         public async Task MutateIn_CreateAsDeleted_Creates_Tombstone()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var documentKey = nameof(MutateIn_CreateAsDeleted_Creates_Tombstone) + Guid.NewGuid().ToString();
             var result = await collection.MutateInAsync(documentKey, specs =>
                 {
@@ -341,7 +341,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task MutateIn_Remove_Succeeds()
         {
-            var collection = await _fixture.GetDefaultCollection().ConfigureAwait(false);
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             var documentKey = nameof(MutateIn_Remove_Succeeds);
             var o = JObject.FromObject(new
             {

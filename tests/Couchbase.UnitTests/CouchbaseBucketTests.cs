@@ -14,22 +14,6 @@ namespace Couchbase.UnitTests
     public class CouchbaseBucketTests
     {
         [Fact]
-        public void Scope_Indexer_NotFound_Throws_ScopeNotFoundException()
-        {
-            var bucket = new CouchbaseBucket("default",
-                new ClusterContext(),
-                new Mock<IScopeFactory>().Object,
-                new Mock<IRetryOrchestrator>().Object,
-                new Mock<IVBucketKeyMapperFactory>().Object,
-                new Mock<ILogger<CouchbaseBucket>>().Object,
-                new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance);
-
-            Assert.Throws<ScopeNotFoundException>(() =>bucket["doesnotexist"]);
-        }
-
-        [Fact]
         public void Scope_NotFound_Throws_ScopeNoteFoundException( )
         {
             var bucket = new CouchbaseBucket("default",
@@ -45,7 +29,7 @@ namespace Couchbase.UnitTests
                 new Mock<IBootstrapperFactory>().Object,
                 NullRequestTracer.Instance);
 
-            Assert.Throws<ScopeNotFoundException>(() => bucket.Scope("doesnotexist"));
+            Assert.ThrowsAsync<ScopeNotFoundException>(async () => await bucket.ScopeAsync("doesnotexist"));
         }
     }
 }

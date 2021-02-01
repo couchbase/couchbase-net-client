@@ -21,10 +21,10 @@ namespace Couchbase.LoadTests.Fixtures
             return await Cluster.BucketAsync("default");
         }
 
-        public async Task<ICouchbaseCollection> GetDefaultCollection()
+        public async Task<ICouchbaseCollection> GetDefaultCollectionAsync()
         {
             var bucket = await GetDefaultBucketAsync();
-            return bucket.DefaultCollection();
+            return await bucket.DefaultCollectionAsync();
         }
 
         public void Dispose()
