@@ -115,7 +115,7 @@ namespace Couchbase.KeyValue
             return this[collectionName];
         }
 
-        public async Task<ICouchbaseCollection> CollectionAsync(string collectionName)
+        public async ValueTask<ICouchbaseCollection> CollectionAsync(string collectionName)
         {
             _logger.LogDebug("Fetching collection {collectionName}.", collectionName);
 

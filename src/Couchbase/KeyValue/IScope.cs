@@ -25,7 +25,7 @@ namespace Couchbase.KeyValue
         [Obsolete("Use asynchronous equivalent instead.")]
         ICouchbaseCollection Collection(string collectionName);
 
-        Task<ICouchbaseCollection> CollectionAsync(string collectionName);
+        ValueTask<ICouchbaseCollection> CollectionAsync(string collectionName);
 
         /// <summary>
         /// Scope level querying of collections.

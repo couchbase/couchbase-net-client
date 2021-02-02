@@ -107,7 +107,7 @@ namespace Couchbase.Core
         }
 
         /// <inheritdoc />
-        public async Task<IScope> ScopeAsync(string scopeName)
+        public async ValueTask<IScope> ScopeAsync(string scopeName)
         {
             Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
             if (scopeName == null)
@@ -146,7 +146,7 @@ namespace Couchbase.Core
         }
 
         /// <inheritdoc />
-        public Task<IScope> DefaultScopeAsync()
+        public ValueTask<IScope> DefaultScopeAsync()
         {
             return ScopeAsync(KeyValue.Scope.DefaultScopeName);
         }
@@ -158,7 +158,7 @@ namespace Couchbase.Core
         public abstract ICouchbaseCollectionManager Collections { get; }
 
         /// <inheritdoc />
-        public Task<ICouchbaseCollection> DefaultCollectionAsync()
+        public ValueTask<ICouchbaseCollection> DefaultCollectionAsync()
         {
             return CollectionAsync(CouchbaseCollection.DefaultCollectionName);
         }
@@ -176,7 +176,7 @@ namespace Couchbase.Core
         }
 
         /// <inheritdoc />
-        public async Task<ICouchbaseCollection> CollectionAsync(string collectionName)
+        public async ValueTask<ICouchbaseCollection> CollectionAsync(string collectionName)
         {
             var scope = await DefaultScopeAsync().ConfigureAwait(false);
             return await scope.CollectionAsync(collectionName).ConfigureAwait(false);
