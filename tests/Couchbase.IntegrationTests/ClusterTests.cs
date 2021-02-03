@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.KeyValue;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -36,7 +37,7 @@ namespace Couchbase.IntegrationTests
                 var result1 = await (await bucket1.DefaultCollectionAsync()).InsertAsync(key, new {Whoah = "buddy!"})
                     .ConfigureAwait(false);
 
-                var result2 = await (await bucket2.DefaultCollectionAsync()).InsertAsync(key, new { Whoah = "buddy!" })
+                var result2 = await (await bucket2.DefaultCollectionAsync()).InsertAsync(key, new {Whoah = "buddy!"})
                     .ConfigureAwait(false);
             }
             finally
@@ -49,16 +50,15 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Query_With_Positional_Parameters()
         {
-            var cluster = await _fixture.GetCluster().ConfigureAwait(false);;
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+
             var result = await cluster.QueryAsync<dynamic>("SELECT x.* FROM `default` WHERE x.Type=$1",
-                options =>
-                {
-                    options.Parameter("foo");
-                }).ConfigureAwait(true);
+                options => { options.Parameter("foo"); }).ConfigureAwait(true);
 
             await foreach (var row in result)
             {
             }
+
             result.Dispose();
         }
 
@@ -68,14 +68,12 @@ namespace Couchbase.IntegrationTests
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             var result = await cluster.QueryAsync<dynamic>("SELECT * FROM `default` WHERE type=$name;",
-                options =>
-            {
-                options.Parameter("name", "person");
-            }).ConfigureAwait(false);
+                options => { options.Parameter("name", "person"); }).ConfigureAwait(false);
 
             await foreach (var o in result)
             {
             }
+
             result.Dispose();
         }
 
@@ -121,6 +119,58 @@ namespace Couchbase.IntegrationTests
             };
 
             await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10), options).ConfigureAwait(false);
+        }
+
+        [Fact]
+        public async Task Test_Default_Scope_Collection_Async()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var bucket = await cluster.BucketAsync("default");
+
+            var scope = await bucket.DefaultScopeAsync();
+            var collection = await bucket.DefaultCollectionAsync();
+
+            Assert.Equal(Scope.DefaultScopeName, scope.Name);
+            Assert.Equal(CouchbaseCollection.DefaultCollectionName, collection.Name);
+        }
+
+        [Fact]
+        public async Task Test_Default_Scope_Collection_Legacy()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var bucket = await cluster.BucketAsync("default");
+
+            var scope = bucket.DefaultScope();
+            var collection = bucket.DefaultCollection();
+
+            Assert.Equal(Scope.DefaultScopeName, scope.Name);
+            Assert.Equal(CouchbaseCollection.DefaultCollectionName, collection.Name);
+        }
+
+        [Fact]
+        public async Task Test_Default_Open_Collection_From_Scope_Async()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var bucket = await cluster.BucketAsync("default");
+
+            var scope = await bucket.DefaultScopeAsync();
+            var collection = await scope.CollectionAsync("_default");
+
+            Assert.Equal(Scope.DefaultScopeName, scope.Name);
+            Assert.Equal(CouchbaseCollection.DefaultCollectionName, collection.Name);
+        }
+
+        [Fact]
+        public async Task Test_Default_Open_Collection_From_Scope_Legacy()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var bucket = await cluster.BucketAsync("default");
+
+            var scope = bucket.DefaultScope();
+            var collection = scope.Collection("_default");
+
+            Assert.Equal(Scope.DefaultScopeName, scope.Name);
+            Assert.Equal(CouchbaseCollection.DefaultCollectionName, collection.Name);
         }
     }
 }

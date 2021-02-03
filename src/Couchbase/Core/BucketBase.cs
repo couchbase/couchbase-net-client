@@ -115,6 +115,9 @@ namespace Couchbase.Core
                 ThrowHelper.ThrowArgumentNullException(nameof(scopeName));
             }
 
+            //Load the default scope for pre-CB7 servers
+            LoadDefaultScope();
+
             // ReSharper disable once AssignNullToNotNullAttribute
             if (Scopes.TryGetValue(scopeName, out var scope))
             {
@@ -215,13 +218,19 @@ namespace Couchbase.Core
                 {
                     Scopes.AddOrUpdate(scope.Name, scope, (_, oldScope) => scope);
                 }
+
+                return;
             }
-            else
+
+            LoadDefaultScope();
+        }
+
+        protected void LoadDefaultScope()
+        {
+            if (!Context.SupportsCollections)
             {
-                //build a fake scope and collection for pre-6.5 clusters or in the bootstrap failure case
-                //for deferred error handling
-                var defaultScope = _scopeFactory.CreateDefaultScope(this);
-                Scopes.TryAdd(defaultScope.Name, defaultScope);
+                //build a fake scope and collection for pre-6.5 clusters or in the bootstrap failure case for deferred error handling
+                Scopes.GetOrAdd(Couchbase.KeyValue.Scope.DefaultScopeName, s => _scopeFactory.CreateDefaultScope(this));
             }
         }
 
