@@ -56,6 +56,8 @@ namespace Couchbase.Core
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             Tracer = tracer;
 
+            _createDefaultScopeFunc = key => _scopeFactory.CreateDefaultScope(this);
+
             BootstrapperFactory = bootstrapperFactory ?? throw new ArgumentNullException(nameof(bootstrapperFactory));
             Bootstrapper = bootstrapperFactory.Create(Context.ClusterOptions.BootstrapPollInterval);
         }
@@ -225,12 +227,14 @@ namespace Couchbase.Core
             LoadDefaultScope();
         }
 
+        private readonly Func<string, IScope> _createDefaultScopeFunc;
+
         protected void LoadDefaultScope()
         {
             if (!Context.SupportsCollections)
             {
                 //build a fake scope and collection for pre-6.5 clusters or in the bootstrap failure case for deferred error handling
-                Scopes.GetOrAdd(Couchbase.KeyValue.Scope.DefaultScopeName, s => _scopeFactory.CreateDefaultScope(this));
+                Scopes.GetOrAdd(Couchbase.KeyValue.Scope.DefaultScopeName, _createDefaultScopeFunc);
             }
         }
 
