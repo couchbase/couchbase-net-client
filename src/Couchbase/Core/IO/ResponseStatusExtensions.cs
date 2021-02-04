@@ -101,6 +101,8 @@ namespace Couchbase.Core.IO
                     return new CollectionOutdatedException { Context = ctx };
                 case ResponseStatus.TransportFailure:
                     return new RequestCanceledException{ Context = ctx };
+                case ResponseStatus.NoCollectionsManifest:
+                    return new UnsupportedException("Non-default Scopes and Collections not supported on this server version.") { Context = ctx };
                 default:
                     return new CouchbaseException { Context = ctx };
             }

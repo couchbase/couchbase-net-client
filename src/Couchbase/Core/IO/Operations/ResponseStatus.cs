@@ -330,6 +330,11 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// A SyncWrite request re-commit is in progress.
         /// </summary>
-        SyncWriteReCommitInProgress = 0xa4
+        SyncWriteReCommitInProgress = 0xa4,
+
+        /// <summary>
+        /// No collections manifest has been set. The server does not support scopes or collections.
+        /// </summary>
+        NoCollectionsManifest = 0x89
     }
 }
