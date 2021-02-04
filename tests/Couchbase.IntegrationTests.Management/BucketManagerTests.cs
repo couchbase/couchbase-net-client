@@ -41,6 +41,8 @@ namespace Couchbase.IntegrationTests
                 // create
                 await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
 
+                await Task.Delay(TimeSpan.FromMilliseconds(1000)).ConfigureAwait(false);
+
                 // get
                 var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
                 VerifyBucket(settings, result);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -49,6 +50,8 @@ namespace Couchbase.IntegrationTests.Services.Search
                 getResult = getAllResult.Single(x => x.Name == definition.Name);
                 VerifyIndex(definition, getResult);
 
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
                 await manager.GetIndexedDocumentsCountAsync(definition.Name).ConfigureAwait(false);
 
                 // pause
@@ -81,8 +84,6 @@ namespace Couchbase.IntegrationTests.Services.Search
             Assert.Equal(definition.Name, index.Name);
             Assert.Equal(definition.Type, index.Type);
             Assert.NotEmpty(index.Uuid);
-            Assert.Equal(definition.SourceName, index.SourceName);
-            Assert.Equal(definition.SourceType, index.SourceType);
         }
     }
 }
