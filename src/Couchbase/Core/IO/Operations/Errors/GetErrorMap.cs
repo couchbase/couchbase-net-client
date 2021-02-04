@@ -9,29 +9,27 @@ namespace Couchbase.Core.IO.Operations.Errors
 
         public ErrorMap ErrorMap { get; set; }
 
-        public override void WriteKey(OperationBuilder builder)
+        protected override void WriteKey(OperationBuilder builder)
         {
         }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
             Span<byte> body = stackalloc byte[2];
             ByteConverter.FromInt16(DefaultVersion, body);
             builder.Write(body);
         }
 
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             // no extras to read
         }
 
         public override OpCode OpCode => OpCode.GetErrorMap;
-
-        public override bool RequiresKey => false;
     }
 }
 

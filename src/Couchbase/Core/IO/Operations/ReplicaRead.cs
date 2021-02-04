@@ -4,43 +4,23 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.ReplicaRead;
 
-        public override bool IsReplicaRead => true;
+        public ReplicaRead(string key, short replicaIndex)
+        {
+            Key = key;
+            ReplicaIdx = replicaIndex;
+        }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteFramingExtras(OperationBuilder builder)
+        protected override void WriteFramingExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
         }
-
-        public override IOperation Clone()
-        {
-            var cloned = new ReplicaRead<T>
-            {
-                Key = Key,
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
-
-        public override bool RequiresKey => true;
-
-        public override bool Idempotent { get; } = true;
     }
 }
 

@@ -284,7 +284,7 @@ namespace Couchbase.UnitTests.KeyValue
                     It.IsAny<CancellationTokenPair>()))
                 .Returns((IOperation operation, CancellationTokenPair cancellationTokenPair) =>
                 {
-                    operation.Header = new OperationHeader
+                    ((OperationBase) operation).Header = new OperationHeader
                     {
                         Status = getResult
                     };
@@ -297,7 +297,7 @@ namespace Couchbase.UnitTests.KeyValue
                 It.IsAny<CancellationTokenPair>()))
                 .Returns((IOperation operation, CancellationToken cancellationToken) =>
                 {
-                    operation.Header = new OperationHeader
+                    ((OperationBase) operation).Header = new OperationHeader
                     {
                         Status = getResult
                     };

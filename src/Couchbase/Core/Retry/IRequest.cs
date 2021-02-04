@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+#nullable enable
+
 namespace Couchbase.Core.Retry
 {
     public interface IRequest
@@ -20,7 +22,7 @@ namespace Couchbase.Core.Retry
         /// <remarks>
         /// This value changes for every request.
         /// </remarks>
-        string ClientContextId { get; set; }
-        string Statement { get; set; }
+        string? ClientContextId { get; set; }
+        string? Statement { get; set; }
     }
 }

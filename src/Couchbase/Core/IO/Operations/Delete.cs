@@ -4,32 +4,12 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.Delete;
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteFramingExtras(OperationBuilder builder)
+        protected override void WriteFramingExtras(OperationBuilder builder)
         {
-        }
-
-        public override IOperation Clone()
-        {
-            var cloned = new Delete
-            {
-                Key = Key,
-                ReplicaIdx = ReplicaIdx,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                Opaque = Opaque,
-                MutationToken = MutationToken,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
         }
     }
 }

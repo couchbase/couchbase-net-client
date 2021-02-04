@@ -239,7 +239,9 @@ namespace Couchbase.Core.Retry
             try
             {
                 var vBucket = (VBucket) bucket.KeyMapper!.MapKey(op.Key);
-                var endPoint = op.ReplicaIdx > 0 ? vBucket.LocateReplica(op.ReplicaIdx) : vBucket.LocatePrimary();
+                var endPoint = op.ReplicaIdx.HasValue
+                    ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())
+                    : vBucket.LocatePrimary();
 
                 if (bucket.Nodes.TryGet(endPoint!, out var clusterNode))
                 {

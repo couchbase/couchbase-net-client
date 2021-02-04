@@ -89,7 +89,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
         {
             private readonly OpCode _operationCode;
 
-            public FakeOperation(OpCode operationCode, ResponseStatus status, ErrorCode errorCode = null) : base()
+            public FakeOperation(OpCode operationCode, ResponseStatus status) : base()
             {
                 Key = "hi";
                 _operationCode = operationCode;
@@ -98,7 +98,6 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                     Status = status,
                     OpCode = _operationCode
                 };
-                ErrorCode = errorCode;
             }
 
             public override Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)

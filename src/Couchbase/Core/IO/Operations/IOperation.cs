@@ -1,65 +1,118 @@
 using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
-using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations
 {
     internal interface IOperation : IDisposable, IRequest
     {
+        /// <summary>
+        /// OpCode of the operation.
+        /// </summary>
         OpCode OpCode { get; }
 
-        string Key { get; }
+        /// <summary>
+        /// Bucket name, if applicable.
+        /// </summary>
+        string? BucketName { get; }
 
-        uint Opaque { get; }
+        /// <summary>
+        /// Scope name, if appplicable.
+        /// </summary>
+        string? SName { get; }
 
-        ulong Cas { get; set; }
+        /// <summary>
+        /// Collection name, if applicable.
+        /// </summary>
+        string? CName { get; }
 
-        short ReplicaIdx { get; set; }
-
+        /// <summary>
+        /// Collection identifier, if applicable.
+        /// </summary>
         uint? Cid { get; set; }
 
+        /// <summary>
+        /// Document key, if applicable, or an empty string.
+        /// </summary>
+        string Key { get; }
+
+        /// <summary>
+        /// vBucket identifier, if applicable.
+        /// </summary>
         short? VBucketId { get; set; }
 
-        bool RequiresKey { get; }
+        /// <summary>
+        /// Replica index for replica reads, null for all other operations.
+        /// </summary>
+        short? ReplicaIdx { get; }
 
-        Exception Exception { get; set; }
+        /// <summary>
+        /// Opaque operation identifier, unique for each operation.
+        /// </summary>
+        uint Opaque { get; }
 
-        string CName { get; set; }
+        /// <summary>
+        /// Compare-and-swap value.
+        /// </summary>
+        ulong Cas { get; }
 
-        string SName { get; set; }
+        /// <summary>
+        /// Response operation header.
+        /// </summary>
+        OperationHeader Header { get; }
 
-        ReadOnlyMemory<byte> Data { get; }
-
-        uint LastConfigRevisionTried { get; set; }
-
-        string BucketName { get; set; }
-
-        bool IsReplicaRead { get; }
-
-        int TotalLength { get; }
-
-        IPEndPoint CurrentHost { get; set; }
-
-        OperationHeader Header { get; set; }
-
+        /// <summary>
+        /// Tracing span.
+        /// </summary>
         IInternalSpan Span { get; }
 
-        string GetMessage();
+        /// <summary>
+        /// Indicates that a mutation operation has a durability requirement.
+        /// </summary>
+        bool HasDurability { get; }
 
+        /// <summary>
+        /// Indicates if this operation is only performing a read operation and not changing state.
+        /// </summary>
+        bool IsReadOnly { get; }
+
+        /// <summary>
+        /// Indicates if this operation has been sent down the wire to the server.
+        /// </summary>
+        bool IsSent { get; }
+
+        /// <summary>
+        /// Task which indicates completion of the operation. Once this task is complete,
+        /// the result has been received and, if successful, read.
+        /// </summary>
+        /// <remarks>
+        /// It is important that rules about ValueTask be followed here. The task should only
+        /// be awaited once, never more than once. Calling <see cref="Reset"/> will reset the
+        /// task, after which it may be awaited again.
+        ///
+        /// For more information, see https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/#valid-consumption-patterns-for-valuetasks
+        /// </remarks>
+        ValueTask<ResponseStatus> Completed { get; }
+
+        /// <summary>
+        /// Reset the operation so it may be retried.
+        /// </summary>
         void Reset();
 
-        DateTime CreationTime { get; set; }
-
+        /// <summary>
+        /// Serializes the operation body and sends it to a connection.
+        /// </summary>
+        /// <param name="connection">Connection on which to send the operation.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Task which is completed when the operation is sent.</returns>
         Task SendAsync(IConnection connection, CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -76,8 +129,6 @@ namespace Couchbase.Core.IO.Operations
         /// <returns>True if the operation was completed with the provided exception.</returns>
         bool TrySetException(Exception ex);
 
-        void HandleClientError(string message, ResponseStatus responseStatus);
-
         /// <summary>
         /// Called by the connection when a complete response packet is received.
         /// </summary>
@@ -88,38 +139,15 @@ namespace Couchbase.Core.IO.Operations
         /// </remarks>
         void HandleOperationCompleted(in SlicedMemoryOwner<byte> data);
 
-        BucketConfig GetConfig(ITypeTranscoder transcoder);
-
         /// <summary>
-        /// Task which indicates completion of the operation. Once this task is complete,
-        /// the result has been received and, if successful, read.
+        /// Reads <see cref="BucketConfig"/> from the response body.
         /// </summary>
+        /// <param name="transcoder">Transcoder to use while reading.</param>
+        /// <returns>The bucket config if the response body contains a bucket config, otherwise null.</returns>
         /// <remarks>
-        /// It is important that rules about ValueTask be followed here. The task should only
-        /// be awaited once, never more than once. Calling <see cref="Reset"/> will reset the
-        /// task, after which it may be awaited again.
-        ///
-        /// For more information, see https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/#valid-consumption-patterns-for-valuetasks
+        /// This method generally relates to <see cref="ResponseStatus.VBucketBelongsToAnotherServer"/> responses.
         /// </remarks>
-        ValueTask<ResponseStatus> Completed { get; }
-
-        /// <summary>
-        /// Indicates if this operation is only performing a read operation and not changing state.
-        /// </summary>
-        bool IsReadOnly { get; }
-
-        /// <summary>
-        /// Indicates if this operation has been sent down the wire to the server.
-        /// </summary>
-        bool IsSent { get; }
-
-        bool CanRetry();
-
-        IOperationResult GetResult();
-
-        IOperation Clone();
-
-        bool HasDurability { get; }
+        BucketConfig? ReadConfig(ITypeTranscoder transcoder);
     }
 }
 

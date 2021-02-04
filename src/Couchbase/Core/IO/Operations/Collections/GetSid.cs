@@ -6,8 +6,6 @@ namespace Couchbase.Core.IO.Operations.Collections
     {
         public override OpCode OpCode => OpCode.GetSidByName;
 
-        public override bool Idempotent { get; } = true;
-
         public override uint? GetValue()
         {
             if (Data.Length > 0)
@@ -28,11 +26,11 @@ namespace Couchbase.Core.IO.Operations.Collections
             return 0u;
         }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
         }
     }

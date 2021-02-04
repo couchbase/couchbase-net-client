@@ -3,8 +3,6 @@ namespace Couchbase.Core.IO.Operations.Authentication
     internal sealed class SelectBucket : OperationBase
     {
         public override OpCode OpCode => OpCode.SelectBucket;
-
-        public override bool RequiresKey => true;
     }
 }
 

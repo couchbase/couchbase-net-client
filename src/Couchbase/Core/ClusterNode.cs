@@ -202,7 +202,7 @@ namespace Couchbase.Core
                 Span = childSpan
             };
             await ExecuteOp(connection, errorMapOp, CancellationTokenPair.FromInternalToken(cancellationToken)).ConfigureAwait(false);
-            return new ErrorMap(errorMapOp.GetResultWithValue().Content);
+            return new ErrorMap(errorMapOp.GetValue());
         }
 
         private async Task<ServerFeatures[]> Hello(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)
@@ -258,7 +258,7 @@ namespace Couchbase.Core
             };
 
             await ExecuteOp(connection, heloOp, CancellationTokenPair.FromInternalToken(cancellationToken)).ConfigureAwait(false);
-            return heloOp.GetResultWithValue().Content;
+            return heloOp.GetValue();
         }
 
         public async Task<Manifest> GetManifest()
@@ -272,8 +272,7 @@ namespace Couchbase.Core
                 Span = rootSpan,
             };
             await ExecuteOp(ConnectionPool, manifestOp).ConfigureAwait(false);
-            var manifestResult = manifestOp.GetResultWithValue();
-            return manifestResult.Content;
+            return manifestOp.GetValue();
         }
 
         public async Task SelectBucketAsync(IBucket bucket, CancellationToken cancellationToken = default)
@@ -288,7 +287,6 @@ namespace Couchbase.Core
             using var rootSpan = RootSpan(OperationNames.GetClusterMap);
             using var configOp = new Config
             {
-                CurrentHost = EndPoint,
                 Transcoder = GlobalTranscoder,
                 OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
@@ -297,8 +295,7 @@ namespace Couchbase.Core
             };
             await ExecuteOp(ConnectionPool, configOp).ConfigureAwait(false);
 
-            var configResult = configOp.GetResultWithValue();
-            var config = configResult.Content;
+            var config = configOp.GetValue();
 
             if (config != null && EndPoint != null)
             {
@@ -321,8 +318,7 @@ namespace Couchbase.Core
                 Span = rootSpan,
             };
             await ExecuteOp(ConnectionPool, getCid).ConfigureAwait(false);
-            var resultWithValue = getCid.GetResultWithValue();
-            return resultWithValue.Content;
+            return getCid.GetValue();
         }
 
         /// <summary>
@@ -343,8 +339,7 @@ namespace Couchbase.Core
                 Span = rootSpan,
             };
             await ExecuteOp(ConnectionPool, getCid).ConfigureAwait(false);
-            var resultWithValue = getCid.GetResultWithValue();
-            return resultWithValue.Content;
+            return getCid.GetValue();
         }
 
         private void BuildServiceUris()
@@ -525,7 +520,7 @@ namespace Couchbase.Core
 
                     if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                     {
-                        var config = op.GetConfig(GlobalTranscoder);
+                        var config = op.ReadConfig(GlobalTranscoder);
                         _context.PublishConfig(config);
                     }
 

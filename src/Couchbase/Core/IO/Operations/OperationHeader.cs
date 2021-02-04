@@ -27,11 +27,6 @@ namespace Couchbase.Core.IO.Operations
 
         public ulong Cas { get; set; }
 
-        public bool HasData()
-        {
-            return BodyLength > 0;
-        }
-
         public int TotalLength => BodyLength + Length;
         public int ExtrasOffset => Length + FramingExtrasLength;
         public int BodyOffset => Length + KeyLength + ExtrasLength + FramingExtrasLength;

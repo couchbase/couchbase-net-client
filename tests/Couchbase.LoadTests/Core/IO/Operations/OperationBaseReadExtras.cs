@@ -6,7 +6,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
 {
     public class OperationBaseReadExtras
     {
-        private readonly Set<string> _operation = new Set<string>("bucket", "key");
+        private readonly FakeOperation _operation = new FakeOperation();
 
         // upper byte 0 is DataFormat = Json, Compression = None
         // Bytes 2-3 is TypeCode = Object
@@ -16,7 +16,18 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         [Benchmark(Baseline = true)]
         public void Current()
         {
-            _operation.ReadExtras(_extras.AsSpan());
+            _operation.ReadExtrasPublic(_extras.AsSpan());
+        }
+
+        private class FakeOperation : MutationOperationBase<string>
+        {
+            public override OpCode OpCode => OpCode.Set;
+
+            public FakeOperation() : base("bucket", "key")
+            {
+            }
+
+            public void ReadExtrasPublic(ReadOnlySpan<byte> data) => ReadExtras(data);
         }
     }
 }

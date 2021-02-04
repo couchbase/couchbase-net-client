@@ -23,7 +23,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <inheritdoc />
         public override bool IsReadOnly => false;
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
             if (Expires > 0)
             {
@@ -41,7 +41,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             }
         }
 
-        public override void WriteFramingExtras(OperationBuilder builder)
+        protected override void WriteFramingExtras(OperationBuilder builder)
         {
             if (DurabilityLevel == DurabilityLevel.None)
             {
@@ -62,7 +62,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             builder.Write(bytes);
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
             using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength))
             {
@@ -120,43 +120,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             }
         }
 
-        public override IOperationResult<T> GetResultWithValue()
-        {
-            var result = new DocumentFragment<T>(Builder);
-            try
-            {
-                result.Success = GetSuccess();
-                result.Message = GetMessage();
-                result.Status = GetResponseStatus();
-                result.Cas = Header.Cas;
-                result.Exception = Exception;
-                result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = GetCommandValues();
-
-                //clean up and set to null
-                if (!result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-            catch (Exception e)
-            {
-                result.Exception = e;
-                result.Success = false;
-                result.Status = ResponseStatus.ClientFailure;
-            }
-            finally
-            {
-                if (!result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-
-            return result;
-        }
-
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             TryReadMutationToken(buffer);
         }
@@ -213,24 +177,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         }
 
         public override OpCode OpCode => OpCode.SubMultiMutation;
-
-        /// <summary>
-        /// Clones this instance.
-        /// </summary>
-        /// <returns></returns>
-        public override IOperation Clone()
-        {
-            return new MultiMutation<T>
-            {
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode,
-                Expires = Expires
-            };
-        }
 
         /// <inheritdoc />
         public override void Reset()

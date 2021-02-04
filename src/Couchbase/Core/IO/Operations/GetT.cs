@@ -5,45 +5,21 @@ namespace Couchbase.Core.IO.Operations
 {
     internal class GetT<T> : MutationOperationBase<T>
     {
-        /// <inheritdoc />
-        public override bool IsReadOnly => false;
-
         internal GetT(string bucketName, string key) : base(bucketName, key)
         { }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[4];
             ByteConverter.FromUInt32(Expires, extras);
             builder.Write(extras);
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
         }
 
         public override OpCode OpCode => OpCode.GAT;
-
-        public override IOperation Clone()
-        {
-            var cloned = new GetT<T>(BucketName, Key)
-            {
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                Expires = Expires,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
-
-        public override bool RequiresKey => true;
     }
 }
 

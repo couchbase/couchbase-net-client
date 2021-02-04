@@ -12,20 +12,18 @@ namespace Couchbase.Core.IO.Operations
         private static readonly HashSet<ResponseStatus> ValidResponseStatuses =
             new HashSet<ResponseStatus>((ResponseStatus[]) Enum.GetValues(typeof(ResponseStatus)));
 
-        internal static OperationHeader CreateHeader(this Span<byte> buffer, ErrorMap errorMap,
-            out ErrorCode errorCode)
+        internal static OperationHeader CreateHeader(this Span<byte> buffer)
         {
             // This overload is necessary because the compiler won't apply implicit casting when finding extension methods,
             // so it avoids the need for explicit casting to find the extension method below.
 
-            return CreateHeader((ReadOnlySpan<byte>) buffer, errorMap, out errorCode);
+            return CreateHeader((ReadOnlySpan<byte>) buffer);
         }
 
-        internal static OperationHeader CreateHeader(this ReadOnlySpan<byte> buffer, ErrorMap errorMap, out ErrorCode errorCode)
+        internal static OperationHeader CreateHeader(this ReadOnlySpan<byte> buffer)
         {
             if (buffer == null || buffer.Length < OperationHeader.Length)
             {
-                errorCode = null;
                 return new OperationHeader {Status = ResponseStatus.None};
             }
 
@@ -43,7 +41,7 @@ namespace Couchbase.Core.IO.Operations
             }
 
             var statusCode = ByteConverter.ToInt16(buffer.Slice(HeaderOffsets.Status));
-            var status = GetResponseStatus(statusCode, errorMap, out errorCode);
+            var status = GetResponseStatus(statusCode);
 
             return new OperationHeader
             {
@@ -60,7 +58,7 @@ namespace Couchbase.Core.IO.Operations
             };
         }
 
-        internal static ResponseStatus GetResponseStatus(short code, ErrorMap errorMap, out ErrorCode errorCode)
+        internal static ResponseStatus GetResponseStatus(short code)
         {
             var status = (ResponseStatus) code;
 
@@ -68,16 +66,6 @@ namespace Couchbase.Core.IO.Operations
             if (!ValidResponseStatuses.Contains(status))
             {
                 status = ResponseStatus.UnknownError;
-            }
-
-            // If available, try and use the error map to get more details
-            if (errorMap != null)
-            {
-                errorMap.TryGetGetErrorCode(code, out errorCode);
-            }
-            else
-            {
-                errorCode = null;//make the compiler happy
             }
 
             return status;

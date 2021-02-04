@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -12,26 +11,23 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
-using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.ObjectPool;
-using Newtonsoft.Json;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations
 {
     internal abstract class OperationBase : IOperation, IValueTaskSource<ResponseStatus>
     {
-        internal Flags Flags;
-        public const int DefaultRetries = 2;
-        protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
-        internal ErrorCode ErrorCode;
         private SlicedMemoryOwner<byte> _data;
-        private IInternalSpan _span;
-        private List<RetryReason> _retryReasons;
-        private IRetryStrategy _retryStrategy;
+        private IInternalSpan? _span;
+        private List<RetryReason>? _retryReasons;
+        private IRetryStrategy? _retryStrategy;
+        private volatile bool _isSent;
 
         protected OperationBase()
         {
@@ -40,26 +36,42 @@ namespace Couchbase.Core.IO.Operations
             Key = string.Empty;
         }
 
-        public abstract OpCode OpCode { get; }
-        public OperationHeader Header { get; set; }
-        public DataFormat Format => Flags.DataFormat;
-        public Compression Compression => Flags.Compression;
-        public DataType DataType { get; set; }
-        public string Key { get; set; }
-        public Exception Exception { get; set; }
-        public ulong Cas { get; set; }
-        public uint? Cid { get; set; }
-        public ReadOnlyMemory<byte> Data => _data.Memory;
-        public uint Opaque { get; set; }
-        public short? VBucketId { get; set; }
-        public short ReplicaIdx { get; set; }
-        public virtual bool IsReplicaRead => false;
-        public int TotalLength => Header.TotalLength;
-        public virtual bool Success => GetSuccess();
-        public uint Expires { get; set; }
-        public string CName { get; set; }
-        public string SName { get; set; }
+        #region IOperation Properties
 
+        /// <inheritdoc />
+        public abstract OpCode OpCode { get; }
+
+        /// <inheritdoc />
+        public string? BucketName { get; set; }
+
+        /// <inheritdoc />
+        public string? SName { get; set; }
+
+        /// <inheritdoc />
+        public string? CName { get; set; }
+
+        /// <inheritdoc />
+        public uint? Cid { get; set; }
+
+        /// <inheritdoc />
+        public string Key { get; set; }
+
+        /// <inheritdoc />
+        public uint Opaque { get; set; }
+
+        /// <inheritdoc />
+        public ulong Cas { get; set; }
+
+        /// <inheritdoc />
+        public short? VBucketId { get; set; }
+
+        /// <inheritdoc />
+        public short? ReplicaIdx { get; protected set; }
+
+        /// <inheritdoc />
+        public OperationHeader Header { get; set; }
+
+        /// <inheritdoc />
         public IInternalSpan Span
         {
             get => _span ?? NullRequestTracer.NullSpanInstance;
@@ -71,9 +83,10 @@ namespace Couchbase.Core.IO.Operations
         }
 
         /// <inheritdoc />
-        public virtual bool IsReadOnly => true;
+        public virtual bool HasDurability => false;
 
-        private volatile bool _isSent;
+        /// <inheritdoc />
+        public virtual bool IsReadOnly => true;
 
         /// <inheritdoc />
         public bool IsSent
@@ -82,11 +95,15 @@ namespace Couchbase.Core.IO.Operations
             internal set => _isSent = value; // For unit tests
         }
 
-        #region RetryAsync SDK-3
+        /// <inheritdoc />
+        public ValueTask<ResponseStatus> Completed => new(this, _valueTaskSource.Version);
+
+        #endregion
+
+        #region IRequest Properties (RetryAsync SDK-3)
 
         public uint Attempts { get; set; }
-        public virtual bool Idempotent { get; } = false;
-        public Dictionary<RetryReason, Exception> Exceptions { get; set; }
+        bool IRequest.Idempotent => IsReadOnly;
 
         public List<RetryReason> RetryReasons
         {
@@ -102,12 +119,77 @@ namespace Couchbase.Core.IO.Operations
 
         public TimeSpan Timeout { get; set; }
         public CancellationToken Token { get; set; }
-        public string ClientContextId { get; set; }
-        public string Statement { get; set; }
+
+        // Not necessary for operations, just throw NotImplementedException and avoid an unnecessary backing field
+        public string? ClientContextId
+        {
+            get => null;
+            set => throw new NotImplementedException();
+        }
+
+        // Not necessary for operations, just throw NotImplementedException and avoid an unnecessary backing field
+        public string? Statement
+        {
+            get => null;
+            set => throw new NotImplementedException();
+        }
 
         #endregion
 
-        public DateTime CreationTime { get; set; }
+        #region Public Properties
+
+        /// <summary>
+        /// Expiration to apply for mutation operations, and returns the expiration after the operation is completed.
+        /// </summary>
+        public uint Expires { get; set; }
+
+        /// <summary>
+        /// Flags returned in the operation response.
+        /// </summary>
+        public Flags Flags { get; protected set; }
+
+        /// <summary>
+        /// Mutation token returned by mutation operations, if any.
+        /// </summary>
+        public MutationToken? MutationToken { get; private set; }
+
+        /// <summary>
+        /// Transcoder used for reading and writing the body of the operation.
+        /// </summary>
+        public ITypeTranscoder Transcoder { get; set; } = null!; // Assumes we always initialize with OperationConfigurator
+
+        /// <summary>
+        /// Service for compressing and decompressing operation bodies. Typically set by the <see cref="IOperationConfigurator"/>.
+        /// </summary>
+        public IOperationCompressor OperationCompressor { get; set; } = null!; // Assumes we always initialize with OperationConfigurator
+
+        /// <summary>
+        /// Service which providers <see cref="OperationBuilder"/> instances as needed.
+        /// </summary>
+        public ObjectPool<OperationBuilder> OperationBuilderPool { get; set; } = null!;  // Assumes we always initialize with OperationConfigurator
+
+        #endregion
+
+        #region Protected Properties
+
+        /// <summary>
+        /// Exception encountered when parsing data, if any.
+        /// </summary>
+        protected Exception? Exception { get; set; }
+
+        /// <summary>
+        /// Response data.
+        /// </summary>
+        protected ReadOnlyMemory<byte> Data => _data.Memory;
+
+        /// <summary>
+        /// Overriden in derived operation classes that support request body compression. If true is returned,
+        /// and if compression has been negotiated with the server, the body will be compressed after the call
+        /// to <see cref="WriteBody"/>.
+        /// </summary>
+        protected virtual bool SupportsRequestCompression => false;
+
+        #endregion
 
         #region Async Completion
 
@@ -120,25 +202,23 @@ namespace Couchbase.Core.IO.Operations
         private ManualResetValueTaskSourceCore<ResponseStatus> _valueTaskSource;
 
         /// <inheritdoc />
-        public ValueTask<ResponseStatus> Completed => new(this, _valueTaskSource.Version);
-
-        /// <inheritdoc />
         public ResponseStatus GetResult(short token) => _valueTaskSource.GetResult(token);
 
         /// <inheritdoc />
         public ValueTaskSourceStatus GetStatus(short token) => _valueTaskSource.GetStatus(token);
 
         /// <inheritdoc />
-        public void OnCompleted(Action<object> continuation, object state, short token,
+        public void OnCompleted(Action<object?> continuation, object? state, short token,
             ValueTaskSourceOnCompletedFlags flags) =>
             _valueTaskSource.OnCompleted(continuation, state, token, flags);
 
+        /// <inheritdoc />
         public virtual void Reset()
         {
             Reset(ResponseStatus.None);
         }
 
-        public virtual void Reset(ResponseStatus status)
+        private void Reset(ResponseStatus status)
         {
             _data.Dispose();
             _data = SlicedMemoryOwner<byte>.Empty;
@@ -160,6 +240,59 @@ namespace Couchbase.Core.IO.Operations
         }
 
         #endregion
+
+        #region Read
+
+        public void Read(in SlicedMemoryOwner<byte> buffer)
+        {
+            EnsureNotDisposed();
+
+            Header = buffer.Memory.Span.CreateHeader();
+            Cas = Header.Cas;
+            _data = buffer;
+
+            ReadExtras(_data.Memory.Span);
+        }
+
+        protected virtual void ReadExtras(ReadOnlySpan<byte> buffer)
+        {
+            if (buffer.Length > Header.ExtrasOffset)
+            {
+                Flags = Flags.Read(buffer.Slice(Header.ExtrasOffset));
+
+                Expires = ByteConverter.ToUInt32(buffer.Slice(25));
+            }
+        }
+
+        protected void TryReadMutationToken(ReadOnlySpan<byte> buffer)
+        {
+            if (buffer.Length >= 40 && VBucketId.HasValue)
+            {
+                var uuid = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset));
+                var seqno = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset + 8));
+                MutationToken = new MutationToken(BucketName, VBucketId.Value, uuid, seqno);
+            }
+        }
+
+        /// <inheritdoc />
+        public BucketConfig? ReadConfig(ITypeTranscoder transcoder)
+        {
+            BucketConfig? config = null;
+            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data.Length > 0)
+            {
+                var offset = Header.BodyOffset;
+                var length = Header.TotalLength - Header.BodyOffset;
+
+                //Override any flags settings since the body of the response has changed to a config
+                config = transcoder.Decode<BucketConfig>(Data.Slice(offset, length), new Flags
+                {
+                    Compression = Compression.None,
+                    DataFormat = DataFormat.Json,
+                    TypeCode = TypeCode.Object
+                }, OpCode);
+            }
+            return config;
+        }
 
         /// <summary>
         /// Returns a block of memory containing the body of the operation response. May only be called once.
@@ -195,9 +328,11 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
-        public virtual bool HasDurability => false;
+        #endregion
 
-        public virtual void HandleClientError(string message, ResponseStatus responseStatus)
+        #region Response Handling
+
+        protected virtual void HandleClientError(string message, ResponseStatus responseStatus)
         {
             Reset(responseStatus);
             var msgBytes = Encoding.UTF8.GetBytes(message);
@@ -206,119 +341,12 @@ namespace Couchbase.Core.IO.Operations
             msgBytes.AsSpan().CopyTo(_data.Memory.Span);
         }
 
-        public void Read(in SlicedMemoryOwner<byte> buffer, ErrorMap errorMap = null)
-        {
-            EnsureNotDisposed();
-
-            var header = buffer.Memory.Span.CreateHeader(errorMap, out var errorCode);
-            Read(in buffer, header, errorCode);
-        }
-
-        private void Read(in SlicedMemoryOwner<byte> buffer, OperationHeader header, ErrorCode errorCode = null)
-        {
-            Header = header;
-            ErrorCode = errorCode;
-            Cas = header.Cas;
-            _data = buffer;
-
-            ReadExtras(_data.Memory.Span);
-        }
-
-        protected OperationRequestHeader CreateHeader()
-        {
-            return new OperationRequestHeader
-            {
-                OpCode = OpCode,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Cas = Cas,
-                DataType = DataType
-            };
-        }
-
-        public virtual void ReadExtras(ReadOnlySpan<byte> buffer)
-        {
-            if (buffer.Length > Header.ExtrasOffset)
-            {
-                Flags = Flags.Read(buffer.Slice(Header.ExtrasOffset));
-
-                Expires = ByteConverter.ToUInt32(buffer.Slice(25));
-            }
-        }
-
-        [SkipLocalsInit]
-        public virtual void WriteKey(OperationBuilder builder)
-        {
-            Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength];
-
-            var length = WriteKey(buffer);
-
-            builder.Write(buffer.Slice(0, length));
-        }
-
-        protected int WriteKey(Span<byte> buffer)
-        {
-            var length = 0;
-
-            if (Cid.HasValue)
-            {
-                length += Leb128.Write(buffer, Cid.GetValueOrDefault());
-            }
-
-            length += ByteConverter.FromString(Key, buffer.Slice(length));
-
-            return length;
-        }
-
-        public IOperationResult GetResult()
-        {
-            var result = new OperationResult { Id = Key };
-            try
-            {
-                result.Success = GetSuccess();
-                result.Message = GetMessage();
-                result.Status = GetResponseStatus();
-                result.Cas = Header.Cas;
-                result.Exception = Exception;
-                result.Token = MutationToken ?? DefaultMutationToken;
-                result.Id = Key;
-                result.OpCode = OpCode;
-
-                // make sure we read any extras
-                if (Data.Length > 0)
-                {
-                    ReadExtras(_data.Memory.Span);
-                    result.Token = MutationToken ?? DefaultMutationToken;
-                }
-
-                //clean up and set to null
-                if (!result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-            catch (Exception e)
-            {
-                result.Exception = e;
-                result.Success = false;
-                result.Status = ResponseStatus.Failure;
-            }
-            finally
-            {
-                if (!_data.IsEmpty && !result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-            return result;
-        }
-
-        public virtual bool GetSuccess()
+        public bool GetSuccess()
         {
             return (Header.Status == ResponseStatus.Success || Header.Status == ResponseStatus.AuthenticationContinue) && Exception == null;
         }
 
-        public virtual ResponseStatus GetResponseStatus()
+        public ResponseStatus GetResponseStatus()
         {
             var status = Header.Status;
             if (Exception != null && status == ResponseStatus.Success)
@@ -349,176 +377,80 @@ namespace Couchbase.Core.IO.Operations
             return status;
         }
 
-        public string GetMessage()
-        {
-            if (Success)
+        #endregion
+
+        #region Writing
+
+        private OperationRequestHeader CreateHeader(DataType dataType) =>
+            new()
             {
-                return string.Empty;
-            }
-
-            if (Header.Status == ResponseStatus.VBucketBelongsToAnotherServer)
-            {
-                return ResponseStatus.VBucketBelongsToAnotherServer.ToString();
-            }
-
-            // Read the status and response body
-            var status = GetResponseStatus();
-            var responseBody = GetResponseBodyAsString();
-
-            // If the status is temp failure and response (string or JSON) contains "lock_error", create a temp lock error
-            if (status == ResponseStatus.TemporaryFailure &&
-                responseBody.IndexOf("lock_error", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                // Exception = new TemporaryLockFailureException(ExceptionUtil.TemporaryLockErrorMsg.WithParams(Key));
-            }
-
-            // Try and figure out the most descriptive message
-            string message;
-            if (ErrorCode != null)
-            {
-                message = ErrorCode.ToString();
-            }
-            else if (Exception != null)
-            {
-                message = Exception.Message;
-            }
-            else
-            {
-                message = string.Format("Status code: {0} [{1}]", status, (int)status);
-            }
-
-            // If JSON bit is not set there is no additional information
-            if (!Header.DataType.HasFlag(DataType.Json))
-            {
-                return message;
-            }
-
-            try
-            {
-                // Try and get the additional error context and reference information from response body
-                var response = JsonConvert.DeserializeObject<dynamic>(responseBody);
-                if (response != null && response.error != null)
-                {
-                    // Read context and ref data from reponse body
-                    var context = (string)response.error.context;
-                    var reference = (string)response.error.@ref;
-
-                    // Append context and reference data to message
-                    message = FormatMessage(message, context, reference);
-
-                    // Create KV exception if missing and add context and referece data
-                    //Exception = Exception ?? new CouchbaseKeyValueResponseException(message, Header.Status);
-                    if (Exception != null)
-                    {
-                        Exception.Data.Add("Context", context);
-                        Exception.Data.Add("Ref", reference);
-                    }
-                }
-            }
-            catch (JsonReaderException)
-            {
-                // This means the response body wasn't valid JSON
-                // _log.Warn("Expected response body to be JSON but is invalid. {0}", responseBody);
-            }
-
-            return message;
-        }
-
-        private static string FormatMessage(string message, string context, string reference)
-        {
-            if (string.IsNullOrEmpty(context) && string.IsNullOrWhiteSpace(reference))
-            {
-                return message;
-            }
-
-            const string defaultValue = "<none>";
-            return string.Format("{0} (Context: {1}, Ref #: {2})",
-                message,
-                string.IsNullOrWhiteSpace(context) ? defaultValue : context,
-                string.IsNullOrWhiteSpace(reference) ? defaultValue : reference
-            );
-        }
-
-        private string GetResponseBodyAsString()
-        {
-            var body = string.Empty;
-            if (GetResponseStatus() != ResponseStatus.Success && Data.Length > 0)
-            {
-                if (TotalLength == OperationHeader.Length)
-                {
-                    body = ByteConverter.ToString(Data.Span);
-                }
-                else
-                {
-                    body = ByteConverter.ToString(Data.Span.Slice(OperationHeader.Length, Math.Min(Data.Length - OperationHeader.Length, TotalLength - OperationHeader.Length)));
-                }
-            }
-
-            return body;
-        }
-
-        public virtual BucketConfig GetConfig(ITypeTranscoder transcoder)
-        {
-            BucketConfig config = null;
-            if (GetResponseStatus() == ResponseStatus.VBucketBelongsToAnotherServer && Data.Length > 0)
-            {
-                var offset = Header.BodyOffset;
-                var length = Header.TotalLength - Header.BodyOffset;
-
-                //Override any flags settings since the body of the response has changed to a config
-                config = transcoder.Decode<BucketConfig>(Data.Slice(offset, length), new Flags
-                {
-                    Compression = Compression.None,
-                    DataFormat = DataFormat.Json,
-                    TypeCode = TypeCode.Object
-                }, OpCode);
-            }
-            return config;
-        }
-
-        public virtual bool CanRetry()
-        {
-            return Cas > 0 || ErrorMapRequestsRetry();
-        }
-
-        internal bool ErrorMapRequestsRetry()
-        {
-            //TODO make work with retry handling
-            return false;// return ErrorCode?.RetryAsync != null && ErrorCode.RetryAsync.Strategy != RetryStrategy.None;
-        }
-
-        public ITypeTranscoder Transcoder { get; set; }
+                OpCode = OpCode,
+                VBucketId = VBucketId,
+                Opaque = Opaque,
+                Cas = Cas,
+                DataType = dataType
+            };
 
         /// <summary>
-        /// Service for compressing and decompressing operation bodies. Typically set by the <see cref="IOperationConfigurator"/>.
+        /// Writes the key to an <see cref="OperationBuilder"/>.
         /// </summary>
-        public IOperationCompressor OperationCompressor { get; set; }
+        /// <param name="builder">The builder.</param>
+        [SkipLocalsInit]
+        protected virtual void WriteKey(OperationBuilder builder)
+        {
+            Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength];
+
+            var length = WriteKey(buffer);
+
+            builder.Write(buffer.Slice(0, length));
+        }
 
         /// <summary>
-        /// Service which providers <see cref="OperationBuilder"/> instances as needed.
+        /// Write the <see cref="Key"/>, with <see cref="Cid"/> if present, to a buffer.
         /// </summary>
-        public ObjectPool<OperationBuilder> OperationBuilderPool { get; set; }
+        /// <param name="buffer">Target buffer.</param>
+        /// <returns>Number of bytes written.</returns>
+        protected int WriteKey(Span<byte> buffer)
+        {
+            var length = 0;
+
+            if (Cid.HasValue)
+            {
+                length += Leb128.Write(buffer, Cid.GetValueOrDefault());
+            }
+
+            length += ByteConverter.FromString(Key, buffer.Slice(length));
+
+            return length;
+        }
 
         /// <summary>
-        /// Overriden in derived operation classes that support request body compression. If true is returned,
-        /// and if compression has been negotiated with the server, the body will be compressed after the call
-        /// to <see cref="WriteBody"/>.
+        /// Writes the extras to an <see cref="OperationBuilder"/>.
         /// </summary>
-        protected virtual bool SupportsRequestCompression => false;
-
-        public MutationToken MutationToken { get; protected set; }
-
-        public virtual void WriteExtras(OperationBuilder builder)
+        /// <param name="builder">The builder.</param>
+        protected virtual void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public virtual void WriteBody(OperationBuilder builder)
+        /// <summary>
+        /// Writes the framing extras to an <see cref="OperationBuilder"/>.
+        /// </summary>
+        /// <param name="builder">The builder.</param>
+        protected virtual void WriteFramingExtras(OperationBuilder builder)
         {
         }
 
-        public virtual void WriteFramingExtras(OperationBuilder builder)
+        /// <summary>
+        /// Writes the body to an <see cref="OperationBuilder"/>.
+        /// </summary>
+        /// <param name="builder">The builder.</param>
+        protected virtual void WriteBody(OperationBuilder builder)
         {
         }
+
+        #endregion
+
+        #region Send
 
         /// <summary>
         /// Prepares the operation to be sent.
@@ -527,6 +459,7 @@ namespace Couchbase.Core.IO.Operations
         {
         }
 
+        /// <inheritdoc />
         public virtual async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
             connection.AddTags(Span);
@@ -548,15 +481,16 @@ namespace Couchbase.Core.IO.Operations
                 builder.AdvanceToSegment(OperationSegment.Body);
                 WriteBody(builder);
 
-                if (SupportsRequestCompression && OperationCompressor != null && connection.ServerFeatures.SnappyCompression)
+                var dataType = DataType.None;
+                if (SupportsRequestCompression && connection.ServerFeatures.SnappyCompression)
                 {
                     if (builder.AttemptBodyCompression(OperationCompressor))
                     {
-                        DataType |= DataType.Snappy;
+                        dataType |= DataType.Snappy;
                     }
                 }
 
-                builder.WriteHeader(CreateHeader());
+                builder.WriteHeader(CreateHeader(dataType));
 
                 var buffer = builder.GetBuffer();
                 encodingSpan.Dispose();
@@ -571,6 +505,10 @@ namespace Couchbase.Core.IO.Operations
                 OperationBuilderPool.Return(builder);
             }
         }
+
+        #endregion
+
+        #region Receive
 
         /// <inheritdoc />
         public bool TrySetCanceled(CancellationToken cancellationToken = default) =>
@@ -632,38 +570,7 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
-        public virtual IOperation Clone()
-        {
-            throw new NotImplementedException();
-        }
-
-        public uint LastConfigRevisionTried { get; set; }
-
-        public IPEndPoint CurrentHost { get; set; }
-
-        public int GetRetryTimeout(int defaultTimeout)
-        {
-            if (ErrorCode == null)
-            {
-                return defaultTimeout;
-            }
-
-            return ErrorCode.GetNextInterval(Attempts, defaultTimeout);
-        }
-
-        protected void TryReadMutationToken(ReadOnlySpan<byte> buffer)
-        {
-            if (buffer.Length >= 40 && VBucketId.HasValue)
-            {
-                var uuid = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset));
-                var seqno = ByteConverter.ToInt64(buffer.Slice(Header.ExtrasOffset + 8));
-                MutationToken = new MutationToken(BucketName, VBucketId.Value, uuid, seqno);
-            }
-        }
-
-        public virtual bool RequiresKey => true;
-
-        public string BucketName { get; set; }
+        #endregion
 
         #region Finalization and Dispose
 
@@ -674,6 +581,7 @@ namespace Couchbase.Core.IO.Operations
 
         private bool _disposed;
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);

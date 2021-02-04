@@ -3,26 +3,6 @@ namespace Couchbase.Core.IO.Operations
     internal class GetK<T> : Get<T>
     {
         public override OpCode OpCode => OpCode.GetK;
-
-        public override IOperation Clone()
-        {
-            var cloned = new GetK<T>
-            {
-                Key = Key,
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
     }
 }
 

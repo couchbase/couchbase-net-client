@@ -29,10 +29,10 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             };
             op.Read(response);
 
-            var result = op.GetResultWithValue();
+            var result = op.GetValue();
 
-            Assert.True(result.Content.HasValue);
-            Assert.Equal(0x17u, result.Content.Value);
+            Assert.True(result.HasValue);
+            Assert.Equal(0x17u, result.Value);
         }
 
         [Fact]
@@ -67,10 +67,10 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             };
             op.Read(response);
 
-            var result = op.GetResultWithValue();
+            var result = op.GetValue();
 
-            Assert.True(result.Content.HasValue);
-            Assert.Equal(0x31u, result.Content.Value);
+            Assert.True(result.HasValue);
+            Assert.Equal(0x31u, result.Value);
         }
     }
 }

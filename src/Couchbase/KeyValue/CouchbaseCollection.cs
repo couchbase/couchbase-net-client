@@ -784,13 +784,12 @@ namespace Couchbase.KeyValue
         private async Task<IGetReplicaResult> GetReplica(string id, short index, IInternalSpan span, CancellationToken cancellationToken, ITranscoderOverrideOptions options)
         {
             using var childSpan = _tracer.InternalSpan(OperationNames.ReplicaRead, span);
-            using var getOp = new ReplicaRead<object>
+            using var getOp = new ReplicaRead<object>(id, index)
             {
                 Key = id,
                 Cid = Cid,
                 CName = Name,
                 SName = ScopeName,
-                ReplicaIdx = index,
                 Span = childSpan
             };
             _operationConfigurator.Configure(getOp, options);

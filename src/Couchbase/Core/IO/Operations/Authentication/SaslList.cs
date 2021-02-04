@@ -7,16 +7,16 @@ namespace Couchbase.Core.IO.Operations.Authentication
     /// </summary>
     internal sealed class SaslList : OperationBase<string>
     {
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             Flags = new Flags
             {
                 Compression = Compression.None,
-                DataFormat = Format,
+                DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.String
             };
         }
@@ -28,12 +28,10 @@ namespace Couchbase.Core.IO.Operations.Authentication
             Flags = new Flags
             {
                 Compression = Compression.None,
-                DataFormat = Format,
+                DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.String
             };
         }
-
-        public override bool RequiresKey => false;
     }
 }
 

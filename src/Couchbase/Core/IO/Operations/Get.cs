@@ -1,6 +1,4 @@
 using System;
-using Couchbase.Core.IO.Converters;
-using Couchbase.Utils;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -8,50 +6,21 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.Get;
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
         }
 
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             if (buffer.Length > Header.ExtrasOffset)
             {
                 Flags = Flags.Read(buffer.Slice(Header.ExtrasOffset));
             }
         }
-
-        public override IOperation Clone()
-        {
-            var cloned = new Get<T>
-            {
-                Key = Key,
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
-
-        public override bool Idempotent { get; } = true;
-
-        public override bool CanRetry()
-        {
-            return ErrorCode == null || ErrorMapRequestsRetry();
-        }
-
-        public override bool RequiresKey => true;
     }
 }
 

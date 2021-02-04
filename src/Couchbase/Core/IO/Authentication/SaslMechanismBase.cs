@@ -95,7 +95,7 @@ namespace Couchbase.Core.IO.Authentication
                     $"Cannot authenticate the user. Reason: {status}");
             }
 
-            return op.GetResultWithValue().Content;
+            return op.GetValue()!;
         }
 
         /// <summary>

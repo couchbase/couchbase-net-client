@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         private readonly List<OperationSpec> _lookupCommands = new List<OperationSpec>();
         public SubdocDocFlags DocFlags { get; set; }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
             if (DocFlags != SubdocDocFlags.None)
             {
@@ -25,11 +25,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             }
         }
 
-        public override void WriteFramingExtras(OperationBuilder builder)
+        protected override void WriteFramingExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
             using var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
             var buffer = bufferOwner.Memory.Span;
@@ -58,8 +58,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public override OpCode OpCode => OpCode.MultiLookup;
 
-        public override bool Idempotent { get; } = true;
-
         public IList<OperationSpec> GetCommandValues()
         {
             if (Data.IsEmpty)
@@ -86,68 +84,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             }
 
             return _lookupCommands;
-        }
-
-        public override IOperationResult<T> GetResultWithValue()
-        {
-            var result = new DocumentFragment<T>(Builder);
-            try
-            {
-                result.Success = GetSuccess();
-                result.Message = GetMessage();
-                result.Status = GetResponseStatus();
-                result.Cas = Header.Cas;
-                result.Exception = Exception;
-                result.Token = MutationToken ?? DefaultMutationToken;
-                result.Value = GetCommandValues();
-
-                //clean up and set to null
-                if (!result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-            catch (Exception e)
-            {
-                result.Exception = e;
-                result.Success = false;
-                result.Status = ResponseStatus.ClientFailure;
-            }
-            finally
-            {
-                if (!result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Clones this instance.
-        /// </summary>
-        /// <returns></returns>
-        public override IOperation Clone()
-        {
-            return new MultiLookup<T>
-            {
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-        }
-
-        /// <summary>
-        /// Determines whether this instance can be retried.
-        /// </summary>
-        /// <returns></returns>
-        public override bool CanRetry()
-        {
-            return ErrorCode == null || ErrorMapRequestsRetry();
         }
 
         /// <summary>

@@ -8,31 +8,6 @@ namespace Couchbase.Core.IO.Operations
         public override OpCode OpCode => OpCode.Add;
 
         protected override bool SupportsRequestCompression => true;
-
-        public override IOperation Clone()
-        {
-            var cloned = new Add<T>(BucketName, Key)
-            {
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                VBucketId = VBucketId,
-                Transcoder =  Transcoder,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                MutationToken = MutationToken,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                ErrorCode = ErrorCode,
-                Expires = Expires
-            };
-            return cloned;
-        }
-
-        public override bool CanRetry()
-        {
-            return ErrorCode == null || ErrorMapRequestsRetry();
-        }
     }
 }
 

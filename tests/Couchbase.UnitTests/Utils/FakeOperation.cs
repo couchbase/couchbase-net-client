@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests.Utils
         }
 
         public uint Attempts { get; set; }
-        public bool Idempotent { get; set; }
+        public bool Idempotent => IsReadOnly;
         public List<RetryReason> RetryReasons { get; set; }
         public IRetryStrategy RetryStrategy { get; set; }
         public TimeSpan Timeout { get; set; }
@@ -58,26 +58,17 @@ namespace Couchbase.UnitTests.Utils
         public string Key { get; }
         public uint Opaque { get; }
         public ulong Cas { get; set; }
-        public short ReplicaIdx { get; set; }
+        public short? ReplicaIdx { get; set; }
         public uint? Cid { get; set; }
         public short? VBucketId { get; set; }
-        public bool RequiresKey { get; set; }
         public Exception Exception { get; set; }
         public string CName { get; set; }
         public string SName { get; set; }
         public ReadOnlyMemory<byte> Data { get; }
-        public uint LastConfigRevisionTried { get; set; }
         public string BucketName { get; set; }
-        public bool IsReplicaRead { get; set; }
-        public int TotalLength { get; set;}
         public IPEndPoint CurrentHost { get; set; }
         public OperationHeader Header { get; set; }
         public IInternalSpan Span { get; set; }
-
-        public string GetMessage()
-        {
-            throw new NotImplementedException();
-        }
 
         public DateTime CreationTime { get; set; }
 
@@ -87,12 +78,7 @@ namespace Couchbase.UnitTests.Utils
             return Task.CompletedTask;
         }
 
-        public void HandleClientError(string message, ResponseStatus responseStatus)
-        {
-            throw new NotImplementedException();
-        }
-
-        public BucketConfig GetConfig(ITypeTranscoder transcoder)
+        public BucketConfig ReadConfig(ITypeTranscoder transcoder)
         {
             throw new NotImplementedException();
         }

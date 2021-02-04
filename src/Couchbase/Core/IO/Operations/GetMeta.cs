@@ -9,9 +9,7 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.GetMeta;
 
-        public override bool Idempotent { get; } = false;
-
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[1];
             extras[0] = 0x02;

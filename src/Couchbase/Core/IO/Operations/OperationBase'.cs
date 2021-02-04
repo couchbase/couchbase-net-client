@@ -1,61 +1,27 @@
 using System;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Couchbase.Core.IO.Converters;
-using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations
 {
     internal abstract class OperationBase<T> : OperationBase, IOperation<T>
     {
+        [MaybeNull]
         public T Content { get; set; }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
             if (typeof(T).GetTypeInfo().IsValueType || Content != null)
             {
-                Transcoder.Encode(builder, Content, Flags, OpCode);
+                Transcoder.Encode(builder, Content!, Flags, OpCode);
             }
         }
 
-        public virtual IOperationResult<T> GetResultWithValue()
-        {
-            var result = new OperationResult<T> {Id = Key};
-            try
-            {
-                var value = GetValue();
-                result.Success = GetSuccess();
-                result.Message = GetMessage();
-                result.Status = GetResponseStatus();
-                result.Content = value;
-                result.Cas = Header.Cas;
-                result.Exception = Exception;
-                result.Token = MutationToken ?? DefaultMutationToken;
-                result.Id = Key;
-                result.OpCode = OpCode;
-
-                //clean up and set to null
-                if (!result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-            catch (Exception e)
-            {
-                result.Exception = e;
-                result.Success = false;
-                result.Status = ResponseStatus.ClientFailure;
-            }
-            finally
-            {
-                if (!result.IsNmv())
-                {
-                    Dispose();
-                }
-            }
-            return result;
-        }
-
+        /// <inheritdoc />
+        [return: MaybeNull]
         public virtual T GetValue()
         {
             var result = default(T);
@@ -87,11 +53,11 @@ namespace Couchbase.Core.IO.Operations
             return result;
         }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[8];
 
-            Flags = Transcoder.GetFormat(Content);
+            Flags = Transcoder.GetFormat(Content!);
             Flags.Write(extras);
 
             ByteConverter.FromUInt32(Expires, extras.Slice(4));

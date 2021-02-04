@@ -4,12 +4,9 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.NoOp;
 
-        public override bool Idempotent { get; } = true;
-
-        public override void WriteKey(OperationBuilder builder)
+        protected override void WriteKey(OperationBuilder builder)
         {
         }
-        public override bool RequiresKey => false;
     }
 }
 

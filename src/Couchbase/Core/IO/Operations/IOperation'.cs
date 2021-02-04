@@ -1,13 +1,16 @@
-using Couchbase.Core.IO.Transcoders;
+using System.Diagnostics.CodeAnalysis;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations
 {
     internal interface IOperation<out T> : IOperation
     {
-        IOperationResult<T> GetResultWithValue();
-
-        ITypeTranscoder Transcoder { get; }
-
+        /// <summary>
+        /// Parse the body and return the value.
+        /// </summary>
+        /// <returns>The value.</returns>
+        [return: MaybeNull]
         T GetValue();
     }
 }

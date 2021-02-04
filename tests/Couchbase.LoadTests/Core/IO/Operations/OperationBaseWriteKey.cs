@@ -8,7 +8,7 @@ namespace Couchbase.LoadTests.Core.IO.Operations
     public class OperationBaseWriteKey
     {
         private readonly OperationBuilder _builder = new OperationBuilder();
-        private readonly OperationBase _operation = new Get<string>();
+        private readonly FakeOperation _operation = new FakeOperation();
 
         [Params(10, 40, 100)]
         public int KeySize { get; set; }
@@ -24,7 +24,12 @@ namespace Couchbase.LoadTests.Core.IO.Operations
         {
             _builder.Reset();
 
-            _operation.WriteKey(_builder);
+            _operation.WriteKeyPublic(_builder);
+        }
+
+        private class FakeOperation : Get<string>
+        {
+            public void WriteKeyPublic(OperationBuilder builder) => WriteKey(builder);
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Couchbase.Core.IO.Operations
     {
         public override OpCode OpCode => OpCode.Helo;
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
             var contentLength = Content.Length;
 
@@ -30,14 +30,14 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
         public override ServerFeatures[] GetValue()
         {
             var result = default(ServerFeatures[]);
-            if (Success && Data.Length > 0)
+            if (GetSuccess() && Data.Length > 0)
             {
                 try
                 {
@@ -64,9 +64,6 @@ namespace Couchbase.Core.IO.Operations
             }
             return result;
         }
-
-        public override bool RequiresKey => true;
-
         internal static string BuildHelloKey(ulong connectionId)
         {
             var agent = ClientIdentifier.GetClientDescription();

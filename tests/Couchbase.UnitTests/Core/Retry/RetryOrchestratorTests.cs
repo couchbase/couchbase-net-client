@@ -41,7 +41,7 @@ namespace Couchbase.UnitTests.Core.Retry
             {
                 yield return new object[] {new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new ReplicaRead<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
+                yield return new object[] {new ReplicaRead<dynamic>("key", 1) {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
                 yield return new object[] {new MultiLookup<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
@@ -50,7 +50,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
                 yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
                 yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new ReplicaRead<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
                 yield return new object[] { new MultiLookup<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
@@ -59,7 +59,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
                 yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
                 yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
-                yield return new object[] { new ReplicaRead<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
                 yield return new object[] { new MultiLookup<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new SendQueueFullException() };
@@ -68,7 +68,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
                 yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
                 yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new ReplicaRead<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
                 yield return new object[] { new MultiLookup<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
@@ -77,7 +77,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
                 yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
                 yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new ReplicaRead<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
                 yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
                 yield return new object[] { new MultiLookup<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };

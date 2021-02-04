@@ -14,7 +14,7 @@ namespace Couchbase.Core.IO.Operations
 
         public override OpCode OpCode => OpCode.Decrement;
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[20];
             ByteConverter.FromUInt64(Delta, extras);
@@ -23,35 +23,8 @@ namespace Couchbase.Core.IO.Operations
             builder.Write(extras);
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
-        }
-
-        public override IOperation Clone()
-        {
-            var cloned = new Decrement(BucketName, Key)
-            {
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Initial = Initial,
-                Delta = Delta,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                MutationToken = MutationToken,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                ErrorCode = ErrorCode,
-                Expires = Expires
-            };
-            return cloned;
-        }
-
-        public override bool CanRetry()
-        {
-            return false;
         }
     }
 }

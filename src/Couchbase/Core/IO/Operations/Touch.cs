@@ -5,40 +5,18 @@ namespace Couchbase.Core.IO.Operations
 {
     internal class Touch : MutationOperationBase
     {
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
             Span<byte> extras = stackalloc byte[4];
             ByteConverter.FromUInt32(Expires, extras);
             builder.Write(extras);
         }
 
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
         }
 
         public override OpCode OpCode => OpCode.Touch;
-
-        public override IOperation Clone()
-        {
-            var cloned = new Touch
-            {
-                Key = Key,
-                ReplicaIdx = ReplicaIdx,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                Expires = Expires,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
-
-        public override bool RequiresKey => true;
     }
 }
 

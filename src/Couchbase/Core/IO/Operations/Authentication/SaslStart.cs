@@ -10,16 +10,16 @@ namespace Couchbase.Core.IO.Operations.Authentication
     {
         public override OpCode OpCode => OpCode.SaslStart;
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             Flags = new Flags
             {
                 Compression = Compression.None,
-                DataFormat = Format,
+                DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.String
             };
         }
@@ -29,12 +29,10 @@ namespace Couchbase.Core.IO.Operations.Authentication
             Flags = new Flags
             {
                 Compression = Compression.None,
-                DataFormat = Format,
+                DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.String
             };
         }
-
-        public override bool RequiresKey => false;
 
         /*Field (offset) (value)
             Magic (0): 0x80 (PROTOCOL_BINARY_REQ)

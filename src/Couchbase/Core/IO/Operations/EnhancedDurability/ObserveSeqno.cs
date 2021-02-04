@@ -13,18 +13,17 @@ namespace Couchbase.Core.IO.Operations.EnhancedDurability
         /// </value>
         public override OpCode OpCode => OpCode.ObserveSeqNo;
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteFramingExtras(OperationBuilder builder)
+        protected override void WriteFramingExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteKey(OperationBuilder builder)
+        protected override void WriteKey(OperationBuilder builder)
         {
         }
-
         /// <summary>
         /// Gets the value of the memecached response packet and converts it to a <see cref="ObserveSeqnoResponse"/> instance.
         /// </summary>
@@ -72,31 +71,6 @@ namespace Couchbase.Core.IO.Operations.EnhancedDurability
             }
             return result;
         }
-
-        /// <summary>
-        /// Clones this instance.
-        /// </summary>
-        /// <returns></returns>
-        public override IOperation Clone()
-        {
-            var cloned = new ObserveSeqno
-            {
-                MutationToken = MutationToken,
-                Key = Key,
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                CreationTime = CreationTime,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
-
-        public override bool RequiresKey => false;
     }
 }
 

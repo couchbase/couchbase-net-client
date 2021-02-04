@@ -14,40 +14,38 @@ namespace Couchbase.Core.IO.Operations
             Flags = new Flags
             {
                 Compression = Compression.None,
-                DataFormat = Format,
+                DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.Object
             };
         }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void ReadExtras(ReadOnlySpan<byte> buffer)
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             Flags = new Flags
             {
                 Compression = Compression.None,
-                DataFormat = Format,
+                DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.Object
             };
         }
 
         public override OpCode OpCode => OpCode.GetClusterConfig;
 
-        public override bool Idempotent { get; } = true;
-
         public override BucketConfig GetValue()
         {
             BucketConfig bucketConfig = null;
-            if (Success && Data.Length > 0)
+            if (GetSuccess() && Data.Length > 0)
             {
                 try
                 {
                     var buffer = Data;
                     ReadExtras(buffer.Span);
                     var offset = Header.BodyOffset;
-                    var length = TotalLength - Header.BodyOffset;
+                    var length = Header.TotalLength - Header.BodyOffset;
                     bucketConfig = Transcoder.Decode<BucketConfig>(buffer.Slice(offset, length), Flags, OpCode);
                 }
                 catch (Exception e)
@@ -59,8 +57,6 @@ namespace Couchbase.Core.IO.Operations
 
             return bucketConfig;
         }
-
-        public override bool RequiresKey => false;
     }
 }
 

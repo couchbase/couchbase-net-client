@@ -10,37 +10,13 @@ namespace Couchbase.Core.IO.Operations
             Flags = Transcoder.GetFormat(Content);
         }
 
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
         public override OpCode OpCode => OpCode.Append;
 
         protected override bool SupportsRequestCompression => true;
-
-        public override IOperation Clone()
-        {
-            var cloned = new Append<T>(BucketName, Key)
-            {
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                MutationToken = MutationToken,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
-
-        public override bool CanRetry()
-        {
-            return false;
-        }
     }
 }
 

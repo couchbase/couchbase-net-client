@@ -7,20 +7,20 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Observe : OperationBase<ObserveState>
     {
-        public override void WriteExtras(OperationBuilder builder)
+        protected override void WriteExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteFramingExtras(OperationBuilder builder)
+        protected override void WriteFramingExtras(OperationBuilder builder)
         {
         }
 
-        public override void WriteKey(OperationBuilder builder)
+        protected override void WriteKey(OperationBuilder builder)
         {
         }
 
         [SkipLocalsInit]
-        public override void WriteBody(OperationBuilder builder)
+        protected override void WriteBody(OperationBuilder builder)
         {
             Span<byte> buffer = stackalloc byte[OperationHeader.MaxKeyLength + Leb128.MaxLength + 4];
 
@@ -61,32 +61,7 @@ namespace Couchbase.Core.IO.Operations
             }
             return new ObserveState();
         }
-
         public override OpCode OpCode => OpCode.Observe;
-
-        public override bool Idempotent { get; } = true;
-
-        public override IOperation Clone()
-        {
-            var cloned = new Observe
-            {
-                Key = Key,
-                ReplicaIdx = ReplicaIdx,
-                Content = Content,
-                Transcoder = Transcoder,
-                VBucketId = VBucketId,
-                Opaque = Opaque,
-                Attempts = Attempts,
-                Cas = Cas,
-                CreationTime = CreationTime,
-                LastConfigRevisionTried = LastConfigRevisionTried,
-                BucketName = BucketName,
-                ErrorCode = ErrorCode
-            };
-            return cloned;
-        }
-
-        public override bool RequiresKey => true;
     }
 }
 
