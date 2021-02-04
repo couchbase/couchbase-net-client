@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
@@ -29,6 +30,8 @@ namespace Couchbase.IntegrationTests.Services.Query
 
                 // create deferred custom index
                 await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true)).ConfigureAwait(false);
+
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
                 // get all
                 var queryIndexes = await queryManager.GetAllIndexesAsync("default").ConfigureAwait(false);

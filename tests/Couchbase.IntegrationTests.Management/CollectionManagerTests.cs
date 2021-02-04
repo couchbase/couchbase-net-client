@@ -84,6 +84,8 @@ namespace Couchbase.IntegrationTests.Management
                 // create scope
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
                 // scope exists
                 var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(false);
                 Assert.True(scopeExistsResult);
@@ -99,6 +101,8 @@ namespace Couchbase.IntegrationTests.Management
 
                 // create collection
                 await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
+
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
                 // collection exists
                 var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);

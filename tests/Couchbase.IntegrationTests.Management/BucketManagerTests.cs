@@ -159,6 +159,8 @@ namespace Couchbase.IntegrationTests
                 // create
                 await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
 
+                await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+
                 // get
                 var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
                 Assert.Equal(EvictionPolicyType.ValueOnly, result.EvictionPolicy);
@@ -249,6 +251,8 @@ namespace Couchbase.IntegrationTests
             {
                 // create
                 await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
 
                 // get
                 var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
