@@ -5,7 +5,7 @@ using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Query;
 using Xunit;
 
-namespace Couchbase.IntegrationTests.Services.Query
+namespace Couchbase.IntegrationTests.Management.Services.Query
 {
     [Collection("NonParallel")]
     public class QueryManagerTests : IClassFixture<ClusterFixture>
@@ -25,10 +25,16 @@ namespace Couchbase.IntegrationTests.Services.Query
 
             try
             {
-                // create primary
-                await queryManager.CreatePrimaryIndexAsync("default").ConfigureAwait(false);
-
-                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                try
+                {
+                    // create primary
+                    await queryManager.CreatePrimaryIndexAsync("default").ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                }
+                catch (CouchbaseException)
+                {
+                    //swallow because primary index likely already exists. Follow up commit will add detail to exception thus can filter by that.
+                }
 
                 // create deferred custom index
                 await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true)).ConfigureAwait(false);
