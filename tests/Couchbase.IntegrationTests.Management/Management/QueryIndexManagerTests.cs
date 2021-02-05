@@ -56,7 +56,7 @@ namespace Couchbase.IntegrationTests.Management
                 }
                 catch (Exception e)
                 {
-                    _outputHelper.WriteLine($"Failure during cleanup: ${e.ToString()}");
+                    _outputHelper.WriteLine($"Failure during cleanup: {e}");
                     failedCleanup = true;
                 }
             }

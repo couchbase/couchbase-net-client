@@ -58,6 +58,8 @@ namespace Couchbase.IntegrationTests.Management
                 // collection exists
                 scope = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
 
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
                 Assert.Equal(TimeSpan.FromMinutes(10), scope.Collections.First(x=>x.Name== collectionName).MaxExpiry);
             }
             finally
