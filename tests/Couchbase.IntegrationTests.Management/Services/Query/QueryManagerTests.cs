@@ -28,6 +28,8 @@ namespace Couchbase.IntegrationTests.Services.Query
                 // create primary
                 await queryManager.CreatePrimaryIndexAsync("default").ConfigureAwait(false);
 
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+
                 // create deferred custom index
                 await queryManager.CreateIndexAsync("default", "custom", new [] { "test" }, options => options.Deferred(true)).ConfigureAwait(false);
 
