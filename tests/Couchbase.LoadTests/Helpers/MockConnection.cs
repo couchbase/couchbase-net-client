@@ -32,8 +32,7 @@ namespace Couchbase.LoadTests.Helpers
         public TimeSpan IdleTime { get; set; }
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
-        public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, ErrorMap errorMap = null,
-            CancellationToken cancellationToken = default)
+        public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, CancellationToken cancellationToken = default)
         {
             operation.HandleOperationCompleted(AsyncState.BuildErrorResponse(0, ResponseStatus.KeyNotFound));
             return default;

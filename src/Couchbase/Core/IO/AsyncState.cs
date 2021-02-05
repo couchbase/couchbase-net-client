@@ -30,11 +30,10 @@ namespace Couchbase.Core.IO
 
         private readonly Stopwatch _stopwatch;
 
-        public IPEndPoint? EndPoint { get; set; }
+        public EndPoint? EndPoint { get; set; }
         public IOperation Operation { get; set; }
         public uint Opaque => Operation.Opaque;
         public ulong ConnectionId { get; set; }
-        public ErrorMap? ErrorMap { get; set; }
         public string? LocalEndpoint { get; set; }
 
         public TimeSpan TimeInFlight => _stopwatch.Elapsed;

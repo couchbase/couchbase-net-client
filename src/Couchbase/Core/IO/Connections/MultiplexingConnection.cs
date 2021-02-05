@@ -38,9 +38,9 @@ namespace Couchbase.Core.IO.Connections
         private readonly string _connectionIdString;
 
         // Connection pooling normally prevents simultaneous writes, but there are cases where they may occur,
-        // such as when running Diagnostics pings). We therefore use an AsyncMutex instead of the slightly
-        // slower SemaphoreSlim.
-        private readonly AsyncMutex _writeMutex = new AsyncMutex();
+        // such as when running Diagnostics pings. We therefor need to prevent them ourselves, as the internal
+        // implementation of socket writes may interleave large buffers written from different threads.
+        private readonly SemaphoreSlim _writeMutex = new(1);
 
         public MultiplexingConnection(Socket socket, ILogger<MultiplexingConnection> logger)
             : this(new NetworkStream(socket, true), socket.LocalEndPoint, socket.RemoteEndPoint, logger)
@@ -96,8 +96,7 @@ namespace Couchbase.Core.IO.Connections
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
 
         /// <inheritdoc />
-        public async ValueTask SendAsync(ReadOnlyMemory<byte> request, IOperation operation, ErrorMap? errorMap = null,
-            CancellationToken cancellationToken = default)
+        public async ValueTask SendAsync(ReadOnlyMemory<byte> request, IOperation operation, CancellationToken cancellationToken = default)
         {
             if (request.Length >= MaxDocSize)
             {
@@ -105,20 +104,19 @@ namespace Couchbase.Core.IO.Connections
             }
             if (_disposed)
             {
-                throw new ObjectDisposedException(nameof(MultiplexingConnection));
+                ThrowHelper.ThrowObjectDisposedException(nameof(MultiplexingConnection));
             }
 
             var state = new AsyncState(operation)
             {
-                EndPoint = (IPEndPoint)EndPoint,
+                EndPoint = EndPoint,
                 ConnectionId = ConnectionId,
-                ErrorMap = errorMap,
                 LocalEndpoint = _localEndPointString
             };
 
             _statesInFlight.Add(state);
 
-            await _writeMutex.GetLockAsync(cancellationToken).ConfigureAwait(false);
+            await _writeMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
 #if SPAN_SUPPORT
@@ -140,7 +138,7 @@ namespace Couchbase.Core.IO.Connections
             }
             finally
             {
-                _writeMutex.ReleaseLock();
+                _writeMutex.Release();
             }
         }
 
