@@ -37,7 +37,7 @@ namespace Couchbase.IntegrationTests.Management
                 // create scope
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
-                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
 
                 // scope exists
                 var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(false);
@@ -55,10 +55,10 @@ namespace Couchbase.IntegrationTests.Management
                 // create collection
                 await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
 
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+
                 // collection exists
                 scope = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
-
-                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
                 Assert.Equal(TimeSpan.FromMinutes(10), scope.Collections.First(x=>x.Name== collectionName).MaxExpiry);
             }

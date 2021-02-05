@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -46,12 +47,16 @@ namespace Couchbase.IntegrationTests.Management
                 // upsert
                 await manager.UpsertDesignDocumentAsync(designDoc, DesignDocumentNamespace.Development).ConfigureAwait(false);
 
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+
                 // get
                 var getResult = await manager.GetDesignDocumentAsync(designDoc.Name, DesignDocumentNamespace.Development).ConfigureAwait(false);
                 VerifyDesignDoc(designDoc, getResult);
 
                 // publish
                 await manager.PublishDesignDocumentAsync(designDoc.Name).ConfigureAwait(false);
+
+                await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
 
                 // get all
                 var getAllResult =
