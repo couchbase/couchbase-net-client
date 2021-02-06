@@ -132,7 +132,8 @@ namespace Couchbase.Core.IO
             using (ExecutionContext.SuppressFlow())
             {
                 // Run callback in a new task to avoid blocking the connection read process
-                Task.Factory.StartNew(SendResponseInternalAction, this);
+                Task.Factory.StartNew(SendResponseInternalAction, this, default,
+                    TaskCreationOptions.PreferFairness | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
             }
         }
 
