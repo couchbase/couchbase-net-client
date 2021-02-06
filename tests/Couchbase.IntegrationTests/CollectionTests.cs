@@ -94,16 +94,15 @@ namespace Couchbase.IntegrationTests
                 await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
                 await Task.Delay(1000);
 
-                await ((CouchbaseBucket) bucket).RefreshManifestAsync();
-
                 var scope = await bucket.ScopeAsync(scopeName);
                 ICouchbaseCollection collection = await scope.CollectionAsync(collectionName);
 
                 await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
 
                 await collectionManager.DropCollectionAsync(new CollectionSpec(scopeName, collectionName));
-                await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
+                await Task.Delay(500);
 
+                await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
                 await Task.Delay(500);
 
                 await collection.UpsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
