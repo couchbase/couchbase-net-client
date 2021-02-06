@@ -247,7 +247,7 @@ namespace Couchbase.KeyValue
         }
 
         public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
-            Action<LookupInSpecBuilder> configureBuilder, LookupInOptions options)
+            Action<LookupInSpecBuilder> configureBuilder, LookupInOptions? options)
         {
             var lookupInSpec = new LookupInSpecBuilder();
             configureBuilder(lookupInSpec);
@@ -325,7 +325,7 @@ namespace Couchbase.KeyValue
         }
 
         public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
-            Action<MutateInSpecBuilder> configureBuilder, MutateInOptions options)
+            Action<MutateInSpecBuilder> configureBuilder, MutateInOptions? options)
         {
             var mutateInSpec = new MutateInSpecBuilder();
             configureBuilder(mutateInSpec);
