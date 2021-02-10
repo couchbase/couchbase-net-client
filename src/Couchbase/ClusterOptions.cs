@@ -481,7 +481,7 @@ namespace Couchbase
         public bool EnableConfigPolling { get; set; } = true;
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableDnsSrvResolution { get; set; } = true;
-        public string NetworkResolution => Couchbase.NetworkResolution.Auto;
+        public string NetworkResolution { get; set; } = Couchbase.NetworkResolution.Auto;
 
         /// <summary>
         /// Enables compression for key/value operations.

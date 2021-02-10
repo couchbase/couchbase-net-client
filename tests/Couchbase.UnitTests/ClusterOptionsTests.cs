@@ -112,5 +112,26 @@ namespace Couchbase.UnitTests
         }
 
         #endregion
+
+        #region NetworkResolution
+
+        [Fact]
+        public void Test_NetworkConfiguration_Default()
+        {
+            var options = new ClusterOptions();
+            Assert.Equal(NetworkResolution.Auto, options.NetworkResolution);
+        }
+
+        [Theory]
+        [InlineData(NetworkResolution.External)]
+        [InlineData(NetworkResolution.Default)]
+        [InlineData(NetworkResolution.Auto)]
+        public void Test_NetworkConfiguration_Custom(string networkResolution)
+        {
+            var options = new ClusterOptions {NetworkResolution = networkResolution};
+            Assert.Equal(networkResolution, options.NetworkResolution);
+        }
+
+        #endregion
     }
 }
