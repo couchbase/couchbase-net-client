@@ -16,7 +16,7 @@ namespace Couchbase.IntegrationTests
             _fixture = fixture;
         }
 
-        [Fact]
+        [Fact(Skip = "NCBC-2820: skipping for this release.")]
         public async Task Can_get_any_replica()
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
@@ -40,7 +40,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Fact]
+        [Fact(Skip = "NCBC-2820: skipping for this release.")]
         public async Task Can_get_all_replicas()
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);

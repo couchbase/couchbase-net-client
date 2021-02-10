@@ -398,7 +398,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Fact]
+        [Fact(Skip="Inconsistent results on some machines.")]
         public async Task Test_ExpiryTime()
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
