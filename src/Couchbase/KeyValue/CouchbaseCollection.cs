@@ -87,6 +87,7 @@ namespace Couchbase.KeyValue
                     Key = id,
                     Cid = Cid,
                     CName = Name,
+                    SName = ScopeName,
                     Span = rootSpan
                 };
                 _operationConfigurator.Configure(getOp, options);
@@ -183,6 +184,7 @@ namespace Couchbase.KeyValue
                     Key = id,
                     Cid = Cid,
                     CName = Name,
+                    SName = ScopeName,
                     Span = rootSpan
                 };
                 _operationConfigurator.Configure(getMetaOp, options);
@@ -258,6 +260,7 @@ namespace Couchbase.KeyValue
             {
                 Content = content,
                 Cid = Cid,
+                SName = ScopeName,
                 CName = Name,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
@@ -287,6 +290,7 @@ namespace Couchbase.KeyValue
                 Cas = options.CasValue,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan
@@ -315,6 +319,7 @@ namespace Couchbase.KeyValue
                 Cas = options.CasValue,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 DurabilityLevel = options.DurabilityLevel,
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
                 Span = rootSpan
@@ -341,6 +346,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Cas = cas,
                 Span = rootSpan
             };
@@ -365,6 +371,7 @@ namespace Couchbase.KeyValue
             {
                 Key = id,
                 Cid = Cid,
+                SName = ScopeName,
                 CName = Name,
                 Expires = expiry.ToTtl(),
                 DurabilityTimeout = TimeSpan.FromMilliseconds(1500),
@@ -391,6 +398,7 @@ namespace Couchbase.KeyValue
             {
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Expires = expiry.ToTtl(),
                 Span = rootSpan
             };
@@ -425,6 +433,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Expiry = lockTime.ToTtl(),
                 Span = rootSpan
             };
@@ -482,6 +491,7 @@ namespace Couchbase.KeyValue
                 Builder = builder,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 DocFlags = options.AccessDeletedValue ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None,
                 Span = span
             };
@@ -548,6 +558,7 @@ namespace Couchbase.KeyValue
                 Cas = options.CasValue,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DocFlags = docFlags,
@@ -592,6 +603,7 @@ namespace Couchbase.KeyValue
             {
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan
@@ -618,6 +630,7 @@ namespace Couchbase.KeyValue
             {
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Content = value,
                 DurabilityLevel = options.DurabilityLevel,
                 Span = rootSpan
@@ -644,6 +657,7 @@ namespace Couchbase.KeyValue
             {
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
@@ -672,6 +686,7 @@ namespace Couchbase.KeyValue
             {
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Delta = options.DeltaValue,
                 Initial = options.InitialValue,
                 DurabilityLevel = options.DurabilityLevel,
@@ -748,6 +763,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 Span = childSpan
             };
             _operationConfigurator.Configure(getOp, options);
@@ -773,6 +789,7 @@ namespace Couchbase.KeyValue
                 Key = id,
                 Cid = Cid,
                 CName = Name,
+                SName = ScopeName,
                 ReplicaIdx = index,
                 Span = childSpan
             };
