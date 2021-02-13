@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -26,6 +27,19 @@ namespace Couchbase.Management.Collections
         private readonly ILogger<CollectionManager> _logger;
         private readonly IRedactor _redactor;
 
+        /// <summary>
+        /// REST endpoint path definitions.
+        /// </summary>
+        public static class RestApi
+        {
+            public static string GetScope(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
+            public static string GetScopes(string bucketName) => $"pools/default/buckets/{bucketName}/scopes";
+            public static string CreateScope(string bucketName) => $"pools/default/buckets/{bucketName}/scopes";
+            public static string DeleteScope(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}";
+            public static string CreateCollections(string bucketName, string scopeName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections";
+            public static string DeleteCollections(string bucketName, string scopeName, string collectionName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
+        }
+
         public CollectionManager(string bucketName, IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client,
             ILogger<CollectionManager> logger, IRedactor redactor)
         {
@@ -36,22 +50,12 @@ namespace Couchbase.Management.Collections
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
 
-        private Uri GetUri(string? scopeName = null, string? collectionName = null)
+        internal Uri GetUri(string path)
         {
             var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
             {
-                Path = $"pools/default/buckets/{_bucketName}/collections"
+                Path = path
             };
-
-            if (!string.IsNullOrWhiteSpace(scopeName))
-            {
-                builder.Path += $"/{scopeName}";
-            }
-
-            if (!string.IsNullOrWhiteSpace(collectionName))
-            {
-                builder.Path += $"/{collectionName}";
-            }
 
             return builder.Uri;
         }
@@ -59,7 +63,7 @@ namespace Couchbase.Management.Collections
         public async Task<bool> CollectionExistsAsync(CollectionSpec spec, CollectionExistsOptions? options = null)
         {
             options ??= CollectionExistsOptions.Default;
-            var uri = GetUri();
+            var uri = GetUri(RestApi.GetScope(_bucketName, spec.ScopeName));
             _logger.LogInformation(
                 "Attempting to verify if scope/collection {spec.ScopeName}/{spec.Name} exists - {uri}", spec.ScopeName,
                 spec.Name, _redactor.SystemData(uri));
@@ -87,7 +91,7 @@ namespace Couchbase.Management.Collections
         public async Task<bool> ScopeExistsAsync(string scopeName, ScopeExistsOptions? options = null)
         {
             options ??= ScopeExistsOptions.Default;
-            var uri = GetUri();
+            var uri = GetUri(RestApi.GetScope(_bucketName, scopeName));
             _logger.LogInformation("Attempting to verify if scope {scopeName} exists - {uri}", scopeName,
                 _redactor.SystemData(uri));
 
@@ -112,7 +116,7 @@ namespace Couchbase.Management.Collections
         public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null)
         {
             options ??= GetScopeOptions.Default;
-            var uri = GetUri();
+            var uri = GetUri(RestApi.GetScope(_bucketName, scopeName));
             _logger.LogInformation("Attempting to verify if scope {scopeName} exists - {uri}", scopeName,
                 _redactor.SystemData(uri));
 
@@ -144,7 +148,7 @@ namespace Couchbase.Management.Collections
         public async Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions? options = null)
         {
             options ??= GetAllScopesOptions.Default;
-            var uri = GetUri();
+            var uri = GetUri(RestApi.GetScopes(_bucketName));
             _logger.LogInformation("Attempting to get all scopes - {uri}", _redactor.SystemData(uri));
 
             try
@@ -179,7 +183,7 @@ namespace Couchbase.Management.Collections
         public async Task CreateCollectionAsync(CollectionSpec spec, CreateCollectionOptions? options = null)
         {
             options ??= CreateCollectionOptions.Default;
-            var uri = GetUri(spec.ScopeName);
+            var uri = GetUri(RestApi.CreateCollections(_bucketName, spec.ScopeName));
             _logger.LogInformation("Attempting create collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
                 spec.Name, _redactor.SystemData(uri));
 
@@ -197,7 +201,15 @@ namespace Couchbase.Management.Collections
                 }
                 var content = new FormUrlEncodedContent(keys);
                 var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
-                createResult.EnsureSuccessStatusCode();
+                if (createResult.StatusCode != HttpStatusCode.OK)
+                {
+                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    if (contentBody.Contains("already exists"))
+                        throw new CollectionExistsException(spec.ScopeName, spec.Name);
+                    if (contentBody.Contains("scope_not_found"))
+                        throw new ScopeNotFoundException(spec.ScopeName);
+                    throw new CouchbaseException(contentBody);
+                }
             }
             catch (Exception exception)
             {
@@ -210,7 +222,7 @@ namespace Couchbase.Management.Collections
         public async Task DropCollectionAsync(CollectionSpec spec, DropCollectionOptions? options = null)
         {
             options ??= DropCollectionOptions.Default;
-            var uri = GetUri(spec.ScopeName, spec.Name);
+            var uri = GetUri(RestApi.DeleteCollections(_bucketName, spec.ScopeName, spec.Name));
             _logger.LogInformation("Attempting drop collection {spec.ScopeName}/{spec.Name} - {uri}", spec.ScopeName,
                 spec.Name, _redactor.SystemData(uri));
 
@@ -218,7 +230,13 @@ namespace Couchbase.Management.Collections
             {
                 // drop collection
                 var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
-                createResult.EnsureSuccessStatusCode();
+                if (createResult.StatusCode != HttpStatusCode.OK)
+                {
+                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    if (contentBody.Contains("collection_not_found"))
+                        throw new CollectionNotFoundException(spec.ScopeName, spec.Name);
+                    throw new CouchbaseException(contentBody);
+                }
             }
             catch (Exception exception)
             {
@@ -237,18 +255,24 @@ namespace Couchbase.Management.Collections
         public async Task CreateScopeAsync(string scopeName, CreateScopeOptions? options = null)
         {
             options ??= CreateScopeOptions.Default;
-            var uri = GetUri();
+            var uri = GetUri(RestApi.CreateScope(_bucketName));
             _logger.LogInformation("Attempting create scope {spec.Name} - {uri}", scopeName, _redactor.SystemData(uri));
+
+            // create scope
+            var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                {"name", scopeName}
+            });
 
             try
             {
-                // create scope
-                var content = new FormUrlEncodedContent(new Dictionary<string, string>
-                {
-                    {"name", scopeName}
-                });
                 var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
-                createResult.EnsureSuccessStatusCode();
+                if (createResult.StatusCode != HttpStatusCode.OK)
+                {
+                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    if (contentBody.Contains("already exists")) throw new ScopeExistsException(scopeName);
+                    throw new CouchbaseException(contentBody);
+                }
             }
             catch (Exception exception)
             {
@@ -274,14 +298,20 @@ namespace Couchbase.Management.Collections
         public async Task DropScopeAsync(string scopeName, DropScopeOptions? options = null)
         {
             options ??= DropScopeOptions.Default;
-            var uri = GetUri(scopeName);
+            var uri = GetUri(RestApi.DeleteScope(_bucketName, scopeName));
             _logger.LogInformation("Attempting drop scope {scopeName} - {uri}", scopeName, _redactor.SystemData(uri));
 
             try
             {
                 // drop scope
                 var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
-                createResult.EnsureSuccessStatusCode();
+                if (createResult.StatusCode != HttpStatusCode.OK)
+                {
+                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    if (contentBody.Contains("scope_not_found"))
+                        throw new ScopeNotFoundException(scopeName);
+                    throw new CouchbaseException(contentBody);
+                }
             }
             catch (Exception exception)
             {

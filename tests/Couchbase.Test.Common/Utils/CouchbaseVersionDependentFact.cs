@@ -47,7 +47,7 @@ namespace Couchbase.IntegrationTests.Utils
         internal static string SkipBasedOnVersion(string baseSkip, string[] explicitAllowVersions, string[] explicitSkipVersions, string minVersion, string maxVersion)
         {
             var currentVersion = System.Environment.GetEnvironmentVariable("CB_SERVER_VERSION");
-            currentVersion ??= "6.6.0";
+            currentVersion ??= "7.0.0";
             var explicitAllow = new HashSet<string>(explicitAllowVersions ?? Array.Empty<string>());
             var explicitDeny = new HashSet<string>(explicitSkipVersions ?? Array.Empty<string>());
             if (explicitAllow.Contains(currentVersion))

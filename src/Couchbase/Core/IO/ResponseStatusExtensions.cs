@@ -4,6 +4,8 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.KeyValue;
+using Couchbase.Management.Collections;
+using CollectionNotFoundException = Couchbase.Core.Exceptions.CollectionNotFoundException;
 
 namespace Couchbase.Core.IO
 {
@@ -98,7 +100,9 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.NotSupported: //maps to nothing
                     return new CouchbaseException { Context = ctx };
                 case ResponseStatus.UnknownCollection:
-                    return new CollectionOutdatedException { Context = ctx };
+                    return new CollectionNotFoundException { Context = ctx };
+                case ResponseStatus.UnknownScope:
+                    return new ScopeNotFoundException { Context = ctx};
                 case ResponseStatus.TransportFailure:
                     return new RequestCanceledException{ Context = ctx };
                 case ResponseStatus.NoCollectionsManifest:

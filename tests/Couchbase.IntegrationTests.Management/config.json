@@ -1,7 +1,8 @@
 {
   "testSettings": {
     "connectionString": "couchbase://localhost",
-    "bucketName": "default"
+    "bucketName": "default",
+    "enableLogging" :  false
   },
   "couchbase": {
     "connectionString": "couchbase://localhost",
