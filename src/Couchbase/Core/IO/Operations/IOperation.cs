@@ -45,6 +45,11 @@ namespace Couchbase.Core.IO.Operations
         string Key { get; }
 
         /// <summary>
+        /// True if the operation requires a VBucketId, otherwise false.
+        /// </summary>
+        bool RequiresVBucketId { get; }
+
+        /// <summary>
         /// vBucket identifier, if applicable.
         /// </summary>
         short? VBucketId { get; set; }

@@ -28,15 +28,15 @@ namespace Couchbase
         private readonly HttpClusterMapBase _httpClusterMap;
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer) :
+            ILogger<MemcachedBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator) :
             this(name, context, scopeFactory, retryOrchestrator, ketamaKeyMapperFactory, logger,
-                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context), redactor, bootstrapperFactory, tracer)
+                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context), redactor, bootstrapperFactory, tracer, operationConfigurator)
         {
         }
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap, IRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer)
-            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer)
+            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap, IRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator)
         {
             BucketType = BucketType.Memcached;
             Name = name;

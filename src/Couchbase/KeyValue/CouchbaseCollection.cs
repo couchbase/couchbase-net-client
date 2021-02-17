@@ -11,7 +11,6 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
@@ -22,7 +21,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.KeyValue
 {
     /// <remarks>Volatile</remarks>
-    internal class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection
+    internal class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection, IInternalCollection
     {
         public const string DefaultCollectionName = "_default";
         private readonly BucketBase _bucket;
@@ -49,7 +48,7 @@ namespace Couchbase.KeyValue
 
         public string ScopeName => Scope.Name;
 
-        public uint? Cid { get; internal set; }
+        public uint? Cid { get; set; }
 
         public string Name { get; }
 

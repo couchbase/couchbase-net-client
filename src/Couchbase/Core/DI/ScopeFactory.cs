@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Operations;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -16,11 +18,15 @@ namespace Couchbase.Core.DI
     {
         private readonly ILogger<Scope> _scopeLogger;
         private readonly ICollectionFactory _collectionFactory;
+        private readonly IRequestTracer _tracer;
+        private readonly IOperationConfigurator _configurator;
 
-        public ScopeFactory(ILogger<Scope> scopeLogger, ICollectionFactory collectionFactory)
+        public ScopeFactory(ILogger<Scope> scopeLogger, ICollectionFactory collectionFactory, IRequestTracer tracer, IOperationConfigurator configurator)
         {
             _scopeLogger = scopeLogger;
             _collectionFactory = collectionFactory ?? throw new ArgumentNullException(nameof(collectionFactory));
+            _tracer = tracer;
+            _configurator = configurator;
         }
 
         /// <inheritdoc />
@@ -37,7 +43,7 @@ namespace Couchbase.Core.DI
 
             foreach (var scopeDef in manifest.scopes)
             {
-                yield return new Scope(scopeDef, _collectionFactory, bucket, _scopeLogger);
+                yield return new Scope(scopeDef, _collectionFactory, bucket, _scopeLogger, _tracer, _configurator);
             }
         }
 
@@ -49,7 +55,7 @@ namespace Couchbase.Core.DI
                 throw new ArgumentNullException(nameof(bucket));
             }
 
-            return new Scope(null, _collectionFactory, bucket, _scopeLogger);
+            return new Scope(null, _collectionFactory, bucket, _scopeLogger, _tracer, _configurator);
         }
 
         /// <inheritdoc />
@@ -68,7 +74,7 @@ namespace Couchbase.Core.DI
                 ThrowHelper.ThrowArgumentNullException(nameof(bucket));
             }
 
-            return new Scope(name, scopeIdentifier, bucket,_collectionFactory, _scopeLogger);
+            return new Scope(name, scopeIdentifier, bucket,_collectionFactory, _scopeLogger, _tracer, _configurator);
         }
     }
 }

@@ -238,24 +238,16 @@ namespace Couchbase.Core.Retry
         {
             try
             {
-                var vBucket = (VBucket) bucket.KeyMapper!.MapKey(op.Key);
-                var endPoint = op.ReplicaIdx.HasValue
-                    ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())
-                    : vBucket.LocatePrimary();
+                var scope = await bucket.ScopeAsync(op.SName).ConfigureAwait(false);
+                var collection = (IInternalCollection) await scope.CollectionAsync(op.CName).ConfigureAwait(false);
 
-                if (bucket.Nodes.TryGet(endPoint!, out var clusterNode))
-                {
-                    var scope = await bucket.ScopeAsync(op.SName).ConfigureAwait(false);
-                    var collection = (CouchbaseCollection) await scope.CollectionAsync(op.CName).ConfigureAwait(false);
+                var newCid = await ((IInternalScope) scope).GetCidAsync($"{op.SName}.{op.CName}").ConfigureAwait(false);
+                collection.Cid = newCid;
 
-                    var newCid = await clusterNode.GetCid($"{op.SName}.{op.CName}").ConfigureAwait(false);
-                    collection.Cid = newCid;
+                op.Reset();
+                op.Cid = newCid;
 
-                    op.Reset();
-                    op.Cid = newCid;
-
-                    return true;
-                }
+                return true;
             }
             catch (Exception ex)
             {

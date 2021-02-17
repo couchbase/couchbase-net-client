@@ -7,7 +7,10 @@ using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Query;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -17,7 +20,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.KeyValue
 {
     /// <remarks>Volatile</remarks>
-    internal class Scope : IScope
+    internal class Scope : IScope, IInternalScope
     {
         public const string DefaultScopeName = "_default";
         public const string DefaultScopeId = "0";
@@ -27,12 +30,16 @@ namespace Couchbase.KeyValue
         private readonly ConcurrentDictionary<string, ICouchbaseCollection> _collections;
         private readonly string _queryContext;
         private readonly ICollectionFactory _collectionFactory;
+        private readonly IRequestTracer _tracer;
+        private readonly IOperationConfigurator _operationConfigurator;
 
-        public Scope(string name, string sid, BucketBase bucket, ICollectionFactory collectionFactory, ILogger<Scope> logger)
+        public Scope(string name, string sid, BucketBase bucket, ICollectionFactory collectionFactory, ILogger<Scope> logger, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
-            _collectionFactory = collectionFactory;
+            _collectionFactory =  collectionFactory ?? throw new ArgumentNullException(nameof(collectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
 
             Name = name;
             Id = sid ?? throw new ArgumentNullException(nameof(sid));
@@ -42,11 +49,13 @@ namespace Couchbase.KeyValue
             _collections = new ConcurrentDictionary<string, ICouchbaseCollection>();
         }
 
-        public Scope(ScopeDef? scopeDef, ICollectionFactory collectionFactory, BucketBase bucket, ILogger<Scope> logger)
+        public Scope(ScopeDef? scopeDef, ICollectionFactory collectionFactory, BucketBase bucket, ILogger<Scope> logger, IRequestTracer tracer, IOperationConfigurator operationConfigurator)
         {
             _collectionFactory = collectionFactory ?? throw new ArgumentNullException(nameof(collectionFactory));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
 
             if (scopeDef != null)
             {
@@ -93,7 +102,7 @@ namespace Couchbase.KeyValue
                 //return the default bucket which will fail on first op invocation
                 if (!(_bucket as IBootstrappable).IsBootstrapped)
                 {
-//temp prgaa!
+
 #pragma warning disable 618
             return _bucket.DefaultCollection();
 #pragma warning restore 618
@@ -139,7 +148,7 @@ namespace Couchbase.KeyValue
             }
 
             // ReSharper disable once PossibleNullReferenceException
-            var collectionIdentifier = await clusterNode.GetCid($"{Name}.{collectionName}").ConfigureAwait(false);
+            var collectionIdentifier = await GetCidAsync($"{Name}.{collectionName}").ConfigureAwait(false);
             collection = _collectionFactory.Create(_bucket, this, collectionIdentifier, collectionName);
             if (_collections.TryAdd(collectionName, collection))
             {
@@ -156,6 +165,24 @@ namespace Couchbase.KeyValue
             }
 
             throw new CollectionNotFoundException(collectionName);
+        }
+
+        public async Task<uint?> GetCidAsync(string fullyQualifiedName)
+        {
+            using var rootSpan = RootSpan(OperationNames.GetCid);
+            using var getCid = new GetCid
+            {
+                Transcoder = _bucket.Context.GlobalTranscoder,
+                Key = fullyQualifiedName,
+                Opaque = SequenceGenerator.GetNext(),
+                Content = null,
+                Span = rootSpan,
+            };
+
+            _operationConfigurator.Configure(getCid);
+            await _bucket.RetryAsync(getCid).ConfigureAwait(false);
+            var resultWithValue = getCid.GetValue();
+            return resultWithValue!.GetValueOrDefault();
         }
 
         /// <summary>
@@ -187,5 +214,8 @@ namespace Couchbase.KeyValue
 
             return _bucket.Cluster.AnalyticsQueryAsync<T>(statement, options);
         }
+
+        private IInternalSpan RootSpan(string operation) =>
+            _tracer.RootSpan(RequestTracing.ServiceIdentifier.Kv, operation);
     }
 }

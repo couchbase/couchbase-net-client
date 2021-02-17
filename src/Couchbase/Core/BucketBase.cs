@@ -20,6 +20,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 
@@ -32,6 +33,7 @@ namespace Couchbase.Core
     {
         private ClusterState _clusterState;
         protected readonly IScopeFactory _scopeFactory;
+        private readonly IOperationConfigurator _operationConfigurator;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
         public readonly ClusterNodeCollection Nodes = new ClusterNodeCollection();
 
@@ -46,11 +48,13 @@ namespace Couchbase.Core
             ILogger logger,
             IRedactor redactor,
             IBootstrapperFactory bootstrapperFactory,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IOperationConfigurator operationConfigurator)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+            _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
             RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
@@ -133,7 +137,7 @@ namespace Couchbase.Core
             }
 
             // ReSharper disable once PossibleNullReferenceException
-            var scopeIdentifier = await clusterNode.GetSid(scopeName).ConfigureAwait(false);
+            var scopeIdentifier = await GetSidAsync(scopeName).ConfigureAwait(false);
             var newScope = _scopeFactory.CreateScope(scopeName, Convert.ToString(scopeIdentifier.Value), this);
             if (Scopes.TryAdd(scopeName, newScope))
             {
@@ -141,6 +145,30 @@ namespace Couchbase.Core
             }
 
             throw new ScopeNotFoundException(scopeName);
+        }
+
+        /// <summary>
+        /// Gets the Scope Identifier given a fully qualified name.
+        /// </summary>
+        /// <param name="fullyQualifiedName"></param>
+        /// <returns></returns>
+        public async Task<uint?> GetSidAsync(string fullyQualifiedName)
+        {
+            using var rootSpan = RootSpan(OperationNames.GetCid);
+            using var getSid = new GetSid
+            {
+                Transcoder = Context.GlobalTranscoder,
+                Key = fullyQualifiedName,
+                Opaque = SequenceGenerator.GetNext(),
+                Content = null,
+                Span = rootSpan,
+            };
+
+            _operationConfigurator.Configure(getSid);
+
+            await RetryAsync(getSid).ConfigureAwait(false);
+            var resultWithValue = getSid.GetValue();
+            return resultWithValue!.GetValueOrDefault();
         }
 
         /// <remarks>Volatile</remarks>
@@ -406,5 +434,8 @@ namespace Couchbase.Core
                 return new ValueTask(Task.FromException(ex));
             }
         }
+
+        private IInternalSpan RootSpan(string operation) =>
+            Tracer.RootSpan(RequestTracing.ServiceIdentifier.Kv, operation);
     }
 }

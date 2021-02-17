@@ -98,6 +98,9 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public ValueTask<ResponseStatus> Completed => new(this, _valueTaskSource.Version);
 
+        /// <inheritdoc />
+        public virtual bool RequiresVBucketId => true;
+
         #endregion
 
         #region IRequest Properties (RetryAsync SDK-3)

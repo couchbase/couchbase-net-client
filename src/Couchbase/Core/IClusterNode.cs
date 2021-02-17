@@ -59,10 +59,6 @@ namespace Couchbase.Core
 
         Task<BucketConfig> GetClusterMap();
 
-        Task<uint?> GetCid(string fullyQualifiedName);
-
-        Task<uint?> GetSid(string fullyQualifiedName);
-
         Task ExecuteOp(IOperation op, CancellationTokenPair tokenPair = default);
 
         Task ExecuteOp(IConnection connection, IOperation op, CancellationTokenPair tokenPair = default);

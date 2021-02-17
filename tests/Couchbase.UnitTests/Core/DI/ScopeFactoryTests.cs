@@ -6,6 +6,7 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
@@ -25,7 +26,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object,
-                CreateCollectionFactoryMock());
+                CreateCollectionFactoryMock(), new Mock<IRequestTracer>().Object, new Mock<IOperationConfigurator>().Object);
 
             // Act/Assert
 
@@ -38,7 +39,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object,
-                CreateCollectionFactoryMock());
+                CreateCollectionFactoryMock(), new Mock<IRequestTracer>().Object, new Mock<IOperationConfigurator>().Object);
 
             // Act/Assert
 
@@ -51,7 +52,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object,
-                CreateCollectionFactoryMock());
+                CreateCollectionFactoryMock(), new Mock<IRequestTracer>().Object, new Mock<IOperationConfigurator>().Object);
 
             var manifest = new Manifest
             {
@@ -119,7 +120,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object,
-                CreateCollectionFactoryMock());
+                CreateCollectionFactoryMock(), new Mock<IRequestTracer>().Object, new Mock<IOperationConfigurator>().Object);
 
             // Act/Assert
 
@@ -132,7 +133,7 @@ namespace Couchbase.UnitTests.Core.DI
             // Arrange
 
             var factory = new ScopeFactory(new Mock<ILogger<Scope>>().Object,
-                CreateCollectionFactoryMock());
+                CreateCollectionFactoryMock(), new Mock<IRequestTracer>().Object, new Mock<IOperationConfigurator>().Object);
 
             // Act
 
@@ -181,7 +182,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<ILogger>().Object,
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance);
+                NullRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object);
 
             return mock.Object;
         }

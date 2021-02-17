@@ -227,7 +227,8 @@ namespace Couchbase.UnitTests.Core.Configuration
                 : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                     new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                     new Mock<IBootstrapperFactory>().Object,
-                    NullRequestTracer.Instance)
+                    NullRequestTracer.Instance,
+                    new Mock<IOperationConfigurator>().Object)
             {
                 _output = output;
                 _event = eventSlim;

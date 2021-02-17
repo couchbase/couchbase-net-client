@@ -1,8 +1,9 @@
 using System;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.Exceptions
 {
-    public class CollectionNotFoundException : CouchbaseException
+    public class CollectionNotFoundException : CouchbaseException, IRetryable
     {
         public CollectionNotFoundException() { }
 

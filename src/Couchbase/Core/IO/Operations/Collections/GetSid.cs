@@ -4,6 +4,8 @@ namespace Couchbase.Core.IO.Operations.Collections
 {
     internal class GetSid : OperationBase<uint?>
     {
+        public override bool RequiresVBucketId => false;
+
         public override OpCode OpCode => OpCode.GetSidByName;
 
         public override uint? GetValue()

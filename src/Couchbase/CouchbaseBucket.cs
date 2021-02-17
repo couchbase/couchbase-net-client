@@ -33,8 +33,8 @@ namespace Couchbase
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory,
-            IRequestTracer tracer)
-            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer)
+            IRequestTracer tracer, IOperationConfigurator operationConfigurator)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
 
@@ -202,27 +202,33 @@ namespace Couchbase
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
-        internal override Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
+        internal override async Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
         {
-            if (KeyMapper == null)
+            if (KeyMapper == null) ThrowHelper.ThrowInvalidOperationException($"Bucket {Name} is not bootstrapped.");
+
+            if (op.RequiresVBucketId)
             {
-                throw new InvalidOperationException($"Bucket {Name} is not bootstrapped.");
+                var vBucket = (VBucket) KeyMapper.MapKey(op.Key);
+
+                var endPoint = op.ReplicaIdx != null
+                    ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())
+                    : vBucket.LocatePrimary();
+
+                op.VBucketId = vBucket.Index;
+
+                if (Nodes.TryGet(endPoint!, out var clusterNode)) await clusterNode.SendAsync(op, tokenPair);
+
+                if (endPoint != null)
+                    throw new NodeNotAvailableException(
+                        $"Cannot find a Couchbase Server node for {endPoint}.");
+
+                throw new NullReferenceException($"IPEndPoint is null for key {op.Key}.");
             }
 
-            var vBucket = (VBucket) KeyMapper.MapKey(op.Key);
-            var endPoint = op.ReplicaIdx != null ?
-                vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault()) :
-                vBucket.LocatePrimary();
-
-            op.VBucketId = vBucket.Index;
-
-            if (Nodes.TryGet(endPoint!, out var clusterNode))
-            {
-                return clusterNode.SendAsync(op, tokenPair);
-            }
-
+            var node = Nodes.GetRandom();
+            if (node != null) await node.SendAsync(op, tokenPair);
             throw new NodeNotAvailableException(
-                $"Cannot find a Couchbase Server node for {endPoint}.");
+                $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)

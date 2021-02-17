@@ -147,7 +147,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
+                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance, new Mock<IOperationConfigurator>().Object);
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op, CancellationTokenPair ct) =>
             {
@@ -247,7 +247,8 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
+                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object);
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
@@ -274,7 +275,8 @@ namespace Couchbase.UnitTests.Core.Retry
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance);
+                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object);
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
                 .Returns(Task.CompletedTask);
@@ -300,7 +302,8 @@ namespace Couchbase.UnitTests.Core.Retry
             var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance)
+                NullRequestTracer.Instance,
+                new Mock<IOperationConfigurator>().Object)
             {
                 CallBase = true
             };

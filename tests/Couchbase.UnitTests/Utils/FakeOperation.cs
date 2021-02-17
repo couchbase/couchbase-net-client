@@ -61,6 +61,7 @@ namespace Couchbase.UnitTests.Utils
         public short? ReplicaIdx { get; set; }
         public uint? Cid { get; set; }
         public short? VBucketId { get; set; }
+        public bool RequiresVBucketId { get; } = true;
         public Exception Exception { get; set; }
         public string CName { get; set; }
         public string SName { get; set; }

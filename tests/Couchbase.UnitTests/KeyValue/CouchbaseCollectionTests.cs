@@ -198,7 +198,8 @@ namespace Couchbase.UnitTests.KeyValue
             public FakeBucket(params ResponseStatus[] statuses)
                 : base(BucketName, new ClusterContext(), new Mock<IScopeFactory>().Object,
                     CreateRetryOrchestrator(), new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                    new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance)
+                    new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance,
+                    new Mock<IOperationConfigurator>().Object)
             {
                 foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
             }

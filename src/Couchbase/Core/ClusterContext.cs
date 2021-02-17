@@ -8,6 +8,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
@@ -18,6 +19,7 @@ namespace Couchbase.Core
 {
     internal class ClusterContext : IDisposable
     {
+        public readonly ITypeTranscoder GlobalTranscoder = new JsonTranscoder();
         private readonly ILogger<ClusterContext> _logger;
         private readonly IRedactor _redactor;
         private readonly IConfigHandler _configHandler;

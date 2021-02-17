@@ -1,8 +1,9 @@
 using System;
+using Couchbase.Core.Retry;
 
 namespace Couchbase.Management.Collections
 {
-    public class ScopeNotFoundException : CouchbaseException
+    public class ScopeNotFoundException : CouchbaseException, IRetryable
     {
         public ScopeNotFoundException() { }
 

@@ -31,7 +31,6 @@ namespace Couchbase.Core
 {
     internal class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
     {
-
         private readonly Guid _id = Guid.NewGuid();
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
@@ -40,7 +39,6 @@ namespace Couchbase.Core
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
-        private static readonly ITypeTranscoder GlobalTranscoder = new JsonTranscoder(); //for system level calls
         private Uri _queryUri;
         private Uri _analyticsUri;
         private Uri _searchUri;
@@ -196,7 +194,7 @@ namespace Couchbase.Core
             using var childSpan = _tracer.InternalSpan(OperationNames.GetErrorMap, span);
             using var errorMapOp = new GetErrorMap
             {
-                Transcoder = GlobalTranscoder,
+                Transcoder = _context.GlobalTranscoder,
                 OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = childSpan
@@ -251,7 +249,7 @@ namespace Couchbase.Core
             {
                 Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
                 Content = features.ToArray(),
-                Transcoder = GlobalTranscoder,
+                Transcoder = _context.GlobalTranscoder,
                 OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = childSpan,
@@ -266,7 +264,7 @@ namespace Couchbase.Core
             using var rootSpan = RootSpan(OperationNames.GetManifest);
             using var manifestOp = new GetManifest
             {
-                Transcoder = GlobalTranscoder,
+                Transcoder = _context.GlobalTranscoder,
                 OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 Span = rootSpan,
@@ -287,7 +285,7 @@ namespace Couchbase.Core
             using var rootSpan = RootSpan(OperationNames.GetClusterMap);
             using var configOp = new Config
             {
-                Transcoder = GlobalTranscoder,
+                Transcoder = _context.GlobalTranscoder,
                 OperationBuilderPool = _operationBuilderPool,
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
@@ -303,43 +301,6 @@ namespace Couchbase.Core
             }
 
             return config;
-        }
-
-        public async Task<uint?> GetCid(string fullyQualifiedName)
-        {
-            using var rootSpan = RootSpan(OperationNames.GetCid);
-            using var getCid = new GetCid
-            {
-                Key = fullyQualifiedName,
-                Transcoder = GlobalTranscoder,
-                OperationBuilderPool = _operationBuilderPool,
-                Opaque = SequenceGenerator.GetNext(),
-                Content = null,
-                Span = rootSpan,
-            };
-            await ExecuteOp(ConnectionPool, getCid).ConfigureAwait(false);
-            return getCid.GetValue();
-        }
-
-        /// <summary>
-        /// Gets the Scope Identifier given a fully qualified name.
-        /// </summary>
-        /// <param name="fullyQualifiedName"></param>
-        /// <returns></returns>
-        public async Task<uint?> GetSid(string fullyQualifiedName)
-        {
-            using var rootSpan = RootSpan(OperationNames.GetCid);
-            using var getCid = new GetSid
-            {
-                Key = fullyQualifiedName,
-                Transcoder = GlobalTranscoder,
-                OperationBuilderPool = _operationBuilderPool,
-                Opaque = SequenceGenerator.GetNext(),
-                Content = null,
-                Span = rootSpan,
-            };
-            await ExecuteOp(ConnectionPool, getCid).ConfigureAwait(false);
-            return getCid.GetValue();
         }
 
         private void BuildServiceUris()
@@ -520,7 +481,7 @@ namespace Couchbase.Core
 
                     if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                     {
-                        var config = op.ReadConfig(GlobalTranscoder);
+                        var config = op.ReadConfig(_context.GlobalTranscoder);
                         _context.PublishConfig(config);
                     }
 
@@ -655,7 +616,7 @@ namespace Couchbase.Core
                 using var rootSpan = RootSpan(OperationNames.SelectBucket);
                 using var selectBucketOp = new SelectBucket
                 {
-                    Transcoder = GlobalTranscoder,
+                    Transcoder = _context.GlobalTranscoder,
                     OperationBuilderPool = _operationBuilderPool,
                     Key = bucketName,
                     Span = rootSpan,
