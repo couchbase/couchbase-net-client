@@ -165,6 +165,10 @@ namespace Couchbase
                     {
                         CompressionMinRatio = compressionMinRatio;
                     }
+                    if (ConnectionStringValue.TryGetParameter(CStringParams.NetworkResolution, out string networkResolution))
+                    {
+                        NetworkResolution = networkResolution;
+                    }
                 }
             }
         }
@@ -482,6 +486,8 @@ namespace Couchbase
         public bool EnableTcpKeepAlives { get; set; } = true;
         public bool EnableDnsSrvResolution { get; set; } = true;
         public string NetworkResolution { get; set; } = Couchbase.NetworkResolution.Auto;
+        [CanBeNull] internal string? EffectiveNetworkResolution { get; set; }
+        internal bool HasNetworkResolution => !string.IsNullOrWhiteSpace(EffectiveNetworkResolution);
 
         /// <summary>
         /// Enables compression for key/value operations.

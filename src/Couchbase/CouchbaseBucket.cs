@@ -220,32 +220,9 @@ namespace Couchbase
             {
                 return clusterNode.SendAsync(op, tokenPair);
             }
-            else
-            {
-                if (endPoint != null)
-                {
-                    throw new NodeNotAvailableException(
-                        $"Cannot find a Couchbase Server node for {endPoint}.");
-                }
-                else
-                {
-                    throw new NullReferenceException($"IPEndPoint is null for key {op.Key}.");
-                }
-            }
-        }
 
-        /// <summary>
-        /// Currently used to support integration tests, this method uses a random cluster node to refresh
-        /// the manifest after scope/collection changes using the management APIs.
-        /// </summary>
-        internal async Task RefreshManifestAsync()
-        {
-            if (Context.SupportsCollections)
-            {
-                Manifest = await Nodes.GetRandom().GetManifest().ConfigureAwait(false);
-
-                LoadManifest();
-            }
+            throw new NodeNotAvailableException(
+                $"Cannot find a Couchbase Server node for {endPoint}.");
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)
@@ -260,7 +237,17 @@ namespace Couchbase
                 }
 
                 BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
-                BucketConfig.NetworkResolution = Context.ClusterOptions.NetworkResolution;
+                if (Context.ClusterOptions.HasNetworkResolution)
+                {
+                    //Network resolution determined at the GCCCP level
+                    BucketConfig.NetworkResolution = Context.ClusterOptions.EffectiveNetworkResolution;
+                }
+                else
+                {
+                    //A non-GCCCP cluster
+                    BucketConfig.SetEffectiveNetworkResolution(node.BootstrapEndpoint, Context.ClusterOptions);
+                }
+
                 KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 
                 Nodes.Add(node);
@@ -271,8 +258,7 @@ namespace Couchbase
             {
                 if (e is CouchbaseException ce)
                 {
-                    if (ce.Context is KeyValueErrorContext ctx
-                        && ctx.Status == ResponseStatus.NotSupported)
+                    if (ce.Context is KeyValueErrorContext {Status: ResponseStatus.NotSupported})
                     {
                         throw new NotSupportedException();
                     }

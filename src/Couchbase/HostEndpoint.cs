@@ -161,5 +161,17 @@ namespace Couchbase
             return new HostEndpoint(nodeAdapter.Hostname,
                 options.EffectiveEnableTls ? nodeAdapter.KeyValueSsl : nodeAdapter.KeyValue);
         }
+
+        internal static HostEndpoint Create(NodesExt nodeExt, ClusterOptions options)
+        {
+            return new HostEndpoint(nodeExt.Hostname,
+                options.EffectiveEnableTls ? nodeExt.Services.KvSsl : nodeExt.Services.Kv);
+        }
+
+        internal static HostEndpoint Create(ExternalAddressesConfig extAddressConfig, ClusterOptions options)
+        {
+            return new HostEndpoint(extAddressConfig.Hostname,
+                options.EffectiveEnableTls ? extAddressConfig.Ports.KvSsl : extAddressConfig.Ports.Kv);
+        }
     }
 }

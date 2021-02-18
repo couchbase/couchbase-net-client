@@ -128,8 +128,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             var bucketConfig = new BucketConfig
             {
-                NetworkResolution = networkType,
-                SurrogateHost = expected
+                NetworkResolution = networkType
             };
 
             var adapter = new NodeAdapter(node, nodeExt, bucketConfig);
@@ -190,7 +189,6 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var bucketConfig = new BucketConfig
             {
                 NetworkResolution = networkType,
-                SurrogateHost = expected
             };
 
             var adapter = new NodeAdapter(node, nodeExt, bucketConfig);

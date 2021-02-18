@@ -12,7 +12,7 @@ namespace Couchbase
         public const string Auto ="auto";
 
         /// <summary>
-        /// Do not use alternative addresses.
+        /// Do not use alternative addresses. Uses the internal addresses.
         /// </summary>
         public const string Default = "default";
 

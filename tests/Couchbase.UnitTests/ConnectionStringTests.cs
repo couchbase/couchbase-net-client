@@ -68,8 +68,11 @@ namespace Couchbase.UnitTests
         #endregion
 
         #region Parameters
-        [Fact]
-        public void Test_Parameters()
+        [Theory]
+        [InlineData(NetworkResolution.External)]
+        [InlineData(NetworkResolution.Auto)]
+        [InlineData(NetworkResolution.Default)]
+        public void Test_Parameters(string networkResolution)
         {
             var cstring = "couchbase://localhost?kv_connect_timeout=1000&kv_timeout=1001&kv_durable_timeout=1002" +
                           "&view_timeout=1003&query_timeout=1004&analytics_timeout=1005&search_timeout=1006" +
@@ -77,7 +80,7 @@ namespace Couchbase.UnitTests
                           "&enable_tcp_keepalives=true&force_ipv4=true&config_poll_interval=1008&config_poll_floor_interval=1000" +
                           "&config_idle_redial_timeout=1009&num_kv_connections=10&max_kv_connections=20&max_http_connections=5"+
                           "&idle_http_connection_timeout=1000&enable_config_polling=true&compression=off&compression_min_size=512" +
-                          "&compression_min_ratio=0.50";
+                          $"&compression_min_ratio=0.50&network={networkResolution}";
 
             var options = new ClusterOptions
             {
@@ -108,6 +111,7 @@ namespace Couchbase.UnitTests
             Assert.False(options.Compression);
             Assert.Equal(512, options.CompressionMinSize);
             Assert.Equal(0.50f, options.CompressionMinRatio);
+            Assert.Equal(networkResolution, options.NetworkResolution);
         }
         #endregion
     }

@@ -101,10 +101,7 @@ namespace Couchbase.Core.Configuration.Server
                             var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
                             if (config != null)
                             {
-                                if (config.Name == null)
-                                {
-                                    config.Name = "CLUSTER";
-                                }
+                                config.Name ??= "CLUSTER";
                                 Publish(config);
                             }
                         }
@@ -121,6 +118,9 @@ namespace Couchbase.Core.Configuration.Server
         {
             try
             {
+                //Set the "effective" network resolution that was resolved at bootstrap time.
+                newMap.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
+
                 _logger.LogDebug(LoggingEvents.ConfigEvent, "Receiving new map revision {revision}", newMap.Rev);
                 var isNewOrUpdate = false;
                 var stored = _configs.AddOrUpdate(newMap.Name, key =>

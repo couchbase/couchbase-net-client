@@ -2,7 +2,9 @@ using System;
 using Couchbase.Core.Sharding;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.Design;
 using System.Linq;
+using System.Net;
 using System.Runtime.Serialization;
 using System.Text;
 using Newtonsoft.Json;
@@ -247,15 +249,74 @@ namespace Couchbase.Core.Configuration.Server
     //Root object
     internal class BucketConfig : IEquatable<BucketConfig>
     {
+        private string _networkResolution = Couchbase.NetworkResolution.Auto;
+
         public BucketConfig()
         {
             Nodes = new List<Node>();
             VBucketServerMap = new VBucketServerMapDto();
         }
 
-        public string NetworkResolution { get; set; } = Couchbase.NetworkResolution.Auto;
+        public string NetworkResolution
+        {
+            get => _networkResolution;
+            set
+            {
+                _networkResolution = value;
 
-        public string SurrogateHost { get; set; }
+                //After setting the network resolution we need to update the
+                //servers used for VBucketMapping so the correct addresses are used.
+                ResolveHostName();
+            }
+        }
+
+        /// <summary>
+        /// Sets the "effective" network resolution to be used for alternate addresses using the following heuristic:
+        /// "internal": The SDK should be using the normal addresses/ports as specified in the config.
+        /// "external": The SDK should be using the "external" alternate-address address/ports as specified in the config.
+        /// "auto" (default): The SDK should be making a determination based on the heuristic that is in the RFC at bootstrap
+        /// time only, and then once this determination has been made, the network resolution mode should be unambiguously
+        /// set to "internal" or "external".
+        /// </summary>
+        /// <param name="bootstrapEndpoint">The <see cref="HostEndpoint"/> used to bootstrap.</param>
+        /// <param name="options">THe <see cref="ClusterOptions"/> for configuration.</param>
+        public void SetEffectiveNetworkResolution(HostEndpoint bootstrapEndpoint, ClusterOptions options)
+        {
+            if (NodesExt.FirstOrDefault()!.HasAlternateAddress)
+            {
+                //Use heuristic to derive the network resolution from auto
+                if (options.NetworkResolution == Couchbase.NetworkResolution.Auto)
+                {
+                    foreach (var nodesExt in NodesExt)
+                    {
+                        if (bootstrapEndpoint.Equals(HostEndpoint.Create(nodesExt, options)))
+                        {
+                            //We detect internal or "default" should be used
+                            NetworkResolution = options.EffectiveNetworkResolution = Couchbase.NetworkResolution.Default;
+                            return;
+                        }
+
+                        if (nodesExt.AlternateAddresses.Any(extAlternateAddress =>
+                            bootstrapEndpoint.Equals(HostEndpoint.Create(extAlternateAddress.Value, options))))
+                        {
+                            NetworkResolution = options.EffectiveNetworkResolution =
+                                Couchbase.NetworkResolution.External;
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    //use whatever the caller wants to use
+                    NetworkResolution = options.EffectiveNetworkResolution = options.NetworkResolution;
+                }
+            }
+            else
+            {
+                //we don't have any alt addresses so just use the internal address
+                NetworkResolution = options.EffectiveNetworkResolution = Couchbase.NetworkResolution.Default;
+            }
+        }
 
         /// <summary>
         /// Set to true if a GCCCP config
@@ -330,27 +391,15 @@ namespace Couchbase.Core.Configuration.Server
             return !Equals(left, right);
         }
 
-        [OnDeserialized]
-        internal void OnDeserializedMethod(StreamingContext context)
-        {
-            ResolveHostName();
-        }
-
         public void ResolveHostName()
         {
             for (var i = 0; i < VBucketServerMap.ServerList.Length; i++)
             {
                 var nodeExt = NodesExt?.FirstOrDefault(x => x.Hostname != null && VBucketServerMap.ServerList[i].Contains(x.Hostname));
-                if (nodeExt != null && nodeExt.HasAlternateAddress)
+                if (nodeExt != null && NetworkResolution == Couchbase.NetworkResolution.External)
                 {
-                    var effectiveNetworkResolution =
-                        string.Compare(NetworkResolution, Couchbase.NetworkResolution.Auto,
-                            StringComparison.CurrentCultureIgnoreCase) == 0
-                            ? Couchbase.NetworkResolution.External
-                            : NetworkResolution;
-
                     //The SSL port is resolved later
-                    var alternateAddress = nodeExt.AlternateAddresses[effectiveNetworkResolution];
+                    var alternateAddress = nodeExt.AlternateAddresses[NetworkResolution];
                     VBucketServerMap.ServerList[i] = alternateAddress.Hostname + ":" + alternateAddress.Ports.Kv;
                 }
             }

@@ -104,11 +104,9 @@ namespace Couchbase
             {
                 return clusterNode.ExecuteOp(op, tokenPair);
             }
-            else
-            {
-                //raise exception that node is not found
-                return Task.CompletedTask;
-            }
+
+            //raise exception that node is not found
+            return Task.CompletedTask;
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)
@@ -121,6 +119,16 @@ namespace Couchbase
                 //fetch the cluster map to avoid race condition with streaming http
                 BucketConfig = await _httpClusterMap.GetClusterMapAsync(
                     Name, node.BootstrapEndpoint, CancellationToken.None).ConfigureAwait(false);
+                if (Context.ClusterOptions.HasNetworkResolution)
+                {
+                    //Network resolution determined at the GCCCP level
+                    BucketConfig.NetworkResolution = Context.ClusterOptions.EffectiveNetworkResolution;
+                }
+                else
+                {
+                    //A non-GCCCP cluster
+                    BucketConfig.SetEffectiveNetworkResolution(node.BootstrapEndpoint, Context.ClusterOptions);
+                }
 
                 KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
 

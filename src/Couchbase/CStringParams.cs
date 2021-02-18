@@ -26,5 +26,6 @@ namespace Couchbase
         public const string Compression = "compression";
         public const string CompressionMinSize = "compression_min_size";
         public const string CompressionMinRatio = "compression_min_ratio";
+        public const string NetworkResolution = "network";
     }
 }
