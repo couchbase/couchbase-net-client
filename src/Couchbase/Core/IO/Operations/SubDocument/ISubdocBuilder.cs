@@ -4,6 +4,7 @@ using Couchbase.Core.IO.Serializers;
 
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
+    [Obsolete("This interface is not required and will be removed in a future release.")] // Delete
     public interface ISubDocBuilder<TDocument> : ITypeSerializerProvider
     {
         /// <summary>

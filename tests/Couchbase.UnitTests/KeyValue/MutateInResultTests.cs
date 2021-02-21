@@ -37,9 +37,8 @@ namespace Couchbase.UnitTests.KeyValue
                 Increment("zzz", 10, true).
                 Decrement("xxx", 5, true).Specs;
 
-            var op = new MultiMutation<byte[]>
+            var op = new MultiMutation<byte[]>("theykey", specs)
             {
-                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs),
                 Transcoder = new JsonTranscoder()
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
@@ -64,9 +63,8 @@ namespace Couchbase.UnitTests.KeyValue
             var specs = new MutateInSpecBuilder().Upsert("name", "mike").Replace("bar", "bar").Insert("bah", 0)
                 .Increment("zzz", 10, true).Decrement("xxx", 5, true).Specs;
 
-            var op = new MultiMutation<byte[]>
+            var op = new MultiMutation<byte[]>("thekey", specs)
             {
-                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs),
                 Transcoder = new JsonTranscoder()
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
@@ -97,9 +95,8 @@ namespace Couchbase.UnitTests.KeyValue
             var specs = new MutateInSpecBuilder().Upsert("name", "mike").Replace("bar", "bar").Insert("bah", 0)
                 .Increment("zzz", 10, true).Decrement("xxx", 5, true).Specs;
 
-            var op = new MultiMutation<byte[]>
+            var op = new MultiMutation<byte[]>("thekey", specs)
             {
-                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", specs),
                 Transcoder = new JsonTranscoder()
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());

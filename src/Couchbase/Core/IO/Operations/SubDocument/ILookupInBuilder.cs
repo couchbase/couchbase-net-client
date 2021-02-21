@@ -7,6 +7,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     /// Exposes a "builder" API for constructing a chain of read commands on a document within Couchbase.
     /// </summary>
     /// <typeparam name="TDocument">The type of the document.</typeparam>
+    [Obsolete("This interface is not required and will be removed in a future release.")] // Delete
     public interface ILookupInBuilder<TDocument> : ISubDocBuilder<TDocument>
     {
         /// <summary>

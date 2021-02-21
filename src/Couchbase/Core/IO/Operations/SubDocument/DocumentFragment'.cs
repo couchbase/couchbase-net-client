@@ -10,6 +10,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     /// Represents one more fragments of a document that is returned by the sub-document API.
     /// </summary>
     /// <typeparam name="TDocument">The document</typeparam>
+    [Obsolete("This class is not required and will be removed in a future release.")] // Delete
     public class DocumentFragment<TDocument> : OperationResult, IDocumentFragment<TDocument>, ITypeSerializerProvider
     {
         private readonly ITypeSerializerProvider _sourceTypeSerializerProvider;

@@ -13,12 +13,12 @@ namespace Couchbase.KeyValue
 {
     internal class LookupInResult : ILookupInResult, ITypeSerializerProvider
     {
-        private readonly IList<OperationSpec> _specs;
+        private readonly IList<LookupInSpec> _specs;
 
         /// <inheritdoc />
         public ITypeSerializer Serializer { get; }
 
-        internal LookupInResult(IList<OperationSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false)
+        internal LookupInResult(IList<LookupInSpec> specs, ulong cas, TimeSpan? expiry, ITypeSerializer typeSerializer, bool isDeleted = false)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (specs == null)

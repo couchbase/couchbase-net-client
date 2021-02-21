@@ -1,18 +1,43 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using Couchbase.Core.IO.Converters;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
-using Couchbase.Views;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
     internal class MultiLookup<T> : OperationBase<T>, IEquatable<MultiLookup<T>>
     {
-        public LookupInBuilder<T> Builder { get; set; }
-        private readonly List<OperationSpec> _lookupCommands = new List<OperationSpec>();
+        public ReadOnlyCollection<LookupInSpec> LookupCommands { get; }
         public SubdocDocFlags DocFlags { get; set; }
+
+        public MultiLookup(string key, IEnumerable<LookupInSpec> specs)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            if (specs == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(specs));
+            }
+
+            Key = key;
+
+            var commands = specs.ToList();
+
+            for (int i = 0; i < commands.Count; i++)
+            {
+                commands[i].OriginalIndex = i;
+            }
+
+            // re-order the specs so XAttrs come first.
+            commands.Sort(OperationSpec.ByXattr);
+
+            LookupCommands = new ReadOnlyCollection<LookupInSpec>(commands);
+        }
 
         protected override void WriteExtras(OperationBuilder builder)
         {
@@ -34,20 +59,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             using var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
             var buffer = bufferOwner.Memory.Span;
 
-            foreach (var lookup in Builder)
-            {
-                _lookupCommands.Add(lookup);
-            }
-
-            for (int i = 0; i < _lookupCommands.Count; i++)
-            {
-                _lookupCommands[i].OriginalIndex = i;
-            }
-
-            // re-order the specs so XAttrs come first.
-            _lookupCommands.Sort(OperationSpec.ByXattr);
-
-            foreach (var lookup in _lookupCommands)
+            foreach (var lookup in LookupCommands)
             {
                 var pathLength = ByteConverter.FromString(lookup.Path, buffer);
                 builder.BeginOperationSpec(false);
@@ -58,11 +70,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         public override OpCode OpCode => OpCode.MultiLookup;
 
-        public IList<OperationSpec> GetCommandValues()
+        public IList<LookupInSpec> GetCommandValues()
         {
             if (Data.IsEmpty)
             {
-                return _lookupCommands;
+                return LookupCommands;
             }
 
             var responseSpan = Data.Span.Slice(Header.BodyOffset);
@@ -74,7 +86,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 var payLoad = new byte[bodyLength];
                 responseSpan.Slice(6, bodyLength).CopyTo(payLoad);
 
-                var command = _lookupCommands[commandIndex++];
+                var command = LookupCommands[commandIndex++];
                 command.Status = (ResponseStatus)ByteConverter.ToUInt16(responseSpan);
                 command.ValueIsJson = payLoad.AsSpan().IsJson();
                 command.Bytes = payLoad;
@@ -83,7 +95,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
                 if (responseSpan.Length <= 0) break;
             }
 
-            return _lookupCommands;
+            return LookupCommands;
         }
 
         /// <summary>
@@ -93,11 +105,11 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <returns>
         /// true if the current object is equal to the <paramref name="other" /> parameter; otherwise, false.
         /// </returns>
-        public bool Equals(MultiLookup<T> other)
+        public bool Equals(MultiLookup<T>? other)
         {
             if (other == null) return false;
             if (Cas == other.Cas &&
-                Builder.Equals(other.Builder) &&
+                LookupCommands.Equals(other.LookupCommands) &&
                 Key == other.Key)
             {
                 return true;

@@ -11,14 +11,21 @@ using Couchbase.Utils;
 
 namespace Couchbase.KeyValue
 {
+    [Obsolete("This class will be made internal in a future release.")]
     public class MutateInResult : IMutateInResult, ITypeSerializerProvider
     {
-        private readonly IList<OperationSpec> _specs;
+        private readonly IList<MutateInSpec> _specs;
 
         /// <inheritdoc />
         public ITypeSerializer Serializer { get; }
 
+        // Purely present for semver, delete when this class is made internal
         public MutateInResult(IList<OperationSpec> specs, ulong cas, MutationToken? token, ITypeSerializer serializer)
+            : this(specs.OfType<MutateInSpec>().ToList(), cas, token, serializer)
+        {
+        }
+
+        public MutateInResult(IList<MutateInSpec> specs, ulong cas, MutationToken? token, ITypeSerializer serializer)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (specs == null)

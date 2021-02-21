@@ -7,6 +7,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     ///  Exposes the creation of a set of mutation operations to be performed.
     /// </summary>
     /// <typeparam name="TDocument">The strong typed document (POCO) reflecting the structure of the paths.</typeparam>
+    [Obsolete("This interface is not required and will be removed in a future release.")] // Delete
     public interface IMutateInBuilder<TDocument> : ISubDocBuilder<TDocument>
     {
         /// <summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
@@ -129,7 +130,7 @@ namespace Couchbase.UnitTests.KeyValue
         [Fact]
         public void Test_Projection()
         {
-            var getRequest = new MultiLookup<byte[]>();
+            var getRequest = new MultiLookup<byte[]>("thekey", Array.Empty<LookupInSpec>());
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),
@@ -148,7 +149,7 @@ namespace Couchbase.UnitTests.KeyValue
         [Fact]
         public void Test_Projection_With_Poco()
         {
-            var getRequest = new MultiLookup<byte[]>();
+            var getRequest = new MultiLookup<byte[]>("thekey", Array.Empty<LookupInSpec>());
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),
@@ -167,7 +168,7 @@ namespace Couchbase.UnitTests.KeyValue
         [Fact]
         public void Test_Projection_With_Dictionary()
         {
-            var getRequest = new MultiLookup<byte[]>();
+            var getRequest = new MultiLookup<byte[]>("thekey", Array.Empty<LookupInSpec>());
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),
@@ -186,7 +187,7 @@ namespace Couchbase.UnitTests.KeyValue
         [Fact]
         public void Test_ExpiryTime_Returns_Null_When_Expiry_Not_An_Option()
         {
-            var getRequest = new MultiLookup<byte[]>();
+            var getRequest = new MultiLookup<byte[]>("thekey", Array.Empty<LookupInSpec>());
             getRequest.Read(new FakeMemoryOwner<byte>(_lookupInPacket));
 
             var readResult = new GetResult(getRequest.ExtractBody(),

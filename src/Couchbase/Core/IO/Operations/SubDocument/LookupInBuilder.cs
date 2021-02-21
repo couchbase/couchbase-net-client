@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;
@@ -16,9 +15,9 @@ namespace Couchbase.Core.IO.Operations.SubDocument
     /// <typeparam name="TDocument">The type of the document.</typeparam>
     /// <seealso cref="ILookupInBuilder{TDocument}" />
     /// <seealso cref="ITypeSerializerProvider" />
+    [Obsolete("This class is not required and will be removed in a future release.")] // Delete
     public class LookupInBuilder<TDocument> : ILookupInBuilder<TDocument>, IEnumerable<OperationSpec>, IEquatable<LookupInBuilder<TDocument>>
     {
-        private readonly ISubdocInvoker _invoker;
         private readonly ConcurrentQueue<OperationSpec> _commands = new ConcurrentQueue<OperationSpec>();
         private readonly Func<ITypeSerializer> _serializer;
         private ITypeSerializer _cachedSerializer;
@@ -26,34 +25,19 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <summary>
         /// Initializes a new instance of the <see cref="LookupInBuilder{TDocument}"/> class.
         /// </summary>
-        /// <param name="invoker">The invoker.</param>
         /// <param name="serializer">The serializer.</param>
         /// <param name="key">The key.</param>
         /// <exception cref="System.ArgumentNullException"> invoker or serializer or key.
         /// </exception>
-        internal LookupInBuilder(ISubdocInvoker invoker, Func<ITypeSerializer> serializer, string key)
+        internal LookupInBuilder(Func<ITypeSerializer> serializer, string key)
         {
             if (key == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(key));
             }
 
-            _invoker = invoker;
             _serializer = serializer;
             Key = key;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LookupInBuilder{TDocument}"/> class.
-        /// </summary>
-        /// <param name="invoker">The invoker.</param>
-        /// <param name="serializer">The serializer.</param>
-        /// <param name="key">The key.</param>
-        /// <param name="specs">The specs.</param>
-        internal LookupInBuilder(ISubdocInvoker invoker, Func<ITypeSerializer> serializer, string key, IEnumerable<OperationSpec> specs)
-            : this(invoker, serializer, key)
-        {
-            _commands = new ConcurrentQueue<OperationSpec>(specs);
         }
 
         /// <summary>
@@ -79,17 +63,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// The maximum time allowed for an operation to live before timing out.
         /// </summary>
         public TimeSpan? Timeout { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether any of the pending commands target an XATTR.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> if any pending command targers an XATTR; otherwise, <c>false</c>.
-        /// </value>
-        internal bool ContainsXattrOperations
-        {
-            get { return _commands.Any(command => command.PathFlags.HasFlag(SubdocPathFlags.Xattr)); }
-        }
 
         /// <summary>
         /// Gets the value at a specified N1QL path.
@@ -196,7 +169,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public IDocumentFragment<TDocument> Execute()
         {
-            return _invoker.Invoke(this);
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -207,7 +180,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public Task<IDocumentFragment<TDocument>> ExecuteAsync()
         {
-            return _invoker.InvokeAsync(this);
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -228,19 +201,6 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         IEnumerator IEnumerable.GetEnumerator()
         {
             return ((IEnumerable<OperationSpec>) this).GetEnumerator();
-        }
-
-        /// <summary>
-        /// Gets the <see cref="OperationSpec"/> in the first position.
-        /// </summary>
-        /// <returns></returns>
-        internal OperationSpec FirstSpec()
-        {
-            if (_commands.TryPeek(out var command))
-            {
-                return command;
-            }
-            return command;
         }
 
         /// <summary>

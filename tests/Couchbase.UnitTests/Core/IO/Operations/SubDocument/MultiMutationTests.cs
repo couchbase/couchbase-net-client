@@ -32,9 +32,8 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
                 builder.Upsert("upsert_" + i, i);
             }
 
-            var op = new MultiMutation<byte[]>
+            var op = new MultiMutation<byte[]>("thekey", builder.Specs)
             {
-                Builder = new MutateInBuilder<byte[]>(null, null, "thekey", builder.Specs),
                 Transcoder = new JsonTranscoder()
             };
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
@@ -48,8 +47,6 @@ namespace Couchbase.UnitTests.Core.IO.Operations.SubDocument
             Assert.Equal(10, op.GetCommandValues().Count);
 
             var result = new MutateInResult(op.GetCommandValues(), 0, MutationToken.Empty, new DefaultSerializer());
-
-
         }
     }
 }

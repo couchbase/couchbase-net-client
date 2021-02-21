@@ -32,10 +32,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             var specs = new LookupInSpecBuilder().Get("foo").Exists("bar").Specs;
 
-            var op = new MultiLookup<byte[]>
-            {
-                Builder = new LookupInBuilder<byte[]>(null, null, "thekey", specs)
-            };
+            var op = new MultiLookup<byte[]>("thekey", specs);
             op.OperationBuilderPool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
             await op.SendAsync(new Mock<IConnection>().Object).ConfigureAwait(false);
             op.Read(new FakeMemoryOwner<byte>(bytes));

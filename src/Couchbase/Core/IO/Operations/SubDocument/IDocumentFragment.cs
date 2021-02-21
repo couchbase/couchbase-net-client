@@ -2,7 +2,8 @@ using System;
 
 namespace Couchbase.Core.IO.Operations.SubDocument
 {
-     public interface IDocumentFragment : IOperationResult
+    [Obsolete("This interface is not required and will be removed in a future release.")] // Delete
+    public interface IDocumentFragment : IOperationResult
     {
         /// <summary>
         /// The value if it exists for a specific path.

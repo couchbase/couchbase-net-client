@@ -498,19 +498,22 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            // convert new style specs into old style builder
-            var builder = new LookupInBuilder<byte[]>(null, null, id, specs);
-
             //add the virtual xattr attribute to get the doc expiration time
             if (options.ExpiryValue)
             {
-                builder.Get(VirtualXttrs.DocExpiryTime, SubdocPathFlags.Xattr);
+                specs = specs.Concat(new LookupInSpec[] {
+                    new LookupInSpec
+                    {
+                        Path = VirtualXttrs.DocExpiryTime,
+                        OpCode = OpCode.SubGet,
+                        PathFlags = SubdocPathFlags.Xattr,
+                        DocFlags = SubdocDocFlags.None
+                    }
+                });
             }
 
-            var lookup = new MultiLookup<byte[]>
+            var lookup = new MultiLookup<byte[]>(id, specs)
             {
-                Key = id,
-                Builder = builder,
                 Cid = Cid,
                 CName = Name,
                 SName = ScopeName,
@@ -534,8 +537,6 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= MutateInOptions.Default;
-            // convert new style specs into old style builder
-            var builder = new MutateInBuilder<byte[]>(null, null, id, specs);
 
             //resolve StoreSemantics to SubdocDocFlags
             var docFlags = SubdocDocFlags.None;
@@ -572,11 +573,9 @@ namespace Couchbase.KeyValue
             }
 
             using var rootSpan = RootSpan(OperationNames.MultiMutationSubdocMutate);
-            using var mutation = new MultiMutation<byte[]>
+            using var mutation = new MultiMutation<byte[]>(id, specs)
             {
-                Key = id,
                 BucketName = _bucket.Name,
-                Builder = builder,
                 Cas = options.CasValue,
                 Cid = Cid,
                 CName = Name,
@@ -591,8 +590,10 @@ namespace Couchbase.KeyValue
             using var cts = CreateRetryTimeoutCancellationTokenSource(options, mutation, out var tokenPair);
             await _bucket.RetryAsync(mutation, tokenPair).ConfigureAwait(false);
 
+#pragma warning disable 618 // MutateInResult is marked obsolete until it is made internal
             return new MutateInResult(mutation.GetCommandValues(), mutation.Cas, mutation.MutationToken,
                 options.SerializerValue ?? mutation.Transcoder.Serializer);
+#pragma warning restore 618
         }
 
         private TimeSpan GetTimeout(TimeSpan? optionsTimeout, IOperation op)
