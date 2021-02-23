@@ -28,11 +28,11 @@ namespace Couchbase.UnitTests
                 new Mock<ILogger<CouchbaseBucket>>().Object,
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance,
+                NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-            Assert.ThrowsAsync<ScopeNotFoundException>(async () => await bucket.ScopeAsync("doesnotexist"));
+                Assert.ThrowsAsync<ScopeNotFoundException>(async () => await bucket.ScopeAsync("doesnotexist"));
         }
     }
 }

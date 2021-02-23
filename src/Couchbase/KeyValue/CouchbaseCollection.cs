@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,11 +25,12 @@ namespace Couchbase.KeyValue
     {
         public const string DefaultCollectionName = "_default";
         private readonly BucketBase _bucket;
-        private readonly IOperationConfigurator _operationConfigurator;
         private readonly ILogger<GetResult> _getLogger;
+        private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
 
-        internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator, ILogger<CouchbaseCollection> logger,
+        internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
+            ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, IRedactor redactor,
             uint? cid, string name, IScope scope, IRequestTracer tracer)
         {
@@ -39,7 +39,8 @@ namespace Couchbase.KeyValue
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
-            _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
+            _operationConfigurator =
+                operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             _tracer = tracer;
             Scope = scope ?? throw new ArgumentNullException(nameof(scope));
@@ -51,14 +52,14 @@ namespace Couchbase.KeyValue
 
         public uint? Cid { get; set; }
 
+        public ILogger<CouchbaseCollection> Logger { get; }
+
         public string Name { get; }
 
         /// <inheritdoc />
         public IScope Scope { get; }
 
         public IBinaryCollection Binary => this;
-
-        public ILogger<CouchbaseCollection> Logger { get; }
 
         #region Get
 
@@ -68,16 +69,13 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
-            using var rootSpan = RootSpan(OperationNames.Get);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Get);
             options ??= GetOptions.Default;
 
             var projectList = options.ProjectListValue;
 
             var specCount = projectList.Count;
-            if (options.IncludeExpiryValue)
-            {
-                specCount++;
-            }
+            if (options.IncludeExpiryValue) specCount++;
 
             if (specCount == 0)
             {
@@ -95,8 +93,6 @@ namespace Couchbase.KeyValue
                 using var cts = CreateRetryTimeoutCancellationTokenSource(options, getOp, out var tokenPair);
                 await _bucket.RetryAsync(getOp, tokenPair).ConfigureAwait(false);
 
-                rootSpan.OperationId(getOp);
-
                 return new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
                 {
                     Id = getOp.Key,
@@ -111,17 +107,14 @@ namespace Couchbase.KeyValue
             var specs = new List<LookupInSpec>();
 
             if (options.IncludeExpiryValue)
-            {
                 specs.Add(new LookupInSpec
                 {
                     OpCode = OpCode.SubGet,
                     Path = VirtualXttrs.DocExpiryTime,
                     PathFlags = SubdocPathFlags.Xattr
                 });
-            }
 
             if (projectList.Count == 0 || specCount > 16)
-            {
                 // No projections or we have exceeded the max #fields returnable by sub-doc so fetch the whole doc
                 specs.Add(new LookupInSpec
                 {
@@ -129,19 +122,14 @@ namespace Couchbase.KeyValue
                     OpCode = OpCode.Get,
                     DocFlags = SubdocDocFlags.None
                 });
-            }
             else
-            {
                 //Add the projections for fetching
                 foreach (var path in projectList)
-                {
                     specs.Add(new LookupInSpec
                     {
                         OpCode = OpCode.SubGet,
                         Path = path
                     });
-                }
-            }
 
             var lookupInOptions = !ReferenceEquals(options, GetOptions.Default)
                 ? new LookupInOptions()
@@ -152,8 +140,8 @@ namespace Couchbase.KeyValue
             var lookupOp = await ExecuteLookupIn(id,
                     specs, lookupInOptions, rootSpan)
                 .ConfigureAwait(false);
-            rootSpan.OperationId(lookupOp);
-
+            rootSpan.WithOperationId(lookupOp);
+            rootSpan.Dispose();
             return new GetResult(lookupOp.ExtractBody(), lookupOp.Transcoder, _getLogger, specs, projectList)
             {
                 Id = lookupOp.Key,
@@ -178,7 +166,7 @@ namespace Couchbase.KeyValue
 
                 options ??= ExistsOptions.Default;
 
-                using var rootSpan = RootSpan(OperationNames.GetMetaExists);
+                using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists);
                 using var getMetaOp = new GetMeta
                 {
                     Key = id,
@@ -210,43 +198,6 @@ namespace Couchbase.KeyValue
 
         #endregion
 
-        #region Upsert
-
-        public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
-        {
-            //sanity check for deferred bootstrapping errors
-            _bucket.ThrowIfBootStrapFailed();
-
-            options ??= UpsertOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.SetUpsert);
-            using var upsertOp = new Set<T>(_bucket.Name, id)
-            {
-                Content = content,
-                CName = Name,
-                SName = ScopeName,
-                Cid = Cid,
-                Expires = options.ExpiryValue.ToTtl(),
-                DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
-            };
-
-            _operationConfigurator.Configure(upsertOp, options);
-
-            using var cts = CreateRetryTimeoutCancellationTokenSource(options, upsertOp, out var tokenPair);
-            await _bucket.RetryAsync(upsertOp, tokenPair).ConfigureAwait(false);
-            return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
-        }
-
-        private CancellationTokenSource CreateRetryTimeoutCancellationTokenSource(
-            ITimeoutOptions options, IOperation op, out CancellationTokenPair tokenPair)
-        {
-            var cts = new CancellationTokenSource(GetTimeout(options.Timeout, op));
-            tokenPair = new CancellationTokenPair(options.Token, cts.Token);
-            return cts;
-        }
-
-        #endregion
-
         #region Insert
 
         public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions? options = null)
@@ -255,7 +206,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= InsertOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.AddInsert);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert);
             using var insertOp = new Add<T>(_bucket.Name, id)
             {
                 Content = content,
@@ -283,7 +234,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= ReplaceOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Replace);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Replace);
             using var replaceOp = new Replace<T>(_bucket.Name, id)
             {
                 Content = content,
@@ -312,7 +263,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= RemoveOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.DeleteRemove);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove);
             using var removeOp = new Delete
             {
                 Key = id,
@@ -341,7 +292,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= UnlockOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Unlock);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
             using var unlockOp = new Unlock
             {
                 Key = id,
@@ -363,7 +314,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= UnlockOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Unlock);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
             using var unlockOp = new Unlock
             {
                 Key = id,
@@ -389,7 +340,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= TouchOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Touch);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Touch);
             using var touchOp = new Touch
             {
                 Key = id,
@@ -416,7 +367,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= GetAndTouchOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.GetAndTouch);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch);
             using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -450,7 +401,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= GetAndLockOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.GetAndLock);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock);
             using var getAndLockOp = new GetL<byte[]>
             {
                 Key = id,
@@ -476,14 +427,52 @@ namespace Couchbase.KeyValue
 
         #endregion
 
-        #region LookupIn
+        #region Upsert
 
-        public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs, LookupInOptions? options = null)
+        public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            using var rootSpan = RootSpan(OperationNames.MultiLookupSubdocGet);
+            options ??= UpsertOptions.Default;
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert);
+            using var upsertOp = new Set<T>(_bucket.Name, id)
+            {
+                Content = content,
+                CName = Name,
+                SName = ScopeName,
+                Cid = Cid,
+                Expires = options.ExpiryValue.ToTtl(),
+                DurabilityLevel = options.DurabilityLevel,
+                Span = rootSpan
+            };
+
+            _operationConfigurator.Configure(upsertOp, options);
+
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, upsertOp, out var tokenPair);
+            await _bucket.RetryAsync(upsertOp, tokenPair).ConfigureAwait(false);
+            return new MutationResult(upsertOp.Cas, null, upsertOp.MutationToken);
+        }
+
+        private CancellationTokenSource CreateRetryTimeoutCancellationTokenSource(
+            ITimeoutOptions options, IOperation op, out CancellationTokenPair tokenPair)
+        {
+            var cts = new CancellationTokenSource(GetTimeout(options.Timeout, op));
+            tokenPair = new CancellationTokenPair(options.Token, cts.Token);
+            return cts;
+        }
+
+        #endregion
+
+        #region LookupIn
+
+        public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs,
+            LookupInOptions? options = null)
+        {
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn);
             options ??= LookupInOptions.Default;
             using var lookup = await ExecuteLookupIn(id, specs, options, rootSpan).ConfigureAwait(false);
             var responseStatus = lookup.Header.Status;
@@ -494,7 +483,7 @@ namespace Couchbase.KeyValue
         }
 
         private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<LookupInSpec> specs,
-            LookupInOptions options, IInternalSpan span)
+            LookupInOptions options, IRequestSpan span)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
@@ -532,7 +521,8 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
-        public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null)
+        public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs,
+            MutateInOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
@@ -561,19 +551,14 @@ namespace Couchbase.KeyValue
             if (options.CreateAsDeletedValue)
             {
                 if (!_bucket.BucketConfig?.BucketCapabilities.Contains(BucketCapabilities.CREATE_AS_DELETED) == true)
-                {
                     throw new FeatureNotAvailableException(nameof(BucketCapabilities.CREATE_AS_DELETED));
-                }
 
                 docFlags |= SubdocDocFlags.CreateAsDeleted;
             }
 
-            if (options.AccessDeletedValue)
-            {
-                docFlags |= SubdocDocFlags.AccessDeleted;
-            }
+            if (options.AccessDeletedValue) docFlags |= SubdocDocFlags.AccessDeleted;
 
-            using var rootSpan = RootSpan(OperationNames.MultiMutationSubdocMutate);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn);
             using var mutation = new MultiMutation<byte[]>(id, specs)
             {
                 BucketName = _bucket.Name,
@@ -606,6 +591,7 @@ namespace Couchbase.KeyValue
                     op.Timeout = _bucket.Context.ClusterOptions.KvDurabilityTimeout;
                     return op.Timeout;
                 }
+
                 optionsTimeout = _bucket.Context.ClusterOptions.KvTimeout;
             }
 
@@ -622,7 +608,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= AppendOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Append);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Append);
             using var op = new Append<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -649,7 +635,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= PrependOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Prepend);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Prepend);
             using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -676,7 +662,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= IncrementOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Increment);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Increment);
             using var op = new Increment(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -705,7 +691,7 @@ namespace Couchbase.KeyValue
             _bucket.ThrowIfBootStrapFailed();
 
             options ??= DecrementOptions.Default;
-            using var rootSpan = RootSpan(OperationNames.Decrement);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Decrement);
             using var op = new Decrement(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -733,14 +719,13 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            using var rootSpan = RootSpan(OperationNames.GetAnyReplica);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica);
             options ??= GetAnyReplicaOptions.Default;
             var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
 
             if (!vBucket.HasReplicas)
-            {
-                Logger.LogWarning($"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
-            }
+                Logger.LogWarning(
+                    $"Call to GetAnyReplica for key [{id}] but none are configured. Only the active document will be retrieved.");
 
             // get primary
             var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1)
@@ -749,23 +734,24 @@ namespace Couchbase.KeyValue
             };
 
             // get replicas
-            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
+            tasks.AddRange(
+                vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
 
-            return await Task.WhenAny(tasks).ConfigureAwait(false).GetAwaiter().GetResult();//TODO BUG!
+            return await Task.WhenAny(tasks).ConfigureAwait(false).GetAwaiter().GetResult(); //TODO BUG!
         }
 
-        public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null)
+        public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id,
+            GetAllReplicasOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            using var rootSpan = RootSpan(OperationNames.GetAllReplicas);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas);
             options ??= GetAllReplicasOptions.Default;
             var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
             if (!vBucket.HasReplicas)
-            {
-                Logger.LogWarning($"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
-            }
+                Logger.LogWarning(
+                    $"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
 
             // get primary
             var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1)
@@ -774,14 +760,16 @@ namespace Couchbase.KeyValue
             };
 
             // get replicas
-            tasks.AddRange(vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
+            tasks.AddRange(
+                vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
 
             return tasks;
         }
 
-        private async Task<IGetReplicaResult> GetPrimary(string id, IInternalSpan span, CancellationToken cancellationToken, ITranscoderOverrideOptions options)
+        private async Task<IGetReplicaResult> GetPrimary(string id, IRequestSpan span,
+            CancellationToken cancellationToken, ITranscoderOverrideOptions options)
         {
-            using var childSpan = _tracer.InternalSpan(OperationNames.Get, span);
+            using var childSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.Get, span);
             using var getOp = new Get<object>
             {
                 Key = id,
@@ -792,7 +780,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(getOp, options);
 
-            using var cts = CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions)options, getOp, out var tokenPair);
+            using var cts =
+                CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions) options, getOp, out var tokenPair);
             await _bucket.RetryAsync(getOp, tokenPair).ConfigureAwait(false);
             return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
             {
@@ -805,9 +794,10 @@ namespace Couchbase.KeyValue
             };
         }
 
-        private async Task<IGetReplicaResult> GetReplica(string id, short index, IInternalSpan span, CancellationToken cancellationToken, ITranscoderOverrideOptions options)
+        private async Task<IGetReplicaResult> GetReplica(string id, short index, IRequestSpan span,
+            CancellationToken cancellationToken, ITranscoderOverrideOptions options)
         {
-            using var childSpan = _tracer.InternalSpan(OperationNames.ReplicaRead, span);
+            using var childSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.ReplicaRead, span);
             using var getOp = new ReplicaRead<object>(id, index)
             {
                 Key = id,
@@ -818,7 +808,8 @@ namespace Couchbase.KeyValue
             };
             _operationConfigurator.Configure(getOp, options);
 
-            using var cts = CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions)options, getOp, out var tokenPair);
+            using var cts =
+                CreateRetryTimeoutCancellationTokenSource((ITimeoutOptions) options, getOp, out var tokenPair);
             await _bucket.RetryAsync(getOp, tokenPair).ConfigureAwait(false);
             return new GetReplicaResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
             {
@@ -833,7 +824,18 @@ namespace Couchbase.KeyValue
 
         #endregion
 
-        private IInternalSpan RootSpan(string operation) =>
-            _tracer.RootSpan(RequestTracing.ServiceIdentifier.Kv, operation);
+        #region tracing
+        private IRequestSpan RootSpan(string operation)
+        {
+            var span = _tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, _bucket.Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, ScopeName);
+            span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
     }
 }

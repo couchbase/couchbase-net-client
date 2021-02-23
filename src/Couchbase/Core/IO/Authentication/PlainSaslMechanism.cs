@@ -33,7 +33,7 @@ namespace Couchbase.Core.IO.Authentication
         /// <inheritdoc />
         public override async Task AuthenticateAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
-            using var rootSpan = Tracer.RootSpan(CouchbaseTags.Service, OperationNames.AuthenticatePlain);
+            using var rootSpan = Tracer.RequestSpan(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Internal.AuthenticatePlain);
             using var op = new SaslStart
             {
                 Key = MechanismType.GetDescription(),

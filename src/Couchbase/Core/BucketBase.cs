@@ -142,7 +142,8 @@ namespace Couchbase.Core
 
             // ReSharper disable once PossibleNullReferenceException
             var scopeIdentifier = await GetSidAsync(scopeName).ConfigureAwait(false);
-            var newScope = _scopeFactory.CreateScope(scopeName, Convert.ToString(scopeIdentifier.Value), this);
+            var newScope = _scopeFactory.CreateScope(scopeName, Convert.ToString(scopeIdentifier!.Value), this);
+
             if (Scopes.TryAdd(scopeName, newScope))
             {
                 return newScope;
@@ -158,7 +159,7 @@ namespace Couchbase.Core
         /// <returns></returns>
         public async Task<uint?> GetSidAsync(string fullyQualifiedName)
         {
-            using var rootSpan = RootSpan(OperationNames.GetCid);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
             using var getSid = new GetSid
             {
                 Transcoder = Context.GlobalTranscoder,
@@ -439,7 +440,15 @@ namespace Couchbase.Core
             }
         }
 
-        private IInternalSpan RootSpan(string operation) =>
-            Tracer.RootSpan(RequestTracing.ServiceIdentifier.Kv, operation);
+        private IRequestSpan RootSpan(string operation)
+        {
+            var span = Tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
     }
 }

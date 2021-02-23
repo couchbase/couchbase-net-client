@@ -77,7 +77,7 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Tracing span.
         /// </summary>
-        IInternalSpan Span { get; }
+        IRequestSpan Span { get; }
 
         /// <summary>
         /// Indicates that a mutation operation has a durability requirement.

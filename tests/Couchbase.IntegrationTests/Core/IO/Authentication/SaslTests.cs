@@ -47,7 +47,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 .ConfigureAwait(false);
 
             var sha1Mechanism = new ScramShaMechanism(MechanismType.ScramSha1, options.Password,
-                options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
+                options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
                 new OperationConfigurator(new JsonTranscoder(), Mock.Of<IOperationCompressor>(),
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new BestEffortRetryStrategy()));

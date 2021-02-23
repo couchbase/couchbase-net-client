@@ -48,7 +48,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(ILoggerFactory), new SingletonServiceFactory(new NullLoggerFactory()));
             yield return (typeof(ILogger<>), new SingletonGenericServiceFactory(typeof(Logger<>)));
             yield return (typeof(IRedactor), new SingletonServiceFactory(typeof(Redactor)));
-            yield return (typeof(IRequestTracer), new SingletonServiceFactory(NullRequestTracer.Instance));
+            yield return (typeof(IRequestTracer), new SingletonServiceFactory(NoopRequestTracer.Instance));
 
             yield return (typeof(ILookupClient), new TransientServiceFactory(_ => new LookupClient()));
             yield return (typeof(IDotNetDnsClient), new TransientServiceFactory(_ => new DotNetDnsClient()));
@@ -77,8 +77,8 @@ namespace Couchbase.Core.DI
             yield return (typeof(IScopeFactory), new SingletonServiceFactory(typeof(ScopeFactory)));
             yield return (typeof(ICollectionFactory), new SingletonServiceFactory(typeof(CollectionFactory)));
             yield return (typeof(IRetryOrchestrator), new SingletonServiceFactory(typeof(RetryOrchestrator)));
-            yield return (typeof(IOrphanedResponseLogger),
-                new SingletonServiceFactory(typeof(NullOrphanedResponseLogger)));
+         //   yield return (typeof(IOrphanedResponseLogger),
+          //      new SingletonServiceFactory(typeof(NullOrphanedResponseLogger)));
             yield return (typeof(IVBucketKeyMapperFactory),
                 new SingletonServiceFactory(typeof(VBucketKeyMapperFactory)));
             yield return (typeof(IVBucketFactory), new SingletonServiceFactory(typeof(VBucketFactory)));

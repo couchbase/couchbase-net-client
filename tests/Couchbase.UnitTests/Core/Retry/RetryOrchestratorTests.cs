@@ -147,10 +147,10 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance, new Mock<IOperationConfigurator>().Object,
+                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op, CancellationTokenPair ct) =>
+                bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op, CancellationTokenPair ct) =>
             {
                 if (op.Completed.IsCompleted)
                     Assert.True(false, "operation result should be reset before retry");
@@ -248,7 +248,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance,
+                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
@@ -277,11 +277,11 @@ namespace Couchbase.UnitTests.Core.Retry
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
-                new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance,
+                new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
+                bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
                 .Returns(Task.CompletedTask);
 
             var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
@@ -305,7 +305,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance,
+                NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy())
             {

@@ -101,5 +101,17 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <returns></returns>
         internal string? QueryContext { get; set; }
+
+        /// <summary>
+        /// The name of the bucket if this is a scope level query.
+        /// </summary>
+        /// <remarks>For internal use only.</remarks>
+        internal string? BucketName { get; set; }
+
+        /// <summary>
+        /// The name of the scope if this is a scope level query.
+        /// </summary>
+        /// <remarks>For internal use only.</remarks>
+        internal string? ScopeName { get; set; }
     }
 }

@@ -54,10 +54,10 @@ namespace Couchbase.Search
         /// <returns>A <see cref="ISearchResult"/> wrapped in a <see cref="Task"/> for awaiting on.</returns>
         public async Task<ISearchResult> QueryAsync(SearchRequest searchRequest, CancellationToken cancellationToken = default)
         {
-            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.Search, OperationNames.SearchQuery)
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.SearchQuery)
                 .WithLocalAddress();
 
-            using var encodingSpan = rootSpan.StartPayloadEncoding();
+            using var encodingSpan = rootSpan.EncodingSpan();
 
             // try get Search nodes
             var searchUri = _serviceUriProvider.GetRandomSearchUri();
@@ -79,7 +79,7 @@ namespace Couchbase.Search
             {
                 using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
                 encodingSpan.Dispose();
-                using var dispatchSpan = rootSpan.StartDispatch();
+                using var dispatchSpan = rootSpan.DispatchSpan(searchRequest);
                 var response = await HttpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
                 dispatchSpan.Dispose();
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
@@ -137,6 +137,17 @@ namespace Couchbase.Search
             UpdateLastActivity();
             return searchResult;
         }
+
+        #region tracing
+        private IRequestSpan RootSpan(string operation)
+        {
+            var span = _tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.AnalyticsQuery).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
     }
 }
 

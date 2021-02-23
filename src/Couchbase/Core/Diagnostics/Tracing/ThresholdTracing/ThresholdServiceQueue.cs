@@ -2,25 +2,23 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Authentication.ExtendedProtection;
-using System.Text;
 using System.Threading;
 
-namespace Couchbase.Core.Diagnostics.Tracing
+namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
-    internal class ServiceThresholdQueue
+    internal class ThresholdServiceQueue
     {
         private int _sampleSize = ThresholdOptions.DefaultSampleSize;
         private long _sampleCount = 0;
-        private readonly ConcurrentQueue<ThresholdSummary> _latestEvents = new ConcurrentQueue<ThresholdSummary>();
+        private readonly ConcurrentQueue<ThresholdSummary> _latestEvents = new();
 
-        private static readonly ManualResetEventSlim ReportIdle = new ManualResetEventSlim(true);
+        private static readonly ManualResetEventSlim ReportIdle = new(true);
 
-        internal static readonly IReadOnlyDictionary<string, ServiceThresholdQueue> CoreQueues =
-            RequestTracing.CoreServices.Select(s => new ServiceThresholdQueue(s))
+        internal static readonly IReadOnlyDictionary<string, ThresholdServiceQueue> CoreQueues =
+            ServiceIdentifier.CoreServices.Select(s => new ThresholdServiceQueue(s))
                 .ToDictionary(sq => sq.ServiceName);
-    
-        internal ServiceThresholdQueue(string serviceName)
+
+        internal ThresholdServiceQueue(string serviceName)
         {
             ServiceName = serviceName;
         }
@@ -61,7 +59,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             while (_latestEvents.Count > _sampleSize)
             {
                 // throw away any extras at the front.
-                _latestEvents.TryDequeue(out var _);
+                _latestEvents.TryDequeue(out _);
 
                 if (sanity++ > 10000)
                 {
@@ -71,7 +69,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
             var top = _latestEvents.ToArray();
 
-            while (_latestEvents.TryDequeue(out var _))
+            while (_latestEvents.TryDequeue(out _))
             {
                 // just clearing the queue.
                 if (sanity++ > 10000)

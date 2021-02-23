@@ -1,7 +1,10 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.Retry;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -155,6 +158,92 @@ namespace Couchbase.UnitTests
 
             Assert.IsType<FailFastRetryStrategy>(clusterOptions.RetryStrategy);
         }
+
+        #endregion RetryStrategy
+
+        #region Tracing
+
+        [Fact]
+        public void When_Tracing_Not_Enabled_Default_To_NoopRequestTracer()
+        {
+            var options = new ClusterOptions();
+            options.WithThresholdTracing(new ThresholdOptions
+            {
+                Enabled = false
+            });
+
+            var services = options.BuildServiceProvider();
+            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
+
+            Assert.IsAssignableFrom<NoopRequestTracer>(noopRequestTracer);
+        }
+
+        [Fact]
+        public void When_Tracing_Enabled_Default_To_ThresholdRequestTracer()
+        {
+            var options = new ClusterOptions();
+            options.WithThresholdTracing(new ThresholdOptions
+            {
+                Enabled = true,
+                RequestTracer = new ThresholdRequestTracer(new ThresholdOptions(), new LoggerFactory())
+            });
+
+            var services = options.BuildServiceProvider();
+            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
+
+            Assert.IsAssignableFrom<ThresholdRequestTracer>(noopRequestTracer);
+        }
+
+        [Fact]
+        public void When_Tracing_Enabled_Custom_To_CustomRequestTracer()
+        {
+            var options = new ClusterOptions();
+            options.WithThresholdTracing(new ThresholdOptions
+            {
+                Enabled = true,
+                RequestTracer = new CustomRequestTracer()
+        });
+
+            var services = options.BuildServiceProvider();
+            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
+
+            Assert.IsAssignableFrom<CustomRequestTracer>(noopRequestTracer);
+        }
+
+        [Fact]
+        public void When_Tracing_Disabled_Custom_To_NoopRequestTracer()
+        {
+            var options = new ClusterOptions();
+            options.WithThresholdTracing(new ThresholdOptions
+            {
+                Enabled = false
+            });
+            options.RequestTracer = new CustomRequestTracer();
+
+            var services = options.BuildServiceProvider();
+            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
+
+            Assert.IsAssignableFrom<NoopRequestTracer>(noopRequestTracer);
+        }
+
+        public class CustomRequestTracer : IRequestTracer
+        {
+            public void Dispose()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestTracer Start(TraceListener listener)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         #endregion
     }
 }

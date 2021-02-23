@@ -28,6 +28,8 @@ namespace Couchbase.Analytics
         }
 
         public bool ReadOnly { get; set; }
+        public string BucketName { get; set; }
+        public string ScopeName { get; set; }
 
         /// <summary>
         /// Gets the original analytics statement.

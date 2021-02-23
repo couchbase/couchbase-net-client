@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NullRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
 
             var result = await client.QueryAsync<dynamic>(new AnalyticsRequest("SELECT * FROM `default`"), default);
 
@@ -90,7 +90,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NullRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
 
             var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
             queryRequest.Priority(priority);
@@ -114,7 +114,7 @@ namespace Couchbase.UnitTests.Analytics
 
             var serializer = new DefaultSerializer();
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NullRequestTracer.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
 
             Assert.Null(client.LastActivity);
 

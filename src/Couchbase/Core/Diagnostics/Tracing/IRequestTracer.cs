@@ -1,54 +1,30 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
     /// <summary>
-    /// A tracer used by CouchbaseNetClient do trace internal operations.
+    /// The abstraction for tracing in the SDK.
     /// </summary>
-    /// <remarks>Volatile.  (This interface may change in breaking ways during minor releases)</remarks>
-    public interface IRequestTracer
+    /// <remarks>
+    /// Multiple implementation exists, internal within the SDK and as packages for 3rd parties
+    /// (OpenTelemetry, OpenTracing, etc.). It is recommended that one of these packages be used
+    /// for writing your own implementation.
+    /// </remarks>
+    public interface IRequestTracer : IDisposable
     {
         /// <summary>
-        /// Begin a span for an internal Couchbase operation.
+        /// Creates a new request span with or without a parent span.
         /// </summary>
-        /// <param name="operationName">The name of the operation (should be a constant from the <c>RequestTracing</c> class).</param>
-        /// <param name="parent">(Optional) The parent span.</param>
-        /// <returns>A disposable that lets you end the span.</returns>
-        IInternalSpan InternalSpan(string operationName, IRequestSpan parent);
+        /// <param name="name">The name of the top-level operation (i.e. "cb.get")</param>
+        /// <param name="parentSpan">A parent span, otherwise null.</param>
+        /// <returns>A request span that wraps the actual tracer implementation span.</returns>
+        IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null);
 
         /// <summary>
-        /// Begin a span wrapping a generic operation, allowing users of CouchbaseNetClient to wrap their own spans as the parent.
+        /// Starts tracing given a <see cref="TraceListener"/> implementation.
         /// </summary>
-        /// <param name="operationName">The name of the operation (should be a constant from the <c>RequestTracing</c> class).</param>
-        /// <param name="parent">(Optional) The parent span.</param>
-        /// <returns>A disposable that lets you end the span.</returns>
-        IRequestSpan RequestSpan(string operationName, IRequestSpan parent);
-    }
-
-    public class RequestTracing
-    {
-        public const string SourceName = "couchbase-net-client";
-        public const string DispatchSpanName = "dispatch_to_server";
-        public const string PayloadEncodingSpanName = "request_encoding";
-
-        public static readonly ISet<string> CoreServices = new HashSet<string>()
-        {
-            ServiceIdentifier.Kv,
-            ServiceIdentifier.Query,
-            ServiceIdentifier.Search,
-            ServiceIdentifier.View,
-            ServiceIdentifier.Analytics
-        };
-
-        public class ServiceIdentifier
-        {
-            public const string Kv = "kv";
-            public const string Query = "n1ql"; // the Java client has this as "query", but the RFC says "n1ql"
-            public const string Search = "search";
-            public const string View = "view";
-            public const string Analytics = "cbas";
-        }
+        /// <param name="listener"></param>
+        /// <returns></returns>
+        IRequestTracer Start(TraceListener listener);
     }
 }

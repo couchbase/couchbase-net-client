@@ -189,9 +189,9 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task<ErrorMap> GetErrorMap(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)
+        private async Task<ErrorMap> GetErrorMap(IConnection connection, IRequestSpan span, CancellationToken cancellationToken = default)
         {
-            using var childSpan = _tracer.InternalSpan(OperationNames.GetErrorMap, span);
+            using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.GetErrorMap);
             using var errorMapOp = new GetErrorMap
             {
                 Transcoder = _context.GlobalTranscoder,
@@ -203,7 +203,7 @@ namespace Couchbase.Core
             return new ErrorMap(errorMapOp.GetValue());
         }
 
-        private async Task<ServerFeatures[]> Hello(IConnection connection, IInternalSpan span, CancellationToken cancellationToken = default)
+        private async Task<ServerFeatures[]> Hello(IConnection connection, IRequestSpan span, CancellationToken cancellationToken = default)
         {
             var features = new List<ServerFeatures>
             {
@@ -244,7 +244,7 @@ namespace Couchbase.Core
                 }
             }
 
-            using var childSpan = _tracer.InternalSpan(OperationNames.Hello, span);
+            using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.Hello);
             using var heloOp = new Hello
             {
                 Key = Core.IO.Operations.Hello.BuildHelloKey(connection.ConnectionId),
@@ -261,7 +261,7 @@ namespace Couchbase.Core
 
         public async Task<Manifest> GetManifest()
         {
-            using var rootSpan = RootSpan(OperationNames.GetManifest);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetManifest);
             using var manifestOp = new GetManifest
             {
                 Transcoder = _context.GlobalTranscoder,
@@ -282,7 +282,7 @@ namespace Couchbase.Core
 
         public async Task<BucketConfig> GetClusterMap()
         {
-            using var rootSpan = RootSpan(OperationNames.GetClusterMap);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetClusterMap);
             using var configOp = new Config
             {
                 Transcoder = _context.GlobalTranscoder,
@@ -616,6 +616,7 @@ namespace Couchbase.Core
                     _context.ClusterOptions.Password);
 
                 await saslMechanism.AuthenticateAsync(connection, cancellationToken).ConfigureAwait(false);
+                rootSpan.Dispose();
             }
         }
 
@@ -623,7 +624,7 @@ namespace Couchbase.Core
         {
             try
             {
-                using var rootSpan = RootSpan(OperationNames.SelectBucket);
+                using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.SelectBucket);
                 using var selectBucketOp = new SelectBucket
                 {
                     Transcoder = _context.GlobalTranscoder,
@@ -696,10 +697,17 @@ namespace Couchbase.Core
 
         #region Tracing
 
-        private IInternalSpan RootSpan(string operation) =>
-            _tracer.RootSpan(CouchbaseTags.Service, operation);
+        #region tracing
+        private IRequestSpan RootSpan(string operation)
+        {
+            var span = _tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
 
-        private IInternalSpan RootSpan(string operation, OperationBase op) => RootSpan(operation).OperationId(op);
         #endregion
     }
 }

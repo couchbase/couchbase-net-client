@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Converters;
@@ -24,7 +25,7 @@ namespace Couchbase.Core.IO.Operations
     internal abstract class OperationBase : IOperation, IValueTaskSource<ResponseStatus>
     {
         private SlicedMemoryOwner<byte> _data;
-        private IInternalSpan? _span;
+        private IRequestSpan? _span;
         private List<RetryReason>? _retryReasons;
         private IRetryStrategy? _retryStrategy;
         private volatile bool _isSent;
@@ -72,13 +73,13 @@ namespace Couchbase.Core.IO.Operations
         public OperationHeader Header { get; set; }
 
         /// <inheritdoc />
-        public IInternalSpan Span
+        public IRequestSpan Span
         {
-            get => _span ?? NullRequestTracer.NullSpanInstance;
+            get => _span ?? NoopRequestSpan.Instance;
             internal set
             {
                 _span = value;
-                _span.OperationId(this);
+                _span.WithOperationId(this);
             }
         }
 
@@ -463,7 +464,7 @@ namespace Couchbase.Core.IO.Operations
         {
             connection.AddTags(Span);
 
-            using var encodingSpan = Span.StartPayloadEncoding();
+            using var encodingSpan = Span.EncodingSpan();
             BeginSend();
 
             var builder = OperationBuilderPool.Get();
@@ -494,7 +495,7 @@ namespace Couchbase.Core.IO.Operations
                 var buffer = builder.GetBuffer();
                 encodingSpan.Dispose();
 
-                using var dispatchSpan = Span.StartDispatch();
+                using var dispatchSpan = Span.DispatchSpan(this);
                 await connection.SendAsync(buffer, this, cancellationToken: cancellationToken).ConfigureAwait(false);
                 _isSent = true;
                 dispatchSpan.Dispose();
@@ -551,7 +552,7 @@ namespace Couchbase.Core.IO.Operations
                     || status == ResponseStatus.AuthenticationContinue
                     || status == ResponseStatus.SubDocMultiPathFailure
                     || status == ResponseStatus.SubdocMultiPathFailureDeleted
-                    || status ==  ResponseStatus.SubDocSuccessDeletedDocument)
+                    || status == ResponseStatus.SubDocSuccessDeletedDocument)
                 {
                     Read(in data);
                 }
@@ -566,6 +567,10 @@ namespace Couchbase.Core.IO.Operations
             {
                 TrySetException(ex, true);
                 data.Dispose();
+            }
+            finally
+            {
+                Span.Dispose();
             }
         }
 

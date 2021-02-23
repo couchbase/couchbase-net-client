@@ -182,11 +182,11 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<ILogger>().Object,
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance,
+                NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-            return mock.Object;
+                return mock.Object;
         }
 
         #endregion

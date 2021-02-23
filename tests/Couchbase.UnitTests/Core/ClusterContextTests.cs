@@ -96,7 +96,7 @@ namespace Couchbase.UnitTests.Core
                     Hostname = hostname,
                     KeyValue = port
                 },
-                NullRequestTracer.Instance);
+                NoopRequestTracer.Instance);
 
             return clusterNode;
         }

@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
@@ -18,6 +19,7 @@ using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Diagnostics;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 #nullable enable
 
@@ -38,7 +40,7 @@ namespace Couchbase.Core.IO.Connections
         private readonly string _connectionIdString;
 
         // Connection pooling normally prevents simultaneous writes, but there are cases where they may occur,
-        // such as when running Diagnostics pings. We therefor need to prevent them ourselves, as the internal
+        // such as when running Diagnostics pings. We therefore need to prevent them ourselves, as the internal
         // implementation of socket writes may interleave large buffers written from different threads.
         private readonly SemaphoreSlim _writeMutex = new(1);
 
@@ -361,11 +363,16 @@ namespace Couchbase.Core.IO.Connections
         }
 
         /// <inheritdoc />
-        public void AddTags(IInternalSpan span)
+        public void AddTags(IRequestSpan span)
         {
-            span.WithTag(CouchbaseTags.RemoteAddress, _endPointString);
-            span.WithTag(CouchbaseTags.LocalAddress, _localEndPointString);
-            span.WithTag(CouchbaseTags.LocalId, _connectionIdString);
+            if (span.CanWrite)
+            {
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalHostname, _endPointString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalPort, ((IPEndPoint) LocalEndPoint).Port.ToString());
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, _endPointString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemotePort, ((IPEndPoint) EndPoint).Port.ToString());
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalId, _connectionIdString);
+            }
         }
     }
 }

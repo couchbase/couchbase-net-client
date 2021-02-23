@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             // ReSharper disable once ExpressionIsAlwaysNull
             Assert.Throws<ArgumentNullException>(() =>
                 new ScramShaMechanism(MechanismType.ScramSha256, username, password,
-                    new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
+                    new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
                     Mock.Of<IOperationConfigurator>()));
         }
 
@@ -35,7 +35,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             var username = "authenticated";
 
             var mech = new ScramShaMechanism(MechanismType.ScramSha256, username, password,
-                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
+                new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
                 Mock.Of<IOperationConfigurator>());
             Assert.True(!string.IsNullOrEmpty(mech.ClientNonce));
         }
@@ -47,7 +47,7 @@ namespace Couchbase.UnitTests.Core.IO.Authentication
             var username = "authenticated";
 
             var mech = new ScramShaMechanism(MechanismType.ScramSha256, username, password,
-                new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
+                new Mock<ILogger<ScramShaMechanism>>().Object, NoopRequestTracer.Instance,
                 Mock.Of<IOperationConfigurator>());
             Assert.True(!string.IsNullOrEmpty(mech.ClientNonce));
         }

@@ -1,11 +1,9 @@
 #nullable enable
-using System;
-using System.Collections.Generic;
-using System.Text;
+
 
 // ReSharper disable InconsistentNaming
 // keep it simple for JSON
-namespace Couchbase.Core.Diagnostics.Tracing
+namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
     internal readonly struct ThresholdSummaryReport
     {

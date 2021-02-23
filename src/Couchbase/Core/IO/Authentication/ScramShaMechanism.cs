@@ -64,13 +64,14 @@ namespace Couchbase.Core.IO.Authentication
 
         public override async Task AuthenticateAsync(IConnection connection, CancellationToken cancellationToken = default)
         {
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.AuthenticateScramSha);
             try
             {
-                using var rootSpan = Tracer.RootSpan(CouchbaseTags.Service, OperationNames.AuthenticateScramSha);
                 var clientFirstMessage = "n,,n=" + _username + ",r=" + ClientNonce;
                 var clientFirstMessageBare = clientFirstMessage.Substring(3);
 
-                var serverFirstResult = await SaslStart(connection, clientFirstMessage, rootSpan, cancellationToken).ConfigureAwait(false);
+                var serverFirstResult = await SaslStart(connection, clientFirstMessage, rootSpan, cancellationToken)
+                    .ConfigureAwait(false);
                 var serverFirstMessage = DecodeResponse(serverFirstResult);
 
                 var serverNonce = serverFirstMessage["r"];
@@ -84,9 +85,11 @@ namespace Couchbase.Core.IO.Authentication
                 //build the final client message
                 var clientFinalMessageNoProof = "c=biws,r=" + serverNonce;
                 var authMessage = $"{clientFirstMessageBare},{serverFirstResult},{clientFinalMessageNoProof}";
-                var clientFinalMessage = clientFinalMessageNoProof + ",p=" + Convert.ToBase64String(GetClientProof(saltedPassword, authMessage));
+                var clientFinalMessage = clientFinalMessageNoProof + ",p=" +
+                                         Convert.ToBase64String(GetClientProof(saltedPassword, authMessage));
 
-                var finalServerResponse = await SaslStep(connection, clientFinalMessage, rootSpan, cancellationToken).ConfigureAwait(false);
+                var finalServerResponse = await SaslStep(connection, clientFinalMessage, rootSpan, cancellationToken)
+                    .ConfigureAwait(false);
                 Logger.LogInformation(LoggingEvents.AuthenticationEvent, finalServerResponse);
             }
             catch (AuthenticationFailureException e)
@@ -190,6 +193,17 @@ namespace Couchbase.Core.IO.Authentication
             rng.GetBytes(bytes);
             return Convert.ToBase64String(bytes);
         }
+
+        #region tracing
+        private IRequestSpan RootSpan(string operation)
+        {
+            var span = Tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
 
         #region [ License information          ]
 

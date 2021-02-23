@@ -38,7 +38,7 @@ namespace Couchbase.UnitTests.Management
                 .Returns(new Uri("http://localhost:8094"));
 
             var client = new SearchClient(httpClient, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NullRequestTracer.Instance);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
 
             await client.QueryAsync(new SearchRequest{Index = indexName, Options = new SearchOptions()}).ConfigureAwait(false);
         }

@@ -35,11 +35,11 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<ILogger<MemcachedBucket>>().Object,
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance,
+                NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-            // Act
+                // Act
 
             var result = bucketFactory.Create("bucket_name", bucketType);
 
@@ -64,11 +64,11 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<ILogger<MemcachedBucket>>().Object,
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance,
+                NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-            // Act/Assert
+                // Act/Assert
 
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 bucketFactory.Create("bucket_name", (BucketType) 500));

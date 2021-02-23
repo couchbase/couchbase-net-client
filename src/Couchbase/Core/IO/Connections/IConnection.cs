@@ -94,6 +94,6 @@ namespace Couchbase.Core.IO.Connections
         /// Add tags related to this connection to a tracing span.
         /// </summary>
         /// <param name="span">The tracing span to update.</param>
-        void AddTags(IInternalSpan span);
+        void AddTags(IRequestSpan span);
     }
 }

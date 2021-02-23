@@ -65,9 +65,9 @@ namespace Couchbase.Query
                 options.ClientContextId(Guid.NewGuid().ToString());
             }
 
-            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.Query, OperationNames.N1qlQuery)
-                .WithTag(CouchbaseTags.OperationId, options.CurrentContextId!)
-                .WithTag(CouchbaseTags.OpenTracingTags.DbStatement, statement)
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.N1QLQuery, options)
+                .WithOperationId(options)
+                .WithStatement(statement)
                 .WithLocalAddress();
 
             // does this query use a prepared plan?
@@ -84,7 +84,7 @@ namespace Couchbase.Query
                 // if an upgrade has happened, don't use query plans that have an encoded plan
                 if (!EnhancedPreparedStatementsEnabled || string.IsNullOrWhiteSpace(queryPlan.EncodedPlan))
                 {
-                    using var prepareAndExecuteSpan = _tracer.InternalSpan(OperationNames.PrepareAndExecute, rootSpan);
+                    using var prepareAndExecuteSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Internal.PrepareAndExecute, rootSpan);
 
                     // plan is valid, execute query with it
                     options.Prepared(queryPlan, statement);
@@ -137,7 +137,7 @@ namespace Couchbase.Query
             return await ExecuteQuery<T>(options, options.Serializer ?? _serializer, rootSpan).ConfigureAwait(false);
         }
 
-        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IInternalSpan span)
+        private async Task<IQueryResult<T>> ExecuteQuery<T>(QueryOptions options, ITypeSerializer serializer, IRequestSpan span)
         {
             var currentContextId = options.CurrentContextId ?? DefaultClientContextId;
 
@@ -145,7 +145,7 @@ namespace Couchbase.Query
             {
                 // We use a local function to capture context like options and currentContextId
 
-                return new QueryErrorContext
+                return new()
                 {
                     ClientContextId = options.CurrentContextId,
                     Parameters = options.GetAllParametersAsJson(),
@@ -160,7 +160,7 @@ namespace Couchbase.Query
             // try get Query node
             var queryUri = _serviceUriProvider.GetRandomQueryUri();
             span.WithRemoteAddress(queryUri);
-            using var encodingSpan = span.StartPayloadEncoding();
+            using var encodingSpan = span.EncodingSpan();
             var body = options.GetFormValuesAsJson();
             encodingSpan.Dispose();
 
@@ -170,7 +170,7 @@ namespace Couchbase.Query
             using var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json);
             try
             {
-                using var dispatchSpan = span.StartDispatch();
+                using var dispatchSpan = span.DispatchSpan(options);
                 var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
@@ -299,6 +299,19 @@ namespace Couchbase.Query
             _logger.LogDebug($"The request {{requestId}} failed for an unknown reason with HTTP {(int)statusCodeFallback}", requestId, statusCodeFallback);
             return $"HTTP {(int)statusCodeFallback}";
         }
+
+        #region tracing
+        private IRequestSpan RootSpan(string operation, QueryOptions options)
+        {
+            var span = _tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.N1QLQuery).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, options.BucketName!);
+            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, options.ScopeName!);
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
     }
 }
 

@@ -1,6 +1,4 @@
 using System;
-using System.Buffers;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -12,7 +10,6 @@ using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ObjectPool;
 
 #nullable enable
 
@@ -42,9 +39,9 @@ namespace Couchbase.Core.IO.Authentication
         public abstract Task AuthenticateAsync(IConnection connection,
             CancellationToken cancellationToken = default);
 
-        protected async Task<string> SaslStart(IConnection connection,  string message, IInternalSpan span, CancellationToken token)
+        protected async Task<string> SaslStart(IConnection connection,  string message, IRequestSpan span, CancellationToken token)
         {
-            using var childSpan = Tracer.InternalSpan(OperationNames.SaslStart, span);
+            using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.SaslStart);
             using var authOp = new SaslStart
             {
                 Key = MechanismType.GetDescription(),
@@ -56,9 +53,9 @@ namespace Couchbase.Core.IO.Authentication
             return await SendAsync(authOp, connection, token).ConfigureAwait(false);
         }
 
-        protected async Task<string> SaslStep(IConnection connection, string message, IInternalSpan span, CancellationToken token)
+        protected async Task<string> SaslStep(IConnection connection, string message, IRequestSpan span, CancellationToken token)
         {
-            using var childSpan = Tracer.InternalSpan(OperationNames.SaslStep, span);
+            using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.SaslStep);
             using var op = new SaslStep()
             {
                 Key = "SCRAM-SHA1",//MechanismType.GetDescription(),
@@ -70,7 +67,7 @@ namespace Couchbase.Core.IO.Authentication
             return await SendAsync(op, connection, token).ConfigureAwait(false);
         }
 
-        protected async Task<string> SaslList(IConnection connection, IInternalSpan span, CancellationToken token)
+        protected async Task<string> SaslList(IConnection connection, IRequestSpan span, CancellationToken token)
         {
             using var op = new SaslList()
             {

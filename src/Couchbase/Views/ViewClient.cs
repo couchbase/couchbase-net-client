@@ -45,13 +45,14 @@ namespace Couchbase.Views
 
         public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQuery query)
         {
-            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.View, OperationNames.ViewQuery)
-                .WithTag(CouchbaseTags.Service, RequestTracing.ServiceIdentifier.View)
-                .WithLocalAddress();
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.ViewQuery, query);
+            rootSpan.WithLocalAddress()
+                .WithOperation(query);
 
-            using var encodingSpan = rootSpan.StartPayloadEncoding();
             var uri = query.RawUri();
             rootSpan.WithRemoteAddress(uri);
+
+            using var encodingSpan = rootSpan.EncodingSpan();
 
             ViewResultBase<TKey, TValue> viewResult;
 
@@ -62,7 +63,7 @@ namespace Couchbase.Views
                 var content = new StringContent(body, Encoding.UTF8, MediaType.Json);
                 encodingSpan.Dispose();
 
-                using var dispatchSpan = rootSpan.StartDispatch();
+                using var dispatchSpan = rootSpan.DispatchSpan(query);
                 var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
@@ -180,6 +181,18 @@ namespace Couchbase.Views
             }
             return httpStatusCode;
         }
+
+        #region tracing
+        private IRequestSpan RootSpan(string operation, IViewQuery query)
+        {
+            var span = _tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.ViewQuery).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, query.BucketName!);
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
     }
 }
 

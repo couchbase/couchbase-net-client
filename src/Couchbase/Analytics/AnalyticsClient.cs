@@ -48,8 +48,8 @@ namespace Couchbase.Analytics
         /// <returns></returns>
         public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token = default)
         {
-            using var rootSpan = _tracer.RootSpan(RequestTracing.ServiceIdentifier.Analytics, OperationNames.AnalyticsQuery)
-                .WithTag(CouchbaseTags.OperationId, queryRequest.ClientContextId ?? Guid.NewGuid().ToString())
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, queryRequest)
+                .WithOperationId(queryRequest)
                 .WithLocalAddress();
 
             // try get Analytics node
@@ -59,7 +59,7 @@ namespace Couchbase.Analytics
             _logger.LogDebug("Sending analytics query with a context id {contextId} to server {searchUri}",
                 queryRequest.ClientContextId, analyticsUri);
 
-            using var encodingSpan = rootSpan.StartPayloadEncoding();
+            using var encodingSpan = rootSpan.EncodingSpan();
 
             AnalyticsResultBase<T> result;
             var body = queryRequest.GetFormValuesAsJson();
@@ -79,7 +79,7 @@ namespace Couchbase.Analytics
                     }
 
                     encodingSpan.Dispose();
-                    using var dispatchSpan = rootSpan.StartDispatch();
+                    using var dispatchSpan = rootSpan.DispatchSpan(queryRequest);
                     var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
                     dispatchSpan.Dispose();
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -176,6 +176,20 @@ namespace Couchbase.Analytics
             UpdateLastActivity();
             return result;
         }
+
+
+        #region tracing
+        private IRequestSpan RootSpan(string operation, IAnalyticsRequest analyticsRequest)
+        {
+            var span = _tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.AnalyticsQuery).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, analyticsRequest.BucketName);
+            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, analyticsRequest.ScopeName);
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
     }
 }
 

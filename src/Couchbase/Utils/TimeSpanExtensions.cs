@@ -5,8 +5,21 @@ namespace Couchbase.Utils
 {
     public static class TimeSpanExtensions
     {
+        private const long TicksPerMicrosecond = TimeSpan.TicksPerMillisecond / 1000;
         private static readonly TimeSpan RelativeTtlThreshold = TimeSpan.FromDays(30);
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1);
+
+        /// <summary>
+        /// Converts a <see cref="TimeSpan"/> to an <see cref="uint"/> in Microseconds.
+        /// </summary>
+        /// <remarks>This will overflow at 1hour 11min 34s, which shouldn't be encountered
+        /// in most cases, but could throw an exception in edge cases like wrapping a span
+        /// around a background operation or leaving the code on a breakpoint and going to
+        /// lunch.</remarks>
+        /// <param name="duration">The <see cref="TimeSpan"/> duration to convert to microseconds.</param>
+        /// <returns>The microsecond equivalent of the passed in duration.</returns>
+        internal static uint ToMicroseconds(this TimeSpan duration) =>
+            (uint)(duration.Ticks / TicksPerMicrosecond);
 
         /// <summary>
         /// Converts a <see cref="TimeSpan" /> into an uint correctly representing a Time-To-Live,

@@ -169,7 +169,7 @@ namespace Couchbase.KeyValue
 
         public async Task<uint?> GetCidAsync(string fullyQualifiedName)
         {
-            using var rootSpan = RootSpan(OperationNames.GetCid);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
             using var getCid = new GetCid
             {
                 Transcoder = _bucket.Context.GlobalTranscoder,
@@ -196,6 +196,8 @@ namespace Couchbase.KeyValue
         {
             options ??= new QueryOptions();
             options.QueryContext = _queryContext;
+            options.ScopeName = Name;
+            options.BucketName = _bucket.Name;
 
             return _bucket.Cluster.QueryAsync<T>(statement, options);
         }
@@ -211,11 +213,24 @@ namespace Couchbase.KeyValue
         {
             options ??=new AnalyticsOptions();
             options.QueryContext = _queryContext;
+            options.BucketName = _bucket.Name;
+            options.ScopeName = Name;
 
             return _bucket.Cluster.AnalyticsQueryAsync<T>(statement, options);
         }
 
-        private IInternalSpan RootSpan(string operation) =>
-            _tracer.RootSpan(RequestTracing.ServiceIdentifier.Kv, operation);
+        #region tracing
+        private IRequestSpan RootSpan(string operation)
+        {
+            var span = _tracer.RequestSpan(operation);
+            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, _bucket.Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
+            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            return span;
+        }
+        #endregion
     }
 }

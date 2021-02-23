@@ -66,6 +66,18 @@ namespace Couchbase.Query
             IsPrepared = true;
         }
 
+        /// <summary>
+        /// The bucket name for tracing.
+        /// </summary>
+        /// <remarks>For internal use only</remarks>
+        internal string? BucketName { get; set; }
+
+        /// <summary>
+        /// The bucket name for tracing.
+        /// </summary>
+        /// <remarks>For internal use only</remarks>
+        internal string? ScopeName { get; set; }
+
         internal IRetryStrategy? RetryStrategyValue { get; set; }
 
         /// <summary>

@@ -132,7 +132,7 @@ namespace Couchbase.UnitTests
                 new Mock<ILogger<MemcachedBucket>>().Object,
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
-                NullRequestTracer.Instance,
+                NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
         }

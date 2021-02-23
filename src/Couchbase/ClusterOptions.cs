@@ -8,6 +8,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
@@ -18,6 +19,7 @@ using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using IRequestTracer = Couchbase.Core.Diagnostics.Tracing.IRequestTracer;
 
 // ReSharper disable UnusedMember.Global
 
@@ -350,9 +352,9 @@ namespace Couchbase
             return this;
         }
 
-        public ThresholdOptions? ThresholdOptions { get; set; } = new ThresholdOptions();
+        public ThresholdOptions ThresholdOptions { get; set; } = new();
 
-        public ClusterOptions WithThresholdTracing(ThresholdOptions? options = null)
+        public ClusterOptions WithThresholdTracing(ThresholdOptions options)
         {
             ThresholdOptions = options;
             return this;
@@ -487,14 +489,14 @@ namespace Couchbase
                 {
                     _enableOrphanedResponseLogging = value;
 
-                    if (value)
+                    /*if (value)
                     {
-                        this.AddClusterService<IOrphanedResponseLogger, OrphanedResponseLogger>();
+                        this.AddClusterService<Couchbase.Core.Diagnostics.Tracing.IOrphanedResponseLogger, Couchbase.Core.Diagnostics.Tracing.OrphanedResponseLogger>();//TODO temp
                     }
                     else
                     {
-                        this.AddClusterService<IOrphanedResponseLogger, NullOrphanedResponseLogger>();
-                    }
+                        this.AddClusterService<Couchbase.Core.Diagnostics.Tracing.IOrphanedResponseLogger, Couchbase.Core.Diagnostics.Tracing.NullOrphanedResponseLogger>();
+                    }*/
                 }
             }
         }
@@ -595,11 +597,22 @@ namespace Couchbase
         internal IServiceProvider BuildServiceProvider()
         {
             this.AddClusterService(this);
-            this.AddClusterService(Logging ?? new NullLoggerFactory());
-
-            if (ThresholdOptions?.Enabled ?? false)
+            this.AddClusterService(Logging ??= new NullLoggerFactory());
+            if (ThresholdOptions.Enabled)
             {
-                _services[typeof(IRequestTracer)] = new SingletonServiceFactory(typeof(ActivityRequestTracer));
+                //No custom logger has been registered, so create a default logger
+                if (ThresholdOptions.RequestTracer == null)
+                {
+                    var thresholdTracer = new ThresholdRequestTracer(ThresholdOptions, Logging);
+                    thresholdTracer.Start(new ThresholdTraceListener(ThresholdOptions));
+                    ThresholdOptions.RequestTracer = thresholdTracer;
+                }
+
+                this.AddClusterService(ThresholdOptions.RequestTracer);
+            }
+            else
+            {
+                this.AddClusterService(NoopRequestTracer.Instance);
             }
 
             if (Experiments.ChannelConnectionPools)

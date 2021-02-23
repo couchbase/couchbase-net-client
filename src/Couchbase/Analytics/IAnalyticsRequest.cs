@@ -89,6 +89,18 @@ namespace Couchbase.Analytics
         IAnalyticsRequest ScanConsistency(AnalyticsScanConsistency scanConsistency);
 
         bool ReadOnly { get; set; }
+
+        /// <summary>
+        /// The name of the bucket if this is a scope level query.
+        /// </summary>
+        /// <remarks>For internal use only.</remarks>
+        public string BucketName { get; set; }
+
+        /// <summary>
+        /// The name of the scope if this is a scope level query.
+        /// </summary>
+        /// <remarks>For internal use only.</remarks>
+        public string ScopeName { get; set; }
     }
 }
 

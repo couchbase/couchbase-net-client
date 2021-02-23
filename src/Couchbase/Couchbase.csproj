@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
@@ -50,10 +50,6 @@
   <PropertyGroup Condition=" '$(TargetFramework.StartsWith(`netcoreapp`))'=='true' And '$(TargetFramework.StartsWith(`netcoreapp2.`))'=='false' And '$(TargetFramework.StartsWith(`netcoreapp1.`))'=='false'">
     <DefineConstants>$(DefineConstants);NETCOREAPP_GTE_3_0</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="Core\Diagnostics\Tracing\TracerExtensions.cs" />
-    <Compile Remove="Core\Diagnostics\Tracing\TracerFactory.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Core\Retry\Analytics\" />
@@ -66,12 +62,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="5.0.1" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="4.7.1" />
     <PackageReference Include="System.IO.Pipelines" Version="5.0.1" />
     <PackageReference Include="System.Linq.Async" Version="4.0.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
     <PackageReference Include="System.Threading.Channels" Version="5.0.0" />
     <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.11.0" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="5.0.1" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">

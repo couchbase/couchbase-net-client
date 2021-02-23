@@ -69,7 +69,7 @@ namespace Couchbase.UnitTests.Utils
         public string BucketName { get; set; }
         public IPEndPoint CurrentHost { get; set; }
         public OperationHeader Header { get; set; }
-        public IInternalSpan Span { get; set; }
+        public IRequestSpan Span { get; set; }
 
         public DateTime CreationTime { get; set; }
 

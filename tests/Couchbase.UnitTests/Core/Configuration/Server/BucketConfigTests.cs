@@ -181,7 +181,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     endPoint,
                     BucketType.Couchbase,
                     server,
-                    NullRequestTracer.Instance);
+                    NoopRequestTracer.Instance);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
@@ -199,7 +199,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     new Mock<ILogger<ClusterNode>>().Object,
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object,
-                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt, NullRequestTracer.Instance);
+                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt, NoopRequestTracer.Instance);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);

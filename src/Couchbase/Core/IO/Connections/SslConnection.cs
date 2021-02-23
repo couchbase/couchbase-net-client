@@ -82,7 +82,7 @@ namespace Couchbase.Core.IO.Connections
         public ValueTask CloseAsync(TimeSpan timeout) => _multiplexingConnection.CloseAsync(timeout);
 
         /// <inheritdoc />
-        public void AddTags(IInternalSpan span) => _multiplexingConnection.AddTags(span);
+        public void AddTags(IRequestSpan span) => _multiplexingConnection.AddTags(span);
     }
 }
 
