@@ -333,7 +333,30 @@ namespace Couchbase.KeyValue
 
         #region Unlock
 
+        [Obsolete("Use overload that does not have a Type parameter T.")]
         public async Task UnlockAsync<T>(string id, ulong cas, UnlockOptions? options = null)
+        {
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+
+            options ??= UnlockOptions.Default;
+            using var rootSpan = RootSpan(OperationNames.Unlock);
+            using var unlockOp = new Unlock
+            {
+                Key = id,
+                Cid = Cid,
+                CName = Name,
+                SName = ScopeName,
+                Cas = cas,
+                Span = rootSpan
+            };
+            _operationConfigurator.Configure(unlockOp, options);
+
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, unlockOp, out var tokenPair);
+            await _bucket.RetryAsync(unlockOp, tokenPair).ConfigureAwait(false);
+        }
+
+        public async Task UnlockAsync(string id, ulong cas, UnlockOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();

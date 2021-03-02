@@ -69,7 +69,7 @@ namespace Couchbase.IntegrationTests
            }).ConfigureAwait(false);
            await Assert.ThrowsAsync<AuthenticationFailureException>(async () =>
            {
-               await ThrowAuthenticationException(() => defaultCollection.UnlockAsync<dynamic>(id, 0)).ConfigureAwait(false);
+               await ThrowAuthenticationException(() => defaultCollection.UnlockAsync(id, 0)).ConfigureAwait(false);
            }).ConfigureAwait(false);
            await Assert.ThrowsAsync<AuthenticationFailureException>(async () =>
            {

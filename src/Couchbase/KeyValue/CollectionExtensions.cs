@@ -154,17 +154,32 @@ namespace Couchbase.KeyValue
 
         #region Unlock
 
+        [Obsolete("Use overload that does not have a Type parameter T.")]
         public static Task UnlockAsync<T>(this ICouchbaseCollection collection, string id, ulong cas)
         {
             return collection.UnlockAsync<T>(id, cas, UnlockOptions.Default);
         }
 
+        [Obsolete("Use overload that does not have a Type parameter T.")]
         public static Task UnlockAsync<T>(this ICouchbaseCollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
         {
             var options = new UnlockOptions();
             configureOptions(options);
 
             return collection.UnlockAsync<T>(id, cas, options);
+        }
+
+        public static Task UnlockAsync(this ICouchbaseCollection collection, string id, ulong cas)
+        {
+            return collection.UnlockAsync(id, cas, UnlockOptions.Default);
+        }
+
+        public static Task UnlockAsync(this ICouchbaseCollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
+        {
+            var options = new UnlockOptions();
+            configureOptions(options);
+
+            return collection.UnlockAsync(id, cas, options);
         }
 
         #endregion

@@ -34,7 +34,10 @@ namespace Couchbase.KeyValue
 
         Task RemoveAsync(string id, RemoveOptions? options = null);
 
+        [Obsolete("Use overload that does not have a Type parameter T.")]
         Task UnlockAsync<T>(string id, ulong cas, UnlockOptions? options = null);
+
+        Task UnlockAsync(string id, ulong cas, UnlockOptions? options = null);
 
         Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null);
 
