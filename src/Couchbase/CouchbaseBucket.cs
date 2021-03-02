@@ -216,19 +216,21 @@ namespace Couchbase
 
                 op.VBucketId = vBucket.Index;
 
-                if (Nodes.TryGet(endPoint!, out var clusterNode)) await clusterNode.SendAsync(op, tokenPair);
+                if (Nodes.TryGet(endPoint!, out var clusterNode))
+                {
+                    await clusterNode.SendAsync(op, tokenPair);
+                    return;
+                }
 
-                if (endPoint != null)
-                    throw new NodeNotAvailableException(
-                        $"Cannot find a Couchbase Server node for {endPoint}.");
-
-                throw new NullReferenceException($"IPEndPoint is null for key {op.Key}.");
+                throw new NodeNotAvailableException(
+                    $"Cannot find a Couchbase Server node for {endPoint}.");
             }
 
             var node = Nodes.GetRandom();
-            if (node != null) await node.SendAsync(op, tokenPair);
-            throw new NodeNotAvailableException(
-                $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
+            if (node == null)
+                throw new NodeNotAvailableException(
+                    $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
+            await node.SendAsync(op, tokenPair);
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)
