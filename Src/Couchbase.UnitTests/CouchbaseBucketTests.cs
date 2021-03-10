@@ -138,7 +138,7 @@ namespace Couchbase.UnitTests
             await bucket.UpsertAsync<dynamic>("key", new { }, TimeSpan.FromSeconds(10), ReplicateTo.One, PersistTo.One, TimeSpan.FromSeconds(5));
 
             mockRequestExecutor.Verify(x => x.SendWithDurabilityAsync(
-                It.Is<Set<dynamic>>(set => set.Expires == 10 && set.Cas == 0 && set.Timeout == 5),
+                It.Is<Set<dynamic>>(set => set.Expires == 10 && set.Cas == 0 && set.Timeout == 5000),
                 false,
                 ReplicateTo.One,
                 PersistTo.One,

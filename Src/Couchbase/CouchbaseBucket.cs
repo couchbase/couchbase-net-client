@@ -193,7 +193,7 @@ namespace Couchbase
         public IOperationResult<string> Append(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -220,7 +220,7 @@ namespace Couchbase
         /// </returns>
         public bool Exists(string key, TimeSpan timeout)
         {
-            var observe = new Observe(key, null, _transcoder, timeout.GetSeconds())
+            var observe = new Observe(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -280,7 +280,7 @@ namespace Couchbase
         public async Task<bool> ExistsAsync(string key, TimeSpan timeout)
         {
             CheckDisposed();
-            var observe = new Observe(key, null, _transcoder, timeout.GetSeconds())
+            var observe = new Observe(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -331,7 +331,7 @@ namespace Couchbase
         public Task<IOperationResult<string>> AppendAsync(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Append<string>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -362,7 +362,7 @@ namespace Couchbase
         public IOperationResult<byte[]> Append(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -403,7 +403,7 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> AppendAsync(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Append<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -473,7 +473,7 @@ namespace Couchbase
         /// <returns>An <see cref="IOperationResult"/> with no value.</returns>
         public IOperationResult Touch(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var touch = new Touch(key, null, _transcoder, timeout.GetSeconds())
+            var touch = new Touch(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -494,7 +494,7 @@ namespace Couchbase
 
         public Task<IOperationResult> TouchAsync(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var touch = new Touch(key, null, _transcoder, timeout.GetSeconds())
+            var touch = new Touch(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -691,7 +691,7 @@ namespace Couchbase
         public IOperationResult<ulong> Decrement(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name,
                 Expires = expiration
@@ -718,7 +718,7 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name,
                 Expires = expiration
@@ -850,7 +850,7 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> DecrementAsync(string key, ulong delta, ulong initial, TimeSpan expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            var operation = new Decrement(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name,
                 Expires = expiration.ToTtl()
@@ -971,7 +971,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> Get<T>(string key, TimeSpan timeout)
         {
-            var operation = new Get<T>(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Get<T>(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -981,7 +981,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> GetFromReplicaAsync<T>(string key, TimeSpan timeout)
         {
             //the vbucket will be set in the IRequestExecuter - passing nulls should be refactored in the future
-            var operation = new ReplicaRead<T>(key, null, _transcoder, timeout.GetSeconds());
+            var operation = new ReplicaRead<T>(key, null, _transcoder, timeout.GetMilliseconds());
             return _requestExecuter.ReadFromReplicaAsync(operation);
         }
 
@@ -1137,7 +1137,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> GetAsync<T>(string key, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Get<T>(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Get<T>(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -1264,7 +1264,7 @@ namespace Couchbase
         public IOperationResult<T> GetFromReplica<T>(string key, TimeSpan timeout)
         {
             //the vbucket will be set in the IRequestExecuter - passing nulls should be refactored in the future
-            var operation = new ReplicaRead<T>(key, null, _transcoder, timeout.GetSeconds());
+            var operation = new ReplicaRead<T>(key, null, _transcoder, timeout.GetMilliseconds());
             return _requestExecuter.ReadFromReplica(operation);
         }
 
@@ -1313,7 +1313,7 @@ namespace Couchbase
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _transcoder, GlobalTimeout.GetSeconds())
+            var getl = new GetL<T>(key, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 Expiration = expiration,
                 BucketName = Name
@@ -1329,7 +1329,7 @@ namespace Couchbase
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _transcoder, timeout.GetSeconds())
+            var getl = new GetL<T>(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expiration = expiration,
                 BucketName = Name
@@ -1386,7 +1386,7 @@ namespace Couchbase
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _transcoder, timeout.GetSeconds())
+            var getl = new GetL<T>(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expiration = expiration,
                 BucketName = Name
@@ -1443,7 +1443,7 @@ namespace Couchbase
             {
                 expiration = defaultExpiration;
             }
-            var getl = new GetL<T>(key, null, _transcoder, GlobalTimeout.GetSeconds())
+            var getl = new GetL<T>(key, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 Expiration = expiration,
                 BucketName = Name
@@ -1521,7 +1521,7 @@ namespace Couchbase
         public Task<IOperationResult> UnlockAsync(string key, ulong cas, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Unlock(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Unlock(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 BucketName = Name
@@ -1679,7 +1679,7 @@ namespace Couchbase
         public IOperationResult<ulong> Increment(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name,
                 Expires = expiration
@@ -1707,7 +1707,7 @@ namespace Couchbase
         public Task<IOperationResult<ulong>> IncrementAsync(string key, ulong delta, ulong initial, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetSeconds())
+            var operation = new Increment(key, initial, delta, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name,
                 Expires = expiration
@@ -1989,7 +1989,7 @@ namespace Couchbase
         public IOperationResult<T> Insert<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -2030,7 +2030,7 @@ namespace Couchbase
         public IOperationResult<T> Insert<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 BucketName = Name
@@ -2056,7 +2056,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 BucketName = Name
@@ -2282,7 +2282,7 @@ namespace Couchbase
         public IOperationResult<T> Insert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -2304,7 +2304,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -2350,7 +2350,7 @@ namespace Couchbase
             TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 BucketName = Name
@@ -2379,7 +2379,7 @@ namespace Couchbase
             TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 BucketName = Name
@@ -2433,7 +2433,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> InsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
+            var operation = new Add<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -2667,7 +2667,7 @@ namespace Couchbase
         {
             CheckDisposed();
             var config = _configInfo.ClientConfig.BucketConfigs[Name];
-            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, (int)timeout.GetSeconds());
+            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, (int)timeout.GetMilliseconds());
             using (var cts = new CancellationTokenSource(config.ObserveTimeout))
             {
                 var result = await observer.ObserveAsync(key, cas, deletion, replicateTo, persistTo, cts).ContinueOnAnyContext();
@@ -2713,7 +2713,7 @@ namespace Couchbase
             CheckDisposed();
             var config = _configInfo.ClientConfig.BucketConfigs[Name];
 
-            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, (int)timeout.GetSeconds());
+            var observer = new KeyObserver(_pending, _configInfo, _clusterController, config.ObserveInterval, (int)timeout.GetMilliseconds());
 
             return observer.Observe(key, cas, deletion, replicateTo, persistTo)
                 ? ObserveResponse.DurabilitySatisfied
@@ -2766,7 +2766,7 @@ namespace Couchbase
         public IOperationResult<string> Prepend(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -2796,7 +2796,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult<T> GetAndTouch<T>(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var operation = new GetT<T>(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new GetT<T>(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -2827,7 +2827,7 @@ namespace Couchbase
         /// </returns>
         public Task<IOperationResult<T>> GetAndTouchAsync<T>(string key, TimeSpan expiration, TimeSpan timeout)
         {
-            var operation = new GetT<T>(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new GetT<T>(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration.ToTtl(),
                 BucketName = Name
@@ -2885,7 +2885,7 @@ namespace Couchbase
         public Task<IOperationResult<string>> PrependAsync(string key, string value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Prepend<string>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -2915,7 +2915,7 @@ namespace Couchbase
         public IOperationResult<byte[]> Prepend(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -2956,7 +2956,7 @@ namespace Couchbase
         public Task<IOperationResult<byte[]>> PrependAsync(string key, byte[] value, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Prepend<byte[]>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3129,7 +3129,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3158,7 +3158,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult Remove(string key, ulong cas, TimeSpan timeout)
         {
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas
             };
@@ -3218,7 +3218,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 BucketName = Name
@@ -3291,7 +3291,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(document.Id, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3340,7 +3340,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 BucketName = Name
@@ -3372,7 +3372,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult Remove(string key, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3392,7 +3392,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3425,7 +3425,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult Remove(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 BucketName = Name
@@ -3447,7 +3447,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync(string key, ulong cas, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(key, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 BucketName = Name
@@ -3550,7 +3550,7 @@ namespace Couchbase
                     for (var i = range.Item1; i < range.Item2; i++)
                     {
                         var key = keys[i];
-                        var result = Remove(key, timeout.GetSeconds());
+                        var result = Remove(key, timeout.GetMilliseconds());
                         results.TryAdd(key, result);
                     }
                 });
@@ -3626,7 +3626,7 @@ namespace Couchbase
         public Task<IOperationResult> RemoveAsync<T>(IDocument<T> document, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Delete(document.Id, null, _transcoder, timeout.GetSeconds())
+            var operation = new Delete(document.Id, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3877,7 +3877,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3910,7 +3910,7 @@ namespace Couchbase
         /// <returns>An object implementing the <see cref="IOperationResult{T}"/>interface.</returns>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, GlobalTimeout.GetSeconds())
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -3950,7 +3950,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Replace<T>(string key, T value, uint expiration, TimeSpan timeout)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 BucketName = Name
@@ -4044,7 +4044,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
-            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 Expires = expiration,
@@ -4072,7 +4072,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 Cas = cas,
@@ -4433,7 +4433,7 @@ namespace Couchbase
         /// </remarks>
         public IOperationResult<T> Replace<T>(string key, T value, ulong cas, uint expiration, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
-            var operation = new Replace<T>(key, value, cas, null, _transcoder, timeout.GetSeconds())
+            var operation = new Replace<T>(key, value, cas, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 BucketName = Name
@@ -4465,7 +4465,7 @@ namespace Couchbase
         {
             CheckDisposed();
             var operation = new IO.Operations.Replace<T>(key, value, null, _transcoder,
-                timeout.GetSeconds())
+                timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 Cas = cas,
@@ -4676,7 +4676,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> ReplaceAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
+            var operation = new Replace<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -4895,7 +4895,7 @@ namespace Couchbase
         /// </returns>
         public IOperationResult Unlock(string key, ulong cas, TimeSpan timeout)
         {
-            var unlock = new Unlock(key, null, _transcoder, timeout.GetSeconds())
+            var unlock = new Unlock(key, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 BucketName = Name
@@ -4969,7 +4969,7 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds())
+            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -5132,7 +5132,7 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Cas = cas,
                 Expires = expiration,
@@ -5144,7 +5144,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value, ulong cas, uint expiration, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 Cas = cas,
@@ -5376,7 +5376,7 @@ namespace Couchbase
         public IOperationResult<T> Upsert<T>(string key, T value, ReplicateTo replicateTo, PersistTo persistTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 BucketName = Name
             };
@@ -5425,7 +5425,7 @@ namespace Couchbase
 
             CheckDisposed();
             var operation = new IO.Operations.Set<T>(key, value, null, _transcoder,
-                timeout.GetSeconds())
+                timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 Cas = cas,
@@ -5534,7 +5534,7 @@ namespace Couchbase
             PersistTo persistTo, TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 Cas = cas,
@@ -5889,7 +5889,7 @@ namespace Couchbase
         public Task<IOperationResult<T>> UpsertAsync<T>(string key, T value)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetSeconds());
+            var operation = new Set<T>(key, value, null, _transcoder, GlobalTimeout.GetMilliseconds());
             return _requestExecuter.SendWithRetryAsync(operation);
         }
 
@@ -6047,7 +6047,7 @@ namespace Couchbase
             TimeSpan timeout)
         {
             CheckDisposed();
-            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetSeconds())
+            var operation = new Set<T>(key, value, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = expiration,
                 BucketName = Name
@@ -6346,34 +6346,34 @@ namespace Couchbase
             switch (spec.OpCode)
             {
                 case OperationCode.SubArrayAddUnique:
-                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubArrayAddUnique<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubArrayInsert:
-                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubArrayInsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubArrayPushFirst:
-                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubArrayPushFirst<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubArrayPushLast:
-                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubArrayPushLast<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubCounter:
-                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubCounter<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubDelete:
-                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubDocDelete<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubDictAdd:
-                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubDocDictAdd<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubDictUpsert:
-                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubDocDictUpsert<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.SubReplace:
-                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetSeconds())
+                    return new SubDocReplace<T>(builder, builder.Key, null, _transcoder, GlobalTimeout.GetMilliseconds())
                         { BucketName = Name, Expires = builder.Expiry.ToTtl()};
                 case OperationCode.Set:
-                    return new SubDocUpsert<T>(builder, null, _transcoder, GlobalTimeout.GetSeconds());
+                    return new SubDocUpsert<T>(builder, null, _transcoder, GlobalTimeout.GetMilliseconds());
                 default:
                     throw new NotSupportedException("Opcode is not supported for MutateInBuilder.");
             }
@@ -6407,7 +6407,7 @@ namespace Couchbase
             }
 
             var timeout = builder.Timeout.HasValue ? builder.Timeout.Value: GlobalTimeout;
-            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds())
+            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = builder.Expiry.ToTtl()
             };
@@ -6431,7 +6431,7 @@ namespace Couchbase
             }
 
             var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
-            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds())
+            var multiMutate = new MultiMutation<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetMilliseconds())
             {
                 Expires = builder.Expiry.ToTtl()
             };
@@ -6446,9 +6446,9 @@ namespace Couchbase
             switch (spec.OpCode)
             {
                 case OperationCode.SubGet:
-                    return new SubGet<T>(builder, builder.Key, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
+                    return new SubGet<T>(builder, builder.Key, null, _transcoder, timeout.GetMilliseconds()) { BucketName = Name };
                 case OperationCode.SubExist:
-                    return new SubExists<T>(builder, builder.Key, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
+                    return new SubExists<T>(builder, builder.Key, null, _transcoder, timeout.GetMilliseconds()) { BucketName = Name };
                 case OperationCode.SubGetCount:
                     return new SubGetCount<T>(builder, builder.Key, null, _transcoder, _operationLifespanTimeout) { BucketName = Name };
                 default:
@@ -6474,7 +6474,7 @@ namespace Couchbase
 
             //this is a multi operation
             var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
-            var multiLookup = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
+            var multiLookup = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetMilliseconds()) { BucketName = Name };
             return (DocumentFragment<T>) _requestExecuter.SendWithRetry(multiLookup);
         }
 
@@ -6495,7 +6495,7 @@ namespace Couchbase
             }
 
             var timeout = builder.Timeout.HasValue ? builder.Timeout.Value : GlobalTimeout;
-            var multiMutate = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetSeconds()) { BucketName = Name };
+            var multiMutate = new MultiLookup<T>(builder.Key, theBuilder, null, _transcoder, timeout.GetMilliseconds()) { BucketName = Name };
             return (DocumentFragment<T>)await _requestExecuter.SendWithRetryAsync(multiMutate).ContinueOnAnyContext();
         }
 
