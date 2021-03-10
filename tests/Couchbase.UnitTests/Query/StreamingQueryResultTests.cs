@@ -249,7 +249,7 @@ namespace Couchbase.UnitTests.Query
             Assert.NotEmpty(streamingResult.Errors);
             Assert.Equal(QueryStatus.Fatal, streamingResult.MetaData.Status);
             Assert.NotNull(streamingResult.MetaData.Metrics);
-            Assert.Equal("134.7944us", streamingResult.MetaData.Metrics.ElaspedTime);
+            Assert.Equal("134.7944us", streamingResult.MetaData.Metrics.ElapsedTime);
         }
 
         [Fact]

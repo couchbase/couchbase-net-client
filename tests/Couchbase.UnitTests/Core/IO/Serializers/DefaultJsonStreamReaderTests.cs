@@ -228,7 +228,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             // Assert
 
             Assert.NotNull(result);
-            Assert.Equal((uint) 1, result.errorCount);
+            Assert.Equal((uint) 1, result.ErrorCount);
         }
 
         [Fact]
