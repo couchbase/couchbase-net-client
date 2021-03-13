@@ -272,7 +272,24 @@ namespace Couchbase.Query
         /// <remarks>
         ///     Any value set here will be overridden by the type of request sent.
         /// </remarks>
+        [Obsolete("Use QueryOptions.Readonly property instead.")]
         public QueryOptions ReadOnly(bool readOnly)
+        {
+            _readOnly = readOnly;
+            return this;
+        }
+
+        /// <summary>
+        ///     If a GET request, this will always be true otherwise false.
+        /// </summary>
+        /// <param name="readOnly">True for get requests.</param>
+        /// <returns>
+        ///     A reference to the current <see cref="QueryOptions" /> for method chaining.
+        /// </returns>
+        /// <remarks>
+        ///     Any value set here will be overridden by the type of request sent.
+        /// </remarks>
+        public QueryOptions Readonly(bool readOnly)
         {
             _readOnly = readOnly;
             return this;
@@ -288,7 +305,7 @@ namespace Couchbase.Query
         /// <remarks>
         ///     Optional.
         /// </remarks>
-        public QueryOptions Metrics(bool includeMetrics)
+            public QueryOptions Metrics(bool includeMetrics)
         {
             _includeMetrics = includeMetrics;
             return this;
