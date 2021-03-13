@@ -37,7 +37,7 @@ namespace Couchbase.Core.CircuitBreakers
 
         /// <summary>
         /// Called on every response to determine if it is successful or not. The default
-        /// implementation counts SocketException, TimeoutException and TaskCanceledExceptions, RequesCanceledException
+        /// implementation counts SocketException, TimeoutException and TaskCanceledExceptions, RequestCanceledException
         /// as failures.
         /// </summary>
         public Func<Exception, bool> CompletionCallback { get; set; } = delegate(Exception e)
@@ -45,7 +45,7 @@ namespace Couchbase.Core.CircuitBreakers
             switch (e)
             {
                 case SocketException _:
-                case TimeoutException _:
+                case Exceptions.TimeoutException _:
                 case TaskCanceledException _:
                 case RequestCanceledException _:
                 case AuthenticationFailureException _:

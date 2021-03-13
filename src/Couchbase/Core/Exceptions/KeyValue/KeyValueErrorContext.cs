@@ -1,4 +1,6 @@
 using Couchbase.Core.IO.Operations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Couchbase.Core.Exceptions.KeyValue
 {
@@ -25,6 +27,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public string Message { get; internal set; } //errorcode
 
-        internal OpCode OpCode { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public OpCode OpCode { get; set; }
     }
 }

@@ -37,7 +37,7 @@ namespace Couchbase.UnitTests.KeyValue
         {
             var collection = CreateTestCollection();
 
-            Assert.ThrowsAsync<TimeoutException>(async () => await collection.GetAsync("key", options =>
+            Assert.ThrowsAsync<Couchbase.Core.Exceptions.TimeoutException>(async () => await collection.GetAsync("key", options =>
             {
                 options.Timeout(TimeSpan.FromMilliseconds(1d));
             }));
@@ -70,7 +70,7 @@ namespace Couchbase.UnitTests.KeyValue
         [InlineData(ResponseStatus.ValueTooLarge, typeof(ValueToolargeException))]
         [InlineData(ResponseStatus.InvalidArguments, typeof(InvalidArgumentException))]
         [InlineData(ResponseStatus.TemporaryFailure, typeof(TemporaryFailureException))]
-        [InlineData(ResponseStatus.OperationTimeout, typeof(TimeoutException))]
+        [InlineData(ResponseStatus.OperationTimeout, typeof(Couchbase.Core.Exceptions.TimeoutException))]
         [InlineData(ResponseStatus.Locked, typeof(DocumentLockedException))]
         //durability errors
         [InlineData(ResponseStatus.DurabilityInvalidLevel, typeof(DurabilityLevelNotAvailableException))]

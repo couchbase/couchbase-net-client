@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Couchbase.Core.Retry;
-using Newtonsoft.Json;
 
 namespace Couchbase.Core.Exceptions
 {
-    public class AmbiguousTimeoutException : CouchbaseException
+    /// <summary>
+    /// A <see cref="TimeoutException"/> where there may be a side effect on the server. A timeout
+    /// happened while performing an non-idempotent operation.
+    /// </summary>
+    public class AmbiguousTimeoutException : TimeoutException
     {
         public AmbiguousTimeoutException() { }
 

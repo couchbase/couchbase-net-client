@@ -4,14 +4,13 @@ using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.Exceptions
 {
-    public class UnambiguousTimeoutException : CouchbaseException
+    /// <summary>
+    /// A <see cref="TimeoutException"/> where we are sure there was no side effect on the server.
+    /// For example an idempotent operation timeout.
+    /// </summary>
+    public class UnambiguousTimeoutException : TimeoutException
     {
         public UnambiguousTimeoutException() { }
-
-        public UnambiguousTimeoutException(IErrorContext context)
-        {
-            Context = context;
-        }
 
         public UnambiguousTimeoutException(string message) : base(message) { }
 
