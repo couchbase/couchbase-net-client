@@ -543,11 +543,21 @@ namespace Couchbase.Core
                 {
                     if (debugLoggingEnabled)
                     {
-                        _logger.LogDebug("KV Operation timeout for {key} on server {endpoint}.", op.Key, EndPoint);
+                        _logger.LogDebug("KV Operation timeout for op {opCode} on {endpoint} with key {key} and opaque {opaque}",
+                            EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
                     }
 
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
-                    ThrowHelper.ThrowTimeoutException(op);
+                    ThrowHelper.ThrowTimeoutException(op, new KeyValueErrorContext
+                    {
+                        BucketName = Owner?.Name,
+                        ClientContextId = op.Opaque.ToString(),
+                        DocumentKey = op.Key,
+                        Cas = op.Cas,
+                        CollectionName = op.CName,
+                        ScopeName = op.SName,
+                        OpCode = op.OpCode
+                    });
                 }
 
                 throw;

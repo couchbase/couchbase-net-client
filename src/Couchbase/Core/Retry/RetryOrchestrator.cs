@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
@@ -229,7 +230,16 @@ namespace Couchbase.Core.Retry
             }
             catch (OperationCanceledException) when (!tokenPair.IsExternalCancellation)
             {
-                ThrowHelper.ThrowTimeoutException(operation);
+                ThrowHelper.ThrowTimeoutException(operation, new KeyValueErrorContext
+                {
+                    BucketName = operation.BucketName,
+                    ClientContextId = operation.Opaque.ToString(),
+                    DocumentKey = operation.Key,
+                    Cas = operation.Cas,
+                    CollectionName = operation.CName,
+                    ScopeName = operation.SName,
+                    OpCode = operation.OpCode
+                });
             }
         }
 
