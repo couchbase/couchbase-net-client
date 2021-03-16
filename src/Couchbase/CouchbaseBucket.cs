@@ -33,8 +33,8 @@ namespace Couchbase
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory,
-            IRequestTracer tracer, IOperationConfigurator operationConfigurator)
-            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator)
+            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
 
@@ -173,6 +173,7 @@ namespace Couchbase
             query.OnError(options.OnErrorValue == ViewErrorMode.Stop);
             query.Timeout = options.TimeoutValue ?? Context.ClusterOptions.ViewTimeout;
             query.Serializer = options.SerializerValue;
+            query.RetryStrategy = options.RetryStrategyValue ?? RetryStrategy;
 
             if (options.ViewOrderingValue == ViewOrdering.Decesending)
             {

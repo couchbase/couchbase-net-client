@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Couchbase.Core.Retry;
 using Couchbase.Query;
 using Couchbase.Search.Sort;
 using Couchbase.Utils;
@@ -30,6 +31,19 @@ namespace Couchbase.Search
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
         private bool _disableScoring;
+
+        internal IRetryStrategy? RetryStrategyValue { get; set; }
+
+        /// <summary>
+        /// Overrides the global <see cref="IRetryStrategy"/> defined in <see cref="ClusterOptions"/> for a request.
+        /// </summary>
+        /// <param name="retryStrategy">The <see cref="IRetryStrategy"/> to use for a single request.</param>
+        /// <returns>The options.</returns>
+        public SearchOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public SearchOptions DisableScoring(bool disableScoring)
         {

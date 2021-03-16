@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Retry;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 
@@ -63,6 +64,19 @@ namespace Couchbase.Query
             _statement = originalStatement;
             _preparedPayload = plan;
             IsPrepared = true;
+        }
+
+        internal IRetryStrategy? RetryStrategyValue { get; set; }
+
+        /// <summary>
+        /// Overrides the global <see cref="IRetryStrategy"/> defined in <see cref="ClusterOptions"/> for a request.
+        /// </summary>
+        /// <param name="retryStrategy">The <see cref="IRetryStrategy"/> to use for a single request.</param>
+        /// <returns>The options.</returns>
+        public QueryOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            RetryStrategyValue = retryStrategy;
+            return this;
         }
 
         internal CancellationToken Token { get; set; } = System.Threading.CancellationToken.None;

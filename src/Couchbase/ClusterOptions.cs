@@ -15,6 +15,7 @@ using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -364,6 +365,22 @@ namespace Couchbase
             return WithThresholdTracing(opts);
         }
 
+        /// <summary>
+        /// The <see cref="IRetryStrategy"/> for operation retries. Applies to all services: K/V, Query, etc.
+        /// </summary>
+        /// <param name="retryStrategy">The custom <see cref="RetryStrategy"/>.</param>
+        /// <returns></returns>
+        public ClusterOptions WithRetryStrategy(IRetryStrategy retryStrategy)
+        {
+            RetryStrategy = retryStrategy;
+            return this;
+        }
+
+        /// <summary>
+        /// The <see cref="IRetryStrategy"/> for operation retries. Applies to all services: K/V, Query, etc.
+        /// </summary>
+        public IRetryStrategy? RetryStrategy { get; set; } = new BestEffortRetryStrategy();
+
         public string? UserName { get; set; }
         public string? Password { get; set; }
 
@@ -420,7 +437,7 @@ namespace Couchbase
         [Obsolete("Not supported in .NET, uses system defaults.")]
         public TimeSpan IdleHttpConnectionTimeout { get; set; }
 
-        public CircuitBreakerConfiguration CircuitBreakerConfiguration { get; set; } =
+        public CircuitBreakerConfiguration? CircuitBreakerConfiguration { get; set; } =
             CircuitBreakerConfiguration.Default;
 
         public bool EnableOperationDurationTracing { get; set; } = true;
@@ -608,6 +625,11 @@ namespace Couchbase
             if (CircuitBreakerConfiguration != null)
             {
                 this.AddClusterService(CircuitBreakerConfiguration);
+            }
+
+            if (RetryStrategy != null)
+            {
+                this.AddClusterService(RetryStrategy);
             }
 
             return new CouchbaseServiceProvider(_services);

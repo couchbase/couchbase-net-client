@@ -199,7 +199,8 @@ namespace Couchbase.UnitTests.KeyValue
                 : base(BucketName, new ClusterContext(), new Mock<IScopeFactory>().Object,
                     CreateRetryOrchestrator(), new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                     new Mock<IBootstrapperFactory>().Object, NullRequestTracer.Instance,
-                    new Mock<IOperationConfigurator>().Object)
+                    new Mock<IOperationConfigurator>().Object,
+                    new BestEffortRetryStrategy())
             {
                 foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
             }
@@ -310,7 +311,8 @@ namespace Couchbase.UnitTests.KeyValue
 
             var operationConfigurator = new OperationConfigurator(new LegacyTranscoder(),
                 Mock.Of<IOperationCompressor>(),
-                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()));
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                new BestEffortRetryStrategy());
 
             return new CouchbaseCollection(mockBucket.Object, operationConfigurator,
                 new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,

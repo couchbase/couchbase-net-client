@@ -183,7 +183,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
                 NullRequestTracer.Instance,
-                new Mock<IOperationConfigurator>().Object);
+                new Mock<IOperationConfigurator>().Object,
+                new BestEffortRetryStrategy());
 
             return mock.Object;
         }

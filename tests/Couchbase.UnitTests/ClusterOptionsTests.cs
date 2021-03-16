@@ -1,6 +1,7 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.Core.Retry;
 using Xunit;
 
 namespace Couchbase.UnitTests
@@ -132,6 +133,28 @@ namespace Couchbase.UnitTests
             Assert.Equal(networkResolution, options.NetworkResolution);
         }
 
+        #endregion
+
+        #region RetryStrategy
+
+        [Fact]
+        public void Test_RetryStrategy_Default()
+        {
+            var clusterOptions = new ClusterOptions();
+
+            Assert.IsType<BestEffortRetryStrategy>(clusterOptions.RetryStrategy);
+        }
+
+        [Fact]
+        public void When_RetryStrategy_Overridden_Return_FailFastRetryStrategy()
+        {
+            var myCustomStrategy = new FailFastRetryStrategy();
+
+            var clusterOptions = new ClusterOptions().
+                WithRetryStrategy(myCustomStrategy);
+
+            Assert.IsType<FailFastRetryStrategy>(clusterOptions.RetryStrategy);
+        }
         #endregion
     }
 }

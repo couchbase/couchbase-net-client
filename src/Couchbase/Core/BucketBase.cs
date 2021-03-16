@@ -21,6 +21,7 @@ using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Operations.Collections;
+using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 
@@ -49,7 +50,8 @@ namespace Couchbase.Core
             IRedactor redactor,
             IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer,
-            IOperationConfigurator operationConfigurator)
+            IOperationConfigurator operationConfigurator,
+            IRetryStrategy retryStrategy)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
@@ -59,6 +61,7 @@ namespace Couchbase.Core
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             Tracer = tracer;
+            RetryStrategy = retryStrategy ?? throw new ArgumentNullException(nameof(retryStrategy));
 
             _createDefaultScopeFunc = key => _scopeFactory.CreateDefaultScope(this);
 
@@ -66,6 +69,7 @@ namespace Couchbase.Core
             Bootstrapper = bootstrapperFactory.Create(Context.ClusterOptions.BootstrapPollInterval);
         }
 
+        protected IRetryStrategy RetryStrategy { get; }
         public IBootstrapper Bootstrapper { get; }
         public IBootstrapperFactory BootstrapperFactory { get; }
         protected IRedactor Redactor { get; }

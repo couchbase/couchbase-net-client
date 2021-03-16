@@ -10,6 +10,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
@@ -49,7 +50,8 @@ namespace Couchbase.UnitTests.Views
 
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object, new Mock<IRedactor>().Object, NullRequestTracer.Instance);
+            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
+                new Mock<IRedactor>().Object, NullRequestTracer.Instance);
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
@@ -67,7 +69,8 @@ namespace Couchbase.UnitTests.Views
 
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object, new Mock<IRedactor>().Object, NullRequestTracer.Instance);
+            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
+                new Mock<IRedactor>().Object, NullRequestTracer.Instance);
 
             Assert.Null(queryClient.LastActivity);
 
@@ -104,7 +107,8 @@ namespace Couchbase.UnitTests.Views
             var primarySerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
             var overrideSerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
 
-            var client = new ViewClient(httpClient, primarySerializer.Object, new Mock<ILogger<ViewClient>>().Object, new Mock<IRedactor>().Object, NullRequestTracer.Instance);
+            var client = new ViewClient(httpClient, primarySerializer.Object, new Mock<ILogger<ViewClient>>().Object,
+                new Mock<IRedactor>().Object, NullRequestTracer.Instance);
 
             await client.ExecuteAsync<object, object>(new ViewQuery("default", "doc", "view")
             {
@@ -112,45 +116,37 @@ namespace Couchbase.UnitTests.Views
             }).ConfigureAwait(false);
 
             primarySerializer.Verify(
-                m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
+                m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(),
+                    It.IsAny<CancellationToken>()),
                 Times.Never);
             overrideSerializer.Verify(
-                m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
+                m => m.DeserializeAsync<BlockViewResult<object, object>.ViewResultData>(It.IsAny<Stream>(),
+                    It.IsAny<CancellationToken>()),
                 Times.AtLeastOnce);
         }
     }
 
     public class Beer
     {
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
 
-        [JsonProperty("abv")]
-        public decimal Abv { get; set; }
+        [JsonProperty("abv")] public decimal Abv { get; set; }
 
-        [JsonProperty("ibu")]
-        public decimal Ibu { get; set; }
+        [JsonProperty("ibu")] public decimal Ibu { get; set; }
 
-        [JsonProperty("srm")]
-        public decimal Srm { get; set; }
+        [JsonProperty("srm")] public decimal Srm { get; set; }
 
-        [JsonProperty("upc")]
-        public int Upc { get; set; }
+        [JsonProperty("upc")] public int Upc { get; set; }
 
-        [JsonProperty("type")]
-        public string Type { get; set; }
+        [JsonProperty("type")] public string Type { get; set; }
 
-        [JsonProperty("brewery_id")]
-        public string BreweryId { get; set; }
+        [JsonProperty("brewery_id")] public string BreweryId { get; set; }
 
-        [JsonProperty("description")]
-        public string Description { get; set; }
+        [JsonProperty("description")] public string Description { get; set; }
 
-        [JsonProperty("style")]
-        public string Style { get; set; }
+        [JsonProperty("style")] public string Style { get; set; }
 
-        [JsonProperty("category")]
-        public string Category { get; set; }
+        [JsonProperty("category")] public string Category { get; set; }
 
         public override string ToString()
         {

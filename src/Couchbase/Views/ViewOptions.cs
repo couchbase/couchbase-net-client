@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.Retry;
 using Couchbase.Management.Views;
 
 #nullable enable
@@ -31,6 +32,13 @@ namespace Couchbase.Views
         internal Dictionary<string, string> RawParameters = new Dictionary<string, string>();
         internal DesignDocumentNamespace @NamespaceValue { get; set; } = DesignDocumentNamespace.Production;
         internal ITypeSerializer? SerializerValue { get; set; }
+        internal IRetryStrategy? RetryStrategyValue { get; set; }
+
+        public ViewOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public ViewOptions ScanConsistency(ViewScanConsistency scanConsistency)
         {

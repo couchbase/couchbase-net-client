@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -7,6 +8,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -106,6 +108,15 @@ namespace Couchbase.Core.IO.Authentication
             public static SaslOptions Instance { get; } = new();
 
             public ITypeTranscoder? Transcoder { get; } = new LegacyTranscoder(); //required so that SASL strings are not JSON encoded
+
+            internal IRetryStrategy? RetryStrategyValue { get; private set; }
+            IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+            public SaslOptions RetryStrategy(IRetryStrategy retryStrategy)
+            {
+                RetryStrategyValue = retryStrategy;
+                return this;
+            }
         }
     }
 }

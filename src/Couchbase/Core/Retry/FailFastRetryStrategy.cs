@@ -1,7 +1,7 @@
 namespace Couchbase.Core.Retry
 {
     /// <summary>
-    /// Used internally to skip retries when specified. 
+    /// Used internally to skip retries when specified.
     /// </summary>
     internal class FailFastRetryStrategy : IRetryStrategy
     {

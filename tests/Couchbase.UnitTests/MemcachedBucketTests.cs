@@ -133,7 +133,8 @@ namespace Couchbase.UnitTests
                 new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
                 NullRequestTracer.Instance,
-                new Mock<IOperationConfigurator>().Object);
+                new Mock<IOperationConfigurator>().Object,
+                new BestEffortRetryStrategy());
         }
 
         #endregion

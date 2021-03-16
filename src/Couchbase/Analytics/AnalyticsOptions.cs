@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -17,6 +18,18 @@ namespace Couchbase.Analytics
         internal bool ReadonlyValue;
         internal int PriorityValue { get; set; } = 0;
         internal TimeSpan? TimeoutValue { get; set; }
+        internal IRetryStrategy? RetryStrategyValue { get; set; }
+
+        /// <summary>
+        /// Overrides the global <see cref="IRetryStrategy"/> defined in <see cref="ClusterOptions"/> for a request.
+        /// </summary>
+        /// <param name="retryStrategy">The <see cref="IRetryStrategy"/> to use for a single request.</param>
+        /// <returns>The options.</returns>
+        public AnalyticsOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public AnalyticsOptions ScanConsistency(
             AnalyticsScanConsistency scanConsistency)

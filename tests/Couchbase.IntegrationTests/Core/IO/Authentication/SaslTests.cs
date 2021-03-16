@@ -7,6 +7,7 @@ using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Utils;
 using DnsClient;
@@ -48,7 +49,8 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
             var sha1Mechanism = new ScramShaMechanism(MechanismType.ScramSha1, options.Password,
                 options.UserName, new Mock<ILogger<ScramShaMechanism>>().Object, NullRequestTracer.Instance,
                 new OperationConfigurator(new JsonTranscoder(), Mock.Of<IOperationCompressor>(),
-                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy())));
+                    new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                    new BestEffortRetryStrategy()));
 
             await sha1Mechanism.AuthenticateAsync(connection).ConfigureAwait(false);
         }

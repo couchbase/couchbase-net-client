@@ -11,6 +11,7 @@ using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 
 #nullable enable

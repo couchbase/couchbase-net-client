@@ -43,6 +43,7 @@ namespace Couchbase
         private readonly List<Exception> _deferredExceptions = new List<Exception>();
         private volatile ClusterState _clusterState;
         private readonly IRequestTracer _tracer;
+        private readonly IRetryStrategy _retryStrategy;
 
         // Internal is used to provide a seam for unit tests
         internal Lazy<IQueryClient> LazyQueryClient;
@@ -82,6 +83,7 @@ namespace Couchbase
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
             _redactor = _context.ServiceProvider.GetRequiredService<IRedactor>();
             _tracer = _context.ServiceProvider.GetRequiredService<IRequestTracer>();
+            _retryStrategy = _context.ServiceProvider.GetRequiredService<IRetryStrategy>();
 
             var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
@@ -287,7 +289,8 @@ namespace Couchbase
                 Options = options,
                 Statement = statement,
                 Token = options.Token,
-                Timeout = options.TimeoutValue.Value
+                Timeout = options.TimeoutValue.Value,
+                RetryStrategy =  options.RetryStrategyValue ?? _retryStrategy
             }).ConfigureAwait(false);
         }
 
@@ -312,7 +315,8 @@ namespace Couchbase
                 ClientContextId = options.ClientContextIdValue,
                 NamedParameters = options.NamedParameters,
                 PositionalArguments = options.PositionalParameters,
-                Timeout = options.TimeoutValue.Value
+                Timeout = options.TimeoutValue.Value,
+                RetryStrategy = options.RetryStrategyValue ?? _retryStrategy
             };
             query.Priority(options.PriorityValue);
             query.ScanConsistency(options.ScanConsistencyValue);
@@ -345,7 +349,8 @@ namespace Couchbase
                 Query = query,
                 Options = options,
                 Token = options.Token,
-                Timeout = options.TimeoutValue.Value
+                Timeout = options.TimeoutValue.Value,
+                RetryStrategy = options.RetryStrategyValue ?? _retryStrategy
             };
 
             async Task<ISearchResult> Func()

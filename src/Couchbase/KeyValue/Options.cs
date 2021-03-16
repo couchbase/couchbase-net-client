@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -36,6 +37,16 @@ namespace Couchbase.KeyValue
 
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public GetOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public GetOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -92,6 +103,16 @@ namespace Couchbase.KeyValue
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public GetAllReplicasOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public GetAllReplicasOptions Transcoder(ITypeTranscoder? transcoder)
         {
             if (ReferenceEquals(this, Default) && transcoder != null)
@@ -133,6 +154,16 @@ namespace Couchbase.KeyValue
 
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public GetAnyReplicaOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public GetAnyReplicaOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -182,6 +213,16 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public ExistsOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public ExistsOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -212,6 +253,16 @@ namespace Couchbase.KeyValue
         internal PersistTo PersistTo { get; private set; }
 
         internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public UpsertOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -291,6 +342,16 @@ namespace Couchbase.KeyValue
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public InsertOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public InsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -361,6 +422,16 @@ namespace Couchbase.KeyValue
 
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public ReplaceOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public ReplaceOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -435,6 +506,16 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public RemoveOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public RemoveOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -486,6 +567,16 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public UnlockOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public UnlockOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -514,6 +605,16 @@ namespace Couchbase.KeyValue
 
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public TouchOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public TouchOptions Timeout(TimeSpan timeout)
         {
@@ -549,6 +650,16 @@ namespace Couchbase.KeyValue
         internal PersistTo PersistTo { get; private set; }
 
         internal DurabilityLevel DurabilityLevel { get; private set; }
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public IncrementOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -687,6 +798,16 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan ExpiryValue { get; private set; }
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public DecrementOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public DecrementOptions Expiry(TimeSpan expiry)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -767,6 +888,16 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public AppendOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public AppendOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -826,6 +957,16 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public PrependOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public PrependOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -880,6 +1021,16 @@ namespace Couchbase.KeyValue
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public GetAndLockOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
+
         public GetAndLockOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -918,6 +1069,16 @@ namespace Couchbase.KeyValue
 
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public GetAndTouchOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public GetAndTouchOptions Transcoder(ITypeTranscoder? transcoder)
         {
@@ -963,6 +1124,16 @@ namespace Couchbase.KeyValue
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         internal bool AccessDeletedValue { get; private set; }
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public LookupInOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public LookupInOptions Serializer(ITypeSerializer? serializer)
         {
@@ -1040,6 +1211,16 @@ namespace Couchbase.KeyValue
         internal bool CreateAsDeletedValue { get; private set; }
 
         internal bool AccessDeletedValue { get; private set; }
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public MutateInOptions RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public MutateInOptions StoreSemantics(StoreSemantics storeSemantics)
         {
@@ -1123,6 +1304,15 @@ namespace Couchbase.KeyValue
     public abstract class MutateInXattrOperation : IKeyValueOptions
     {
         internal bool XAttrValue { get; private set; }
+
+        internal IRetryStrategy? RetryStrategyValue { get; private set; }
+        IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        public MutateInXattrOperation RetryStrategy(IRetryStrategy retryStrategy)
+        {
+            RetryStrategyValue = retryStrategy;
+            return this;
+        }
 
         public MutateInXattrOperation XAttr()
         {
