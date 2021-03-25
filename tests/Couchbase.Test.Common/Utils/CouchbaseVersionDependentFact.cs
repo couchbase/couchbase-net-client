@@ -48,6 +48,13 @@ namespace Couchbase.IntegrationTests.Utils
         {
             var currentVersion = System.Environment.GetEnvironmentVariable("CB_SERVER_VERSION");
             currentVersion ??= "7.0.0";
+
+            // if version is in the a.b.c-label format (e.g. "7.0.0-stable"), ignore everything after the dash.
+            if (currentVersion.Contains('-'))
+            {
+                currentVersion = currentVersion.Split('-')[0];
+            }
+
             var explicitAllow = new HashSet<string>(explicitAllowVersions ?? Array.Empty<string>());
             var explicitDeny = new HashSet<string>(explicitSkipVersions ?? Array.Empty<string>());
             if (explicitAllow.Contains(currentVersion))

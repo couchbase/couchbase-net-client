@@ -485,9 +485,9 @@ namespace Couchbase.Core
                         _context.PublishConfig(config);
                     }
 
-                    //sub-doc path failures are handled when the ContentAs() method is called.
+                    //sub-doc path failures for lookups are handled when the ContentAs() method is called.
                     //so we simply return back to the caller and let it be handled later.
-                    if (status == ResponseStatus.SubDocMultiPathFailure)
+                    if (status == ResponseStatus.SubDocMultiPathFailure && op.OpCode == OpCode.MultiLookup)
                     {
                         return;
                     }

@@ -307,6 +307,28 @@ namespace Couchbase.IntegrationTests
             Assert.Equal("value", (string)lookupResult.ContentAs<string>(0));
         }
 
+        [Fact]
+        public async Task MutateIn_Fails_On_Bad_Path()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = nameof(MutateIn_Fails_On_Bad_Path) + Guid.NewGuid().ToString();
+            var doc = new { foo = "bar", baz = "baz" };
+            var insertResult = await collection.InsertAsync(documentKey, doc, opts => opts.Expiry(TimeSpan.FromMinutes(10)));
+
+            // LookupIn should not throw if one path is bad.
+            var lookupInResult = await collection.LookupInAsync(documentKey, specs => specs.Get("foo").Get("doesNotExist"));
+            var fooValue = lookupInResult.ContentAs<string>(0);
+            Assert.Equal("bar", fooValue);
+            Assert.False(lookupInResult.Exists(1));
+
+            // MutateIn should throw if any path is bad.
+            var t = collection.MutateInAsync(documentKey,
+                specs => specs.Upsert("foo", "bar_updated").Replace("doesNotExist", "anything"),
+                opts => opts.StoreSemantics(StoreSemantics.Replace));
+
+            var ex = await Assert.ThrowsAsync<PathInvalidException>(() => t);
+        }
+
         [CouchbaseVersionDependentFact(MinVersion = "6.6.0")]
         public async Task MutateIn_CreateAsDeleted_Creates_Tombstone()
         {
