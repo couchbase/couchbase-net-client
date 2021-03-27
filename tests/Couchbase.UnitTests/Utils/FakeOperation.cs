@@ -99,6 +99,11 @@ namespace Couchbase.UnitTests.Utils
             return new FakeOperation();
         }
 
+        public SlicedMemoryOwner<byte> ExtractBody()
+        {
+            throw new NotImplementedException();
+        }
+
         public bool HasDurability { get; set; }
     }
 }

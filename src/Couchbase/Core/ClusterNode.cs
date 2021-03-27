@@ -524,7 +524,7 @@ namespace Couchbase.Core
                         Status = status,
                         OpCode = op.OpCode
                     };
-                    throw status.CreateException(ctx);
+                    throw status.CreateException(ctx, op);
                 }
 
                 if (debugLoggingEnabled)

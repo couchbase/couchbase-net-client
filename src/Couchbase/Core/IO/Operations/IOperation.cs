@@ -145,6 +145,13 @@ namespace Couchbase.Core.IO.Operations
         void HandleOperationCompleted(in SlicedMemoryOwner<byte> data);
 
         /// <summary>
+        /// Returns a block of memory containing the body of the operation response. May only be called once.
+        /// Ownership of the block of memory is transferred to the caller, which is then responsible for disposing it.
+        /// </summary>
+        /// <returns>An owned block of memory containing the body of the operation response.</returns>
+        SlicedMemoryOwner<byte> ExtractBody();
+
+        /// <summary>
         /// Reads <see cref="BucketConfig"/> from the response body.
         /// </summary>
         /// <param name="transcoder">Transcoder to use while reading.</param>

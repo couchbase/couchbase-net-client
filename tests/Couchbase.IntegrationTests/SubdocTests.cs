@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Transcoders;
@@ -308,25 +310,71 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
-        public async Task MutateIn_Fails_On_Bad_Path()
+        public async Task LookupIn_BadPathNoException()
         {
-            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
-            var documentKey = nameof(MutateIn_Fails_On_Bad_Path) + Guid.NewGuid().ToString();
-            var doc = new { foo = "bar", baz = "baz" };
-            var insertResult = await collection.InsertAsync(documentKey, doc, opts => opts.Expiry(TimeSpan.FromMinutes(10)));
+            (var documentKey, var collection) = await PrepDoc();
 
             // LookupIn should not throw if one path is bad.
             var lookupInResult = await collection.LookupInAsync(documentKey, specs => specs.Get("foo").Get("doesNotExist"));
             var fooValue = lookupInResult.ContentAs<string>(0);
             Assert.Equal("bar", fooValue);
             Assert.False(lookupInResult.Exists(1));
+        }
 
-            // MutateIn should throw if any path is bad.
+        private async Task<(string documentKey, ICouchbaseCollection collection)> PrepDoc([CallerMemberName]string testName = nameof(SubdocTests))
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var documentKey = testName + Guid.NewGuid().ToString();
+            var doc = new { foo = "bar", baz = "baz" };
+            var insertResult = await collection.InsertAsync(documentKey, doc, opts => opts.Expiry(TimeSpan.FromMinutes(10)));
+            return (documentKey, collection);
+        }
+
+        [Fact]
+        public async Task MutateIn_PathInvalid()
+        {
+            (var documentKey, var collection) = await PrepDoc();
             var t = collection.MutateInAsync(documentKey,
-                specs => specs.Upsert("foo", "bar_updated").Replace("doesNotExist", "anything"),
+                specs => specs.Upsert("foo", "bar_updated").Replace("baz\\$$-foo", "anything"),
                 opts => opts.StoreSemantics(StoreSemantics.Replace));
 
             var ex = await Assert.ThrowsAsync<PathInvalidException>(() => t);
+
+        }
+
+        [Fact]
+        public async Task MutateIn_PathTooBig()
+        {
+            (var documentKey, var collection) = await PrepDoc();
+            var tooLong = string.Join('.', System.Linq.Enumerable.Repeat("a", 300));
+            var t = collection.MutateInAsync(documentKey,
+                specs => specs.Upsert("foo", "bar_updated").Replace("baz." + tooLong, "anything"),
+                opts => opts.StoreSemantics(StoreSemantics.Replace));
+
+            var ex = await Assert.ThrowsAsync<PathTooBigException>(() => t);
+        }
+
+        [Fact]
+        public async Task MutateIn_PathMismatch()
+        {
+            (var documentKey, var collection) = await PrepDoc();
+            var tooLong = string.Join('.', System.Linq.Enumerable.Repeat("a", 16));
+            var t = collection.MutateInAsync(documentKey,
+                specs => specs.Upsert("foo", "bar_updated").Replace("baz." + tooLong, "anything"),
+                opts => opts.StoreSemantics(StoreSemantics.Replace));
+
+            var ex = await Assert.ThrowsAsync<PathMismatchException>(() => t);
+        }
+
+        [Fact]
+        public async Task MutateIn_PathNotFound()
+        {
+            (var documentKey, var collection) = await PrepDoc();
+            var t = collection.MutateInAsync(documentKey,
+                specs => specs.Replace("doesNotExist", "anything"),
+                opts => opts.StoreSemantics(StoreSemantics.Replace));
+
+            var ex = await Assert.ThrowsAsync<PathNotFoundException>(() => t);
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "6.6.0")]
