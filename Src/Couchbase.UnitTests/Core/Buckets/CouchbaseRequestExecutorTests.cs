@@ -63,8 +63,8 @@ namespace Couchbase.UnitTests.Core.Buckets
             var pending = new ConcurrentDictionary<uint, IOperation>();
             var executor = new CouchbaseRequestExecuter(controller.Object, configInfo.Object, "default", pending);
 
-            var op = new Get<dynamic>("thekey", null, new DefaultTranscoder(), 100);
-            op.LastConfigRevisionTried = 2;
+            var op = new Get<dynamic>("thekey", null, new DefaultTranscoder(), 100) {FlagWasNmvb = true};
+
             var result = executor.SendWithRetry(op);
             Assert.AreEqual(op.VBucket.LocatePrimary().EndPoint, keyMapper.GetVBucketsForwards().First().Value.LocatePrimary().EndPoint);
         }
@@ -470,7 +470,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             mockVBucket.Setup(x => x.LocatePrimary()).Returns(mockServer.Object);
 
             var mockKeyMapper = new Mock<IKeyMapper>();
-            mockKeyMapper.Setup(x => x.MapKey(It.IsAny<string>(), It.IsAny<uint>())).Returns(mockVBucket.Object);
+            mockKeyMapper.Setup(x => x.MapKey(It.IsAny<string>(), false)).Returns(mockVBucket.Object);
 
             var mockConfigInfo = new Mock<IConfigInfo>();
             mockConfigInfo.Setup(x => x.IsDataCapable).Returns(true);
@@ -506,7 +506,7 @@ namespace Couchbase.UnitTests.Core.Buckets
             mockVBucket.Setup(x => x.LocatePrimary()).Returns(mockServer.Object);
 
             var mockKeyMapper = new Mock<IKeyMapper>();
-            mockKeyMapper.Setup(x => x.MapKey(It.IsAny<string>(), It.IsAny<uint>())).Returns(mockVBucket.Object);
+            mockKeyMapper.Setup(x => x.MapKey(It.IsAny<string>(), false)).Returns(mockVBucket.Object);
 
             var mockConfigInfo = new Mock<IConfigInfo>();
             mockConfigInfo.Setup(x => x.IsDataCapable).Returns(true);

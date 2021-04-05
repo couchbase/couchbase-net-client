@@ -29,6 +29,7 @@ namespace Couchbase.IO.Operations
         public const int DefaultRetries = 2;
         protected static MutationToken DefaultMutationToken = new MutationToken(null, -1, -1, -1);
         internal ErrorCode ErrorCode;
+        private bool _wasNmvb;
 
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint opaque, uint timeout)
         {
@@ -52,6 +53,15 @@ namespace Couchbase.IO.Operations
         protected OperationBase(string key, IVBucket vBucket, ITypeTranscoder transcoder, uint timeout)
             : this(key, vBucket, transcoder, SequenceGenerator.GetNext(), timeout)
         {
+        }
+
+        /// <summary>
+        /// Internal seam for unit testing
+        /// </summary>
+        internal bool FlagWasNmvb
+        {
+            get => _wasNmvb;
+            set => _wasNmvb = value;
         }
 
         public abstract OperationCode OperationCode { get; }
@@ -301,6 +311,8 @@ namespace Couchbase.IO.Operations
                 status = ResponseStatus.ClientFailure;
             }
 
+            _wasNmvb = status == ResponseStatus.VBucketBelongsToAnotherServer;
+
             //For CB 5.X "LOCKED" is now returned when a key is locked with GetL (surprise, surprise)
             //However, the 2.X SDKs cannot return locked becuase it will not be backwards compatible,
             //so will break the bug that was fixed on the server and set the status back to TEMP_FAIL.
@@ -535,6 +547,11 @@ namespace Couchbase.IO.Operations
             {
                 throw new ArgumentOutOfRangeException(nameof(KeyLength), "Keys must be 250 bytes or smaller.");
             }
+        }
+
+        public bool WasNmvb()
+        {
+            return _wasNmvb;
         }
 
         protected void TryReadMutationToken(byte[] buffer)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Security.Cryptography;
@@ -62,10 +62,11 @@ namespace Couchbase.Core.Buckets
             return _vBuckets[index];
         }
 
-        public IMappedNode MapKey(string key, uint revision)
+        public IMappedNode MapKey(string key, bool notMyVBucket)
         {
-            //its a retry
-            if (revision > 0 && revision == Rev && HasForwardMap())
+            //If this is a retry because of a NMVB status and a new cluster map being returned being returned
+            //in the body of the Memcached packet. In which case the FF Map should be used if it exists.
+            if (notMyVBucket && HasForwardMap())
             {
                 //use the fast-forward map
                 var index = GetIndex(key);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Sockets;
 using Couchbase.IO;
 using Couchbase.IO.Operations;

@@ -310,7 +310,7 @@ namespace Couchbase.Core.Buckets
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
-                                    var vBucket = (IVBucket)keyMapper.MapKey(cloned.Key, cloned.LastConfigRevisionTried);
+                                    var vBucket = (IVBucket)keyMapper.MapKey(cloned.Key, result.IsNmv());
                                     cloned.LastConfigRevisionTried = vBucket.Rev;
                                     cloned.VBucket = vBucket;
 
@@ -415,7 +415,7 @@ namespace Couchbase.Core.Buckets
                                     pending.TryAdd(cloned.Opaque, cloned);
 
                                     var keyMapper = c.GetKeyMapper();
-                                    var vBucket = (IVBucket)keyMapper.MapKey(cloned.Key, cloned.LastConfigRevisionTried);
+                                    var vBucket = (IVBucket)keyMapper.MapKey(cloned.Key, result.IsNmv());
                                     cloned.LastConfigRevisionTried = vBucket.Rev;
                                     cloned.VBucket = vBucket;
 

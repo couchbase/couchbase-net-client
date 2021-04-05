@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Couchbase.Configuration.Server.Serialization;
 
 namespace Couchbase.Core
@@ -7,7 +7,7 @@ namespace Couchbase.Core
     {
         IMappedNode MapKey(string key);
 
-        IMappedNode MapKey(string key, uint revision);
+        IMappedNode MapKey(string key, bool notMyVbucket);
 
         uint Rev { get; set; }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
@@ -52,7 +52,7 @@ namespace Couchbase.Tests.Core.Buckets
             mockVBucket.Setup(x => x.LocatePrimary()).Returns(fakeServer);
 
             var mockKeyMapper = new Mock<IKeyMapper>();
-            mockKeyMapper.Setup(x => x.MapKey(key, It.IsAny<uint>())).Returns(mockVBucket.Object);
+            mockKeyMapper.Setup(x => x.MapKey(key, false)).Returns(mockVBucket.Object);
 
             var mockConfigInfo = new Mock<IConfigInfo>();
             mockConfigInfo.Setup(x => x.GetKeyMapper()).Returns(mockKeyMapper.Object);
@@ -111,7 +111,7 @@ namespace Couchbase.Tests.Core.Buckets
             vBucket.Setup(x => x.LocatePrimary()).Returns(server.Object);
 
             var keyMapper = new Mock<IKeyMapper>();
-            keyMapper.Setup(x => x.MapKey(It.IsAny<string>(), It.IsAny<uint>())).Returns(vBucket.Object);
+            keyMapper.Setup(x => x.MapKey(It.IsAny<string>(), false)).Returns(vBucket.Object);
 
             var configInfo = new Mock<IConfigInfo>();
             configInfo.Setup(x => x.GetKeyMapper()).Returns(keyMapper.Object);

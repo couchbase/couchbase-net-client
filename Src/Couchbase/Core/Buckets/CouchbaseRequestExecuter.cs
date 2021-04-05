@@ -83,13 +83,13 @@ namespace Couchbase.Core.Buckets
         /// Gets the <see cref="Server"/> or node that a key has been mapped to.
         /// </summary>
         /// <param name="key">The key to get or set.</param>
-        /// <param name="revision">The rev # of the cluster map.</param>
+        /// <param name="notMyVBucket">A boolean indicating that a NMVB was encountered.</param>
         /// <param name="vBucket">The VBucket the key belongs to.</param>
         /// <returns>The <see cref="IServer"/> that the key is mapped to.</returns>
-        public IServer GetServer(string key, uint revision, out IVBucket vBucket)
+        public IServer GetServer(string key, bool notMyVBucket, out IVBucket vBucket)
         {
             var keyMapper = ConfigInfo.GetKeyMapper();
-            vBucket = (IVBucket) keyMapper.MapKey(key, revision);
+            vBucket = (IVBucket) keyMapper.MapKey(key, notMyVBucket);
             return vBucket.LocatePrimary();
         }
 
@@ -591,7 +591,7 @@ namespace Couchbase.Core.Buckets
                 do
                 {
                     IVBucket vBucket;
-                    var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
+                    var server = GetServer(operation.Key, operation.WasNmvb(), out vBucket);
                     if (server == null)
                     {
                         continue;
@@ -672,7 +672,7 @@ namespace Couchbase.Core.Buckets
                 do
                 {
                     IVBucket vBucket;
-                    var server = GetServer(operation.Key, operation.LastConfigRevisionTried, out vBucket);
+                    var server = GetServer(operation.Key, operation.WasNmvb(), out vBucket);
                     if (server == null)
                     {
                         continue;
@@ -753,7 +753,7 @@ namespace Couchbase.Core.Buckets
                     }
 
                     var keyMapper = ConfigInfo.GetKeyMapper();
-                    var vBucket = (IVBucket)keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
+                    var vBucket = (IVBucket)keyMapper.MapKey(operation.Key, false);
                     operation.VBucket = vBucket;
                     operation.LastConfigRevisionTried = vBucket.Rev;
 
@@ -810,7 +810,7 @@ namespace Couchbase.Core.Buckets
                     }
 
                     var keyMapper = ConfigInfo.GetKeyMapper();
-                    var vBucket = (IVBucket)keyMapper.MapKey(operation.Key, operation.LastConfigRevisionTried);
+                    var vBucket = (IVBucket)keyMapper.MapKey(operation.Key, false);
                     operation.VBucket = vBucket;
                     operation.LastConfigRevisionTried = vBucket.Rev;
 

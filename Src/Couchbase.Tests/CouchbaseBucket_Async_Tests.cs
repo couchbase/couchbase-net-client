@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Net;
@@ -43,7 +43,7 @@ namespace Couchbase.Tests
             mockVBucket.Setup(x => x.LocatePrimary()).Returns(fakeServer);
 
             var mockKeyMapper = new Mock<IKeyMapper>();
-            mockKeyMapper.Setup(x => x.MapKey(key, It.IsAny<uint>())).Returns(mockVBucket.Object);
+            mockKeyMapper.Setup(x => x.MapKey(key, false)).Returns(mockVBucket.Object);
 
             var mockConfigInfo = new Mock<IConfigInfo>();
             mockConfigInfo.Setup(x => x.GetKeyMapper()).Returns(mockKeyMapper.Object);

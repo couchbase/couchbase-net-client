@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -41,9 +41,9 @@ namespace Couchbase.Core.Buckets
         /// Not Supported: This overload is only supported by Couchbase buckets.
         /// </summary>
         /// <param name="key"></param>
-        /// <param name="revision"></param>
+        /// <param name="notMyVBucket"></param>
         /// <returns></returns>
-        public IMappedNode MapKey(string key, uint revision)
+        public IMappedNode MapKey(string key, bool notMyVBucket)
         {
             throw new NotSupportedException("This overload is only supported by Couchbase buckets.");
         }

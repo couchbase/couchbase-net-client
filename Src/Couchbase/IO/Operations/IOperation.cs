@@ -98,6 +98,8 @@ namespace Couchbase.IO.Operations
         int GetRetryTimeout(int defaultTimeout);
 
         void Validate();
+
+        bool WasNmvb();
     }
 }
 
