@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
@@ -50,7 +51,7 @@ namespace Couchbase.UnitTests.Views
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
             var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
-                new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
+                new Mock<IRedactor>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
 
             var query = new ViewQuery("bucket-name", "http://localhost");
             query.Keys(keys);
@@ -69,7 +70,7 @@ namespace Couchbase.UnitTests.Views
             var httpClient = new CouchbaseHttpClient(handler);
             var serializer = new DefaultSerializer();
             var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
-                    new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
+                    new Mock<IRedactor>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
 
             Assert.Null(queryClient.LastActivity);
 
@@ -106,7 +107,7 @@ namespace Couchbase.UnitTests.Views
             var primarySerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
             var overrideSerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
             var client = new ViewClient(httpClient, primarySerializer.Object, new Mock<ILogger<ViewClient>>().Object,
-                    new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
+                    new Mock<IRedactor>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
 
             await client.ExecuteAsync<object, object>(new ViewQuery("default", "doc", "view")
             {

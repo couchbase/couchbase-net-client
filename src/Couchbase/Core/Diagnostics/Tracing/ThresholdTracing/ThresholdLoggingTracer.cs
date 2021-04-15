@@ -13,15 +13,15 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
     /// and the total duration of the parent span - it is used to generate a report of the nth slowest
     /// requests which is useful for identifying slow operations.
     /// </summary>
-    internal class ThresholdRequestTracer : IRequestTracer
+    internal class ThresholdLoggingTracer : IRequestTracer
     {
-        private static readonly ActivitySource ActivitySource = new("Couchbase.DotnetSdk.ThresholdRequestTracer", "2.0.0");
+        private static readonly ActivitySource ActivitySource = new("Couchbase.DotnetSdk.ThresholdLoggingTracer", "2.0.0");
         private readonly Timer _timer;
 
-        public ThresholdRequestTracer(ThresholdOptions thresholdOptions, ILoggerFactory loggerFactory)
+        public ThresholdLoggingTracer(ThresholdOptions thresholdOptions, ILoggerFactory loggerFactory)
         {
             var thresholdOptions1 = thresholdOptions;
-            var logger = loggerFactory.CreateLogger<ThresholdRequestTracer>();
+            var logger = loggerFactory.CreateLogger<ThresholdLoggingTracer>();
             _timer = new Timer(GenerateAndLogReport, logger, thresholdOptions1.EmitInterval, thresholdOptions1.EmitInterval);
             ThresholdServiceQueue.SetSampleSize((int)thresholdOptions.SampleSize);//change to uint
         }

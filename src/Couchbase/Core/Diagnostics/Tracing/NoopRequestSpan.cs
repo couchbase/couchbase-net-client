@@ -58,5 +58,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         /// <inheritdoc />
         public string? Id { get; }
+
+        /// <inheritdoc />
+        public uint? Duration { get; }
     }
 }

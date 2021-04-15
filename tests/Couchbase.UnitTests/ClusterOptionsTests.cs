@@ -185,13 +185,13 @@ namespace Couchbase.UnitTests
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = true,
-                RequestTracer = new ThresholdRequestTracer(new ThresholdOptions(), new LoggerFactory())
+                RequestTracer = new ThresholdLoggingTracer(new ThresholdOptions(), new LoggerFactory())
             });
 
             var services = options.BuildServiceProvider();
             var noopRequestTracer = services.GetService(typeof(IRequestTracer));
 
-            Assert.IsAssignableFrom<ThresholdRequestTracer>(noopRequestTracer);
+            Assert.IsAssignableFrom<ThresholdLoggingTracer>(noopRequestTracer);
         }
 
         [Fact]

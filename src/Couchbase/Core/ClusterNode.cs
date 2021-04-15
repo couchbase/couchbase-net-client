@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -47,10 +49,11 @@ namespace Couchbase.Core
         private readonly ObservableCollection<IPEndPoint> _keyEndPoints = new ObservableCollection<IPEndPoint>();
         private readonly string _cachedToString;
         private volatile bool _disposed;
+        private readonly IValueRecorder _valueRecorder;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
+            IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer, IValueRecorder valueRecorder)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -62,6 +65,7 @@ namespace Couchbase.Core
             _tracer = tracer;
             BucketType = bucketType;
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
+            _valueRecorder = valueRecorder ?? throw new ArgumentNullException(nameof(valueRecorder));
 
             _cachedToString = $"{EndPoint}-{_id}";
 
@@ -465,6 +469,9 @@ namespace Couchbase.Core
 
             try
             {
+                //for capturing latencies
+                op.Recorder = _valueRecorder;
+
                 // Await the send in case the send throws an exception (i.e. SendQueueFullException)
                 await sender(op, state, tokenPair).ConfigureAwait(false);
 

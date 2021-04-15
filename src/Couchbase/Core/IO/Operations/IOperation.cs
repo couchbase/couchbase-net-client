@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Transcoders;
@@ -78,6 +79,11 @@ namespace Couchbase.Core.IO.Operations
         /// Tracing span.
         /// </summary>
         IRequestSpan Span { get; }
+
+        /// <summary>
+        /// A <see cref="IValueRecorder"/> instance for measuring latencies.
+        /// </summary>
+        IValueRecorder Recorder { get; set; }
 
         /// <summary>
         /// Indicates that a mutation operation has a durability requirement.

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Compression;
@@ -29,6 +30,7 @@ namespace Couchbase.Core.IO.Operations
         private List<RetryReason>? _retryReasons;
         private IRetryStrategy? _retryStrategy;
         private volatile bool _isSent;
+        private IValueRecorder? _recorder;
 
         protected OperationBase()
         {
@@ -81,6 +83,13 @@ namespace Couchbase.Core.IO.Operations
                 _span = value;
                 _span.WithOperationId(this);
             }
+        }
+
+        /// <inheritdoc />
+        public IValueRecorder Recorder
+        {
+            get => _recorder ?? NoopValueRecorder.Instance;
+            set => _recorder = value;
         }
 
         /// <inheritdoc />
@@ -497,9 +506,15 @@ namespace Couchbase.Core.IO.Operations
                 encodingSpan.Dispose();
 
                 using var dispatchSpan = Span.DispatchSpan(this);
-                await connection.SendAsync(buffer, this, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+                await connection.SendAsync(buffer, this, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+
                 _isSent = true;
                 dispatchSpan.Dispose();
+
+                //for measuring latency using an AggregatingMeter or similar.
+                Recorder.RecordValue(dispatchSpan.Duration ?? 0);
             }
             finally
             {

@@ -7,16 +7,16 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
     /// <summary>
     /// An implementation of <see cref="IRequestSpan"/> that measures the duration of a span and
-    /// is used for providing data for the <see cref="ThresholdRequestTracer"/>.
+    /// is used for providing data for the <see cref="ThresholdLoggingTracer"/>.
     /// requests.
     /// </summary>
     internal class ThresholdRequestSpan : IRequestSpan
     {
-        private readonly ThresholdRequestTracer _tracer;
+        private readonly ThresholdLoggingTracer _tracer;
         private readonly Activity? _activity;
         private readonly IRequestSpan? _parentSpan;
 
-        public ThresholdRequestSpan(ThresholdRequestTracer tracer, Activity? activity, IRequestSpan? parentSpan = null)
+        public ThresholdRequestSpan(ThresholdLoggingTracer tracer, Activity? activity, IRequestSpan? parentSpan = null)
         {
             _tracer = tracer;
             _activity = activity;
@@ -38,6 +38,9 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 
         /// <inheritdoc />
         public string? Id => _activity?.Id;
+
+        /// <inheritdoc />
+        public uint? Duration { get; private set; }
 
         /// <inheritdoc />
         public IRequestSpan SetAttribute(string key, string value)
@@ -72,7 +75,8 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         public void End()
         {
             _activity?.SetEndTime(DateTime.UtcNow);
-            var duration =_activity?.Duration.ToMicroseconds().ToString();
+            Duration = _activity?.Duration.ToMicroseconds();
+            var duration = Duration.ToString();
 
             if (_activity?.DisplayName != null)
             {

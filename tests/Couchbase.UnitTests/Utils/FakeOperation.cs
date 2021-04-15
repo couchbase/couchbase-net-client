@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
@@ -70,6 +71,7 @@ namespace Couchbase.UnitTests.Utils
         public IPEndPoint CurrentHost { get; set; }
         public OperationHeader Header { get; set; }
         public IRequestSpan Span { get; set; }
+        public IValueRecorder Recorder { get; set; }
 
         public DateTime CreationTime { get; set; }
 

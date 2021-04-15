@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -31,10 +33,11 @@ namespace Couchbase.Core.DI
         private readonly IIpEndPointService _ipEndPointService;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
+        private readonly IMeter _meter;
 
         public ClusterNodeFactory(ClusterContext clusterContext, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IIpEndPointService ipEndPointService, IRedactor redactor, IRequestTracer tracer)
+            IIpEndPointService ipEndPointService, IRedactor redactor, IRequestTracer tracer, IMeter meter)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
@@ -45,6 +48,7 @@ namespace Couchbase.Core.DI
             _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
+            _meter = meter;
         }
 
         /// <inheritdoc />
@@ -58,8 +62,12 @@ namespace Couchbase.Core.DI
         {
             var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
 
+            //for recording k/v latencies per request
+            var valueRecorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.Kv.Name}|{ipEndPoint}");
+
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
-                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType, nodeAdapter, _tracer)
+                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType,
+                nodeAdapter, _tracer, valueRecorder)
             {
                 BootstrapEndpoint = endPoint
             };

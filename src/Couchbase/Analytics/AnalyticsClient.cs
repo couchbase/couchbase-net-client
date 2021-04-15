@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
@@ -23,6 +25,7 @@ namespace Couchbase.Analytics
         private readonly ITypeSerializer _typeSerializer;
         private readonly ILogger<AnalyticsClient> _logger;
         private readonly IRequestTracer _tracer;
+        private readonly IMeter _meter;
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(
@@ -30,13 +33,15 @@ namespace Couchbase.Analytics
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer typeSerializer,
             ILogger<AnalyticsClient> logger,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IMeter meter)
             : base(client)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer;
+            _meter = meter;
         }
 
         /// <summary>
@@ -82,6 +87,10 @@ namespace Couchbase.Analytics
                     using var dispatchSpan = rootSpan.DispatchSpan(queryRequest);
                     var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
                     dispatchSpan.Dispose();
+
+                    var recorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.AnalyticsQuery}|{analyticsUri.Host}");
+                    recorder.RecordValue(dispatchSpan.Duration ?? 0);
+
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
                     if (_typeSerializer is IStreamingTypeDeserializer streamingTypeDeserializer)

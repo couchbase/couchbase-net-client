@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
@@ -24,19 +26,22 @@ namespace Couchbase.Views
         private readonly ILogger<ViewClient> _logger;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
+        private readonly IMeter _meter;
         protected const string Success = "Success";
 
         public ViewClient(CouchbaseHttpClient httpClient,
             ITypeSerializer serializer,
             ILogger<ViewClient> logger,
             IRedactor redactor,
-            IRequestTracer tracer)
+            IRequestTracer tracer,
+            IMeter meter)
             : base(httpClient)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
+            _meter = meter;
 
             // set timeout to infinite so we can stream results without the connection
             // closing part way through
@@ -66,6 +71,9 @@ namespace Couchbase.Views
                 using var dispatchSpan = rootSpan.DispatchSpan(query);
                 var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
                 dispatchSpan.Dispose();
+
+                var recorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.ViewQuery}|{uri.Host}");
+                recorder.RecordValue(dispatchSpan.Duration ?? 0);
 
                 var serializer = query.Serializer ?? _serializer;
                 if (response.IsSuccessStatusCode)

@@ -8,6 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
@@ -44,6 +45,7 @@ namespace Couchbase
         private volatile ClusterState _clusterState;
         private readonly IRequestTracer _tracer;
         private readonly IRetryStrategy _retryStrategy;
+        private readonly IMeter _meter;
 
         // Internal is used to provide a seam for unit tests
         internal Lazy<IQueryClient> LazyQueryClient;
@@ -84,6 +86,7 @@ namespace Couchbase
             _redactor = _context.ServiceProvider.GetRequiredService<IRedactor>();
             _tracer = _context.ServiceProvider.GetRequiredService<IRequestTracer>();
             _retryStrategy = _context.ServiceProvider.GetRequiredService<IRetryStrategy>();
+            _meter = _context.ServiceProvider.GetRequiredService<IMeter>();
 
             var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
@@ -500,7 +503,7 @@ namespace Couchbase
             {
                 if (_disposed) return;
                 _disposed = true;
-                _bootstrapper?.Dispose();
+                _bootstrapper.Dispose();
                 _context.Dispose();
             }
         }

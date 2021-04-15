@@ -6,7 +6,7 @@ using System.Linq;
 namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
     /// <summary>
-    /// A <see cref="TraceListener"/> for <see cref="ThresholdRequestTracer"/>; listens for any span closings and
+    /// A <see cref="TraceListener"/> for <see cref="ThresholdLoggingTracer"/>; listens for any span closings and
     /// generates a <see cref="ThresholdSummary"/> if a span exceeds the threshold configured in <see cref="ThresholdOptions"/>.
     /// </summary>
     internal class ThresholdTraceListener : TraceListener

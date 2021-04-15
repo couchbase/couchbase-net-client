@@ -67,5 +67,10 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// The id, possibly from the underlying activity, of the span.
         /// </summary>
         string? Id { get; }
+
+        /// <summary>
+        /// The duration of the span set after Dispose() or <see cref="End()"/> is called.
+        /// </summary>
+        uint? Duration { get; }
     }
 }

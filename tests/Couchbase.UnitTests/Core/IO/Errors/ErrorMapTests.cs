@@ -6,6 +6,7 @@ using Couchbase.Core;
 using Couchbase.Core.DI;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
@@ -57,7 +58,8 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 {
                     Hostname = "127.0.0.1"
                 },
-                NoopRequestTracer.Instance)
+                NoopRequestTracer.Instance,
+                NoopValueRecorder.Instance)
             {
                 ErrorMap = errorMap
             };

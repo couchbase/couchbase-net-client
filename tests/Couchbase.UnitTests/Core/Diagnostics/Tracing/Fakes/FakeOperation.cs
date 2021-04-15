@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Connections;
@@ -43,6 +44,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public ulong Cas { get; }
         public OperationHeader Header { get; }
         public IRequestSpan Span { get; }
+        public IValueRecorder Recorder { get; set; }
         public bool HasDurability { get; }
         public bool IsReadOnly { get; }
         public bool IsSent { get; }

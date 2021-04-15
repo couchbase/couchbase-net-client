@@ -26,6 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Core\Diagnostics\Metrics\LoggingMeterTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
   </ItemGroup>
 

@@ -6,6 +6,7 @@ using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -100,7 +101,8 @@ namespace Couchbase.UnitTests.Utils
                     Hostname = hostname,
                     Views = 8091
                 },
-                NoopRequestTracer.Instance);
+                NoopRequestTracer.Instance,
+                NoopValueRecorder.Instance);
         }
 
         #endregion

@@ -7,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Authentication.X509;
@@ -367,6 +368,21 @@ namespace Couchbase
             return WithThresholdTracing(opts);
         }
 
+        public LoggingMeterOptions AggregatingMeterOptions { get; set; } = new();
+
+        public ClusterOptions WithAggregatingMeterOptions(LoggingMeterOptions options)
+        {
+            AggregatingMeterOptions = options;
+            return this;
+        }
+
+        public ClusterOptions WithAggregatingMeterOptions(Action<LoggingMeterOptions> configure)
+        {
+            var opts = new LoggingMeterOptions();
+            configure(opts);
+            return WithAggregatingMeterOptions(opts);
+        }
+
         /// <summary>
         /// The <see cref="IRetryStrategy"/> for operation retries. Applies to all services: K/V, Query, etc.
         /// </summary>
@@ -598,12 +614,21 @@ namespace Couchbase
         {
             this.AddClusterService(this);
             this.AddClusterService(Logging ??= new NullLoggerFactory());
+            this.AddClusterService(AggregatingMeterOptions);
+            if (AggregatingMeterOptions.EnabledValue)
+            {
+                this.AddClusterService<IMeter, LoggingMeter>();
+            }
+            else
+            {
+                this.AddClusterService<IMeter, NoopMeter>();
+            }
             if (ThresholdOptions.Enabled)
             {
                 //No custom logger has been registered, so create a default logger
                 if (ThresholdOptions.RequestTracer == null)
                 {
-                    var thresholdTracer = new ThresholdRequestTracer(ThresholdOptions, Logging);
+                    var thresholdTracer = new ThresholdLoggingTracer(ThresholdOptions, Logging);
                     thresholdTracer.Start(new ThresholdTraceListener(ThresholdOptions));
                     ThresholdOptions.RequestTracer = thresholdTracer;
                 }

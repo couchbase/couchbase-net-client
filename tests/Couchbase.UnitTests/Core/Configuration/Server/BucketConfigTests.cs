@@ -8,6 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
@@ -181,7 +182,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     endPoint,
                     BucketType.Couchbase,
                     server,
-                    NoopRequestTracer.Instance);
+                    NoopRequestTracer.Instance,
+                    NoopValueRecorder.Instance);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
@@ -199,7 +201,9 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     new Mock<ILogger<ClusterNode>>().Object,
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object,
-                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt, NoopRequestTracer.Instance);
+                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt,
+                    NoopRequestTracer.Instance,
+                    NoopValueRecorder.Instance);
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);
