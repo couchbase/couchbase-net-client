@@ -15,9 +15,8 @@ namespace Couchbase.Core.DI
         /// </summary>
         /// <param name="bucket">The owning <seealso cref="BucketBase"/>.</param>
         /// <param name="scope">The owning scope.</param>
-        /// <param name="cid">The collection ID, if any.</param>
         /// <param name="name">The collection name.</param>
         /// <returns>The new collection.</returns>
-        ICouchbaseCollection Create(BucketBase bucket, IScope scope, uint? cid, string name);
+        ICouchbaseCollection Create(BucketBase bucket, IScope scope, string name);
     }
 }

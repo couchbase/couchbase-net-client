@@ -20,7 +20,6 @@ namespace Couchbase
         /// </summary>
         ICluster Cluster { get; }
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         IScope Scope(string scopeName);
 
         /// <summary>
@@ -30,7 +29,6 @@ namespace Couchbase
         /// <returns>A scope that belongs to the bucket.</returns>
         ValueTask<IScope> ScopeAsync(string scopeName);
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         IScope DefaultScope();
 
         /// <summary>
@@ -39,7 +37,6 @@ namespace Couchbase
         /// <returns>The default scope.</returns>
         ValueTask<IScope> DefaultScopeAsync();
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         ICouchbaseCollection DefaultCollection();
 
         /// <summary>
@@ -48,7 +45,6 @@ namespace Couchbase
         /// <returns>The default collection.</returns>
         ValueTask<ICouchbaseCollection> DefaultCollectionAsync();
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         ICouchbaseCollection Collection(string collectionName);
 
         /// <summary>

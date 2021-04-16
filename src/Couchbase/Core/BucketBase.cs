@@ -20,10 +20,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.IO.Operations.Collections;
-using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.Logging;
-using Couchbase.Utils;
 
 #nullable enable
 
@@ -34,9 +31,8 @@ namespace Couchbase.Core
     {
         private ClusterState _clusterState;
         protected readonly IScopeFactory _scopeFactory;
-        private readonly IOperationConfigurator _operationConfigurator;
-        protected readonly ConcurrentDictionary<string, IScope> Scopes = new ConcurrentDictionary<string, IScope>();
-        public readonly ClusterNodeCollection Nodes = new ClusterNodeCollection();
+        protected readonly ConcurrentDictionary<string, IScope> Scopes = new();
+        public readonly ClusterNodeCollection Nodes = new();
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }
@@ -56,14 +52,13 @@ namespace Couchbase.Core
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-            _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
             RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             Tracer = tracer;
             RetryStrategy = retryStrategy ?? throw new ArgumentNullException(nameof(retryStrategy));
 
-            _createDefaultScopeFunc = key => _scopeFactory.CreateDefaultScope(this);
+            _createDefaultScopeFunc = key => _scopeFactory.CreateScope(KeyValue.Scope.DefaultScopeName, this);
 
             BootstrapperFactory = bootstrapperFactory ?? throw new ArgumentNullException(nameof(bootstrapperFactory));
             Bootstrapper = bootstrapperFactory.Create(Context.ClusterOptions.BootstrapPollInterval);
@@ -83,7 +78,7 @@ namespace Couchbase.Core
         protected bool Disposed { get; private set; }
 
         //for propagating errors during bootstrapping
-        private readonly List<Exception> _deferredExceptions = new List<Exception>();
+        private readonly List<Exception> _deferredExceptions = new();
 
         public BucketType BucketType { get; protected set; }
 
@@ -94,90 +89,22 @@ namespace Couchbase.Core
 
         #region Scopes
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         public abstract IScope this[string scopeName] { get; }
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         public virtual IScope Scope(string scopeName)
         {
-            if (Scopes.Count == 0)
-            {
-                LoadManifest();
-            }
-            if (!Scopes.ContainsKey(scopeName))
-            {
-                LoadManifest();
-            }
+            Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
 
-            if (Scopes.TryGetValue(scopeName, out var scope))
-            {
-                return scope;
-            }
-            throw new ScopeNotFoundException(scopeName);
+            return Scopes.GetOrAdd(scopeName, name => _scopeFactory.CreateScope(name, this));
         }
 
         /// <inheritdoc />
-        public async ValueTask<IScope> ScopeAsync(string scopeName)
+        public ValueTask<IScope> ScopeAsync(string scopeName)
         {
-            Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
-            if (scopeName == null)
-            {
-                ThrowHelper.ThrowArgumentNullException(nameof(scopeName));
-            }
-
-            //Load the default scope for pre-CB7 servers
-            LoadDefaultScope();
-
-            // ReSharper disable once AssignNullToNotNullAttribute
-            if (Scopes.TryGetValue(scopeName, out var scope))
-            {
-                return scope;
-            }
-
-            var clusterNode = Nodes.FirstOrDefault();
-            if (clusterNode == null)
-            {
-                ThrowHelper.ThrowNodeUnavailableException($"Could not select a node while fetching scope {scopeName} for bucket {Name}");
-            }
-
-            // ReSharper disable once PossibleNullReferenceException
-            var scopeIdentifier = await GetSidAsync(scopeName).ConfigureAwait(false);
-            var newScope = _scopeFactory.CreateScope(scopeName, Convert.ToString(scopeIdentifier!.Value), this);
-
-            if (Scopes.TryAdd(scopeName, newScope))
-            {
-                return newScope;
-            }
-
-            throw new ScopeNotFoundException(scopeName);
-        }
-
-        /// <summary>
-        /// Gets the Scope Identifier given a fully qualified name.
-        /// </summary>
-        /// <param name="fullyQualifiedName"></param>
-        /// <returns></returns>
-        public async Task<uint?> GetSidAsync(string fullyQualifiedName)
-        {
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
-            using var getSid = new GetSid
-            {
-                Transcoder = Context.GlobalTranscoder,
-                Key = fullyQualifiedName,
-                Opaque = SequenceGenerator.GetNext(),
-                Content = null,
-                Span = rootSpan,
-            };
-
-            _operationConfigurator.Configure(getSid);
-
-            await RetryAsync(getSid).ConfigureAwait(false);
-            var resultWithValue = getSid.GetValue();
-            return resultWithValue!.GetValueOrDefault();
+            return new(Scope(scopeName));
         }
 
         /// <remarks>Volatile</remarks>
-        [Obsolete("Use asynchronous equivalent instead.")]
         public IScope DefaultScope()
         {
             return Scope(KeyValue.Scope.DefaultScopeName);
@@ -202,13 +129,8 @@ namespace Couchbase.Core
         }
 
         /// <remarks>Volatile</remarks>
-        [Obsolete("Use asynchronous equivalent instead.")]
         public ICouchbaseCollection Collection(string collectionName)
         {
-            if (Scopes.Count == 0)
-            {
-                LoadManifest();
-            }
             var scope = DefaultScope();
             return scope[collectionName];
         }
@@ -220,7 +142,6 @@ namespace Couchbase.Core
             return await scope.CollectionAsync(collectionName).ConfigureAwait(false);
         }
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         public ICouchbaseCollection DefaultCollection()
         {
             return Collection(CouchbaseCollection.DefaultCollectionName);
@@ -241,24 +162,6 @@ namespace Couchbase.Core
         #region Config & Manifest
 
         public abstract Task ConfigUpdatedAsync(BucketConfig config);
-
-        protected void LoadManifest()
-        {
-            var subject = this as IBootstrappable;
-
-            //The server supports collections so build them from the manifest
-            if (Context.SupportsCollections && subject.IsBootstrapped && BucketType != BucketType.Memcached)
-            {
-                foreach (var scope in _scopeFactory.CreateScopes(this, Manifest!))
-                {
-                    Scopes.AddOrUpdate(scope.Name, scope, (_, oldScope) => scope);
-                }
-
-                return;
-            }
-
-            LoadDefaultScope();
-        }
 
         private readonly Func<string, IScope> _createDefaultScopeFunc;
 
@@ -438,17 +341,6 @@ namespace Couchbase.Core
             {
                 return new ValueTask(Task.FromException(ex));
             }
-        }
-
-        private IRequestSpan RootSpan(string operation)
-        {
-            var span = Tracer.RequestSpan(operation);
-            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
-            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
-            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, Name);
-            span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
-            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
-            return span;
         }
     }
 }

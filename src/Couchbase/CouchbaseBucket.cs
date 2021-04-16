@@ -57,19 +57,13 @@ namespace Couchbase
             );
         }
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         public override IScope this[string scopeName]
         {
             get
             {
                 Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
 
-                if (Scopes.TryGetValue(scopeName, out var scope))
-                {
-                    return scope;
-                }
-
-                throw new ScopeNotFoundException(scopeName);
+                return Scopes.GetOrAdd(scopeName, s => _scopeFactory.CreateScope(s, this));
             }
         }
 

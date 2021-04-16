@@ -10,8 +10,6 @@ namespace Couchbase.KeyValue
     /// <remarks>Volatile</remarks>
     public interface IScope
     {
-        string Id { get; }
-
         string Name { get; }
 
         /// <summary>
@@ -19,10 +17,8 @@ namespace Couchbase.KeyValue
         /// </summary>
         IBucket Bucket { get; }
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         ICouchbaseCollection this[string name] { get; }
 
-        [Obsolete("Use asynchronous equivalent instead.")]
         ICouchbaseCollection Collection(string collectionName);
 
         ValueTask<ICouchbaseCollection> CollectionAsync(string collectionName);

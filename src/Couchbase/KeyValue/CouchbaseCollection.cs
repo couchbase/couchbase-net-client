@@ -8,8 +8,8 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
@@ -32,9 +32,8 @@ namespace Couchbase.KeyValue
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, IRedactor redactor,
-            uint? cid, string name, IScope scope, IRequestTracer tracer)
+            string name, IScope scope, IRequestTracer tracer)
         {
-            Cid = cid;
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -67,6 +66,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Get);
@@ -164,6 +166,9 @@ namespace Couchbase.KeyValue
                 //sanity check for deferred bootstrapping errors
                 _bucket.ThrowIfBootStrapFailed();
 
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+
                 options ??= ExistsOptions.Default;
 
                 using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists);
@@ -205,6 +210,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= InsertOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert);
             using var insertOp = new Add<T>(_bucket.Name, id)
@@ -232,6 +240,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             options ??= ReplaceOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Replace);
@@ -262,6 +273,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= RemoveOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove);
             using var removeOp = new Delete
@@ -291,6 +305,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= UnlockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
             using var unlockOp = new Unlock
@@ -312,6 +329,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             options ??= UnlockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
@@ -339,6 +359,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= TouchOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Touch);
             using var touchOp = new Touch
@@ -365,6 +388,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             options ??= GetAndTouchOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch);
@@ -400,6 +426,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= GetAndLockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock);
             using var getAndLockOp = new GetL<byte[]>
@@ -433,6 +462,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             options ??= UpsertOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert);
@@ -472,6 +504,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn);
             options ??= LookupInOptions.Default;
             using var lookup = await ExecuteLookupIn(id, specs, options, rootSpan).ConfigureAwait(false);
@@ -488,10 +523,13 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             //add the virtual xattr attribute to get the doc expiration time
             if (options.ExpiryValue)
             {
-                specs = specs.Concat(new LookupInSpec[] {
+                specs = specs.Concat(new [] {
                     new LookupInSpec
                     {
                         Path = VirtualXttrs.DocExpiryTime,
@@ -526,6 +564,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             options ??= MutateInOptions.Default;
 
@@ -607,6 +648,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= AppendOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Append);
             using var op = new Append<byte[]>(_bucket.Name, id)
@@ -634,6 +678,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= PrependOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Prepend);
             using var op = new Prepend<byte[]>(_bucket.Name, id)
@@ -660,6 +707,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             options ??= IncrementOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Increment);
@@ -690,6 +740,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
+
             options ??= DecrementOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Decrement);
             using var op = new Decrement(_bucket.Name, id)
@@ -718,6 +771,9 @@ namespace Couchbase.KeyValue
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
+
+            //Get the collection ID
+            await PopulateCidAsync().ConfigureAwait(false);
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica);
             options ??= GetAnyReplicaOptions.Default;
@@ -822,6 +878,33 @@ namespace Couchbase.KeyValue
             };
         }
 
+        #endregion
+
+        #region GET_CID
+
+        private async Task PopulateCidAsync()
+        {
+            if (Cid.HasValue) return;
+            Cid = await GetCidAsync($"{ScopeName}.{Name}");
+        }
+
+        private async Task<uint?> GetCidAsync(string fullyQualifiedName)
+        {
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
+            using var getCid = new GetCid
+            {
+                Transcoder = _bucket.Context.GlobalTranscoder,
+                Key = fullyQualifiedName,
+                Opaque = SequenceGenerator.GetNext(),
+                Content = null,
+                Span = rootSpan,
+            };
+
+            _operationConfigurator.Configure(getCid);
+            await _bucket.RetryAsync(getCid).ConfigureAwait(false);
+            var resultWithValue = getCid.GetValue();
+            return resultWithValue!.GetValueOrDefault();
+        }
         #endregion
 
         #region tracing

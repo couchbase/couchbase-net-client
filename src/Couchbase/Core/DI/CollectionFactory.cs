@@ -32,7 +32,7 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public ICouchbaseCollection Create(BucketBase bucket, IScope scope, uint? cid, string name) =>
-            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, cid, name, scope, _tracer);
+        public ICouchbaseCollection Create(BucketBase bucket, IScope scope, string name) =>
+            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, name, scope, _tracer);
     }
 }

@@ -315,10 +315,14 @@ namespace Couchbase.UnitTests.KeyValue
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new BestEffortRetryStrategy());
 
-            return new CouchbaseCollection(mockBucket.Object, operationConfigurator,
-                new Mock<ILogger<CouchbaseCollection>>().Object, new Mock<ILogger<GetResult>>().Object,
+            return new CouchbaseCollection(mockBucket.Object,
+                operationConfigurator,
+                new Mock<ILogger<CouchbaseCollection>>().Object,
+                new Mock<ILogger<GetResult>>().Object,
                 new Mock<IRedactor>().Object,
-                null, CouchbaseCollection.DefaultCollectionName, Mock.Of<IScope>(), new NoopRequestTracer());
+                CouchbaseCollection.DefaultCollectionName,
+                Mock.Of<IScope>(),
+                new NoopRequestTracer());
         }
     }
 }
