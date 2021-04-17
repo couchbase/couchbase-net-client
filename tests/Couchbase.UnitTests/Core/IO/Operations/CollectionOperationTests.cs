@@ -29,10 +29,32 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             };
             op.Read(response);
 
-            var result = op.GetValue();
+            var result = op.GetValueAsUint();
 
-            Assert.True(result.HasValue);
-            Assert.Equal(0x17u, result.Value);
+            Assert.NotNull(result);
+            Assert.Equal(0x17u, result);
+        }
+
+
+        [Fact]
+        public void Test_GetCid_GetValue_Throws_NotImplementedException()
+        {
+            var packet = new byte[]
+            {
+                0x18, 0xbb, 0x03, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x1a,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x17
+            };
+
+            var response = MemoryPool<byte>.Shared.RentAndSlice(packet.Length);
+            packet.AsMemory(0, packet.Length).CopyTo(response.Memory);
+            var op = new GetCid()
+            {
+                Transcoder = new LegacyTranscoder()
+            };
+            op.Read(response);
+
+            Assert.Throws<NotImplementedException>(() => op.GetValue());
         }
 
         [Fact]

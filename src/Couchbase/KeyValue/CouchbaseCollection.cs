@@ -11,6 +11,7 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
@@ -28,6 +29,7 @@ namespace Couchbase.KeyValue
         private readonly ILogger<GetResult> _getLogger;
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
+        private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder();
 
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
@@ -885,25 +887,54 @@ namespace Couchbase.KeyValue
         private async Task PopulateCidAsync()
         {
             if (Cid.HasValue) return;
-            Cid = await GetCidAsync($"{ScopeName}.{Name}");
+
+            if (ScopeName == KeyValue.Scope.DefaultScopeName
+                && Name == DefaultCollectionName)
+            {
+                //This is the default scope/collection
+                Cid = 0;
+            }
+
+            try
+            {
+                //for later cheshire cat builds
+                Cid = await GetCidAsync($"{ScopeName}.{Name}", true);
+            }
+            catch (Exception e)
+            {
+                Logger.LogInformation(e, "Possible non-terminal error fetching CID.");
+                if(e is InvalidArgumentException)
+                {
+                    //if this is encountered were on a older server pre-cheshire cat changes
+                    Cid = await GetCidAsync($"{ScopeName}.{Name}", false);
+                }
+
+                if (Cid == null) throw;
+            }
         }
 
-        private async Task<uint?> GetCidAsync(string fullyQualifiedName)
+        private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
             using var getCid = new GetCid
             {
-                Transcoder = _bucket.Context.GlobalTranscoder,
-                Key = fullyQualifiedName,
                 Opaque = SequenceGenerator.GetNext(),
-                Content = null,
                 Span = rootSpan,
             };
 
-            _operationConfigurator.Configure(getCid);
+            if (sendAsBody)
+            {
+                getCid.Content = fullyQualifiedName;
+            }
+            else
+            {
+                getCid.Key = fullyQualifiedName;
+            }
+
+            _operationConfigurator.Configure(getCid, new GetOptions().Transcoder(_rawStringTranscoder));
             await _bucket.RetryAsync(getCid).ConfigureAwait(false);
-            var resultWithValue = getCid.GetValue();
-            return resultWithValue!.GetValueOrDefault();
+            var resultWithValue = getCid.GetValueAsUint();
+            return resultWithValue;
         }
         #endregion
 
