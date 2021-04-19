@@ -24,6 +24,6 @@ namespace Couchbase.Core.Sharding
             return _server;
         }
 
-        public uint Rev { get; internal set; }
+        public ulong Rev { get; internal set; }
     }
 }

@@ -19,7 +19,7 @@ namespace Couchbase.Core.Sharding
         private readonly ILogger<VBucket> _logger;
         private readonly ICollection<IPEndPoint> _endPoints;
 
-        public VBucket(ICollection<IPEndPoint> endPoints, short index, short primary, short[] replicas, uint rev,
+        public VBucket(ICollection<IPEndPoint> endPoints, short index, short primary, short[] replicas, ulong rev,
             VBucketServerMap vBucketServerMap, string bucketName, ILogger<VBucket> logger)
         {
             if (logger == null)
@@ -124,7 +124,7 @@ namespace Couchbase.Core.Sharding
         /// <value>
         /// The rev.
         /// </value>
-        public uint Rev { get; internal set; }
+        public ulong Rev { get; internal set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance has replicas.

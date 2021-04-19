@@ -187,6 +187,6 @@ namespace Couchbase.Core.Sharding
             return _vForwardBuckets;
         }
 
-        public uint Rev { get; set; }
+        public ulong Rev { get; set; }
     }
 }

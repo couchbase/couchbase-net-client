@@ -295,5 +295,14 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             Assert.Equal(effectiveResolution, options.EffectiveNetworkResolution);
         }
+
+        [Fact]
+        public void Test_Max_Revision_Size()
+        {
+            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-bigly-yuge-rev.json");
+
+            var expected = 18446744073709551615ul;
+            Assert.Equal(expected, config2.Rev);
+        }
     }
 }

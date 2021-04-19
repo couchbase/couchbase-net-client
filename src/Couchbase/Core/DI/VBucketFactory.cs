@@ -22,7 +22,7 @@ namespace Couchbase.Core.DI
 
         /// <inheritdoc />
         public IVBucket Create(ICollection<IPEndPoint> endPoints, short index, short primary,
-            short[] replicas, uint rev, VBucketServerMap vBucketServerMap, string bucketName) =>
+            short[] replicas, ulong rev, VBucketServerMap vBucketServerMap, string bucketName) =>
             new VBucket(endPoints, index, primary, replicas, rev, vBucketServerMap, bucketName, _logger);
     }
 }

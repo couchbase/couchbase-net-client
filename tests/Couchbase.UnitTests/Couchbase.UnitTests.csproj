@@ -15,6 +15,9 @@
   <ItemGroup>
     <None Remove="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
     <None Remove="Data\multi-getresponse-packet.txt" />
+    <Compile Remove="Core\Diagnostics\Metrics\**" />
+    <EmbeddedResource Remove="Core\Diagnostics\Metrics\**" />
+    <None Remove="Core\Diagnostics\Metrics\**" />
 
     <None Remove="Documents\**\*.json" />
     <EmbeddedResource Include="Documents\**\*.json">
@@ -51,6 +54,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Documents\Configs\config-bigly-yuge-rev.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Update="Documents\Configs\revision-28957.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>

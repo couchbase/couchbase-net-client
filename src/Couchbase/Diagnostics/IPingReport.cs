@@ -17,7 +17,7 @@ namespace Couchbase.Diagnostics
         /// <summary>
         /// Gets the bucket configuration revision.
         /// </summary>
-        uint ConfigRev { get; }
+        ulong ConfigRev { get; }
 
         /// <summary>
         /// Gets the SDK identifier.

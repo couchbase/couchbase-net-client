@@ -7,7 +7,7 @@ namespace Couchbase.Diagnostics
 {
     internal class PingReport : IPingReport
     {
-        internal PingReport(string reportId, uint configRev, IDictionary<string, IEnumerable<IEndpointDiagnostics>> services)
+        internal PingReport(string reportId, ulong configRev, IDictionary<string, IEnumerable<IEndpointDiagnostics>> services)
         {
             Id = reportId;
             ConfigRev = configRev;
@@ -21,7 +21,7 @@ namespace Couchbase.Diagnostics
         public short Version { get; } = 1;
 
         [JsonProperty("config_rev")]
-        public uint ConfigRev { get; }
+        public ulong ConfigRev { get; }
 
         [JsonProperty("sdk")]
         public string Sdk { get; } = ClientIdentifier.GetClientDescription();

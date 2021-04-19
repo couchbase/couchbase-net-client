@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 
 namespace Couchbase.Core
 {
@@ -6,6 +6,6 @@ namespace Couchbase.Core
     {
         IPEndPoint LocatePrimary();
 
-        uint Rev { get; }
+        ulong Rev { get; }
     }
 }

@@ -1,4 +1,4 @@
-﻿
+
 namespace Couchbase.Core.Sharding
 {
     internal interface IKeyMapper
@@ -7,6 +7,6 @@ namespace Couchbase.Core.Sharding
 
         IMappedNode MapKey(string key, uint revision);
 
-        uint Rev { get; set; }
+        ulong Rev { get; set; }
     }
 }

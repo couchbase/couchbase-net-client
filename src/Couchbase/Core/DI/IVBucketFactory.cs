@@ -16,6 +16,6 @@ namespace Couchbase.Core.DI
         /// </summary>
         /// <returns>The new <see cref="IVBucket"/>.</returns>
         IVBucket Create(ICollection<IPEndPoint> endPoints, short index, short primary,
-            short[] replicas, uint rev, VBucketServerMap vBucketServerMap, string bucketName);
+            short[] replicas, ulong rev, VBucketServerMap vBucketServerMap, string bucketName);
     }
 }

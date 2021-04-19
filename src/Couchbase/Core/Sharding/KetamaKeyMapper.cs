@@ -4,9 +4,6 @@ using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core.Configuration.Server;
-using Couchbase.Utils;
 
 namespace Couchbase.Core.Sharding
 {
@@ -123,6 +120,6 @@ namespace Couchbase.Core.Sharding
             }
         }
 
-        public uint Rev { get; set; }
+        public ulong Rev { get; set; }
     }
 }
