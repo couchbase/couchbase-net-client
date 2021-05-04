@@ -893,6 +893,7 @@ namespace Couchbase.KeyValue
             {
                 //This is the default scope/collection
                 Cid = 0;
+                return;
             }
 
             try
