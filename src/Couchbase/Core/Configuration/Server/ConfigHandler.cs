@@ -90,26 +90,46 @@ namespace Couchbase.Core.Configuration.Server
         {
             Task.Run(async () =>
             {
-                while (!_tokenSource.IsCancellationRequested)
+                try
                 {
-                    await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token).ConfigureAwait(false);
-
-                    foreach (var clusterNode in _context.Nodes.Where(x=>x.HasKv && x.BucketType != BucketType.Memcached))
+                    while (!_tokenSource.IsCancellationRequested)
                     {
-                        try
+                        _logger.LogDebug("Waiting for {interval} before polling.",
+                            _context.ClusterOptions.ConfigPollInterval);
+                        await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token)
+                            .ConfigureAwait(false);
+
+                        _logger.LogDebug("Done waiting, polling...");
+                        foreach (var clusterNode in _context.Nodes.Where(x =>
+                            x.HasKv && x.BucketType != BucketType.Memcached))
                         {
-                            var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
-                            if (config != null)
+                            _logger.LogDebug("Checking {node} in polling.", clusterNode.EndPoint);
+                            try
                             {
-                                config.Name ??= "CLUSTER";
-                                Publish(config);
+                                var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
+                                if (config != null)
+                                {
+                                    config.Name ??= "CLUSTER";
+                                    Publish(config);
+                                }
+                                else
+                                {
+                                    _logger.LogDebug("Null config for {node} in polling.", clusterNode.EndPoint);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                _logger.LogWarning(LoggingEvents.ConfigEvent, e,
+                                    "Issue getting Cluster Map on server {server}!", clusterNode.EndPoint);
                             }
                         }
-                        catch (Exception e)
-                        {
-                            _logger.LogWarning(LoggingEvents.ConfigEvent, e, "Issue getting Cluster Map on server {server}!", clusterNode.EndPoint);
-                        }
                     }
+
+                    _logger.LogDebug("Broke out of polling loop.");
+                }
+                catch (Exception e)
+                {
+                    _logger.LogDebug("Polling exception: {e}", e);
                 }
             }, _tokenSource.Token);
         }

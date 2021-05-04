@@ -290,8 +290,12 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext(),
                 EndPoint = EndPoint,
                 Span = rootSpan,
+                Timeout = _context.ClusterOptions.KvTimeout
             };
-            await ExecuteOp(ConnectionPool, configOp).ConfigureAwait(false);
+
+            using var cts = new CancellationTokenSource(_context.ClusterOptions.KvTimeout);
+            var ctp = CancellationTokenPair.FromInternalToken(cts.Token);
+            await ExecuteOp(ConnectionPool, configOp, ctp).ConfigureAwait(false);
 
             var config = configOp.GetValue();
 
