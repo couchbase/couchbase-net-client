@@ -11,10 +11,10 @@ namespace Couchbase.IO
     public class SharedConnectionPool<T> : ConnectionPoolBase<T> where T : class, IConnection
     {
         private static readonly ILog Log = LogManager.GetLogger<SharedConnectionPool<T>>();
-        readonly List<IConnection> _connections = new List<IConnection>();
+        private readonly List<IConnection> _connections;
         private volatile int _currentIndex;
         private readonly Guid _identity = Guid.NewGuid();
-        private readonly object _lockObj = new object();
+        private readonly object _connectionsLock = new object();
         private bool _disposed = false;
 
         /// <summary>
@@ -23,7 +23,7 @@ namespace Couchbase.IO
         /// <param name="configuration">The configuration.</param>
         /// <param name="endPoint">The remote endpoint or server node to connect to.</param>
         public SharedConnectionPool(PoolConfiguration configuration, IPEndPoint endPoint)
-            : base(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
+            : this(configuration, endPoint, DefaultConnectionFactory.GetGeneric<T>(), new DefaultConverter())
         {
         }
 
@@ -38,11 +38,24 @@ namespace Couchbase.IO
             Func<IConnectionPool<T>, IByteConverter, BufferAllocator, T> factory, IByteConverter converter)
             : base(configuration, endPoint, factory, converter)
         {
+            // default List<T> capacity is 4.  Let's guestimate a better one to avoid unnecessary resize allocations.
+            var initialPoolCapacity = Math.Max(configuration.MinSize * 2, 10);
+            initialPoolCapacity = Math.Min(configuration.MaxSize, initialPoolCapacity);
+            _connections = new List<IConnection>(initialPoolCapacity);
         }
 
         public override IEnumerable<IConnection> Connections
         {
-            get { return _connections; }
+            get
+            {
+                IEnumerable<IConnection> result = null;
+                lock (_connectionsLock)
+                {
+                    result = _connections.ToArray();
+                }
+
+                return result;
+            }
             set { throw new NotSupportedException(); }
         }
 
@@ -50,6 +63,7 @@ namespace Couchbase.IO
         {
             //we don't care necessarily about thread safety as long as
             //index is within the allowed range based off the size of the pool.
+            // do not lock here, as it is called in sections that are already locked, and would deadlock.
             var index = _currentIndex % _connections.Count;
             if (_currentIndex > _connections.Count)
             {
@@ -67,7 +81,12 @@ namespace Couchbase.IO
             // ReSharper disable once InconsistentlySynchronizedField
             if (_connections.Count >= Configuration.MaxSize)
             {
-                var connection = _connections.ElementAtOrDefault(GetIndex());
+                IConnection connection;
+                lock (_connectionsLock)
+                {
+                    connection = _connections.ElementAtOrDefault(GetIndex());
+                }
+
                 try
                 {
                     if (connection == null)
@@ -90,7 +109,7 @@ namespace Couchbase.IO
                     throw;
                 }
             }
-            lock (_lockObj)
+            lock (_connectionsLock)
             {
                 var connection = CreateAndAuthConnection();
                 _connections.Add(connection);
@@ -128,7 +147,7 @@ namespace Couchbase.IO
 
             if (connection.IsDead)
             {
-                lock (_lockObj)
+                lock (_connectionsLock)
                 {
                     connection.Dispose();
                     Owner?.CheckOnline(connection.IsDead);
@@ -141,7 +160,7 @@ namespace Couchbase.IO
         {
             try
             {
-                lock (_lockObj)
+                lock (_connectionsLock)
                 {
                     var connectionsToCreate = Configuration.MaxSize - _connections.Count;
                     for (var i = 0; i < connectionsToCreate; i++)
@@ -176,7 +195,7 @@ namespace Couchbase.IO
 
         public override void Dispose()
         {
-            lock (_lockObj)
+            lock (_connectionsLock)
             {
                 if (_disposed) return;
                 _disposed = true;
