@@ -51,9 +51,9 @@ namespace Couchbase.Management.Buckets
         {
             var settings = new BucketSettings
             {
-                Name = json.SelectToken("name").Value<string>(),
-                MaxTtl = json.SelectToken("maxTTL").Value<int>(),
-                RamQuotaMB = json.SelectToken("quota.rawRAM").Value<int>(),
+                Name = json.GetTokenValue<string>("name"),
+                MaxTtl = json.GetTokenValue<int>("maxTTL"),
+                RamQuotaMB = json.GetTokenValue<int>("quota.rawRAM"),
                 FlushEnabled = json.SelectToken("controllers.flush") != null
             };
 
