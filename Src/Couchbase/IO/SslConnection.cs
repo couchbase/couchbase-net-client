@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.ExceptionServices;
@@ -139,6 +140,7 @@ namespace Couchbase.IO
                     DispatchSpan = span,
                     ConnectionId = ContextId,
                     LocalEndpoint = LocalEndPoint.ToString(),
+                    EndPoint = (IPEndPoint)EndPoint,
                     ErrorMap = errorMap,
                     Timeout = Configuration.SendTimeout
                 };
