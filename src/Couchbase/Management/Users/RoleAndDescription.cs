@@ -1,3 +1,4 @@
+using Couchbase.Utils;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Users
@@ -10,11 +11,11 @@ namespace Couchbase.Management.Users
 
         internal static RoleAndDescription FromJson(JToken json)
         {
-            return new RoleAndDescription
+            return new()
             {
-                Description = json["desc"].Value<string>(),
-                DisplayName = json["name"].Value<string>(),
-                Role = json["role"].Value<string>()
+                Description = json.GetTokenValue<string>("desc"),
+                DisplayName = json.GetTokenValue<string>("name"),
+                Role = json.GetTokenValue<string>("role")
             };
         }
     }

@@ -66,12 +66,12 @@ namespace Couchbase.Management.Buckets
 
             if(settings.BucketType != BucketType.Memcached)
             {
-                settings.NumReplicas = json.SelectToken("replicaNumber").Value<int>();
+                settings.NumReplicas = json.GetTokenValue<int>("replicaNumber");
             }
 
             if (settings.BucketType == BucketType.Couchbase)
             {
-                settings.ReplicaIndexes = json.SelectToken("replicaIndex").Value<bool>();
+                settings.ReplicaIndexes = json.GetTokenValue<bool>("replicaIndex");
             }
 
             var conflictResolutionToken = json.SelectToken("conflictResolutionType");
