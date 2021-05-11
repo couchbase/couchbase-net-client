@@ -33,6 +33,7 @@ namespace Couchbase.Core.IO.Operations
         private volatile bool _isSent;
         private IValueRecorder? _recorder;
         private readonly Stopwatch _stopwatch;
+        private IRequestSpan? _dispatchSpan;
 
         protected OperationBase()
         {
@@ -508,15 +509,14 @@ namespace Couchbase.Core.IO.Operations
                 builder.WriteHeader(CreateHeader(dataType));
 
                 var buffer = builder.GetBuffer();
-                encodingSpan.Dispose();
 
-                using var dispatchSpan = Span.DispatchSpan(this);
+                encodingSpan.Dispose();
+                _dispatchSpan = Span.DispatchSpan(this);
 
                 await connection.SendAsync(buffer, this, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
                 _isSent = true;
-                dispatchSpan.Dispose();
             }
             finally
             {
@@ -554,6 +554,7 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public void HandleOperationCompleted(in SlicedMemoryOwner<byte> data)
         {
+            _dispatchSpan?.Dispose();
             var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
             if (prevCompleted == 1)
             {
@@ -591,7 +592,6 @@ namespace Couchbase.Core.IO.Operations
             {
                 //for measuring latency using an LoggingMeter or similar.
                 StopRecording();
-                Span.Dispose();
             }
         }
 

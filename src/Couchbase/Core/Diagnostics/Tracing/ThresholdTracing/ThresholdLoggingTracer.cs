@@ -49,20 +49,11 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         /// <inheritdoc />
         public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
         {
-            Activity activity;
-            if(parentSpan == null)
-            {
-                var ctx = new ActivityContext(ActivityTraceId.CreateRandom(), ActivitySpanId.CreateRandom(),
-                    ActivityTraceFlags.Recorded);
+            var activity = parentSpan == null ?
+                ActivitySource.StartActivity(name) :
+                ActivitySource.StartActivity(name, ActivityKind.Internal, parentSpan.Id!);
 
-                activity = ActivitySource?.StartActivity(name, ActivityKind.Internal, ctx);
-            }
-            else
-            {
-                activity = ActivitySource.StartActivity(name);
-            }
-
-            var span = new ThresholdRequestSpan(this,  activity, parentSpan);
+            var span = new ThresholdRequestSpan(this, activity, parentSpan);
             if (parentSpan == null)
             {
                 span.WithCommonTags();
