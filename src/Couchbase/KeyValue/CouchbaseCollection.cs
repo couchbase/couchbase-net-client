@@ -30,6 +30,8 @@ namespace Couchbase.KeyValue
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
         private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder();
+        private bool _collectionsNotSupported;
+        private static readonly SemaphoreSlim CidLock = new(1);
 
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
@@ -886,34 +888,55 @@ namespace Couchbase.KeyValue
 
         private async Task PopulateCidAsync()
         {
-            if (Cid.HasValue) return;
+            if(_collectionsNotSupported) return; //pre-7.0 w/out collections enabled - CID should be null
+            if (Cid.HasValue) return; //we already have a CID
 
-            if (ScopeName == KeyValue.Scope.DefaultScopeName
-                && Name == DefaultCollectionName)
-            {
-                //This is the default scope/collection
-                Cid = 0;
-                return;
-            }
-
+            Logger.LogDebug("Fetching CID for {scope}.{collection}", ScopeName, Name);
+            var waitedSuccessfully = await CidLock.WaitAsync(2500);
             try
             {
+                if (!waitedSuccessfully)
+                {
+                    throw new AmbiguousTimeoutException($"Timed out waiting for GET_CID in {ScopeName}.{Name}");
+                }
+                if (_collectionsNotSupported || Cid.HasValue)
+                {
+                    return;
+                }
+
                 //for later cheshire cat builds
                 Cid = await GetCidAsync($"{ScopeName}.{Name}", true);
             }
             catch (Exception e)
             {
                 Logger.LogInformation(e, "Possible non-terminal error fetching CID.");
-                if(e is InvalidArgumentException)
-                {
-                    //if this is encountered were on a older server pre-cheshire cat changes
-                    Cid = await GetCidAsync($"{ScopeName}.{Name}", false);
-                }
-
-                if (Cid == null) throw;
+                if (e is InvalidArgumentException)
+                    try
+                    {
+                        //if this is encountered were on a older server pre-cheshire cat changes
+                        Cid = await GetCidAsync($"{ScopeName}.{Name}", false);
+                    }
+                    catch (UnsupportedException)
+                    {
+                        //an older server without collections enabled
+                        Logger.LogInformation("Collections are not supported on this server version.");
+                        _collectionsNotSupported = true;
+                    }
             }
+            finally
+            {
+                CidLock.Release();
+            }
+
+            Logger.LogDebug("Completed fetching CID for {scope}.{collection}", ScopeName, Name);
         }
 
+        /// <summary>
+        /// Sends the scope/collection in the key or the operation body as content based on the flag.
+        /// </summary>
+        /// <param name="fullyQualifiedName">The fully qualified scope.collection name.</param>
+        /// <param name="sendAsBody">true to send as the body; false in the key for dev-preview (pre-7.0 servers). </param>
+        /// <returns></returns>
         private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
