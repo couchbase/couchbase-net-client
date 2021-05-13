@@ -922,6 +922,16 @@ namespace Couchbase.KeyValue
                         Logger.LogInformation("Collections are not supported on this server version.");
                         _collectionsNotSupported = true;
                     }
+                else if (e is AuthenticationFailureException ex)
+                    //servers 6.0.0 and 5.5.0 do not support GET_CID and will return EAccess if
+                    //called, thus we can infer collection support does not exist for the server
+                    if (ex.Context is KeyValueErrorContext ctx)
+                        if (ctx.Status == ResponseStatus.Eaccess)
+                        {
+                            //an older server without collections enabled
+                            Logger.LogInformation("Collections (GET_CID) are not supported on this server version.");
+                            _collectionsNotSupported = true;
+                        }
             }
             finally
             {
