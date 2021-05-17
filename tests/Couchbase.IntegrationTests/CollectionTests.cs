@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Xunit;
@@ -18,7 +19,7 @@ namespace Couchbase.IntegrationTests
             _fixture = fixture;
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_Collection_Exists()
         {
             var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
@@ -42,8 +43,6 @@ namespace Couchbase.IntegrationTests
                 var result = await collection.UpsertAsync("key3", new { }).ConfigureAwait(false);
 
                 var result2 = await collection.UpsertAsync("key3", new { boo="bee"}, new UpsertOptions().Expiry(TimeSpan.FromMilliseconds(100000))).ConfigureAwait(false);
-
-
             }
             finally
             {
@@ -78,7 +77,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task CollectionIdChanged_RetriesAutomatically()
         {
             const string scopeName = "CollectionIdChanged";
