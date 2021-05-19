@@ -31,6 +31,8 @@ namespace Couchbase.Search
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
         private bool _disableScoring;
+        private string? _scopeName = null;
+        private string[]? _collectionNames = null;
 
         internal IRetryStrategy? RetryStrategyValue { get; set; }
 
@@ -180,6 +182,28 @@ namespace Couchbase.Search
         public SearchOptions ScanConsistency(SearchScanConsistency consistency)
         {
             _scanConsistency = consistency;
+            return this;
+        }
+
+        /// <summary>
+        /// The name of the scope to target for search results.
+        /// </summary>
+        /// <param name="scopeName">The name of the scope.</param>
+        /// <returns></returns>
+        public SearchOptions Scope(string scopeName)
+        {
+            _scopeName = scopeName;
+            return this;
+        }
+
+        /// <summary>
+        /// The name or names of the collections to target for search results.
+        /// </summary>
+        /// <param name="collectionNames">The collection names.</param>
+        /// <returns></returns>
+        public SearchOptions Collections(params string[] collectionNames)
+        {
+            _collectionNames = collectionNames;
             return this;
         }
 
@@ -349,6 +373,17 @@ namespace Couchbase.Search
             {
                 parameters.Add(new JProperty("score", "none"));
             }
+
+            if (_scopeName != null)
+            {
+                parameters.Add(new JProperty("scope", _scopeName));
+            }
+
+            if (_collectionNames != null && _collectionNames.Length > 0)
+            {
+                parameters.Add(new JProperty("collections", _collectionNames));
+            }
+
             return parameters;
         }
 

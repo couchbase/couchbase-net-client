@@ -42,7 +42,7 @@ namespace Couchbase.IntegrationTests.Services.Search
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
             var results = await cluster.SearchQueryAsync(IndexName,
                 new MatchQuery("inn"),
-                new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000))).
+                new SearchOptions().Limit(10).Timeout(TimeSpan.FromMilliseconds(10000)).Scope("_default").Collections("_default")).
                 ConfigureAwait(false);
 
             Assert.True(results.Hits.Count > 0);
