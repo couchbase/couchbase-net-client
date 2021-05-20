@@ -14,7 +14,7 @@
 
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
-    <PackageReleaseNotes>https://developer.couchbase.com/server/other-products/release-notes-archives/dotnet-sdk</PackageReleaseNotes>
+    <PackageReleaseNotes>https://docs.couchbase.com/dotnet-sdk/current/project-docs/sdk-release-notes.html</PackageReleaseNotes>
 
     <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>

@@ -12,10 +12,10 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Request_auto_generates_context_and_request_Ids()
         {
-            var request = new AnalyticsRequest(Statement);
-            request.WithClientContextId(Guid.NewGuid().ToString());
+            var options = new AnalyticsOptions();
+            options.ClientContextId(Guid.NewGuid().ToString());
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(Statement);
             var requestId = formValues["client_context_id"].ToString();
 
             Assert.NotEmpty(requestId);
@@ -24,11 +24,11 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Can_set_client_context_id()
         {
-            var request = new AnalyticsRequest(Statement);
-            request.WithClientContextId("testing");
-            request.WithClientContextId(Guid.NewGuid().ToString());
+            var options = new AnalyticsOptions();
+            options.ClientContextId("testing");
+            options.ClientContextId(Guid.NewGuid().ToString());
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(Statement);
             var contextId = formValues["client_context_id"].ToString();
             Assert.NotEmpty(contextId);
 
@@ -38,11 +38,11 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Request_ID_changes_on_each_request()
         {
-            var request = new AnalyticsRequest(Statement);
-            var formValues = request.GetFormValues();
+            var options = new AnalyticsOptions();
+            var formValues = options.GetFormValues(Statement);
             var clientContextId1 = formValues["client_context_id"].ToString();
 
-            formValues = request.GetFormValues(); // re-trigger as if going to re-submited the query
+            formValues = options.GetFormValues(Statement); // re-trigger as if going to re-submited the query
             var clientContextId2 = formValues["client_context_id"].ToString();
 
             Assert.NotEqual(clientContextId1, clientContextId2);
@@ -52,25 +52,24 @@ namespace Couchbase.UnitTests.Analytics
         public void Can_set_statement()
         {
             // set statement using constructor
-            var request = new AnalyticsRequest(Statement);
+            var options = new AnalyticsOptions();
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(Statement);
             Assert.Equal(Statement, formValues["statement"]);
 
             var json = JsonConvert.DeserializeObject<dynamic>(
-                request.GetFormValuesAsJson()
+                options.GetFormValuesAsJson(Statement)
             );
             Assert.Equal(Statement, json.statement.Value);
 
             // set statement using method
             const string statement = "SELECT 1 FROM `datset`;";
-            request.WithStatement(statement);
 
-            formValues = request.GetFormValues();
+            formValues = options.GetFormValues(statement);
             Assert.Equal(statement, formValues["statement"]);
 
             json = JsonConvert.DeserializeObject<dynamic>(
-                request.GetFormValuesAsJson()
+                options.GetFormValuesAsJson(statement)
             );
             Assert.Equal(statement, json.statement.Value);
         }
@@ -85,13 +84,13 @@ namespace Couchbase.UnitTests.Analytics
         public void Statement_is_cleaned(string statement)
         {
             const string expected = "SELECT 1;";
-            var request = new AnalyticsRequest(statement);
+            var options = new AnalyticsOptions();
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(statement);
             Assert.Equal(expected, formValues["statement"]);
 
             var json = JsonConvert.DeserializeObject<dynamic>(
-                request.GetFormValuesAsJson()
+                options.GetFormValuesAsJson(statement)
             );
             Assert.Equal(expected, json.statement.Value);
         }
@@ -100,13 +99,13 @@ namespace Couchbase.UnitTests.Analytics
         public void Default_timeout_is_75_seconds()
         {
             // sets default timeout to 75 seconds
-            var request = new AnalyticsRequest(Statement) {Timeout = TimeSpan.FromSeconds(75)};
+            var options = new AnalyticsOptions().Timeout(TimeSpan.FromSeconds(75));
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(Statement);
             Assert.Equal("75000ms", formValues["timeout"]);
 
             var json = JsonConvert.DeserializeObject<dynamic>(
-                request.GetFormValuesAsJson()
+                options.GetFormValuesAsJson(Statement)
             );
             Assert.Equal("75000ms", json.timeout.Value);
         }
@@ -114,13 +113,13 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Can_set_timeout()
         {
-            var request = new AnalyticsRequest(Statement) {Timeout = TimeSpan.FromSeconds(15)};
+            var options = new AnalyticsOptions().Timeout(TimeSpan.FromSeconds(15));
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(Statement);
             Assert.Equal("15000ms", formValues["timeout"]);
 
             var json = JsonConvert.DeserializeObject<dynamic>(
-                request.GetFormValuesAsJson()
+                options.GetFormValuesAsJson(Statement)
             );
             Assert.Equal("15000ms", json.timeout.Value);
         }
@@ -128,18 +127,18 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Can_add_named_parameter()
         {
-            var request = new AnalyticsRequest(Statement);
-            request.AddNamedParameter("my_string", "value");
-            request.AddNamedParameter("my_int", 10);
-            request.AddNamedParameter("my_bool", true);
+            var options = new AnalyticsOptions();
+            options.Parameter("my_string", "value");
+            options.Parameter("my_int", 10);
+            options.Parameter("my_bool", true);
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(Statement);
             Assert.Equal("value", formValues["my_string"]);
             Assert.Equal(10, formValues["my_int"]);
             Assert.Equal(true, formValues["my_bool"]);
 
             var json = JsonConvert.DeserializeObject<dynamic>(
-                request.GetFormValuesAsJson()
+                options.GetFormValuesAsJson(Statement)
             );
             Assert.Equal("value", json.my_string.Value);
             Assert.Equal(10, json.my_int.Value);
@@ -149,12 +148,12 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Can_add_positional_parameter()
         {
-            var request = new AnalyticsRequest(Statement);
-            request.AddPositionalParameter("value");
-            request.AddPositionalParameter(10);
-            request.AddPositionalParameter(true);
+            var options = new AnalyticsOptions();
+            options.Parameter("value");
+            options.Parameter(10);
+            options.Parameter(true);
 
-            var formValues = request.GetFormValues();
+            var formValues = options.GetFormValues(Statement);
             var args = formValues["args"] as object[];
             Assert.NotNull(args);
             Assert.Equal("value", args[0]);
@@ -162,7 +161,7 @@ namespace Couchbase.UnitTests.Analytics
             Assert.Equal(true, args[2]);
 
             var json = JsonConvert.DeserializeObject<dynamic>(
-                request.GetFormValuesAsJson()
+                options.GetFormValuesAsJson(Statement)
             );
             Assert.Equal("value", json.args[0].Value);
             Assert.Equal(10, json.args[1].Value);
@@ -172,26 +171,26 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Can_set_priority()
         {
-            var request = new AnalyticsRequest(Statement);
-            Assert.Equal(0, request.PriorityValue);
+            var options = new AnalyticsOptions();
+            Assert.Equal(0, options.PriorityValue);
 
-            request.Priority(true);
-            Assert.Equal(-1, request.PriorityValue);
+            options.Priority(true);
+            Assert.Equal(-1, options.PriorityValue);
 
-            request.Priority(false);
-            Assert.Equal(0, request.PriorityValue);
+            options.Priority(false);
+            Assert.Equal(0, options.PriorityValue);
 
-            request.Priority(5);
-            Assert.Equal(5, request.PriorityValue);
+            //options.Priority(5); //remove?
+            //Assert.Equal(5, options.PriorityValue);
         }
 
         [Fact]
         public void Can_fetch_JSON_from_NamedParameters()
         {
-            var request = new AnalyticsRequest(Statement);
-            request.AddNamedParameter("theykey", "thevalue");
+            var options = new AnalyticsOptions();
+            options.Parameter("theykey", "thevalue");
 
-            var json = request.GetParametersAsJson();
+            var json = options.GetParametersAsJson();
 
             Assert.Equal("{\"theykey\":\"thevalue\"}", json);
         }
@@ -199,10 +198,10 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void Can_fetch_JSON_from_PositionalParameters()
         {
-            var request = new AnalyticsRequest(Statement);
-            request.AddPositionalParameter("thevalue");
+            var options = new AnalyticsOptions();
+            options.Parameter("thevalue");
 
-            var json = request.GetParametersAsJson();
+            var json = options.GetParametersAsJson();
 
             Assert.Equal("[\"thevalue\"]", json);
         }
@@ -210,9 +209,9 @@ namespace Couchbase.UnitTests.Analytics
         [Fact]
         public void When_parameters_empty_GetParametersFromJson_returns_empty_object()
         {
-            var request = new AnalyticsRequest(Statement);
+            var options = new AnalyticsOptions();
 
-            var json = request.GetParametersAsJson();
+            var json = options.GetParametersAsJson();
 
             Assert.Equal("{}", json);
         }

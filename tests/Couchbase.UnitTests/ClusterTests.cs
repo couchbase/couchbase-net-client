@@ -123,7 +123,7 @@ namespace Couchbase.UnitTests
 
             var analyticsClient = new Mock<IAnalyticsClient>();
             analyticsClient
-                .Setup(m => m.QueryAsync<TestClass>(It.IsAny<IAnalyticsRequest>(), It.IsAny<CancellationToken>()))
+                .Setup(m => m.QueryAsync<TestClass>(It.IsAny<string>(), It.IsAny<AnalyticsOptions>()))
                 .ReturnsAsync(analyticsResult.Object);
 
             var options = new ClusterOptions().WithCredentials("u", "p")

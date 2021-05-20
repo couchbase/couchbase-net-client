@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
@@ -17,12 +18,12 @@ namespace Couchbase.Management.Analytics
     internal class AnalyticsIndexManager : IAnalyticsIndexManager
     {
         private readonly ILogger<AnalyticsIndexManager> _logger;
-        private readonly IQueryClient _client;
+        private readonly IAnalyticsClient _client;
         private readonly IRedactor _redactor;
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly CouchbaseHttpClient _couchbaseHttpClient;
 
-        public AnalyticsIndexManager(ILogger<AnalyticsIndexManager> logger, IQueryClient client, IRedactor redactor,
+        public AnalyticsIndexManager(ILogger<AnalyticsIndexManager> logger, IAnalyticsClient client, IRedactor redactor,
             IServiceUriProvider serviceUriProvider, CouchbaseHttpClient couchbaseHttpClient)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -48,8 +49,9 @@ namespace Couchbase.Management.Analytics
 
                 var ignoreStr = options.IgnoreIfExistsValue ? " IF NOT EXISTS" : string.Empty;
                 var statement = $"CREATE DATAVERSE `{dataverseName}`{ignoreStr}";
+
                 await _client
-                    .QueryAsync<dynamic>(statement, queryOptions => queryOptions.CancellationToken(options.TokenValue))
+                    .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
             }
             catch (DataverseExistsException)
@@ -80,9 +82,9 @@ namespace Couchbase.Management.Analytics
 
                 var ignoreStr = options.IgnoreIfNotExistsValue ? " IF EXISTS" : string.Empty;
                 var statement = $"DROP DATAVERSE `{dataverseName}`{ignoreStr}";
-                await _client.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue))
-                             .ConfigureAwait(false);
+
+                await _client.QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
+                    .ConfigureAwait(false);
             }
             catch (DataverseNotFoundException)
             {
@@ -133,9 +135,9 @@ namespace Couchbase.Management.Analytics
 
                 var statement = $"CREATE DATASET {ignoreStr}{datasetName} ON `{bucketName}`{whereStr}";
 
-                await _client.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue))
-                             .ConfigureAwait(false);
+                await _client
+                    .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
+                    .ConfigureAwait(false);
             }
             catch (DatasetExistsException)
             {
@@ -167,8 +169,9 @@ namespace Couchbase.Management.Analytics
                     : $"`{datasetName}`";
 
                 var statement = $"DROP DATASET {datasetName}{ignoreStr}";
-                await _client.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue)).ConfigureAwait(false);
+                await _client
+                    .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
+                    .ConfigureAwait(false);
             }
             catch (DatasetNotFoundException)
             {
@@ -193,11 +196,8 @@ namespace Couchbase.Management.Analytics
                 var statement = "SELECT d.* FROM Metadata.`Dataset` d WHERE d.DataverseName <> \"Metadata\"";
                 // Not using the extension method with Action<QueryOptions> as it interferes with unit tests on
                 // methods where we care about the result.
-                var queryOptions = new QueryOptions
-                {
-                    Token = options.TokenValue
-                };
-                var result = await _client.QueryAsync<AnalyticsDataset>(statement, queryOptions)
+                var result = await _client
+                    .QueryAsync<AnalyticsDataset>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
 
                 var dataSets = new List<AnalyticsDataset>();
@@ -246,8 +246,9 @@ namespace Couchbase.Management.Analytics
                     ? $"`{datasetName}`"
                     : $"`{options.DataverseNameValue}`.`{datasetName}`";
                 var statement = $"CREATE INDEX `{indexName}` {ignoreStr}ON {datasetName} {joinedFields}";
+
                 await _client
-                    .QueryAsync<dynamic>(statement, queryOptions => queryOptions.CancellationToken(options.TokenValue))
+                    .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
 
             }
@@ -290,8 +291,9 @@ namespace Couchbase.Management.Analytics
                     ? $"`{datasetName}`"
                     : $"`{options.DataverseNameValue}`.`{datasetName}`";
                 var statement = $"DROP INDEX {datasetName}.`{indexName}`{ignoreStr}";
+
                 await _client
-                    .QueryAsync<dynamic>(statement, queryOptions => queryOptions.CancellationToken(options.TokenValue))
+                    .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
             }
             catch (IndexNotFoundException)
@@ -320,12 +322,9 @@ namespace Couchbase.Management.Analytics
                 var statement = "SELECT d.* FROM Metadata.`Index` d WHERE d.DataverseName <> \"Metadata\"";
                 // Not using the extension method with Action<QueryOptions> as it interferes with unit tests on
                 // methods where we care about the result.
-                var queryOptions = new QueryOptions
-                {
-                    Token = options.TokenValue
-                };
                 var result = await _client
-                    .QueryAsync<AnalyticsIndex>(statement, queryOptions).ConfigureAwait(false);
+                    .QueryAsync<AnalyticsIndex>(statement, options.CreateAnalyticsOptions())
+                    .ConfigureAwait(false);
 
                 var indexes = new List<AnalyticsIndex>();
 
@@ -351,8 +350,9 @@ namespace Couchbase.Management.Analytics
             try
             {
                 var statement = $"CONNECT LINK {options.LinkNameValue}";
+
                 await _client
-                    .QueryAsync<dynamic>(statement, queryOptions => queryOptions.CancellationToken(options.TokenValue))
+                    .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
             }
             catch (LinkNotFoundException)
@@ -375,8 +375,9 @@ namespace Couchbase.Management.Analytics
             try
             {
                 var statement = $"DISCONNECT LINK {options.LinkNameValue}";
+
                 await _client
-                    .QueryAsync<dynamic>(statement, queryOptions => queryOptions.CancellationToken(options.TokenValue))
+                    .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
             }
             catch (LinkNotFoundException)

@@ -1,11 +1,12 @@
+using System;
 using System.Threading;
+using Couchbase.Analytics;
 
 namespace Couchbase.Management.Analytics
 {
     public class DisconnectAnalyticsLinkOptions
     {
         internal string LinkNameValue { get; set; } = "Local";
-        internal CancellationToken TokenValue { get; set; }
 
         public DisconnectAnalyticsLinkOptions LinkName(string linkName)
         {
@@ -13,10 +14,27 @@ namespace Couchbase.Management.Analytics
             return this;
         }
 
-        public DisconnectAnalyticsLinkOptions CancellationToken(CancellationToken cancellationToken)
+        internal CancellationToken TokenValue { get; set; }
+
+        public DisconnectAnalyticsLinkOptions CancellationToken(CancellationToken token)
         {
-            TokenValue = cancellationToken;
+            TokenValue = token;
             return this;
+        }
+
+        internal TimeSpan TimeoutValue { get; set; }
+
+        public DisconnectAnalyticsLinkOptions Timeout(TimeSpan timeout)
+        {
+            TimeoutValue = timeout;
+            return this;
+        }
+
+        internal AnalyticsOptions CreateAnalyticsOptions()
+        {
+            return new AnalyticsOptions()
+                .CancellationToken(TokenValue)
+                .Timeout(TimeoutValue);
         }
     }
 }

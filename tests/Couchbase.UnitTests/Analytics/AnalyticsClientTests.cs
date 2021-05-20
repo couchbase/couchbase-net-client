@@ -56,7 +56,7 @@ namespace Couchbase.UnitTests.Analytics
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
 
-            var result = await client.QueryAsync<dynamic>(new AnalyticsRequest("SELECT * FROM `default`"), default);
+            var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new AnalyticsOptions());
 
             Assert.Equal(5, await result.CountAsync());
         }
@@ -93,10 +93,7 @@ namespace Couchbase.UnitTests.Analytics
             var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
 
-            var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
-            queryRequest.Priority(priority);
-
-            await client.QueryAsync<dynamic>(queryRequest);
+            await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions().Priority(priority));
         }
 
         [Fact]
@@ -118,10 +115,7 @@ namespace Couchbase.UnitTests.Analytics
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
 
             Assert.Null(client.LastActivity);
-
-            var queryRequest = new AnalyticsRequest("SELECT * FROM `default`;");
-            await client.QueryAsync<dynamic>(queryRequest, CancellationToken.None).ConfigureAwait(false);
-
+            await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(false);
             Assert.NotNull(client.LastActivity);
         }
     }

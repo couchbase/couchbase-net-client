@@ -436,29 +436,19 @@ namespace Couchbase.UnitTests.Core.Retry
                 using var cts = new CancellationTokenSource();
                 cts.CancelAfter(1000);
 
-                var options = new AnalyticsOptions().
-                    Timeout(TimeSpan.FromSeconds(1000)).CancellationToken(cts.Token).Readonly(readOnly);
-
-                var query = new AnalyticsRequest("SELECT * FROM `bar`;")
-                {
-                    ClientContextId = options.ClientContextIdValue,
-                    NamedParameters = options.NamedParameters,
-                    PositionalArguments = options.PositionalParameters,
-                    ReadOnly = options.ReadonlyValue,
-                    Idempotent = options.ReadonlyValue
-                };
-                // ReSharper disable once PossibleInvalidOperationException
-                query.WithTimeout(options.TimeoutValue.Value);
-                query.Priority(options.PriorityValue);
-                query.Token = options.Token;
+                var statement = "SELECT * FROM `bar`;";
+                var options = new AnalyticsOptions();
+                options.Timeout(TimeSpan.FromSeconds(1000));
+                options.CancellationToken(cts.Token);
+                options.Readonly(readOnly);
 
                 async Task<IAnalyticsResult<dynamic>> Send()
                 {
                     var client1 = client;
-                    return await client1.QueryAsync<dynamic>(query, options.Token);
+                    return await client1.QueryAsync<dynamic>(statement, options);
                 }
 
-                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, query));
+                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, AnalyticsRequest.Create(statement, options)));
             }
         }
 

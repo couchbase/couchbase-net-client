@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.DI;
+using Couchbase.Management.Analytics;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
@@ -90,8 +91,10 @@ namespace Couchbase.KeyValue
         /// <returns>A <see cref="IAnalyticsResult{T}"/> which can be enumerated.</returns>
         public Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default)
         {
-            options ??=new AnalyticsOptions();
-            options.QueryContext = _queryContext;
+            options ??= new AnalyticsOptions
+            {
+                QueryContext = _queryContext
+            };
             options.BucketName = _bucket.Name;
             options.ScopeName = Name;
 

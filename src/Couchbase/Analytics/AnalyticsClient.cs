@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Metrics;
@@ -13,6 +12,7 @@ using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Management.Analytics;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -44,17 +44,11 @@ namespace Couchbase.Analytics
             _meter = meter;
         }
 
-        /// <summary>
-        /// Queries the asynchronous.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="queryRequest">The query request.</param>
-        /// <param name="token">The token.</param>
-        /// <returns></returns>
-        public async Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest queryRequest, CancellationToken token = default)
+        /// <inheritdoc />
+        public async Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options)
         {
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, queryRequest)
-                .WithOperationId(queryRequest)
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.AnalyticsQuery, options)
+                .WithOperationId(options)
                 .WithLocalAddress();
 
             // try get Analytics node
@@ -62,12 +56,12 @@ namespace Couchbase.Analytics
             rootSpan.WithRemoteAddress(analyticsUri);
 
             _logger.LogDebug("Sending analytics query with a context id {contextId} to server {searchUri}",
-                queryRequest.ClientContextId, analyticsUri);
+                options.ClientContextIdValue, analyticsUri);
 
             using var encodingSpan = rootSpan.EncodingSpan();
 
             AnalyticsResultBase<T> result;
-            var body = queryRequest.GetFormValuesAsJson();
+            var body = options.GetFormValuesAsJson(statement);
 
             using (var content = new StringContent(body, Encoding.UTF8, MediaType.Json))
             {
@@ -78,14 +72,14 @@ namespace Couchbase.Analytics
                         Content = content
                     };
 
-                    if (queryRequest is AnalyticsRequest req && req.PriorityValue != 0)
+                    if (options.PriorityValue != 0)
                     {
-                        request.Headers.Add(AnalyticsPriorityHeaderName, new[] {req.PriorityValue.ToString()});
+                        request.Headers.Add(AnalyticsPriorityHeaderName, new[] {options.PriorityValue.ToString()});
                     }
 
                     encodingSpan.Dispose();
-                    using var dispatchSpan = rootSpan.DispatchSpan(queryRequest);
-                    var response = await HttpClient.SendAsync(request, token).ConfigureAwait(false);
+                    using var dispatchSpan = rootSpan.DispatchSpan(options);
+                    var response = await HttpClient.SendAsync(request, options.Token).ConfigureAwait(false);
                     dispatchSpan.Dispose();
 
                     var recorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.AnalyticsQuery}|{analyticsUri.Host}");
@@ -108,7 +102,7 @@ namespace Couchbase.Analytics
                         };
                     }
 
-                    await result.InitializeAsync(token).ConfigureAwait(false);
+                    await result.InitializeAsync(options.Token).ConfigureAwait(false);
 
                     if (response.StatusCode != HttpStatusCode.OK)
                     {
@@ -120,10 +114,10 @@ namespace Couchbase.Analytics
 
                         var context = new AnalyticsErrorContext
                         {
-                            ClientContextId = queryRequest.ClientContextId,
+                            ClientContextId = options.ClientContextIdValue,
                             HttpStatus = response.StatusCode,
-                            Statement = queryRequest.Statement,
-                            Parameters = queryRequest.GetParametersAsJson(),
+                            Statement = statement,
+                            Parameters = options.GetParametersAsJson(),
                             Errors = result.Errors
                         };
 
@@ -146,13 +140,13 @@ namespace Couchbase.Analytics
                 {
                     var context = new AnalyticsErrorContext
                     {
-                        ClientContextId = queryRequest.ClientContextId,
-                        Statement = queryRequest.Statement,
-                        Parameters = queryRequest.GetParametersAsJson()
+                        ClientContextId = options.ClientContextIdValue,
+                        Statement = statement,
+                        Parameters = options.GetParametersAsJson()
                     };
 
                     _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request timeout.");
-                    if (queryRequest.ReadOnly)
+                    if (options.ReadonlyValue)
                     {
                         throw new UnambiguousTimeoutException("The query was timed out via the Token.", e)
                         {
@@ -169,9 +163,9 @@ namespace Couchbase.Analytics
                 {
                     var context = new AnalyticsErrorContext
                     {
-                        ClientContextId = queryRequest.ClientContextId,
-                        Statement = queryRequest.Statement,
-                        Parameters = queryRequest.GetParametersAsJson()
+                        ClientContextId = options.ClientContextIdValue,
+                        Statement = statement,
+                        Parameters = options.GetParametersAsJson()
                     };
 
                     _logger.LogDebug(LoggingEvents.AnalyticsEvent, e, "Analytics request cancelled.");
@@ -188,13 +182,13 @@ namespace Couchbase.Analytics
 
 
         #region tracing
-        private IRequestSpan RootSpan(string operation, IAnalyticsRequest analyticsRequest)
+        private IRequestSpan RootSpan(string operation, AnalyticsOptions options)
         {
             var span = _tracer.RequestSpan(operation);
             span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
             span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.AnalyticsQuery).ToLowerInvariant());
-            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, analyticsRequest.BucketName);
-            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, analyticsRequest.ScopeName);
+            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, options.BucketName!);
+            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, options.ScopeName!);
             span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
             return span;
         }

@@ -1,4 +1,6 @@
+using System;
 using System.Threading;
+using Couchbase.Analytics;
 
 namespace Couchbase.Management.Analytics
 {
@@ -6,10 +8,25 @@ namespace Couchbase.Management.Analytics
     {
         internal CancellationToken TokenValue { get; set; }
 
-        public GetAllAnalyticsDatasetsOptions CancellationToken(CancellationToken cancellationToken)
+        public GetAllAnalyticsDatasetsOptions CancellationToken(CancellationToken token)
         {
-            TokenValue = cancellationToken;
+            TokenValue = token;
             return this;
+        }
+
+        internal TimeSpan TimeoutValue { get; set; }
+
+        public GetAllAnalyticsDatasetsOptions Timeout(TimeSpan timeout)
+        {
+            TimeoutValue = timeout;
+            return this;
+        }
+
+        internal AnalyticsOptions CreateAnalyticsOptions()
+        {
+            return new AnalyticsOptions()
+                .CancellationToken(TokenValue)
+                .Timeout(TimeoutValue);
         }
     }
 }

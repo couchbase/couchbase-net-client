@@ -1,4 +1,6 @@
+using System;
 using System.Threading;
+using Couchbase.Analytics;
 
 namespace Couchbase.Management.Analytics
 {
@@ -6,13 +8,6 @@ namespace Couchbase.Management.Analytics
     {
         internal bool IgnoreIfNotExistsValue { get; set; }
         internal string DataverseNameValue { get; set; }
-        internal CancellationToken TokenValue { get; set; }
-
-        public DropAnalyticsDatasetOptions IgnoreIfNotExists(bool ignoreIfNotExists)
-        {
-            IgnoreIfNotExistsValue = ignoreIfNotExists;
-            return this;
-        }
 
         public DropAnalyticsDatasetOptions DataverseName(string dataverseName)
         {
@@ -20,10 +15,33 @@ namespace Couchbase.Management.Analytics
             return this;
         }
 
-        public DropAnalyticsDatasetOptions CancellationToken(CancellationToken cancellationToken)
+        public DropAnalyticsDatasetOptions IgnoreIfNotExists(bool ignoreIfNotExists)
         {
-            TokenValue = cancellationToken;
+            IgnoreIfNotExistsValue = ignoreIfNotExists;
             return this;
+        }
+
+        internal CancellationToken TokenValue { get; set; }
+
+        public DropAnalyticsDatasetOptions CancellationToken(CancellationToken token)
+        {
+            TokenValue = token;
+            return this;
+        }
+
+        internal TimeSpan TimeoutValue { get; set; }
+
+        public DropAnalyticsDatasetOptions Timeout(TimeSpan timeout)
+        {
+            TimeoutValue = timeout;
+            return this;
+        }
+
+        internal AnalyticsOptions CreateAnalyticsOptions()
+        {
+            return new AnalyticsOptions()
+                .CancellationToken(TokenValue)
+                .Timeout(TimeoutValue);
         }
     }
 }

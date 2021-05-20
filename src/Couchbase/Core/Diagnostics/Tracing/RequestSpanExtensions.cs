@@ -4,6 +4,7 @@ using System.Net;
 using Couchbase.Analytics;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry.Search;
+using Couchbase.Management.Analytics;
 using Couchbase.Query;
 using Couchbase.Views;
 
@@ -56,11 +57,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return span;
         }
 
-        internal static IRequestSpan WithOperationId(this IRequestSpan span, IAnalyticsRequest request)
+        internal static IRequestSpan WithOperationId(this IRequestSpan span, AnalyticsOptions request)
         {
             if (span.CanWrite)
             {
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, request.ClientContextId ?? Guid.NewGuid().ToString());
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, request.ClientContextIdValue ?? Guid.NewGuid().ToString());
             }
 
             return span;
@@ -114,12 +115,12 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return childSpan;
         }
 
-        internal static IRequestSpan DispatchSpan(this IRequestSpan parentSpan, IAnalyticsRequest request)
+        internal static IRequestSpan DispatchSpan(this IRequestSpan parentSpan, AnalyticsOptions request)
         {
             var childSpan = DispatchSpan(parentSpan);
             if (childSpan.CanWrite)
             {
-                childSpan.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, request.ClientContextId ?? Guid.NewGuid().ToString());
+                childSpan.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, request.ClientContextIdValue ?? Guid.NewGuid().ToString());
             }
 
             return childSpan;

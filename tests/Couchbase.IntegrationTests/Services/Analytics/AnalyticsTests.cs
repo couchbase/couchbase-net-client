@@ -1,51 +1,48 @@
 using System;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
-using Couchbase.Management.Analytics;
 using Couchbase.Management.Collections;
-using Couchbase.Query;
-using Moq;
 using Newtonsoft.Json;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests.Services.Analytics
 {
     public class AnalyticsTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
-        private static string scopeName = "myScope" + randomString();
-        private static string collectionName = "myCollection" + randomString();
+        private static readonly string ScopeName = $"myScope{RandomString()}";
+        private static readonly string CollectionName = $"myCollection{RandomString()}";
+        private static readonly string FilteredCollection = $"myFilteredCollection{RandomString()}";
+        private readonly ITestOutputHelper _output;
 
-        private static string randomString()
+        private static string RandomString()
         {
             {
-                int length = 7;
+                var length = 7;
 
                 // creating a StringBuilder object()
-                StringBuilder str_build = new StringBuilder();
-                Random random = new Random();
-
-                char letter;
-
+                var strBuild = new StringBuilder();
+                var random = new Random();
                 for (int i = 0; i < length; i++)
                 {
-                    double flt = random.NextDouble();
-                    int shift = Convert.ToInt32(Math.Floor(25 * flt));
-                    letter = Convert.ToChar(shift + 65);
-                    str_build.Append(letter);
+                    var flt = random.NextDouble();
+                    var shift = Convert.ToInt32(Math.Floor(25 * flt));
+                    var letter = Convert.ToChar(shift + 65);
+                    strBuild.Append(letter);
                 }
-                return str_build.ToString();
+                return strBuild.ToString();
             }
         }
 
-        public AnalyticsTests(ClusterFixture fixture)
+        public AnalyticsTests(ClusterFixture fixture, ITestOutputHelper output)
         {
             _fixture = fixture;
+            _output = output;
         }
 
         private class TestRequest
@@ -91,33 +88,50 @@ namespace Couchbase.IntegrationTests.Services.Analytics
         {
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
             var bucket = await _fixture.Cluster.BucketAsync("default").ConfigureAwait(false);
-            string dataverseName = bucket.Name + "." + scopeName;
+
+            var dataverseName = bucket.Name + "." + ScopeName;
             var collectionManager = (CollectionManager)bucket.Collections;
-            var scopeSpec = new ScopeSpec(scopeName);
             var analytics = cluster.AnalyticsIndexes;
-            await analytics.CreateDataverseAsync(dataverseName);
-            string statement = "CREATE ANALYTICS COLLECTION `" + dataverseName + "`.`" + collectionName + "` ON `" + bucket.Name + "`.`" + scopeName + "`.`" + collectionName + "`";
 
             try
             {
-                var analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
-                var result = await analyticsResult.ToListAsync().ConfigureAwait(false);
-                await collectionManager.CreateScopeAsync(scopeSpec).ConfigureAwait(false);
-                var collectionSpec = new CollectionSpec(scopeName, collectionName);
-                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
-                var collectionExistsResult = await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
-                Assert.True(collectionExistsResult);
-                var scope = bucket.Scope(scopeName);
-                statement = "SELECT * FROM `" + collectionName + "` where `" + collectionName + "`.foo= \"bar\"";
-                analyticsResult = await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
-                result = await analyticsResult.ToListAsync().ConfigureAwait(false);
-                Assert.True(result.Any());
+                await collectionManager.CreateScopeAsync(ScopeName).ConfigureAwait(false);
+                var collectionSpec = new CollectionSpec(ScopeName, CollectionName);
 
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                await collectionManager.CreateCollectionAsync(collectionSpec).ConfigureAwait(false);
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                var collectionExistsResult =
+                    await collectionManager.CollectionExistsAsync(collectionSpec).ConfigureAwait(false);
+                Assert.True(collectionExistsResult);
+
+                await bucket.Scope(ScopeName).Collection(CollectionName).UpsertAsync("KEY1", new {bar = "foo"});
+
+                await analytics.CreateDataverseAsync(dataverseName).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5));
+
+                var statement = $"CREATE ANALYTICS COLLECTION {FilteredCollection} ON {bucket.Name}.{ScopeName}.{CollectionName}";
+                await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(5));
+
+                var selectStatement = $"SELECT * FROM `{FilteredCollection}`";
+                var analyticsResult2 = await cluster.AnalyticsQueryAsync<TestRequest>(selectStatement).ConfigureAwait(false);
+
+                var result = await analyticsResult2.ToListAsync().ConfigureAwait(false);
+                Assert.True(result.Any());
+            }
+            catch (Exception e)
+            {
+                _output.WriteLine("oops{0}", e);
             }
             finally
             {
+                await Task.Delay(TimeSpan.FromSeconds(1));
+                await analytics.DropDataverseAsync(dataverseName);
+                await cluster.AnalyticsQueryAsync<dynamic>("DROP ANALYTICS COLLECTION myFilteredCollection");
                 // drop scope
-                await collectionManager.DropScopeAsync(scopeName).ConfigureAwait(false);
+                await collectionManager.DropScopeAsync(ScopeName).ConfigureAwait(false);
             }
         }
     }

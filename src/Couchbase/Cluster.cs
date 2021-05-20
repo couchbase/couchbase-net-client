@@ -304,7 +304,11 @@ namespace Couchbase
         public async Task<IAnalyticsResult<T>> AnalyticsQueryAsync<T>(string statement, AnalyticsOptions? options = default)
         {
             options ??= new AnalyticsOptions();
-            options.TimeoutValue ??= _context.ClusterOptions.AnalyticsTimeout;
+
+            if (!options.TimeoutValue.HasValue)
+            {
+                options.Timeout(_context.ClusterOptions.AnalyticsTimeout);
+            }
 
             if (string.IsNullOrWhiteSpace(options.ClientContextIdValue))
             {
@@ -313,26 +317,19 @@ namespace Couchbase
 
             ThrowIfNotBootstrapped();
 
-            var query = new AnalyticsRequest(statement)
+            if(options.RetryStrategyValue == null)
             {
-                ClientContextId = options.ClientContextIdValue,
-                NamedParameters = options.NamedParameters,
-                PositionalArguments = options.PositionalParameters,
-                Timeout = options.TimeoutValue.Value,
-                RetryStrategy = options.RetryStrategyValue ?? _retryStrategy
-            };
-            query.Priority(options.PriorityValue);
-            query.ScanConsistency(options.ScanConsistencyValue);
+                options.RetryStrategy(_retryStrategy);
+            }
 
             async Task<IAnalyticsResult<T>> Func()
             {
                 var client1 = LazyAnalyticsClient.Value;
-                var query1 = query;
-                var options1 = options ?? new AnalyticsOptions();
-                return await client1.QueryAsync<T>(query1, options1.Token).ConfigureAwait(false);
+                var options1 = options;
+                return await client1.QueryAsync<T>(statement, options1).ConfigureAwait(false);
             }
 
-            return await _retryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
+            return await _retryOrchestrator.RetryAsync(Func, AnalyticsRequest.Create(statement, options)).ConfigureAwait(false);
         }
 
         #endregion

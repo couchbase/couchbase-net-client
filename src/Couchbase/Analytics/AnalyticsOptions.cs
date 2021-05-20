@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Couchbase.Core.Retry;
+using Newtonsoft.Json;
 
 #nullable enable
 
@@ -11,8 +13,8 @@ namespace Couchbase.Analytics
     {
         //note in a future commit this will be private and AnalyticsOptions will be sent to AnalyticsClient instead of AnalyticsRequest (legacy)
         internal string? ClientContextIdValue;
-        internal Dictionary<string, object> NamedParameters  = new Dictionary<string, object>();
-        internal List<object> PositionalParameters = new List<object>();
+        internal Dictionary<string, object> NamedParameters  = new();
+        internal List<object> PositionalParameters = new();
         internal CancellationToken Token = System.Threading.CancellationToken.None;
         internal AnalyticsScanConsistency ScanConsistencyValue = Analytics.AnalyticsScanConsistency.NotBounded;
         internal bool ReadonlyValue;
@@ -58,22 +60,12 @@ namespace Couchbase.Analytics
 
         public AnalyticsOptions Parameter(string parameterName, object value)
         {
-            if (NamedParameters == null)
-            {
-                NamedParameters = new Dictionary<string, object>();
-            }
-
             NamedParameters[parameterName] = value;
             return this;
         }
 
         public AnalyticsOptions Parameter(object value)
         {
-            if (PositionalParameters == null)
-            {
-                PositionalParameters = new List<object>();
-            }
-
             PositionalParameters.Add(value);
             return this;
         }
@@ -113,5 +105,60 @@ namespace Couchbase.Analytics
         /// </summary>
         /// <remarks>For internal use only.</remarks>
         internal string? ScopeName { get; set; }
+
+        internal string GetParametersAsJson()
+        {
+            if (PositionalParameters.Any())
+                return JsonConvert.SerializeObject(PositionalParameters);
+            return JsonConvert.SerializeObject(NamedParameters);
+        }
+
+        internal string GetFormValuesAsJson(string statement)
+        {
+            return JsonConvert.SerializeObject(GetFormValues(statement));
+        }
+
+        internal IDictionary<string, object> GetFormValues(string statement)
+        {
+            statement = CleanStatement(statement);
+            var formValues = new Dictionary<string, object>
+            {
+                {"statement", statement},
+                {"timeout", $"{TimeoutValue?.TotalMilliseconds}ms"},
+                {"client_context_id", ClientContextIdValue ?? Guid.NewGuid().ToString()}
+            };
+
+            if (!string.IsNullOrWhiteSpace(QueryContext))
+            {
+                formValues.Add("query_context", QueryContext!);
+            }
+
+            foreach (var parameter in NamedParameters)
+            {
+                formValues.Add(parameter.Key, parameter.Value);
+            }
+
+            if (PositionalParameters.Any())
+            {
+                formValues.Add("args", PositionalParameters.ToArray());
+            }
+
+            return formValues;
+        }
+
+        private string CleanStatement(string statement)
+        {
+            if (string.IsNullOrWhiteSpace(statement))
+            {
+                throw new ArgumentException("statement cannot be null or empty");
+            }
+
+            statement = statement.Trim();
+            if (!statement.EndsWith(";"))
+            {
+                statement += ";";
+            }
+            return statement;
+        }
     }
 }

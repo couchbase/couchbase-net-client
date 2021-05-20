@@ -1,6 +1,6 @@
 using System;
-using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Management.Analytics;
 
 #nullable enable
 
@@ -17,10 +17,10 @@ namespace Couchbase.Analytics
         /// Asynchronously executes an analytics request against a Couchbase Server.
         /// </summary>
         /// <typeparam name="T">The Type to cast the resulting rows to.</typeparam>
-        /// <param name="request">The <see cref="IAnalyticsRequest"/> to execute.</param>
-        /// <param name="token">A cancellation token that can be used to cancel the request.</param>
+        /// <param name="statement">The analytics statement to execute.</param>
+        /// <param name="options">The analytics options - various methods have implementations.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
-        Task<IAnalyticsResult<T>> QueryAsync<T>(IAnalyticsRequest request, CancellationToken token = default);
+        Task<IAnalyticsResult<T>> QueryAsync<T>(string statement, AnalyticsOptions options);
     }
 }
 
