@@ -30,7 +30,6 @@ namespace Couchbase.KeyValue
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
         private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder();
-        private bool _collectionsNotSupported;
         private static readonly SemaphoreSlim CidLock = new(1);
 
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
@@ -71,8 +70,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Get);
@@ -170,8 +173,12 @@ namespace Couchbase.KeyValue
                 //sanity check for deferred bootstrapping errors
                 _bucket.ThrowIfBootStrapFailed();
 
-                //Get the collection ID
-                await PopulateCidAsync().ConfigureAwait(false);
+                //Check to see if the CID is needed
+                if (RequiresCid())
+                {
+                    //Get the collection ID
+                    await PopulateCidAsync().ConfigureAwait(false);
+                }
 
                 options ??= ExistsOptions.Default;
 
@@ -214,8 +221,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= InsertOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert);
@@ -245,8 +256,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= ReplaceOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Replace);
@@ -277,8 +292,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= RemoveOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove);
@@ -309,8 +328,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= UnlockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
@@ -334,8 +357,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= UnlockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
@@ -363,8 +390,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= TouchOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Touch);
@@ -393,8 +424,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= GetAndTouchOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch);
@@ -430,8 +465,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= GetAndLockOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock);
@@ -467,8 +506,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= UpsertOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert);
@@ -508,8 +551,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn);
             options ??= LookupInOptions.Default;
@@ -569,8 +616,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= MutateInOptions.Default;
 
@@ -652,8 +703,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= AppendOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Append);
@@ -682,8 +737,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= PrependOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Prepend);
@@ -712,8 +771,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= IncrementOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Increment);
@@ -744,8 +807,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             options ??= DecrementOptions.Default;
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Decrement);
@@ -776,8 +843,12 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            //Get the collection ID
-            await PopulateCidAsync().ConfigureAwait(false);
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
 
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica);
             options ??= GetAnyReplicaOptions.Default;
@@ -857,6 +928,13 @@ namespace Couchbase.KeyValue
         private async Task<IGetReplicaResult> GetReplica(string id, short index, IRequestSpan span,
             CancellationToken cancellationToken, ITranscoderOverrideOptions options)
         {
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
+
             using var childSpan = _tracer.RequestSpan(OuterRequestSpans.ServiceSpan.Kv.ReplicaRead, span);
             using var getOp = new ReplicaRead<object>(id, index)
             {
@@ -886,11 +964,19 @@ namespace Couchbase.KeyValue
 
         #region GET_CID
 
-        private async Task PopulateCidAsync()
+        /// <summary>
+        /// Servers 7.0 and above support collections and require the CID to be fetched.
+        /// Earlier versions of the server may support collections in dev-preview mode so
+        /// we check to see if its been enabled via the results of the HELLO command.
+        /// </summary>
+        /// <returns>true if the server supports collections and the CID is null.</returns>
+        private bool RequiresCid()
         {
-            if(_collectionsNotSupported) return; //pre-7.0 w/out collections enabled - CID should be null
-            if (Cid.HasValue) return; //we already have a CID
+            return _bucket.Context.SupportsCollections && !Cid.HasValue;
+        }
 
+        private async ValueTask PopulateCidAsync()
+        {
             Logger.LogDebug("Fetching CID for {scope}.{collection}", ScopeName, Name);
             var waitedSuccessfully = await CidLock.WaitAsync(2500);
             try
@@ -899,7 +985,7 @@ namespace Couchbase.KeyValue
                 {
                     throw new AmbiguousTimeoutException($"Timed out waiting for GET_CID in {ScopeName}.{Name}");
                 }
-                if (_collectionsNotSupported || Cid.HasValue)
+                if (!_bucket.Context.SupportsCollections || Cid.HasValue)
                 {
                     return;
                 }
@@ -909,7 +995,7 @@ namespace Couchbase.KeyValue
             }
             catch (Exception e)
             {
-                Logger.LogInformation(e, "Possible non-terminal error fetching CID.");
+                Logger.LogInformation(e, "Possible non-terminal error fetching CID. Cluster maybe in Dev-Preview mode.");
                 if (e is InvalidArgumentException)
                     try
                     {
@@ -920,18 +1006,11 @@ namespace Couchbase.KeyValue
                     {
                         //an older server without collections enabled
                         Logger.LogInformation("Collections are not supported on this server version.");
-                        _collectionsNotSupported = true;
                     }
-                else if (e is AuthenticationFailureException ex)
-                    //servers 6.0.0 and 5.5.0 do not support GET_CID and will return EAccess if
-                    //called, thus we can infer collection support does not exist for the server
-                    if (ex.Context is KeyValueErrorContext ctx)
-                        if (ctx.Status == ResponseStatus.Eaccess)
-                        {
-                            //an older server without collections enabled
-                            Logger.LogInformation("Collections (GET_CID) are not supported on this server version.");
-                            _collectionsNotSupported = true;
-                        }
+                else
+                {
+                    throw;
+                }
             }
             finally
             {
