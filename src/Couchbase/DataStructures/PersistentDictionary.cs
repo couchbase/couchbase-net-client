@@ -130,7 +130,7 @@ namespace Couchbase.DataStructures
         {
             get
             {
-                if (TryGetValue(key, out TValue value))
+                if (TryGetValue(key, out var value))
                     return value;
                 throw new KeyNotFoundException($"Cannot find key {key.ToString()}.");
             }
