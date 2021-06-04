@@ -415,7 +415,7 @@ namespace Couchbase.Core.IO.Operations
             var length = 0;
 
             //Default collection does not need the CID
-            if (Cid.HasValue && Cid > 0)
+            if (Cid.HasValue)
             {
                 length += Leb128.Write(buffer, Cid.GetValueOrDefault());
             }
