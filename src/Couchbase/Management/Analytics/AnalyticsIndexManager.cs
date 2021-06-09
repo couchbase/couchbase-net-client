@@ -42,13 +42,9 @@ namespace Couchbase.Management.Analytics
 
             try
             {
-                if (string.IsNullOrWhiteSpace(dataverseName))
-                {
-                    throw new InvalidArgumentException("dataverseName is a required parameter");
-                }
-
+                dataverseName = UncompoundName(dataverseName);
                 var ignoreStr = options.IgnoreIfExistsValue ? " IF NOT EXISTS" : string.Empty;
-                var statement = $"CREATE DATAVERSE `{dataverseName}`{ignoreStr}";
+                var statement = $"CREATE DATAVERSE {dataverseName}{ignoreStr}";
 
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
@@ -75,13 +71,9 @@ namespace Couchbase.Management.Analytics
                 _redactor.MetaData(dataverseName));
             try
             {
-                if (string.IsNullOrWhiteSpace(dataverseName))
-                {
-                    throw new InvalidArgumentException("dataverseName is a required parameter");
-                }
-
+                dataverseName = UncompoundName(dataverseName);
                 var ignoreStr = options.IgnoreIfNotExistsValue ? " IF EXISTS" : string.Empty;
-                var statement = $"DROP DATAVERSE `{dataverseName}`{ignoreStr}";
+                var statement = $"DROP DATAVERSE {dataverseName}{ignoreStr}";
 
                 await _client.QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
                     .ConfigureAwait(false);
@@ -107,10 +99,7 @@ namespace Couchbase.Management.Analytics
                 _redactor.MetaData(datasetName), _redactor.MetaData(bucketName));
             try
             {
-                if (string.IsNullOrWhiteSpace(datasetName))
-                {
-                    throw new InvalidArgumentException("datasetName is a required parameter");
-                }
+                datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
 
                 if (string.IsNullOrWhiteSpace(bucketName))
                 {
@@ -128,10 +117,6 @@ namespace Couchbase.Management.Analytics
 
                     whereStr += options.ConditionValue.StartsWith(" ") ? options.ConditionValue : " " + options.ConditionValue;
                 }
-
-                datasetName = string.IsNullOrWhiteSpace(options.DataverseNameValue) ?
-                    $"`{datasetName}`" :
-                    $"`{options.DataverseNameValue}`.`{datasetName}`";
 
                 var statement = $"CREATE DATASET {ignoreStr}{datasetName} ON `{bucketName}`{whereStr}";
 
@@ -158,16 +143,9 @@ namespace Couchbase.Management.Analytics
             _logger.LogInformation("attempting to drop dataset {datasetName}", _redactor.MetaData(datasetName));
             try
             {
-                if (string.IsNullOrWhiteSpace(datasetName))
-                {
-                    throw new InvalidArgumentException("datasetName is a required parameter");
-                }
+                datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
 
                 var ignoreStr = options.IgnoreIfNotExistsValue ? " IF EXISTS" : string.Empty;
-                datasetName = !string.IsNullOrWhiteSpace(options.DataverseNameValue)
-                    ? $"`{options.DataverseNameValue}`.`{datasetName}`"
-                    : $"`{datasetName}`";
-
                 var statement = $"DROP DATASET {datasetName}{ignoreStr}";
                 await _client
                     .QueryAsync<dynamic>(statement, options.CreateAnalyticsOptions())
@@ -221,10 +199,7 @@ namespace Couchbase.Management.Analytics
 
             try
             {
-                if (string.IsNullOrWhiteSpace(datasetName))
-                {
-                    throw new InvalidArgumentException("datasetName is a required parameter");
-                }
+                datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
 
                 if (string.IsNullOrWhiteSpace(indexName))
                 {
@@ -242,9 +217,6 @@ namespace Couchbase.Management.Analytics
                     _redactor.MetaData(datasetName),
                     _redactor.MetaData(joinedFields));
                 var ignoreStr = options.IgnoreIfExistsValue ? "IF NOT EXISTS " : string.Empty;
-                datasetName = string.IsNullOrWhiteSpace(options.DataverseNameValue)
-                    ? $"`{datasetName}`"
-                    : $"`{options.DataverseNameValue}`.`{datasetName}`";
                 var statement = $"CREATE INDEX `{indexName}` {ignoreStr}ON {datasetName} {joinedFields}";
 
                 await _client
@@ -276,10 +248,7 @@ namespace Couchbase.Management.Analytics
                 _redactor.MetaData(datasetName));
             try
             {
-                if (string.IsNullOrWhiteSpace(datasetName))
-                {
-                    throw new InvalidArgumentException("datasetName is a required parameter");
-                }
+                datasetName = DataSetWithDataVerse(datasetName, options.DataverseNameValue);
 
                 if (string.IsNullOrWhiteSpace(indexName))
                 {
@@ -287,9 +256,6 @@ namespace Couchbase.Management.Analytics
                 }
 
                 var ignoreStr = options.IgnoreIfNotExistsValue ? " IF EXISTS" : string.Empty;
-                datasetName = string.IsNullOrWhiteSpace(options.DataverseNameValue)
-                    ? $"`{datasetName}`"
-                    : $"`{options.DataverseNameValue}`.`{datasetName}`";
                 var statement = $"DROP INDEX {datasetName}.`{indexName}`{ignoreStr}";
 
                 await _client
@@ -429,6 +395,40 @@ namespace Couchbase.Management.Analytics
                 }
             }
             return dictionary;
+        }
+
+
+        private string UncompoundName(string dataverseName)
+        {
+            if (string.IsNullOrWhiteSpace(dataverseName))
+            {
+                throw new InvalidArgumentException("dataverseName is a required parameter");
+            }
+
+            if (!dataverseName.StartsWith("`"))
+            {
+                dataverseName = string.Concat("`", dataverseName, "`");
+            }
+
+            if (!dataverseName.Contains('/'))
+            {
+                return dataverseName;
+            }
+
+            var pieces = dataverseName.Split('/');
+            return string.Join("`.`", pieces);
+        }
+
+        private string DataSetWithDataVerse(string datasetName, string? dataverseName)
+        {
+            if (string.IsNullOrWhiteSpace(datasetName))
+            {
+                throw new InvalidArgumentException("datasetName is a required parameter");
+            }
+
+            return string.IsNullOrWhiteSpace(dataverseName) ?
+                           $"`{datasetName}`" :
+                           $"{UncompoundName(dataverseName!)}.`{datasetName}`";
         }
 
     }

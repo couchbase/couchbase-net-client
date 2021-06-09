@@ -6,6 +6,7 @@ using Couchbase.Analytics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Collections;
+using Couchbase.Test.Common.Utils;
 using Newtonsoft.Json;
 using Xunit;
 using Xunit.Abstractions;
@@ -95,7 +96,9 @@ namespace Couchbase.IntegrationTests.Services.Analytics
 
             try
             {
+                await using var dataverseDisposer = DisposeCleaner.DropDataverseOnDispose(analytics, dataverseName, _output);
                 await collectionManager.CreateScopeAsync(ScopeName).ConfigureAwait(false);
+                await using var scopeDispose = DisposeCleaner.DropScopeOnDispose(collectionManager, ScopeName, _output);
                 var collectionSpec = new CollectionSpec(ScopeName, CollectionName);
 
                 await Task.Delay(TimeSpan.FromSeconds(1));
@@ -113,6 +116,11 @@ namespace Couchbase.IntegrationTests.Services.Analytics
 
                 var statement = $"CREATE ANALYTICS COLLECTION {FilteredCollection} ON {bucket.Name}.{ScopeName}.{CollectionName}";
                 await cluster.AnalyticsQueryAsync<TestRequest>(statement).ConfigureAwait(false);
+                await using var analyticsCollectionDisposer = new DisposeCleanerAsync(() =>
+                    cluster.AnalyticsQueryAsync<dynamic>($"DROP ANALYTICS COLLECTION {FilteredCollection}"),
+                    _output
+                );
+
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 var selectStatement = $"SELECT * FROM `{FilteredCollection}`";
@@ -127,11 +135,8 @@ namespace Couchbase.IntegrationTests.Services.Analytics
             }
             finally
             {
+                // give some time befor the cleanups happen.
                 await Task.Delay(TimeSpan.FromSeconds(1));
-                await analytics.DropDataverseAsync(dataverseName);
-                await cluster.AnalyticsQueryAsync<dynamic>("DROP ANALYTICS COLLECTION myFilteredCollection");
-                // drop scope
-                await collectionManager.DropScopeAsync(ScopeName).ConfigureAwait(false);
             }
         }
     }

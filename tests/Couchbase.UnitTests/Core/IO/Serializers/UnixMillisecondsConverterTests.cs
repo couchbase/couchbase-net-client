@@ -63,7 +63,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             // Assert
 
-            var expected = $@"{{""Value"":{TestUnixMilliseconds}}}";
+            var expected = $@"{{""value"":{TestUnixMilliseconds}}}";
             Assert.Equal(expected, json);
         }
 
@@ -83,7 +83,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
             // Assert
 
-            var expected = @"{""Value"":null}";
+            var expected = @"{""value"":null}";
             Assert.Equal(expected, json);
         }
 
@@ -219,6 +219,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
 
         public class NullablePoco
         {
+            [JsonProperty("value")]
             [JsonConverter(typeof(UnixMillisecondsConverter))]
             public DateTime? Value { get; set; }
         }
@@ -226,7 +227,7 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
         public class NullableExcludeNullsPoco
         {
             [JsonConverter(typeof(UnixMillisecondsConverter))]
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            [JsonProperty(PropertyName = "value", NullValueHandling = NullValueHandling.Ignore)]
             public DateTime? Value { get; set; }
         }
 

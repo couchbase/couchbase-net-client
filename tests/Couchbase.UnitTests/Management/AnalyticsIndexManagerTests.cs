@@ -46,72 +46,46 @@ namespace Couchbase.UnitTests.Management
             return stream;
         }
 
-        [Fact]
-        public async Task CreatesCorrectCreateDataverseQueryNoIfExists()
+        [Theory]
+        [InlineData(false, "test_dataverse", "CREATE DATAVERSE `test_dataverse`")]
+        [InlineData(true, "test_dataverse", "CREATE DATAVERSE `test_dataverse` IF NOT EXISTS")]
+        [InlineData(false, "test_dataverse/sub1", "CREATE DATAVERSE `test_dataverse`.`sub1`")]
+        [InlineData(true, "test_dataverse/sub1", "CREATE DATAVERSE `test_dataverse`.`sub1` IF NOT EXISTS")]
+        public async Task CreatesCorrectCreateDataverseQuery(bool ignoreIfExists, string dataverseName, string expectedStatement)
         {
             using (var stream = GenerateStreamFromString("Here is a stream."))
             {
-                var statement = "CREATE DATAVERSE `test_dataverse`";
                 var mockAnalyticsClient = new Mock<IAnalyticsClient>();
                 mockAnalyticsClient.Setup(x => x.QueryAsync<dynamic>(
-                    It.Is<string>(s => s.Equals(statement)), It.IsAny<AnalyticsOptions>()))
+                    It.Is<string>(s => s.Equals(expectedStatement)), It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<object>(stream, new DefaultSerializer()));
 
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                await manager.CreateDataverseAsync("test_dataverse", new CreateAnalyticsDataverseOptions()).ConfigureAwait(false);
+                await manager.CreateDataverseAsync(dataverseName, new CreateAnalyticsDataverseOptions().IgnoreIfExists(ignoreIfExists)).ConfigureAwait(false);
                 mockAnalyticsClient.VerifyAll();
             }
         }
 
-        [Fact]
-        public async Task CreatesCorrectCreateDataverseQueryWithIfExists()
+        [Theory]
+        [InlineData(false, "test_dataverse", "DROP DATAVERSE `test_dataverse`")]
+        [InlineData(true, "test_dataverse", "DROP DATAVERSE `test_dataverse` IF EXISTS")]
+        [InlineData(false, "test_dataverse/sub1", "DROP DATAVERSE `test_dataverse`.`sub1`")]
+        [InlineData(true, "test_dataverse/sub1", "DROP DATAVERSE `test_dataverse`.`sub1` IF EXISTS")]
+        public async Task CreatesCorrectDropDataverseQuery(bool ignoreIfExists, string dataverseName, string expectedStatement)
         {
             using (var stream = GenerateStreamFromString("Here is a stream."))
             {
-                var statement = "CREATE DATAVERSE `test_dataverse` IF NOT EXISTS";
-                Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
-                mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
-                        It.Is<string>(s => s.Equals(statement)), It.IsAny<AnalyticsOptions>()))
-                    .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
-                var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                await manager.CreateDataverseAsync("test_dataverse", new CreateAnalyticsDataverseOptions().IgnoreIfExists(true)).ConfigureAwait(false);
-                mockAnalyticsClient.VerifyAll();
-            }
-        }
-
-        [Fact]
-        public async Task CreatesCorrectDropDataverseQueryWithIfExists()
-        {
-            using (var stream = GenerateStreamFromString("Here is a stream."))
-            {
-                var statement = "DROP DATAVERSE `test_dataverse` IF EXISTS";
                 Mock<IAnalyticsClient> mockAnalyticClient = new Mock<IAnalyticsClient>();
                 mockAnalyticClient.Setup(x => x.QueryAsync<object>(
-                        It.Is<string>(s => s.Equals(statement)),
+                        It.Is<string>(s => s.Equals(expectedStatement)),
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                await manager.DropDataverseAsync("test_dataverse", new DropAnalyticsDataverseOptions().IgnoreIfNotExists(true)).ConfigureAwait(false);
+                await manager.DropDataverseAsync(dataverseName, new DropAnalyticsDataverseOptions().IgnoreIfNotExists(ignoreIfExists)).ConfigureAwait(false);
                 mockAnalyticClient.VerifyAll();
             }
         }
 
-        [Fact]
-        public async Task CreatesCorrectDropDataverseQueryWithOutIfExists()
-        {
-            using (var stream = GenerateStreamFromString("Here is a stream."))
-            {
-                var statement = "DROP DATAVERSE `test_dataverse`";
-                Mock<IAnalyticsClient> mockAnalyticsClient = new Mock<IAnalyticsClient>();
-                mockAnalyticsClient.Setup(x => x.QueryAsync<object>(
-                        It.Is<string>(s => s.Equals(statement)),
-                        It.IsAny<AnalyticsOptions>()))
-                    .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
-                var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                await manager.DropDataverseAsync("test_dataverse", new DropAnalyticsDataverseOptions().IgnoreIfNotExists(false)).ConfigureAwait(false);
-                mockAnalyticsClient.VerifyAll();
-            }
-        }
         [Fact]
         public async Task CreatesCorrectCreateDataSetQueryWithOutIfExistsNoDataverseNoCondition()
         {
