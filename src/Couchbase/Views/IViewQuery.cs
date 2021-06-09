@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 
 #nullable enable
@@ -12,6 +13,8 @@ namespace Couchbase.Views
     /// </summary>
     internal interface IViewQuery : IViewQueryable, IRequest
     {
+        IRequestSpan? RequestSpanValue { get; internal set; }
+
         /// <summary>
         /// Return the documents in ascending by key order
         /// </summary>

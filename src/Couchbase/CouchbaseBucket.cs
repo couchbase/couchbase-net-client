@@ -168,6 +168,7 @@ namespace Couchbase
             query.Timeout = options.TimeoutValue ?? Context.ClusterOptions.ViewTimeout;
             query.Serializer = options.SerializerValue;
             query.RetryStrategy = options.RetryStrategyValue ?? RetryStrategy;
+            query.RequestSpan(options.RequestSpanValue);
 
             if (options.ViewOrderingValue == ViewOrdering.Decesending)
             {

@@ -311,7 +311,7 @@ namespace Couchbase.Query
         #region tracing
         private IRequestSpan RootSpan(string operation, QueryOptions options)
         {
-            var span = _tracer.RequestSpan(operation);
+            var span = _tracer.RequestSpan(operation, options.RequestSpanValue);
             span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
             span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.N1QLQuery).ToLowerInvariant());
             span.SetAttribute(OuterRequestSpans.Attributes.BucketName, options.BucketName!);

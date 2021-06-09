@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Views;
@@ -114,6 +115,19 @@ namespace Couchbase.Views
             BucketName = bucketName;
             DesignDocName = designDoc;
             ViewName = viewName;
+        }
+
+        IRequestSpan? IViewQuery.RequestSpanValue { get; set; }
+
+        /// <summary>
+        /// A parent or external span for tracing.
+        /// </summary>
+        /// <param name="span">An external <see cref="IRequestSpan"/> implementation for tracing.</param>
+        /// <returns></returns>
+        public IViewQuery RequestSpan(IRequestSpan? span)
+        {
+            ((IViewQuery)this).RequestSpanValue = span;
+            return this;
         }
 
         /// <summary>

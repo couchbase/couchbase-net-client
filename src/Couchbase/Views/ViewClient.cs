@@ -193,7 +193,7 @@ namespace Couchbase.Views
         #region tracing
         private IRequestSpan RootSpan(string operation, IViewQuery query)
         {
-            var span = _tracer.RequestSpan(operation);
+            var span = _tracer.RequestSpan(operation, query.RequestSpanValue);
             span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
             span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.ViewQuery).ToLowerInvariant());
             span.SetAttribute(OuterRequestSpans.Attributes.BucketName, query.BucketName!);

@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -40,6 +41,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public GetOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public GetOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -106,6 +115,14 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public GetAllReplicasOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public GetAllReplicasOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -157,6 +174,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public GetAnyReplicaOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public GetAnyReplicaOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -216,6 +241,14 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public ExistsOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public ExistsOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -256,6 +289,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public UpsertOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public UpsertOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -345,6 +386,15 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public InsertOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
+
         public InsertOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -425,6 +475,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public ReplaceOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public ReplaceOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -509,6 +567,14 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public RemoveOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public RemoveOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -570,6 +636,14 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public UnlockOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public UnlockOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -608,6 +682,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public TouchOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public TouchOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -653,6 +735,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public IncrementOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public IncrementOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -798,6 +888,14 @@ namespace Couchbase.KeyValue
 
         internal TimeSpan ExpiryValue { get; private set; }
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public DecrementOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
@@ -891,6 +989,14 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public AppendOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public AppendOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -960,6 +1066,14 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public PrependOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public PrependOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1024,6 +1138,14 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public GetAndLockOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
+
         public GetAndLockOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1072,6 +1194,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public GetAndTouchOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public GetAndTouchOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -1127,6 +1257,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public LookupInOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public LookupInOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -1214,6 +1352,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public MutateInOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public MutateInOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
@@ -1307,6 +1453,14 @@ namespace Couchbase.KeyValue
 
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public MutateInXattrOperation RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public MutateInXattrOperation RetryStrategy(IRetryStrategy retryStrategy)
         {

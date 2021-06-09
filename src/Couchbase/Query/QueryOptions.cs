@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Utils;
@@ -77,6 +78,14 @@ namespace Couchbase.Query
         /// </summary>
         /// <remarks>For internal use only</remarks>
         internal string? ScopeName { get; set; }
+
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        public QueryOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         internal IRetryStrategy? RetryStrategyValue { get; set; }
 

@@ -77,9 +77,10 @@ namespace Couchbase.KeyValue
                 await PopulateCidAsync().ConfigureAwait(false);
             }
 
-            // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Get);
             options ??= GetOptions.Default;
+
+            // TODO: Since we're actually using LookupIn for Get requests, which operation name should we use?
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Get, options.RequestSpanValue);
 
             var projectList = options.ProjectListValue;
 
@@ -182,7 +183,7 @@ namespace Couchbase.KeyValue
 
                 options ??= ExistsOptions.Default;
 
-                using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists);
+                using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, options.RequestSpanValue);
                 using var getMetaOp = new GetMeta
                 {
                     Key = id,
@@ -229,7 +230,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= InsertOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.AddInsert, options.RequestSpanValue);
             using var insertOp = new Add<T>(_bucket.Name, id)
             {
                 Content = content,
@@ -264,7 +265,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= ReplaceOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Replace);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Replace, options.RequestSpanValue);
             using var replaceOp = new Replace<T>(_bucket.Name, id)
             {
                 Content = content,
@@ -300,7 +301,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= RemoveOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.DeleteRemove, options.RequestSpanValue);
             using var removeOp = new Delete
             {
                 Key = id,
@@ -336,7 +337,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= UnlockOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Unlock, options.RequestSpanValue);
             using var unlockOp = new Unlock
             {
                 Key = id,
@@ -398,7 +399,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= TouchOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Touch);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Touch, options.RequestSpanValue);
             using var touchOp = new Touch
             {
                 Key = id,
@@ -432,7 +433,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= GetAndTouchOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndTouch, options.RequestSpanValue);
             using var getAndTouchOp = new GetT<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -473,7 +474,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= GetAndLockOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAndLock, options.RequestSpanValue);
             using var getAndLockOp = new GetL<byte[]>
             {
                 Key = id,
@@ -514,7 +515,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= UpsertOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert, options.RequestSpanValue);
             using var upsertOp = new Set<T>(_bucket.Name, id)
             {
                 Content = content,
@@ -558,8 +559,9 @@ namespace Couchbase.KeyValue
                 await PopulateCidAsync().ConfigureAwait(false);
             }
 
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn);
             options ??= LookupInOptions.Default;
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.LookupIn, options.RequestSpanValue);
             using var lookup = await ExecuteLookupIn(id, specs, options, rootSpan).ConfigureAwait(false);
             var responseStatus = lookup.Header.Status;
             var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
@@ -654,7 +656,7 @@ namespace Couchbase.KeyValue
 
             if (options.AccessDeletedValue) docFlags |= SubdocDocFlags.AccessDeleted;
 
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.MutateIn, options.RequestSpanValue);
             using var mutation = new MultiMutation<byte[]>(id, specs)
             {
                 BucketName = _bucket.Name,
@@ -711,7 +713,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= AppendOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Append);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Append, options.RequestSpanValue);
             using var op = new Append<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -745,7 +747,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= PrependOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Prepend);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Prepend, options.RequestSpanValue);
             using var op = new Prepend<byte[]>(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -779,7 +781,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= IncrementOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Increment);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Increment, options.RequestSpanValue);
             using var op = new Increment(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -815,7 +817,7 @@ namespace Couchbase.KeyValue
             }
 
             options ??= DecrementOptions.Default;
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Decrement);
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Decrement, options.RequestSpanValue);
             using var op = new Decrement(_bucket.Name, id)
             {
                 Cid = Cid,
@@ -850,8 +852,9 @@ namespace Couchbase.KeyValue
                 await PopulateCidAsync().ConfigureAwait(false);
             }
 
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica);
             options ??= GetAnyReplicaOptions.Default;
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAnyReplica, options.RequestSpanValue);
             var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
 
             if (!vBucket.HasReplicas)
@@ -877,8 +880,9 @@ namespace Couchbase.KeyValue
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
-            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas);
             options ??= GetAllReplicasOptions.Default;
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetAllReplicas, options.RequestSpanValue);
             var vBucket = (VBucket) _bucket.KeyMapper!.MapKey(id);
             if (!vBucket.HasReplicas)
                 Logger.LogWarning(
@@ -1052,9 +1056,9 @@ namespace Couchbase.KeyValue
         #endregion
 
         #region tracing
-        private IRequestSpan RootSpan(string operation)
+        private IRequestSpan RootSpan(string operation, IRequestSpan? parentSpan = null)
         {
-            var span = _tracer.RequestSpan(operation);
+            var span = _tracer.RequestSpan(operation, parentSpan);
             span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
             span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
             span.SetAttribute(OuterRequestSpans.Attributes.BucketName, _bucket.Name);

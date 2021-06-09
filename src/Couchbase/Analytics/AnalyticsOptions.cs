@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 using Newtonsoft.Json;
 
@@ -21,6 +22,18 @@ namespace Couchbase.Analytics
         internal int PriorityValue { get; set; } = 0;
         internal TimeSpan? TimeoutValue { get; set; }
         internal IRetryStrategy? RetryStrategyValue { get; set; }
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        /// <summary>
+        /// A parent or external span for tracing.
+        /// </summary>
+        /// <param name="span">An external <see cref="IRequestSpan"/> implementation for tracing.</param>
+        /// <returns></returns>
+        public AnalyticsOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         /// <summary>
         /// Overrides the global <see cref="IRetryStrategy"/> defined in <see cref="ClusterOptions"/> for a request.

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Views;
@@ -33,6 +34,18 @@ namespace Couchbase.Views
         internal DesignDocumentNamespace @NamespaceValue { get; set; } = DesignDocumentNamespace.Production;
         internal ITypeSerializer? SerializerValue { get; set; }
         internal IRetryStrategy? RetryStrategyValue { get; set; }
+        internal IRequestSpan? RequestSpanValue { get; private set; }
+
+        /// <summary>
+        /// A parent or external span for tracing.
+        /// </summary>
+        /// <param name="span">An external <see cref="IRequestSpan"/> implementation for tracing.</param>
+        /// <returns></returns>
+        public ViewOptions RequestSpan(IRequestSpan span)
+        {
+            RequestSpanValue = span;
+            return this;
+        }
 
         public ViewOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
