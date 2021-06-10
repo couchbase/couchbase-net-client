@@ -1,3 +1,4 @@
+#nullable enable
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Collections;
 using System;
@@ -14,24 +15,24 @@ namespace Couchbase.Test.Common.Utils
     /// </summary>
     public class DisposeCleaner : IDisposable
     {
-        private readonly Action onDispose;
-        private readonly ITestOutputHelper? outputHelper;
+        private readonly Action _onDispose;
+        private readonly ITestOutputHelper? _outputHelper;
 
         public DisposeCleaner(Action onDispose, ITestOutputHelper? outputHelper = null)
         {
-            this.onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
-            this.outputHelper = outputHelper;
+            this._onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
+            this._outputHelper = outputHelper;
         }
 
         public void Dispose()
         {
             try
             {
-                this.onDispose();
+                this._onDispose();
             }
             catch (Exception e)
             {
-                this.outputHelper?.WriteLine(nameof(DisposeCleaner) + ": failure during cleanup: " + e.ToString());
+                this._outputHelper?.WriteLine(nameof(DisposeCleaner) + ": failure during cleanup: " + e.ToString());
             }
         }
 
@@ -58,7 +59,7 @@ namespace Couchbase.Test.Common.Utils
     public class DisposeCleanerAsync : IAsyncDisposable
     {
         private readonly Func<Task> onDispose;
-        private readonly ITestOutputHelper outputHelper;
+        private readonly ITestOutputHelper? outputHelper;
 
         public DisposeCleanerAsync(Func<Task> onDispose, ITestOutputHelper? outputHelper = null)
         {

@@ -1,3 +1,4 @@
+using Couchbase.Management.Analytics.Link;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -26,6 +27,14 @@ namespace Couchbase.Management.Analytics
         Task ConnectLinkAsync(ConnectAnalyticsLinkOptions? options = null);
 
         Task DisconnectLinkAsync(DisconnectAnalyticsLinkOptions? options = null);
+
+        Task CreateLinkAsync(AnalyticsLink link, CreateAnalyticsLinkOptions? options = null);
+
+        Task ReplaceLinkAsync(AnalyticsLink link, ReplaceAnalyticsLinkOptions? options = null);
+
+        Task DropLinkAsync(string linkName, string dataverseName, DropAnalyticsLinkOptions? options = null);
+
+        Task<IEnumerable<AnalyticsLink>> GetLinks(GetAnalyticsLinksOptions? options = null);
 
         Task<Dictionary<string, int>> GetPendingMutationsAsync(GetPendingAnalyticsMutationsOptions? options = null);
     }

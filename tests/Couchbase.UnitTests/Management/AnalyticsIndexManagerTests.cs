@@ -6,10 +6,13 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Analytics;
+using Couchbase.Management.Analytics.Link;
 using Couchbase.Query;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -244,7 +247,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                var fields = new Dictionary<string, string> {{"name", "string"}};
+                var fields = new Dictionary<string, string> { { "name", "string" } };
                 await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(true).DataverseName("test_dataverse")).ConfigureAwait(false);
                 mockAnalyticsClient.VerifyAll();
             }
@@ -260,7 +263,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                var fields = new Dictionary<string, string> {{"name", "string"}};
+                var fields = new Dictionary<string, string> { { "name", "string" } };
                 await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(false).DataverseName("test_dataverse")).ConfigureAwait(false);
                 mockAnalyticsClient.VerifyAll();
             }
@@ -276,7 +279,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                var fields = new Dictionary<string, string> {{"name", "string"}};
+                var fields = new Dictionary<string, string> { { "name", "string" } };
                 await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(false)).ConfigureAwait(false);
                 mockAnalyticsClient.VerifyAll();
             }
@@ -292,7 +295,7 @@ namespace Couchbase.UnitTests.Management
                         It.IsAny<AnalyticsOptions>()))
                     .ReturnsAsync(new StreamingAnalyticsResult<dynamic>(stream, new DefaultSerializer()));
                 var manager = new AnalyticsIndexManager(_mockLogger.Object, mockAnalyticsClient.Object, _mockRedactor.Object, _mockProvider.Object, _httpClient);
-                var fields = new Dictionary<string, string> {{"name", "string"}};
+                var fields = new Dictionary<string, string> { { "name", "string" } };
                 await manager.CreateIndexAsync("test_dataset", "test_index", fields, new CreateAnalyticsIndexOptions().IgnoreIfExists(true)).ConfigureAwait(false);
                 mockAnalyticsClient.VerifyAll();
             }
@@ -458,9 +461,9 @@ namespace Couchbase.UnitTests.Management
             queryResult
                 .SetupGet(m => m.MetaData)
                 .Returns(new AnalyticsMetaData
-            {
-                Status = AnalyticsStatus.Success
-            });
+                {
+                    Status = AnalyticsStatus.Success
+                });
             queryResult.SetupGet(m => m.RetryReason).Returns(RetryReason.NoRetry);
             queryResult.SetupGet(m => m.Rows).Returns(indexes.ToAsyncEnumerable());
 
@@ -521,6 +524,139 @@ namespace Couchbase.UnitTests.Management
             Assert.NotNull(first);
             Assert.Equal("test_dataset", first.Name);
             mockAnalyticsClient.VerifyAll();
+        }
+
+        [Theory]
+        [InlineData(CouchbaseRemoteAnalyticsLink.EncryptionLevel.None)]
+        [InlineData(CouchbaseRemoteAnalyticsLink.EncryptionLevel.Half)]
+        public void CouchbaseRemoteAnalyticsLink_LessThanFullEncryption_RequiresUserAndPass(CouchbaseRemoteAnalyticsLink.EncryptionLevel encryptionLevel)
+        {
+            var linkInvalid = new CouchbaseRemoteAnalyticsLink("fooLink", "fooVerse", "localhost", new(encryptionLevel));
+            Assert.Equal("couchbase", linkInvalid.LinkType);
+            var isValid = linkInvalid.TryValidateForRequest(out var errors);
+            Assert.False(isValid, "link with no user/pass should be invalid");
+            Assert.NotEmpty(errors);
+            Assert.ThrowsAny<ArgumentException>(linkInvalid.ValidateForRequest);
+
+            var linkValid = linkInvalid with
+            {
+                Username = "someUser",
+                Password = "correct battery horse staple"
+            };
+
+            Assert.Equal("couchbase", linkValid.LinkType);
+            Assert.True(linkValid.TryValidateForRequest(out var shouldBeNoErrors));
+            Assert.Empty(shouldBeNoErrors);
+        }
+
+        [Theory]
+        [InlineData("user", "pass", "Cert", null, null, true)]
+        [InlineData("user", "pass", null, null, null, false)]
+        [InlineData(null, null, "Cert", "clientCert", "clientKey", true)]
+        [InlineData(null, null, null, "clientCert", "clientKey", false)]
+        [InlineData("user", "pass", "Cert", "clientCert", "clientKey", true)]
+        public void CouchbaseRemoteAnalyticsLink_FullEncryption_Validate(string username, string password, string certificate, string clientCert, string clientKey, bool expectValid)
+        {
+            // full encryption requires Certificate to be set in all cases, and either User+Pass or ClientCert+ClientKey
+            var linkInvalid = new CouchbaseRemoteAnalyticsLink("fooLink", "fooVerse", "localhost", new(CouchbaseRemoteAnalyticsLink.EncryptionLevel.Full));
+            Assert.Equal("couchbase", linkInvalid.LinkType);
+            var isValid = linkInvalid.TryValidateForRequest(out var errors);
+            Assert.False(isValid, "link with no user/pass or clientCert/Key should be invalid");
+            Assert.NotEmpty(errors);
+            Assert.ThrowsAny<ArgumentException>(linkInvalid.ValidateForRequest);
+
+            var link = CouchbaseRemoteAnalyticsLink.WithFullEncryption(
+                linkInvalid.Name,
+                linkInvalid.Dataverse,
+                linkInvalid.Hostname,
+                certificate,
+                clientCert, clientKey) with
+            {
+                Username = username,
+                Password = password
+            };
+
+            Assert.Equal("couchbase", link.LinkType);
+            Assert.Equal(expectValid, link.TryValidateForRequest(out var moreErrors));
+            if (expectValid)
+            {
+                Assert.Empty(moreErrors);
+            }
+            else
+            {
+                Assert.NotEmpty(moreErrors);
+            }
+        }
+
+        // TODO: verify appropriate fields after fetching for CouchbaseRemoteAnalyticsLink
+
+        [Theory]
+        [InlineData("someName", "someDataverse/sub1", "someAccessKey", "accessKeyId", "someSession", "someRegion", "someEndpoint", true)]
+        [InlineData("someName", "someDataverse/sub1", "someAccessKey", "accessKeyId", null         , "someRegion", "someEndpoint", true)]
+        [InlineData("someName", "someDataverse/sub1", "someAccessKey", "accessKeyId", null,          "someRegion", null          , true)]
+        [InlineData(null,       "someDataverse/sub1", "someAccessKey", "accessKeyId", "someSession", "someRegion", "someEndpoint", false)]
+        [InlineData("someName", null,                 "someAccessKey", "accessKeyId", "someSession", "someRegion", "someEndpoint", false)]
+        [InlineData("someName", "someDataverse/sub1", null,            "accessKeyId", "someSession", "someRegion", "someEndpoint", false)]
+        [InlineData("someName", "someDataverse/sub1", "someAccessKey", "accessKeyId", "someSession", null,         "someEndpoint", false)]
+        [InlineData(null, null, null, null, null, null, null, false)]
+        public void S3ExternalAnalyticsLink_Validate(string name, string dataverse, string secretAccessKey, string accessKeyId, string sessionToken, string region, string serviceEndpoint, bool expectValid)
+        {
+            var link = new S3ExternalAnalyticsLink(name, dataverse, accessKeyId, secretAccessKey, region)
+            {
+                SessionToken = sessionToken,
+                ServiceEndpoint = serviceEndpoint
+            };
+
+            Assert.Equal("s3", link.LinkType);
+
+            var isValid = link.TryValidateForRequest(out var errors);
+            Assert.Equal(expectValid, isValid);
+            if (expectValid)
+            {
+                Assert.Empty(errors);
+            }
+            else
+            {
+                Assert.NotEmpty(errors);
+                Assert.Throws<ArgumentException>(link.ValidateForRequest);
+            }
+        }
+
+        [Theory]
+        [InlineData("someName", "someDV", "someCs", "someAcctName", "someAcctKey", "someSharedAccessSig", "someBlobEP", "someEPSuffix", true)]
+        [InlineData("someName", "someDV", "someCs", "someAcctName", "someAcctKey", "someSharedAccessSig", null,         null,           true)]
+        [InlineData("someName", "someDV", null,      "someAcctName", "someAcctKey", null,                  null,         null,           true)]
+        [InlineData("someName", "someDV", null,      "someAcctName", null,          "someSharedAccessSig",                  null,         null,           true)]
+        [InlineData("someName", "someDV", "someCs", null, null, null, null, null, true)]
+        [InlineData(null,       "someDV", "someCs", "someAcctName", "someAcctKey", "someSharedAccessSig", "someBlobEP", "someEPSuffix", false)]
+        [InlineData("someName", null,     "someCs", "someAcctName", "someAcctKey", "someSharedAccessSig", "someBlobEP", "someEPSuffix", false)]
+        [InlineData("someName", "someDV", null,     null,           "someAcctKey", "someSharedAccessSig", "someBlobEP", "someEPSuffix", false)]
+        [InlineData("someName", "someDV", null,     "someAcctName", null,          null,                  "someBlobEP", "someEPSuffix", false)]
+        public void AzureBlobAnalyticsLink_Validate(string name, string dataverse, string connectionString, string accountName, string accountKey, string sharedAccessSignature, string blobEndpoint, string endpointSuffix, bool expectValid)
+        {
+            var link = new AzureBlobExternalAnalyticsLink(name, dataverse)
+            {
+                ConnectionString = connectionString,
+                AccountName = accountName,
+                AccountKey = accountKey,
+                SharedAccessSignature = sharedAccessSignature,
+                BlobEndpoint = blobEndpoint,
+                EndpointSuffix = endpointSuffix
+            };
+
+            Assert.Equal("azureblob", link.LinkType);
+
+            var isValid = link.TryValidateForRequest(out var errors);
+            Assert.Equal(expectValid, isValid);
+            if (expectValid)
+            {
+                Assert.Empty(errors);
+            }
+            else
+            {
+                Assert.NotEmpty(errors);
+                Assert.Throws<ArgumentException>(link.ValidateForRequest);
+            }
         }
     }
 }

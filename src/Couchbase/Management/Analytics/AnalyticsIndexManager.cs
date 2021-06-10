@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
@@ -9,8 +11,10 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Management.Analytics.Link;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Analytics
@@ -380,6 +384,148 @@ namespace Couchbase.Management.Analytics
                 throw;
             }
         }
+        public async Task CreateLinkAsync(AnalyticsLink link, CreateAnalyticsLinkOptions? options = null)
+        {
+            link.ValidateForRequest();
+            options ??= new();
+            try
+            {
+                var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
+                builder.Path = link.ManagementPath;
+                var uri = builder.Uri;
+                var formContent = new FormUrlEncodedContent(link.FormData);
+                var result = await _couchbaseHttpClient.PostAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
+                await HandleLinkManagementResultErrors(result, link);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to create link.");
+                throw;
+            }
+        }
+
+        public async Task ReplaceLinkAsync(AnalyticsLink link, ReplaceAnalyticsLinkOptions? options = null)
+        {
+            link.ValidateForRequest();
+            options ??= new();
+            try
+            {
+                var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
+                builder.Path = link.ManagementPath;
+                var uri = builder.Uri;
+                var formContent = new FormUrlEncodedContent(link.FormData);
+                var result = await _couchbaseHttpClient.PutAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
+                var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                await HandleLinkManagementResultErrors(result, link);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to replace link.");
+                throw;
+            }
+        }
+
+        public async Task DropLinkAsync(string linkName, string dataverseName, DropAnalyticsLinkOptions? options = null)
+        {
+            _ = linkName ?? throw new ArgumentNullException(nameof(linkName));
+            _ = dataverseName ?? throw new ArgumentNullException(nameof(dataverseName));
+            options ??= new();
+            try
+            {
+                var dummy = new GeneralAnalyticsLinkResponse(linkName, dataverseName);
+                var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
+                builder.Path = dummy.ManagementPath;
+                var uri = builder.Uri;
+                var result = await _couchbaseHttpClient.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                await HandleLinkManagementResultErrors(result, linkName, dataverseName);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to delete link.");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<AnalyticsLink>> GetLinks(GetAnalyticsLinksOptions? options = null)
+        {
+            options ??= new();
+            try
+            {
+                var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
+                var sb = new StringBuilder("analytics/link");
+                if (!string.IsNullOrEmpty(options.DataverseName))
+                {
+                    sb.Append("/").Append(Uri.EscapeUriString(UncompoundName(options.DataverseName!)));
+                    if (!string.IsNullOrEmpty(options.Name))
+                    {
+                        sb.Append("/").Append(Uri.EscapeUriString(options.Name!));
+                    }
+                }
+
+                builder.Path = sb.ToString();
+                if (!string.IsNullOrEmpty(options.LinkType))
+                {
+                    builder.Query = $"type={Uri.EscapeUriString(options.LinkType!)}";
+                }
+
+                var uri = builder.Uri;
+                var result = await _couchbaseHttpClient.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var responseBody = await result.Content.ReadAsStringAsync();
+                await HandleLinkManagementResultErrors(result, string.Empty, string.Empty);
+                var jarray = JArray.Parse(responseBody);
+                var typedResults = jarray.Select<JToken, AnalyticsLink>(token => token["type"].Value<string>() switch
+                {
+                    "s3" => token.ToObject<S3ExternalAnalyticsLinkResponse>().AsRequest(),
+                    "couchbase" => token.ToObject<CouchbaseRemoteAnalyticsLinkResponse>().AsRequest(),
+                    "azureblob" => token.ToObject<AzureBlobExternalAnalyticsLinkResponse>().AsRequest(),
+                    _ => token.ToObject<GeneralAnalyticsLinkResponse>()
+                });
+
+                return typedResults;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to delete link.");
+                throw;
+            }
+        }
+
+        private Task HandleLinkManagementResultErrors(HttpResponseMessage result, AnalyticsLink link) => HandleLinkManagementResultErrors(result, link.Name, link.Dataverse);
+
+        private async Task HandleLinkManagementResultErrors(HttpResponseMessage result, string linkName, string dataverseName)
+        {
+            if (!result.IsSuccessStatusCode)
+            {
+                var body = new StringBuilder(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                body.Replace(linkName, _redactor.MetaData(linkName)?.ToString())
+                    .Replace(dataverseName, _redactor.MetaData(dataverseName)?.ToString());
+
+                var message = body.ToString();
+                switch (result.StatusCode)
+                {
+                    case System.Net.HttpStatusCode.BadRequest:
+                        if (message.StartsWith("24006:"))
+                        {
+                            throw new LinkNotFoundException(message);
+                        }
+                        else
+                        {
+                            throw new InvalidArgumentException(message);
+                        }
+                    case System.Net.HttpStatusCode.Conflict:
+                        throw new LinkExistsException(message);
+                    case System.Net.HttpStatusCode.NotFound:
+                        if (message.Contains("dataverse") == true)
+                        {
+                            throw new DataverseNotFoundException(message);
+                        }
+                        else goto default;
+                    default:
+                        throw new CouchbaseException($"Create link failed due to {result.StatusCode}");
+                }
+            }
+        }
+
 
         private Dictionary<string, int> parseResult(JToken json)
         {
@@ -430,6 +576,5 @@ namespace Couchbase.Management.Analytics
                            $"`{datasetName}`" :
                            $"{UncompoundName(dataverseName!)}.`{datasetName}`";
         }
-
     }
 }
