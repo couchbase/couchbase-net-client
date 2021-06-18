@@ -75,10 +75,6 @@ namespace Couchbase.IntegrationTests.Management
                 var scopeExistsResult = await collectionManager.ScopeExistsAsync(scopeName).ConfigureAwait(false);
                 Assert.True(scopeExistsResult);
 
-                // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
-                Assert.Equal(scopeName, getScopeResult.Name);
-
                 // get all scopes
                 var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(false);
                 var scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
@@ -90,7 +86,8 @@ namespace Couchbase.IntegrationTests.Management
                 await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
 
                 // collection exists
-                scope = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(false);
+                scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
 
                 Assert.Equal(TimeSpan.FromMinutes(10), scope.Collections.First(x=>x.Name== collectionName).MaxExpiry);
             }
@@ -121,7 +118,7 @@ namespace Couchbase.IntegrationTests.Management
                 Assert.True(scopeExistsResult);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // get all scopes
@@ -159,7 +156,7 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
@@ -185,7 +182,7 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
@@ -246,7 +243,7 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
@@ -288,7 +285,7 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
@@ -328,7 +325,7 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 // create collection
@@ -363,7 +360,7 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName).ConfigureAwait(false);
 
                 // get scope
-                var getScopeResult = await collectionManager.GetScopeAsync(scopeName).ConfigureAwait(false);
+                var getScopeResult = await collectionManager.GetScopeUsingGetAllScopesAsync(scopeName).ConfigureAwait(false);
                 Assert.Equal(scopeName, getScopeResult.Name);
 
                 await collectionManager.DropCollectionAsync(collectionSpecNone).ConfigureAwait(false);
@@ -612,6 +609,16 @@ namespace Couchbase.IntegrationTests.Management
             {
                 await DropScopeAndCollectionIfExists(scopeName, collectionSpec, collectionManager);
             }
+        }
+    }
+
+    internal static class CollectionManagerTestExtensions
+    {
+        public static async Task<ScopeSpec> GetScopeUsingGetAllScopesAsync(this ICouchbaseCollectionManager collectionManager, string scopeName)
+        {
+            var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(false);
+            var scope = getAllScopesResult.SingleOrDefault(x => x.Name == scopeName);
+            return scope;
         }
     }
 }

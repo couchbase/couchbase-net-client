@@ -10,6 +10,7 @@ namespace Couchbase.Management.Collections
     /// <remarks>Volatile</remarks>
     public interface ICouchbaseCollectionManager
     {
+        [Obsolete("Use GetAllScopesAsync instead.")]
         Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null);
 
         Task<IEnumerable<ScopeSpec>> GetAllScopesAsync(GetAllScopesOptions? options = null);

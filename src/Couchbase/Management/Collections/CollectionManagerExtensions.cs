@@ -38,11 +38,13 @@ namespace Couchbase.Management.Collections
             return manager.CreateScopeAsync(scopeSpec.Name, options);
         }
 
+        [Obsolete("Use GetAllScopesAsync instead.")]
         public static Task<ScopeSpec> GetScopeAsync(this ICouchbaseCollectionManager manager, string scopeName)
         {
             return manager.GetScopeAsync(scopeName, GetScopeOptions.Default);
         }
 
+        [Obsolete("Use GetAllScopesAsync instead.")]
         public static Task<ScopeSpec> GetScopeAsync(this ICouchbaseCollectionManager manager, string scopeName, Action<GetScopeOptions> configureOptions)
         {
             var options = new GetScopeOptions();

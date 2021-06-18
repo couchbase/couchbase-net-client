@@ -113,6 +113,7 @@ namespace Couchbase.Management.Collections
             }
         }
 
+        [Obsolete("Use GetAllScopesAsync instead.")]
         public async Task<ScopeSpec> GetScopeAsync(string scopeName, GetScopeOptions? options = null)
         {
             options ??= GetScopeOptions.Default;
