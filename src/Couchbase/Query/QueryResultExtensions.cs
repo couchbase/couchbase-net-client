@@ -70,7 +70,9 @@ namespace Couchbase.Query
 
                 if (error.Code >= 5000 && error.Code < 6000) throw new InternalServerFailureException();
 
-                if (error.Code == 12009) throw new CasMismatchException(context);
+                if (error.Code == 12009 && error.Message.Contains("CAS mismatch")) throw new CasMismatchException(context);
+
+                if (error.Code == 12009) throw new DmlFailureException(context);
 
                 if (error.Code >= 10000 && error.Code < 11000)
                     throw new AuthenticationFailureException(context);
