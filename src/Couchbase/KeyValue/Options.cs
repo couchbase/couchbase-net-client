@@ -292,6 +292,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        internal bool PreserveTtlValue { get; private set; }
+
+        /// <summary>
+        /// Specifies whether an existing document's expiry should be preserved.
+        /// If true, and the document exists, its expiry will not be modified.Otherwise
+        /// the document's expiry is determined by <see cref="Expiry"/>.
+        /// </summary>
+        /// <remarks>The default is false.</remarks>
+        /// <param name="preserveTtl"></param>
+        /// <returns>An options object for chaining.</returns>
+        public UpsertOptions PreserveTtl(bool preserveTtl)
+        {
+            PreserveTtlValue = preserveTtl;
+            return this;
+        }
+
         public UpsertOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
@@ -321,6 +337,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Sets the expiration for a document. By default, documents never expire - if overridden the value must be less than 50 years.
+        /// </summary>
+        /// <param name="expiry">The expiration for a document.</param>
+        /// <returns>An options instance for chaining.</returns>
         public UpsertOptions Expiry(TimeSpan expiry)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -394,7 +415,6 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-
         public InsertOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -409,6 +429,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Sets the expiration for a document. By default, documents never expire - if overridden the value must be less than 50 years.
+        /// </summary>
+        /// <param name="expiry">The time-to-live of the document.</param>
+        /// <returns>An options object for chaining.</returns>
         public InsertOptions Expiry(TimeSpan expiry)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -478,6 +503,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        internal bool PreserveTtlValue { get; private set; }
+
+        /// <summary>
+        /// Specifies whether an existing document's expiry should be preserved.
+        /// If true, and the document exists, its expiry will not be modified.Otherwise
+        /// the document's expiry is determined by <see cref="Expiry"/>.
+        /// </summary>
+        /// <remarks>The default is false.</remarks>
+        /// <param name="preserveTtl"></param>
+        /// <returns>An options object for chaining.</returns>
+        public ReplaceOptions PreserveTtl(bool preserveTtl)
+        {
+            PreserveTtlValue = preserveTtl;
+            return this;
+        }
+
         public ReplaceOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
@@ -498,6 +539,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Sets the expiration for a document. By default, documents never expire -
+        /// if overridden the value must be less than 50 years.
+        /// </summary>
+        /// <param name="expiry">The time-to-live of the document.</param>
+        /// <returns>An options object for chaining.</returns>
         public ReplaceOptions Expiry(TimeSpan expiry)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -761,7 +808,7 @@ namespace Couchbase.KeyValue
         internal TimeSpan ExpiryValue { get; private set; }
 
         /// <summary>
-        /// The document's lifetime before being evicted by the server.
+        /// The document's lifetime before being evicted by the server. By default the operation will never expire - must be set for a value less than 50 years.
         /// </summary>
         /// <param name="expiry">The <see cref="TimeSpan"/> value for expiration</param>
         /// <returns>A <see cref="IncrementOptions"/> object.</returns>
@@ -909,6 +956,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Sets the expiration for a document. By default, documents never expire - if overridden the value must be less than 50 years.
+        /// </summary>
+        /// <param name="expiry">The time-to-live of the document.</param>
+        /// <returns>An options object for chaining.</returns>
         public DecrementOptions Expiry(TimeSpan expiry)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1309,6 +1361,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Sets the expiration for a document. By default, documents never expire - if overridden the value must be less than 50 years.
+        /// </summary>
+        /// <param name="expiry">The time-to-live of the document.</param>
+        /// <returns>An options object for chaining.</returns>
         public LookupInOptions Expiry(bool expiry)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1359,6 +1416,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        internal bool PreserveTtlValue { get; private set; }
+
+        /// <summary>
+        /// Specifies whether an existing document's expiry should be preserved.
+        /// If true, and the document exists, its expiry will not be modified.Otherwise
+        /// the document's expiry is determined by <see cref="Expiry"/>.
+        /// </summary>
+        /// <remarks>The default is false.</remarks>
+        /// <param name="preserveTtl"></param>
+        /// <returns>An options object for chaining.</returns>
+        public MutateInOptions PreserveTtl(bool preserveTtl)
+        {
+            PreserveTtlValue = preserveTtl;
+            return this;
+        }
+
         public MutateInOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
@@ -1386,6 +1459,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Sets the expiration for a document. By default, documents never expire - if overridden the value must be less than 50 years.
+        /// </summary>
+        /// <param name="expiry">The time-to-live of the document.</param>
+        /// <returns>An options object for chaining.</returns>
         public MutateInOptions Expiry(TimeSpan expiry)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");

@@ -63,6 +63,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.CreateAsDeleted"/>
         public bool CreateAsDeleted { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.PreserveTtl"/>
+        public bool PreserveTtl { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -152,6 +155,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.CreateAsDeleted:
                         CreateAsDeleted = true;
+                        break;
+
+                    case ServerFeatures.PreserveTtl:
+                        PreserveTtl = true;
                         break;
                 }
             }

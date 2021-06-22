@@ -215,7 +215,8 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.AlternateRequestSupport,
                 IO.Operations.ServerFeatures.SynchronousReplication,
                 IO.Operations.ServerFeatures.SubdocXAttributes,
-                IO.Operations.ServerFeatures.XError
+                IO.Operations.ServerFeatures.XError,
+                IO.Operations.ServerFeatures.PreserveTtl
             };
 
             if (BucketType != BucketType.Memcached)

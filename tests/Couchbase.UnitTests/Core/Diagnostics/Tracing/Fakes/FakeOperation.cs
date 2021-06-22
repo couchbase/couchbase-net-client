@@ -31,6 +31,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public CancellationToken Token { get; set; }
         public string? ClientContextId { get; set; }
         public string? Statement { get; set; }
+        public bool PreserveTtl { get; }
         public OpCode OpCode { get; }
         public string? BucketName { get; }
         public string? SName { get; }

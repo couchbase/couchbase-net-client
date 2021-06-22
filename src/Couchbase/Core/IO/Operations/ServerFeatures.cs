@@ -79,7 +79,12 @@ namespace Couchbase.Core.IO.Operations
         /// Enables the "create as deleted" flag, allowing a document to be created in a tombstoned state.
         /// </summary>
         /// <remarks>Requires Couchbase Server 6.6 or greater.</remarks>
-        CreateAsDeleted = 0x17
+        CreateAsDeleted = 0x17,
+
+        /// <summary>
+        /// Enables preserving expiry when updating document.
+        /// </summary>
+        PreserveTtl = 0x14
     }
 }
 

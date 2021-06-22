@@ -55,6 +55,7 @@ namespace Couchbase.UnitTests.Utils
         public CancellationToken Token { get; set; }
         public string ClientContextId { get; set; }
         public string Statement { get; set; }
+        public bool PreserveTtl { get; }
         public OpCode OpCode { get; }
         public string Key { get; }
         public uint Opaque { get; }

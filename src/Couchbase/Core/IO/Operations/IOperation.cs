@@ -15,6 +15,8 @@ namespace Couchbase.Core.IO.Operations
 {
     internal interface IOperation : IDisposable, IRequest
     {
+        bool PreserveTtl { get; }
+
         /// <summary>
         /// OpCode of the operation.
         /// </summary>
@@ -26,7 +28,7 @@ namespace Couchbase.Core.IO.Operations
         string? BucketName { get; }
 
         /// <summary>
-        /// Scope name, if appplicable.
+        /// Scope name, if applicable.
         /// </summary>
         string? SName { get; }
 

@@ -41,6 +41,8 @@ namespace Couchbase.Core.IO.Operations
 
         #region IOperation Properties
 
+        public virtual bool PreserveTtl { get; set; } = false;
+
         /// <inheritdoc />
         public abstract OpCode OpCode { get; }
 

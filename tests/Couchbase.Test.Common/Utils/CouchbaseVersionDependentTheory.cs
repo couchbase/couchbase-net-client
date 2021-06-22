@@ -11,7 +11,7 @@ namespace Couchbase.IntegrationTests.Utils
     /// <remarks>
     /// Checking against versions of irregular format requires use of the ExplicitDeny or ExplicitAllow parameters.
     /// </remarks>
-    public class VersionDependentTheory : TheoryAttribute
+    public class CouchbaseVersionDependentTheory : TheoryAttribute
     {
         /// <summary>
         /// Gets or sets the minimum Version necessary to run the test.

@@ -1,3 +1,4 @@
+using System;
 using Couchbase.Core.IO.Operations;
 
 using Xunit;

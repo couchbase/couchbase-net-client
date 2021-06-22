@@ -265,6 +265,14 @@ namespace Couchbase.KeyValue
             }
 
             options ??= ReplaceOptions.Default;
+
+            //Reality check for preserveTtl server support
+            if (!_bucket.Context.SupportsPreserveTtl && options.PreserveTtlValue)
+            {
+                throw new FeatureNotAvailableException(
+                    "This version of Couchbase Server does not support preserving expiry when modifying documents.");
+            }
+
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.Replace, options.RequestSpanValue);
             using var replaceOp = new Replace<T>(_bucket.Name, id)
             {
@@ -275,7 +283,8 @@ namespace Couchbase.KeyValue
                 SName = ScopeName,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                PreserveTtl = options.PreserveTtlValue
             };
             _operationConfigurator.Configure(replaceOp, options);
 
@@ -515,6 +524,14 @@ namespace Couchbase.KeyValue
             }
 
             options ??= UpsertOptions.Default;
+
+            //Reality check for preserveTtl server support
+            if (!_bucket.Context.SupportsPreserveTtl && options.PreserveTtlValue)
+            {
+                throw new FeatureNotAvailableException(
+                    "This version of Couchbase Server does not support preserving expiry when modifying documents.");
+            }
+
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.SetUpsert, options.RequestSpanValue);
             using var upsertOp = new Set<T>(_bucket.Name, id)
             {
@@ -524,7 +541,8 @@ namespace Couchbase.KeyValue
                 Cid = Cid,
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
-                Span = rootSpan
+                Span = rootSpan,
+                PreserveTtl = options.PreserveTtlValue
             };
 
             _operationConfigurator.Configure(upsertOp, options);
@@ -627,6 +645,13 @@ namespace Couchbase.KeyValue
 
             options ??= MutateInOptions.Default;
 
+            //Reality check for preserveTtl server support
+            if (!_bucket.Context.SupportsPreserveTtl && options.PreserveTtlValue)
+            {
+                throw new FeatureNotAvailableException(
+                    "This version of Couchbase Server does not support preserving expiry when modifying documents.");
+            }
+
             //resolve StoreSemantics to SubdocDocFlags
             var docFlags = SubdocDocFlags.None;
             switch (options.StoreSemanticsValue)
@@ -667,7 +692,8 @@ namespace Couchbase.KeyValue
                 Expires = options.ExpiryValue.ToTtl(),
                 DurabilityLevel = options.DurabilityLevel,
                 DocFlags = docFlags,
-                Span = rootSpan
+                Span = rootSpan,
+                PreserveTtl = options.PreserveTtlValue
             };
             _operationConfigurator.Configure(mutation, options);
 

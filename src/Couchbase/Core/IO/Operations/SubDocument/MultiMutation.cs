@@ -67,6 +67,14 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         protected override void WriteFramingExtras(OperationBuilder builder)
         {
+
+            if (PreserveTtl)
+            {
+                Span<byte> preserveTtlByte = stackalloc byte[1];
+                preserveTtlByte[0] = 5 << 4;
+                builder.Write(preserveTtlByte);
+            }
+
             if (DurabilityLevel == DurabilityLevel.None)
             {
                 return;

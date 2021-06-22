@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.KeyValue;
 using Xunit.Abstractions;
 
 namespace Couchbase.Test.Common.Utils
@@ -42,6 +43,12 @@ namespace Couchbase.Test.Common.Utils
         public static IAsyncDisposable DropDataverseOnDispose(IAnalyticsIndexManager analyticsIndexManager, string dataverseName, ITestOutputHelper? outputHelper = null)
         {
             return new DisposeCleanerAsync(() => analyticsIndexManager.DropDataverseAsync(dataverseName), outputHelper);
+        }
+
+        public static IAsyncDisposable RemoveDocument(ICouchbaseCollection collection, string docId,
+            ITestOutputHelper outputHelper)
+        {
+            return new DisposeCleanerAsync(() => collection.RemoveAsync(docId), outputHelper);
         }
     }
 

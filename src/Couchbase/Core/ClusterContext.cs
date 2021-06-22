@@ -77,6 +77,8 @@ namespace Couchbase.Core
 
         public bool SupportsGlobalConfig { get; private set; }
 
+        public bool SupportsPreserveTtl { get; internal set; }
+
         public CancellationToken CancellationToken => _tokenSource.Token;
 
         public void StartConfigListening()
@@ -291,6 +293,7 @@ namespace Couchbase.Core
                         {
                             node.NodesAdapter = nodeAdapter;
                             SupportsCollections = node.ServerFeatures.Collections;
+                            SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                             AddNode(node);
                         }
                         else
@@ -300,6 +303,7 @@ namespace Couchbase.Core
                                 .CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, nodeAdapter,
                                     CancellationToken).ConfigureAwait(false);
                             SupportsCollections = node.ServerFeatures.Collections;
+                            SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                             AddNode(newNode);
                         }
                     }
@@ -438,6 +442,7 @@ namespace Couchbase.Core
                         {
                             await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
                             SupportsCollections = bootstrapNode.ServerFeatures.Collections;
+                            SupportsPreserveTtl = bootstrapNode.ServerFeatures.PreserveTtl;
                         }
 
                         bootstrapNode.Owner = bucket;
@@ -477,6 +482,7 @@ namespace Couchbase.Core
                 {
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
                     SupportsCollections = node.ServerFeatures.Collections;
+                    SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                 }
 
                 AddNode(node);
