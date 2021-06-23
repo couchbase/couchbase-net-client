@@ -144,6 +144,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
             {
                 childSpan.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId,
                     operation.Opaque.ToString());
+                childSpan.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds,
+                    operation.Timeout.ToString());
             }
 
             return childSpan;

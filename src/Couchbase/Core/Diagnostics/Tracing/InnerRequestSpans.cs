@@ -86,6 +86,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 ///     operation ID is a string and depends on the service used.
                 /// </summary>
                 public static string OperationId = "db.couchbase.operation_id";
+
+                /// <summary>
+                /// The operation timeout in milliseconds
+                /// </summary>
+                public static string TimeoutMilliseconds = "timeout_ms";
             }
         }
     }

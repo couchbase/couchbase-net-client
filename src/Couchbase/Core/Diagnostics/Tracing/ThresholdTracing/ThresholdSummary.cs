@@ -78,6 +78,8 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string last_remote_socket { get; set; }
 
+        public string timeout_ms { get; set; }
+
         public static ThresholdSummary FromActivity(Activity activity)
         {
             return new()
@@ -87,6 +89,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
                 encode_duration_us = SumMicroseconds(activity, ThresholdTags.EncodeDuration),
                 last_dispatch_duration_us = LastMicroseconds(activity, ThresholdTags.DispatchDuration),
                 total_dispatch_duration_us = SumMicroseconds(activity, ThresholdTags.DispatchDuration),
+                timeout_ms = LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds),
 
                 //Basic OT tags
                 total_server_duration_us = LastMicroseconds(activity, InnerRequestSpans.DispatchSpan.Attributes.ServerDuration),
