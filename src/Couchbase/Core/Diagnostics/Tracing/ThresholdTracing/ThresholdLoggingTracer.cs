@@ -33,7 +33,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             {
                 logger = state as ILogger;
                 var reportSummaries = ThresholdServiceQueue.ReportSummaries();
-                var reportJson = JArray.FromObject(reportSummaries);
+                var reportJson = JObject.FromObject(reportSummaries);
 
                 if (reportJson.HasValues)
                 {

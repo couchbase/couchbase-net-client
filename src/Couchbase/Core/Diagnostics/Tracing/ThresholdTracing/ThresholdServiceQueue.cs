@@ -89,7 +89,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             }
         }
 
-        public static IEnumerable<ThresholdSummaryReport> ReportSummaries()
+        public static IDictionary<string, ThresholdSummaryReport> ReportSummaries()
         {
             ReportIdle.Wait();
             try
@@ -98,12 +98,12 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 
                 // it would be more elegant to use yield return, but that shouldn't be mixed with semaphores
                 // in case it is only partially iterated.
-                var results = new List<ThresholdSummaryReport>(CoreQueues.Count);
+                var results = new Dictionary<string, ThresholdSummaryReport>(CoreQueues.Count);
                 foreach (var serviceQueue in CoreQueues.Values)
                 {
                     if (serviceQueue._sampleCount > 0)
                     {
-                        results.Add(serviceQueue.ReportAndReset());
+                        results.Add(serviceQueue.ServiceName, serviceQueue.ReportAndReset());
                     }
                 }
 
