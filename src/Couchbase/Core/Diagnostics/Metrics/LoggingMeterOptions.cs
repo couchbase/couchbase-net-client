@@ -8,12 +8,12 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// </summary>
     public class LoggingMeterOptions
     {
-        internal TimeSpan EmitIntervalValue { get; set; } = TimeSpan.FromSeconds(10);
+        internal TimeSpan EmitIntervalValue { get; set; } = TimeSpan.FromSeconds(600);
 
         /// <summary>
         /// The interval after which the aggregated trace information is logged.
         /// </summary>
-        /// <remarks>Defaults to 10 seconds.</remarks>
+        /// <remarks>Defaults to 600 seconds.</remarks>
         /// <param name="emitInterval"></param>
         /// <returns>A <see cref="LoggingMeterOptions"/> instance for chaining.</returns>
         public LoggingMeterOptions EmitInterval(TimeSpan emitInterval)
