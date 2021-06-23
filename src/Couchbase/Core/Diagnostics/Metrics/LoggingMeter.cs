@@ -9,6 +9,7 @@ using System.Text;
 using System.Timers;
 using App.Metrics;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Core.Diagnostics.Metrics
@@ -82,7 +83,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
                 if (report != null)
                 {
-                    _logger.LogInformation(report.ToString());
+                    _logger.LogInformation(report.ToString(Formatting.None));
                 }
             }
             finally
