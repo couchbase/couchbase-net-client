@@ -74,7 +74,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
 
             public ILogger CreateLogger(string categoryName)
             {
-                return new AggregatingMeterTestsLogger(LoggedData);
+                return new LoggingMeterTestsLogger(LoggedData);
             }
 
             public void AddProvider(ILoggerProvider provider)
@@ -82,11 +82,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
                 throw new NotImplementedException();
             }
 
-            private class AggregatingMeterTestsLogger : ILogger
+            private class LoggingMeterTestsLogger : ILogger
             {
                 private readonly ConcurrentBag<string> _loggedData;
 
-                public AggregatingMeterTestsLogger(ConcurrentBag<string> loggedData)
+                public LoggingMeterTestsLogger(ConcurrentBag<string> loggedData)
                 {
                     _loggedData = loggedData;
                 }

@@ -515,7 +515,7 @@ namespace Couchbase.Core.IO.Operations
                 _isSent = true;
                 dispatchSpan.Dispose();
 
-                //for measuring latency using an AggregatingMeter or similar.
+                //for measuring latency using an LoggingMeter or similar.
                 Recorder.RecordValue(dispatchSpan.Duration ?? 0);
             }
             finally

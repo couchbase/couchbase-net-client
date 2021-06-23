@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace Couchbase.Core.Diagnostics.Metrics
 {
     /// <summary>
-    /// Options for <see cref="AggregatingMeter"/> instances.
+    /// Options for <see cref="LoggingMeter"/> instances.
     /// </summary>
     public class LoggingMeterOptions
     {
@@ -48,10 +48,10 @@ namespace Couchbase.Core.Diagnostics.Metrics
             return this;
         }
 
-        internal IMeter AggregatingMeterValue { get; set; }
-        public LoggingMeterOptions AggregatingMeter(IMeter meter)
+        internal IMeter LoggingMeterValue { get; set; }
+        public LoggingMeterOptions LoggingMeter(IMeter meter)
         {
-            AggregatingMeterValue = meter;
+            LoggingMeterValue = meter;
             return this;
         }
 
@@ -61,7 +61,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
             {
                 throw new NullReferenceException(nameof(loggerFactory));
             }
-            return AggregatingMeterValue ??= new LoggingMeter(loggerFactory, this);
+            return LoggingMeterValue ??= new LoggingMeter(loggerFactory, this);
         }
     }
 }

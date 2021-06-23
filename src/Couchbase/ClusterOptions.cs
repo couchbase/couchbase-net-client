@@ -368,19 +368,19 @@ namespace Couchbase
             return WithThresholdTracing(opts);
         }
 
-        public LoggingMeterOptions AggregatingMeterOptions { get; set; } = new();
+        public LoggingMeterOptions LoggingMeterOptions { get; set; } = new();
 
-        public ClusterOptions WithAggregatingMeterOptions(LoggingMeterOptions options)
+        public ClusterOptions WithLoggingMeterOptions(LoggingMeterOptions options)
         {
-            AggregatingMeterOptions = options;
+            LoggingMeterOptions = options;
             return this;
         }
 
-        public ClusterOptions WithAggregatingMeterOptions(Action<LoggingMeterOptions> configure)
+        public ClusterOptions WithLoggingMeterOptions(Action<LoggingMeterOptions> configure)
         {
             var opts = new LoggingMeterOptions();
             configure(opts);
-            return WithAggregatingMeterOptions(opts);
+            return WithLoggingMeterOptions(opts);
         }
 
         /// <summary>
@@ -614,8 +614,8 @@ namespace Couchbase
         {
             this.AddClusterService(this);
             this.AddClusterService(Logging ??= new NullLoggerFactory());
-            this.AddClusterService(AggregatingMeterOptions);
-            if (AggregatingMeterOptions.EnabledValue)
+            this.AddClusterService(LoggingMeterOptions);
+            if (LoggingMeterOptions.EnabledValue)
             {
                 this.AddClusterService<IMeter, LoggingMeter>();
             }
