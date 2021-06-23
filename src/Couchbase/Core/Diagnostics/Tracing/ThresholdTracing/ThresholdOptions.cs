@@ -108,9 +108,9 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         public IRequestTracer RequestTracer { get; set; }
 
         /// <summary>
-        /// Enables threshold tracing. Defaults to disabled.
+        /// Enables threshold tracing. Defaults to enabled.
         /// </summary>
-        public bool Enabled { get; set; }
+        public bool Enabled { get; set; } = true;
 
         public IReadOnlyDictionary<string, TimeSpan> GetServiceThresholds()
         {
