@@ -54,7 +54,7 @@ namespace Couchbase.UnitTests.Management
 
             var serializer = new DefaultSerializer();
             var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
+                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
                 new Redactor(new ClusterOptions()));

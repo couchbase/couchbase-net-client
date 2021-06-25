@@ -1,27 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.Threading;
 using Couchbase.Search;
 using Newtonsoft.Json;
 
 namespace Couchbase.Core.Retry.Search
 {
-    internal class SearchRequest : IRequest
+    internal class SearchRequest : RequestBase
     {
-        private IRetryStrategy _retryStrategy;
-        public uint Attempts { get; set; }
-        public bool Idempotent { get; } = true;
-        public List<RetryReason> RetryReasons { get; set; } = new List<RetryReason>();
-        public IRetryStrategy RetryStrategy
-        {
-            get => _retryStrategy ??= new BestEffortRetryStrategy();
-            set => _retryStrategy = value;
-        }
-        public TimeSpan Timeout { get; set; }
-        public CancellationToken Token { get; set; }
-        public string ClientContextId { get; set; }
-        public string Statement { get; set; }
-
+        public override bool Idempotent => true;
         public string Index { get; set; }
         public ISearchQuery Query { get; set; }
         public SearchOptions Options { get; set; }

@@ -10,6 +10,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -448,7 +449,8 @@ namespace Couchbase.UnitTests.Core.Retry
                     return await client1.QueryAsync<dynamic>(statement, options);
                 }
 
-                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, AnalyticsRequest.Create(statement, options)));
+                var meter = NoopMeter.Instance;
+                await AssertThrowsIfExpectedAsync(errorType, () => retryOrchestrator.RetryAsync(Send, AnalyticsRequest.Create(statement, meter.ValueRecorder("analytics"), options)));
             }
         }
 

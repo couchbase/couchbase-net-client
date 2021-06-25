@@ -92,7 +92,6 @@ namespace Couchbase.Core.Retry
                                 request.ClientContextId,
                                 request.Statement, reason);
 
-
                             var duration = action.DurationValue;
                             if (duration.HasValue)
                             {
@@ -139,6 +138,7 @@ namespace Couchbase.Core.Retry
                     catch (TaskCanceledException _)
                     {
                         _logger.LogDebug("Request was canceled after {elapsed}.", stopwatch.ElapsedMilliseconds);
+
                         //timed out while waiting
                         if (request.Idempotent)
                         {
@@ -151,6 +151,9 @@ namespace Couchbase.Core.Retry
             }
             finally
             {
+                //stop recording metrics and either return result or throw exception
+                request.StopRecording();
+
                 cts2?.Dispose();
                 cts1?.Dispose();
             }

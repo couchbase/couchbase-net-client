@@ -87,6 +87,11 @@ namespace Couchbase.UnitTests.Utils
             throw new NotImplementedException();
         }
 
+        public void StopRecording()
+        {
+            throw new NotImplementedException();
+        }
+
         public bool IsReadOnly { get; set; }
         public bool IsSent { get; private set; }
 

@@ -37,22 +37,19 @@ namespace Couchbase.Query
         private readonly ILogger<QueryClient> _logger;
         private readonly IRequestTracer _tracer;
         internal bool EnhancedPreparedStatementsEnabled;
-        private readonly IMeter _meter;
 
         public QueryClient(
             CouchbaseHttpClient httpClient,
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer serializer,
             ILogger<QueryClient> logger,
-            IRequestTracer tracer,
-            IMeter meter)
+            IRequestTracer tracer)
             : base(httpClient)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
-            _meter = meter ?? throw new ArgumentNullException(nameof(meter));
         }
 
         /// <inheritdoc />
@@ -188,9 +185,6 @@ namespace Couchbase.Query
                 using var dispatchSpan = span.DispatchSpan(options);
                 var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
                 dispatchSpan.Dispose();
-
-                var recorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.N1QLQuery}|{queryUri.Host}");
-                recorder.RecordValue(dispatchSpan.Duration ?? 0);
 
                 var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 

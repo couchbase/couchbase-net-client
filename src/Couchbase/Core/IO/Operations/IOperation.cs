@@ -83,11 +83,6 @@ namespace Couchbase.Core.IO.Operations
         IRequestSpan Span { get; }
 
         /// <summary>
-        /// A <see cref="IValueRecorder"/> instance for measuring latencies.
-        /// </summary>
-        IValueRecorder Recorder { get; set; }
-
-        /// <summary>
         /// Indicates that a mutation operation has a durability requirement.
         /// </summary>
         bool HasDurability { get; }

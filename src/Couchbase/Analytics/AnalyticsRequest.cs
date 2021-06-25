@@ -1,41 +1,33 @@
+#nullable enable
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Retry;
-using System;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace Couchbase.Analytics
 {
-    internal class AnalyticsRequest : IRequest
+    public class AnalyticsRequest : RequestBase
     {
-        public static AnalyticsRequest Create(string statement, AnalyticsOptions options)
+        public static AnalyticsRequest Create(string statement, IValueRecorder recorder, AnalyticsOptions options)
         {
-            return new()
+            return new(options.ReadonlyValue)
             {
-                    RetryStrategy = options.RetryStrategyValue,
+                    RetryStrategy = options.RetryStrategyValue ?? new BestEffortRetryStrategy(),
                     Timeout = options.TimeoutValue!.Value,
                     ClientContextId = options.ClientContextIdValue,
                     Statement = statement,
                     Token = options.Token,
                     Options = options,
-                    Idempotent = options.ReadonlyValue
+                    Recorder = recorder
                 };
         }
 
-        private IRetryStrategy _retryStrategy;
-        public uint Attempts { get; set; }
-        public bool Idempotent{ get;set; }
-        public IRetryStrategy RetryStrategy
+        public AnalyticsRequest(bool idempotent)
         {
-            get => _retryStrategy ??= new BestEffortRetryStrategy();
-            set => _retryStrategy = value;
+            Idempotent = idempotent;
         }
-        public TimeSpan Timeout { get; set; }
-        public CancellationToken Token { get; set; }
-        public string ClientContextId { get; set; }
-        public List<RetryReason> RetryReasons { get; set; } = new();
-        public string Statement { get; set; }
+
+        public override bool Idempotent { get; }
 
         //specific to analytics
-        public AnalyticsOptions Options { get; set; }
+        public AnalyticsOptions? Options { get; set; }
     }
 }

@@ -18,7 +18,7 @@ namespace Couchbase.Views
     /// <summary>
     /// Implemented as an object that can query a Couchbase View.
     /// </summary>
-    internal class ViewQuery : IViewQuery
+    internal class ViewQuery : RequestBase, IViewQuery
     {
         private const string UriFormat = "{0}://{1}:{2}/{3}/";
         public const string Design = "_design";
@@ -54,7 +54,6 @@ namespace Couchbase.Views
         private bool? _debug;
         private readonly Dictionary<string, string> _rawParams = new Dictionary<string, string>();
         private DesignDocumentNamespace _namespace = DesignDocumentNamespace.Production;
-        private IRetryStrategy? _retryStrategy;
 
         /// <summary>
         /// Gets the name of the design document.
@@ -644,22 +643,10 @@ namespace Couchbase.Views
             return json.ToString(Formatting.None);
         }
 
-        public uint Attempts { get; set; }
-        public bool Idempotent { get; } = true;
-        public List<RetryReason> RetryReasons { get; set; } = new List<RetryReason>();
-        public TimeSpan Timeout { get; set; }
-        public CancellationToken Token { get; set; }
-        public string? ClientContextId { get; set; }
-        public string? Statement { get; set; }
+        public override bool Idempotent => true;
 
-        /// <inheritdoc />
+            /// <inheritdoc />
         public ITypeSerializer? Serializer { get; set; }
-
-        public IRetryStrategy RetryStrategy
-        {
-            get => _retryStrategy ??= new BestEffortRetryStrategy();
-            set => _retryStrategy = value;
-        }
     }
 }
 

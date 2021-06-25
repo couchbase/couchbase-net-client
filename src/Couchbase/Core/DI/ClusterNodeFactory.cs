@@ -63,7 +63,7 @@ namespace Couchbase.Core.DI
             var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
 
             //for recording k/v latencies per request
-            var valueRecorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.Kv.Name}|{ipEndPoint}");
+            var valueRecorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.Kv.Name);
 
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
                 _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType,

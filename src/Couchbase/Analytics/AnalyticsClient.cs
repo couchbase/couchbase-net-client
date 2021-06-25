@@ -25,7 +25,6 @@ namespace Couchbase.Analytics
         private readonly ITypeSerializer _typeSerializer;
         private readonly ILogger<AnalyticsClient> _logger;
         private readonly IRequestTracer _tracer;
-        private readonly IMeter _meter;
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(
@@ -33,15 +32,13 @@ namespace Couchbase.Analytics
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer typeSerializer,
             ILogger<AnalyticsClient> logger,
-            IRequestTracer tracer,
-            IMeter meter)
+            IRequestTracer tracer)
             : base(client)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer;
-            _meter = meter;
         }
 
         /// <inheritdoc />
@@ -81,9 +78,6 @@ namespace Couchbase.Analytics
                     using var dispatchSpan = rootSpan.DispatchSpan(options);
                     var response = await HttpClient.SendAsync(request, options.Token).ConfigureAwait(false);
                     dispatchSpan.Dispose();
-
-                    var recorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.AnalyticsQuery}|{analyticsUri.Host}");
-                    recorder.RecordValue(dispatchSpan.Duration ?? 0);
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 

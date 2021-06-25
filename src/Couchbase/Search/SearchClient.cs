@@ -30,7 +30,6 @@ namespace Couchbase.Search
         private readonly IServiceUriProvider _serviceUriProvider;
         private readonly ILogger<SearchClient> _logger;
         private readonly IRequestTracer _tracer;
-        private readonly IMeter _meter;
         private readonly IDataMapper _dataMapper;
 
         //for log redaction
@@ -40,14 +39,12 @@ namespace Couchbase.Search
             CouchbaseHttpClient httpClient,
             IServiceUriProvider serviceUriProvider,
             ILogger<SearchClient> logger,
-            IRequestTracer tracer,
-            IMeter meter)
+            IRequestTracer tracer)
             : base(httpClient)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _tracer = tracer;
-            _meter = meter;
 
             // Always use the SearchDataMapper
             _dataMapper = new SearchDataMapper();
@@ -87,9 +84,6 @@ namespace Couchbase.Search
                 using var dispatchSpan = rootSpan.DispatchSpan(searchRequest);
                 var response = await HttpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
                 dispatchSpan.Dispose();
-
-                var recorder = _meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.SearchQuery}|{uriBuilder.Host}");
-                recorder.RecordValue(dispatchSpan.Duration ?? 0);
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                 {

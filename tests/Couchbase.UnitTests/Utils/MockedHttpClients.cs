@@ -50,7 +50,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance, NoopMeter.Instance)
+                new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance)
             {
                 EnhancedPreparedStatementsEnabled = enableEnhancedPreparedStatements
             };
@@ -83,7 +83,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
-                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
         }
 
         internal static ISearchClient SearchClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
@@ -112,7 +112,7 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(new Uri("http://localhost:8094"));
 
             return new SearchClient(httpClient, mockServiceUriProvider.Object,
-                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
         }
 
         internal static IViewClient ViewClient([NotNull] Queue<Task<HttpResponseMessage>> responses)
@@ -137,7 +137,7 @@ namespace Couchbase.UnitTests.Utils
 
             var serializer = new DefaultSerializer();
             return new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
-                new Mock<IRedactor>().Object, NoopRequestTracer.Instance, NoopMeter.Instance);
+                new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
         }
     }
 }

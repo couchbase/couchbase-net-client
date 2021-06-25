@@ -293,7 +293,8 @@ namespace Couchbase
                 Statement = statement,
                 Token = options.Token,
                 Timeout = options.TimeoutValue.Value,
-                RetryStrategy =  options.RetryStrategyValue ?? _retryStrategy
+                RetryStrategy =  options.RetryStrategyValue ?? _retryStrategy,
+                Recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.N1QLQuery)
             }).ConfigureAwait(false);
         }
 
@@ -329,7 +330,10 @@ namespace Couchbase
                 return await client1.QueryAsync<T>(statement, options1).ConfigureAwait(false);
             }
 
-            return await _retryOrchestrator.RetryAsync(Func, AnalyticsRequest.Create(statement, options)).ConfigureAwait(false);
+            //for measuring latencies
+            var recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.AnalyticsQuery);
+
+            return await _retryOrchestrator.RetryAsync(Func, AnalyticsRequest.Create(statement, recorder, options)).ConfigureAwait(false);
         }
 
         #endregion
@@ -350,7 +354,8 @@ namespace Couchbase
                 Options = options,
                 Token = options.Token,
                 Timeout = options.TimeoutValue.Value,
-                RetryStrategy = options.RetryStrategyValue ?? _retryStrategy
+                RetryStrategy = options.RetryStrategyValue ?? _retryStrategy,
+                Recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.SearchQuery)
             };
 
             async Task<ISearchResult> Func()

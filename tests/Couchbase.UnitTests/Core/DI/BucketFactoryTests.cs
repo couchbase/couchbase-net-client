@@ -2,6 +2,7 @@ using System;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -37,7 +38,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                NoopMeter.Instance);
 
                 // Act
 
@@ -66,7 +68,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                NoopMeter.Instance);
 
                 // Act/Assert
 

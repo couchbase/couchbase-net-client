@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Couchbase.Core.Diagnostics.Metrics;
 
 #nullable enable
 
@@ -23,6 +24,17 @@ namespace Couchbase.Core.Retry
         /// This value changes for every request.
         /// </remarks>
         string? ClientContextId { get; set; }
+
         string? Statement { get; set; }
+
+        /// <summary>
+        /// Stops the operation timer and writes the elapsed milliseconds to the <see cref="IValueRecorder"/>.
+        /// </summary>
+        void StopRecording();
+
+        /// <summary>
+        /// A <see cref="IValueRecorder"/> instance for measuring latencies.
+        /// </summary>
+        IValueRecorder Recorder { get; set; }
     }
 }

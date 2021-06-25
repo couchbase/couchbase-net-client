@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -31,12 +32,14 @@ namespace Couchbase.Core.IO.Operations
         private IRetryStrategy? _retryStrategy;
         private volatile bool _isSent;
         private IValueRecorder? _recorder;
+        private readonly Stopwatch _stopwatch;
 
         protected OperationBase()
         {
             Opaque = SequenceGenerator.GetNext();
             Header = new OperationHeader { Status = ResponseStatus.None };
             Key = string.Empty;
+            _stopwatch = Stopwatch.StartNew();
         }
 
         #region IOperation Properties
@@ -514,9 +517,6 @@ namespace Couchbase.Core.IO.Operations
 
                 _isSent = true;
                 dispatchSpan.Dispose();
-
-                //for measuring latency using an LoggingMeter or similar.
-                Recorder.RecordValue(dispatchSpan.Duration ?? 0);
             }
             finally
             {
@@ -557,6 +557,7 @@ namespace Couchbase.Core.IO.Operations
             var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
             if (prevCompleted == 1)
             {
+                StopRecording();
                 data.Dispose();
                 return;
             }
@@ -588,10 +589,22 @@ namespace Couchbase.Core.IO.Operations
             }
             finally
             {
+                //for measuring latency using an LoggingMeter or similar.
+                StopRecording();
                 Span.Dispose();
             }
         }
 
+        #endregion
+
+        #region Tracing and Metrics
+
+        /// <inheritdoc />
+        public void StopRecording()
+        {
+            _stopwatch.Stop();
+            _recorder?.RecordValue(_stopwatch.Elapsed.ToMicroseconds());
+        }
         #endregion
 
         #region Finalization and Dispose

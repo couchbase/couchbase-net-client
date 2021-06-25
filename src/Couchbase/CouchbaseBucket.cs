@@ -5,6 +5,7 @@ using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.HTTP;
@@ -27,16 +28,18 @@ namespace Couchbase
     internal class CouchbaseBucket : BucketBase
     {
         private readonly IVBucketKeyMapperFactory _vBucketKeyMapperFactory;
+        private readonly IMeter _meter;
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewIndexManager> _viewManagerLazy;
         private readonly Lazy<ICouchbaseCollectionManager> _collectionManagerLazy;
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory,
-            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy)
+            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, IMeter meter)
             : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
+            _meter = meter;
 
             _viewClientLazy = new Lazy<IViewClient>(() =>
                 context.ServiceProvider.GetRequiredService<IViewClient>()
@@ -128,7 +131,8 @@ namespace Couchbase
             // create old style query
             var query = new ViewQuery(GetViewUri().ToString())
             {
-                UseSsl = Context.ClusterOptions.EffectiveEnableTls
+                UseSsl = Context.ClusterOptions.EffectiveEnableTls,
+                Recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.ViewQuery) //for measuring latencies
             };
 
             //Normalize to new naming convention for public API RFC#51
