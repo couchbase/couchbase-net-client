@@ -1,3 +1,4 @@
+using Couchbase.Core.Compatibility;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -62,6 +63,12 @@ namespace Couchbase.Query
         /// The warnings.
         /// </value>
         public List<QueryWarning> Warnings { get; set; } = new List<QueryWarning>();
+
+        /// <summary>
+        /// Gets the base URI of last node the query was sent to.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        public Uri LastDispatchedToNode { get; set; }
     }
 }
 #region [ License information ]

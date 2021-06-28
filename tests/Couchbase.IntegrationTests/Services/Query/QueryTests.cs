@@ -1,8 +1,12 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.Query;
+using Couchbase.Test.Common.Utils;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -122,6 +126,43 @@ namespace Couchbase.IntegrationTests.Services.Query
             }
 
             Assert.True(found);
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
+        public async Task Test_Query_BeginWork_Affinity()
+        {
+            // After a BEGIN WORK statement is issued, all queries with the same "txid" parameter should
+            // go to the same query node.
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            string txid = string.Empty;
+            Uri? originalQueryNode;
+
+            {
+                using var span = new TestOutputSpan(_testOutputHelper);
+                var results = await cluster.QueryAsync<JObject>("BEGIN WORK", options => options.RequestSpan(span)).ConfigureAwait(false);
+                originalQueryNode = new Uri(results.MetaData?.LastDispatchedToNode?.ToString());
+                await foreach (var result in results.Rows)
+                {
+                    _testOutputHelper.WriteLine(result.ToString());
+                    txid = result.Value<string>("txid");
+                }
+
+                // originalQueryNode = span.Attributes.Where(kvp => kvp.Key == "net.peer.name").Select(kvp => kvp.Value).FirstOrDefault();
+            }
+
+            for (int i = 0; i < 100; i++)
+            {
+                using var querySpan = new TestOutputSpan(_testOutputHelper);
+                var result = await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;", options =>
+                options.Parameter("txid", txid)
+                       .Parameter("net.peer.uri", originalQueryNode)
+                       .RequestSpan(querySpan)).ConfigureAwait(false);
+
+                var thisQueryHost = querySpan.Attributes.Where(kvp => kvp.Key == "net.peer.name").Select(kvp => kvp.Value).FirstOrDefault();
+                var thisQueryPort = querySpan.Attributes.Where(kvp => kvp.Key == "net.peer.port").Select(kvp => kvp.Value).FirstOrDefault();
+                Assert.Equal(originalQueryNode.Host, thisQueryHost);
+                Assert.Equal(originalQueryNode.Port.ToString(), thisQueryPort);
+            }
         }
 
         // ReSharper disable UnusedType.Local

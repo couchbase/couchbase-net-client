@@ -18,6 +18,7 @@ namespace Couchbase.Query
     /// </summary>
     public class QueryOptions
     {
+        internal const string LastDispatchedNodeParam = "net.peer.uri";
         private readonly List<object> _arguments = new List<object>();
         private readonly Dictionary<string, object> _parameters = new Dictionary<string, object>();
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
@@ -109,6 +110,19 @@ namespace Couchbase.Query
         }
 
         internal string? StatementValue => _statement;
+
+        internal string? LastDispatchedNode
+        {
+            get
+            {
+                if (_parameters.TryGetValue(LastDispatchedNodeParam, out var lastNode))
+                {
+                    return lastNode?.ToString();
+                }
+
+                return null;
+            }
+        }
 
         internal string GetAllParametersAsJson()
         {

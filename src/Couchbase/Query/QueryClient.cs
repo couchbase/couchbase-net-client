@@ -26,6 +26,7 @@ namespace Couchbase.Query
     internal class QueryClient : HttpServiceBase, IQueryClient
     {
         internal const string Error5000MsgQueryPortIndexNotFound = "queryport.indexNotFound";
+        internal const string TransactionsBeginWork = "BEGIN WORK";
 
         private static readonly string DefaultClientContextId = Guid.Empty.ToString();
 
@@ -163,7 +164,16 @@ namespace Couchbase.Query
             }
 
             // try get Query node
-            var queryUri = _serviceUriProvider.GetRandomQueryUri();
+            Uri queryUri;
+            if (options.LastDispatchedNode != null && Uri.TryCreate(options.LastDispatchedNode, UriKind.Absolute, out var parsedUri))
+            {
+                queryUri = parsedUri;
+            }
+            else
+            {
+                queryUri = _serviceUriProvider.GetRandomQueryUri();
+            }
+
             span.WithRemoteAddress(queryUri);
             using var encodingSpan = span.EncodingSpan();
             var body = options.GetFormValuesAsJson();
@@ -237,6 +247,12 @@ namespace Couchbase.Query
                         };
                     }
                     queryResult.ThrowExceptionOnError(context);
+                }
+                else if (options.StatementValue == TransactionsBeginWork)
+                {
+                    // Internal support for Transactions query node affinity
+                    // If the result has a "txid" row, grab the value and add it to the affinity map.
+                    queryResult.MetaData.LastDispatchedToNode = queryUri;
                 }
             }
             catch (OperationCanceledException e)
