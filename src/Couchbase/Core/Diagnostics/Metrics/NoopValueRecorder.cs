@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Couchbase.Core.Diagnostics.Metrics
 {
     /// <summary>
@@ -7,7 +9,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
     {
         public static IValueRecorder Instance { get; } = new NoopValueRecorder();
 
-        public void RecordValue(uint value)
+        public void RecordValue(uint value, KeyValuePair<string, string>? tag = null)
         {
         }
     }

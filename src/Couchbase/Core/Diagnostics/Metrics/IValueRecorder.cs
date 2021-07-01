@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Couchbase.Core.Diagnostics.Metrics
 {
     /// <summary>
@@ -9,6 +11,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
         /// Collects metric data and forwards it to its <see cref="IMeter"/> parent.
         /// </summary>
         /// <param name="value">The value to measure.</param>
-        void RecordValue(uint value);
+        /// <param name="tag">An optional tag for the <see cref="IValueRecorder"/>.</param>
+        void RecordValue(uint value, KeyValuePair<string, string>? tag = null);
     }
 }

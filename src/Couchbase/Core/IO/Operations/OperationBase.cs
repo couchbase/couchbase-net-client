@@ -603,7 +603,7 @@ namespace Couchbase.Core.IO.Operations
         public void StopRecording()
         {
             _stopwatch.Stop();
-            _recorder?.RecordValue(_stopwatch.Elapsed.ToMicroseconds());
+            _recorder?.RecordValue(_stopwatch.Elapsed.ToMicroseconds(), new KeyValuePair<string, string>("opcode", OpCode.ToString()));
         }
         #endregion
 

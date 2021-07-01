@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using App.Metrics;
 using App.Metrics.Histogram;
@@ -27,27 +28,33 @@ namespace Couchbase.Core.Diagnostics.Metrics
             {
                 var histogram = metric.Value;
                 var snapshot = histogram?.Snapshot.Get();
-                foreach (var source in snapshot!.Contexts)
+                foreach (var metricsContextValueSource in snapshot!.Contexts)
                 {
-                    foreach (var meterValueSource in source.Timers)
+                    foreach (var meterValueSource in metricsContextValueSource.Timers)
                     {
                         var histogramValue = meterValueSource.Value.Histogram;
                         switch (metric.Key)
                         {
                             case OuterRequestSpans.ServiceSpan.N1QLQuery:
-                                report.operations.query = new Query(histogramValue.Count, new PercentilesUs(histogramValue));
+                                report.operations.query ??= new();
+                                report.operations.query.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
-                                report.operations.analytics = new Analytics(histogramValue.Count, new PercentilesUs(histogramValue));
+                                report.operations.analytics ??= new();
+                                report.operations.analytics.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             case OuterRequestSpans.ServiceSpan.ViewQuery:
-                                report.operations.views = new Views(histogramValue.Count, new PercentilesUs(histogramValue));
+                                report.operations.views ??= new();
+                                report.operations.views.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             case OuterRequestSpans.ServiceSpan.SearchQuery:
-                                report.operations.search = new Search(histogramValue.Count, new PercentilesUs(histogramValue));
+                                report.operations.search ??= new();
+                                report.operations.search.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             default:
-                                report.operations.kv = new Kv(histogramValue.Count, new PercentilesUs(histogramValue));
+                                var opcode = meterValueSource.Tags.Values[0];
+                                report.operations.kv ??= new();
+                                report.operations.kv.Add(opcode, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                         }
                     }
@@ -100,24 +107,14 @@ namespace Couchbase.Core.Diagnostics.Metrics
         public double _10000 { get; set; }
     }
 
-    internal record MetricBase(long total_count, PercentilesUs? percentiles_us);
-
-    internal record Query(long total_count, PercentilesUs? percentiles_us) : MetricBase(total_count, percentiles_us);
-
-    internal record Search(long total_count, PercentilesUs? percentiles_us) : MetricBase(total_count, percentiles_us);
-
-    internal record Kv(long total_count, PercentilesUs? percentiles_us) : MetricBase(total_count, percentiles_us);
-
-    internal record Views(long total_count, PercentilesUs? percentiles_us) : MetricBase(total_count, percentiles_us);
-
-    internal record Analytics(long total_count, PercentilesUs? percentiles_us) : MetricBase(total_count, percentiles_us);
+    internal record Operation(long total_count, PercentilesUs? percentiles_us);
 
     internal class Operations
     {
-        public Query? query { get; set; }
-        public Search? search { get; set; }
-        public Kv? kv { get; set; }
-        public Analytics? analytics { get; set; }
-        public Views? views { get; set; }
+        public Dictionary<string, Operation>? query;
+        public Dictionary<string, Operation>? search;
+        public Dictionary<string, Operation>? kv;
+        public Dictionary<string, Operation>? analytics;
+        public Dictionary<string, Operation>? views;
     }
 }

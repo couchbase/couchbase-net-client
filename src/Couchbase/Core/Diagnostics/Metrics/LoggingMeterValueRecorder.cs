@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using App.Metrics;
 
 namespace Couchbase.Core.Diagnostics.Metrics
@@ -17,9 +18,13 @@ namespace Couchbase.Core.Diagnostics.Metrics
         }
 
         /// <inheritdoc />
-        public void RecordValue(uint value)
+        public void RecordValue(uint value, KeyValuePair<string, string>? tag = null)
         {
-            _metrics?.Measure.Timer.Time(MetricsRegistry.KvTimerHistogram, value);
+            if (tag == null)
+                _metrics?.Measure.Timer.Time(MetricsRegistry.KvTimerHistogram, value);
+            else
+                _metrics?.Measure.Timer.Time(MetricsRegistry.KvTimerHistogram, new MetricTags(tag?.Key, tag?.Value),
+                    value);
         }
     }
 }

@@ -30,6 +30,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Core\Diagnostics\Metrics\metrics.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
   </ItemGroup>
 
