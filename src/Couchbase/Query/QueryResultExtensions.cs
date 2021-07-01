@@ -74,7 +74,7 @@ namespace Couchbase.Query
 
                 if (error.Code == 12009) throw new DmlFailureException(context);
 
-                if (error.Code >= 10000 && error.Code < 11000)
+                if (error.Code >= 10000 && error.Code < 11000 || error.Code == 13014)
                     throw new AuthenticationFailureException(context);
 
                 if (error.Code >= 12000 && error.Code < 13000 || error.Code >= 14000 && error.Code < 15000)
