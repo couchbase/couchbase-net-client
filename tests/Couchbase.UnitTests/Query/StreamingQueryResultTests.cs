@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Security.Authentication;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
@@ -167,7 +168,6 @@ namespace Couchbase.UnitTests.Query
         }
 
         [Theory]
-        [InlineData(@"Documents\Query\query-200-errors-after-empty-results.json")]
         [InlineData(@"Documents\Query\query-200-errors-after-some-results.json")]
         public async Task GetAsyncEnumerator_ErrorAfterResults_Throws(string filename)
         {
@@ -182,6 +182,23 @@ namespace Couchbase.UnitTests.Query
             // Act/Assert
 
             await Assert.ThrowsAsync<CouchbaseException>(() => streamingResult.ToListAsync().AsTask());
+        }
+
+        [Theory]
+        [InlineData(@"Documents\Query\query-200-errors-after-empty-results.json")]
+        public async Task GetAsyncEnumerator_ErrorAfterResults_13014_Throws_AuthenticationException(string filename)
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(filename);
+
+            using var streamingResult = new StreamingQueryResult<dynamic>(stream, new DefaultSerializer(), ErrorContextFactory);
+            streamingResult.Success = true; // In this scenario we're getting a 200, so Success will be set to true
+            await streamingResult.InitializeAsync();
+
+            // Act/Assert
+
+            await Assert.ThrowsAsync<AuthenticationFailureException>(() => streamingResult.ToListAsync().AsTask());
         }
 
         [Fact]
