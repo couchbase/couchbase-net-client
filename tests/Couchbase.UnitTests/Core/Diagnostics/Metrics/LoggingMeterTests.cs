@@ -27,10 +27,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
             var meter = new LoggingMeter(loggerFactory, new LoggingMeterOptions().Enabled(true)
                 .EmitInterval(TimeSpan.FromSeconds(2)));
 
-            var recorder1 = meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.Kv.Name}|localhost");
-            var recorder2 = meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.N1QLQuery}|127.0.0.1");
-            var recorder3 = meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.Kv.Name}|210.0.0.1");
-            var recorder4 = meter.ValueRecorder($"{OuterRequestSpans.ServiceSpan.N1QLQuery}|10.112.211.101");
+            var recorder1 = meter.ValueRecorder(OuterRequestSpans.ServiceSpan.Kv.Name);
+            var recorder2 = meter.ValueRecorder(OuterRequestSpans.ServiceSpan.N1QLQuery);
+            var recorder3 = meter.ValueRecorder(OuterRequestSpans.ServiceSpan.AnalyticsQuery);
+            var recorder4 = meter.ValueRecorder(OuterRequestSpans.ServiceSpan.ViewQuery);
+            var recorder5 = meter.ValueRecorder(OuterRequestSpans.ServiceSpan.SearchQuery);
 
             for (var i = 0; i < 1000; i++)
             {
@@ -51,6 +52,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
                 recorder4.RecordValue(78);
                 recorder4.RecordValue(89);
                 recorder4.RecordValue(10);
+
+                recorder5.RecordValue(11);
+                recorder5.RecordValue(78);
+                recorder5.RecordValue(66);
+                recorder5.RecordValue(23);
             }
 
             Thread.Sleep(3000);

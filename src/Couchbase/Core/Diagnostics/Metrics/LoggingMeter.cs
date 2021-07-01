@@ -3,14 +3,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Timers;
 using App.Metrics;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Core.Diagnostics.Metrics
 {
@@ -45,46 +41,9 @@ namespace Couchbase.Core.Diagnostics.Metrics
             try
             {
                 var histograms =
-                    new ReadOnlyDictionary<string, IMetricsRoot?>(_histograms.ToDictionary(x=>x.Key, y=>y.Value?.Item2));
+                    new ReadOnlyDictionary<string, IMetricsRoot?>(_histograms.ToDictionary(x => x.Key, y => y.Value?.Item2));
 
-                JObject? report = null;
-                foreach (var metric in histograms)
-                {
-                    report ??= new JObject(new JProperty("meta", new JObject(
-                        new JProperty("emit_interval_s", timer?.Interval)))
-                    );
-                    var histogram = metric.Value;
-                    var snapshot = histogram?.Snapshot.Get();
-
-                    var path = metric.Key.Split('|')[0];
-                    foreach (var formatter in histogram?.OutputMetricsFormatters!)
-                    {
-                        using var stream = new MemoryStream();
-                        formatter.WriteAsync(stream, snapshot).GetAwaiter().GetResult();
-
-                        var result = Encoding.UTF8.GetString(stream.ToArray());
-                        if (!string.IsNullOrWhiteSpace(result))
-                        {
-                            var json = JToken.Parse(result);
-
-                            var meta = report.SelectToken(path);
-                            if (meta == null)
-                            {
-                                report.Add(new JProperty(path, json));
-                            }
-                            else
-                            {
-                                ((JObject) meta).First.AddAfterSelf(json.First);
-                            }
-                        }
-                    }
-                    histogram.Manage.Reset();
-                }
-
-                if (report != null)
-                {
-                    _logger.LogInformation(report.ToString(Formatting.None));
-                }
+                _logger.LogInformation(LoggingMeterReport.Generate(histograms, _timer.Interval).ToString());
             }
             finally
             {
@@ -105,7 +64,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
                     if (tags == null) return;
                     foreach (var tag in tags) options.ContextualTags.Add(tag.Key, () => tag.Value);
-                }).OutputMetrics.Using<LoggingMeterOutputFormatter>().Build();
+                }).Build();
 
                 return new Tuple<LoggingMeterValueRecorder, IMetricsRoot>(
                     new LoggingMeterValueRecorder(meter), meter);
