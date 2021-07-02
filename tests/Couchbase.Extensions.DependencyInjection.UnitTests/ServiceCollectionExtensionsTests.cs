@@ -166,6 +166,73 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
 
         #endregion
 
+        #region AddScopedCouchbase Action
+
+        [Fact]
+        public void AddCouchbaseScoped_NoOverride_RegistersICouchbaseBucketProviderAsSingleton()
+        {
+            // Arrange
+
+            var services = new ServiceCollection();
+
+            //  Act
+
+            services.AddScopedCouchbase((Action<ClusterOptions>)null);
+
+            // Assert
+
+            var description = services.FirstOrDefault(p => p.ServiceType == typeof(IBucketProvider));
+
+            Assert.NotNull(description);
+            Assert.Equal(ServiceLifetime.Scoped, description.Lifetime);
+        }
+
+
+        [Fact]
+        public void AddCouchbaseScoped_NoOverride_RegistersICouchbaseClusterProviderAsSingleton()
+        {
+            // Arrange
+
+            var services = new ServiceCollection();
+
+            //  Act
+
+            services.AddScopedCouchbase((Action<ClusterOptions>)null);
+
+            // Assert
+
+            var description = services.FirstOrDefault(p => p.ServiceType == typeof(IClusterProvider));
+
+            Assert.NotNull(description);
+            Assert.Equal(ServiceLifetime.Scoped, description.Lifetime);
+        }
+
+        [Fact]
+        public void AddCouchbaseScoped_WithOptions_RegistersOptions()
+        {
+            // Arrange
+
+            var services = new ServiceCollection();
+
+            Action<ClusterOptions> optionsAction = clientDefinition =>
+            {
+                clientDefinition.MaxHttpConnections = 1005;
+            };
+
+            //  Act
+
+            services.AddCouchbase(optionsAction);
+
+            // Assert
+
+            var provider = services.BuildServiceProvider();
+            var options = provider.GetRequiredService<IOptions<ClusterOptions>>();
+
+            Assert.Equal(1005, options.Value.MaxHttpConnections);
+        }
+
+        #endregion
+
         #region AddCouchbaseBucket
 
         [Fact]
@@ -220,6 +287,72 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             // Act
 
             services.AddCouchbaseBucket<ITestBucketProvider>(bucketName);
+
+            // Assert
+
+            var serviceProvider = services.BuildServiceProvider();
+            var namedBucketProvider = serviceProvider.GetRequiredService<ITestBucketProvider>();
+
+            Assert.NotNull(namedBucketProvider);
+            Assert.Equal(bucketName, namedBucketProvider.BucketName);
+        }
+
+        #endregion
+
+        #region AddScopedCouchbaseBucket
+
+        [Fact]
+        public void AddScopedCouchbaseBucket_NullName_Exception()
+        {
+            // Arrange
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddScoped(_ => bucketProvider.Object);
+
+            // Act/Assert
+
+            var ex =
+                Assert.Throws<ArgumentNullException>(() => services.AddScopedCouchbaseBucket<ITestBucketProvider>(null));
+
+            Assert.Equal("bucketName", ex.ParamName);
+        }
+
+        [Fact]
+        public void AddScopedCouchbaseBucket_Name_ReturnsServiceCollection()
+        {
+            // Arrange
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddScoped(_ => bucketProvider.Object);
+
+            // Act
+
+            var result = services.AddScopedCouchbaseBucket<ITestBucketProvider>("bucketName");
+
+            // Assert
+
+            Assert.Equal(services, result);
+        }
+
+        [Fact]
+        public void AddScopedCouchbaseBucket_Name_ProvidesNamedBucketProvider()
+        {
+            // Arrange
+            const string bucketName = "bucketName";
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddScoped(_ => bucketProvider.Object);
+            services.AddScopedCouchbase(options => { });
+
+            // Act
+
+            services.AddScopedCouchbaseBucket<ITestBucketProvider>(bucketName);
 
             // Assert
 
@@ -307,6 +440,98 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             var services = new ServiceCollection();
             services.AddSingleton(bucketProvider.Object);
             services.AddCouchbase(options => { });
+
+            // Act
+
+            services.TryAddCouchbaseBucket<ITestBucketProvider>(bucketName);
+            services.TryAddCouchbaseBucket<ITestBucketProvider>("bucketName2");
+
+            // Assert
+
+            var serviceProvider = services.BuildServiceProvider();
+            var namedBucketProvider = serviceProvider.GetRequiredService<ITestBucketProvider>();
+
+            Assert.NotNull(namedBucketProvider);
+            Assert.Equal(bucketName, namedBucketProvider.BucketName);
+        }
+
+        #endregion
+
+        #region TryAddScopedCouchbaseBucket
+
+        [Fact]
+        public void TryAddScopedCouchbaseBucket_NullName_Exception()
+        {
+            // Arrange
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddScoped(_ => bucketProvider.Object);
+
+            // Act/Assert
+
+            var ex =
+                Assert.Throws<ArgumentNullException>(() => services.TryAddScopedCouchbaseBucket<ITestBucketProvider>(null));
+
+            Assert.Equal("bucketName", ex.ParamName);
+        }
+
+        [Fact]
+        public void TryAddScopedCouchbaseBucket_Name_ReturnsServiceCollection()
+        {
+            // Arrange
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddScoped(_ => bucketProvider.Object);
+
+            // Act
+
+            var result = services.TryAddCouchbaseBucket<ITestBucketProvider>("bucketName");
+
+            // Assert
+
+            Assert.Equal(services, result);
+        }
+
+        [Fact]
+        public void TryAddScopedCouchbaseBucket_Name_ProvidesNamedBucketProvider()
+        {
+            // Arrange
+            const string bucketName = "bucketName";
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddScoped(_ => bucketProvider.Object);
+            services.AddScopedCouchbase(options => { });
+
+            // Act
+
+            services.TryAddCouchbaseBucket<ITestBucketProvider>(bucketName);
+
+            // Assert
+
+            var serviceProvider = services.BuildServiceProvider();
+            var namedBucketProvider = serviceProvider.GetRequiredService<ITestBucketProvider>();
+
+            Assert.NotNull(namedBucketProvider);
+            Assert.Equal(bucketName, namedBucketProvider.BucketName);
+        }
+
+        [Fact]
+        public void TryAddScopedCouchbaseBucket_CalledTwice_UsesFirstRegistration()
+        {
+            // Arrange
+            const string bucketName = "bucketName";
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddScoped(_ => bucketProvider.Object);
+            services.AddScopedCouchbase(options => { });
 
             // Act
 
