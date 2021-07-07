@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Couchbase.Management.Analytics
 {
@@ -13,7 +14,7 @@ namespace Couchbase.Management.Analytics
     public record CreateAnalyticsLinkOptions : AnalyticsLinkManagementOptions;
     public record ReplaceAnalyticsLinkOptions : AnalyticsLinkManagementOptions;
     public record DropAnalyticsLinkOptions : AnalyticsLinkManagementOptions;
-    public record GetAnalyticsLinksOptions() : AnalyticsLinkManagementOptions
+    public record GetAnalyticsLinksOptions : AnalyticsLinkManagementOptions
     {
         public string? DataverseName { get; init; }
         public string? Name { get; init; }
