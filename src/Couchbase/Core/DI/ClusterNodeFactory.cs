@@ -6,6 +6,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
@@ -44,11 +45,11 @@ namespace Couchbase.Core.DI
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _operationBuilderPool = operationBuilderPool ?? throw new ArgumentNullException(nameof(operationBuilderPool));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
-            _saslMechanismFactory = saslMechanismFactory;
+            _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentNullException(nameof(saslMechanismFactory));
             _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
-            _tracer = tracer;
-            _meter = meter;
+            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            _meter = meter ?? throw new ArgumentNullException(nameof(meter));
         }
 
         /// <inheritdoc />

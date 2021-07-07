@@ -2,11 +2,7 @@ using System;
 using Couchbase.Core.Sharding;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.ComponentModel.Design;
 using System.Linq;
-using System.Net;
-using System.Runtime.Serialization;
-using System.Text;
 using Newtonsoft.Json;
 using Couchbase.Utils;
 

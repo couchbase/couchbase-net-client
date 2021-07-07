@@ -1,6 +1,3 @@
-using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -8,9 +5,6 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Serializers;
-using Couchbase.Core.IO.Transcoders;
-using Couchbase.UnitTests.Core.IO.Transcoders;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;

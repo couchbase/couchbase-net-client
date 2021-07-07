@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,9 +12,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
-using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;

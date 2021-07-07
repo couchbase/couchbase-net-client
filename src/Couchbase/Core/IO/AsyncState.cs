@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
@@ -91,6 +92,7 @@ namespace Couchbase.Core.IO
 
             if (response.IsEmpty)
             {
+                Operation.LogOrphaned();
                 //this means the request never completed - assume a transport failure
                 SendResponse(BuildErrorResponse(Opaque, ResponseStatus.TransportFailure));
             }

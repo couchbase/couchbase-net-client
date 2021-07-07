@@ -1,0 +1,68 @@
+{
+  "kv": {
+    "total_count": 2,
+    "top_requests": [
+      {
+        "total_duration_us": 1200,
+        "encode_duration_us": 100,
+        "last_dispatch_duration_us": 40,
+        "total_dispatch_duration_us": 40,
+        "last_server_duration_us": 2,
+        "total_server_duration_us": 2,
+        "operation_name": "upsert",
+        "last_local_id": "66388CF5BFCF7522/18CC8791579B567C",
+        "operation_id": "0x23",
+        "last_local_socket": "10.211.55.3:52450",
+        "last_remote_socket": "10.112.180.101:11210",
+        "timeout_ms": 75000
+      },
+      {
+        "total_duration_us": 1200,
+        "encode_duration_us": 100,
+        "last_dispatch_duration_us": 40,
+        "total_dispatch_duration_us": 40,
+        "last_server_duration_us": 2,
+        "total_server_duration_us": 2,
+        "operation_name": "upsert",
+        "last_local_id": "66388CF5BFCF7522/18CC8791579B567C",
+        "operation_id": "0x23",
+        "last_local_socket": "10.211.55.3:52450",
+        "last_remote_socket": "10.112.180.101:11210",
+        "timeout_ms": 75000
+      }
+    ]
+  },
+  "query": {
+    "total_count": 2,
+    "top_requests": [
+      {
+        "total_duration_us": 1200,
+        "encode_duration_us": 100,
+        "last_dispatch_duration_us": 40,
+        "total_dispatch_duration_us": 40,
+        "last_server_duration_us": 2,
+        "total_server_duration_us": 2,
+        "operation_name": "upsert",
+        "last_local_id": "66388CF5BFCF7522/18CC8791579B567C",
+        "operation_id": "0x23",
+        "last_local_socket": "10.211.55.3:52450",
+        "last_remote_socket": "10.112.180.101:11210",
+        "timeout_ms": 75000
+      },
+      {
+        "total_duration_us": 1200,
+        "encode_duration_us": 100,
+        "last_dispatch_duration_us": 40,
+        "total_dispatch_duration_us": 40,
+        "last_server_duration_us": 2,
+        "total_server_duration_us": 2,
+        "operation_name": "upsert",
+        "last_local_id": "66388CF5BFCF7522/18CC8791579B567C",
+        "operation_id": "0x23",
+        "last_local_socket": "10.211.55.3:52450",
+        "last_remote_socket": "10.112.180.101:11210",
+        "timeout_ms": 75000
+      }
+    ]
+  }
+}

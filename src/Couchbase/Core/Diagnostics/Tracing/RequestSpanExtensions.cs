@@ -14,6 +14,23 @@ namespace Couchbase.Core.Diagnostics.Tracing
     {
         private static string? _dnsHostName;
 
+        public static IRequestSpan LogOrphaned(this IRequestSpan span)
+        {
+            try
+            {
+                if (span.CanWrite)
+                {
+                    span.SetAttribute("orphaned", "true");
+                }
+            }
+            catch
+            {
+                //ignore likely a duplicate attribute
+            }
+
+            return span;
+        }
+
         public static IRequestSpan WithCommonTags(this IRequestSpan span)
         {
             if (span.CanWrite)

@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
@@ -6,6 +9,7 @@ using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using TraceListener = Couchbase.Core.Diagnostics.Tracing.TraceListener;
 
 namespace Couchbase.UnitTests
 {
@@ -170,7 +174,7 @@ namespace Couchbase.UnitTests
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = false
-            });
+            }).WithOrphanTracing(options => options.Enabled = false);
 
             var services = options.BuildServiceProvider();
             var noopRequestTracer = services.GetService(typeof(IRequestTracer));
@@ -184,14 +188,29 @@ namespace Couchbase.UnitTests
             var options = new ClusterOptions();
             options.WithThresholdTracing(new ThresholdOptions
             {
-                Enabled = true,
-                RequestTracer = new ThresholdLoggingTracer(new ThresholdOptions(), new LoggerFactory())
+                Enabled = true
             });
 
             var services = options.BuildServiceProvider();
             var noopRequestTracer = services.GetService(typeof(IRequestTracer));
 
-            Assert.IsAssignableFrom<ThresholdLoggingTracer>(noopRequestTracer);
+            Assert.IsAssignableFrom<RequestTracer>(noopRequestTracer);
+        }
+
+        [Fact]
+        public void When_Tracing_Disabled_Custom_To_CustomRequestTracer()
+        {
+            var options = new ClusterOptions();
+            options.WithThresholdTracing(new ThresholdOptions
+            {
+                Enabled = false,
+                ThresholdListener = new CustomTraceListener()
+            }).WithOrphanTracing(options=>options.Enabled = false);
+
+            var services = options.BuildServiceProvider();
+            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
+
+            Assert.IsAssignableFrom<NoopRequestTracer>(noopRequestTracer);
         }
 
         [Fact]
@@ -201,46 +220,39 @@ namespace Couchbase.UnitTests
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = true,
-                RequestTracer = new CustomRequestTracer()
-        });
-
-            var services = options.BuildServiceProvider();
-            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
-
-            Assert.IsAssignableFrom<CustomRequestTracer>(noopRequestTracer);
-        }
-
-        [Fact]
-        public void When_Tracing_Disabled_Custom_To_NoopRequestTracer()
-        {
-            var options = new ClusterOptions();
-            options.WithThresholdTracing(new ThresholdOptions
-            {
-                Enabled = false
+                ThresholdListener = new CustomTraceListener()
             });
-            options.RequestTracer = new CustomRequestTracer();
 
             var services = options.BuildServiceProvider();
-            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
+            var tracer = services.GetService(typeof(IRequestTracer)) as RequestTracer;
+            var span = tracer.RequestSpan("works");
+            span.Dispose();
 
-            Assert.IsAssignableFrom<NoopRequestTracer>(noopRequestTracer);
+            var listener = options.ThresholdOptions.ThresholdListener as CustomTraceListener;
+            Assert.True(listener.Activities.FirstOrDefault().OperationName == "works");
+
         }
 
-        public class CustomRequestTracer : IRequestTracer
+        public class CustomTraceListener : TraceListener
         {
-            public void Dispose()
+            public CustomTraceListener()
             {
-                throw new NotImplementedException();
+                Start();
             }
 
-            public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
-            {
-                throw new NotImplementedException();
-            }
+            public List<Activity> Activities { get; } = new();
 
-            public IRequestTracer Start(TraceListener listener)
+            public sealed override void Start()
             {
-                throw new NotImplementedException();
+                Listener.ActivityStopped = activity =>
+                {
+                    Activities.Add(activity);
+                };
+                Listener.SampleUsingParentId = (ref ActivityCreationOptions<string> activityOptions) =>
+                    ActivitySamplingResult.AllData;
+                Listener.Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
+                    ActivitySamplingResult.AllData;
+                Listener.ShouldListenTo = s => true;
             }
         }
 

@@ -87,6 +87,11 @@ namespace Couchbase.UnitTests.Utils
             throw new NotImplementedException();
         }
 
+        public void LogOrphaned()
+        {
+            throw new NotImplementedException();
+        }
+
         public void StopRecording()
         {
             throw new NotImplementedException();

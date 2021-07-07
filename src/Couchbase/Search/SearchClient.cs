@@ -107,6 +107,9 @@ namespace Couchbase.Search
             }
             catch (OperationCanceledException e)
             {
+                //treat as an orphaned response
+                rootSpan.LogOrphaned();
+
                 _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request timeout.");
                 throw new AmbiguousTimeoutException("The query was timed out via the Token.", e)
                 {
@@ -123,6 +126,9 @@ namespace Couchbase.Search
             }
             catch (HttpRequestException e)
             {
+                //treat as an orphaned response
+                rootSpan.LogOrphaned();
+
                 _logger.LogDebug(LoggingEvents.SearchEvent, e, "Search request cancelled.");
                 throw new RequestCanceledException("The query was canceled.", e)
                 {

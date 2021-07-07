@@ -251,6 +251,9 @@ namespace Couchbase.Query
             }
             catch (OperationCanceledException e)
             {
+                //treat as an orphaned response
+                span.LogOrphaned();
+
                 var context = new QueryErrorContext
                 {
                     ClientContextId = options.CurrentContextId,
@@ -276,6 +279,9 @@ namespace Couchbase.Query
             catch (HttpRequestException e)
             {
                 _logger.LogDebug(LoggingEvents.QueryEvent, e, "Request canceled");
+
+                //treat as an orphaned response
+                span.LogOrphaned();
 
                 var context = new QueryErrorContext
                 {
@@ -329,6 +335,7 @@ namespace Couchbase.Query
             span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
             return span;
         }
+
         #endregion
     }
 }

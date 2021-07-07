@@ -52,9 +52,14 @@ namespace Couchbase.Core.Diagnostics.Metrics
                                 report.operations.search.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             default:
-                                var opcode = meterValueSource.Tags.Values[0];
-                                report.operations.kv ??= new();
-                                report.operations.kv.Add(opcode, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
+                                if (meterValueSource.Tags.Count > 0)
+                                {
+                                    var opcode = meterValueSource.Tags.Values[0];
+                                    report.operations.kv ??= new();
+                                    report.operations.kv.Add(opcode,
+                                        new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
+                                }
+
                                 break;
                         }
                     }

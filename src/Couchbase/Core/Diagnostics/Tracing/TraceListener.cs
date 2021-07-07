@@ -21,7 +21,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// <summary>
         /// Disposes of the <see cref="ActivityListener"/> instance.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             Listener?.Dispose();
         }

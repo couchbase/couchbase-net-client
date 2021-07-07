@@ -132,6 +132,9 @@ namespace Couchbase.Analytics
                 }
                 catch (OperationCanceledException e)
                 {
+                    //treat as an orphaned response
+                    rootSpan.LogOrphaned();
+
                     var context = new AnalyticsErrorContext
                     {
                         ClientContextId = options.ClientContextIdValue,
@@ -155,6 +158,9 @@ namespace Couchbase.Analytics
                 }
                 catch (HttpRequestException e)
                 {
+                    //treat as an orphaned response
+                    rootSpan.LogOrphaned();
+
                     var context = new AnalyticsErrorContext
                     {
                         ClientContextId = options.ClientContextIdValue,

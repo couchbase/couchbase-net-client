@@ -1,22 +1,23 @@
 #nullable enable
 using System;
 using System.Diagnostics;
+using System.Linq;
 using Couchbase.Utils;
 
-namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
+namespace Couchbase.Core.Diagnostics.Tracing
 {
     /// <summary>
     /// An implementation of <see cref="IRequestSpan"/> that measures the duration of a span and
-    /// is used for providing data for the <see cref="ThresholdLoggingTracer"/>.
+    /// is used for providing data for the <see cref="RequestTracer"/>.
     /// requests.
     /// </summary>
-    internal class ThresholdRequestSpan : IRequestSpan
+    internal class RequestSpan : IRequestSpan
     {
-        private readonly ThresholdLoggingTracer _tracer;
+        private readonly RequestTracer _tracer;
         private readonly Activity? _activity;
         private readonly IRequestSpan? _parentSpan;
 
-        public ThresholdRequestSpan(ThresholdLoggingTracer tracer, Activity? activity, IRequestSpan? parentSpan = null)
+        public RequestSpan(RequestTracer tracer, Activity? activity, IRequestSpan? parentSpan = null)
         {
             _tracer = tracer;
             _activity = activity;

@@ -10,6 +10,7 @@ using System.Threading.Tasks.Sources;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
@@ -34,6 +35,7 @@ namespace Couchbase.Core.IO.Operations
         private IValueRecorder? _recorder;
         private readonly Stopwatch _stopwatch;
         private IRequestSpan? _dispatchSpan;
+        private bool _isOrphaned;
 
         protected OperationBase()
         {
@@ -313,6 +315,20 @@ namespace Couchbase.Core.IO.Operations
             return config;
         }
 
+        /// <summary>
+        /// Set an attribute on the internal Span indicating that he operation
+        /// has been orphaned and has no response if the op is in-flight and the
+        /// Span is currently writable.
+        /// </summary>
+        public void LogOrphaned()
+        {
+            if (Span.CanWrite && IsSent && !_isOrphaned)
+            {
+                _isOrphaned = true;//only create attribute once
+                Span.SetAttribute("orphaned", "true");
+            }
+        }
+
         /// <inheritdoc />
         public SlicedMemoryOwner<byte> ExtractBody()
         {
@@ -366,6 +382,7 @@ namespace Couchbase.Core.IO.Operations
             var status = Header.Status;
             if (Exception != null && status == ResponseStatus.Success)
             {
+                //In this case the response was received but parsing the response failed for some reason.
                 status = ResponseStatus.ClientFailure;
             }
 

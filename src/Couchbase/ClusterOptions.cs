@@ -9,6 +9,7 @@ using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.IO.Compression;
@@ -353,6 +354,8 @@ namespace Couchbase
             return this;
         }
 
+        #region Tracing & Metrics
+
         public ThresholdOptions ThresholdOptions { get; set; } = new();
 
         public ClusterOptions WithThresholdTracing(ThresholdOptions options)
@@ -366,6 +369,21 @@ namespace Couchbase
             var opts = new ThresholdOptions();
             configure(opts);
             return WithThresholdTracing(opts);
+        }
+
+        public OrphanOptions OrphanTracingOptions { get; set; } = new();
+
+        public ClusterOptions WithOrphanTracing(OrphanOptions options)
+        {
+            OrphanTracingOptions = options;
+            return this;
+        }
+
+        public ClusterOptions WithOrphanTracing(Action<OrphanOptions> configure)
+        {
+            var opts = new OrphanOptions();
+            configure(opts);
+            return WithOrphanTracing(opts);
         }
 
         public LoggingMeterOptions LoggingMeterOptions { get; set; } = new();
@@ -382,6 +400,8 @@ namespace Couchbase
             configure(opts);
             return WithLoggingMeterOptions(opts);
         }
+
+        #endregion
 
         /// <summary>
         /// The <see cref="IRetryStrategy"/> for operation retries. Applies to all services: K/V, Query, etc.
@@ -427,7 +447,6 @@ namespace Couchbase
         public bool? EnableTls { get; set; }
 
         public bool EnableMutationTokens { get; set; } = true;
-        ////public ITracer Tracer = new ThresholdLoggingTracer();
         public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);
         public TimeSpan TcpKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(1);
         public bool ForceIPv4 { get; set; }
@@ -493,28 +512,6 @@ namespace Couchbase
         {
             get => KvIgnoreRemoteCertificateNameMismatch && HttpIgnoreRemoteCertificateMismatch;
             set => KvIgnoreRemoteCertificateNameMismatch = HttpIgnoreRemoteCertificateMismatch = value;
-        }
-
-        private bool _enableOrphanedResponseLogging;
-        public bool EnableOrphanedResponseLogging
-        {
-            get => _enableOrphanedResponseLogging;
-            set
-            {
-                if (value != _enableOrphanedResponseLogging)
-                {
-                    _enableOrphanedResponseLogging = value;
-
-                    /*if (value)
-                    {
-                        this.AddClusterService<Couchbase.Core.Diagnostics.Tracing.IOrphanedResponseLogger, Couchbase.Core.Diagnostics.Tracing.OrphanedResponseLogger>();//TODO temp
-                    }
-                    else
-                    {
-                        this.AddClusterService<Couchbase.Core.Diagnostics.Tracing.IOrphanedResponseLogger, Couchbase.Core.Diagnostics.Tracing.NullOrphanedResponseLogger>();
-                    }*/
-                }
-            }
         }
 
         public bool EnableConfigPolling { get; set; } = true;
@@ -614,6 +611,9 @@ namespace Couchbase
         {
             this.AddClusterService(this);
             this.AddClusterService(Logging ??= new NullLoggerFactory());
+
+            #region Tracing & Metrics
+
             this.AddClusterService(LoggingMeterOptions);
             if (LoggingMeterOptions.EnabledValue)
             {
@@ -623,22 +623,36 @@ namespace Couchbase
             {
                 this.AddClusterService<IMeter, NoopMeter>();
             }
-            if (ThresholdOptions.Enabled)
+
+            if (ThresholdOptions.Enabled || OrphanTracingOptions.Enabled)
             {
-                //No custom logger has been registered, so create a default logger
-                if (ThresholdOptions.RequestTracer == null)
+                //We need a tracer for either tracers
+                var tracer = new RequestTracer();
+
+                if (ThresholdOptions.Enabled)
                 {
-                    var thresholdTracer = new ThresholdLoggingTracer(ThresholdOptions, Logging);
-                    thresholdTracer.Start(new ThresholdTraceListener(ThresholdOptions));
-                    ThresholdOptions.RequestTracer = thresholdTracer;
+                    //if custom threshold listener is supplied use it otherwise use the default
+                    tracer.Start(ThresholdOptions.ThresholdListener ??
+                                 new ThresholdTraceListener(Logging, ThresholdOptions));
                 }
 
-                this.AddClusterService(ThresholdOptions.RequestTracer);
+                if (OrphanTracingOptions.Enabled)
+                {
+                    //if custom orphan listener is supplied use it otherwise use the default
+                    tracer.Start(OrphanTracingOptions.OrphanListener ??
+                                 new OrphanTraceListener(
+                                     new OrphanReporter(Logging.CreateLogger<OrphanReporter>(),
+                                         OrphanTracingOptions)));
+                }
+                this.AddClusterService<IRequestTracer>(tracer);
             }
             else
             {
+                //Use a no-op tracer if tracing is disabled
                 this.AddClusterService(NoopRequestTracer.Instance);
             }
+
+            #endregion
 
             if (Experiments.ChannelConnectionPools)
             {

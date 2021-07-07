@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.IO.Pipelines;
@@ -11,11 +10,9 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Diagnostics;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -183,12 +180,6 @@ namespace Couchbase.Core.IO.Connections
                             else
                             {
                                 operationResponse.Dispose();
-
-                                // create orphaned response context
-                                // var context = CreateOperationContext(opaque);
-
-                                // send to orphaned response reporter
-                                //  ClusterOptions.ClientConfiguration.OrphanedResponseLogger.Add(context);
                             }
                         }
                         catch

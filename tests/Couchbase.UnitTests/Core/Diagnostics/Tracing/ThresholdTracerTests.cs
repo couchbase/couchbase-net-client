@@ -25,7 +25,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         [Fact]
         public void Test()
         {
-            using var tracer = new ThresholdLoggingTracer(new ThresholdOptions(), _loggerFactory);
+            using var tracer = new RequestTracer();
             using var listener = new XUnitLoggerListener(_loggerFactory.CreateLogger<ThresholdTracerTests>());
             tracer.Start(listener);
 
@@ -44,8 +44,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         [Fact]
         public void Test2()
         {
-            using var tracer = new ThresholdLoggingTracer(new ThresholdOptions(), _loggerFactory);
-            using var listener = new ThresholdTraceListener(new ThresholdOptions());
+            using var tracer = new RequestTracer();
+            using var listener = new ThresholdTraceListener(_loggerFactory, new ThresholdOptions());
             tracer.Start(listener);
 
             using var parentSpan = tracer.RequestSpan("get");
@@ -66,8 +66,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             var cluster = new FakeCluster(new ClusterOptions
             {
                 RequestTracer =
-                    new ThresholdLoggingTracer(new ThresholdOptions(), _loggerFactory).Start(
-                        new ThresholdTraceListener(new ThresholdOptions()))
+                    new RequestTracer().Start(
+                        new ThresholdTraceListener(_loggerFactory, new ThresholdOptions()))
             });
             var bucket = await cluster.BucketAsync("fakeBucket");
             var collection = await bucket.DefaultCollectionAsync();

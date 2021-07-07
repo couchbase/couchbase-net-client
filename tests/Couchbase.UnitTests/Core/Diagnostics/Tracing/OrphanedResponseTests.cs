@@ -1,0 +1,57 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using App.Metrics.Concurrency;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
+using Couchbase.UnitTests.Core.Diagnostics.Metrics;
+using Couchbase.UnitTests.Core.Utils;
+using Couchbase.UnitTests.Utils;
+using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
+{
+    public class OrphanedResponseTests
+    {
+        [Fact]
+        public async Task Test()
+        {
+            var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
+            var orphanReporter = new OrphanReporter(loggerFactory.CreateLogger<OrphanReporter>(), new OrphanOptions{EmitInterval = TimeSpan.FromSeconds(1)});
+            orphanReporter.Add(GetOrphanSummary(OuterRequestSpans.ServiceSpan.Kv.Name));
+            orphanReporter.Add(GetOrphanSummary(OuterRequestSpans.ServiceSpan.N1QLQuery));
+            orphanReporter.Add(GetOrphanSummary(OuterRequestSpans.ServiceSpan.Kv.Name));
+            orphanReporter.Add(GetOrphanSummary(OuterRequestSpans.ServiceSpan.N1QLQuery));
+
+            await Task.Delay(TimeSpan.FromSeconds(3));
+
+            var found = loggerFactory.LoggedData.TryTake(out var report);
+            Assert.True(found);
+            Assert.NotNull(report);
+        }
+
+        private OrphanSummary GetOrphanSummary(string serviceType)
+        {
+            return new()
+            {
+                ServiceType = serviceType,
+                total_duration_us = 1200,
+                encode_duration_us = 100,
+                last_dispatch_duration_us = 40,
+                total_dispatch_duration_us = 40,
+                last_server_duration_us = 2,
+                total_server_duration_us = 2,
+                timeout_ms = 75000, operation_name = "upsert",
+                last_local_id = "66388CF5BFCF7522/18CC8791579B567C",
+                operation_id = "0x23",
+                last_local_socket = "10.211.55.3:52450",
+                last_remote_socket = "10.112.180.101:11210"
+            };
+        }
+    }
+}

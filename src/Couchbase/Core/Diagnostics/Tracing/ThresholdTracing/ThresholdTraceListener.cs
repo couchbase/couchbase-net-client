@@ -2,21 +2,52 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
+using Couchbase.Core.Logging;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
     /// <summary>
-    /// A <see cref="TraceListener"/> for <see cref="ThresholdLoggingTracer"/>; listens for any span closings and
+    /// A <see cref="TraceListener"/> for <see cref="RequestTracer"/>; listens for any span closings and
     /// generates a <see cref="ThresholdSummary"/> if a span exceeds the threshold configured in <see cref="ThresholdOptions"/>.
     /// </summary>
     internal class ThresholdTraceListener : TraceListener
     {
         private readonly IReadOnlyDictionary<string, TimeSpan> _serviceThresholds;
+        private readonly Timer _timer;
 
-        public ThresholdTraceListener(ThresholdOptions options)
+        public ThresholdTraceListener(ILoggerFactory loggerFactory, ThresholdOptions options)
         {
+            var thresholdOptions1 = options;
+            var logger = loggerFactory.CreateLogger<RequestTracer>();
+            _timer = new Timer(GenerateAndLogReport, logger, thresholdOptions1.EmitInterval, thresholdOptions1.EmitInterval);
+            ThresholdServiceQueue.SetSampleSize((int)thresholdOptions1.SampleSize);//change to uint
+
             _serviceThresholds = options.GetServiceThresholds();
             Start();
+        }
+
+        private static void GenerateAndLogReport(object state)
+        {
+            ILogger logger = null;
+            try
+            {
+                logger = state as ILogger;
+                var reportSummaries = ThresholdServiceQueue.ReportSummaries();
+                var reportJson = JObject.FromObject(reportSummaries);
+
+                if (reportJson.HasValues)
+                {
+                    logger?.LogInformation(LoggingEvents.ThresholdEvent, reportJson.ToString(Formatting.None));
+                }
+            }
+            catch (Exception e)
+            {
+                logger?.LogError(e, "ThresholdRequestLogging report generation failed.");
+            }
         }
 
         /// <inheritdoc />
@@ -41,6 +72,18 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             Listener.Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
                 ActivitySamplingResult.AllData;
             Listener.ShouldListenTo = s => true;
+        }
+
+        public override void Dispose()
+        {
+            try
+            {
+                base.Dispose();
+            }
+            finally
+            {
+                _timer?.Dispose();
+            }
         }
     }
 }

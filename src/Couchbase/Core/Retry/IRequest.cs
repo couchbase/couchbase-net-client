@@ -36,5 +36,7 @@ namespace Couchbase.Core.Retry
         /// A <see cref="IValueRecorder"/> instance for measuring latencies.
         /// </summary>
         IValueRecorder Recorder { get; set; }
+
+        void LogOrphaned();
     }
 }

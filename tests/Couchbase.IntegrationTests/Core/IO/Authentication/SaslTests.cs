@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;

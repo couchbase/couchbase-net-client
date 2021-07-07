@@ -13,8 +13,8 @@ namespace Couchbase.Core.Retry
     {
         private readonly Stopwatch? _stopwatch = Stopwatch.StartNew();
         private IValueRecorder? _recorder;
-
         private IRetryStrategy? _retryStrategy;
+
         public uint Attempts { get; set; }
 
         public IRetryStrategy RetryStrategy
@@ -46,6 +46,11 @@ namespace Couchbase.Core.Retry
         {
             get => _recorder ?? NoopValueRecorder.Instance;
             set => _recorder = value;
+        }
+
+        public void LogOrphaned()
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

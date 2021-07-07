@@ -105,7 +105,11 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             return this;
         }
 
-        public IRequestTracer RequestTracer { get; set; }
+        /// <summary>
+        /// Provides the means of registering a custom <see cref="TraceListener"/> implementation.
+        /// </summary>
+        /// <remarks>It is suggested that the default <see cref="ThresholdListener"/> be used instead of a custom implementation.</remarks>
+        public TraceListener ThresholdListener { get; set; }
 
         /// <summary>
         /// Enables threshold tracing. Defaults to enabled.

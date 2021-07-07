@@ -12,6 +12,7 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
@@ -523,6 +524,13 @@ namespace Couchbase.Core
                         }
                     }
 
+                    //Likely an "orphaned operation"
+                    if (status == ResponseStatus.TransportFailure || status == ResponseStatus.OperationTimeout)
+                    {
+                        //log as orphan if internal criteria met
+                        op.LogOrphaned();
+                    }
+
                     //Contextual error information
                     var ctx = new KeyValueErrorContext
                     {
@@ -551,12 +559,15 @@ namespace Couchbase.Core
                 // passing through RetryOrchestrator for cases like diagnostics or bootstrapping. Therefore, we need the logic
                 // in both places.
 
+                //log as orphan if internal criteria met
+                op.LogOrphaned();
+
                 if (!tokenPair.IsExternalCancellation)
                 {
                     if (debugLoggingEnabled)
                     {
-                        _logger.LogDebug("KV Operation timeout for op {opCode} on {endpoint} with key {key} and opaque {opaque}",
-                            EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+                        _logger.LogDebug("KV Operation timeout for op {opCode} on {endpoint} with key {key} and opaque {opaque}. Is orphaned: {isSent}",
+                            EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.IsSent);
                     }
 
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
