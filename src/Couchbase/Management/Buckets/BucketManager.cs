@@ -53,7 +53,7 @@ namespace Couchbase.Management.Buckets
             {
                 Name = json.GetTokenValue<string>("name"),
                 MaxTtl = json.GetTokenValue<int>("maxTTL"),
-                RamQuotaMB = json.GetTokenValue<int>("quota.rawRAM"),
+                RamQuotaMB = json.GetTokenValue<long>("quota.rawRAM"),
                 FlushEnabled = json.SelectToken("controllers.flush") != null
             };
 

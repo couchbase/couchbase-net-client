@@ -18,7 +18,7 @@ namespace Couchbase.Management.Buckets
         /// <summary>
         /// The amount of RAM to allocate for the bucket.
         /// </summary>
-        public int RamQuotaMB { get; set; }
+        public long RamQuotaMB { get; set; }
 
         /// <summary>
         /// Enables flushing on the bucket.
