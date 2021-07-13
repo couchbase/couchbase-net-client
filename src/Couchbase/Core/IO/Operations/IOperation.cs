@@ -164,6 +164,12 @@ namespace Couchbase.Core.IO.Operations
         /// This method generally relates to <see cref="ResponseStatus.VBucketBelongsToAnotherServer"/> responses.
         /// </remarks>
         BucketConfig? ReadConfig(ITypeTranscoder transcoder);
+
+        /// <summary>
+        /// Returns true if the previous attempt of the operation resulted in a Not My VBucket response from the server.
+        /// </summary>
+        /// <returns></returns>
+        bool WasNmvb();
     }
 }
 

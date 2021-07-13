@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Sharding;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
@@ -174,6 +175,31 @@ namespace Couchbase.UnitTests.Core.Sharding
             var vBucket = (IVBucket) mapper.MapKey(Key);
 
             Assert.Equal(expected, vBucket.BucketName);
+        }
+
+        [Theory]
+        [InlineData("192.168.67.102:11210", ResponseStatus.VBucketBelongsToAnotherServer)]
+        [InlineData("192.168.67.101:11210", ResponseStatus.None)]
+        public void Config_With_FFMaps_Uses_Them_When_NMVB(string nodeIp,  ResponseStatus responseStatus)
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-with-ffmaps.json");
+
+            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(config.VBucketServerMap);
+
+            IKeyMapper mapper = new VBucketKeyMapper(config, vBucketServerMap,
+                new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
+            var vBucket = (IVBucket)mapper.MapKey(Key);
+
+            var op = new Get<dynamic>()
+            {
+                Header = new OperationHeader
+                {
+                    Status = responseStatus
+                }
+            };
+
+            var mappedKey = mapper.MapKey("mykey", op.WasNmvb());
+            Assert.Equal(nodeIp, mappedKey.LocatePrimary().ToString());
         }
 
         #region Helpers

@@ -208,7 +208,7 @@ namespace Couchbase
 
             if (op.RequiresVBucketId)
             {
-                var vBucket = (VBucket) KeyMapper.MapKey(op.Key);
+                var vBucket = (VBucket) KeyMapper.MapKey(op.Key, op.WasNmvb());
 
                 var endPoint = op.ReplicaIdx != null
                     ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())

@@ -93,6 +93,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
+        public bool WasNmvb()
+        {
+            throw new NotImplementedException();
+        }
+
         public void LogOrphaned()
         {
             throw new NotImplementedException();

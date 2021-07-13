@@ -612,6 +612,12 @@ namespace Couchbase.Core.IO.Operations
             }
         }
 
+        /// <inheritdoc />
+        public bool WasNmvb()
+        {
+            return Header.Status == ResponseStatus.VBucketBelongsToAnotherServer;
+        }
+
         #endregion
 
         #region Tracing and Metrics

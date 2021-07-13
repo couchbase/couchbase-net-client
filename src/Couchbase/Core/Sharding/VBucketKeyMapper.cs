@@ -72,10 +72,10 @@ namespace Couchbase.Core.Sharding
             return _vBuckets[GetIndex(key)];
         }
 
-        public IMappedNode MapKey(string key, uint revision)
+        public IMappedNode MapKey(string key, bool notMyVBucket)
         {
             //its a retry
-            if (revision > 0 && revision == Rev && HasForwardMap())
+            if (notMyVBucket && HasForwardMap())
             {
                 //use the fast-forward map
                 var index = GetIndex(key);
