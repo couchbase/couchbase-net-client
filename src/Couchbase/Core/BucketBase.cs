@@ -82,7 +82,7 @@ namespace Couchbase.Core
 
         public BucketType BucketType { get; protected set; }
 
-        public string Name { get; protected set; }
+        public virtual string Name { get; protected set; }
 
         /// <inheritdoc />
         public ICluster Cluster => Context.Cluster;

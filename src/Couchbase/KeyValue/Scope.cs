@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.DI;
-using Couchbase.Management.Analytics;
+using Couchbase.Core.Utils;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 
@@ -30,8 +30,13 @@ namespace Couchbase.KeyValue
             _collectionFactory = collectionFactory ?? throw new ArgumentNullException(nameof(collectionFactory));
 
             _collections = new ConcurrentDictionary<string, ICouchbaseCollection>();
-            _queryContext = $"{_bucket.Name}.{Name}";
+            _queryContext = $"default:{_bucket.Name.EscapeIfRequired()}.{name.EscapeIfRequired()}";
         }
+
+        /// <summary>
+        /// Internal seam for unit testing
+        /// </summary>
+        internal string QueryContext => _queryContext;
 
         public string Name { get; }
 
