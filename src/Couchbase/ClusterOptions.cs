@@ -477,6 +477,9 @@ namespace Couchbase
         public CircuitBreakerConfiguration? CircuitBreakerConfiguration { get; set; } =
             CircuitBreakerConfiguration.Default;
 
+        /// <summary>
+        /// If true the server duration for an operation will be enabled and the value collected per K/V operation.
+        /// </summary>
         public bool EnableOperationDurationTracing { get; set; } = true;
 
         public RedactionLevel RedactionLevel { get; set; } = RedactionLevel.None;

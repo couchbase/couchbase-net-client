@@ -282,6 +282,8 @@ namespace Couchbase.Core.IO.Operations
                 Flags = Flags.Read(buffer.Slice(Header.ExtrasOffset));
 
                 Expires = ByteConverter.ToUInt32(buffer.Slice(25));
+
+                LastServerDuration = Header.GetServerDuration(buffer);
             }
         }
 
@@ -571,6 +573,12 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public void HandleOperationCompleted(in SlicedMemoryOwner<byte> data)
         {
+            if (LastServerDuration.HasValue)
+            {
+                _span?.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.ServerDuration,
+                    LastServerDuration.Value.ToString());
+            }
+
             _dispatchSpan?.Dispose();
             var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
             if (prevCompleted == 1)
@@ -617,6 +625,8 @@ namespace Couchbase.Core.IO.Operations
         {
             return Header.Status == ResponseStatus.VBucketBelongsToAnotherServer;
         }
+
+        public long? LastServerDuration { get; private set; }
 
         #endregion
 

@@ -92,6 +92,8 @@ namespace Couchbase.UnitTests.Utils
             throw new NotImplementedException();
         }
 
+        public long? LastServerDuration { get; }
+
         public void LogOrphaned()
         {
             throw new NotImplementedException();

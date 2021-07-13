@@ -98,6 +98,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
+        public long? LastServerDuration { get; }
+
         public void LogOrphaned()
         {
             throw new NotImplementedException();
