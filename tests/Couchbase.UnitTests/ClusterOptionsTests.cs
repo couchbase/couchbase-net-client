@@ -170,7 +170,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void When_Tracing_Not_Enabled_Default_To_NoopRequestTracer()
         {
-            var options = new ClusterOptions();
+            var options = new ClusterOptions {TracingOptions = {Enabled = false}};
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = false
@@ -198,9 +198,9 @@ namespace Couchbase.UnitTests
         }
 
         [Fact]
-        public void When_Tracing_Disabled_Custom_To_CustomRequestTracer()
+        public void When_Tracing_Disabled_Custom_To_CustomTraceListener()
         {
-            var options = new ClusterOptions();
+            var options = new ClusterOptions { TracingOptions = { Enabled = false } };
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = false,
@@ -214,7 +214,7 @@ namespace Couchbase.UnitTests
         }
 
         [Fact]
-        public void When_Tracing_Enabled_Custom_To_CustomRequestTracer()
+        public void When_Tracing_Enabled_Custom_To_CustomTraceListener()
         {
             var options = new ClusterOptions();
             options.WithThresholdTracing(new ThresholdOptions
@@ -231,6 +231,22 @@ namespace Couchbase.UnitTests
             var listener = options.ThresholdOptions.ThresholdListener as CustomTraceListener;
             Assert.True(listener.Activities.FirstOrDefault().OperationName == "works");
 
+        }
+
+        [Fact]
+        public void When_CustomRequestTracer_Registered_Use_It()
+        {
+            var options = new ClusterOptions()
+            {
+                TracingOptions = new TracingOptions
+                {
+                    RequestTracer = new CustomRequestTracer()
+                }
+            };
+            var services = options.BuildServiceProvider();
+            var tracer = services.GetService(typeof(IRequestTracer));
+
+            Assert.IsAssignableFrom<CustomRequestTracer>(tracer);
         }
 
         public class CustomTraceListener : TraceListener
@@ -254,6 +270,67 @@ namespace Couchbase.UnitTests
                     ActivitySamplingResult.AllData;
                 Listener.ShouldListenTo = s => true;
             }
+        }
+
+        public class CustomRequestTracer : IRequestTracer
+        {
+            public void Dispose()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
+            {
+                return new CustomRequestSpan();
+            }
+
+            public IRequestTracer Start(TraceListener listener)
+            {
+                return new CustomRequestTracer();
+            }
+        }
+
+        public class CustomRequestSpan : IRequestSpan
+        {
+            public void Dispose()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestSpan SetAttribute(string key, bool value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestSpan SetAttribute(string key, string value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestSpan SetAttribute(string key, uint value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestSpan AddEvent(string name, DateTimeOffset? timestamp = null)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void End()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IRequestSpan? Parent { get; set; }
+            public IRequestSpan ChildSpan(string name)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool CanWrite { get; }
+            public string? Id { get; }
+            public uint? Duration { get; }
         }
 
         #endregion

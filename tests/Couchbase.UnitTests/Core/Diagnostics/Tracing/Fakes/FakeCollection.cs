@@ -137,7 +137,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 
         private IRequestSpan RootSpan(string operation)
         {
-            var span = _clusterOptions.RequestTracer?.RequestSpan(operation);
+            var span = _clusterOptions.TracingOptions.RequestTracer?.RequestSpan(operation);
             span!.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
             span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
             span.SetAttribute(OuterRequestSpans.Attributes.BucketName, _bucket.Name);

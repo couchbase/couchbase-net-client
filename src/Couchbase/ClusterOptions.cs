@@ -344,26 +344,64 @@ namespace Couchbase
             return this;
         }
 
-        [Obsolete("Use WithThresholdTracing instead.")]
-        public IRequestTracer? RequestTracer { get; set; }
+        #region Tracing & Metrics
 
-        [Obsolete("Use WithThresholdTracing instead.")]
-        public ClusterOptions WithRequestTracer(IRequestTracer requestTracer)
+        /// <summary>
+        /// Enables request tracing within the SDK.
+        /// <remarks>The default is enabled and the <see cref="RequestTracer"/> is configured.</remarks>
+        /// </summary>
+        public TracingOptions TracingOptions { get; set; } = new();
+
+        /// <summary>
+        /// Enables request tracing within the SDK.
+        /// <remarks>The default is enabled and the <see cref="RequestTracer"/> is configured.</remarks>
+        /// </summary>
+        /// <param name="options">A <see cref="TracingOptions"/> object for configuration.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
+        public ClusterOptions WithTracing(TracingOptions options)
         {
-            RequestTracer = requestTracer;
+            TracingOptions = options;
             return this;
         }
 
-        #region Tracing & Metrics
+        /// <summary>
+        /// Enables request tracing within the SDK.
+        /// <remarks>The default is enabled and the <see cref="RequestTracer"/> is configured.</remarks>
+        /// </summary>
+        /// <param name="configure">A <see cref="TracingOptions"/> lambda for configuration.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
+        public ClusterOptions WithTracing(Action<TracingOptions> configure)
+        {
+            var opts = new TracingOptions();
+            configure(opts);
+            TracingOptions = opts;
+            return this;
+        }
 
+        /// <summary>
+        /// Configures threshold logging for the SDK.
+        /// </summary>
+        /// <remarks>The default is enabled and <see cref="ThresholdTraceListener"/> class is used.</remarks>
         public ThresholdOptions ThresholdOptions { get; set; } = new();
 
+        /// <summary>
+        /// Configures threshold logging for the SDK.
+        /// </summary>
+        /// <remarks>The default is enabled and <see cref="ThresholdTraceListener"/> class is used.</remarks>
+        /// <param name="options">The <see cref="ThresholdOptions"/> for configuration.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
         public ClusterOptions WithThresholdTracing(ThresholdOptions options)
         {
             ThresholdOptions = options;
             return this;
         }
 
+        /// <summary>
+        /// Configures request tracing for the SDK.
+        /// </summary>
+        /// <remarks>The default is enabled and <see cref="ThresholdTraceListener"/> class is used.</remarks>
+        /// <param name="configure">The <see cref="Action{ThresholdOptions}"/> lambda to be configured.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
         public ClusterOptions WithThresholdTracing(Action<ThresholdOptions> configure)
         {
             var opts = new ThresholdOptions();
@@ -371,14 +409,30 @@ namespace Couchbase
             return WithThresholdTracing(opts);
         }
 
+        /// <summary>
+        /// Configures orphan logging for the SDK. Requires that <see cref="TracingOptions"></see> is enabled (the default).
+        /// </summary>
+        /// <remarks>The default is enabled and <see cref="OrphanTraceListener"/> class is used.</remarks>
         public OrphanOptions OrphanTracingOptions { get; set; } = new();
 
+        /// <summary>
+        /// Configures orphan logging for the SDK. Requires that <see cref="TracingOptions"></see> is enabled (the default).
+        /// </summary>
+        /// <remarks>The default is enabled and <see cref="OrphanTraceListener"/> class is used.</remarks>
+        /// <param name="options">The <see cref="OrphanOptions"/> object for configuration.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
         public ClusterOptions WithOrphanTracing(OrphanOptions options)
         {
             OrphanTracingOptions = options;
             return this;
         }
 
+        /// <summary>
+        /// Configures orphan logging for the SDK. Requires that <see cref="TracingOptions"></see> is enabled (the default).
+        /// </summary>
+        /// <remarks>The default is enabled and <see cref="OrphanTraceListener"/> class is used.</remarks>
+        /// <param name="configure">The <see cref="OrphanOptions"/> lambda for configuration.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
         public ClusterOptions WithOrphanTracing(Action<OrphanOptions> configure)
         {
             var opts = new OrphanOptions();
@@ -386,14 +440,30 @@ namespace Couchbase
             return WithOrphanTracing(opts);
         }
 
+        /// <summary>
+        /// Configures logging for measuring latencies of the various Couchbase Services.
+        /// </summary>
+        /// <remarks>The default is enabled using the <see cref="LoggingMeter"/> class.</remarks>
         public LoggingMeterOptions LoggingMeterOptions { get; set; } = new();
 
+        /// <summary>
+        /// Configures logging for measuring latencies of the various Couchbase Services.
+        /// </summary>
+        /// <remarks>The default is enabled using the <see cref="LoggingMeter"/> class.</remarks>
+        /// <param name="options">An <see cref="LoggingMeterOptions"/> object for configuration.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
         public ClusterOptions WithLoggingMeterOptions(LoggingMeterOptions options)
         {
             LoggingMeterOptions = options;
             return this;
         }
 
+        /// <summary>
+        /// Configures logging for measuring latencies of the various Couchbase Services.
+        /// </summary>
+        /// <remarks>The default is enabled using the <see cref="LoggingMeter"/> class.</remarks>
+        /// <param name="configure">An <see cref="LoggingMeterOptions"/> lambda for configuration.</param>
+        /// <returns>A <see cref="ClusterOptions"/> object for chaining.</returns>
         public ClusterOptions WithLoggingMeterOptions(Action<LoggingMeterOptions> configure)
         {
             var opts = new LoggingMeterOptions();
@@ -627,33 +697,20 @@ namespace Couchbase
                 this.AddClusterService<IMeter, NoopMeter>();
             }
 
-            if (ThresholdOptions.Enabled || OrphanTracingOptions.Enabled)
-            {
-                //We need a tracer for either tracers
-                var tracer = new RequestTracer();
+            //set the tracer to be used
+            this.AddClusterService(TracingOptions.Enabled ? TracingOptions.RequestTracer : NoopRequestTracer.Instance);
 
-                if (ThresholdOptions.Enabled)
-                {
-                    //if custom threshold listener is supplied use it otherwise use the default
-                    tracer.Start(ThresholdOptions.ThresholdListener ??
-                                 new ThresholdTraceListener(Logging, ThresholdOptions));
-                }
+            //if tracing is disabled the listener will be ignored
+            if (ThresholdOptions.Enabled)
+                TracingOptions.RequestTracer.Start(ThresholdOptions.ThresholdListener ??
+                                                   new ThresholdTraceListener(Logging, ThresholdOptions));
 
-                if (OrphanTracingOptions.Enabled)
-                {
-                    //if custom orphan listener is supplied use it otherwise use the default
-                    tracer.Start(OrphanTracingOptions.OrphanListener ??
-                                 new OrphanTraceListener(
-                                     new OrphanReporter(Logging.CreateLogger<OrphanReporter>(),
-                                         OrphanTracingOptions)));
-                }
-                this.AddClusterService<IRequestTracer>(tracer);
-            }
-            else
-            {
-                //Use a no-op tracer if tracing is disabled
-                this.AddClusterService(NoopRequestTracer.Instance);
-            }
+            //if tracing is disabled the listener will be ignored
+            if (OrphanTracingOptions.Enabled)
+                TracingOptions.RequestTracer.Start(OrphanTracingOptions.OrphanListener ??
+                                                   new OrphanTraceListener(
+                                                       new OrphanReporter(Logging.CreateLogger<OrphanReporter>(),
+                                                           OrphanTracingOptions)));
 
             #endregion
 

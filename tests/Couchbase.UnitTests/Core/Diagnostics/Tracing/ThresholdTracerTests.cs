@@ -65,9 +65,10 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         {
             var cluster = new FakeCluster(new ClusterOptions
             {
-                RequestTracer =
-                    new RequestTracer().Start(
+                TracingOptions = new TracingOptions {
+                   RequestTracer = new RequestTracer().Start(
                         new ThresholdTraceListener(_loggerFactory, new ThresholdOptions()))
+                }
             });
             var bucket = await cluster.BucketAsync("fakeBucket");
             var collection = await bucket.DefaultCollectionAsync();
