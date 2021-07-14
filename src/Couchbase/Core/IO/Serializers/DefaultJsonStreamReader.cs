@@ -45,7 +45,8 @@ namespace Couchbase.Core.IO.Serializers
 
             _reader = new JsonTextReader(new StreamReader(stream))
             {
-                ArrayPool = JsonArrayPool.Instance
+                ArrayPool = JsonArrayPool.Instance,
+                DateParseHandling = Deserializer.DateParseHandling
             };
         }
 

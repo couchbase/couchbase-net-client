@@ -295,6 +295,40 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             Assert.Equal(0.105, value);
         }
 
+        [Fact]
+        public async Task ReadObjectAsync_OnDateTimeOffset_PreservesTimeZone()
+        {
+            {
+                using var stream = new MemoryStream(
+                    System.Text.Encoding.UTF8.GetBytes("{\"value\":\"2021-06-21T10:16:56.9714243+10:00\"}"));
+
+                var serializer = CreateDefaultJsonSerializer();
+                serializer.DateParseHandling = DateParseHandling.DateTimeOffset;
+                using var reader = new DefaultJsonStreamReader(stream, serializer);
+                Assert.True(await reader.InitializeAsync());
+
+
+                await reader.ReadToNextAttributeAsync();
+                var value = await reader.ReadObjectAsync<DateTimeOffset>();
+                Assert.Equal(10, value.Offset.Hours);
+            }
+            {
+                // check again, just in case the test was run in the +10 timezone and would have given a false positive.
+                using var stream = new MemoryStream(
+                    System.Text.Encoding.UTF8.GetBytes("{\"value\":\"2021-06-21T10:16:56.9714243-8:00\"}"));
+
+                var serializer = CreateDefaultJsonSerializer();
+                serializer.DateParseHandling = DateParseHandling.DateTimeOffset;
+                using var reader = new DefaultJsonStreamReader(stream, serializer);
+                Assert.True(await reader.InitializeAsync());
+
+
+                await reader.ReadToNextAttributeAsync();
+                var value = await reader.ReadObjectAsync<DateTimeOffset>();
+                Assert.Equal(-8, value.Offset.Hours);
+            }
+        }
+
         #endregion
 
         #region Value
