@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class ServerOutOfMemoryException : CouchbaseException
+    public class ServerOutOfMemoryException : KeyValueException
     {
     }
 }

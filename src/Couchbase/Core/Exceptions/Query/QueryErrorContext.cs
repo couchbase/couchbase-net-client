@@ -1,25 +1,29 @@
 using System.Collections.Generic;
 using System.Net;
+using Couchbase.Core.Compatibility;
 using Couchbase.Query;
+
+#nullable enable
 
 namespace Couchbase.Core.Exceptions.Query
 {
     /// <remarks>Uncommitted</remarks>
-    public class QueryErrorContext : IErrorContext
+    [InterfaceStability(Level.Uncommitted)]
+    public class QueryErrorContext : IQueryErrorContext
     {
-        public string Statement { get; internal set; }
+        public string? Statement { get; set; }
 
-        public string ClientContextId { get; internal set; }
+        public string? ClientContextId { get; set; }
 
-        public string Parameters { get; internal set; }
+        public string? Parameters { get; set; }
 
-        public HttpStatusCode HttpStatus { get; internal set; }
+        public HttpStatusCode HttpStatus { get; set; }
 
-        public QueryStatus QueryStatus { get; internal set; }
+        public QueryStatus QueryStatus { get; set; }
 
-        public List<Error> Errors { get; internal set; }
+        public List<Error>? Errors { get; set; }
 
-        public string Message { get; internal set; }
+        public string? Message { get; set; }
     }
 }
 

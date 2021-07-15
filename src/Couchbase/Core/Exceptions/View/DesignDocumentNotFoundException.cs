@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.View
 {
-    public class DesignDocumentNotFoundException : CouchbaseException
+    public class DesignDocumentNotFoundException : ViewException
     {
     }
 }

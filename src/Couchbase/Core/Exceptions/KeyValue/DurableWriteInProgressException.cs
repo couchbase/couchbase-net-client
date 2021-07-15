@@ -2,7 +2,7 @@ using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class DurableWriteInProgressException : CouchbaseException, IRetryable
+    public class DurableWriteInProgressException : KeyValueException, IRetryable
     {
     }
 }

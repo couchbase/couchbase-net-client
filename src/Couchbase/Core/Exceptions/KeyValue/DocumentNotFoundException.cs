@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class DocumentNotFoundException : CouchbaseException
+    public class DocumentNotFoundException : KeyValueException
     {
     }
 }

@@ -1,14 +1,21 @@
 using System;
 
+#nullable enable
+
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class ValueToolargeException : CouchbaseException
+    public class ValueToolargeException : KeyValueException
     {
         public ValueToolargeException()
         {
         }
 
-        public ValueToolargeException(IErrorContext context) : base(context)
+        [Obsolete("Use the IKeyValueErrorContext overload")]
+        public ValueToolargeException(IErrorContext context) : base(context as IKeyValueErrorContext ?? new KeyValueErrorContext())
+        {
+        }
+
+        public ValueToolargeException(IKeyValueErrorContext context) : base(context)
         {
         }
 
@@ -16,7 +23,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
         {
         }
 
-        public ValueToolargeException(string message, Exception innerException) : base(message, innerException)
+        public ValueToolargeException(string message, Exception? innerException) : base(message, innerException)
         {
         }
     }

@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class DocumentNotJsonException : CouchbaseException
+    public class DocumentNotJsonException : KeyValueException
     {
     }
 }

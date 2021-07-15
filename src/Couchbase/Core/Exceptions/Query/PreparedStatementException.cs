@@ -1,8 +1,8 @@
 namespace Couchbase.Core.Exceptions.Query
 {
-    public class PreparedStatementException : CouchbaseException
+    public class PreparedStatementException : QueryException
     {
-        public PreparedStatementException(QueryErrorContext context) : base(context.Message)
+        public PreparedStatementException(QueryErrorContext context) : base(context.Message ?? "Prepared statement error")
         {
             Context = context;
         }

@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class ValueTooDeepException : CouchbaseException
+    public class ValueTooDeepException : KeyValueException
     {
     }
 }

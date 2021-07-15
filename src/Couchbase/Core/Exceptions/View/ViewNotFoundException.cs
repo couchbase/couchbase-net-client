@@ -1,19 +1,18 @@
 using System;
 
+#nullable enable
+
 namespace Couchbase.Core.Exceptions.View
 {
-    public class ViewNotFoundException : CouchbaseException
+    public class ViewNotFoundException : ViewException
     {
-        public ViewNotFoundException(ViewContextError context)
-        {
-            Context = context;
-        }
-
         public ViewNotFoundException() { }
+
+        public ViewNotFoundException(ViewContextError context) : base(context) { }
 
         public ViewNotFoundException(string message) : base(message) { }
 
-        public ViewNotFoundException(string message, Exception innerException) : base(message, innerException) { }
+        public ViewNotFoundException(string message, Exception? innerException) : base(message, innerException) { }
     }
 }
 

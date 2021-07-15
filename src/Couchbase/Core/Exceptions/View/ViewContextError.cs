@@ -1,24 +1,27 @@
-using System.Collections.Generic;
 using System.Net;
+using Couchbase.Core.Compatibility;
+
+#nullable enable
 
 namespace Couchbase.Core.Exceptions.View
 {
     /// <remarks>Uncommitted</remarks>
-    public class ViewContextError : IErrorContext
+    [InterfaceStability(Level.Uncommitted)]
+    public class ViewContextError : IViewErrorContext
     {
-        public string DesignDocumentName { get; internal set; }
+        public string? DesignDocumentName { get; set; }
 
-        public string Parameters { get; internal set; }
+        public string? Parameters { get; set; }
 
-        public string ViewName { get; internal set; }
+        public string? ViewName { get; set; }
 
-        public HttpStatusCode HttpStatus { get; internal set; }
+        public HttpStatusCode HttpStatus { get; set; }
 
-        public string ClientContextId { get; internal set; }
+        public string? ClientContextId { get; set; }
 
-        public string Message { get; internal set; }
+        public string? Message { get; set; }
 
-        public string Errors { get; internal set; }
+        public string? Errors { get; set; }
     }
 }
 

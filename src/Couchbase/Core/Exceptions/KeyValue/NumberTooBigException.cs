@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class NumberTooBigException : CouchbaseException
+    public class NumberTooBigException : KeyValueException
     {
     }
 }

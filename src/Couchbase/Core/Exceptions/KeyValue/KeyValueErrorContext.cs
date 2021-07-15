@@ -1,31 +1,35 @@
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Operations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
+#nullable enable
+
 namespace Couchbase.Core.Exceptions.KeyValue
 {
     /// <remarks>Uncommitted</remarks>
-    public class KeyValueErrorContext : IErrorContext
+    [InterfaceStability(Level.Uncommitted)]
+    public class KeyValueErrorContext : IKeyValueErrorContext
     {
-        public string DispatchedFrom { get; internal set; } //state.localendpoint
+        public string? DispatchedFrom { get; set; } //state.localendpoint
 
-        public string DispatchedTo { get; internal set; } //state.endpoint
+        public string? DispatchedTo { get; set; } //state.endpoint
 
-        public string DocumentKey { get; internal set; } //op.Id
+        public string? DocumentKey { get; set; } //op.Id
 
-        public string ClientContextId { get; internal set; } //state.opaque||op.opaque
+        public string? ClientContextId { get; set; } //state.opaque||op.opaque
 
-        public ulong Cas { get; internal set; } //op.Cas
+        public ulong Cas { get; set; } //op.Cas
 
-        public ResponseStatus Status { get; internal set; } //state.Status
+        public ResponseStatus Status { get; set; } //state.Status
 
-        public string BucketName { get; internal set; } //collection.Bucket.BucketName
+        public string? BucketName { get; set; } //collection.Bucket.BucketName
 
-        public string CollectionName { get; internal set; }//collecton.Name
+        public string? CollectionName { get; set; }//collecton.Name
 
-        public string ScopeName { get; internal set; }//scope.name
+        public string? ScopeName { get; set; }//scope.name
 
-        public string Message { get; internal set; } //errorcode
+        public string? Message { get; set; } //errorcode
 
         [JsonConverter(typeof(StringEnumConverter))]
         public OpCode OpCode { get; set; }

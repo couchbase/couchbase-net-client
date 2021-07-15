@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class DeltaInvalidException : CouchbaseException
+    public class DeltaInvalidException : KeyValueException
     {
     }
 }

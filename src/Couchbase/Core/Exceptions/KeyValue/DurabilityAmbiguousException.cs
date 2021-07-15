@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.KeyValue
 {
-    public class DurabilityAmbiguousException : CouchbaseException
+    public class DurabilityAmbiguousException : KeyValueException
     {
     }
 }

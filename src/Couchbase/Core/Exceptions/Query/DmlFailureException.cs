@@ -1,6 +1,6 @@
 namespace Couchbase.Core.Exceptions.Query
 {
-    public class DmlFailureException : CouchbaseException
+    public class DmlFailureException : QueryException
     {
         public DmlFailureException(QueryErrorContext context) : base("The server failed to execute a DML query")
         {

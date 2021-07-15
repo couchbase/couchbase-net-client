@@ -3,6 +3,8 @@ using System.Text;
 using Couchbase.Core;
 using Newtonsoft.Json;
 
+#nullable enable
+
 namespace Couchbase
 {
     /// <summary>
@@ -19,9 +21,9 @@ namespace Couchbase
 
         public CouchbaseException(string message) : base(message) {}
 
-        public CouchbaseException(string message, Exception innerException) : base(message, innerException) {}
+        public CouchbaseException(string message, Exception? innerException) : base(message, innerException) {}
 
-        public IErrorContext Context { get; set; }
+        public IErrorContext? Context { get; set; }
 
         internal bool IsReadOnly { get; set; }
 
