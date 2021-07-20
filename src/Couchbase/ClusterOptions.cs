@@ -670,7 +670,10 @@ namespace Couchbase
             return this;
         }
 
-        public bool UnorderedExecutionEnabled { get; set; } = false;
+        /// <summary>
+        /// Allows unordered execution of commands by the server.
+        /// </summary>
+        public bool UnorderedExecutionEnabled { get; set; } = true;
 
         #region DI
 

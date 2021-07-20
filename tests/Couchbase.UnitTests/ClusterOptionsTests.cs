@@ -334,5 +334,17 @@ namespace Couchbase.UnitTests
         }
 
         #endregion
+
+        #region Settings
+
+        [Fact]
+        public void UnorderedExecutionEnabled_Defaults_To_True()
+        {
+            var options = ClusterOptions.Default;
+
+            Assert.True(options.UnorderedExecutionEnabled);
+        }
+
+        #endregion
     }
 }
