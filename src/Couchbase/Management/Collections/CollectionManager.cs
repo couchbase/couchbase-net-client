@@ -207,7 +207,7 @@ namespace Couchbase.Management.Collections
                     var contentBody = await createResult.Content.ReadAsStringAsync();
                     if (contentBody.Contains("already exists"))
                         throw new CollectionExistsException(spec.ScopeName, spec.Name);
-                    if (contentBody.Contains("scope_not_found"))
+                    if (contentBody.Contains("not found"))
                         throw new ScopeNotFoundException(spec.ScopeName);
                     throw new CouchbaseException(contentBody);
                 }
@@ -234,7 +234,7 @@ namespace Couchbase.Management.Collections
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync();
-                    if (contentBody.Contains("collection_not_found"))
+                    if (contentBody.Contains("not found"))
                         throw new CollectionNotFoundException(spec.ScopeName, spec.Name);
                     throw new CouchbaseException(contentBody);
                 }
@@ -309,7 +309,7 @@ namespace Couchbase.Management.Collections
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync();
-                    if (contentBody.Contains("scope_not_found"))
+                    if (contentBody.Contains("not found"))
                         throw new ScopeNotFoundException(scopeName);
                     throw new CouchbaseException(contentBody);
                 }
