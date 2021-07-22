@@ -318,7 +318,7 @@ namespace Couchbase.Core
             throw new AggregateException($"Bootstrapping for bucket {Name} as failed.", _deferredExceptions);
         }
 
-#endregion
+        #endregion
 
         public virtual void Dispose()
         {

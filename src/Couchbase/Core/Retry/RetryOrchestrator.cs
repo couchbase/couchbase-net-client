@@ -6,6 +6,7 @@ using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Sharding;
@@ -180,7 +181,7 @@ namespace Couchbase.Core.Retry
                             await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
                             break;
                         }
-                        catch (CollectionOutdatedException e)
+                        catch (CouchbaseException e) when(e is ScopeNotFoundException || e is CollectionNotFoundException)
                         {
                             // We catch CollectionOutdatedException separately from the CouchbaseException catch block
                             // in case RefreshCollectionId fails. This causes that failure to trigger normal retry logic.
@@ -257,16 +258,18 @@ namespace Couchbase.Core.Retry
         {
             try
             {
-                var scope = await bucket.ScopeAsync(op.SName).ConfigureAwait(false);
-                var collection = (IInternalCollection) await scope.CollectionAsync(op.CName).ConfigureAwait(false);
+                var scope = await bucket.ScopeAsync(op.SName!).ConfigureAwait(false);
 
-                var newCid = await ((IInternalScope) scope).GetCidAsync($"{op.SName}.{op.CName}").ConfigureAwait(false);
-                collection.Cid = newCid;
+                if (await scope.CollectionAsync(op.CName!).ConfigureAwait(false) is IInternalCollection collection)
+                {
+                    //re-fetch the CID but do not allow retries in that path and force the CID update
+                    await collection.PopulateCidAsync(false, true);
 
-                op.Reset();
-                op.Cid = newCid;
+                    op.Reset();
+                    op.Cid = collection.Cid;
 
-                return true;
+                    return true;
+                }
             }
             catch (Exception ex)
             {

@@ -1,18 +1,27 @@
 using System;
 using Couchbase.Core.Retry;
 
-namespace Couchbase.Management.Collections
+namespace Couchbase.Core.Exceptions
 {
     public class ScopeNotFoundException : CouchbaseException, IRetryable
     {
         public ScopeNotFoundException() { }
 
-        public ScopeNotFoundException(string scopeName)
-            : base($"Scope with name {scopeName} not found")
-        { }
+        public ScopeNotFoundException(IErrorContext context) : base(context.Message)
+        {
+            Context = context;
+        }
+
+        public ScopeNotFoundException(string message) : base(message) { }
+
+        public ScopeNotFoundException(string message, Exception innerException) : base(message, innerException) { }
+
+        internal static ScopeNotFoundException FromScopeName(string scopeName)
+        {
+            return new($"Scope with name {scopeName} not found");
+        }
     }
 }
-
 
 /* ************************************************************
  *

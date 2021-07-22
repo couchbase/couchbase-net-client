@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Couchbase.KeyValue
 {
     /// <summary>
@@ -9,6 +11,8 @@ namespace Couchbase.KeyValue
         /// Gets or sets the identifier for a <see cref="ICouchbaseCollection"/>.
         /// </summary>
         uint? Cid { get; set; }
+
+        ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false);
     }
 }
 

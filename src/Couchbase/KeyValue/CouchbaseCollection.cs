@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -1005,7 +1006,7 @@ namespace Couchbase.KeyValue
             return _bucket.Context.SupportsCollections && !Cid.HasValue;
         }
 
-        private async ValueTask PopulateCidAsync()
+        public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
         {
             Logger.LogDebug("Fetching CID for {scope}.{collection}", ScopeName, Name);
             var waitedSuccessfully = await CidLock.WaitAsync(2500);
@@ -1015,13 +1016,15 @@ namespace Couchbase.KeyValue
                 {
                     throw new AmbiguousTimeoutException($"Timed out waiting for GET_CID in {ScopeName}.{Name}");
                 }
-                if (!_bucket.Context.SupportsCollections || Cid.HasValue)
-                {
-                    return;
-                }
+
+                // old servers do not support collections so we exit
+                if (!_bucket.Context.SupportsCollections) return;
+
+                // the CID has been acquired and its not a forced update exit
+                if (Cid.HasValue && !forceUpdate) return;
 
                 //for later cheshire cat builds
-                Cid = await GetCidAsync($"{ScopeName}.{Name}", true);
+                Cid = await GetCidAsync($"{ScopeName}.{Name}", true, retryIfFailure);
             }
             catch (Exception e)
             {
@@ -1030,7 +1033,7 @@ namespace Couchbase.KeyValue
                     try
                     {
                         //if this is encountered were on a older server pre-cheshire cat changes
-                        Cid = await GetCidAsync($"{ScopeName}.{Name}", false);
+                        Cid = await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure);
                     }
                     catch (UnsupportedException)
                     {
@@ -1055,8 +1058,9 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="fullyQualifiedName">The fully qualified scope.collection name.</param>
         /// <param name="sendAsBody">true to send as the body; false in the key for dev-preview (pre-7.0 servers). </param>
+        /// <param name="retryIfFailure">true to retry the CID operation if it fails.</param>
         /// <returns></returns>
-        private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody)
+        private async Task<uint?> GetCidAsync(string fullyQualifiedName, bool sendAsBody, bool retryIfFailure)
         {
             using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Internal.GetCid);
             using var getCid = new GetCid
@@ -1075,7 +1079,15 @@ namespace Couchbase.KeyValue
             }
 
             _operationConfigurator.Configure(getCid, new GetOptions().Transcoder(_rawStringTranscoder));
-            await _bucket.RetryAsync(getCid).ConfigureAwait(false);
+            if (retryIfFailure)
+            {
+                await _bucket.RetryAsync(getCid).ConfigureAwait(false);
+            }
+            else
+            {
+                await _bucket.SendAsync(getCid);
+            }
+
             var resultWithValue = getCid.GetValueAsUint();
             return resultWithValue;
         }

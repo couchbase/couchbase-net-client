@@ -7,12 +7,16 @@ namespace Couchbase.Core.Exceptions
     {
         public CollectionNotFoundException() { }
 
+        public CollectionNotFoundException(IErrorContext context) : base(context.Message)
+        {
+            Context = context;
+        }
+
         public CollectionNotFoundException(string message) : base(message) { }
 
         public CollectionNotFoundException(string message, Exception innerException) : base(message, innerException) { }
     }
 }
-
 
 /* ************************************************************
  *

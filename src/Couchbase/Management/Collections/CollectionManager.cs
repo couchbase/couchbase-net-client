@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
@@ -136,7 +137,7 @@ namespace Couchbase.Management.Collections
                 }
 
                 // throw not found exception
-                throw new ScopeNotFoundException(scopeName);
+                throw ScopeNotFoundException.FromScopeName(scopeName);
             }
             catch (Exception exception)
             {
@@ -207,8 +208,10 @@ namespace Couchbase.Management.Collections
                     var contentBody = await createResult.Content.ReadAsStringAsync();
                     if (contentBody.Contains("already exists"))
                         throw new CollectionExistsException(spec.ScopeName, spec.Name);
+
                     if (contentBody.Contains("not found"))
                         throw new ScopeNotFoundException(spec.ScopeName);
+
                     throw new CouchbaseException(contentBody);
                 }
             }
@@ -309,6 +312,7 @@ namespace Couchbase.Management.Collections
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync();
+
                     if (contentBody.Contains("not found"))
                         throw new ScopeNotFoundException(scopeName);
                     throw new CouchbaseException(contentBody);
