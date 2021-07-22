@@ -17,6 +17,11 @@ namespace Couchbase.Core.IO.Connections
     internal interface IConnection : IDisposable
     {
         /// <summary>
+        /// Unique identifier for the connection.
+        /// </summary>
+        string ContextId { get; }
+
+        /// <summary>
         /// Internal randomly generated connection ID.
         /// </summary>
         ulong ConnectionId { get; }

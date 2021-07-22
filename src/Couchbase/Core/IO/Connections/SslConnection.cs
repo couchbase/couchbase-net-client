@@ -27,6 +27,8 @@ namespace Couchbase.Core.IO.Connections
                 multiplexingLogger);
         }
 
+        public string ContextId => _multiplexingConnection.ContextId;
+
         /// <inheritdoc />
         public ulong ConnectionId => _multiplexingConnection.ConnectionId;
 

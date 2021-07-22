@@ -18,6 +18,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
+        public string ContextId { get; }
         public ulong ConnectionId { get; internal set; }
         public bool IsAuthenticated { get; set; }
         public bool IsSecure { get; }

@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net;
@@ -29,12 +28,13 @@ namespace Couchbase.Core.IO.Connections
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly InFlightOperationSet _statesInFlight = new(TimeSpan.FromSeconds(75));
         private readonly Stopwatch _stopwatch;
-        private readonly object _syncObj = new object();
+        private readonly object _syncObj = new();
         private volatile bool _disposed;
 
-        private readonly string _endPointString;
-        private readonly string _localEndPointString;
-        private readonly string _connectionIdString;
+        private readonly string _remoteHostString;
+        private readonly string _localHostString;
+        private readonly string _remotePortString;
+        private readonly string _localPortString;
 
         // Connection pooling normally prevents simultaneous writes, but there are cases where they may occur,
         // such as when running Diagnostics pings. We therefore need to prevent them ourselves, as the internal
@@ -54,11 +54,13 @@ namespace Couchbase.Core.IO.Connections
             EndPoint = remoteEndPoint ?? throw new ArgumentNullException(nameof(remoteEndPoint));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            ConnectionId = ConnectionIdProvider.GetNextId();
+            ConnectionId = ConnectionIdProvider.GetRandomLong();
+            ContextId = ClientIdentifier.FormatConnectionString(ConnectionId);
 
-            _endPointString = EndPoint.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
-            _localEndPointString = LocalEndPoint.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
-            _connectionIdString = ConnectionId.ToString(CultureInfo.InvariantCulture);
+            _remoteHostString = ((IPEndPoint) EndPoint).Address.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
+            _localHostString = ((IPEndPoint) LocalEndPoint).Address.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
+            _remotePortString = ((IPEndPoint) EndPoint).Port.ToString();
+            _localPortString = ((IPEndPoint) LocalEndPoint).Port.ToString();
 
             _stopwatch = new Stopwatch();
             _stopwatch.Start();
@@ -69,6 +71,8 @@ namespace Couchbase.Core.IO.Connections
                 Task.Run(ReceiveResponsesAsync);
             }
         }
+
+        public string ContextId { get; }
 
         /// <inheritdoc />
         public ulong ConnectionId { get; }
@@ -110,7 +114,7 @@ namespace Couchbase.Core.IO.Connections
             {
                 EndPoint = EndPoint,
                 ConnectionId = ConnectionId,
-                LocalEndpoint = _localEndPointString
+                LocalEndpoint = _localHostString
             };
 
             _statesInFlight.Add(state);
@@ -358,11 +362,11 @@ namespace Couchbase.Core.IO.Connections
         {
             if (span.CanWrite)
             {
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalHostname, _endPointString);
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalPort, ((IPEndPoint) LocalEndPoint).Port.ToString());
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, _endPointString);
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemotePort, ((IPEndPoint) EndPoint).Port.ToString());
-                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalId, _connectionIdString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalHostname, _localHostString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalPort, _localPortString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, _remoteHostString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemotePort, _remotePortString);
+                span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalId, ContextId);
             }
         }
     }

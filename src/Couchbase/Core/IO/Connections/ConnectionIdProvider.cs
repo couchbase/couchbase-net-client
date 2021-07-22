@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 
 #nullable enable
@@ -9,6 +10,7 @@ namespace Couchbase.Core.IO.Connections
     /// </summary>
     internal static class ConnectionIdProvider
     {
+        private static readonly Random Random = new();
         private static long _connectionId;
 
         /// <summary>
@@ -16,6 +18,17 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <returns>A unique connection ID.</returns>
         public static ulong GetNextId() => (ulong) Interlocked.Increment(ref _connectionId);
+
+        public static ulong GetRandomLong()
+        {
+            var bytes = new byte[8];
+            lock (Random)
+            {
+                Random.NextBytes(bytes);
+            }
+
+            return BitConverter.ToUInt64(bytes, 0);
+        }
     }
 }
 

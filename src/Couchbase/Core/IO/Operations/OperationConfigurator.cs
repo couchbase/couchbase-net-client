@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -35,6 +37,12 @@ namespace Couchbase.Core.IO.Operations
             operation.OperationCompressor = _operationCompressor;
             operation.OperationBuilderPool = _operationBuilderPool;
             operation.RetryStrategy = options?.RetryStrategy ?? _retryStrategy;
+
+            if (operation.Span.CanWrite && options is ITimeoutOptions options1)
+            {
+                operation.Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds,
+                    options1.Timeout?.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)!);
+            }
         }
     }
 }

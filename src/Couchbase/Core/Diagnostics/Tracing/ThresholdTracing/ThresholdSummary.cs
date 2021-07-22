@@ -1,7 +1,9 @@
 //#nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 
@@ -78,7 +80,8 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string last_remote_socket { get; set; }
 
-        public string timeout_ms { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public ulong? timeout_ms { get; set; }
 
         public static ThresholdSummary FromActivity(Activity activity)
         {
@@ -89,22 +92,48 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
                 encode_duration_us = SumMicroseconds(activity, ThresholdTags.EncodeDuration),
                 last_dispatch_duration_us = LastMicroseconds(activity, ThresholdTags.DispatchDuration),
                 total_dispatch_duration_us = SumMicroseconds(activity, ThresholdTags.DispatchDuration),
-                timeout_ms = LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds),
+                timeout_ms = MillisecondsOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds),
 
                 //Basic OT tags
                 total_server_duration_us = LastMicroseconds(activity, InnerRequestSpans.DispatchSpan.Attributes.ServerDuration),
-                last_server_duration_us = LastMicroseconds(activity, InnerRequestSpans.DispatchSpan.Attributes.ServerDuration),
+                last_server_duration_us = SumMicroseconds(activity, InnerRequestSpans.DispatchSpan.Attributes.ServerDuration),
                 operation_name = LastValueOrNull(activity, OuterRequestSpans.Attributes.Operation),
                 operation_id = LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.OperationId),
                 last_local_id = LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalId),
-                last_local_socket = $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalHostname)}:" +
-                                    $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalPort)}",
-                last_remote_socket = $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalHostname)}:" +
-                                     $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalPort)}"
+                last_local_socket = FormatSocket(LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalHostname),
+                                    LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalPort)),
+                last_remote_socket = FormatSocket(LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname),
+                                     LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.RemotePort))
             };
         }
 
+        private static string FormatSocket(string hostName, string port)
+        {
+            if (hostName != null || port != null)
+            {
+                return $"{hostName}:{port}";
+            }
+
+            return null;
+        }
+
         private static readonly KeyValuePair<string, string> DefaultKvp = default;
+
+        private static ulong? MillisecondsOrNull(Activity activity, string keyName)
+        {
+            TimeSpan? result = null;
+            foreach (var tag in activity.Tags)
+            {
+                if (tag.Key == keyName && TimeSpan.TryParse(tag.Value, out var parsed))
+                {
+                    result = parsed;
+                }
+            }
+
+            if (result.HasValue) return (ulong) result.Value.TotalMilliseconds;
+
+            return null;
+        }
 
         private static string LastValueOrNull(Activity activity, string keyName)
         {
