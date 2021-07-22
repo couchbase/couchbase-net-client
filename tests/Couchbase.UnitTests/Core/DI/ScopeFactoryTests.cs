@@ -90,7 +90,9 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-                return mock.Object;
+            mock.SetupGet(it => it.Name).Returns("default");
+
+            return mock.Object;
         }
 
         #endregion
