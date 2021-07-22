@@ -13,7 +13,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
         public Meta? meta { get; set; }
         public Operations? operations { get; set; }
 
-        public static LoggingMeterReport Generate(ReadOnlyDictionary<string, IMetricsRoot?> histograms, double interval)
+        public static LoggingMeterReport Generate(ReadOnlyDictionary<string, IMetricsRoot?> histograms, uint interval)
         {
             var report = new LoggingMeterReport
             {
@@ -82,7 +82,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
     internal class Meta
     {
-        public double emit_interval_s { get; set; }
+        public uint emit_interval_s { get; set; }
     }
 
     internal class PercentilesUs

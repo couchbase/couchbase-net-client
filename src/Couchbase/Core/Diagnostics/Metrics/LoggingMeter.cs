@@ -43,7 +43,8 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 var histograms =
                     new ReadOnlyDictionary<string, IMetricsRoot?>(_histograms.ToDictionary(x => x.Key, y => y.Value?.Item2));
 
-                _logger.LogInformation(LoggingMeterReport.Generate(histograms, _timer.Interval).ToString());
+                var intervalInSeconds = (uint) _timer.Interval / 1000;
+                _logger.LogInformation(LoggingMeterReport.Generate(histograms, intervalInSeconds).ToString());
             }
             finally
             {
