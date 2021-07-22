@@ -1,4 +1,7 @@
+using Couchbase.Core.Compatibility;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace Couchbase.Query
 {
@@ -14,6 +17,10 @@ namespace Couchbase.Query
         public Severity Severity { get; set; }
 
         public bool Temp { get; set; }
+
+        [InterfaceStability(Level.Volatile)]
+        [JsonExtensionData]
+        public IDictionary<string, JToken> AdditionalData { get; set; }
     }
 
     internal class ErrorData
