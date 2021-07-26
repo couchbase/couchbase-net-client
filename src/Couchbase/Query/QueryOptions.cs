@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
@@ -18,7 +19,6 @@ namespace Couchbase.Query
     /// </summary>
     public class QueryOptions
     {
-        internal const string LastDispatchedNodeParam = "net.peer.uri";
         private readonly List<object> _arguments = new List<object>();
         private readonly Dictionary<string, object> _parameters = new Dictionary<string, object>();
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
@@ -111,18 +111,8 @@ namespace Couchbase.Query
 
         internal string? StatementValue => _statement;
 
-        internal string? LastDispatchedNode
-        {
-            get
-            {
-                if (_parameters.TryGetValue(LastDispatchedNodeParam, out var lastNode))
-                {
-                    return lastNode?.ToString();
-                }
-
-                return null;
-            }
-        }
+        [InterfaceStability(Level.Volatile)]
+        public Uri? LastDispatchedNode { get; set; }
 
         internal string GetAllParametersAsJson()
         {

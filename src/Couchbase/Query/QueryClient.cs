@@ -161,15 +161,7 @@ namespace Couchbase.Query
             }
 
             // try get Query node
-            Uri queryUri;
-            if (options.LastDispatchedNode != null && Uri.TryCreate(options.LastDispatchedNode, UriKind.Absolute, out var parsedUri))
-            {
-                queryUri = parsedUri;
-            }
-            else
-            {
-                queryUri = _serviceUriProvider.GetRandomQueryUri();
-            }
+            Uri queryUri = options.LastDispatchedNode ?? _serviceUriProvider.GetRandomQueryUri();
 
             span.WithRemoteAddress(queryUri);
             using var encodingSpan = span.EncodingSpan();

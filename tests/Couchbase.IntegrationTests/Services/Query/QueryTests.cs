@@ -140,7 +140,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             {
                 using var span = new TestOutputSpan(_testOutputHelper);
                 var results = await cluster.QueryAsync<JObject>("BEGIN WORK", options => options.RequestSpan(span)).ConfigureAwait(false);
-                originalQueryNode = new Uri(results.MetaData?.LastDispatchedToNode?.ToString());
+                originalQueryNode = results.MetaData?.LastDispatchedToNode;
                 await foreach (var result in results.Rows)
                 {
                     _testOutputHelper.WriteLine(result.ToString());
@@ -153,10 +153,10 @@ namespace Couchbase.IntegrationTests.Services.Query
             for (int i = 0; i < 100; i++)
             {
                 using var querySpan = new TestOutputSpan(_testOutputHelper);
-                var result = await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;", options =>
-                options.Parameter("txid", txid)
-                       .Parameter("net.peer.uri", originalQueryNode)
-                       .RequestSpan(querySpan)).ConfigureAwait(false);
+                var options = new QueryOptions().Parameter("txid", txid).RequestSpan(querySpan);
+                options.LastDispatchedNode = originalQueryNode;
+                var result = await cluster.QueryAsync<Poco>("SELECT default.* FROM `default` LIMIT 1;", options).ConfigureAwait(false);
+
 
                 var thisQueryHost = querySpan.Attributes.Where(kvp => kvp.Key == "net.peer.name").Select(kvp => kvp.Value).FirstOrDefault();
                 var thisQueryPort = querySpan.Attributes.Where(kvp => kvp.Key == "net.peer.port").Select(kvp => kvp.Value).FirstOrDefault();
