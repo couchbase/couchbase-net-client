@@ -10,7 +10,8 @@ namespace Couchbase.Core.Retry
         public static bool AlwaysRetry(this RetryReason reason)
         {
             return reason == RetryReason.KvNotMyVBucket ||
-                   reason == RetryReason.KvCollectionOutdated ||
+                   reason == RetryReason.ScopeNotFound ||
+                   reason == RetryReason.CollectionNotFound ||
                    reason == RetryReason.ViewsNoActivePartition ||
                    reason == RetryReason.CircuitBreakerOpen;
         }

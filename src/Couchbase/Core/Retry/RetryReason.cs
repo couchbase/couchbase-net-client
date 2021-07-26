@@ -1,3 +1,5 @@
+using System;
+
 namespace Couchbase.Core.Retry
 {
     public enum RetryReason
@@ -8,6 +10,7 @@ namespace Couchbase.Core.Retry
         ServiceNotAvailable,
         NodeNotAvailable,
         KvNotMyVBucket,
+        [Obsolete("Use ScopeNotFound or CollectionNotFound.")]
         KvCollectionOutdated,
         KvErrorMapRetryIndicated,
         KvLocked,
@@ -23,7 +26,9 @@ namespace Couchbase.Core.Retry
         SearchTooManyRequests,
         ViewsTemporaryFailure,
         ViewsNoActivePartition,
-        SendQueueFull
+        SendQueueFull,
+        CollectionNotFound,
+        ScopeNotFound
     }
 }
 

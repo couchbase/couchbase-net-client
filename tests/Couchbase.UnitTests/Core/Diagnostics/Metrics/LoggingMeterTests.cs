@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Microsoft.Extensions.Logging;
@@ -20,11 +20,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
         }
 
         [Fact]
-        public void Test_Generate_Report_And_Write_To_Log()
+        public async Task Test_Generate_Report_And_Write_To_Log()
         {
             var loggerFactory = new LoggingMeterTestFactory();
             var meter = new LoggingMeter(loggerFactory, new LoggingMeterOptions().Enabled(true)
-                .EmitInterval(TimeSpan.FromSeconds(2)));
+                .EmitInterval(TimeSpan.FromMilliseconds(100)));
 
             var recorder1 = meter.ValueRecorder(OuterRequestSpans.ServiceSpan.Kv.Name);
             var recorder2 = meter.ValueRecorder(OuterRequestSpans.ServiceSpan.N1QLQuery);
@@ -58,9 +58,16 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Metrics
                 recorder5.RecordValue(23);
             }
 
-            Thread.Sleep(3000);
-
-            var actual = loggerFactory.LoggedData.FirstOrDefault();
+            string actual;
+            var attempts = 0;
+            var count = 5;
+            var maxRetries = 20;
+            while ((actual = loggerFactory.LoggedData.FirstOrDefault()) == null && count < maxRetries)
+            {
+                var sleepTime = TimeSpan.FromMilliseconds(Math.Pow(2, count++));
+                _testOutputHelper.WriteLine($"Attempt {attempts++} sleeping for {sleepTime.TotalMilliseconds}ms");
+                await Task.Delay(sleepTime);
+            }
 
             Assert.NotNull(actual);
             _testOutputHelper.WriteLine(actual);

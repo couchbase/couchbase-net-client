@@ -16,6 +16,10 @@ namespace Couchbase.Core.Retry
 
         public RetryAction RetryAfter(IRequest request, RetryReason reason)
         {
+            if (reason == RetryReason.NoRetry)
+            {
+                return RetryAction.Duration(null);
+            }
             if (request.Idempotent || reason.AllowsNonIdempotentRetries())
             {
                 var backoffDuration = _backoffCalculator.CalculateBackoff(request);

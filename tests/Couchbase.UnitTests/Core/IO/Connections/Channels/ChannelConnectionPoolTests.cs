@@ -17,7 +17,10 @@ using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 {
-    public class ChannelConnectionPoolTests
+#pragma warning disable xUnit1000 // Test classes must be public
+    /*public*/
+    class ChannelConnectionPoolTests
+#pragma warning restore xUnit1000 // Test classes must be public
     {
         private readonly ITestOutputHelper _testOutput;
         private readonly IPEndPoint _ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);

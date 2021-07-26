@@ -10,7 +10,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
-using Couchbase.Core.DI;
+//using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
@@ -29,12 +29,14 @@ using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Retry
 {
+    [Collection("NonParallel")]
     public class RetryOrchestratorTests
     {
         public class RetryTestData : IEnumerable<object[]>
@@ -68,14 +70,14 @@ namespace Couchbase.UnitTests.Core.Retry
                 yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
                 yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
 
-                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
-                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionOutdatedException() };
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
 
                 yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
                 yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
@@ -147,21 +149,21 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-                bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op, CancellationTokenPair ct) =>
+                bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op1, CancellationTokenPair ct) =>
             {
-                if (op.Completed.IsCompleted)
+                if (op1.Completed.IsCompleted)
                     Assert.True(false, "operation result should be reset before retry");
 
                 // complete the operation if circuit breaker is not open (ResponseStatus does not matter for this test)
                 if (exp.GetType() != typeof(CircuitBreakerException) || op.Attempts != 1)
                     op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.TemporaryFailure));
 
-                if (op.Attempts == 1)
+                if (op1.Attempts == 1)
                 {
                     throw exp;
                 }
@@ -180,7 +182,7 @@ namespace Couchbase.UnitTests.Core.Retry
             Assert.True(op.Attempts > 1);
         }
 
-        [Theory]
+        [Theory(Skip = "test race condition needs debugging NCBC-2935")]
         [ClassData(typeof(RetryTestData))]
         public async Task Operation_Throws_Timeout_After_N_Retries_Using_BestEffort_When_NotMyVBucket(
             object operation, Exception exception)
@@ -212,7 +214,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var exception = new NotMyVBucketException();
 
-            using var cts = new CancellationTokenSource(5000);
+            using var cts = new CancellationTokenSource(2000);
 
             await AssertRetryAsync<OperationCanceledException>(operation, exception, minAttempts: 1,
                 externalCancellationToken: cts.Token).ConfigureAwait(false);
@@ -246,13 +248,13 @@ namespace Couchbase.UnitTests.Core.Retry
             await AssertRetryAsync<AmbiguousTimeoutException>(operation, exception, minAttempts: 1).ConfigureAwait(false);
         }
 
-        private async Task AssertRetryAsync<TExpected>(IOperation op, Exception exp, int minAttempts = 2,
+        private static async Task AssertRetryAsync<TExpected>(IOperation op, Exception exp, int minAttempts = 2,
             CancellationToken externalCancellationToken = default)
             where TExpected : Exception
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
@@ -260,7 +262,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
-            using var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(25000));
+            using var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
             try
             {
                 var tokenPair = new CancellationTokenPair(externalCancellationToken, tokenSource.Token);
@@ -281,7 +283,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator();
 
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
-            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
@@ -304,11 +306,11 @@ namespace Couchbase.UnitTests.Core.Retry
             await AssertDoesNotRetryAsync((IOperation) operation, exception);
         }
 
-        private async Task AssertDoesNotRetryAsync(IOperation op, Exception exp)
+        private static async Task AssertDoesNotRetryAsync(IOperation op, Exception exp)
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<IScopeFactory>().Object,
+            var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
@@ -486,7 +488,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 cts.CancelAfter(100000);
 
                 var queryOptions = new QueryOptions().
-                    ReadOnly(readOnly).
+                    Readonly(readOnly).
                     CancellationToken(cts.Token).
                     Timeout(TimeSpan.FromMilliseconds(100000));
 
@@ -512,11 +514,11 @@ namespace Couchbase.UnitTests.Core.Retry
 
                     if (canRetry)
                     {
-                        Assert.True(request.Attempts > 0);
+                        Assert.True(request.Attempts > 0, "Attempts: " + request.Attempts);
                     }
                     else
                     {
-                        Assert.True(request.Attempts == 0);
+                        Assert.True(request.Attempts == 0, "Attempts: " + request.Attempts);
                     }
 
                     if (e is InvalidOperationException)
@@ -560,7 +562,16 @@ namespace Couchbase.UnitTests.Core.Retry
 
         private static RetryOrchestrator CreateRetryOrchestrator()
         {
-            var mock = new Mock<RetryOrchestrator>(new Mock<ILogger<RetryOrchestrator>>().Object,
+
+            IServiceCollection serviceCollection = new ServiceCollection();
+            serviceCollection.AddLogging(builder => builder
+                .AddFilter(level => level >= LogLevel.Debug)
+            );
+            var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
+            loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
+            var logger = loggerFactory.CreateLogger<RetryOrchestrator>();
+
+            var mock = new Mock<RetryOrchestrator>(logger,
                 new Mock<IRedactor>().Object)
             {
                 CallBase = true

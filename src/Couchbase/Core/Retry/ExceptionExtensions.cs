@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Exceptions.Query;
@@ -26,6 +27,9 @@ namespace Couchbase.Core.Retry
                 case PreparedStatementException _: return RetryReason.QueryPreparedStatementFailure;
                 case IndexFailureException _: return RetryReason.QueryIndexNotFound;
                 case SendQueueFullException _: return RetryReason.SendQueueFull;
+                case CircuitBreakerException _: return RetryReason.CircuitBreakerOpen;
+                case CollectionNotFoundException _: return RetryReason.CollectionNotFound;
+                case ScopeNotFoundException _: return RetryReason.ScopeNotFound;
                 default:
                 {
                     return RetryReason.NoRetry;

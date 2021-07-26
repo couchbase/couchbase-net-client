@@ -19,7 +19,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
     public class OrphanedResponseTests
     {
         [Fact]
-        public async Task Test()
+        public void Test()
         {
             var loggerFactory = new LoggingMeterTests.LoggingMeterTestFactory();
             var orphanReporter = new OrphanReporter(loggerFactory.CreateLogger<OrphanReporter>(), new OrphanOptions{EmitInterval = TimeSpan.FromSeconds(1)});
@@ -28,10 +28,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
             orphanReporter.Add(GetOrphanSummary(OuterRequestSpans.ServiceSpan.Kv.Name));
             orphanReporter.Add(GetOrphanSummary(OuterRequestSpans.ServiceSpan.N1QLQuery));
 
-            await Task.Delay(TimeSpan.FromSeconds(3));
-
-            var found = loggerFactory.LoggedData.TryTake(out var report);
-            Assert.True(found);
+            string report = null;
+            var finished = SpinWait.SpinUntil(() => loggerFactory.LoggedData.TryTake(out report), TimeSpan.FromSeconds(30));
+            Assert.True(finished, userMessage: "Did not find a log entry for orphaned data.");
             Assert.NotNull(report);
         }
 
