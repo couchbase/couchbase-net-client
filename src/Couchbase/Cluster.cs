@@ -16,6 +16,7 @@ using Couchbase.Diagnostics;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Retry.Search;
+using Couchbase.Core.Utils;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Eventing;
@@ -144,6 +145,10 @@ namespace Couchbase
 
         public ValueTask<IBucket> BucketAsync(string name)
         {
+            if (name == null) throw new ArgumentNullException(nameof(name));
+
+            var escapedName = name.EscapeIfRequired();
+
             var cluster = this as IBootstrappable;
             if (cluster.IsBootstrapped)
             {
@@ -154,12 +159,12 @@ namespace Couchbase
                     // set to true, we don't need to await GetOrCreateBucketAsync here just to set it to true again.
                     // By avoiding the await we also avoid some heap allocations for tasks and continuations.
 
-                    return _context.GetOrCreateBucketAsync(name);
+                    return _context.GetOrCreateBucketAsync(escapedName);
                 }
 
                 return new ValueTask<IBucket>(Task.Run(async () =>
                 {
-                    var bucket = await _context.GetOrCreateBucketAsync(name).ConfigureAwait(false);
+                    var bucket = await _context.GetOrCreateBucketAsync(escapedName).ConfigureAwait(false);
                     _hasBootStrapped = true; //for legacy pre-6.5 servers
                     return bucket;
                 }));

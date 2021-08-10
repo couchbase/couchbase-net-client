@@ -22,6 +22,17 @@ namespace Couchbase.UnitTests
 
         #endregion
 
+        #region Bucket
+
+        [Fact]
+        public async Task When_Name_Null_Bucket_Throws_ArgumentNullException()
+        {
+            var cluster = new Cluster(ClusterOptions.Default.WithCredentials("Administrator", "password"));
+            await Assert.ThrowsAsync<ArgumentNullException>( async () => await cluster.BucketAsync(null));
+        }
+
+        #endregion
+
         #region Extensions
 
         [Theory]
