@@ -1,0 +1,15 @@
+/*HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+Date: Thu, 26 Aug 2021 23:16:23 GMT
+Content-Length: 243*/
+
+{
+ "name": "ERR_COLLECTION_MISSING",
+ "code": 56,
+ "description": "Collection does not exist in the cluster",
+ "attributes": null,
+ "runtime_info": {
+  "code": 56,
+  "info": "Scope Not defined bucket: bulk scope: data1 collection: source"
+ }
+}

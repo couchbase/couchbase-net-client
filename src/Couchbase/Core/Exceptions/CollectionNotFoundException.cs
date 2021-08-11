@@ -3,6 +3,9 @@ using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.Exceptions
 {
+    /// <summary>
+    /// The collection in the key-space or scope is not found.
+    /// </summary>
     public class CollectionNotFoundException : CouchbaseException, IRetryable
     {
         public CollectionNotFoundException() { }

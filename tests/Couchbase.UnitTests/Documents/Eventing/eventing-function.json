@@ -1,0 +1,52 @@
+{
+    "depcfg": {
+      "buckets": [
+        {
+          "alias": "testbucketalias",
+          "bucket_name": "rr100",
+          "scope_name": "_default",
+          "collection_name": "_default",
+          "access": "r"
+        }
+      ],
+      "metadata_bucket": "bulk",
+      "metadata_scope": "data",
+      "metadata_collection": "target",
+      "source_bucket": "rr100",
+      "source_scope": "eventing",
+      "source_collection": "metadata",
+      "curl": [
+        {
+          "hostname": "http://somewhere.com",
+          "value": "testurlalias",
+          "allow_cookies": true,
+          "validate_ssl_certificate": true,
+          "auth_type": "basic",
+          "username": "Administrator",
+          "password": "password"
+        }
+      ],
+      "constants": [
+        {
+          "value": "testconstantalias",
+          "literal": "testconstantalias"
+        }
+      ]
+    },
+    "settings": {
+      "worker_count": 2,
+      "execution_timeout": 60,
+      "user_prefix": "eventing",
+      "n1ql_consistency": "request",
+      "timer_context_size": 1024,
+      "dcp_stream_boundary": "everything",
+      "log_level": "DEBUG",
+      "language_compatibility": "6.6.2",
+      "description": "You know...",
+      "processing_status": false,
+      "deployment_status": false
+    },
+    "version": "evt-7.0.0-5071-ee",
+    "appname": "test_func",
+    "appcode": "function OnUpdate(doc, meta) {\n    log(\"Doc created/updated\", meta.id);\n}\n\nfunction OnDelete(meta, options) {\n    log(\"Doc deleted/expired\", meta.id);\n}"
+  }

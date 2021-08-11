@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 
 namespace Couchbase.Query
 {
@@ -14,6 +15,7 @@ namespace Couchbase.Query
         /// the index or the view. This consistency level is useful for queries that favor
         /// low latency and do not need precise and most up-to-date information.
         /// </summary>
+        [Description("none")]
         NotBounded,
 
         /// <summary>
@@ -21,6 +23,7 @@ namespace Couchbase.Query
         /// latencies than the other levels. This consistency level requires all mutations, up
         /// to the moment of the query request, to be processed before the query execution can start.
         /// </summary>
+        [Description("request")]
         RequestPlus
     }
 }

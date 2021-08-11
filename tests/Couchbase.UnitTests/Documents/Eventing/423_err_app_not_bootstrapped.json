@@ -1,0 +1,15 @@
+/*HTTP/1.1 423 Locked
+    Content-Type: application/json
+    Date: Thu, 26 Aug 2021 18:17:38 GMT
+    Content-Length: 274*/
+
+{
+  "name": "ERR_APP_NOT_BOOTSTRAPPED",
+  "code": 21,
+  "description": "Function hasn't bootstrapped",
+  "attributes": null,
+  "runtime_info": {
+    "code": 21,
+    "info": "Function: case_1_enrich_ips not processing mutations. Operation is not permitted. Edit function instead"
+  }
+}

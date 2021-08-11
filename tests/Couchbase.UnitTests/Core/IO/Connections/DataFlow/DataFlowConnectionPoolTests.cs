@@ -171,7 +171,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
             await Assert.ThrowsAsync<SendQueueFullException>(() => operation.Completed.AsTask());
         }
 
-        [Fact]
+        [Fact(Skip="Inconsistent behavior in Jenkins.")]
         public async Task SendAsync_SingleConnection_NotSentSimultaneously()
         {
             // Arrange

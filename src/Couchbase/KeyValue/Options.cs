@@ -228,7 +228,7 @@ namespace Couchbase.KeyValue
 
     #region Exists Options
 
-    public class ExistsOptions : IKeyValueOptions, ITimeoutOptions
+    public class ExistsOptions : ITimeoutOptions
     {
         internal static ExistsOptions Default { get; } = new();
 

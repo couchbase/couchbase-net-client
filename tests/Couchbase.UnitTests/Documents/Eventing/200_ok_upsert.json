@@ -1,0 +1,12 @@
+/*HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Thu, 26 Aug 2021 01:00:43 GMT
+Content-Length: 110*/
+
+{
+ "code": 0,
+ "info": {
+  "status": "Stored function: 'case_1_enrich_ips' in metakv",
+  "warnings": null
+ }
+}

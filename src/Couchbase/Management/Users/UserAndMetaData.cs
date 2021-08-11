@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
@@ -64,7 +65,7 @@ namespace Couchbase.Management.Users
                 DisplayName = json["name"].Value<string>(),
                 Domain = json["domain"].Value<string>(),
                 Groups = json["groups"].Values<string>(),
-                PasswordChanged = DateTimeOffset.Parse(json["password_change_date"].Value<string>()),
+                PasswordChanged = DateTimeOffset.Parse(json["password_change_date"].Value<string>(), new DateTimeFormatInfo(), DateTimeStyles.AdjustToUniversal),
                 ExternalGroups = json["external_groups"].Values<string>(),
                 EffectiveRoles = roles,
                 EffectiveRolesAndOrigins = rolesAndOrigins

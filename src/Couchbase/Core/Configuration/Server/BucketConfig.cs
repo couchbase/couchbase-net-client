@@ -136,6 +136,8 @@ namespace Couchbase.Core.Configuration.Server
         [JsonProperty("fts")] public int Fts { get; set; }
         [JsonProperty("ftsSSL")] public int FtsSsl { get; set; }
         [JsonProperty("moxi")] public int Moxi { get; set; }
+        [JsonProperty("eventingAdminPort")] public int EventingAdminPort { get; set; }
+        [JsonProperty("eventingSSL")] public int EventingSSL { get; set; }
 
         public bool Equals(Services other)
         {
@@ -145,7 +147,8 @@ namespace Couchbase.Core.Configuration.Server
                    IndexStreamInit == other.IndexStreamInit && IndexStreamCatchup == other.IndexStreamCatchup &&
                    IndexStreamMaint == other.IndexStreamMaint && IndexHttps == other.IndexHttps && Kv == other.Kv &&
                    KvSsl == other.KvSsl && Capi == other.Capi && CapiSsl == other.CapiSsl &&
-                   Projector == other.Projector && N1Ql == other.N1Ql && N1QlSsl == other.N1QlSsl;
+                   Projector == other.Projector && N1Ql == other.N1Ql && N1QlSsl == other.N1QlSsl &&
+                   EventingAdminPort == other.EventingAdminPort && EventingSSL == other.EventingSSL;
         }
 
         public override bool Equals(object obj)

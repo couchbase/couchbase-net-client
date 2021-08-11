@@ -96,12 +96,10 @@ namespace Couchbase.UnitTests.Utils
 
         public void LogOrphaned()
         {
-            throw new NotImplementedException();
         }
 
         public void StopRecording()
         {
-            throw new NotImplementedException();
         }
 
         public bool IsReadOnly { get; set; }

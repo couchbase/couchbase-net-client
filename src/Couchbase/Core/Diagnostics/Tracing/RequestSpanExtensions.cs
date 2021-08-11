@@ -5,6 +5,7 @@ using Couchbase.Analytics;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Management.Analytics;
+using Couchbase.Management.Eventing;
 using Couchbase.Query;
 using Couchbase.Views;
 
@@ -149,6 +150,17 @@ namespace Couchbase.Core.Diagnostics.Tracing
             if (childSpan.CanWrite)
             {
                 childSpan.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, viewQuery.ClientContextId ?? Guid.NewGuid().ToString());
+            }
+
+            return childSpan;
+        }
+
+        internal static IRequestSpan DispatchSpan(this IRequestSpan parentSpan, FunctionOptionsBase eventingFunctionOptions)
+        {
+            var childSpan = DispatchSpan(parentSpan);
+            if (childSpan.CanWrite)
+            {
+                childSpan.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId, eventingFunctionOptions.ClientContextId ?? Guid.NewGuid().ToString());
             }
 
             return childSpan;

@@ -13,11 +13,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
     /// </summary>
     internal class RequestSpan : IRequestSpan
     {
-        private readonly RequestTracer _tracer;
+        private readonly IRequestTracer _tracer;
         private readonly Activity? _activity;
         private readonly IRequestSpan? _parentSpan;
 
-        public RequestSpan(RequestTracer tracer, Activity? activity, IRequestSpan? parentSpan = null)
+        public RequestSpan(IRequestTracer tracer, Activity? activity, IRequestSpan? parentSpan = null)
         {
             _tracer = tracer;
             _activity = activity;

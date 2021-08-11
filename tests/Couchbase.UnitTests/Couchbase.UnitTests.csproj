@@ -15,6 +15,7 @@
   <ItemGroup>
     <None Remove="Core\Configuration\Server\cluster_capabiliteis_with_enhanced_prepared_statements.json" />
     <None Remove="Data\multi-getresponse-packet.txt" />
+    <None Remove="Management\Eventing\eventing-function.json" />
     <Compile Remove="Core\Diagnostics\Metrics\**" />
     <EmbeddedResource Remove="Core\Diagnostics\Metrics\**" />
     <None Remove="Core\Diagnostics\Metrics\**" />

@@ -1,0 +1,15 @@
+/*HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+Date: Thu, 26 Aug 2021 04:13:18 GMT
+Content-Length: 241*/
+
+{
+ "name": "ERR_APP_ALREADY_DEPLOYED",
+ "code": 20,
+ "description": "Function already deployed",
+ "attributes": null,
+ "runtime_info": {
+  "code": 20,
+  "info": "Invalid operation. Function: case_1_enrich_ips already in deployed state."
+ }
+}

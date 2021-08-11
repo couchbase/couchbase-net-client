@@ -1,0 +1,15 @@
+/*HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+Date: Thu, 26 Aug 2021 04:51:34 GMT
+Content-Length: 267*/
+
+{
+ "name": "ERR_APP_NOT_UNDEPLOYED",
+ "code": 22,
+ "description": "Function hasn't undeployed",
+ "attributes": null,
+ "runtime_info": {
+  "code": 22,
+  "info": "Function: case_1_enrich_ips skipping delete request from primary store, as it hasn't been undeployed"
+ }
+}

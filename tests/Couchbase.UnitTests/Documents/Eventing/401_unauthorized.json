@@ -1,0 +1,6 @@
+/*HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+Date: Fri, 27 Aug 2021 00:10:10 GMT
+Content-Length: 120*/
+
+{"message":"Forbidden. User needs one of the following permissions","permissions":["cluster.eventing.functions!manage"]}

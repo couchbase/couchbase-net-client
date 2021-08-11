@@ -1,0 +1,19 @@
+/*HTTP/1.1 200 OK
+    Content-Type: application/json
+    Status: 0
+    Date: Tue, 07 Sep 2021 07:47:36 GMT
+    Content-Length: 242*/
+
+{
+  "apps": [
+    {
+      "composite_status": "undeployed",
+      "name": "case_1_enrich_ips",
+      "num_bootstrapping_nodes": 0,
+      "num_deployed_nodes": 0,
+      "deployment_status": false,
+      "processing_status": false
+    }
+  ],
+  "num_eventing_nodes": 1
+}

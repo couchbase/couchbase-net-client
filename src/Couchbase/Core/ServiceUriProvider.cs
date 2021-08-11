@@ -35,6 +35,10 @@ namespace Couchbase.Core
         /// <inheritdoc />
         public Uri GetRandomViewsUri(string bucketName) =>
             _clusterContext.GetRandomNodeForService(ServiceType.Views, bucketName).ViewsUri;
+
+        /// <inheritdoc />
+        public Uri GetRandomEventingUri() =>
+            _clusterContext.GetRandomNodeForService(ServiceType.Eventing).EventingUri;
     }
 }
 

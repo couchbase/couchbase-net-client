@@ -1,0 +1,15 @@
+/*HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+Date: Thu, 26 Aug 2021 23:17:37 GMT
+Content-Length: 200*/
+
+{
+ "name": "ERR_BUCKET_MISSING",
+ "code": 41,
+ "description": "Bucket does not exist in the cluster",
+ "attributes": null,
+ "runtime_info": {
+  "code": 41,
+  "info": "Bucket bulk2 does not exist"
+ }
+}

@@ -1,0 +1,15 @@
+/*HTTP/1.1 400 Bad Request
+    Content-Type: application/json
+    Date: Thu, 26 Aug 2021 00:48:27 GMT
+    Content-Length: 192*/
+
+{
+  "name": "ERR_INVALID_CONFIG",
+  "code": 38,
+  "description": "Invalid configuration",
+  "attributes": null,
+  "runtime_info": {
+    "code": 38,
+    "info": "execution_timeout must be a number"
+  }
+}

@@ -181,6 +181,8 @@ namespace Couchbase.Core.Configuration.Server
             FtsSsl = services.FtsSsl;
             Analytics = services.Cbas;
             AnalyticsSsl = services.CbasSsl;
+            Eventing = services.EventingAdminPort;
+            EventingSsl = services.EventingSSL;
 
             if (KeyValue == 0 && KeyValueSsl == 0)
             {
@@ -213,6 +215,8 @@ namespace Couchbase.Core.Configuration.Server
         public int FtsSsl { get; set; }
         public int Analytics { get; set; }
         public int AnalyticsSsl { get; set; }
+        public int Eventing { get; set; }
+        public int EventingSsl { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is view node.
@@ -261,6 +265,14 @@ namespace Couchbase.Core.Configuration.Server
         /// <c>true</c> if this instance is analytics node; otherwise, <c>false</c>.
         /// </value>
         public bool IsAnalyticsNode => Analytics > 0 || AnalyticsSsl > 0;
+
+        /// <summary>
+        /// Gets a value indicating if this instance is an Eventing Service node.
+        /// </summary>
+        ///  /// <value>
+        /// <c>true</c> if this instance is eventing node; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsEventingNode => Eventing > 0 || EventingSsl > 0;
 
         public override string ToString()
         {

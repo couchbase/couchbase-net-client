@@ -1,0 +1,47 @@
+[
+  {
+    "appcode": "function OnUpdate(doc, meta) {\n  log('document', doc);\n  doc[\"ip_num_start\"] = get_numip_first_3_octets(doc[\"ip_start\"]);\n  doc[\"ip_num_end\"]   = get_numip_first_3_octets(doc[\"ip_end\"]);\n  tgt[meta.id]=doc;\n}\nfunction get_numip_first_3_octets(ip) {\n  var return_val = 0;\n  if (ip) {\n    var parts = ip.split('.');\n    //IP Number = A x (256*256*256) + B x (256*256) + C x 256 + D\n    return_val = (parts[0]*(256*256*256)) + (parts[1]*(256*256)) + (parts[2]*256) + parseInt(parts[3]);\n    return return_val;\n  }\n}",
+    "depcfg": {
+      "buckets": [
+        {
+          "alias": "src",
+          "bucket_name": "bulk",
+          "scope_name": "data",
+          "collection_name": "source",
+          "access": "r"
+        },
+        {
+          "alias": "tgt",
+          "bucket_name": "bulk",
+          "scope_name": "data",
+          "collection_name": "target",
+          "access": "rw"
+        }
+      ],
+      "source_bucket": "bulk",
+      "source_scope": "data",
+      "source_collection": "source",
+      "metadata_bucket": "rr100",
+      "metadata_scope": "eventing",
+      "metadata_collection": "metadata"
+    },
+    "version": "evt-7.0.0-5071-ee",
+    "enforce_schema": false,
+    "handleruuid": 2908133798,
+    "function_instance_id": "UhEbm2",
+    "appname": "case_1_enrich_ips",
+    "settings": {
+      "dcp_stream_boundary": "everything",
+      "deployment_status": true,
+      "description": "",
+      "execution_timeout": 60,
+      "language_compatibility": "6.6.2",
+      "log_level": "INFO",
+      "n1ql_consistency": "none",
+      "processing_status": true,
+      "timer_context_size": 1024,
+      "user_prefix": "eventing",
+      "worker_count": 1
+    }
+  }
+]

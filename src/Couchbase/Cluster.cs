@@ -18,6 +18,7 @@ using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
+using Couchbase.Management.Eventing;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
@@ -56,6 +57,7 @@ namespace Couchbase
         internal Lazy<IQueryIndexManager> LazyQueryManager;
         internal Lazy<ISearchIndexManager> LazySearchManager;
         internal Lazy<IAnalyticsIndexManager> LazyAnalyticsIndexManager;
+        internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -80,6 +82,7 @@ namespace Couchbase
             LazyUserManager = new Lazy<IUserManager>(() => _context.ServiceProvider.GetRequiredService<IUserManager>());
             LazySearchManager = new Lazy<ISearchIndexManager>(() => _context.ServiceProvider.GetRequiredService<ISearchIndexManager>());
             LazyAnalyticsIndexManager = new Lazy<IAnalyticsIndexManager>(()=> _context.ServiceProvider.GetRequiredService<IAnalyticsIndexManager>());
+            LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => _context.ServiceProvider.GetRequiredService<IEventingFunctionManager>());
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -386,6 +389,9 @@ namespace Couchbase
 
         /// <inheritdoc />
         public IUserManager Users => LazyUserManager.Value;
+
+        /// <inheritdoc />
+        public IEventingFunctionManager EventingFunctions => LazyEventingFunctionManager.Value;
 
         #endregion
 

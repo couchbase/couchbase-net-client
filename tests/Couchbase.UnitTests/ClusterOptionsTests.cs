@@ -15,7 +15,6 @@ namespace Couchbase.UnitTests
 {
     public class ClusterOptionsTests
     {
-
         #region KvSendQueueCapacity
 
         [Fact]
@@ -229,7 +228,9 @@ namespace Couchbase.UnitTests
             span.Dispose();
 
             var listener = options.ThresholdOptions.ThresholdListener as CustomTraceListener;
-            Assert.True(listener.Activities.FirstOrDefault().OperationName == "works");
+            var activities = listener.Activities.Where(x => x.OperationName == "works");
+            var enumerable = activities as Activity[] ?? activities.ToArray();
+            Assert.True(enumerable.Count() == 1, $"The actual count was {enumerable.Count()}");
 
         }
 

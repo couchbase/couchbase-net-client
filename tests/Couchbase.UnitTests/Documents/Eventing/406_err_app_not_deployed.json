@@ -1,0 +1,17 @@
+/*HTTP/1.1 406 Not Acceptable
+Content-Type: application/json
+Date: Thu, 26 Aug 2021 04:56:21 GMT
+Content-Length: 235*/
+
+//in this case we try to undeploy a non deployed function
+
+{
+  "name": "ERR_APP_NOT_DEPLOYED",
+  "code": 12,
+  "description": "Function not deployed",
+  "attributes": null,
+  "runtime_info": {
+    "code": 12,
+    "info": "Invalid operation. Function: case_1_enrich_ips already in undeployed state."
+  }
+}

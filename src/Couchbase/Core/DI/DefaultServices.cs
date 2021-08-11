@@ -20,6 +20,7 @@ using Couchbase.Core.Sharding;
 using Couchbase.Core.Version;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
+using Couchbase.Management.Eventing;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
@@ -77,10 +78,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(IScopeFactory), new SingletonServiceFactory(typeof(ScopeFactory)));
             yield return (typeof(ICollectionFactory), new SingletonServiceFactory(typeof(CollectionFactory)));
             yield return (typeof(IRetryOrchestrator), new SingletonServiceFactory(typeof(RetryOrchestrator)));
-         //   yield return (typeof(IOrphanedResponseLogger),
-          //      new SingletonServiceFactory(typeof(NullOrphanedResponseLogger)));
-            yield return (typeof(IVBucketKeyMapperFactory),
-                new SingletonServiceFactory(typeof(VBucketKeyMapperFactory)));
+            yield return (typeof(IVBucketKeyMapperFactory), new SingletonServiceFactory(typeof(VBucketKeyMapperFactory)));
             yield return (typeof(IVBucketFactory), new SingletonServiceFactory(typeof(VBucketFactory)));
             yield return (typeof(IKetamaKeyMapperFactory), new SingletonServiceFactory(typeof(KetamaKeyMapperFactory)));
             yield return (typeof(IVBucketServerMapFactory), new SingletonServiceFactory(typeof(VBucketServerMapFactory)));
@@ -101,15 +99,17 @@ namespace Couchbase.Core.DI
             yield return (typeof(ISearchClient), new SingletonServiceFactory(typeof(SearchClient)));
             yield return (typeof(IQueryClient), new SingletonServiceFactory(typeof(QueryClient)));
             yield return (typeof(IViewClient), new SingletonServiceFactory(typeof(ViewClient)));
+            yield return (typeof(IEventingFunctionService), new SingletonServiceFactory(typeof(EventingFunctionService)));
 
             yield return (typeof(IBucketManager), new SingletonServiceFactory(typeof(BucketManager)));
             yield return (typeof(IQueryIndexManager), new SingletonServiceFactory(typeof(QueryIndexManager)));
             yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
             yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
             yield return (typeof(IAnalyticsIndexManager), new SingletonServiceFactory(typeof(AnalyticsIndexManager)));
+            yield return (typeof(IEventingFunctionManager), new SingletonServiceFactory(typeof(EventingFunctionManager)));
+
             yield return (typeof(ICircuitBreaker), new SingletonServiceFactory(typeof(CircuitBreaker)));
-            yield return (typeof(CircuitBreakerConfiguration),
-                new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));
+            yield return (typeof(CircuitBreakerConfiguration), new SingletonServiceFactory(typeof(CircuitBreakerConfiguration)));
 
             yield return (typeof(ISaslMechanismFactory), new SingletonServiceFactory(typeof(SaslMechanismFactory)));
             yield return (typeof(IBootstrapperFactory), new SingletonServiceFactory(typeof(BootstrapperFactory)));

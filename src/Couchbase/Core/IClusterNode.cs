@@ -28,6 +28,7 @@ namespace Couchbase.Core
         /// </remarks>
         IReadOnlyCollection<IPEndPoint> KeyEndPoints { get; }
 
+        Uri EventingUri { get; set; }
         Uri QueryUri { get; set; }
         Uri AnalyticsUri { get; set; }
         Uri SearchUri { get; set; }
@@ -43,11 +44,13 @@ namespace Couchbase.Core
         bool HasQuery { get; }
         bool HasSearch { get; }
         bool HasKv { get; }
+        bool HasEventing { get; }
         DateTime? LastViewActivity { get; }
         DateTime? LastQueryActivity { get; }
         DateTime? LastSearchActivity { get; }
         DateTime? LastAnalyticsActivity { get; }
         DateTime? LastKvActivity { get; }
+        DateTime? LastEventingActivity { get; }
         Task<Manifest> GetManifest();
 
         /// <summary>

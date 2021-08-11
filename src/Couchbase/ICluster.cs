@@ -5,6 +5,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Diagnostics;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
+using Couchbase.Management.Eventing;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
@@ -61,15 +62,36 @@ namespace Couchbase
         #endregion
 
         #region Management
+
+        /// <summary>
+        /// Allows a user to manage query indexes.
+        /// </summary>
         IQueryIndexManager QueryIndexes { get; }
 
+        /// <summary>
+        /// Allows a user to manage analytics indexes.
+        /// </summary>
         IAnalyticsIndexManager AnalyticsIndexes { get; }
 
+        /// <summary>
+        /// Allows a user to manage search indexes.
+        /// </summary>
         ISearchIndexManager SearchIndexes { get; }
 
+        /// <summary>
+        /// Allows a user to manage a couchbase buckets resources.
+        /// </summary>
         IBucketManager Buckets { get; }
 
+        /// <summary>
+        /// Allows a user to manage the users for a couchbase server.
+        /// </summary>
         IUserManager Users { get; }
+
+        /// <summary>
+        /// Allows a user to read eventing functions, modify them and change their deployment state.
+        /// </summary>
+        IEventingFunctionManager EventingFunctions { get; }
         #endregion
     }
 }

@@ -6,6 +6,7 @@ using Couchbase.Analytics;
 using Couchbase.Diagnostics;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
+using Couchbase.Management.Eventing;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
@@ -83,5 +84,6 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public ISearchIndexManager SearchIndexes { get; }
         public IBucketManager Buckets { get; }
         public IUserManager Users { get; }
+        public IEventingFunctionManager EventingFunctions { get; }
     }
 }

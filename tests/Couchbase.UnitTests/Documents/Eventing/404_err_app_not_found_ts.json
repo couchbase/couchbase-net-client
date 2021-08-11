@@ -1,0 +1,15 @@
+/*HTTP/1.1 404 Not Found
+Content-Type: application/json
+Date: Thu, 26 Aug 2021 18:20:36 GMT
+Content-Length: 213*/
+
+{
+ "name": "ERR_APP_NOT_FOUND_TS",
+ "code": 13,
+ "description": "Function not found in temporary store",
+ "attributes": null,
+ "runtime_info": {
+  "code": 13,
+  "info": "Function: case_1_enrich_ips not found"
+ }
+}

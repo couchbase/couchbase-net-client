@@ -89,6 +89,24 @@ namespace Couchbase.Utils
             }.Uri;
         }
 
+        internal static Uri GetEventingUri(this NodeAdapter nodeAdapter, ClusterOptions clusterOptions)
+        {
+            if (nodeAdapter.IsEventingNode)
+            {
+                return new UriBuilder
+                {
+                    Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
+                    Host = nodeAdapter.Hostname,
+                    Port = clusterOptions.EffectiveEnableTls ? nodeAdapter.EventingSsl : nodeAdapter.Eventing
+                }.Uri;
+            }
+            return new UriBuilder
+            {
+                Scheme = clusterOptions.EffectiveEnableTls ? Https : Http,
+                Host = nodeAdapter.Hostname,
+            }.Uri;
+        }
+
         internal static Uri GetManagementUri(this NodeAdapter nodesAdapter, ClusterOptions clusterOptions)
         {
             return new UriBuilder

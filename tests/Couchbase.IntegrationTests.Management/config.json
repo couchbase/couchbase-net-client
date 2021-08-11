@@ -2,7 +2,7 @@
   "testSettings": {
     "connectionString": "couchbase://localhost",
     "bucketName": "default",
-    "enableLogging" :  false
+    "enableLogging": false
   },
   "couchbase": {
     "connectionString": "couchbase://localhost",
@@ -13,6 +13,6 @@
     "connectionString": "couchbases://localhost",
     "username": "Administrator",
     "password": "password",
-    "ignoreRemoteCertificateNameMismatch":  true
+    "ignoreRemoteCertificateNameMismatch": true
   }
 }

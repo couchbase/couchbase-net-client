@@ -20,7 +20,10 @@ namespace Couchbase
         Config = 4,
 
         [Description("cbas")]
-        Analytics = 5
+        Analytics = 5,
+
+        [Description("eventing")]
+        Eventing = 6
     }
 }
 

@@ -39,6 +39,12 @@ namespace Couchbase.Core
         /// <param name="bucketName">The name of the bucket.</param>
         /// <returns>The base <see cref="Uri"/>.</returns>
         Uri GetRandomViewsUri(string bucketName);
+
+        /// <summary>
+        /// Get the base <see cref="Uri"/> for a random node's eventing service.
+        /// </summary>
+        /// <returns>The base <see cref="Uri"/>.</returns>
+        Uri GetRandomEventingUri();
     }
 }
 

@@ -136,6 +136,9 @@ namespace Couchbase.Core
                 case ServiceType.Analytics:
                     node = Nodes.GetRandom(x => x.HasAnalytics);
                     break;
+                case ServiceType.Eventing:
+                    node = Nodes.GetRandom(x => x.HasEventing);
+                    break;
                 default:
                     _logger.LogDebug("No nodes available for service {service}", service);
                     throw new ServiceNotAvailableException(service);

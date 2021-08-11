@@ -46,6 +46,7 @@ namespace Couchbase.Core
         private Uri _analyticsUri;
         private Uri _searchUri;
         private Uri _viewsUri;
+        private Uri _eventingUri;
         private NodeAdapter _nodesAdapter;
         private readonly ObservableCollection<IPEndPoint> _keyEndPoints = new ObservableCollection<IPEndPoint>();
         private readonly string _cachedToString;
@@ -121,6 +122,16 @@ namespace Couchbase.Core
         /// <inheritdoc />
         public IReadOnlyCollection<IPEndPoint> KeyEndPoints { get; }
 
+        public Uri EventingUri
+        {
+            get
+            {
+                LastEventingActivity = DateTime.UtcNow;
+                return _eventingUri;
+            }
+            set => _eventingUri = value;
+        }
+
         public Uri QueryUri
         {
             get
@@ -171,11 +182,13 @@ namespace Couchbase.Core
         public bool HasQuery => NodesAdapter?.IsQueryNode ?? false;
         public bool HasSearch => NodesAdapter?.IsSearchNode ?? false;
         public bool HasKv => NodesAdapter?.IsKvNode ?? false;
+        public bool HasEventing => NodesAdapter?.IsEventingNode ?? false;
         public DateTime? LastViewActivity { get; private set; }
         public DateTime? LastQueryActivity { get; private set; }
         public DateTime? LastSearchActivity { get; private set; }
         public DateTime? LastAnalyticsActivity { get; private set; }
         public DateTime? LastKvActivity { get; private set; }
+        public DateTime? LastEventingActivity { get; private set; }
 
         /// <inheritdoc />
         public event NotifyCollectionChangedEventHandler KeyEndPointsChanged;
@@ -320,6 +333,7 @@ namespace Couchbase.Core
             AnalyticsUri = NodesAdapter?.GetAnalyticsUri(_context.ClusterOptions);
             ViewsUri = NodesAdapter?.GetViewsUri(_context.ClusterOptions); //TODO move to IBucket level?
             ManagementUri = NodesAdapter?.GetManagementUri(_context.ClusterOptions);
+            EventingUri = NodesAdapter?.GetEventingUri(_context.ClusterOptions);
         }
 
         /// <summary>

@@ -61,6 +61,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             public const string N1QLQuery = "query";
             public const string AnalyticsQuery = "analytics";
             public const string SearchQuery = "search";
+            public const string Eventing = "eventing";
 
             internal static class Kv
             {
@@ -111,6 +112,19 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// </summary>
         internal static class ManagerSpan
         {
+            internal static class Eventing
+            {
+                public const string UpsertFunction = "manager_eventing_upsert_function";
+                public const string GetFunction = "manager_eventing_get_function";
+                public const string DropFunction = "manager_eventing_drop_function";
+                public const string DeployFunction = "manager_eventing_deploy_function";
+                public const string GetAllFunctions = "manager_eventing_get_all_functions";
+                public const string PauseFunction = "manager_eventing_pause_function";
+                public const string ResumeFunction = "manager_eventing_resume_function";
+                public const string UndeployFunction = "manager_eventing_undeploy_function";
+                public const string FunctionsStatus = "manager_eventing_functions_status";
+            }
+
             internal static class Analytics
             {
                 public const string ConnectLink = "manager_analytics_connect_link";

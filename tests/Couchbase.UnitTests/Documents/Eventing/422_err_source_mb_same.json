@@ -1,0 +1,15 @@
+/*HTTP/1.1 422 Unprocessable Entity
+    Content-Type: application/json
+    Date: Thu, 26 Aug 2021 23:20:00 GMT
+    Content-Length: 317*/
+
+{
+  "name": "ERR_SRC_MB_SAME",
+  "code": 17,
+  "description": "Source keyspace same as metadata keyspace",
+  "attributes": null,
+  "runtime_info": {
+    "code": 17,
+    "info": "Function: case_1_enrich_ips source keyspace same as metadata keyspace. source : {rr100 eventing metadata} metadata : {rr100 eventing metadata}"
+  }
+}
