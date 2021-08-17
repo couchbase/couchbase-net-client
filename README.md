@@ -7,7 +7,7 @@ The Official Couchbase .NET SDK ![](http://sdk.jenkins.couchbase.com/job/dotnet/
 
 ## Getting Started
 
-To get up and running with the SDK, please visit the [online documentation](http://developer.couchbase.com/documentation/server/4.5/sdk/dotnet/start-using-sdk.html).
+To get up and running with the SDK, please visit the [online documentation](https://docs.couchbase.com/dotnet-sdk/current/hello-world/start-using-sdk.html).
 
 ## Running Tests
 
