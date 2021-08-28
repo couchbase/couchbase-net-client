@@ -13,6 +13,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 {
     public class ConnectionPoolBaseTests
     {
+        private readonly IPEndPoint _ipEndPoint = new(IPAddress.Parse("127.0.0.1"), 9999);
+        private readonly HostEndpoint _hostEndpoint = new("localhost", 9999);
+
         #region CreateConnectionAsync
 
         [Fact]
@@ -20,18 +23,20 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             // Arrange
 
-            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);
-
             var connectionInitializer = new Mock<IConnectionInitializer>();
             connectionInitializer
                 .SetupGet(m => m.EndPoint)
-                .Returns(ipEndPoint);
+                .Returns(_ipEndPoint);
+
+            connectionInitializer
+                .Setup(x => x.BootstrapEndpoint)
+                .Returns(_hostEndpoint);
 
             var connection = new Mock<IConnection>();
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
             var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object);
@@ -50,18 +55,20 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             // Arrange
 
-            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);
-
             var connectionInitializer = new Mock<IConnectionInitializer>();
             connectionInitializer
                 .SetupGet(m => m.EndPoint)
-                .Returns(ipEndPoint);
+                .Returns(_ipEndPoint);
+
+            connectionInitializer
+                .Setup(x => x.BootstrapEndpoint)
+                .Returns(_hostEndpoint);
 
             var connection = new Mock<IConnection>();
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
             var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object);
@@ -93,7 +100,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
             var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object);
@@ -114,18 +121,20 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             // Arrange
 
-            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);
-
             var connectionInitializer = new Mock<IConnectionInitializer>();
             connectionInitializer
                 .SetupGet(m => m.EndPoint)
-                .Returns(ipEndPoint);
+                .Returns(_ipEndPoint);
+
+            connectionInitializer
+                .Setup(x => x.BootstrapEndpoint)
+                .Returns(_hostEndpoint);
 
             var connection = new Mock<IConnection>();
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(connection.Object);
 
             var pool = new ConnectionPoolMock(connectionInitializer.Object, connectionFactory.Object)
@@ -153,12 +162,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         {
             // Arrange
 
-            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);
-
             var connectionInitializer = new Mock<IConnectionInitializer>();
             connectionInitializer
                 .SetupGet(m => m.EndPoint)
-                .Returns(ipEndPoint);
+                .Returns(_ipEndPoint);
 
             var connection1 = new Mock<IConnection>();
             var connection2 = new Mock<IConnection>();
@@ -193,12 +200,10 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             ConnectionPoolMock pool = null;
 
-            var ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);
-
             var connectionInitializer = new Mock<IConnectionInitializer>();
             connectionInitializer
                 .SetupGet(m => m.EndPoint)
-                .Returns(ipEndPoint);
+                .Returns(_ipEndPoint);
             connectionInitializer
                 .Setup(m => m.SelectBucketAsync(It.IsAny<IConnection>(), "default", It.IsAny<CancellationToken>()))
                 .Returns((IConnection connection, string bucket, CancellationToken _) =>

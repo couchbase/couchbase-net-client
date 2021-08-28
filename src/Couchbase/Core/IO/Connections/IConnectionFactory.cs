@@ -15,9 +15,10 @@ namespace Couchbase.Core.IO.Connections
         /// Creates and connects an <see cref="IConnection"/>.
         /// </summary>
         /// <param name="endPoint">Endpoint to connect.</param>
+        /// <param name="hostEndpoint">The <see cref="HostEndpoint"/> that will be authenticated as the target host if TLS is enabled.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The new <see cref="IConnection"/>.</returns>
-        Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default);
+        Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, HostEndpoint hostEndpoint, CancellationToken cancellationToken = default);
     }
 }
 

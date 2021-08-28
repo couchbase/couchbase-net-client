@@ -23,7 +23,8 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 #pragma warning restore xUnit1000 // Test classes must be public
     {
         private readonly ITestOutputHelper _testOutput;
-        private readonly IPEndPoint _ipEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9999);
+        private readonly IPEndPoint _ipEndPoint = new(IPAddress.Parse("127.0.0.1"), 9999);
+        private readonly HostEndpoint _hostEndpoint = new("localhost", 9999);
         const int queueSize = 1024;
 
         public ChannelConnectionPoolTests(ITestOutputHelper testOutput)
@@ -42,7 +43,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => new Mock<IConnection>().Object);
 
             var pool = CreatePool(connectionFactory: connectionFactory.Object);
@@ -56,7 +57,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             // Assert
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(size));
         }
 
@@ -97,7 +98,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             var connectionFactory = new Mock<IConnectionFactory>();
             connection.Setup(m => m.IsDead).Returns(false);
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() => connection.Object);
 
             var pool = CreatePool(connectionFactory: connectionFactory.Object);
@@ -161,7 +162,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             var operations = Enumerable.Range(1, toSendCount)
                 .Select(_ => new FakeOperation
                 {
-                    Delay = TimeSpan.FromMilliseconds(100),
+                    Delay = TimeSpan.FromMilliseconds(1000),
                     SendStarted = SendStarted,
                     SendComplete = SendCompleted
                 })
@@ -280,7 +281,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactoryMock = new Mock<IConnectionFactory>();
             connectionFactoryMock
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connectionId = ++connectionCount;
@@ -326,7 +327,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -350,7 +351,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.All(connections, p => p.Verify(m => m.CloseAsync(It.IsAny<TimeSpan>()), Times.Never));
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(pool.MinimumSize));
         }
 
@@ -363,7 +364,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -387,7 +388,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.All(connections, p => p.Verify(m => m.CloseAsync(It.IsAny<TimeSpan>()), Times.Never));
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(4));
         }
 
@@ -400,7 +401,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -424,7 +425,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.All(connections, p => p.Verify(m => m.CloseAsync(It.IsAny<TimeSpan>()), Times.Never));
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(pool.MaximumSize));
         }
 
@@ -437,7 +438,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -461,7 +462,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.All(connections, p => p.Verify(m => m.CloseAsync(It.IsAny<TimeSpan>()), Times.Never));
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(pool.MaximumSize));
         }
 
@@ -474,7 +475,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -509,7 +510,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.All(closedConnections, p => Assert.DoesNotContain(p, pool.GetConnections()));
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(5));
         }
 
@@ -523,7 +524,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -572,7 +573,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -621,7 +622,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -648,7 +649,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.All(connections, p => p.Verify(m => m.CloseAsync(It.IsAny<TimeSpan>()), Times.Never));
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(pool.MinimumSize));
         }
 
@@ -661,7 +662,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             var connectionFactory = new Mock<IConnectionFactory>();
             connectionFactory
-                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
                     var connection = new Mock<IConnection>();
@@ -696,7 +697,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             Assert.All(closedConnections, p => Assert.DoesNotContain(p, pool.GetConnections()));
 
             connectionFactory.Verify(
-                m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()),
+                m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()),
                 Times.Exactly(4));
         }
 
@@ -721,7 +722,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             {
                 var connectionFactoryMock = new Mock<IConnectionFactory>();
                 connectionFactoryMock
-                    .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, It.IsAny<CancellationToken>()))
+                    .Setup(m => m.CreateAndConnectAsync(_ipEndPoint, _hostEndpoint, It.IsAny<CancellationToken>()))
                     .ReturnsAsync(() => new Mock<IConnection>().Object);
 
                 connectionFactory = connectionFactoryMock.Object;

@@ -62,7 +62,8 @@ namespace Couchbase.Core.IO.Connections
         /// </remarks>
         protected async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
         {
-            var connection = await _connectionFactory.CreateAndConnectAsync(EndPoint, cancellationToken)
+            var connection = await _connectionFactory
+                .CreateAndConnectAsync(EndPoint, _connectionInitializer.BootstrapEndpoint, cancellationToken)
                 .ConfigureAwait(false);
 
             try

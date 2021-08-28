@@ -8,6 +8,7 @@ namespace Couchbase.LoadTests.Helpers
     internal class MockConnectionInitializer : IConnectionInitializer
     {
         public IPEndPoint EndPoint { get; } = new IPEndPoint(IPAddress.Loopback, 8091);
+        public HostEndpoint BootstrapEndpoint { get; } = new HostEndpoint("localhost", 11210);
 
         public Task InitializeConnectionAsync(IConnection connection, CancellationToken cancellationToken = default)
         {

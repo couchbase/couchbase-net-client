@@ -20,6 +20,11 @@ namespace Couchbase.Core.IO.Connections
         IPEndPoint EndPoint { get; }
 
         /// <summary>
+        /// <see cref="HostEndpoint"/> of the node being connected to. Used for authenticating as the target host when TLS is enabled.
+        /// </summary>
+        HostEndpoint BootstrapEndpoint { get; }
+
+        /// <summary>
         /// Initializes and authenticates a new <see cref="IConnection"/>.
         /// </summary>
         /// <param name="connection">A newly connected <see cref="IConnection"/>.</param>

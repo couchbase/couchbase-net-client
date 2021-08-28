@@ -31,7 +31,7 @@ namespace Couchbase.Core.IO.Connections
         }
 
         /// <inheritdoc />
-        public async Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint,
+        public async Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, HostEndpoint hostEndpoint,
             CancellationToken cancellationToken = default)
         {
             var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -106,7 +106,9 @@ namespace Couchbase.Core.IO.Connections
                 }
 
                 //The endpoint we are connecting to
-                var targetHost = endPoint.Address.ToString();
+                var targetHost = _clusterOptions.ForceIpAsTargetHost
+                    ? endPoint.Address.ToString()
+                    : hostEndpoint.Host;
 
                 //create the sslstream with appropriate authentication
                 await sslStream.AuthenticateAsClientAsync(targetHost, certs,

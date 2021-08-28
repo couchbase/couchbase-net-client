@@ -8,7 +8,7 @@ namespace Couchbase.LoadTests.Helpers
 {
     internal class MockConnectionFactory : IConnectionFactory
     {
-        public Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, CancellationToken cancellationToken = default)
+        public Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, HostEndpoint hostEndpoint, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<IConnection>(new MockConnection());
         }

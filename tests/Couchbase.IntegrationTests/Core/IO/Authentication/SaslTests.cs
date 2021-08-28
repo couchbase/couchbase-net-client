@@ -44,7 +44,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
                 options.ConnectionStringValue.GetBootstrapEndpoints().First().Host, 11210).ConfigureAwait(false);
 
             var connection = await factory
-                .CreateAndConnectAsync(ipEndPoint)
+                .CreateAndConnectAsync(ipEndPoint, new HostEndpoint("localhost", 11210))
                 .ConfigureAwait(false);
 
             var sha1Mechanism = new ScramShaMechanism(MechanismType.ScramSha1, options.Password,
