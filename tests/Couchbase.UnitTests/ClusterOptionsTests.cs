@@ -9,12 +9,19 @@ using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Xunit.Abstractions;
 using TraceListener = Couchbase.Core.Diagnostics.Tracing.TraceListener;
 
 namespace Couchbase.UnitTests
 {
     public class ClusterOptionsTests
     {
+        private readonly ITestOutputHelper _output;
+        public ClusterOptionsTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         #region KvSendQueueCapacity
 
         [Fact]
@@ -31,7 +38,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void Test_ConfigPollInterval_Default_Is_2_5Seconds()
         {
-            var options =  new ClusterOptions();
+            var options = new ClusterOptions();
             Assert.Equal(TimeSpan.FromSeconds(2.5), options.ConfigPollInterval);
         }
 
@@ -115,7 +122,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void When_X509Certificate_Is_Set_To_Null_Throw_NRE()
         {
-           Assert.Throws<NullReferenceException>(()=> new ClusterOptions().WithX509CertificateFactory(null));
+            Assert.Throws<NullReferenceException>(() => new ClusterOptions().WithX509CertificateFactory(null));
         }
 
         #endregion
@@ -135,7 +142,7 @@ namespace Couchbase.UnitTests
         [InlineData(NetworkResolution.Auto)]
         public void Test_NetworkConfiguration_Custom(string networkResolution)
         {
-            var options = new ClusterOptions {NetworkResolution = networkResolution};
+            var options = new ClusterOptions { NetworkResolution = networkResolution };
             Assert.Equal(networkResolution, options.NetworkResolution);
         }
 
@@ -169,7 +176,7 @@ namespace Couchbase.UnitTests
         [Fact]
         public void When_Tracing_Not_Enabled_Default_To_NoopRequestTracer()
         {
-            var options = new ClusterOptions {TracingOptions = {Enabled = false}};
+            var options = new ClusterOptions { TracingOptions = { Enabled = false } };
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = false
@@ -204,7 +211,7 @@ namespace Couchbase.UnitTests
             {
                 Enabled = false,
                 ThresholdListener = new CustomTraceListener()
-            }).WithOrphanTracing(options=>options.Enabled = false);
+            }).WithOrphanTracing(options => options.Enabled = false);
 
             var services = options.BuildServiceProvider();
             var noopRequestTracer = services.GetService(typeof(IRequestTracer));
@@ -230,8 +237,12 @@ namespace Couchbase.UnitTests
             var listener = options.ThresholdOptions.ThresholdListener as CustomTraceListener;
             var activities = listener.Activities.Where(x => x.OperationName == "works");
             var enumerable = activities as Activity[] ?? activities.ToArray();
-            Assert.True(enumerable.Count() == 1, $"The actual count was {enumerable.Count()}");
 
+            foreach (var activity in enumerable)
+            {
+                _output.WriteLine($"The name of the activity is '{activity.DisplayName}'");
+            }
+            Assert.True(enumerable.Count() == 1, $"The actual count was {enumerable.Count()}");
         }
 
         [Fact]
