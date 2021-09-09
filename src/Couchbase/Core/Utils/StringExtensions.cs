@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
+
+#nullable enable
 
 namespace Couchbase.Core.Utils
 {
@@ -19,17 +19,30 @@ namespace Couchbase.Core.Utils
         /// <returns>The original value escaped with back ticks.</returns>
         public static string EscapeIfRequired(this string value)
         {
-            const string backtick = "`";
-            if (!value.StartsWith(backtick))
+            const char backtick = '`';
+
+            if (value.Length == 0)
             {
-                value = backtick + value;
+                return "``";
             }
 
-            if (!value.EndsWith(backtick))
+            if (value[0] != backtick)
             {
-                value = value + backtick;
+                if (value[value.Length - 1] != backtick)
+                {
+                    // hot path is no backticks at all
+                    return $"`{value}`";
+                }
+
+                return backtick + value;
             }
 
+            if (value[value.Length - 1] != backtick)
+            {
+                return value + backtick;
+            }
+
+            // Already has backticks
             return value;
         }
     }
