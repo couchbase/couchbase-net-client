@@ -27,6 +27,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public string Name { get; }
         public IScope Scope { get; }
         public IBinaryCollection Binary { get; } = null!;
+        public bool IsDefaultCollection => Scope.IsDefaultScope && Name == "_default";
 
         public Task<IGetResult> GetAsync(string id, GetOptions? options = null)
         {

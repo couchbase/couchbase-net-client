@@ -1,8 +1,8 @@
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Resources;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
@@ -11,84 +11,55 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
     /// </summary>
     internal class NamedBucketProxyGenerator
     {
-        private static readonly AssemblyName DynamicAssemblyName =
-#if SIGNING
-            new AssemblyName("Couchbase.Extensions.DependencyInjection.Dynamic, PublicKeyToken=9112ac8688e923b2")
-            {
-                KeyPair = new StrongNameKeyPair(GetKeyPair())
-            };
-#else
-            new AssemblyName("Couchbase.Extensions.DependencyInjection.Dynamic");
-#endif
+        public static NamedBucketProxyGenerator Instance { get; } = new(ProxyModuleBuilder.Instance);
 
-        private readonly object _lock = new object();
-        private ModuleBuilder _moduleBuilder;
+        private readonly ProxyModuleBuilder _proxyModuleBuilder;
+        private readonly Dictionary<(Type type, string bucketName), Type> _proxyTypeCache = new();
 
-        private readonly ConcurrentDictionary<Type, Type> _proxyTypeCache = new ConcurrentDictionary<Type, Type>();
-
-        public T GetProxy<T>(IBucketProvider bucketProvider, string bucketName)
-            where T: class, INamedBucketProvider
+        public NamedBucketProxyGenerator(ProxyModuleBuilder proxyModuleBuilder)
         {
-            var proxyType = _proxyTypeCache.GetOrAdd(typeof(T), CreateProxyType);
-
-            return (T)Activator.CreateInstance(proxyType, bucketProvider, bucketName);
+            _proxyModuleBuilder = proxyModuleBuilder ?? throw new ArgumentNullException(nameof(proxyModuleBuilder));
         }
 
-        private Type CreateProxyType(Type interfaceType)
+        public Type GetProxy(Type bucketProviderInterface, string bucketName)
         {
-            if (_moduleBuilder == null)
+            if (!_proxyTypeCache.TryGetValue((bucketProviderInterface, bucketName), out var proxyType))
             {
-                lock (_lock)
-                {
-                    if (_moduleBuilder == null)
-                    {
-                        var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(DynamicAssemblyName,
-                            AssemblyBuilderAccess.Run);
-                        _moduleBuilder = assemblyBuilder.DefineDynamicModule("Module");
-
-                        IgnoresAccessChecksToAttributeGenerator.Generate(assemblyBuilder, _moduleBuilder);
-                    }
-                }
+                proxyType = CreateProxyType(bucketProviderInterface, bucketName);
+                _proxyTypeCache.Add((bucketProviderInterface, bucketName), proxyType);
             }
 
-            var typeBuilder = _moduleBuilder.DefineType(interfaceType.Name, TypeAttributes.Class | TypeAttributes.Public,
+            return proxyType;
+        }
+
+#if NET5_0_OR_GREATER
+        // Make our use of reflection safe for trimming
+        [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(NamedBucketProvider))]
+#endif
+        private Type CreateProxyType(Type interfaceType, string bucketName)
+        {
+            var moduleBuilder = _proxyModuleBuilder.GetModuleBuilder();
+
+            var typeBuilder = moduleBuilder.DefineType($"{interfaceType.Name}+{bucketName}", TypeAttributes.Class | TypeAttributes.Public,
                 typeof(NamedBucketProvider));
 
             typeBuilder.AddInterfaceImplementation(interfaceType);
 
-            var parameterTypes = new[] {typeof(IBucketProvider), typeof(string)};
-            var baseConstructor = typeof(NamedBucketProvider).GetConstructor(parameterTypes);
+            var baseConstructor = typeof(NamedBucketProvider).GetConstructor(
+                new[] { typeof(IBucketProvider), typeof(string) });
 
             var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public,
-                CallingConventions.Standard | CallingConventions.HasThis, parameterTypes);
+                CallingConventions.Standard | CallingConventions.HasThis,
+                new[] { typeof(IBucketProvider) });
 
             var ilGenerator = constructorBuilder.GetILGenerator();
             ilGenerator.Emit(OpCodes.Ldarg_0); // push "this"
-            ilGenerator.Emit(OpCodes.Ldarg_1); // push the I
-            ilGenerator.Emit(OpCodes.Ldarg_2); // push the param
+            ilGenerator.Emit(OpCodes.Ldarg_1); // push the IBucketProvider
+            ilGenerator.Emit(OpCodes.Ldstr, bucketName); // push the bucketName
             ilGenerator.Emit(OpCodes.Call, baseConstructor!);
             ilGenerator.Emit(OpCodes.Ret);
 
             return typeBuilder.CreateTypeInfo()!.AsType();
         }
-
-#if SIGNING
-        private static byte[] GetKeyPair()
-        {
-            using var stream =
-                typeof(NamedBucketProxyGenerator).Assembly.GetManifestResourceStream(
-                    "Couchbase.Extensions.DependencyInjection.Dynamic.snk");
-
-            if (stream == null)
-            {
-                throw new MissingManifestResourceException("Resource 'Couchbase.Extensions.DependencyInjection.Dynamic.snk' not found.");
-            }
-
-            var keyLength = (int)stream.Length;
-            var result = new byte[keyLength];
-            stream.Read(result, 0, keyLength);
-            return result;
-        }
-#endif
     }
 }

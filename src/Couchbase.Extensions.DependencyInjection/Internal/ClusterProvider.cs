@@ -8,7 +8,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
     internal class ClusterProvider : IClusterProvider
     {
         private readonly ILoggerFactory _loggerFactory;
-        private AsyncLazy<ICluster> _cluster;
+        private AsyncLazy<ICluster>? _cluster;
         private bool _disposed = false;
 
         public ClusterProvider(IOptions<ClusterOptions> options, ILoggerFactory loggerFactory)
@@ -30,7 +30,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
                 throw new ObjectDisposedException(nameof(ClusterProvider));
             }
 
-            return new ValueTask<ICluster>(_cluster.Value);
+            return new ValueTask<ICluster>(_cluster!.Value);
         }
 
         /// <summary>

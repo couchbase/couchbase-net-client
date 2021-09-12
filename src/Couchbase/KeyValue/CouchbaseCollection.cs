@@ -47,6 +47,7 @@ namespace Couchbase.KeyValue
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             _tracer = tracer;
             Scope = scope ?? throw new ArgumentNullException(nameof(scope));
+            IsDefaultCollection = scope.IsDefaultScope && name == DefaultCollectionName;
         }
 
         internal IRedactor Redactor { get; }
@@ -63,6 +64,9 @@ namespace Couchbase.KeyValue
         public IScope Scope { get; }
 
         public IBinaryCollection Binary => this;
+
+        /// <inheritdoc />
+        public bool IsDefaultCollection { get; }
 
         #region Get
 

@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Couchbase.Core;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {

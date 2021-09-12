@@ -17,6 +17,11 @@ namespace Couchbase.KeyValue
         /// </summary>
         IBucket Bucket { get; }
 
+        /// <summary>
+        /// Returns true if this is the default scope.
+        /// </summary>
+        bool IsDefaultScope { get; }
+
         ICouchbaseCollection this[string name] { get; }
 
         ICouchbaseCollection Collection(string collectionName);

@@ -20,6 +20,11 @@ namespace Couchbase.KeyValue
 
         IBinaryCollection Binary { get; }
 
+        /// <summary>
+        /// Returns true if this is the default collection in the default scope.
+        /// </summary>
+        bool IsDefaultCollection { get; }
+
         #region Basic
 
         Task<IGetResult> GetAsync(string id, GetOptions? options = null);

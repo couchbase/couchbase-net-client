@@ -31,6 +31,7 @@ namespace Couchbase.KeyValue
 
             _collections = new ConcurrentDictionary<string, ICouchbaseCollection>();
             _queryContext = $"default:{_bucket.Name.EscapeIfRequired()}.{name.EscapeIfRequired()}";
+            IsDefaultScope = name == DefaultScopeName;
         }
 
         /// <summary>
@@ -42,6 +43,9 @@ namespace Couchbase.KeyValue
 
         /// <inheritdoc />
         public IBucket Bucket => _bucket;
+
+        /// <inheritdoc />
+        public bool IsDefaultScope { get; }
 
         public ICouchbaseCollection this[string name]
         {

@@ -50,7 +50,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             var attributeConstructor = attributeType.GetConstructor(new[] {typeof(string)});
 
             var attributeBuilder = new CustomAttributeBuilder(attributeConstructor!,
-                new object[] {Assembly.GetExecutingAssembly().GetName().Name});
+                new object[] {typeof(IgnoresAccessChecksToAttributeGenerator).Assembly.GetName().Name!});
             assemblyBuilder.SetCustomAttribute(attributeBuilder);
         }
     }

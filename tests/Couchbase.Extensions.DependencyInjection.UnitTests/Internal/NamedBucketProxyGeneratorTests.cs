@@ -1,3 +1,4 @@
+using System;
 using Couchbase.Extensions.DependencyInjection.Internal;
 using Moq;
 using Xunit;
@@ -9,17 +10,19 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
         #region GetProxy
 
         [Fact]
-        public void GetProxy_GoodInterface_ReturnsProxy()
+        public void GetProxyFactory_GoodInterface_ReturnsProxy()
         {
             //  Arrange
 
             var bucketProvider = new Mock<IBucketProvider>();
 
-            var generator = new NamedBucketProxyGenerator();
+            var generator = new NamedBucketProxyGenerator(new ProxyModuleBuilder());
 
             // Act
 
-            var proxy = generator.GetProxy<ITestBucketProvider>(bucketProvider.Object, "test");
+            var proxyType = generator.GetProxy(typeof(ITestBucketProvider), "test");
+
+            var proxy = Activator.CreateInstance(proxyType, bucketProvider.Object);
 
             // Assert
 
@@ -27,18 +30,21 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
         }
 
         [Fact]
-        public void GetProxy_TwoInterfaces_ReturnsTwoProxies()
+        public void GetProxyFactory_TwoInterfaces_ReturnsTwoProxies()
         {
             //  Arrange
 
             var bucketProvider = new Mock<IBucketProvider>();
 
-            var generator = new NamedBucketProxyGenerator();
+            var generator = new NamedBucketProxyGenerator(new ProxyModuleBuilder());
 
             // Act
 
-            var proxy = generator.GetProxy<ITestBucketProvider>(bucketProvider.Object, "test");
-            var proxy2 = generator.GetProxy<ITestBucketProvider2>(bucketProvider.Object, "test2");
+            var proxyType = generator.GetProxy(typeof(ITestBucketProvider), "test");
+            var proxyType2 = generator.GetProxy(typeof(ITestBucketProvider2), "test");
+
+            var proxy = Activator.CreateInstance(proxyType, bucketProvider.Object);
+            var proxy2 = Activator.CreateInstance(proxyType2, bucketProvider.Object);
 
             // Assert
 
@@ -48,18 +54,45 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
         }
 
         [Fact]
-        public void GetProxy_TwiceWithSameInterface_ReturnsSameProxyType()
+        public void GetProxyFactory_TwoNames_ReturnsTwoProxies()
         {
             //  Arrange
 
             var bucketProvider = new Mock<IBucketProvider>();
 
-            var generator = new NamedBucketProxyGenerator();
+            var generator = new NamedBucketProxyGenerator(new ProxyModuleBuilder());
 
             // Act
 
-            var proxy = generator.GetProxy<ITestBucketProvider>(bucketProvider.Object, "test");
-            var proxy2 = generator.GetProxy<ITestBucketProvider>(bucketProvider.Object, "test");
+            var proxyType = generator.GetProxy(typeof(ITestBucketProvider), "test");
+            var proxyType2 = generator.GetProxy(typeof(ITestBucketProvider), "test2");
+
+            var proxy = Activator.CreateInstance(proxyType, bucketProvider.Object);
+            var proxy2 = Activator.CreateInstance(proxyType2, bucketProvider.Object);
+
+            // Assert
+
+            Assert.NotNull(proxy);
+            Assert.NotNull(proxy2);
+            Assert.NotEqual(proxy.GetType(), proxy2.GetType());
+        }
+
+        [Fact]
+        public void GetProxyFactory_TwiceWithSameInterfaceAndName_ReturnsSameProxyType()
+        {
+            //  Arrange
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var generator = new NamedBucketProxyGenerator(new ProxyModuleBuilder());
+
+            // Act
+
+            var proxyType = generator.GetProxy(typeof(ITestBucketProvider), "test");
+            var proxyType2 = generator.GetProxy(typeof(ITestBucketProvider), "test");
+
+            var proxy = Activator.CreateInstance(proxyType, bucketProvider.Object);
+            var proxy2 = Activator.CreateInstance(proxyType2, bucketProvider.Object);
 
             // Assert
 

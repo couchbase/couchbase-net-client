@@ -230,6 +230,37 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             Assert.Equal(bucketName, namedBucketProvider.BucketName);
         }
 
+        [Fact]
+        public void AddCouchbaseBucket_WithBuilder_ProvidesNamedCollectionProvider()
+        {
+            // Arrange
+            const string bucketName = "bucketName";
+            const string scopeName = "scopeName";
+            const string collectionName = "collectionName";
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddSingleton(bucketProvider.Object);
+            services.AddCouchbase(options => { });
+
+            // Act
+
+                services.AddCouchbaseBucket<ITestBucketProvider>(bucketName, builder =>
+            {
+                builder.AddScope(scopeName)
+                    .AddCollection<ITestCollectionProvider>(collectionName);
+            });
+
+            // Assert
+
+            var serviceProvider = services.BuildServiceProvider();
+            var namedScopeProvider = serviceProvider.GetRequiredService<ITestCollectionProvider>();
+
+            Assert.NotNull(namedScopeProvider);
+            Assert.Equal(scopeName, namedScopeProvider.ScopeName);
+        }
+
         #endregion
 
         #region TryAddCouchbaseBucket
@@ -322,11 +353,46 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             Assert.Equal(bucketName, namedBucketProvider.BucketName);
         }
 
+        [Fact]
+        public void TryAddCouchbaseBucket_WithBuilder_ProvidesNamedCollectionProvider()
+        {
+            // Arrange
+            const string bucketName = "bucketName";
+            const string scopeName = "scopeName";
+            const string collectionName = "collectionName";
+
+            var bucketProvider = new Mock<IBucketProvider>();
+
+            var services = new ServiceCollection();
+            services.AddSingleton(bucketProvider.Object);
+            services.AddCouchbase(options => { });
+
+            // Act
+
+            services.TryAddCouchbaseBucket<ITestBucketProvider>(bucketName, builder =>
+            {
+                builder.AddScope(scopeName)
+                    .AddCollection<ITestCollectionProvider>(collectionName);
+            });
+
+            // Assert
+
+            var serviceProvider = services.BuildServiceProvider();
+            var namedScopeProvider = serviceProvider.GetRequiredService<ITestCollectionProvider>();
+
+            Assert.NotNull(namedScopeProvider);
+            Assert.Equal(scopeName, namedScopeProvider.ScopeName);
+        }
+
         #endregion
 
         #region Helpers
 
         public interface ITestBucketProvider : INamedBucketProvider
+        {
+        }
+
+        public interface ITestCollectionProvider : INamedCollectionProvider
         {
         }
 

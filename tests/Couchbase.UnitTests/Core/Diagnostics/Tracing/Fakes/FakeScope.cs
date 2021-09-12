@@ -24,6 +24,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public string Id { get; }
         public string Name { get; }
         public IBucket Bucket { get; }
+        public bool IsDefaultScope => Name == "_default";
 
         public ICouchbaseCollection this[string name] => throw new NotImplementedException();
 

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.1;net5.0</TargetFrameworks>
     <VersionPrefix>3.0.1</VersionPrefix>
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
     <AssemblyName>Couchbase.Extensions.DependencyInjection</AssemblyName>
@@ -15,13 +15,15 @@
     <Version>3.0.1</Version>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>Couchbase.snk</AssemblyOriginatorKeyFile>
-    <LangVersion>8</LangVersion>
+    <LangVersion>9</LangVersion>
 
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
     <PackageIconUrl>https://raw.githubusercontent.com/couchbaselabs/Linq2Couchbase/master/Packaging/couchbase-logo.png</PackageIconUrl>
     <AssemblyVersion>3.0.1.0</AssemblyVersion>
     <FileVersion>3.0.1.0</FileVersion>
+
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(SignAssembly)'=='true'">
