@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28721.148
@@ -21,7 +21,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.IntegrationTests.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Extensions.OpenTelemetry", "src\Couchbase.Extensions.OpenTelemetry\Couchbase.Extensions.OpenTelemetry.csproj", "{8F8C801F-8C26-4E27-821D-587F8408108F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Extensions.OpenTelemetry.UnitTests", "tests\Couchbase.Extensions.OpenTelemetry.UnitTests\Couchbase.Extensions.OpenTelemetry.UnitTests.csproj", "{B3EA14FF-1C5A-4D54-B969-3BB98C422435}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Extensions.OpenTelemetry.IntegrationTests", "tests\Couchbase.Extensions.OpenTelemetry.IntegrationTests\Couchbase.Extensions.OpenTelemetry.IntegrationTests.csproj", "{B3EA14FF-1C5A-4D54-B969-3BB98C422435}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Extensions.OpenTelemetry.UnitTests", "tests\Couchbase.Extensions.OpenTelemetry.UnitTests\Couchbase.Extensions.OpenTelemetry.UnitTests.csproj", "{9E389CD9-ED21-4FED-9DAA-5311BA3EA07B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,6 +71,10 @@ Global
 		{B3EA14FF-1C5A-4D54-B969-3BB98C422435}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3EA14FF-1C5A-4D54-B969-3BB98C422435}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3EA14FF-1C5A-4D54-B969-3BB98C422435}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E389CD9-ED21-4FED-9DAA-5311BA3EA07B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E389CD9-ED21-4FED-9DAA-5311BA3EA07B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E389CD9-ED21-4FED-9DAA-5311BA3EA07B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E389CD9-ED21-4FED-9DAA-5311BA3EA07B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
