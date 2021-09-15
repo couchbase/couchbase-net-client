@@ -321,7 +321,7 @@ namespace Couchbase.Query
         {
             var span = _tracer.RequestSpan(operation, options.RequestSpanValue);
             span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
-            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.N1QLQuery).ToLowerInvariant());
+            span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.N1QLQuery);
             span.SetAttribute(OuterRequestSpans.Attributes.BucketName, options.BucketName!);
             span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, options.ScopeName!);
             span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
