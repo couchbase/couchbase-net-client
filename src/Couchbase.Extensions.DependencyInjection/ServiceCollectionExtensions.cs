@@ -3,6 +3,7 @@ using Couchbase.Extensions.DependencyInjection.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Couchbase.Extensions.DependencyInjection
 {
@@ -41,6 +42,9 @@ namespace Couchbase.Extensions.DependencyInjection
             services.TryAddSingleton<ICouchbaseLifetimeService, CouchbaseLifetimeService>();
             services.TryAddSingleton<IClusterProvider, ClusterProvider>();
             services.TryAddSingleton<IBucketProvider, BucketProvider>();
+
+            // Register the logging configurator first so that the call to the options Action may override it
+            services.AddTransient<IConfigureOptions<ClusterOptions>, LoggingConfigurator>();
 
             if (options != null)
             {

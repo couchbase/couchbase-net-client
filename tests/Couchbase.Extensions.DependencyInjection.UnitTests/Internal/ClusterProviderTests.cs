@@ -1,8 +1,6 @@
 using System;
-using System.Reflection;
 using System.Threading.Tasks;
 using Couchbase.Extensions.DependencyInjection.Internal;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
@@ -20,25 +18,9 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
         {
             // Act/Assert
 
-            var loggerFactory = new Mock<ILoggerFactory>().Object;
-
-            var ex = Assert.Throws<ArgumentNullException>(() => new ClusterProvider(null, loggerFactory));
+            var ex = Assert.Throws<ArgumentNullException>(() => new ClusterProvider(null));
 
             Assert.Equal("options", ex.ParamName);
-        }
-
-        [Fact]
-        public void ctor_NoLoggerFactory_Exception()
-        {
-            // Arrange
-
-            var options = new Mock<IOptions<ClusterOptions>>();
-
-            // Act/Assert
-
-            var ex = Assert.Throws<ArgumentNullException>(() => new ClusterProvider(options.Object, null));
-
-            Assert.Equal("loggerFactory", ex.ParamName);
         }
 
         #endregion
@@ -51,9 +33,8 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             // Arrange
 
             var options = new Mock<IOptions<ClusterOptions>>();
-            var loggerFactory = new Mock<ILoggerFactory>().Object;
 
-            var provider = new ClusterProvider(options.Object, loggerFactory);
+            var provider = new ClusterProvider(options.Object);
             provider.Dispose();
 
             // Act/Assert
@@ -73,11 +54,9 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             var options = new Mock<IOptions<ClusterOptions>>();
             options.SetupGet(m => m.Value).Returns(clusterOptions);
 
-            var loggerFactory = new Mock<ILoggerFactory>().Object;
-
             var cluster = new Mock<ICluster>();
 
-            var provider = new Mock<ClusterProvider>(options.Object, loggerFactory)
+            var provider = new Mock<ClusterProvider>(options.Object)
             {
                 CallBase = true
             };
@@ -104,11 +83,9 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             var options = new Mock<IOptions<ClusterOptions>>();
             options.SetupGet(m => m.Value).Returns(clusterOptions);
 
-            var loggerFactory = new Mock<ILoggerFactory>().Object;
-
             var cluster = new Mock<ICluster>();
 
-            var provider = new Mock<ClusterProvider>(options.Object, loggerFactory)
+            var provider = new Mock<ClusterProvider>(options.Object)
             {
                 CallBase = true
             };
@@ -143,12 +120,10 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             var options = new Mock<IOptions<ClusterOptions>>();
             options.SetupGet(m => m.Value).Returns(clusterOptions);
 
-            var loggerFactory = new Mock<ILoggerFactory>().Object;
-
             var cluster = new Mock<ICluster>();
             cluster.Setup(m => m.Dispose());
 
-            var provider = new Mock<ClusterProvider>(options.Object, loggerFactory)
+            var provider = new Mock<ClusterProvider>(options.Object)
             {
                 CallBase = true
             };
@@ -181,12 +156,10 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             var options = new Mock<IOptions<ClusterOptions>>();
             options.SetupGet(m => m.Value).Returns(clusterOptions);
 
-            var loggerFactory = new Mock<ILoggerFactory>().Object;
-
             var cluster = new Mock<ICluster>();
             cluster.Setup(m => m.Dispose());
 
-            var provider = new Mock<ClusterProvider>(options.Object, loggerFactory)
+            var provider = new Mock<ClusterProvider>(options.Object)
             {
                 CallBase = true
             };

@@ -1,24 +1,20 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
     internal class ClusterProvider : IClusterProvider
     {
-        private readonly ILoggerFactory _loggerFactory;
         private AsyncLazy<ICluster>? _cluster;
         private bool _disposed = false;
 
-        public ClusterProvider(IOptions<ClusterOptions> options, ILoggerFactory loggerFactory)
+        public ClusterProvider(IOptions<ClusterOptions> options)
         {
             if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
             }
-
-            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
 
             _cluster = new AsyncLazy<ICluster>(() => CreateClusterAsync(options.Value));
         }
@@ -38,8 +34,6 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         /// </summary>
         protected virtual Task<ICluster> CreateClusterAsync(ClusterOptions clusterOptions)
         {
-            clusterOptions.WithLogging(_loggerFactory);
-
             return Cluster.ConnectAsync(clusterOptions);
         }
 

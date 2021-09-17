@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -26,7 +28,8 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
 
             var configuration = configurationBuilder.Build();
 
-            var services = new ServiceCollection();
+            var services = new ServiceCollection()
+                .AddSingleton<ILoggerFactory>(new NullLoggerFactory());
 
             //  Act
 
@@ -145,7 +148,8 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
         {
             // Arrange
 
-            var services = new ServiceCollection();
+            var services = new ServiceCollection()
+                .AddSingleton<ILoggerFactory>(new NullLoggerFactory());
 
             Action<ClusterOptions> optionsAction = clientDefinition =>
             {
@@ -162,6 +166,59 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests
             var options = provider.GetRequiredService<IOptions<ClusterOptions>>();
 
             Assert.Equal(1005, options.Value.MaxHttpConnections);
+        }
+
+        [Fact]
+        public void AddCouchbase_WithOptionsNoLogger_UseTheDILogger()
+        {
+            // Arrange
+
+            var logger = new NullLoggerFactory();
+
+            var services = new ServiceCollection()
+                .AddSingleton<ILoggerFactory>(logger);
+
+            Action<ClusterOptions> optionsAction = clientDefinition =>
+            {
+            };
+
+            //  Act
+
+            services.AddCouchbase(optionsAction);
+
+            // Assert
+
+            var provider = services.BuildServiceProvider();
+            var options = provider.GetRequiredService<IOptions<ClusterOptions>>();
+
+            Assert.Equal(logger, options.Value.Logging);
+        }
+
+        [Fact]
+        public void AddCouchbase_WithOptionsWithLogger_OverridesTheDILogger()
+        {
+            // Arrange
+
+            var services = new ServiceCollection()
+                .AddSingleton<ILoggerFactory>(new NullLoggerFactory());
+
+            var overrideLogger = Mock.Of<ILoggerFactory>();
+
+            Action<ClusterOptions> optionsAction = clientDefinition =>
+            {
+                clientDefinition.WithLogging(overrideLogger);
+            };
+
+            //  Act
+
+            services.AddCouchbase(optionsAction);
+
+            // Assert
+
+            var provider = services.BuildServiceProvider();
+            var options = provider.GetRequiredService<IOptions<ClusterOptions>>();
+
+            Assert.Equal(overrideLogger, options.Value.Logging);
         }
 
         #endregion
