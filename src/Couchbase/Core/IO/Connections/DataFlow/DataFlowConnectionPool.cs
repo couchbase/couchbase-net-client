@@ -98,40 +98,51 @@ namespace Couchbase.Core.IO.Connections.DataFlow
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (Size > 0)
+            // We don't need the execution context to flow to sends
+            // so we can reduce heap allocations by not flowing.
+            bool restoreFlow = false;
+            try
             {
-                // We don't need the execution context to flow to sends
-                // so we can reduce heap allocations by not flowing.
-                using (ExecutionContext.SuppressFlow())
+                if (!ExecutionContext.IsFlowSuppressed())
                 {
-                    if (!_sendQueue.Post(new QueueItem { Operation = operation, CancellationToken = cancellationToken }))
+                    ExecutionContext.SuppressFlow();
+                    restoreFlow = true;
+                }
+
+                if (Size > 0)
+                {
+                    if (!_sendQueue.Post(new QueueItem
+                        { Operation = operation, CancellationToken = cancellationToken }))
                     {
                         throw new SendQueueFullException();
                     }
+
+                    return Task.CompletedTask;
                 }
 
-                return Task.CompletedTask;
+                // We had all connections die earlier and fail to restart, we need to restart them
+                return CleanupDeadConnectionsAsync().ContinueWith(_ =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Requeue the request
+                    // Note: always requeues even if cleanup fails
+                    // Since the exception on the task is ignored, we're also eating the exception
+
+                    if (!_sendQueue.Post(new QueueItem
+                        { Operation = operation, CancellationToken = cancellationToken }))
+                    {
+                        throw new SendQueueFullException();
+                    }
+                }, cancellationToken);
             }
-
-            // We had all connections die earlier and fail to restart, we need to restart them
-            return CleanupDeadConnectionsAsync().ContinueWith(_ =>
+            finally
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // Requeue the request
-                // Note: always requeues even if cleanup fails
-                // Since the exception on the task is ignored, we're also eating the exception
-
-                // We don't need the execution context to flow to sends
-                // so we can reduce heap allocations by not flowing.
-                using (ExecutionContext.SuppressFlow())
+                if (restoreFlow)
                 {
-                    if (!_sendQueue.Post(new QueueItem { Operation = operation, CancellationToken = cancellationToken }))
-                    {
-                        throw new SendQueueFullException();
-                    }
+                    ExecutionContext.RestoreFlow();
                 }
-            }, cancellationToken);
+            }
         }
 
         /// <inheritdoc />

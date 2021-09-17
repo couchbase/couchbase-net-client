@@ -44,7 +44,12 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
             _logger = logger;
             Interval = (int)options.EmitInterval.TotalMilliseconds;
             SampleSize = options.SampleSize;
-            Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
+
+            // Ensure that we don't flow the ExecutionContext into the long running task
+            using (ExecutionContext.SuppressFlow())
+            {
+                Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
+            }
         }
 
         private async Task DoWork()

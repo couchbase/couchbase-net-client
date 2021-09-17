@@ -438,6 +438,7 @@ namespace Couchbase.Core
                         // This approach helps avoid an extra Task and await on the call stack delaying operation
                         // completion from propagating to the caller.
 
+                        using (ExecutionContext.SuppressFlow())
                         // ReSharper disable once MethodSupportsCancellation
                         Task.Run(async () =>
                         {

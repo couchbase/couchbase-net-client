@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Couchbase.Core.Logging;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -23,7 +24,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
         {
             var thresholdOptions1 = options;
             var logger = loggerFactory.CreateLogger<RequestTracer>();
-            _timer = new Timer(GenerateAndLogReport, logger, thresholdOptions1.EmitInterval, thresholdOptions1.EmitInterval);
+            _timer = TimerFactory.CreateWithFlowSuppressed(GenerateAndLogReport, logger, thresholdOptions1.EmitInterval, thresholdOptions1.EmitInterval);
             ThresholdServiceQueue.SetSampleSize((int)thresholdOptions1.SampleSize);//change to uint
 
             _serviceThresholds = options.GetServiceThresholds();

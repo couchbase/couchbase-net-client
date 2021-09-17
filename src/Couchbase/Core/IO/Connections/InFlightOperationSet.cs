@@ -42,9 +42,23 @@ namespace Couchbase.Core.IO.Connections
             Timeout = timeout;
             CleanupInterval = cleanupInterval ?? TimeSpan.FromSeconds(30);
 
-            using (ExecutionContext.SuppressFlow())
+            bool restoreFlow = false;
+            try
             {
+                if (!ExecutionContext.IsFlowSuppressed())
+                {
+                    ExecutionContext.SuppressFlow();
+                    restoreFlow = true;
+                }
+
                 Task.Run(CleanupLoop);
+            }
+            finally
+            {
+                if (restoreFlow)
+                {
+                    ExecutionContext.RestoreFlow();
+                }
             }
         }
 

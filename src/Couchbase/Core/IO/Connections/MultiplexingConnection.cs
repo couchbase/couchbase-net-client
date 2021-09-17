@@ -66,9 +66,23 @@ namespace Couchbase.Core.IO.Connections
             _stopwatch.Start();
 
             // We don't need the execution context to flow to the receive loop
-            using (ExecutionContext.SuppressFlow())
+            bool restoreFlow = false;
+            try
             {
+                if (!ExecutionContext.IsFlowSuppressed())
+                {
+                    ExecutionContext.SuppressFlow();
+                    restoreFlow = true;
+                }
+
                 Task.Run(ReceiveResponsesAsync);
+            }
+            finally
+            {
+                if (restoreFlow)
+                {
+                    ExecutionContext.RestoreFlow();
+                }
             }
         }
 

@@ -29,6 +29,10 @@ namespace Couchbase.Core.Bootstrapping
         public void Start(IBootstrappable subject)
         {
             var token = _tokenSource.Token;
+
+            // Ensure that we don't flow the ExecutionContext into the long running task below
+            using var flowControl = ExecutionContext.SuppressFlow();
+
             Task.Run(async () =>
             {
                 token.ThrowIfCancellationRequested();

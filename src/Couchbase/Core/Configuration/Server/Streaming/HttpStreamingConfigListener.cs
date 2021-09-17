@@ -69,6 +69,9 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
         private Task StartBackgroundTask()
         {
+            // Ensure that we don't flow the ExecutionContext into the long running task below
+            using var flowControl = ExecutionContext.SuppressFlow();
+
             return Task.Run(async () =>
             {
                 _httpClient.Timeout = Timeout.InfiniteTimeSpan;

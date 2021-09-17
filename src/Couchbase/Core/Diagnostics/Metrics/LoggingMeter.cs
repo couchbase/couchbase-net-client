@@ -4,8 +4,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Timers;
+using System.Threading;
 using App.Metrics;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Diagnostics.Metrics
@@ -15,40 +16,47 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// </summary>
     public class LoggingMeter : IMeter
     {
-        private readonly Timer _timer;
+        private volatile Timer? _timer;
         private readonly LoggingMeterOptions _options;
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<string, Tuple<LoggingMeterValueRecorder, IMetricsRoot>> _histograms = new();
+        private readonly uint _intervalMilliseconds;
 
         public LoggingMeter(ILoggerFactory loggerFactory, LoggingMeterOptions options)
         {
             _logger = loggerFactory.CreateLogger<LoggingMeter>();
             _options = options;
-            _timer = new Timer(_options.EmitIntervalValue.TotalMilliseconds)
-            {
-                Enabled = _options.EnabledValue,
-                AutoReset = true
-            };
-            _timer.Elapsed += GenerateReport;
-            _timer.Start();
+            _intervalMilliseconds = (uint) options.EmitIntervalValue.TotalMilliseconds;
+
+            _timer = TimerFactory.CreateWithFlowSuppressed(GenerateReport, null, options.EmitIntervalValue, options.EmitIntervalValue);
         }
 
-        private void GenerateReport(object state, ElapsedEventArgs e)
+        private void GenerateReport(object? state)
         {
-            var timer = state as Timer;
-            timer?.Stop();
+            // Note: The use of Interlocked/volatile here to synchronize against Dispose is imperfect,
+            // an ObjectDisposedException may still occur. But the logic here makes it pretty unlikely.
+
+            var timer = _timer;
+            if (timer == null)
+            {
+                // This was fired while we're in the process of disposing, so stop
+                return;
+            }
+
+            timer.Change(Timeout.Infinite, Timeout.Infinite);
 
             try
             {
                 var histograms =
                     new ReadOnlyDictionary<string, IMetricsRoot?>(_histograms.ToDictionary(x => x.Key, y => y.Value?.Item2));
 
-                var intervalInSeconds = (uint) _timer.Interval / 1000;
+                var intervalInSeconds = _intervalMilliseconds / 1000u;
                 _logger.LogInformation(LoggingMeterReport.Generate(histograms, intervalInSeconds).ToString());
             }
             finally
             {
-                timer?.Start();
+                // Refresh the value of timer in case we were disposed while doing the work
+                _timer?.Change(_intervalMilliseconds, _intervalMilliseconds);
             }
         }
 
@@ -76,7 +84,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
         public void Dispose()
         {
-            _timer.Dispose();
+            Interlocked.Exchange(ref _timer, null)?.Dispose();
         }
     }
 }

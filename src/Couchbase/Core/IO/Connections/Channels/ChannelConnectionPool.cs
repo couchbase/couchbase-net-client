@@ -94,8 +94,15 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             // We don't need the execution context to flow to sends
             // so we can reduce heap allocations by not flowing.
-            using (ExecutionContext.SuppressFlow())
+            bool restoreFlow = false;
+            try
             {
+                if (!ExecutionContext.IsFlowSuppressed())
+                {
+                    ExecutionContext.SuppressFlow();
+                    restoreFlow = true;
+                }
+
                 // Note: Because synchronous continuations are enabled, The ChannelConnectionProcessor's work to process items
                 // from the queue may take place synchronously on this thread and momentarily block the return of this method.
                 // However, this gives us the performance benefit of not queuing the send work on the thread pool. The time
@@ -106,6 +113,13 @@ namespace Couchbase.Core.IO.Connections.Channels
                 if (!_sendQueue.Writer.TryWrite(new ChannelQueueItem(operation, cancellationToken)))
                 {
                     ThrowHelper.ThrowSendQueueFullException();
+                }
+            }
+            finally
+            {
+                if (restoreFlow)
+                {
+                    ExecutionContext.RestoreFlow();
                 }
             }
 
