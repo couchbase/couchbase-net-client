@@ -1,8 +1,8 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -16,7 +16,17 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
         private const int WorkerSleep = 100;
 
         private readonly CancellationTokenSource _source = new();
-        private readonly BlockingCollection<OrphanSummary> _queue = new(1000);
+
+        private readonly Channel<OrphanSummary> _queue =
+            Channel.CreateBounded<OrphanSummary>(new BoundedChannelOptions(1000)
+            {
+                // We drop orphans from the logs when we're full, rather than blocking the calling thread
+                // Since we're constantly processing the queue and have room for 1000, this shouldn't
+                // occur except in the most extreme scenarios.
+                FullMode = BoundedChannelFullMode.DropWrite,
+                SingleReader = true
+            });
+
         private readonly List<OrphanSummary> _kvOrphans = new();
         private readonly List<OrphanSummary> _viewOrphans = new();
         private readonly List<OrphanSummary> _queryOrphans = new();
@@ -48,12 +58,14 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
             // Ensure that we don't flow the ExecutionContext into the long running task
             using (ExecutionContext.SuppressFlow())
             {
-                Task.Factory.StartNew(DoWork, TaskCreationOptions.LongRunning);
+                Task.Run(DoWork);
             }
         }
 
         private async Task DoWork()
         {
+            var reader = _queue.Reader;
+
             while (!_source.IsCancellationRequested)
             {
                 try
@@ -81,37 +93,59 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                         _lastRun = DateTime.UtcNow;
                     }
 
-                    while (!_source.IsCancellationRequested && !_queue.IsAddingCompleted && _queue.TryTake(out var context, WorkerSleep, _source.Token))
+                    var hasData = true;
+                    // Repeat until _source is cancelled or we have no more data AND have waited at least WorkerSleep
+                    while (hasData && !_source.IsCancellationRequested)
                     {
-                        // protects against there being lots of orphans blocking the process from existing if cancelled
-                        if (_source.IsCancellationRequested)
+                        using (var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(_source.Token))
                         {
-                            break;
+                            timeoutToken.CancelAfter(WorkerSleep);
+
+                            try
+                            {
+                                hasData = await reader.WaitToReadAsync(timeoutToken.Token).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                // The timeoutToken was triggered
+                                hasData = false;
+                            }
                         }
 
-                        switch (context.ServiceType)
+                        // hasData will be false if either the channel is closed or the timeoutToken triggered
+                        if (hasData)
                         {
-                            case OuterRequestSpans.ServiceSpan.Kv.Name:
-                                AddContextToService(_kvOrphans, context, ref _kvOrphanCount, SampleSize);
-                                break;
-                            case OuterRequestSpans.ServiceSpan.ViewQuery:
-                                AddContextToService(_viewOrphans, context, ref _viewOrphanCount, SampleSize);
-                                break;
-                            case OuterRequestSpans.ServiceSpan.N1QLQuery:
-                                AddContextToService(_queryOrphans, context, ref _queryOrphanCount, SampleSize);
-                                break;
-                            case OuterRequestSpans.ServiceSpan.SearchQuery:
-                                AddContextToService(_searchOrphans, context, ref _searchOrphanCount, SampleSize);
-                                break;
-                            case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
-                                AddContextToService(_analyticsOrphans, context, ref _analyticsOrphanCount, SampleSize);
-                                break;
-                            default:
-                                _logger.LogInformation($"Unknown service type {context.ServiceType} for operation with ID '{context.operation_id}'");
-                                break;
-                        }
+                            // Keep taking data until we run out or _source is cancelled
+                            while (!_source.IsCancellationRequested && reader.TryRead(out var context))
+                            {
+                                switch (context.ServiceType)
+                                {
+                                    case OuterRequestSpans.ServiceSpan.Kv.Name:
+                                        AddContextToService(_kvOrphans, context, ref _kvOrphanCount, SampleSize);
+                                        break;
+                                    case OuterRequestSpans.ServiceSpan.ViewQuery:
+                                        AddContextToService(_viewOrphans, context, ref _viewOrphanCount, SampleSize);
+                                        break;
+                                    case OuterRequestSpans.ServiceSpan.N1QLQuery:
+                                        AddContextToService(_queryOrphans, context, ref _queryOrphanCount, SampleSize);
+                                        break;
+                                    case OuterRequestSpans.ServiceSpan.SearchQuery:
+                                        AddContextToService(_searchOrphans, context, ref _searchOrphanCount,
+                                            SampleSize);
+                                        break;
+                                    case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
+                                        AddContextToService(_analyticsOrphans, context, ref _analyticsOrphanCount,
+                                            SampleSize);
+                                        break;
+                                    default:
+                                        _logger.LogInformation(
+                                            $"Unknown service type {context.ServiceType} for operation with ID '{context.operation_id}'");
+                                        break;
+                                }
 
-                        _hasOrphans = true; // indicates we have something to process
+                                _hasOrphans = true; // indicates we have something to process
+                            }
+                        }
                     }
 
                     // sleep for a little while
@@ -159,21 +193,16 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 
             if (_queue != null)
             {
-                _queue.CompleteAdding();
-                while (_queue.Any())
-                {
-                    _queue.TryTake(out _);
-                }
-
-                _queue.Dispose();
+                _queue.Writer.TryComplete();
             }
         }
 
         public void Add(OrphanSummary orphanSummary)
         {
-            if (!_source.IsCancellationRequested && !_queue.IsAddingCompleted)
+            if (!_source.IsCancellationRequested)
             {
-                _queue.Add(orphanSummary, _source.Token);
+                // If we've been disposed this will simply return false, which we ignore
+                _queue.Writer.TryWrite(orphanSummary);
             }
         }
     }
