@@ -291,7 +291,7 @@ namespace Couchbase.Core.IO.Connections.Channels
 
                 if (_connections.Count < MinimumSize)
                 {
-                    await AddConnectionsAsync(_connections.Count - MinimumSize).ConfigureAwait(false);
+                    await AddConnectionsAsync(MinimumSize - _connections.Count).ConfigureAwait(false);
                 }
             }
             finally
