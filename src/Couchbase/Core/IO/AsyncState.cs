@@ -4,10 +4,8 @@ using System.Diagnostics;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Utils;
 
 #nullable enable
@@ -19,8 +17,6 @@ namespace Couchbase.Core.IO
     /// </summary>
     internal class AsyncState : IDisposable
     {
-        private static readonly Action<object?> SendResponseInternalAction = SendResponseInternal;
-
         // CompletionTask is rarely used, only to support graceful connection shutdown during pool scaling
         // So we delay initialization until it is requested.
         private volatile TaskCompletionSource<bool>? _tcs;
@@ -124,19 +120,27 @@ namespace Couchbase.Core.IO
             return response;
         }
 
+#if NETCOREAPP3_1_OR_GREATER
+        private static readonly Action<object?> SendResponseInternalAction = SendResponseInternal;
+
         private void SendResponse(in SlicedMemoryOwner<byte> response)
         {
             _response = response;
 
-            // We don't need the execution context to flow to callback execution
-            // so we can reduce heap allocations by not flowing.
-            using (ExecutionContext.SuppressFlow())
-            {
-                // Run callback in a new task to avoid blocking the connection read process
-                Task.Factory.StartNew(SendResponseInternalAction, this, default,
-                    TaskCreationOptions.PreferFairness | TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
-            }
+            // Queue the request on the global queue, but don't capture the current ExecutionContext
+            ThreadPool.UnsafeQueueUserWorkItem(SendResponseInternalAction, this, preferLocal: false);
         }
+#else
+        private static readonly WaitCallback SendResponseInternalCallback = SendResponseInternal;
+
+        private void SendResponse(in SlicedMemoryOwner<byte> response)
+        {
+            _response = response;
+
+            // Queue the request on the global queue, but don't capture the current ExecutionContext
+            ThreadPool.UnsafeQueueUserWorkItem(SendResponseInternalCallback, this);
+        }
+#endif
 
         /// <summary>
         /// Used by SendResponse, using a static action reduces heap allocations.
