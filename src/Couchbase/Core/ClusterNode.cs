@@ -507,6 +507,12 @@ namespace Couchbase.Core
                             EndPoint, status, op.OpCode, op.Key, op.Opaque);
                     }
 
+                    if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
+                    {
+                        throw new ConnectException(
+                            "General network failure - Check server ports and cluster encryption setting.");
+                    }
+
                     if (status == ResponseStatus.VBucketBelongsToAnotherServer)
                     {
                         var config = op.ReadConfig(_context.GlobalTranscoder);
