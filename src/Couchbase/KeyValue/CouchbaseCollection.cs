@@ -1082,14 +1082,16 @@ namespace Couchbase.KeyValue
                 getCid.Key = fullyQualifiedName;
             }
 
-            _operationConfigurator.Configure(getCid, new GetOptions().Transcoder(_rawStringTranscoder));
+            var options = new GetOptions();
+            _operationConfigurator.Configure(getCid, options.Transcoder(_rawStringTranscoder));
+            using var cts = CreateRetryTimeoutCancellationTokenSource(options, getCid, out var tokenPair);
             if (retryIfFailure)
             {
-                await _bucket.RetryAsync(getCid).ConfigureAwait(false);
+                await _bucket.RetryAsync(getCid, tokenPair).ConfigureAwait(false);
             }
             else
             {
-                await _bucket.SendAsync(getCid);
+                await _bucket.SendAsync(getCid, tokenPair).ConfigureAwait(false);
             }
 
             var resultWithValue = getCid.GetValueAsUint();

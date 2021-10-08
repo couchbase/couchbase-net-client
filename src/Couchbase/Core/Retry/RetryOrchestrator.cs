@@ -181,7 +181,7 @@ namespace Couchbase.Core.Retry
                             await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
                             break;
                         }
-                        catch (CouchbaseException e) when(e is ScopeNotFoundException || e is CollectionNotFoundException)
+                        catch (CouchbaseException e) when(operation is not GetCid && (e is ScopeNotFoundException || e is CollectionNotFoundException))
                         {
                             // We catch CollectionOutdatedException separately from the CouchbaseException catch block
                             // in case RefreshCollectionId fails. This causes that failure to trigger normal retry logic.
