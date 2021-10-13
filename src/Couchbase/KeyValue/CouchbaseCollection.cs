@@ -1051,7 +1051,11 @@ namespace Couchbase.KeyValue
             }
             finally
             {
-                CidLock.Release();
+                if (waitedSuccessfully)
+                {
+                    // Release the lock if we successfully acquired it above
+                    CidLock.Release();
+                }
             }
 
             Logger.LogDebug("Completed fetching CID for {scope}.{collection}", ScopeName, Name);
