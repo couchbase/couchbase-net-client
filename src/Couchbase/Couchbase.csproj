@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
@@ -9,7 +9,7 @@
     <Authors>Couchbase, Inc.</Authors>
     <Company>Couchbase, Inc.</Company>
     <Product>CouchbaseNetClient</Product>
-    <Description>The all new Couchbase client supporting the now available Couchbase Server 6.5.0 and .NET Standard v2.0 and v2.1</Description>
+    <Description>The Official Couchbase .NET SDK.</Description>
     <Copyright>Copyright 2019</Copyright>
 
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
