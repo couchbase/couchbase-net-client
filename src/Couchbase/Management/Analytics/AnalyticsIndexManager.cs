@@ -25,16 +25,16 @@ namespace Couchbase.Management.Analytics
         private readonly IAnalyticsClient _client;
         private readonly IRedactor _redactor;
         private readonly IServiceUriProvider _serviceUriProvider;
-        private readonly CouchbaseHttpClient _couchbaseHttpClient;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
 
         public AnalyticsIndexManager(ILogger<AnalyticsIndexManager> logger, IAnalyticsClient client, IRedactor redactor,
-            IServiceUriProvider serviceUriProvider, CouchbaseHttpClient couchbaseHttpClient)
+            IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _couchbaseHttpClient = couchbaseHttpClient ?? throw new ArgumentNullException(nameof(couchbaseHttpClient));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         }
 
         public async Task CreateDataverseAsync(string dataverseName, CreateAnalyticsDataverseOptions? options = null)
@@ -371,7 +371,8 @@ namespace Couchbase.Management.Analytics
                 var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri());
                 builder.Path += "analytics/node/agg/stats/remaining";
                 var uri = builder.Uri;
-                var result = await _couchbaseHttpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var json = JToken.Parse(content);
@@ -394,7 +395,8 @@ namespace Couchbase.Management.Analytics
                 builder.Path = link.ManagementPath;
                 var uri = builder.Uri;
                 var formContent = new FormUrlEncodedContent(link.FormData);
-                var result = await _couchbaseHttpClient.PostAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, link);
             }
             catch (Exception exception)
@@ -414,7 +416,8 @@ namespace Couchbase.Management.Analytics
                 builder.Path = link.ManagementPath;
                 var uri = builder.Uri;
                 var formContent = new FormUrlEncodedContent(link.FormData);
-                var result = await _couchbaseHttpClient.PutAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PutAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
                 var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, link);
             }
@@ -436,7 +439,8 @@ namespace Couchbase.Management.Analytics
                 var builder = new UriBuilder(_serviceUriProvider.GetRandomAnalyticsUri());
                 builder.Path = dummy.ManagementPath;
                 var uri = builder.Uri;
-                var result = await _couchbaseHttpClient.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, linkName, dataverseName);
             }
             catch (Exception exception)
@@ -468,8 +472,9 @@ namespace Couchbase.Management.Analytics
                     builder.Query = $"type={Uri.EscapeUriString(options.LinkType!)}";
                 }
 
+                using var httpClient = _httpClientFactory.Create();
                 var uri = builder.Uri;
-                var result = await _couchbaseHttpClient.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
+                var result = await httpClient.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
                 var responseBody = await result.Content.ReadAsStringAsync();
                 await HandleLinkManagementResultErrors(result, string.Empty, string.Empty);
                 var jarray = JArray.Parse(responseBody);

@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 
@@ -14,18 +15,15 @@ namespace Couchbase.Core.IO.HTTP
     {
         private const string ConnectionIdHeaderName = "cb-client-id";
 
-        protected HttpServiceBase(CouchbaseHttpClient httpClient)
+        protected HttpServiceBase(ICouchbaseHttpClientFactory httpClientFactory)
         {
-            HttpClient = httpClient;
-
-            // set custom header for client / connection ID
-            httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));
+            HttpClientFactory = httpClientFactory;
         }
 
         /// <summary>
-        /// The <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
+        /// Factory to get a one-time use <see cref="HttpClient"/> used to execute the HTTP request against the Couchbase server.
         /// </summary>
-        protected CouchbaseHttpClient HttpClient { get; set; }
+        protected ICouchbaseHttpClientFactory HttpClientFactory { get; set; }
 
         /// <summary>
         /// Gets or sets the last activity.
@@ -45,6 +43,22 @@ namespace Couchbase.Core.IO.HTTP
         protected void UpdateLastActivity()
         {
             LastActivity = DateTime.UtcNow;
+        }
+
+        /// <summary>
+        /// Creates a one-time use <see cref="HttpClient"/>.
+        /// </summary>
+        /// <remarks>
+        /// It is safe to dispose this after every use. It reuses the inner HttpMessageHandler.
+        /// </remarks>
+        protected HttpClient CreateHttpClient()
+        {
+            var httpClient = HttpClientFactory.Create();
+
+            // set custom header for client / connection ID
+            httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));
+
+            return httpClient;
         }
     }
 }

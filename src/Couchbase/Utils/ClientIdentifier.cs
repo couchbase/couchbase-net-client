@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using Couchbase.Core.IO.Operations;
 
@@ -5,15 +8,29 @@ namespace Couchbase.Utils
 {
     internal static class ClientIdentifier
     {
-        private const string DescriptionFormat = "couchbase-net-sdk/{0} (clr/{1}) (os/{2})";
+        // To avoid the User-Agent string being parsed multiple times, keep the parsed value and reuse
+        private static readonly ProductInfoHeaderValue[] UserAgentSegments = new[]
+            {
+                $"couchbase-net-sdk/{CurrentAssembly.Version}",
+                $"(clr/{RuntimeInformation.FrameworkDescription})",
+                $"(os/{RuntimeInformation.OSDescription})"
+            }
+            .Select(ProductInfoHeaderValue.Parse)
+            .ToArray();
 
-        private static readonly string ClientDescription =
-            string.Format(DescriptionFormat, CurrentAssembly.Version, RuntimeInformation.FrameworkDescription,
-                RuntimeInformation.OSDescription);
+        private static readonly string ClientDescription = string.Join(" ", UserAgentSegments.Select(p => p.ToString()));
 
         internal static ulong InstanceId = SequenceGenerator.GetRandomLong();
 
         public static string GetClientDescription() => ClientDescription;
+
+        public static void SetUserAgent(HttpRequestHeaders headers)
+        {
+            for (var i = 0; i < UserAgentSegments.Length; i++)
+            {
+                headers.UserAgent.Add(UserAgentSegments[i]);
+            }
+        }
 
         public static string FormatConnectionString(ulong connectionId)
         {

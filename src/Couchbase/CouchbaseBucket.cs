@@ -47,14 +47,14 @@ namespace Couchbase
             _viewManagerLazy = new Lazy<IViewIndexManager>(() =>
                 new ViewIndexManager(name,
                     context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
-                    context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
+                    context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
                     context.ServiceProvider.GetRequiredService<ILogger<ViewIndexManager>>(),
                     redactor));
 
             _collectionManagerLazy = new Lazy<ICouchbaseCollectionManager>(() =>
                 new CollectionManager(name,
                     context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
-                    context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(),
+                    context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
                     context.ServiceProvider.GetRequiredService<ILogger<CollectionManager>>(),
                     redactor)
             );

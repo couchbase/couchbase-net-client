@@ -39,8 +39,10 @@ namespace Couchbase.Core.Version
                 return version;
             }
 
-            version = await GetVersionAsync(_clusterContext.Nodes.Select(p => p.ManagementUri).Distinct(),
-                _clusterContext.ServiceProvider.GetRequiredService<CouchbaseHttpClient>()).ConfigureAwait(false);
+            var httpClient = _clusterContext.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>().Create();
+
+            version = await GetVersionAsync(_clusterContext.Nodes.Select(p => p.ManagementUri).Distinct(), httpClient)
+                .ConfigureAwait(false);
 
             if (version != null)
             {
@@ -56,7 +58,7 @@ namespace Couchbase.Core.Version
             _cachedVersion = null;
         }
 
-        private async Task<ClusterVersion?> GetVersionAsync(IEnumerable<Uri> servers, CouchbaseHttpClient httpClient)
+        private async Task<ClusterVersion?> GetVersionAsync(IEnumerable<Uri> servers, HttpClient httpClient)
         {
             if (servers == null)
             {

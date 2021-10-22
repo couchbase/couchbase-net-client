@@ -17,9 +17,9 @@ namespace Couchbase.Management.Eventing
         private readonly ILogger<EventingFunctionService> _logger;
         private readonly IRedactor _redactor;
 
-        public EventingFunctionService(CouchbaseHttpClient httpClient, IServiceUriProvider serviceUriProvider,
+        public EventingFunctionService(ICouchbaseHttpClientFactory httpClientFactory, IServiceUriProvider serviceUriProvider,
             ILogger<EventingFunctionService> logger, IRedactor redactor)
-            : base(httpClient)
+            : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider;
             _logger = logger;
@@ -43,7 +43,8 @@ namespace Couchbase.Management.Eventing
 
             encodeSpan.Dispose();
             using var dispatchSpan = parentSpan.DispatchSpan();
-            return HttpClient.GetAsync(requestUri, token);
+            using var httpClient = CreateHttpClient();
+            return httpClient.GetAsync(requestUri, token);
         }
 
         /// <inheritdoc />
@@ -58,7 +59,8 @@ namespace Couchbase.Management.Eventing
 
             encodeSpan.Dispose();
             using var dispatchSpan = parentSpan.DispatchSpan();
-            return HttpClient.PostAsync(requestUri, content, token);
+            using var httpClient = CreateHttpClient();
+            return httpClient.PostAsync(requestUri, content, token);
         }
 
         /// <inheritdoc />
@@ -69,7 +71,8 @@ namespace Couchbase.Management.Eventing
 
             encodeSpan.Dispose();
             using var dispatchSpan = parentSpan.DispatchSpan();
-            return HttpClient.DeleteAsync(requestUri, token);
+            using var httpClient = CreateHttpClient();
+            return httpClient.DeleteAsync(requestUri, token);
         }
     }
 }

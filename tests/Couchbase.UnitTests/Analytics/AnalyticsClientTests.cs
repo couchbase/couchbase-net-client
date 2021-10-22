@@ -42,10 +42,11 @@ namespace Couchbase.UnitTests.Analytics
                 Content = new ByteArrayContent(buffer)
             });
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClient = new HttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
@@ -53,7 +54,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Returns(new Uri("http://localhost:8096"));
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
-            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+            var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new AnalyticsOptions());
@@ -66,7 +67,7 @@ namespace Couchbase.UnitTests.Analytics
         [InlineData(false)]
         public async Task Client_sets_AnalyticsPriority_Header(bool priority)
         {
-            var httpClient = new CouchbaseHttpClient(
+            var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request =>
                 {
                     if (priority)
@@ -83,6 +84,7 @@ namespace Couchbase.UnitTests.Analytics
                     return new HttpResponseMessage(HttpStatusCode.OK) {Content = new StringContent("{}")};
                 })
             );
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
@@ -90,7 +92,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Returns(new Uri("http://localhost:8096"));
 
             var serializer = new DefaultSerializer();
-            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+            var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
 
             await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions().Priority(priority));
@@ -98,12 +100,14 @@ namespace Couchbase.UnitTests.Analytics
 
         [Fact]
         public async Task QueryAsync_Sets_LastActivity()
-        { var httpClient = new CouchbaseHttpClient(
+        {
+            var httpClient = new HttpClient(
                 FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{}")
                 })
             );
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
@@ -111,7 +115,7 @@ namespace Couchbase.UnitTests.Analytics
                 .Returns(new Uri("http://localhost:8096"));
 
             var serializer = new DefaultSerializer();
-            var client = new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+            var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
 
             Assert.Null(client.LastActivity);

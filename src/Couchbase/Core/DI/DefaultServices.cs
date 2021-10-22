@@ -90,7 +90,7 @@ namespace Couchbase.Core.DI
             yield return (typeof(IDataMapper), new SingletonServiceFactory(typeof(JsonDataMapper)));
             yield return (typeof(ITypeTranscoder), new SingletonServiceFactory(typeof(JsonTranscoder)));
 
-            yield return (typeof(CouchbaseHttpClient), new TransientServiceFactory(typeof(CouchbaseHttpClient)));
+            yield return (typeof(ICouchbaseHttpClientFactory), new SingletonServiceFactory(typeof(CouchbaseHttpClientFactory)));
             yield return (typeof(IServiceUriProvider), new SingletonServiceFactory(typeof(ServiceUriProvider)));
             yield return (typeof(IConfigHandler), new SingletonServiceFactory(typeof(ConfigHandler)));
             yield return (typeof(IHttpStreamingConfigListenerFactory), new SingletonServiceFactory(typeof(HttpStreamingConfigListenerFactory)));

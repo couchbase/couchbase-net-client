@@ -10,6 +10,7 @@ using Couchbase.Core;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Collections;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -31,7 +32,8 @@ namespace Couchbase.UnitTests.Management
             {
                 Content = new StreamContent(new MemoryStream())
             });
-            var httpClient = new CouchbaseHttpClient(handler);
+            var httpClient = new HttpClient(handler);
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
             var logger = new Mock<ILogger<CollectionManager>>().Object;
             var redactor = new Mock<IRedactor>().Object;
 
@@ -39,7 +41,7 @@ namespace Couchbase.UnitTests.Management
             serviceUriProviderMock.Setup(x => x.GetRandomManagementUri()).Returns(BaseUri);
             var serviceProvider = serviceUriProviderMock.Object;
 
-            _collectionManager = new CollectionManager(BucketName, serviceProvider, httpClient, logger, redactor);
+            _collectionManager = new CollectionManager(BucketName, serviceProvider, httpClientFactory, logger, redactor);
         }
 
         #region Uris

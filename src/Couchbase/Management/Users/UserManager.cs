@@ -17,15 +17,15 @@ namespace Couchbase.Management.Users
     internal class UserManager : IUserManager
     {
         private readonly IServiceUriProvider _serviceUriProvider;
-        private readonly CouchbaseHttpClient _client;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<UserManager> _logger;
         private readonly IRedactor _redactor;
 
-        public UserManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient httpClient,
+        public UserManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<UserManager> logger, IRedactor redactor)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
@@ -96,7 +96,8 @@ namespace Couchbase.Management.Users
             try
             {
                 // check user exists before trying to read content
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
@@ -125,7 +126,8 @@ namespace Couchbase.Management.Users
             try
             {
                 // get all users
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get users from result
@@ -150,7 +152,8 @@ namespace Couchbase.Management.Users
             {
                 // upsert user
                 var content = new FormUrlEncodedContent(user.GetUserFormValues());
-                var result = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -170,7 +173,8 @@ namespace Couchbase.Management.Users
             try
             {
                 // drop user
-                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new UserNotFoundException(username);
@@ -195,7 +199,8 @@ namespace Couchbase.Management.Users
             try
             {
                 // get roles
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get roles from result
@@ -219,7 +224,8 @@ namespace Couchbase.Management.Users
             try
             {
                 // get group
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);
@@ -248,7 +254,8 @@ namespace Couchbase.Management.Users
             try
             {
                 // get group
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // get groups from results
@@ -273,7 +280,8 @@ namespace Couchbase.Management.Users
             {
                 // upsert group
                 var content = new FormUrlEncodedContent(GetGroupFormValues(group));
-                var result = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -294,7 +302,8 @@ namespace Couchbase.Management.Users
             try
             {
                 // drop group
-                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new GroupNotFoundException(groupName);

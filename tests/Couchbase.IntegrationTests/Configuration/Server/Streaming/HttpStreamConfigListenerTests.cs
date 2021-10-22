@@ -30,7 +30,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
             tokenSource.CancelAfter(TimeSpan.FromSeconds(10));
 
             using var context = new ClusterContext(tokenSource, _fixture.ClusterOptions);
-            using var httpClient = context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>();
+            var httpClientFactory = context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>();
 
             var handler = new Mock<IConfigHandler>();
             handler
@@ -41,7 +41,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
                     autoResetEvent.Set();
                 });
 
-            using var listener = new HttpStreamingConfigListener("default", _fixture.ClusterOptions, httpClient, handler.Object,
+            using var listener = new HttpStreamingConfigListener("default", _fixture.ClusterOptions, httpClientFactory, handler.Object,
                 new Mock<ILogger<HttpStreamingConfigListener>>().Object);
 
             listener.StartListening();

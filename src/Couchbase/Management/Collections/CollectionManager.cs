@@ -24,7 +24,7 @@ namespace Couchbase.Management.Collections
     {
         private readonly string _bucketName;
         private readonly IServiceUriProvider _serviceUriProvider;
-        private readonly CouchbaseHttpClient _client;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<CollectionManager> _logger;
         private readonly IRedactor _redactor;
 
@@ -41,12 +41,12 @@ namespace Couchbase.Management.Collections
             public static string DeleteCollections(string bucketName, string scopeName, string collectionName) => $"pools/default/buckets/{bucketName}/scopes/{scopeName}/collections/{collectionName}";
         }
 
-        public CollectionManager(string bucketName, IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client,
+        public CollectionManager(string bucketName, IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<CollectionManager> logger, IRedactor redactor)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
@@ -156,7 +156,8 @@ namespace Couchbase.Management.Collections
             try
             {
                 // get manifest
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 // check scope & collection exists in manifest
@@ -202,7 +203,8 @@ namespace Couchbase.Management.Collections
                     keys.Add("maxTTL", spec.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
                 }
                 var content = new FormUrlEncodedContent(keys);
-                var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync();
@@ -233,7 +235,8 @@ namespace Couchbase.Management.Collections
             try
             {
                 // drop collection
-                var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync();
@@ -270,7 +273,8 @@ namespace Couchbase.Management.Collections
 
             try
             {
-                var createResult = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync();
@@ -308,7 +312,8 @@ namespace Couchbase.Management.Collections
             try
             {
                 // drop scope
-                var createResult = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync();

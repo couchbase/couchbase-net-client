@@ -39,12 +39,12 @@ namespace Couchbase.Query
         internal bool EnhancedPreparedStatementsEnabled;
 
         public QueryClient(
-            CouchbaseHttpClient httpClient,
+            ICouchbaseHttpClientFactory clientFactory,
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer serializer,
             ILogger<QueryClient> logger,
             IRequestTracer tracer)
-            : base(httpClient)
+            : base(clientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
@@ -175,7 +175,9 @@ namespace Couchbase.Query
             try
             {
                 using var dispatchSpan = span.DispatchSpan(options);
-                var response = await HttpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
+                using var httpClient = CreateHttpClient();
+
+                var response = await httpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
                 var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

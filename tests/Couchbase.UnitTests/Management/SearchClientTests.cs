@@ -9,6 +9,7 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
 using Couchbase.UnitTests.Fixtures;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -31,14 +32,15 @@ namespace Couchbase.UnitTests.Management
                     Content = new StreamContent(new MemoryStream())
                 };
             });
-            var httpClient = new CouchbaseHttpClient(handler);
+            var httpClient = new HttpClient(handler);
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomSearchUri())
                 .Returns(new Uri("http://localhost:8094"));
 
-            var client = new SearchClient(httpClient, mockServiceUriProvider.Object,
+            var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
                 new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
 
             await client.QueryAsync(new SearchRequest{Index = indexName, Options = new SearchOptions()}).ConfigureAwait(false);

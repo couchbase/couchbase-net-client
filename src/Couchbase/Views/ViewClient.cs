@@ -28,21 +28,17 @@ namespace Couchbase.Views
         private readonly IRequestTracer _tracer;
         protected const string Success = "Success";
 
-        public ViewClient(CouchbaseHttpClient httpClient,
+        public ViewClient(ICouchbaseHttpClientFactory httpClientFactory,
             ITypeSerializer serializer,
             ILogger<ViewClient> logger,
             IRedactor redactor,
             IRequestTracer tracer)
-            : base(httpClient)
+            : base(httpClientFactory)
         {
             _serializer = serializer ?? throw new ArgumentNullException(nameof(ITypeSerializer));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
-
-            // set timeout to infinite so we can stream results without the connection
-            // closing part way through
-            httpClient.Timeout = Timeout.InfiniteTimeSpan;
         }
 
         public async Task<IViewResult<TKey, TValue>> ExecuteAsync<TKey, TValue>(IViewQuery query)
@@ -66,7 +62,13 @@ namespace Couchbase.Views
                 encodingSpan.Dispose();
 
                 using var dispatchSpan = rootSpan.DispatchSpan(query);
-                var response = await HttpClient.PostAsync(uri, content).ConfigureAwait(false);
+
+                using var httpClient = CreateHttpClient();
+                // set timeout to infinite so we can stream results without the connection
+                // closing part way through
+                httpClient.Timeout = Timeout.InfiniteTimeSpan;
+
+                var response = await httpClient.PostAsync(uri, content).ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
                 var serializer = query.Serializer ?? _serializer;

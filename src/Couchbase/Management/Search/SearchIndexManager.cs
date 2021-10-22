@@ -18,15 +18,15 @@ namespace Couchbase.Management.Search
     internal class SearchIndexManager : ISearchIndexManager
     {
         private readonly IServiceUriProvider _serviceUriProvider;
-        private readonly CouchbaseHttpClient _client;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<SearchIndexManager> _logger;
         private readonly IRedactor _redactor;
 
-        public SearchIndexManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient httpClient,
+        public SearchIndexManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<SearchIndexManager> logger, IRedactor redactor)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
@@ -98,7 +98,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -123,7 +124,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -148,7 +150,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.DeleteAsync(baseUri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.DeleteAsync(baseUri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -173,7 +176,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -197,7 +201,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
@@ -219,7 +224,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
@@ -242,7 +248,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(baseUri,  options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -270,7 +277,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -295,7 +303,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -320,7 +329,8 @@ namespace Couchbase.Management.Search
 
             try
             {
-                var result = await _client.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(baseUri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new SearchIndexNotFound(indexName);
@@ -347,7 +357,8 @@ namespace Couchbase.Management.Search
             {
                 var json = JsonConvert.SerializeObject(indexDefinition, Formatting.None);
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
-                var result = await _client.PutAsync(baseUri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PutAsync(baseUri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)

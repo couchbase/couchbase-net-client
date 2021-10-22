@@ -52,10 +52,11 @@ namespace Couchbase.UnitTests.Query
                     Content = new ByteArrayContent(buffer)
                 });
 
-                var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+                var httpClient = new HttpClient(handlerMock.Object)
                 {
                     BaseAddress = new Uri("http://localhost:8091")
                 };
+                var httpClientFactory = new MockHttpClientFactory(httpClient);
 
                 var mockServiceUriProvider = new Mock<IServiceUriProvider>();
                 mockServiceUriProvider
@@ -63,7 +64,7 @@ namespace Couchbase.UnitTests.Query
                     .Returns(new Uri("http://localhost:8093"));
 
                 var serializer = new DefaultSerializer();
-                var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
+                var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                     new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
                 try
@@ -97,10 +98,11 @@ namespace Couchbase.UnitTests.Query
                 Content = new ByteArrayContent(buffer)
             });
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClient = new HttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
@@ -108,7 +110,7 @@ namespace Couchbase.UnitTests.Query
                 .Returns(new Uri("http://localhost:8093"));
 
             var serializer = (ITypeSerializer) Activator.CreateInstance(serializerType);
-            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             var result = await client.QueryAsync<dynamic>("SELECT * FROM `default`", new QueryOptions()).ConfigureAwait(false);
@@ -129,10 +131,11 @@ namespace Couchbase.UnitTests.Query
                 Content = new ByteArrayContent(Array.Empty<byte>())
             });
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClient = new HttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
@@ -142,7 +145,7 @@ namespace Couchbase.UnitTests.Query
             var primarySerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
             var overrideSerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
 
-            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, primarySerializer.Object,
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, primarySerializer.Object,
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             await client.QueryAsync<object>("SELECT * FROM `default`",
@@ -162,17 +165,18 @@ namespace Couchbase.UnitTests.Query
         [Fact]
         public void EnhancedPreparedStatements_defaults_to_false()
         {
-            var httpClient = new CouchbaseHttpClient(new HttpClientHandler())
+            var httpClient = new HttpClient(new HttpClientHandler())
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
 
-            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, new DefaultSerializer(),
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, new DefaultSerializer(),
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             Assert.False(client.EnhancedPreparedStatementsEnabled);
@@ -181,17 +185,18 @@ namespace Couchbase.UnitTests.Query
         [Fact]
         public void EnhancedPreparedStatements_is_set_to_true_if_enabled_in_cluster_caps()
         {
-            var httpClient = new CouchbaseHttpClient(new HttpClientHandler())
+            var httpClient = new HttpClient(new HttpClientHandler())
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
                 .Setup(m => m.GetRandomQueryUri())
                 .Returns(new Uri("http://localhost:8093"));
 
-            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, new DefaultSerializer(),
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, new DefaultSerializer(),
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
             Assert.False(client.EnhancedPreparedStatementsEnabled);
 

@@ -28,12 +28,12 @@ namespace Couchbase.Analytics
         internal const string AnalyticsPriorityHeaderName = "Analytics-Priority";
 
         public AnalyticsClient(
-            CouchbaseHttpClient client,
+            ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
             ITypeSerializer typeSerializer,
             ILogger<AnalyticsClient> logger,
             IRequestTracer tracer)
-            : base(client)
+            : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _typeSerializer = typeSerializer ?? throw new ArgumentNullException(nameof(typeSerializer));
@@ -76,7 +76,9 @@ namespace Couchbase.Analytics
 
                     encodingSpan.Dispose();
                     using var dispatchSpan = rootSpan.DispatchSpan(options);
-                    var response = await HttpClient.SendAsync(request, options.Token).ConfigureAwait(false);
+                    using var httpClient = CreateHttpClient();
+
+                    var response = await httpClient.SendAsync(request, options.Token).ConfigureAwait(false);
                     dispatchSpan.Dispose();
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

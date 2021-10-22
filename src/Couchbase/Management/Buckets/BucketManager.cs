@@ -20,14 +20,15 @@ namespace Couchbase.Management.Buckets
     internal class BucketManager : IBucketManager
     {
         private readonly IServiceUriProvider _serviceUriProvider;
-        private readonly CouchbaseHttpClient _client;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<BucketManager> _logger;
         private readonly IRedactor _redactor;
 
-        public BucketManager(IServiceUriProvider serviceUriProvider, CouchbaseHttpClient client, ILogger<BucketManager> logger, IRedactor redactor)
+        public BucketManager(IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
+            ILogger<BucketManager> logger, IRedactor redactor)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
@@ -195,7 +196,8 @@ namespace Couchbase.Management.Buckets
             {
                 // create bucket
                 var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings));
-                var result = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.BadRequest)
                 {
                     var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -232,7 +234,8 @@ namespace Couchbase.Management.Buckets
             {
                 // upsert bucket
                 var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings));
-                var result = await _client.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
             }
             catch (Exception exception)
@@ -254,7 +257,8 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // perform drop
-                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);
@@ -289,7 +293,8 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // try do flush
-                var result = await _client.PostAsync(uri, null, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(uri, null, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);
@@ -334,7 +339,8 @@ namespace Couchbase.Management.Buckets
 
             try
             {
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -365,7 +371,8 @@ namespace Couchbase.Management.Buckets
 
             try
             {
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);

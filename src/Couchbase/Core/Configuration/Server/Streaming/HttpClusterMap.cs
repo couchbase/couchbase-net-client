@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.HTTP;
 using Newtonsoft.Json;
 
 namespace Couchbase.Core.Configuration.Server.Streaming
@@ -17,13 +18,13 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
     internal class HttpClusterMap : HttpClusterMapBase
     {
-        private readonly HttpClient _httpClient;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         public const string Path = "/pools/default/b/";
         private readonly ClusterContext _context;
 
-        public HttpClusterMap(HttpClient httpClient, ClusterContext context)
+        public HttpClusterMap(ICouchbaseHttpClientFactory httpClientFactory, ClusterContext context)
         {
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
             _context = context;
         }
 
@@ -40,7 +41,9 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                 Path = Path + bucketName
             };
 
-            using (var response = await _httpClient.GetAsync(uri.Uri, cancellationToken).ConfigureAwait(false))
+            using var httpClient = _httpClientFactory.Create();
+
+            using (var response = await httpClient.GetAsync(uri.Uri, cancellationToken).ConfigureAwait(false))
             {
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

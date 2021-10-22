@@ -36,11 +36,11 @@ namespace Couchbase.Search
         //private Func<object, string> User = RedactableArgument.UserAction;
 
         public SearchClient(
-            CouchbaseHttpClient httpClient,
+            ICouchbaseHttpClientFactory httpClientFactory,
             IServiceUriProvider serviceUriProvider,
             ILogger<SearchClient> logger,
             IRequestTracer tracer)
-            : base(httpClient)
+            : base(httpClientFactory)
         {
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -82,7 +82,8 @@ namespace Couchbase.Search
                 using var content = new StringContent(searchBody, Encoding.UTF8, MediaType.Json);
                 encodingSpan.Dispose();
                 using var dispatchSpan = rootSpan.DispatchSpan(searchRequest);
-                var response = await HttpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
+                using var httpClient = CreateHttpClient();
+                var response = await httpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))

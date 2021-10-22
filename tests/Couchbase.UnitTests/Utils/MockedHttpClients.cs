@@ -12,6 +12,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Query;
 using Couchbase.Search;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -31,10 +32,10 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(handlerMock.Object, false)
             {
                 BaseAddress = new Uri("http://localhost:8091")
-            };
+            });
 
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.AddLogging(builder => builder
@@ -49,7 +50,7 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(new Uri("http://localhost:8093"));
 
             var serializer = new DefaultSerializer();
-            return new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
+            return new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance)
             {
                 EnhancedPreparedStatementsEnabled = enableEnhancedPreparedStatements
@@ -64,10 +65,10 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(handlerMock.Object, false)
             {
                 BaseAddress = new Uri("http://localhost:8091")
-            };
+            });
 
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.AddLogging(builder => builder
@@ -82,7 +83,7 @@ namespace Couchbase.UnitTests.Utils
                 .Returns(new Uri("http://localhost:8095"));
 
             var serializer = new DefaultSerializer();
-            return new AnalyticsClient(httpClient, mockServiceUriProvider.Object, serializer,
+            return new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
         }
 
@@ -94,10 +95,10 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(handlerMock.Object, false)
             {
-                BaseAddress = new Uri("http://localhost:8094")
-            };
+                BaseAddress = new Uri("http://localhost:8091")
+            });
 
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.AddLogging(builder => builder
@@ -111,7 +112,7 @@ namespace Couchbase.UnitTests.Utils
                 .Setup(m => m.GetRandomSearchUri())
                 .Returns(new Uri("http://localhost:8094"));
 
-            return new SearchClient(httpClient, mockServiceUriProvider.Object,
+            return new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
                 new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
         }
 
@@ -123,10 +124,10 @@ namespace Couchbase.UnitTests.Utils
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>()).Returns(responses.Dequeue);
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(handlerMock.Object, false)
             {
                 BaseAddress = new Uri("http://localhost:8091")
-            };
+            });
 
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.AddLogging(builder => builder
@@ -136,7 +137,7 @@ namespace Couchbase.UnitTests.Utils
             loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
 
             var serializer = new DefaultSerializer();
-            return new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
+            return new ViewClient(httpClientFactory, serializer, new Mock<ILogger<ViewClient>>().Object,
                 new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
         }
     }

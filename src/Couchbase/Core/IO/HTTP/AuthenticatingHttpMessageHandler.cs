@@ -5,24 +5,27 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.HTTP
 {
-    internal class AuthenticatingHttpClientHandler : HttpClientHandler
+    internal class AuthenticatingHttpMessageHandler : DelegatingHandler
     {
         private const string BasicScheme = "Basic";
-        private readonly string _headerValue;
+        private readonly string? _headerValue;
 
-        public AuthenticatingHttpClientHandler()
-            : this("default", string.Empty)
+        public AuthenticatingHttpMessageHandler(HttpMessageHandler innerHandler)
+            : this(innerHandler, "default", string.Empty)
         {
         }
 
-        public AuthenticatingHttpClientHandler(ClusterContext context)
-            : this(context.ClusterOptions.UserName, context.ClusterOptions.Password)
+        public AuthenticatingHttpMessageHandler(HttpMessageHandler innerHandler, ClusterContext context)
+            : this(innerHandler, context.ClusterOptions.UserName ?? "default", context.ClusterOptions.Password ?? string.Empty)
         {
         }
 
-        public AuthenticatingHttpClientHandler(string username, string password)
+        public AuthenticatingHttpMessageHandler(HttpMessageHandler innerHandler, string username, string password)
+            : base(innerHandler)
         {
             if (!string.IsNullOrEmpty(username))
             {

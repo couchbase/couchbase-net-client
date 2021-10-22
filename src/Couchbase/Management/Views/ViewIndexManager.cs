@@ -20,16 +20,16 @@ namespace Couchbase.Management.Views
     {
         private readonly string _bucketName;
         private readonly IServiceUriProvider _serviceUriProvider;
-        private readonly CouchbaseHttpClient _client;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly ILogger<ViewIndexManager> _logger;
         private readonly IRedactor _redactor;
 
-        public ViewIndexManager(string bucketName, IServiceUriProvider serviceUriProvider, CouchbaseHttpClient httpClient,
+        public ViewIndexManager(string bucketName, IServiceUriProvider serviceUriProvider, ICouchbaseHttpClientFactory httpClientFactory,
             ILogger<ViewIndexManager> logger, IRedactor redactor)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _serviceUriProvider = serviceUriProvider ?? throw new ArgumentNullException(nameof(serviceUriProvider));
-            _client = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
         }
@@ -70,7 +70,9 @@ namespace Couchbase.Management.Views
 
             try
             {
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new DesignDocumentNotFoundException(_bucketName, designDocName);
@@ -104,7 +106,9 @@ namespace Couchbase.Management.Views
 
             try
             {
-                var result = await _client.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+
+                var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
 
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -158,7 +162,8 @@ namespace Couchbase.Management.Views
             try
             {
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
-                var result = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
 
                 result.EnsureSuccessStatusCode();
             }
@@ -179,7 +184,8 @@ namespace Couchbase.Management.Views
 
             try
             {
-                var result = await _client.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     _logger.LogError("Failed to drop design document {_bucketName}/{designDocName} because it does not exist - {uri}",
@@ -212,7 +218,8 @@ namespace Couchbase.Management.Views
 
                 // publish design doc to production
                 var content = new StringContent(json, Encoding.UTF8, MediaType.Json);
-                var publishResult = await _client.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+                using var httpClient = _httpClientFactory.Create();
+                var publishResult = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 publishResult.EnsureSuccessStatusCode();
             }
             catch (DesignDocumentNotFoundException)

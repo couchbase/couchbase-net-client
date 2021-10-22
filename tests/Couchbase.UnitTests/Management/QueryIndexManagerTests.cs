@@ -14,6 +14,7 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Query;
 using Couchbase.Query;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -42,10 +43,11 @@ namespace Couchbase.UnitTests.Management
                 Content = new ByteArrayContent(buffer)
             });
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClient = new HttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
@@ -53,7 +55,7 @@ namespace Couchbase.UnitTests.Management
                 .Returns(new Uri("http://localhost:8093"));
 
             var serializer = new DefaultSerializer();
-            var client = new QueryClient(httpClient, mockServiceUriProvider.Object, serializer,
+            var client = new QueryClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,

@@ -13,6 +13,7 @@ using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Views;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -30,11 +31,11 @@ namespace Couchbase.UnitTests.Core.Configuration
                 .WithConnectionString($"couchbases://NOSUCHHOST{nameof(Should_Continue_After_Failures)}")
                 .WithCredentials("UnitTestUser", "PasswordDoesn'tMatter");
             var messageHandler = new ThrowsEveryTimeMessageHandler();
-            var httpClient = new HttpClient(messageHandler);
+            var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(messageHandler, false));
             var configHandler = new Mock<IConfigHandler>(MockBehavior.Loose).Object;
             var mockLogger = new Mock<ILogger<HttpStreamingConfigListener>>(MockBehavior.Loose).Object;
             using var configListener = new HttpStreamingConfigListener(nameof(Should_Continue_After_Failures),
-                clusterOptions, httpClient, configHandler, mockLogger);
+                clusterOptions, httpClientFactory, configHandler, mockLogger);
             configListener.StartListening();
             var exitedSpinBeforeTimeout = SpinWait.SpinUntil(() => messageHandler.CallCount > 0, TimeSpan.FromSeconds(10));
             if (!exitedSpinBeforeTimeout)

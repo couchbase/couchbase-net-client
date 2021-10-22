@@ -11,6 +11,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.UnitTests.Helpers;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
@@ -48,9 +49,10 @@ namespace Couchbase.UnitTests.Views
                 };
             });
 
-            var httpClient = new CouchbaseHttpClient(handler);
+            var httpClient = new HttpClient(handler);
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
+            var queryClient = new ViewClient(httpClientFactory, serializer, new Mock<ILogger<ViewClient>>().Object,
                 new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
 
             var query = new ViewQuery("bucket-name", "http://localhost");
@@ -67,9 +69,10 @@ namespace Couchbase.UnitTests.Views
                 Content = new StringContent("{ }")
             });
 
-            var httpClient = new CouchbaseHttpClient(handler);
+            var httpClient = new HttpClient(handler);
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
             var serializer = new DefaultSerializer();
-            var queryClient = new ViewClient(httpClient, serializer, new Mock<ILogger<ViewClient>>().Object,
+            var queryClient = new ViewClient(httpClientFactory, serializer, new Mock<ILogger<ViewClient>>().Object,
                     new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
 
             Assert.Null(queryClient.LastActivity);
@@ -94,10 +97,11 @@ namespace Couchbase.UnitTests.Views
                 Content = new ByteArrayContent(Array.Empty<byte>())
             });
 
-            var httpClient = new CouchbaseHttpClient(handlerMock.Object)
+            var httpClient = new HttpClient(handlerMock.Object)
             {
                 BaseAddress = new Uri("http://localhost:8091")
             };
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
 
             var mockServiceUriProvider = new Mock<IServiceUriProvider>();
             mockServiceUriProvider
@@ -106,7 +110,7 @@ namespace Couchbase.UnitTests.Views
 
             var primarySerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
             var overrideSerializer = new Mock<ITypeSerializer> {DefaultValue = DefaultValue.Mock};
-            var client = new ViewClient(httpClient, primarySerializer.Object, new Mock<ILogger<ViewClient>>().Object,
+            var client = new ViewClient(httpClientFactory, primarySerializer.Object, new Mock<ILogger<ViewClient>>().Object,
                     new Mock<IRedactor>().Object, NoopRequestTracer.Instance);
 
             await client.ExecuteAsync<object, object>(new ViewQuery("default", "doc", "view")

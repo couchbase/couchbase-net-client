@@ -30,7 +30,7 @@ namespace Couchbase
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
             ILogger<MemcachedBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy) :
             this(name, context, scopeFactory, retryOrchestrator, ketamaKeyMapperFactory, logger,
-                new HttpClusterMap(context.ServiceProvider.GetRequiredService<CouchbaseHttpClient>(), context), redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
+                new HttpClusterMap(context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(), context), redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
         {
         }
 

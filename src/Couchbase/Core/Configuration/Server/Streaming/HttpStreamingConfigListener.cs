@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         private const int MaxDelayMs = 10000;
         private readonly ILogger<HttpStreamingConfigListener> _logger;
         private readonly ClusterOptions _clusterOptions;
-        private readonly HttpClient _httpClient;
+        private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly IConfigHandler _configHandler;
         private readonly string _bucketName;
         private readonly string _streamingUriPath;
@@ -33,13 +34,13 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
         public bool Started { get; private set; }
 
-        public HttpStreamingConfigListener(string bucketName, ClusterOptions clusterOptions, HttpClient httpClient,
+        public HttpStreamingConfigListener(string bucketName, ClusterOptions clusterOptions, ICouchbaseHttpClientFactory httpClientFactory,
             IConfigHandler configHandler, ILogger<HttpStreamingConfigListener> logger)
         {
             _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
             _streamingUriPath = "/pools/default/bs/" + _bucketName;
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _configHandler = configHandler ?? throw new ArgumentNullException(nameof(configHandler));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -74,7 +75,6 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
             return Task.Run(async () =>
             {
-                _httpClient.Timeout = Timeout.InfiniteTimeSpan;
                 var delayMs = InitialDelayMs;
 
                 while (!_cancellationTokenSource.IsCancellationRequested)
@@ -100,7 +100,10 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                                     Path = _streamingUriPath
                                 };
 
-                                var response = await _httpClient.GetAsync(streamingUri.Uri,
+                                using var httpClient = _httpClientFactory.Create();
+                                httpClient.Timeout = Timeout.InfiniteTimeSpan;
+
+                                var response = await httpClient.GetAsync(streamingUri.Uri,
                                     HttpCompletionOption.ResponseHeadersRead,
                                     _cancellationTokenSource.Token).ConfigureAwait(false);
 
@@ -159,7 +162,6 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
                 _cancellationTokenSource.Cancel();
                 _cancellationTokenSource.Dispose();
-                _httpClient?.Dispose();
             }
         }
 
