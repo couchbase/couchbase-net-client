@@ -340,7 +340,27 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// No collections manifest has been set. The server does not support scopes or collections.
         /// </summary>
-        NoCollectionsManifest = 0x89
+        NoCollectionsManifest = 0x89,
+
+        /// <summary>
+        /// Rate limited: Network Ingress
+        /// </summary>
+        RateLimitedNetworkIngress = 0x30,
+
+        /// <summary>
+        /// Rate limited: Network Egress
+        /// </summary>
+        RateLimitedNetworkEgress = 0x31,
+
+        /// <summary>
+        /// Rate limited: Max Connections
+        /// </summary>
+        RateLimitedMaxConnections = 0x32,
+
+        /// <summary>
+        /// Rate limited: Max Commands
+        /// </summary>
+        RateLimitedMaxCommands = 0x33
     }
 }
 

@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -78,6 +79,68 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 var message =
                     "KV Error: {Name=\"KEY_EEXISTS\", Description=\"key already exists, or CAS mismatch\", Attributes=\"item-only\"}";
                 Assert.Equal(message, e.Context.Message);
+                Assert.Equal("TheScope", context.ScopeName);
+                Assert.Equal("TheCollection", context.CollectionName);
+                Assert.NotEqual("0", context.ClientContextId);
+            }
+        }
+
+        [Theory]
+        [InlineData(ResponseStatus.RateLimitedMaxCommands, "RATE_LIMITED_MAX_COMMANDS")]
+        [InlineData(ResponseStatus.RateLimitedMaxConnections, "RATE_LIMITED_MAX_CONNECTIONS")]
+        [InlineData(ResponseStatus.RateLimitedNetworkEgress, "RATE_LIMITED_NETWORK_EGRESS")]
+        [InlineData(ResponseStatus.RateLimitedNetworkIngress, "RATE_LIMITED_NETWORK_INGRESS")]
+        public async Task Test_ClusterMap_Version2(ResponseStatus status, string errorCode)
+        {
+            var errorMap = new ErrorMap(JsonConvert.DeserializeObject<ErrorMapDto>(ResourceHelper.ReadResource("kv-error-map-v2.json")));
+
+            var mockConnection = new Mock<IConnection>();
+
+            var mockConnectionPool = new Mock<IConnectionPool>();
+            mockConnectionPool
+                .Setup(m => m.SendAsync(It.IsAny<IOperation>(), It.IsAny<CancellationToken>()))
+                .Returns((IOperation operation, CancellationToken _) => operation.SendAsync(mockConnection.Object));
+
+            var mockConnectionPoolFactory = new Mock<IConnectionPoolFactory>();
+            mockConnectionPoolFactory
+                .Setup(m => m.Create(It.IsAny<ClusterNode>()))
+                .Returns(mockConnectionPool.Object);
+
+            var node = new ClusterNode(new ClusterContext(new CancellationTokenSource(),
+                    new ClusterOptions()), mockConnectionPoolFactory.Object,
+                new Mock<ILogger<ClusterNode>>().Object,
+                new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
+                new Mock<ICircuitBreaker>().Object,
+                new Mock<ISaslMechanismFactory>().Object,
+                new Mock<IRedactor>().Object,
+                new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210),
+                BucketType.Couchbase,
+                new NodeAdapter
+                {
+                    Hostname = "127.0.0.1"
+                },
+                NoopRequestTracer.Instance,
+                NoopValueRecorder.Instance)
+            {
+                ErrorMap = errorMap
+            };
+
+            var insert = new FakeOperation(OpCode.Add, status)
+            {
+                SName = "TheScope",
+                CName = "TheCollection"
+            };
+
+            try
+            {
+                await node.ExecuteOp(insert).ConfigureAwait(false);
+            }
+            catch (CouchbaseException e)
+            {
+                var context = e.Context as KeyValueErrorContext;
+                Assert.NotNull(e.Context);
+
+                Assert.Contains(errorCode, e.Context.Message);
                 Assert.Equal("TheScope", context.ScopeName);
                 Assert.Equal("TheCollection", context.CollectionName);
                 Assert.NotEqual("0", context.ClientContextId);

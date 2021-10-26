@@ -5,7 +5,7 @@ namespace Couchbase.Core.IO.Operations.Errors
 {
     internal class GetErrorMap : OperationBase<ErrorMapDto>
     {
-        private const int DefaultVersion = 1; // will be configurable at some point
+        private const int DefaultVersion = 2; // will be configurable at some point
 
         public ErrorMap ErrorMap { get; set; }
 
