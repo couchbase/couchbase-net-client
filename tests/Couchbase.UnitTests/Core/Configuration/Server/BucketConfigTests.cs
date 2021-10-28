@@ -374,7 +374,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         public void Test_IsUpdated_Old_Config_Is_Null()
         {
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_higher_epoch.json");
-            Assert.True(config.IsNewer(null));
+            Assert.True(config.IsNewerThan(null));
         }
 
         [Theory]
@@ -392,11 +392,11 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             if (newConfigIsHigher)
             {
-                Assert.True(newConfig.IsNewer(oldConfig));
+                Assert.True(newConfig.IsNewerThan(oldConfig));
             }
             else
             {
-                Assert.False(newConfig.IsNewer(oldConfig));
+                Assert.False(newConfig.IsNewerThan(oldConfig));
             }
         }
 
@@ -410,7 +410,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         public void IsNewer_Throws_ArgumentException_When_Comparing_Same_Config(string configResource)
         {
             var config = ResourceHelper.ReadResource<BucketConfig>(configResource);
-            Assert.Throws<ArgumentException>(() => config.IsNewer(config));
+            Assert.Throws<ArgumentException>(() => config.IsNewerThan(config));
         }
     }
 }

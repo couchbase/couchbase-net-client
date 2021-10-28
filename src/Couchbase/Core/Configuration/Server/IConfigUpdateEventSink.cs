@@ -6,7 +6,7 @@ namespace Couchbase.Core.Configuration.Server
 {
     internal interface IConfigUpdateEventSink
     {
-        Task ConfigUpdatedAsync(BucketConfig config);
+        Task ConfigUpdatedAsync(BucketConfig newConfig);
     }
 }
 

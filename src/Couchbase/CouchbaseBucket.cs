@@ -79,23 +79,23 @@ namespace Couchbase
         public override ICouchbaseCollectionManager Collections => _collectionManagerLazy.Value;
 
 
-        public override async Task ConfigUpdatedAsync(BucketConfig config)
+        public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
-            if (config.Name == Name && config.IsNewer(BucketConfig))
+            if (newConfig.Name == Name && newConfig.IsNewerThan(CurrentConfig))
             {
-                Logger.LogDebug("Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}", config.Rev, Name, BucketConfig?.Rev);
-                Logger.LogDebug(JsonConvert.SerializeObject(BucketConfig));
-                BucketConfig = config;
-                if (BucketConfig.VBucketMapChanged)
+                Logger.LogDebug("Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}", newConfig.Rev, Name, CurrentConfig?.Rev);
+                Logger.LogDebug(JsonConvert.SerializeObject(CurrentConfig));
+                CurrentConfig = newConfig;
+                if (CurrentConfig.VBucketMapChanged)
                 {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for rev#{revision} on {bucketName}", config.Rev, Name);
-                    KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for rev#{revision} on {bucketName}", newConfig.Rev, Name);
+                    KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(CurrentConfig).ConfigureAwait(false);
                 }
 
-                if (BucketConfig.ClusterNodesChanged)
+                if (CurrentConfig.ClusterNodesChanged)
                 {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating cluster nodes for rev#{revision} on {bucketName}", config.Rev, Name);
-                    await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating cluster nodes for rev#{revision} on {bucketName}", newConfig.Rev, Name);
+                    await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
                     var nodes = Context.GetNodes(Name);
 
                     //update the local nodes collection
@@ -109,7 +109,7 @@ namespace Couchbase
                     }
                 }
             }
-            Logger.LogDebug("Current revision for {bucketName} is rev#{revision}", Name, BucketConfig?.Rev);
+            Logger.LogDebug("Current revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.Rev);
         }
 
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though
@@ -245,22 +245,22 @@ namespace Couchbase
                     Manifest = await node.GetManifest().ConfigureAwait(false);
                 }
 
-                BucketConfig = await node.GetClusterMap().ConfigureAwait(false);
+                CurrentConfig = await node.GetClusterMap().ConfigureAwait(false);
                 if (Context.ClusterOptions.HasNetworkResolution)
                 {
                     //Network resolution determined at the GCCCP level
-                    BucketConfig.NetworkResolution = Context.ClusterOptions.EffectiveNetworkResolution;
+                    CurrentConfig.NetworkResolution = Context.ClusterOptions.EffectiveNetworkResolution;
                 }
                 else
                 {
                     //A non-GCCCP cluster
-                    BucketConfig.SetEffectiveNetworkResolution(node.BootstrapEndpoint, Context.ClusterOptions);
+                    CurrentConfig.SetEffectiveNetworkResolution(node.BootstrapEndpoint, Context.ClusterOptions);
                 }
 
-                KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+                KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(CurrentConfig).ConfigureAwait(false);
 
                 Nodes.Add(node);
-                await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
                 ClearErrors();
             }
             catch (Exception e)

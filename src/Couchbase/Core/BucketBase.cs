@@ -72,7 +72,7 @@ namespace Couchbase.Core
         public ILogger Logger { get; }
         public ClusterContext Context { get; }
         public IRetryOrchestrator RetryOrchestrator { get; }
-        public BucketConfig? BucketConfig { get; protected set; }
+        public BucketConfig? CurrentConfig { get; protected set; }
         protected Manifest? Manifest { get; set; }
         public IKeyMapper? KeyMapper { get; protected set; }
         protected bool Disposed { get; private set; }
@@ -191,7 +191,7 @@ namespace Couchbase.Core
         {
             ThrowIfBootStrapFailed();
             options ??= new PingOptions();
-            return await DiagnosticsReportProvider.CreatePingReportAsync(Context, BucketConfig, options)
+            return await DiagnosticsReportProvider.CreatePingReportAsync(Context, CurrentConfig, options)
                 .ConfigureAwait(false);
         }
 
@@ -221,7 +221,7 @@ namespace Couchbase.Core
                 while (!token.IsCancellationRequested)
                 {
                     var pingReport =
-                        await DiagnosticsReportProvider.CreatePingReportAsync(Context, BucketConfig,
+                        await DiagnosticsReportProvider.CreatePingReportAsync(Context, CurrentConfig,
                             new PingOptions
                             {
                                 ServiceTypesValue = options?.ServiceTypesValue

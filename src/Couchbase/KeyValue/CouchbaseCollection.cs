@@ -678,7 +678,7 @@ namespace Couchbase.KeyValue
 
             if (options.CreateAsDeletedValue)
             {
-                if (!_bucket.BucketConfig?.BucketCapabilities.Contains(BucketCapabilities.CREATE_AS_DELETED) == true)
+                if (!_bucket.CurrentConfig?.BucketCapabilities.Contains(BucketCapabilities.CREATE_AS_DELETED) == true)
                     throw new FeatureNotAvailableException(nameof(BucketCapabilities.CREATE_AS_DELETED));
 
                 docFlags |= SubdocDocFlags.CreateAsDeleted;

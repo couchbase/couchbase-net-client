@@ -7,7 +7,7 @@ namespace Couchbase.Core.Configuration.Server
 {
     internal static class BucketConfigExtensions
     {
-        public static bool IsNewer(this BucketConfig newConfig, BucketConfig? oldConfig)
+        public static bool IsNewerThan(this BucketConfig newConfig, BucketConfig? oldConfig)
         {
             if (oldConfig == null) return true; //true we don't have a config yet so this is the new one
             if (ReferenceEquals(oldConfig,  newConfig)) throw new ArgumentException("Comparing the same configs is not allowed.");

@@ -256,9 +256,9 @@ namespace Couchbase.UnitTests.Core.Configuration
                 throw new NotImplementedException();
             }
 
-            public override Task ConfigUpdatedAsync(BucketConfig config)
+            public override Task ConfigUpdatedAsync(BucketConfig newConfig)
             {
-                _output.WriteLine("recieved config #: {0}", config.Rev);
+                _output.WriteLine("recieved newConfig #: {0}", newConfig.Rev);
                 _event.Release();
 
                 return Task.CompletedTask;

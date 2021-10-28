@@ -73,17 +73,17 @@ namespace Couchbase
 
         public override ICouchbaseCollectionManager Collections => throw new NotSupportedException("Collections are not supported by Memcached Buckets.");
 
-        public override async Task ConfigUpdatedAsync(BucketConfig config)
+        public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
-            if (config.Name == Name && config.IsNewer(BucketConfig))
+            if (newConfig.Name == Name && newConfig.IsNewerThan(CurrentConfig))
             {
-                BucketConfig = config;
+                CurrentConfig = newConfig;
 
-                KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+                KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(CurrentConfig).ConfigureAwait(false);
 
-                if (BucketConfig.ClusterNodesChanged)
+                if (CurrentConfig.ClusterNodesChanged)
                 {
-                    await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                    await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
                 }
             }
         }
@@ -115,23 +115,23 @@ namespace Couchbase
                 await node.SelectBucketAsync(this).ConfigureAwait(false);
 
                 //fetch the cluster map to avoid race condition with streaming http
-                BucketConfig = await _httpClusterMap.GetClusterMapAsync(
+                CurrentConfig = await _httpClusterMap.GetClusterMapAsync(
                     Name, node.BootstrapEndpoint, CancellationToken.None).ConfigureAwait(false);
                 if (Context.ClusterOptions.HasNetworkResolution)
                 {
                     //Network resolution determined at the GCCCP level
-                    BucketConfig.NetworkResolution = Context.ClusterOptions.EffectiveNetworkResolution;
+                    CurrentConfig.NetworkResolution = Context.ClusterOptions.EffectiveNetworkResolution;
                 }
                 else
                 {
                     //A non-GCCCP cluster
-                    BucketConfig.SetEffectiveNetworkResolution(node.BootstrapEndpoint, Context.ClusterOptions);
+                    CurrentConfig.SetEffectiveNetworkResolution(node.BootstrapEndpoint, Context.ClusterOptions);
                 }
 
-                KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(BucketConfig).ConfigureAwait(false);
+                KeyMapper = await _ketamaKeyMapperFactory.CreateAsync(CurrentConfig).ConfigureAwait(false);
 
                 node.Owner = this;
-                await Context.ProcessClusterMapAsync(this, BucketConfig).ConfigureAwait(false);
+                await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
             }
             catch (CouchbaseException e)
             {
