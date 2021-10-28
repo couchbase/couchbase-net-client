@@ -323,6 +323,7 @@ namespace Couchbase.Core.Configuration.Server
         [JsonIgnore] public bool IsGlobal { get; set; }
 
         [JsonProperty("rev")] public ulong Rev { get; set; }
+        [JsonProperty("revEpoch")] public ulong RevEpoch { get; set; }
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("uri")] public string Uri { get; set; }
         [JsonProperty("streamingUri")] public string StreamingUri { get; set; }

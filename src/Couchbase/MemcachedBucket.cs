@@ -75,7 +75,7 @@ namespace Couchbase
 
         public override async Task ConfigUpdatedAsync(BucketConfig config)
         {
-            if (config.Name == Name && (BucketConfig == null || config.Rev > BucketConfig.Rev))
+            if (config.Name == Name && config.IsNewer(BucketConfig))
             {
                 BucketConfig = config;
 

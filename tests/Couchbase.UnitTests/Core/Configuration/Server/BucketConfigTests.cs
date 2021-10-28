@@ -304,10 +304,113 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Max_Revision_Size()
         {
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-bigly-yuge-rev.json");
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-bigly-yuge-rev.json");
 
             var expected = 18446744073709551615ul;
-            Assert.Equal(expected, config2.Rev);
+            Assert.Equal(expected, config.Rev);
+        }
+
+        [Theory]
+        [InlineData("config_higher_rev_higher_epoch.json", 2ul, 2ul)]
+        [InlineData("config_higher_rev_lower_epoch.json", 2ul, 1ul)]
+        public void Test_RevEpoch(string configResource, ulong rev, ulong revEpoch)
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(configResource);
+            Assert.Equal(rev, config.Rev);
+            Assert.Equal(revEpoch, config.RevEpoch);
+        }
+
+        [Fact]
+        public void Test_Higher_Rev_Higher_Epoch_Config()
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_higher_epoch.json");
+            Assert.Equal(2ul, config.Rev);
+            Assert.Equal(2ul, config.RevEpoch);
+        }
+
+        [Fact]
+        public void Test_Higher_Rev_Lower_Epoch_Config()
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_lower_epoch.json");
+            Assert.Equal(2ul, config.Rev);
+            Assert.Equal(1ul, config.RevEpoch);
+        }
+
+        [Fact]
+        public void Test_Higher_Rev_Higher_No_Epoch_Config()
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_no_epoch.json");
+            Assert.Equal(2ul, config.Rev);
+            Assert.Equal(0ul, config.RevEpoch);
+        }
+
+        [Fact]
+        public void Test_Lower_Rev_Higher_Epoch_Config()
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_lower_rev_higher_epoch.json");
+            Assert.Equal(1ul, config.Rev);
+            Assert.Equal(2ul, config.RevEpoch);
+        }
+
+        [Fact]
+        public void Test_Lower_Rev_Lower_Epoch_Config()
+        {
+            var config =
+                ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_lower_rev_lower_epoch.json");
+            Assert.Equal(1ul, config.Rev);
+            Assert.Equal(1ul, config.RevEpoch);
+        }
+
+        [Fact]
+        public void Test_Lower_Rev_No_Epoch_Config()
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_lower_rev_no_epoch.json");
+            Assert.Equal(1ul, config.Rev);
+            Assert.Equal(0ul, config.RevEpoch);
+        }
+
+
+        [Fact]
+        public void Test_IsUpdated_Old_Config_Is_Null()
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_higher_epoch.json");
+            Assert.True(config.IsNewer(null));
+        }
+
+        [Theory]
+        [InlineData(null, "config_higher_rev_no_epoch.json", true)]
+        [InlineData("config_higher_rev_no_epoch.json", "config_lower_rev_no_epoch.json", false)]
+        [InlineData("config_lower_rev_no_epoch.json", "config_higher_rev_no_epoch.json", true)]
+        [InlineData("config_higher_rev_higher_epoch.json", "config_lower_rev_higher_epoch.json", false)]
+        [InlineData("config_higher_rev_no_epoch.json", "config_higher_rev_higher_epoch.json", true)]
+        [InlineData("config_lower_rev_lower_epoch.json", "config_higher_rev_higher_epoch.json", true)]
+        [InlineData("config_lower_rev_higher_epoch.json", "config_higher_rev_lower_epoch.json", false)]
+        public void Test_Compare_Config_Revisions_And_Epochs(string oldConfigResource, string newConfigResource, bool newConfigIsHigher)
+        {
+            var oldConfig = oldConfigResource == null ? null : ResourceHelper.ReadResource<BucketConfig>(oldConfigResource);
+            var newConfig = ResourceHelper.ReadResource<BucketConfig>(newConfigResource);
+
+            if (newConfigIsHigher)
+            {
+                Assert.True(newConfig.IsNewer(oldConfig));
+            }
+            else
+            {
+                Assert.False(newConfig.IsNewer(oldConfig));
+            }
+        }
+
+        [Theory]
+        [InlineData("config_higher_rev_higher_epoch.json")]
+        [InlineData("config_higher_rev_lower_epoch.json")]
+        [InlineData("config_higher_rev_no_epoch.json")]
+        [InlineData("config_lower_rev_lower_epoch.json")]
+        [InlineData("config_lower_rev_higher_epoch.json")]
+        [InlineData("config_lower_rev_no_epoch.json")]
+        public void IsNewer_Throws_ArgumentException_When_Comparing_Same_Config(string configResource)
+        {
+            var config = ResourceHelper.ReadResource<BucketConfig>(configResource);
+            Assert.Throws<ArgumentException>(() => config.IsNewer(config));
         }
     }
 }

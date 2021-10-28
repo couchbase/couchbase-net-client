@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +7,20 @@ namespace Couchbase.Core.Configuration.Server
 {
     internal static class BucketConfigExtensions
     {
+        public static bool IsNewer(this BucketConfig newConfig, BucketConfig? oldConfig)
+        {
+            if (oldConfig == null) return true; //true we don't have a config yet so this is the new one
+            if (ReferenceEquals(oldConfig,  newConfig)) throw new ArgumentException("Comparing the same configs is not allowed.");
+            if (newConfig.RevEpoch > oldConfig.RevEpoch) //new one is older than the current
+                return true;
+            if(newConfig.RevEpoch < oldConfig.RevEpoch) //new one is newer
+            {
+                return false;
+            }
+
+            return newConfig.Rev > oldConfig.Rev; //fall back for older behavior
+        }
+
         public static List<NodeAdapter> GetNodes(this BucketConfig bucketConfig)
         {
             var nodeAdapters = new List<NodeAdapter>();

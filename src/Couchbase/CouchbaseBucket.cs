@@ -78,9 +78,10 @@ namespace Couchbase
         /// <remarks>Volatile</remarks>
         public override ICouchbaseCollectionManager Collections => _collectionManagerLazy.Value;
 
+
         public override async Task ConfigUpdatedAsync(BucketConfig config)
         {
-            if (config.Name == Name && (BucketConfig == null || config.Rev > BucketConfig.Rev))
+            if (config.Name == Name && config.IsNewer(BucketConfig))
             {
                 Logger.LogDebug("Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}", config.Rev, Name, BucketConfig?.Rev);
                 Logger.LogDebug(JsonConvert.SerializeObject(BucketConfig));
