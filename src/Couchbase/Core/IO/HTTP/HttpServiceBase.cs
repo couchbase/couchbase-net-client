@@ -48,15 +48,21 @@ namespace Couchbase.Core.IO.HTTP
         /// <summary>
         /// Creates a one-time use <see cref="HttpClient"/>.
         /// </summary>
+        /// <param name="timeout">Optional timeout override.</param>
         /// <remarks>
         /// It is safe to dispose this after every use. It reuses the inner HttpMessageHandler.
         /// </remarks>
-        protected HttpClient CreateHttpClient()
+        protected HttpClient CreateHttpClient(TimeSpan? timeout = null)
         {
             var httpClient = HttpClientFactory.Create();
 
             // set custom header for client / connection ID
             httpClient.DefaultRequestHeaders.Add(ConnectionIdHeaderName, ClientIdentifier.FormatConnectionString(ConnectionId));
+
+            if (timeout != null)
+            {
+                httpClient.Timeout = timeout.GetValueOrDefault();
+            }
 
             return httpClient;
         }

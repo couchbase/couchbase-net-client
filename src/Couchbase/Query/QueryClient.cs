@@ -175,7 +175,7 @@ namespace Couchbase.Query
             try
             {
                 using var dispatchSpan = span.DispatchSpan(options);
-                using var httpClient = CreateHttpClient();
+                using var httpClient = CreateHttpClient(options.TimeoutValue);
 
                 var response = await httpClient.PostAsync(queryUri, content, options.Token).ConfigureAwait(false);
                 dispatchSpan.Dispose();

@@ -76,7 +76,7 @@ namespace Couchbase.Analytics
 
                     encodingSpan.Dispose();
                     using var dispatchSpan = rootSpan.DispatchSpan(options);
-                    using var httpClient = CreateHttpClient();
+                    using var httpClient = CreateHttpClient(options.TimeoutValue);
 
                     var response = await httpClient.SendAsync(request, options.Token).ConfigureAwait(false);
                     dispatchSpan.Dispose();
