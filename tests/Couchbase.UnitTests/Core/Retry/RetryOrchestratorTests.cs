@@ -169,10 +169,11 @@ namespace Couchbase.UnitTests.Core.Retry
                 }
             }).Returns(op.Completed.AsTask());
 
-            var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500));
+
             try
             {
-                await retryOrchestrator.RetryAsync(bucketMock.Object, op, CancellationTokenPair.FromInternalToken(tokenSource.Token)).ConfigureAwait(false);
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -262,12 +263,10 @@ namespace Couchbase.UnitTests.Core.Retry
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
-            using var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(10000));
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(10000), externalCancellationToken);
             try
             {
-                var tokenPair = new CancellationTokenPair(externalCancellationToken, tokenSource.Token);
-
-                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair).ConfigureAwait(false);
+                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -289,12 +288,12 @@ namespace Couchbase.UnitTests.Core.Retry
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
-                bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
+            bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
                 .Returns(Task.CompletedTask);
 
-            var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500));
 
-            await retryOrchestrator.RetryAsync(bucketMock.Object, op, CancellationTokenPair.FromInternalToken(tokenSource.Token)).ConfigureAwait(false);
+            await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(false);
 
             Assert.Equal(1u, op.Attempts);
         }
@@ -321,11 +320,12 @@ namespace Couchbase.UnitTests.Core.Retry
             };
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
-            var tokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(2500));
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500));
 
             try
             {
-                await bucketMock.Object.RetryAsync(op, CancellationTokenPair.FromInternalToken(tokenSource.Token)).ConfigureAwait(false);
+
+                await bucketMock.Object.RetryAsync(op, tokenPair.TokenPair).ConfigureAwait(false);
             }
             catch (Exception e)
             {

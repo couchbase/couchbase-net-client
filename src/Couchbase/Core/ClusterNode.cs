@@ -217,7 +217,9 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext(),
                 Span = childSpan
             };
-            await ExecuteOp(connection, errorMapOp, CancellationTokenPair.FromInternalToken(cancellationToken)).ConfigureAwait(false);
+
+            using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
+            await ExecuteOp(connection, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
             return new ErrorMap(errorMapOp.GetValue());
         }
 
@@ -274,7 +276,8 @@ namespace Couchbase.Core
                 Span = childSpan,
             };
 
-            await ExecuteOp(connection, heloOp, CancellationTokenPair.FromInternalToken(cancellationToken)).ConfigureAwait(false);
+            using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
+            await ExecuteOp(connection, heloOp, ctp.TokenPair).ConfigureAwait(false);
             return heloOp.GetValue();
         }
 
@@ -312,9 +315,8 @@ namespace Couchbase.Core
                 Timeout = _context.ClusterOptions.KvTimeout
             };
 
-            using var cts = new CancellationTokenSource(_context.ClusterOptions.KvTimeout);
-            var ctp = CancellationTokenPair.FromInternalToken(cts.Token);
-            await ExecuteOp(ConnectionPool, configOp, ctp).ConfigureAwait(false);
+            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+            await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);
 
             var config = configOp.GetValue();
 
@@ -446,9 +448,9 @@ namespace Couchbase.Core
                             {
                                 _logger.LogDebug("CB: Sending a canary to {endPoint}.",
                                     _redactor.SystemData(ConnectionPool.EndPoint));
-                                using (var cts = new CancellationTokenSource(_circuitBreaker.CanaryTimeout))
+                                using (var ctp = CancellationTokenPairSource.FromTimeout(_circuitBreaker.CanaryTimeout))
                                 {
-                                    await ExecuteOp(ConnectionPool, new Noop() {Span = op.Span}, CancellationTokenPair.FromInternalToken(cts.Token))
+                                    await ExecuteOp(ConnectionPool, new Noop() {Span = op.Span}, ctp.TokenPair)
                                         .ConfigureAwait(false);
                                 }
 
@@ -676,7 +678,8 @@ namespace Couchbase.Core
                     Key = bucketName,
                     Span = rootSpan,
                 };
-                await ExecuteOp(connection, selectBucketOp, CancellationTokenPair.FromInternalToken(cancellationToken)).ConfigureAwait(false);
+                using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
+                await ExecuteOp(connection, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
             }
             catch (DocumentNotFoundException)
             {

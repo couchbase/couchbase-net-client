@@ -14,102 +14,65 @@ namespace Couchbase.Core.IO.Operations
     [StructLayout(LayoutKind.Auto)]
     internal readonly struct CancellationTokenPair
     {
-        /// <summary>
-        /// Token which is provided by the SDK consumer to request cancellation.
-        /// </summary>
-        public CancellationToken ExternalToken { get; }
+        private readonly CancellationTokenPairSource? _source;
 
-        /// <summary>
-        /// Token which is created for internal cancellation reasons such as timeouts.
-        /// </summary>
-        public CancellationToken InternalToken { get; }
+        /// <inheritdoc cref="CancellationTokenPairSource.ExternalToken"/>
+        public CancellationToken ExternalToken => _source?.ExternalToken ?? default;
 
-        /// <summary>
-        /// Token which combines the <see cref="ExternalToken"/> and <see cref="InternalToken"/>.
-        /// </summary>
-        public CancellationToken GlobalToken { get; }
+        /// <inheritdoc cref="CancellationTokenPairSource.InternalToken"/>
+        public CancellationToken InternalToken => _source?.InternalToken ?? default;
+
+        /// <inheritdoc cref="CancellationTokenPairSource.GlobalToken"/>
+        public CancellationToken GlobalToken => _source?.GlobalToken ?? default;
 
         /// <inheritdoc cref="CancellationToken.CanBeCanceled" />
-        public bool CanBeCanceled => GlobalToken.CanBeCanceled;
+        public bool CanBeCanceled => _source?.CanBeCanceled ?? false;
 
         /// <inheritdoc cref="CancellationToken.IsCancellationRequested" />
-        public bool IsCancellationRequested => GlobalToken.IsCancellationRequested;
+        public bool IsCancellationRequested => _source?.IsCancellationRequested ?? false;
 
-        /// <summary>
-        /// Indicates if the pair has been canceled by the <see cref="ExternalToken"/>.
-        /// </summary>
-        public bool IsExternalCancellation => ExternalToken.IsCancellationRequested;
+        /// <inheritdoc cref="CancellationTokenPairSource.IsExternalCancellation"/>
+        public bool IsExternalCancellation => _source?.IsExternalCancellation ?? false;
 
-        /// <summary>
-        /// Indicates if the pair has been canceled by the <see cref="InternalToken"/>.
-        /// </summary>
-        public bool IsInternalCancellation => InternalToken.IsCancellationRequested;
+        /// <inheritdoc cref="CancellationTokenPairSource.IsInternalCancellation"/>
+        public bool IsInternalCancellation => _source?.IsInternalCancellation ?? false;
 
         /// <summary>
         /// Returns the <see cref="CancellationToken"/> which triggered cancellation, or <see cref="CancellationToken.None"/>
         /// if cancellation has not been requested.
         /// </summary>
-        public CancellationToken CanceledToken =>
-            IsExternalCancellation
-                ? ExternalToken :
-                IsInternalCancellation
-                    ? InternalToken
-                    : default;
+        public CancellationToken CanceledToken => _source?.CanceledToken ?? default;
 
         /// <summary>
-        /// Constructs a CancellationTokenPair where both tokens are the same.
+        /// Constructs a CancellationTokenPair.
         /// </summary>
-        /// <param name="externalToken">Token which is provided by the SDK consumer to request cancellation.</param>
-        /// <param name="internalToken">Token which combines the <see cref="ExternalToken"/> with additional cancellation reasons, such as timeouts.</param>
+        /// <param name="source">The source of the cancellation token pair.</param>
         /// <remarks>
-        /// The global token must also be canceled any time the external token is canceled.
+        /// Should be used by <see cref="CancellationTokenPairSource"/> only, do not call directly.
         /// </remarks>
-        public CancellationTokenPair(CancellationToken externalToken, CancellationToken internalToken)
+        public CancellationTokenPair(CancellationTokenPairSource source)
         {
-            ExternalToken = externalToken;
-            InternalToken = internalToken;
-
-            if (externalToken.CanBeCanceled)
-            {
-                // Dispose of the CancellationTokenSource is not required in this case because we
-                // never call CancelAfter to create a timer
-                GlobalToken = internalToken.CanBeCanceled && internalToken != externalToken
-                    ? CancellationTokenSource.CreateLinkedTokenSource(externalToken, internalToken).Token
-                    : ExternalToken;
-            }
-            else
-            {
-                // May or may not be cancelable, but this is fine in this case
-                GlobalToken = internalToken;
-            }
+            _source = source;
         }
 
         /// <inheritdoc cref="CancellationToken.ThrowIfCancellationRequested" />
-        public void ThrowIfCancellationRequested() => GlobalToken.ThrowIfCancellationRequested();
+        public void ThrowIfCancellationRequested() => _source?.ThrowIfCancellationRequested();
 
         /// <inheritdoc cref="CancellationToken.Register(Action)" />
         public CancellationTokenRegistration Register(Action callback) =>
-            GlobalToken.Register(callback);
+            _source?.Register(callback) ?? default;
 
         /// <inheritdoc cref="CancellationToken.Register(Action{object}, object)" />
         public CancellationTokenRegistration Register(Action<object?> callback, object? state) =>
-            GlobalToken.Register(callback, state);
+            _source?.Register(callback, state) ?? default;
 
-        /// <summary>
-        /// Creates a cancellation token pair using a single external token.
-        /// </summary>
-        /// <param name="externalToken">The external token.</param>
-        /// <returns>The CancellationTokenPair.</returns>
-        public static CancellationTokenPair FromExternalToken(CancellationToken externalToken) =>
-            new(externalToken, default);
+#if NETCOREAPP3_1_OR_GREATER
 
-        /// <summary>
-        /// Creates a cancellation token pair using a single internal token.
-        /// </summary>
-        /// <param name="internalToken">The internal token.</param>
-        /// <returns>The CancellationTokenPair.</returns>
-        public static CancellationTokenPair FromInternalToken(CancellationToken internalToken) =>
-            new(default, internalToken);
+        /// <inheritdoc cref="CancellationToken.UnsafeRegister(Action{object}, object)" />
+        public CancellationTokenRegistration UnsafeRegister(Action<object?> callback, object? state) =>
+            _source?.UnsafeRegister(callback, state) ?? default;
+
+#endif
 
         public static implicit operator CancellationToken(CancellationTokenPair cancellationTokenPair) =>
             cancellationTokenPair.GlobalToken;

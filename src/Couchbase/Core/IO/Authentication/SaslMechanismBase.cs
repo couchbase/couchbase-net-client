@@ -83,7 +83,9 @@ namespace Couchbase.Core.IO.Authentication
             await op.SendAsync(connection, cancellationToken).ConfigureAwait(false);
 
             ResponseStatus status;
-            using (new OperationCancellationRegistration(op, CancellationTokenPair.FromInternalToken(cancellationToken)))
+
+            using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
+            using (new OperationCancellationRegistration(op, ctp.TokenPair))
             {
                 status = await op.Completed.ConfigureAwait(false);
             }

@@ -20,12 +20,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                 IsSent = isSent
             };
 
-            var cts = new CancellationTokenSource(100);
-            var tokenPair = CancellationTokenPair.FromInternalToken(cts.Token);
+            using var cts = new CancellationTokenSource(100);
+            using var tokenPair = CancellationTokenPairSource.FromInternalToken(cts.Token);
 
             // Act
 
-            using var registration = new OperationCancellationRegistration(operation, tokenPair);
+            using var registration = new OperationCancellationRegistration(operation, tokenPair.TokenPair);
 
             // Assert
 
@@ -44,12 +44,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                 IsSent = isSent
             };
 
-            var cts = new CancellationTokenSource(100);
-            var tokenPair = CancellationTokenPair.FromExternalToken(cts.Token);
+            using var cts = new CancellationTokenSource(100);
+            using var tokenPair = CancellationTokenPairSource.FromExternalToken(cts.Token);
 
             // Act
 
-            using var registration = new OperationCancellationRegistration(operation, tokenPair);
+            using var registration = new OperationCancellationRegistration(operation, tokenPair.TokenPair);
 
             // Assert
 
@@ -66,12 +66,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                 IsSent = false
             };
 
-            var cts = new CancellationTokenSource(100);
-            var tokenPair = CancellationTokenPair.FromInternalToken(cts.Token);
+            using var cts = new CancellationTokenSource(100);
+            using var tokenPair = CancellationTokenPairSource.FromInternalToken(cts.Token);
 
             // Act
 
-            using var registration = new OperationCancellationRegistration(operation, tokenPair);
+            using var registration = new OperationCancellationRegistration(operation, tokenPair.TokenPair);
 
             // Assert
 
@@ -88,12 +88,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                 IsSent = false
             };
 
-            var cts = new CancellationTokenSource(100);
-            var tokenPair = CancellationTokenPair.FromExternalToken(cts.Token);
+            using var cts = new CancellationTokenSource(100);
+            using var tokenPair = CancellationTokenPairSource.FromExternalToken(cts.Token);
 
             // Act
 
-            using var registration = new OperationCancellationRegistration(operation, tokenPair);
+            using var registration = new OperationCancellationRegistration(operation, tokenPair.TokenPair);
 
             // Assert
 
@@ -110,12 +110,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
                 IsSent = true
             };
 
-            var cts = new CancellationTokenSource(100);
-            var tokenPair = CancellationTokenPair.FromInternalToken(cts.Token);
+            using var cts = new CancellationTokenSource(100);
+            using var tokenPair = CancellationTokenPairSource.FromInternalToken(cts.Token);
 
             // Act
 
-            using var registration = new OperationCancellationRegistration(operation, tokenPair);
+            using var registration = new OperationCancellationRegistration(operation, tokenPair.TokenPair);
 
             // Assert
 
@@ -134,11 +134,11 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             var externalCts = new CancellationTokenSource(100);
             var internalCts = new CancellationTokenSource();
-            var tokenPair = new CancellationTokenPair(externalCts.Token, internalCts.Token);
+            using var tokenPair = new CancellationTokenPairSource(externalCts.Token, internalCts.Token);
 
             // Act
 
-            using var registration = new OperationCancellationRegistration(operation, tokenPair);
+            using var registration = new OperationCancellationRegistration(operation, tokenPair.TokenPair);
             tokenPair.Register(() => internalCts.CancelAfter(100));
 
             // Assert
@@ -155,11 +155,11 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             var operation = new Get<dynamic>();
 
             var cts = new CancellationTokenSource();
-            var tokenPair = CancellationTokenPair.FromInternalToken(cts.Token);
+            using var tokenPair = CancellationTokenPairSource.FromInternalToken(cts.Token);
 
             // Act
 
-            var registration = new OperationCancellationRegistration(operation, tokenPair);
+            var registration = new OperationCancellationRegistration(operation, tokenPair.TokenPair);
             registration.Dispose();
 
             // Assert

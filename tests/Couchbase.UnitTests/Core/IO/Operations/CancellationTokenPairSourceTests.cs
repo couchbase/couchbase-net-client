@@ -1,16 +1,17 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.IO.Operations
 {
-    public class CancellationTokenPairTests
+    public class CancellationTokenPairSourceTests
     {
         #region CanBeCanceled
 
         [Fact]
-        public void CanBeCanceled_DefaultToken_False()
+        public void CanBeCanceled_DefaultTokenPair_False()
         {
             // Arrange
 
@@ -22,16 +23,31 @@ namespace Couchbase.UnitTests.Core.IO.Operations
         }
 
         [Fact]
+        public void CanBeCanceled_DefaultTokens_False()
+        {
+            // Arrange
+
+            using var cts = new CancellationTokenSource();
+            using var tokenPair = new CancellationTokenPairSource(default, default);
+
+            // Assert
+
+            Assert.False(tokenPair.CanBeCanceled);
+            Assert.False(tokenPair.TokenPair.CanBeCanceled);
+        }
+
+        [Fact]
         public void CanBeCanceled_ExternalToken_True()
         {
             // Arrange
 
             using var cts = new CancellationTokenSource();
-            var tokenPair = CancellationTokenPair.FromExternalToken(cts.Token);
+            using var tokenPair = CancellationTokenPairSource.FromExternalToken(cts.Token);
 
             // Assert
 
             Assert.True(tokenPair.CanBeCanceled);
+            Assert.True(tokenPair.TokenPair.CanBeCanceled);
         }
 
         [Fact]
@@ -40,11 +56,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Arrange
 
             using var cts = new CancellationTokenSource();
-            var tokenPair = CancellationTokenPair.FromInternalToken(cts.Token);
+            using var tokenPair = CancellationTokenPairSource.FromInternalToken(cts.Token);
 
             // Assert
 
             Assert.True(tokenPair.CanBeCanceled);
+            Assert.True(tokenPair.TokenPair.CanBeCanceled);
         }
 
         [Fact]
@@ -53,11 +70,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Arrange
 
             using var cts = new CancellationTokenSource();
-            var tokenPair = new CancellationTokenPair(cts.Token, cts.Token);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, cts.Token);
 
             // Assert
 
             Assert.True(tokenPair.CanBeCanceled);
+            Assert.True(tokenPair.TokenPair.CanBeCanceled);
         }
 
         [Fact]
@@ -67,11 +85,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
-            var tokenPair = new CancellationTokenPair(cts.Token, cts2.Token);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, cts2.Token);
 
             // Assert
 
             Assert.True(tokenPair.CanBeCanceled);
+            Assert.True(tokenPair.TokenPair.CanBeCanceled);
         }
 
         #endregion
@@ -79,7 +98,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
         #region IsCancellationRequested
 
         [Fact]
-        public void IsCancellationRequested_DefaultToken_False()
+        public void IsCancellationRequested_DefaultTokenPair_False()
         {
             // Arrange
 
@@ -98,11 +117,12 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, cts2.Token);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, cts2.Token);
 
             // Assert
 
             Assert.False(tokenPair.IsCancellationRequested);
+            Assert.False(tokenPair.TokenPair.IsCancellationRequested);
         }
 
         [Theory]
@@ -116,7 +136,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, cts2.Token);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, cts2.Token);
 
             if (cancelExternal)
             {
@@ -131,11 +151,24 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.True(tokenPair.IsCancellationRequested);
+            Assert.True(tokenPair.TokenPair.IsCancellationRequested);
         }
 
         #endregion
 
         #region IsExternalCancellation
+
+        [Fact]
+        public void IsExternalCancellation_DefaultTokenPair_False()
+        {
+            // Arrange
+
+            var tokenPair = default(CancellationTokenPair);
+
+            // Assert
+
+            Assert.False(tokenPair.IsExternalCancellation);
+        }
 
         [Theory]
         [InlineData(false)]
@@ -147,7 +180,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, hasInternal ? cts2.Token : default);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, hasInternal ? cts2.Token : default);
             cts.Cancel();
 
             // Act
@@ -157,6 +190,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.True(result);
+            Assert.True(tokenPair.TokenPair.IsExternalCancellation);
         }
 
         [Theory]
@@ -169,7 +203,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, hasInternal ? cts2.Token : default);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, hasInternal ? cts2.Token : default);
             cts2.Cancel();
 
             // Act
@@ -179,11 +213,24 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.False(result);
+            Assert.False(tokenPair.TokenPair.IsExternalCancellation);
         }
 
         #endregion
 
         #region IsInternalCancellation
+
+        [Fact]
+        public void IsInternalCancellation_DefaultTokenPair_False()
+        {
+            // Arrange
+
+            var tokenPair = default(CancellationTokenPair);
+
+            // Assert
+
+            Assert.False(tokenPair.IsInternalCancellation);
+        }
 
         [Theory]
         [InlineData(false)]
@@ -195,7 +242,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(hasExternal ? cts2.Token : default, cts.Token);
+            using var tokenPair = new CancellationTokenPairSource(hasExternal ? cts2.Token : default, cts.Token);
             cts.Cancel();
 
             // Act
@@ -205,6 +252,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.True(result);
+            Assert.True(tokenPair.TokenPair.IsInternalCancellation);
         }
 
         [Theory]
@@ -217,7 +265,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(hasExternal ? cts2.Token : default, cts.Token);
+            using var tokenPair = new CancellationTokenPairSource(hasExternal ? cts2.Token : default, cts.Token);
             cts2.Cancel();
 
             // Act
@@ -227,11 +275,24 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.False(result);
+            Assert.False(tokenPair.TokenPair.IsInternalCancellation);
         }
 
         #endregion
 
         #region CanceledToken
+
+        [Fact]
+        public void CanceledToken_DefaultTokenPair_DefaultToken()
+        {
+            // Arrange
+
+            var tokenPair = default(CancellationTokenPair);
+
+            // Assert
+
+            Assert.Equal(default, tokenPair.CanceledToken);
+        }
 
         [Theory]
         [InlineData(false)]
@@ -243,7 +304,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, hasInternal ? cts2.Token : default);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, hasInternal ? cts2.Token : default);
             cts.Cancel();
 
             // Act
@@ -253,6 +314,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.Equal(cts.Token, result);
+            Assert.Equal(cts.Token, tokenPair.TokenPair.CanceledToken);
         }
 
         [Theory]
@@ -265,7 +327,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(hasExternal ? cts2.Token : default, cts.Token);
+            using var tokenPair = new CancellationTokenPairSource(hasExternal ? cts2.Token : default, cts.Token);
             cts.Cancel();
 
             // Act
@@ -275,6 +337,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.Equal(cts.Token, result);
+            Assert.Equal(cts.Token, tokenPair.TokenPair.CanceledToken);
         }
 
         [Fact]
@@ -285,7 +348,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, cts2.Token);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, cts2.Token);
 
             // Act
 
@@ -294,6 +357,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.Equal(default, result);
+            Assert.Equal(default, tokenPair.TokenPair.CanceledToken);
         }
 
         #endregion
@@ -320,7 +384,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, cts2.Token);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, cts2.Token);
 
             // Assert
 
@@ -338,7 +402,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, cts2.Token);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, cts2.Token);
 
             if (cancelExternal)
             {
@@ -352,7 +416,17 @@ namespace Couchbase.UnitTests.Core.IO.Operations
 
             // Assert
 
-            Assert.Throws<OperationCanceledException>(tokenPair.ThrowIfCancellationRequested);
+            var ex = Assert.Throws<OperationCanceledException>(tokenPair.ThrowIfCancellationRequested);
+
+            if (cancelExternal)
+            {
+                // Prefers external
+                Assert.Equal(cts.Token, ex.CancellationToken);
+            }
+            else if (cancelInternal)
+            {
+                Assert.Equal(cts2.Token, ex.CancellationToken);
+            }
         }
 
         #endregion
@@ -371,7 +445,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(cts.Token, hasInternal ? cts2.Token : default);
+            using var tokenPair = new CancellationTokenPairSource(cts.Token, hasInternal ? cts2.Token : default);
 
             // Act
 
@@ -409,7 +483,7 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             using var cts = new CancellationTokenSource();
             using var cts2 = new CancellationTokenSource();
 
-            var tokenPair = new CancellationTokenPair(hasExternal ? cts2.Token : default, cts.Token);
+            using var tokenPair = new CancellationTokenPairSource(hasExternal ? cts2.Token : default, cts.Token);
 
             // Act
 
@@ -433,6 +507,48 @@ namespace Couchbase.UnitTests.Core.IO.Operations
             // Assert
 
             Assert.True(callbackFired);
+        }
+
+        #endregion
+
+        #region FromTimeout
+
+        [Fact]
+        public async Task FromTimeout_TimesOut_CancelsInternal()
+        {
+            // Arrange
+
+            var tcs = new TaskCompletionSource<bool>();
+
+            // Act
+
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(50));
+            tokenPair.Register(() => tcs.SetResult(true));
+            await tcs.Task;
+
+            // Assert
+
+            Assert.True(tokenPair.IsInternalCancellation);
+        }
+
+        [Fact]
+        public async Task FromTimeout_ExternalCancellation_CancelsExternal()
+        {
+            // Arrange
+
+            var tcs = new TaskCompletionSource<bool>();
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            // Act
+
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(50), cts.Token);
+            tokenPair.Register(() => tcs.SetResult(true));
+            await tcs.Task;
+
+            // Assert
+
+            Assert.True(tokenPair.IsExternalCancellation);
         }
 
         #endregion
