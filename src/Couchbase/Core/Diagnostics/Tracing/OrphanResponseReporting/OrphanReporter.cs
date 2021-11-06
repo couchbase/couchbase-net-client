@@ -1,8 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -17,15 +16,12 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 
         private readonly CancellationTokenSource _source = new();
 
-        private readonly Channel<OrphanSummary> _queue =
-            Channel.CreateBounded<OrphanSummary>(new BoundedChannelOptions(1000)
-            {
-                // We drop orphans from the logs when we're full, rather than blocking the calling thread
-                // Since we're constantly processing the queue and have room for 1000, this shouldn't
-                // occur except in the most extreme scenarios.
-                FullMode = BoundedChannelFullMode.DropWrite,
-                SingleReader = true
-            });
+        // Queue to hold items until they can be processed into the summary collections and counts.
+        // We do this to avoid blocking operation processing any longer than necessary.
+        private readonly ConcurrentQueue<OrphanSummary> _queue = new();
+
+        // Lock to control access to the summary collections and counts
+        private readonly object _lock = new();
 
         private readonly List<OrphanSummary> _kvOrphans = new();
         private readonly List<OrphanSummary> _viewOrphans = new();
@@ -36,13 +32,12 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
         public int Interval { get; set; }
         public uint SampleSize { get; set; }
 
-        private DateTime _lastRun = DateTime.UtcNow;
         private uint _kvOrphanCount;
         private uint _viewOrphanCount;
         private uint _queryOrphanCount;
         private uint _searchOrphanCount;
         private uint _analyticsOrphanCount;
-        private bool _hasOrphans;
+        private volatile bool _hasOrphans;
 
         /// <summary>
         /// Internal total count of all pending operation contexts to have been recorded.
@@ -55,107 +50,114 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
             Interval = (int)options.EmitInterval.TotalMilliseconds;
             SampleSize = options.SampleSize;
 
-            // Ensure that we don't flow the ExecutionContext into the long running task
+            // Ensure that we don't flow the ExecutionContext into the long running tasks
             using (ExecutionContext.SuppressFlow())
             {
-                Task.Run(DoWork);
+                Task.Run(ProcessSummary);
+                Task.Run(ProcessQueue);
             }
         }
 
-        private async Task DoWork()
+        private async Task ProcessSummary()
         {
-            var reader = _queue.Reader;
-
             while (!_source.IsCancellationRequested)
             {
                 try
                 {
-                    // determine if we need to write to log yet
-                    if (DateTime.UtcNow.Subtract(_lastRun) > TimeSpan.FromMilliseconds(Interval))
+                    // This routine is the only one that transitions _hasOrphans from true to false,
+                    // so we don't need to recheck this inside the lock
+                    if (_hasOrphans)
                     {
-                        if (_hasOrphans)
+                        lock (_lock)
                         {
                             var result = new JObject();
-                            AddServiceToResult(result, OuterRequestSpans.ServiceSpan.Kv.Name, _kvOrphans, ref _kvOrphanCount);
-                            AddServiceToResult(result, OuterRequestSpans.ServiceSpan.ViewQuery, _viewOrphans, ref _viewOrphanCount);
-                            AddServiceToResult(result, OuterRequestSpans.ServiceSpan.N1QLQuery, _queryOrphans, ref _queryOrphanCount);
-                            AddServiceToResult(result, OuterRequestSpans.ServiceSpan.SearchQuery, _searchOrphans, ref _searchOrphanCount);
-                            AddServiceToResult(result, OuterRequestSpans.ServiceSpan.AnalyticsQuery, _analyticsOrphans, ref _analyticsOrphanCount);
+                            AddServiceToResult(
+                                result, OuterRequestSpans.ServiceSpan.Kv.Name, _kvOrphans, ref _kvOrphanCount);
+                            AddServiceToResult(
+                                result, OuterRequestSpans.ServiceSpan.ViewQuery, _viewOrphans, ref _viewOrphanCount);
+                            AddServiceToResult(
+                                result, OuterRequestSpans.ServiceSpan.N1QLQuery, _queryOrphans, ref _queryOrphanCount);
+                            AddServiceToResult(
+                                result, OuterRequestSpans.ServiceSpan.SearchQuery, _searchOrphans,
+                                ref _searchOrphanCount);
+                            AddServiceToResult(
+                                result, OuterRequestSpans.ServiceSpan.AnalyticsQuery, _analyticsOrphans,
+                                ref _analyticsOrphanCount);
 
                             if (result.HasValues)
                             {
-                                _logger.LogWarning("Orphaned responses observed: {0}", result.ToString(Formatting.None));
+                                _logger.LogWarning("Orphaned responses observed: {0}",
+                                    result.ToString(Formatting.None));
                             }
 
                             _hasOrphans = false;
                         }
-
-                        _lastRun = DateTime.UtcNow;
                     }
 
-                    var hasData = true;
-                    // Repeat until _source is cancelled or we have no more data AND have waited at least WorkerSleep
-                    while (hasData && !_source.IsCancellationRequested)
-                    {
-                        using (var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(_source.Token))
-                        {
-                            timeoutToken.CancelAfter(WorkerSleep);
-
-                            try
-                            {
-                                hasData = await reader.WaitToReadAsync(timeoutToken.Token).ConfigureAwait(false);
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                // The timeoutToken was triggered
-                                hasData = false;
-                            }
-                        }
-
-                        // hasData will be false if either the channel is closed or the timeoutToken triggered
-                        if (hasData)
-                        {
-                            // Keep taking data until we run out or _source is cancelled
-                            while (!_source.IsCancellationRequested && reader.TryRead(out var context))
-                            {
-                                switch (context.ServiceType)
-                                {
-                                    case OuterRequestSpans.ServiceSpan.Kv.Name:
-                                        AddContextToService(_kvOrphans, context, ref _kvOrphanCount, SampleSize);
-                                        break;
-                                    case OuterRequestSpans.ServiceSpan.ViewQuery:
-                                        AddContextToService(_viewOrphans, context, ref _viewOrphanCount, SampleSize);
-                                        break;
-                                    case OuterRequestSpans.ServiceSpan.N1QLQuery:
-                                        AddContextToService(_queryOrphans, context, ref _queryOrphanCount, SampleSize);
-                                        break;
-                                    case OuterRequestSpans.ServiceSpan.SearchQuery:
-                                        AddContextToService(_searchOrphans, context, ref _searchOrphanCount,
-                                            SampleSize);
-                                        break;
-                                    case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
-                                        AddContextToService(_analyticsOrphans, context, ref _analyticsOrphanCount,
-                                            SampleSize);
-                                        break;
-                                    default:
-                                        _logger.LogInformation(
-                                            $"Unknown service type {context.ServiceType} for operation with ID '{context.operation_id}'");
-                                        break;
-                                }
-
-                                _hasOrphans = true; // indicates we have something to process
-                            }
-                        }
-                    }
-
-                    // sleep for a little while
-                    await Task.Delay(TimeSpan.FromMilliseconds(WorkerSleep), _source.Token).ConfigureAwait(false);
+                    await Task.Delay(Interval, _source.Token).ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException) { } // ignore
                 catch (OperationCanceledException) { } // ignore
                 catch (Exception exception)
                 {
-                    _logger.LogError("Error when processing Orphaned Responses", exception);
+                    _logger.LogError(exception, "Error when processing Orphaned Response summary");
+                }
+            }
+        }
+
+        private async Task ProcessQueue()
+        {
+            while (!_source.IsCancellationRequested)
+            {
+                try
+                {
+                    // Repeat until _source is cancelled or we have no more data AND have waited at least WorkerSleep
+                    while (!_source.IsCancellationRequested && _queue.TryDequeue(out var context))
+                    {
+                        // Here we take out the lock inside the loop. This avoids locking when the queue is empty,
+                        // which is by far the most common. It also ensures that, in the case of a flood, we don't
+                        // hold the lock too long and prevent the summary from being output.
+                        lock (_lock)
+                        {
+                            switch (context.ServiceType)
+                            {
+                                case OuterRequestSpans.ServiceSpan.Kv.Name:
+                                    AddContextToService(_kvOrphans, context, ref _kvOrphanCount, SampleSize);
+                                    break;
+                                case OuterRequestSpans.ServiceSpan.ViewQuery:
+                                    AddContextToService(_viewOrphans, context, ref _viewOrphanCount,
+                                        SampleSize);
+                                    break;
+                                case OuterRequestSpans.ServiceSpan.N1QLQuery:
+                                    AddContextToService(_queryOrphans, context, ref _queryOrphanCount,
+                                        SampleSize);
+                                    break;
+                                case OuterRequestSpans.ServiceSpan.SearchQuery:
+                                    AddContextToService(_searchOrphans, context, ref _searchOrphanCount,
+                                        SampleSize);
+                                    break;
+                                case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
+                                    AddContextToService(_analyticsOrphans, context, ref _analyticsOrphanCount,
+                                        SampleSize);
+                                    break;
+                                default:
+                                    _logger.LogInformation(
+                                        $"Unknown service type {context.ServiceType} for operation with ID '{context.operation_id}'");
+                                    break;
+                            }
+
+                            _hasOrphans = true; // indicates we have something to process
+                        }
+                    }
+
+                    // sleep for a little while
+                    await Task.Delay(WorkerSleep, _source.Token).ConfigureAwait(false);
+                }
+                catch (ObjectDisposedException) { } // ignore
+                catch (OperationCanceledException) { } // ignore
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Error when processing Orphaned Responses");
                 }
             }
         }
@@ -179,7 +181,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 
         private static void AddServiceToResult(JObject array, string serviceName, ICollection<OrphanSummary> serviceSample, ref uint serviceCount)
         {
-            if (serviceSample.Any())
+            if (serviceSample.Count > 0)
             {
                 array.Add(CreateOrphanJson(serviceName, serviceSample, serviceCount));
                 serviceSample.Clear();
@@ -190,11 +192,6 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
         public void Dispose()
         {
             _source?.Cancel();
-
-            if (_queue != null)
-            {
-                _queue.Writer.TryComplete();
-            }
         }
 
         public void Add(OrphanSummary orphanSummary)
@@ -202,7 +199,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
             if (!_source.IsCancellationRequested)
             {
                 // If we've been disposed this will simply return false, which we ignore
-                _queue.Writer.TryWrite(orphanSummary);
+                _queue.Enqueue(orphanSummary);
             }
         }
     }
