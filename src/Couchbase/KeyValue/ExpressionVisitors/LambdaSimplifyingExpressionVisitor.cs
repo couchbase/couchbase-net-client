@@ -151,11 +151,13 @@ namespace Couchbase.KeyValue.ExpressionVisitors
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            var children = new Expression?[] {node.Object}.Concat(node.Arguments).ToList();
+            var children = new Expression?[node.Arguments.Count + 1];
+            children[0] = node.Object;
+            node.Arguments.CopyTo(children!, 1);
 
             VisitChildren(children);
 
-            return node.Update(children[0], children.Skip(1));
+            return node.Update(children[0], children.Skip(1)!);
         }
 
         private static ConstantExpression ConvertToConstant(Expression node)

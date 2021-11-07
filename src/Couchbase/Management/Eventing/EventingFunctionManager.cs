@@ -38,7 +38,7 @@ namespace Couchbase.Management.Eventing
             //POST http://localhost:8096/api/v1/functions/<name>;
             options ??= UpsertFunctionOptions.Default;
 
-            var path = $"/api/v1/functions/{Uri.EscapeUriString(function.Name)}";
+            var path = $"/api/v1/functions/{Uri.EscapeDataString(function.Name)}";
 
             try
             {
@@ -89,7 +89,7 @@ namespace Couchbase.Management.Eventing
             //DELETE http://localhost:8096/api/v1/functions/<name>
             options ??= DropFunctionOptions.Default;
 
-            var path = $"/api/v1/functions/{Uri.EscapeUriString(name)}";
+            var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}";
 
             try
             {
@@ -125,7 +125,7 @@ namespace Couchbase.Management.Eventing
             }
             catch (Exception e)
             {
-                _logger.LogError(e, $"An error occurred while dropping eventing function '{Uri.EscapeUriString(name)}'.");
+                _logger.LogError(e, "An error occurred while dropping eventing function '{function}'.", Uri.EscapeDataString(name));
                 throw;
             }
         }
@@ -170,7 +170,7 @@ namespace Couchbase.Management.Eventing
             //GET http://localhost:8096/api/v1/functions/<name>
             options ??= GetFunctionOptions.Default;
 
-            var path = $"/api/v1/functions/{Uri.EscapeUriString(name)}";
+            var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}";
 
             try
             {
@@ -204,7 +204,7 @@ namespace Couchbase.Management.Eventing
             //POST http://localhost:8096/api/v1/functions/<name>/pause
             options ??= PauseFunctionOptions.Default;
 
-            var path = $"/api/v1/functions/{Uri.EscapeUriString(name)}/pause";
+            var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/pause";
 
             try
             {
@@ -251,7 +251,7 @@ namespace Couchbase.Management.Eventing
             //POST http://localhost:8096/api/v1/functions/<name>/resume
             options ??= ResumeFunctionOptions.Default;
 
-            var path = $"/api/v1/functions/{Uri.EscapeUriString(name)}/resume";
+            var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/resume";
 
             try
             {
@@ -296,7 +296,7 @@ namespace Couchbase.Management.Eventing
             //POST http://localhost:8096/api/v1/functions/<name>/deploy
             options ??= DeployFunctionOptions.Default;
 
-            var path = $"/api/v1/functions/{Uri.EscapeUriString(name)}/deploy";
+            var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/deploy";
 
             try
             {
@@ -341,7 +341,7 @@ namespace Couchbase.Management.Eventing
             //POST http://localhost:8096/api/v1/functions/<name>/undeploy
             options ??= UndeployFunctionOptions.Default;
 
-            var path = $"/api/v1/functions/{Uri.EscapeUriString(name)}/undeploy";
+            var path = $"/api/v1/functions/{Uri.EscapeDataString(name)}/undeploy";
 
             try
             {

@@ -459,17 +459,17 @@ namespace Couchbase.Management.Analytics
                 var sb = new StringBuilder("analytics/link");
                 if (!string.IsNullOrEmpty(options.DataverseName))
                 {
-                    sb.Append("/").Append(Uri.EscapeUriString(UncompoundName(options.DataverseName!)));
+                    sb.Append("/").Append(Uri.EscapeDataString(UncompoundName(options.DataverseName!)));
                     if (!string.IsNullOrEmpty(options.Name))
                     {
-                        sb.Append("/").Append(Uri.EscapeUriString(options.Name!));
+                        sb.Append("/").Append(Uri.EscapeDataString(options.Name!));
                     }
                 }
 
                 builder.Path = sb.ToString();
                 if (!string.IsNullOrEmpty(options.LinkType))
                 {
-                    builder.Query = $"type={Uri.EscapeUriString(options.LinkType!)}";
+                    builder.Query = $"type={Uri.EscapeDataString(options.LinkType!)}";
                 }
 
                 using var httpClient = _httpClientFactory.Create();

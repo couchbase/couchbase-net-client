@@ -1,5 +1,4 @@
 using System;
-using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
@@ -7,6 +6,21 @@ namespace Couchbase.Core.IO
 {
     internal static class SocketExtensions
     {
+#if NET6_0_OR_GREATER
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+#endif
+        private static void SetKeepAlives(Socket socket, bool on, uint time, uint interval)
+        {
+            var values = new byte[sizeof(uint) * 3];
+
+            var valueSpan = MemoryMarshal.Cast<byte, uint>(values.AsSpan());
+            valueSpan[0] = on ? 1u : 0u;
+            valueSpan[1] = time;
+            valueSpan[2] = interval;
+
+            socket.IOControl(IOControlCode.KeepAliveValues, values, null);
+        }
+
         /// <summary>
         /// Try to enable TCP keep-alives, the time and interval on a managed Socket.
         /// </summary>
@@ -21,24 +35,30 @@ namespace Couchbase.Core.IO
         {
             message = string.Empty;
 
+#if NET6_0_OR_GREATER
+            if (OperatingSystem.IsWindows())
+            {
+                SetKeepAlives(socket, on, time, interval);
+
+                return true;
+            }
+            else
+            {
+                message = $"SetKeepAlive failed (Not Supported)";
+                return false;
+            }
+#else
             try
             {
-                var values = new byte[sizeof(uint) * 3];
-
-                var valueSpan = MemoryMarshal.Cast<byte, uint>(values.AsSpan());
-                valueSpan[0] = on ? 1u : 0u;
-                valueSpan[1] = time;
-                valueSpan[2] = interval;
-
-                socket.IOControl(IOControlCode.KeepAliveValues, values, null);
+                SetKeepAlives(socket, on, time, interval);
+                return true;
             }
-            catch (NotSupportedException e)
+            catch (PlatformNotSupportedException e)
             {
                 message = $"SetKeepAlive failed (Not Supported): {e.Message}";
                 return false;
             }
-
-            return true;
+#endif
         }
 
 #if NETCOREAPP3_0_OR_GREATER

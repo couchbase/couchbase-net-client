@@ -20,7 +20,6 @@ namespace Couchbase.Views
     /// </summary>
     internal class ViewQuery : RequestBase, IViewQuery
     {
-        private const string UriFormat = "{0}://{1}:{2}/{3}/";
         public const string Design = "_design";
         public const string DevelopmentViewPrefix = "dev_";
         public const string ViewMethod = "_view";
@@ -496,7 +495,9 @@ namespace Couchbase.Views
             {
                 var protocol = UseSsl ? Https : Http;
                 var port = UseSsl ? DefaultSslPort : DefaultPort;
-                _baseUri = new Uri(string.Format(UriFormat, protocol, DefaultHost, port, BucketName));
+
+                var uriBuilder = new UriBuilder(protocol, DefaultHost, (int) port, $"{BucketName}/");
+                _baseUri = uriBuilder.Uri;
             }
 
             return new Uri(_baseUri, GetRelativeUri());

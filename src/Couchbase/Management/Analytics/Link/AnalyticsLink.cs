@@ -39,7 +39,8 @@ namespace Couchbase.Management.Analytics.Link
             }
         }
 
-        internal string ManagementPath => $"analytics/link/{Uri.EscapeUriString(Dataverse.Replace(".", "/"))}/{Uri.EscapeUriString(Name)}";
+        // Note that EscapeDataString will escape "/", so we do the replace after escape instead of before
+        internal string ManagementPath => $"analytics/link/{Uri.EscapeDataString(Dataverse).Replace(".", "/")}/{Uri.EscapeDataString(Name)}";
     }
 }
 

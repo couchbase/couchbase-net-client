@@ -488,7 +488,7 @@ namespace Couchbase
                 }
 
                 // try to bootstrap first bucket in cluster; we need this because pre-6.5 servers do not support GC3P so we need to open a bucket
-                var bucketName = _context.ClusterOptions.Buckets.FirstOrDefault();
+                var bucketName = _context.ClusterOptions.Buckets.First();
                 _logger.LogDebug("Attempting to bootstrap bucket {bucketname}", _redactor.MetaData(bucketName));
                 await BucketAsync(bucketName).ConfigureAwait(false);
                 UpdateClusterCapabilities();

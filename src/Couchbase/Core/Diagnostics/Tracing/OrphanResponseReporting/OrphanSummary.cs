@@ -96,8 +96,6 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
 
         public int CompareTo(OrphanSummary other)
         {
-            if (ReferenceEquals(this, other)) return 0;
-            if (ReferenceEquals(null, other)) return 1;
             return Nullable.Compare(other.last_server_duration_us, last_server_duration_us);
         }
 

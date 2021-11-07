@@ -39,15 +39,14 @@ namespace Couchbase.Core.DI
         /// <typeparam name="T">Service being requested.</typeparam>
         /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
         /// <returns>The service.</returns>
-        [return: MaybeNull]
-        public static T GetService<T>(this IServiceProvider serviceProvider)
+        public static T? GetService<T>(this IServiceProvider serviceProvider)
         {
             if (serviceProvider == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(serviceProvider));
             }
 
-            return (T) serviceProvider.GetService(typeof(T));
+            return (T?) serviceProvider.GetService(typeof(T));
         }
 
         /// <summary>

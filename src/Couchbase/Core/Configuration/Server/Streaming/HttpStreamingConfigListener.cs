@@ -84,7 +84,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
                         var servers = _clusterOptions.ConnectionStringValue?.GetBootstrapEndpoints().ToList().Shuffle();
 
-                        while (servers.Any())
+                        while (servers != null && servers.Any())
                         {
                             try
                             {

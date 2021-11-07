@@ -313,7 +313,7 @@ namespace Couchbase.Core
                 }
                 catch (Exception e)
                 {
-                    _logger.LogDebug("Attempted bootstrapping on endpoint {endpoint} has failed.", e, server);
+                    _logger.LogDebug(e, "Attempted bootstrapping on endpoint {endpoint} has failed.", server);
                 }
             }
         }

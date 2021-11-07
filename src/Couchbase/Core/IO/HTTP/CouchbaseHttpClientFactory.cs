@@ -100,13 +100,13 @@ namespace Couchbase.Core.IO.HTTP
                 handler.SslOptions.EnabledSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
                 var certificates = _context.ClusterOptions.X509CertificateFactory.GetCertificates();
-                handler.SslOptions.ClientCertificates.AddRange(certificates);
+                handler.SslOptions.ClientCertificates = certificates;
 
                 // This emulates the behavior of HttpClientHandler in Manual mode, which selects the first certificate
                 // from the list which is eligible for use as a client certificate based on having a private key and
                 // the correct key usage flags.
                 handler.SslOptions.LocalCertificateSelectionCallback =
-                    (_, _, _, _, _) => GetClientCertificate(certificates);
+                    (_, _, _, _, _) => GetClientCertificate(certificates)!;
             }
 
             // We don't need to check for unsupported platforms here, because this code path only applies to recent

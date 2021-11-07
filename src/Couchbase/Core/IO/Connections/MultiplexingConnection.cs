@@ -41,7 +41,7 @@ namespace Couchbase.Core.IO.Connections
         private readonly SemaphoreSlim _writeMutex = new(1);
 
         public MultiplexingConnection(Socket socket, ILogger<MultiplexingConnection> logger)
-            : this(new NetworkStream(socket, true), socket.LocalEndPoint, socket.RemoteEndPoint, logger)
+            : this(new NetworkStream(socket, true), socket.LocalEndPoint!, socket.RemoteEndPoint!, logger)
         {
         }
 

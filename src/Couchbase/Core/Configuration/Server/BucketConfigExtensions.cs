@@ -31,11 +31,11 @@ namespace Couchbase.Core.Configuration.Server
             var nodesExtCount = nodesExt?.Count;
 
             if (nodesExt == null)
-                nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null, bucketConfig)));
+                nodeAdapters.AddRange(nodes?.Select(t => new NodeAdapter(t, null, bucketConfig)) ?? Enumerable.Empty<NodeAdapter>());
             else if (nodes?.Count == nodesExt.Count)
-                nodeAdapters.AddRange(nodes.Select((t, i) => new NodeAdapter(t, nodesExt[i], bucketConfig)));
+                nodeAdapters.AddRange(nodes!.Select((t, i) => new NodeAdapter(t, nodesExt[i], bucketConfig)));
             else if (nodesExt.Count < nodes?.Count)
-                nodeAdapters.AddRange(nodes.Select(t => new NodeAdapter(t, null, bucketConfig)));
+                nodeAdapters.AddRange(nodes!.Select(t => new NodeAdapter(t, null, bucketConfig)));
             else if (nodesExt.Count > nodes?.Count)
             {
                 //In certain cases the server will return an evicted node at the end of the NodesExt list

@@ -177,7 +177,7 @@ namespace Couchbase.Core
             }
         }
 
-        private void OnKeyEndPointsChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void OnKeyEndPointsChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.Action == NotifyCollectionChangedAction.Move)
             {
@@ -185,7 +185,7 @@ namespace Couchbase.Core
                 return;
             }
 
-            var node = (IClusterNode) sender;
+            var node = (IClusterNode) sender!;
 
             lock (_nodes)
             {

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
@@ -165,7 +166,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
             }
             else if (_inSpecialExpression == SpecialExpressionType.DictionaryKey)
             {
-                WriteEscapedString(node.Value.ToString()!);
+                WriteEscapedString(node.Value?.ToString() ?? "");
             }
             else
             {
@@ -180,8 +181,9 @@ namespace Couchbase.KeyValue.ExpressionVisitors
             EnsureNotInSpecialExpression();
 
             var expression = Visit(node.Expression);
+            Debug.Assert(expression != null);
 
-            if (expression.Type.GetTypeInfo().IsGenericType && expression.Type.GetGenericTypeDefinition() == typeof(Nullable<>)
+            if (expression!.Type.GetTypeInfo().IsGenericType && expression.Type.GetGenericTypeDefinition() == typeof(Nullable<>)
                 && (node.Member.Name == "Value"))
             {
                 // Don't include Nullable<T>.Value calls in output path

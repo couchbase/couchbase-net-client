@@ -1,18 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using App.Metrics.Concurrency;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.UnitTests.Core.Diagnostics.Metrics;
-using Couchbase.UnitTests.Core.Utils;
-using Couchbase.UnitTests.Utils;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
 {
