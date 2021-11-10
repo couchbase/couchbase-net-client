@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.1;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp1.1;</TargetFrameworks>
     <RootNamespace>Couchbase.UnitTests</RootNamespace>
     <AssemblyName>Couchbase.UnitTests</AssemblyName>
     <NetStandardImplicitPackageVersion>2.0.1</NetStandardImplicitPackageVersion>
@@ -22,11 +22,12 @@
     <DefineConstants>$(DefineConstants);NETSTANDARD;NETCORE11</DefineConstants>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <!--
+    <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
     <DefineConstants>$(DefineConstants);NETSTANDARD;NETCORE20</DefineConstants>
-  </PropertyGroup>
+  </PropertyGroup>-->
 
-  <ItemGroup>
+    <ItemGroup>
     <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
   </ItemGroup>
 

@@ -45,17 +45,17 @@ namespace Couchbase.IO.Operations
                 try
                 {
                     var buffer = Data.ToArray();
-                    var keylength = Converter.ToInt16(buffer, 26);
+                    var keylength = Converter.ToInt16(buffer, Header.BodyOffset + 2);
 
                     return new ObserveState
                     {
                         PersistStat = Converter.ToUInt32(buffer, 16),
                         ReplState = Converter.ToUInt32(buffer, 20),
-                        VBucket = Converter.ToInt16(buffer, 24),
+                        VBucket = Converter.ToInt16(buffer, Header.BodyOffset),
                         KeyLength = keylength,
-                        Key = Converter.ToString(buffer, 28, keylength),
-                        KeyState = (KeyState) Converter.ToByte(buffer, 28 + keylength),
-                        Cas = Converter.ToUInt64(buffer, 28 + keylength + 1)
+                        Key = Converter.ToString(buffer, Header.BodyOffset + 4, keylength),
+                        KeyState = (KeyState) Converter.ToByte(buffer, Header.BodyOffset + keylength + 4),
+                        Cas = Converter.ToUInt64(buffer, Header.BodyOffset + keylength + 5)
                     };
                 }
                 catch (Exception e)
