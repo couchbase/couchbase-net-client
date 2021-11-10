@@ -31,7 +31,7 @@ namespace Couchbase
         private readonly Lazy<ICouchbaseCollectionManager> _collectionManagerLazy;
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
-            IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, IRedactor redactor, IBootstrapperFactory bootstrapperFactory,
+            IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy)
             : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
         {
@@ -45,14 +45,14 @@ namespace Couchbase
                     context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
                     context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
                     context.ServiceProvider.GetRequiredService<ILogger<ViewIndexManager>>(),
-                    redactor));
+                    context.ServiceProvider.GetRequiredService<IRedactor>()));
 
             _collectionManagerLazy = new Lazy<ICouchbaseCollectionManager>(() =>
                 new CollectionManager(name,
                     context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
                     context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
                     context.ServiceProvider.GetRequiredService<ILogger<CollectionManager>>(),
-                    redactor)
+                    context.ServiceProvider.GetRequiredService<IRedactor>())
             );
         }
 

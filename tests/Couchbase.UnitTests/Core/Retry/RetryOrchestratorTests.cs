@@ -150,7 +150,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator();
 
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
-                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
 
@@ -256,7 +256,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator();
 
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
-                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
@@ -283,7 +283,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var op = new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()};
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
-                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
                 new BestEffortRetryStrategy());
@@ -310,7 +310,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var retryOrchestrator = CreateRetryOrchestrator();
 
             var bucketMock = new Mock<BucketBase>("name", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
-                retryOrchestrator, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
@@ -574,7 +574,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var logger = loggerFactory.CreateLogger<RetryOrchestrator>();
 
             var mock = new Mock<RetryOrchestrator>(logger,
-                new Mock<IRedactor>().Object)
+                new TypedRedactor(RedactionLevel.None))
             {
                 CallBase = true
             };

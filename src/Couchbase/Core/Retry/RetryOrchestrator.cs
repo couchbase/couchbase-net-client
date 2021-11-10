@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -18,12 +17,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Retry
 {
-    internal class RetryOrchestrator : IRetryOrchestrator
+    internal partial class RetryOrchestrator : IRetryOrchestrator
     {
         private readonly ILogger<RetryOrchestrator> _logger;
-        private IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
 
-        public RetryOrchestrator(ILogger<RetryOrchestrator> logger, IRedactor redactor)
+        public RetryOrchestrator(ILogger<RetryOrchestrator> logger, TypedRedactor redactor)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
@@ -77,10 +76,7 @@ namespace Couchbase.Core.Retry
 
                         if (reason.AlwaysRetry())
                         {
-                            _logger.LogDebug(
-                                "Retrying query {clientContextId}/{statement} because {reason}.",
-                                request.ClientContextId,
-                                _redactor.UserData(request.Statement), reason);
+                            LogRetryQuery(request.ClientContextId, _redactor.UserData(request.Statement), reason);
 
                             await backoff.Delay(request).ConfigureAwait(false);
                             request.IncrementAttempts(reason);
@@ -91,26 +87,18 @@ namespace Couchbase.Core.Retry
                         var action = strategy.RetryAfter(request, reason);
                         if (action.Retry)
                         {
-                            _logger.LogDebug(LoggingEvents.QueryEvent,
-                                "Retrying query {clientContextId}/{statement} because {reason}.",
-                                request.ClientContextId,
-                                request.Statement, reason);
+                            LogRetryQuery(request.ClientContextId, _redactor.UserData(request.Statement), reason);
 
                             var duration = action.DurationValue;
                             if (duration.HasValue)
                             {
-                                _logger.LogDebug(
-                                    "Timeout for {clientContextId} is {timeout} and duration is {duration} and elapsed is {elapsed}",
-                                    request.ClientContextId, request.Timeout.TotalMilliseconds,
+                                LogQueryDurations(request.ClientContextId, request.Timeout.TotalMilliseconds,
                                     duration.Value.TotalMilliseconds, stopwatch.ElapsedMilliseconds);
 
                                 var cappedDuration =
                                     request.Timeout.CappedDuration(duration.Value, stopwatch.Elapsed);
 
-                                _logger.LogDebug(
-                                    "Timeout for {clientContextId} capped duration is {duration} and elapsed is {elapsed}",
-                                    request.ClientContextId, cappedDuration.TotalMilliseconds,
-                                    stopwatch.ElapsedMilliseconds);
+                                LogCappedQueryDuration(request.ClientContextId, cappedDuration.TotalMilliseconds, stopwatch.ElapsedMilliseconds);
 
                                 await Task.Delay(cappedDuration, token).ConfigureAwait(false);
                                 request.IncrementAttempts(reason);
@@ -141,7 +129,7 @@ namespace Couchbase.Core.Retry
                     }
                     catch (TaskCanceledException _)
                     {
-                        _logger.LogDebug("Request was canceled after {elapsed}.", stopwatch.ElapsedMilliseconds);
+                        LogRequestCanceled(stopwatch.ElapsedMilliseconds);
 
                         //timed out while waiting
                         if (request.Idempotent)
@@ -198,7 +186,7 @@ namespace Couchbase.Core.Retry
                             // We catch CollectionOutdatedException separately from the CouchbaseException catch block
                             // in case RefreshCollectionId fails. This causes that failure to trigger normal retry logic.
 
-                            _logger.LogInformation("Updating stale manifest for collection and retrying.", e);
+                            LogRefreshingCollectionId(e);
                             if (!await RefreshCollectionId(bucket, operation)
                                     .ConfigureAwait(false))
                             {
@@ -213,9 +201,7 @@ namespace Couchbase.Core.Retry
                         var reason = e.ResolveRetryReason();
                         if (reason.AlwaysRetry())
                         {
-                            _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and always retry.",
-                                operation.Opaque,
-                                operation.Key, reason);
+                            LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason);
 
                             await backoff.Delay(operation).ConfigureAwait(false);
 
@@ -233,9 +219,7 @@ namespace Couchbase.Core.Retry
 
                         if (action.Retry)
                         {
-                            _logger.LogDebug("Retrying op {opaque}/{key} because {reason} and action duration.",
-                                operation.Opaque,
-                                operation.Key, reason);
+                            LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
 
                             // Reset first so operation is not marked as sent if canceled during the delay
                             operation.Reset();
@@ -289,12 +273,41 @@ namespace Couchbase.Core.Retry
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting new collection id.");
+                LogErrorGettingCollectionId(ex);
             }
 
             op.Reset();
             return false;
         }
+
+        #region Logging
+
+        [LoggerMessage(1, LogLevel.Debug, "Retrying op {opaque}/{key} because {reason} and always retry.")]
+        private partial void LogRetryDueToAlwaysRetry(uint opaque, Redacted<string> key, RetryReason reason);
+
+        [LoggerMessage(2, LogLevel.Debug, "Retrying op {opaque}/{key} because {reason} and action duration.")]
+        private partial void LogRetryDueToDuration(uint opaque, Redacted<string> key, RetryReason reason);
+
+        [LoggerMessage(LoggingEvents.QueryEvent, LogLevel.Debug, "Retrying query {clientContextId}/{statement} because {reason}.")]
+        private partial void LogRetryQuery(string clientContextId, Redacted<string> statement, RetryReason reason);
+
+        [LoggerMessage(100, LogLevel.Information, "Updating stale manifest for collection and retrying.")]
+        private partial void LogRefreshingCollectionId(Exception ex);
+
+        [LoggerMessage(101, LogLevel.Error, "Error getting new collection id.")]
+        private partial void LogErrorGettingCollectionId(Exception ex);
+
+        [LoggerMessage(200, LogLevel.Debug, "Request was canceled after {elapsed}.")]
+        private partial void LogRequestCanceled(long elapsed);
+
+        [LoggerMessage(300, LogLevel.Debug,
+            "Timeout for {clientContextId} is {timeout} and duration is {duration} and elapsed is {elapsed}")]
+        private partial void LogQueryDurations(string clientContextId, double timeout, double duration, long elapsed);
+
+        [LoggerMessage(301, LogLevel.Debug, "Timeout for {clientContextId} capped duration is {duration} and elapsed is {elapsed}")]
+        private partial void LogCappedQueryDuration(string clientContextId, double duration, long elapsed);
+
+        #endregion
     }
 }
 

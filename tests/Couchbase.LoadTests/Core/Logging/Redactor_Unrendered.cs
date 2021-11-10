@@ -8,7 +8,7 @@ namespace Couchbase.LoadTests.Core.Logging
     // ReSharper disable once InconsistentNaming
     public class Redactor_Unrendered
     {
-        private IRedactor _redactor;
+        private TypedRedactor _redactor;
 
         [Params(RedactionLevel.None, RedactionLevel.Partial, RedactionLevel.Full)]
         public RedactionLevel Level { get; set; }
@@ -16,7 +16,7 @@ namespace Couchbase.LoadTests.Core.Logging
         [GlobalSetup(Target = nameof(Baseline))]
         public void BaselineSetup()
         {
-            _redactor = new Redactor(new ClusterOptions { RedactionLevel = Level });
+            _redactor = new TypedRedactor(Level);
         }
 
         [Benchmark(Baseline = true)]

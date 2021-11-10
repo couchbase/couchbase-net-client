@@ -60,7 +60,7 @@ namespace Couchbase.UnitTests.Management.Query
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new ClusterOptions()));
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
 
             var result =  await manager.GetAllIndexesAsync("default");
 
@@ -227,7 +227,7 @@ namespace Couchbase.UnitTests.Management.Query
                 new Mock<ILogger<QueryClient>>().Object, NoopRequestTracer.Instance);
 
             return new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
-                new Redactor(new ClusterOptions()));
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
         }
     }
 }

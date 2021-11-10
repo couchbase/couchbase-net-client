@@ -10,6 +10,9 @@ namespace Couchbase
     /// A host name and port pair. Unlike <see cref="HostEndpoint"/> this type requires a port number.
     /// </summary>
     internal readonly struct HostEndpointWithPort : IEquatable<HostEndpointWithPort>
+#if NET6_0_OR_GREATER
+        , ISpanFormattable
+#endif
     {
         /// <summary>
         /// Host name or IP address. IPv6 addresses should be wrapped in square braces.
@@ -51,6 +54,18 @@ namespace Couchbase
 
         /// <inheritdoc />
         public override string ToString() => FormattableString.Invariant($"{Host}:{Port}");
+
+#if NET6_0_OR_GREATER
+
+        /// <inheritdoc />
+        public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+
+        /// <inheritdoc />
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format,
+            IFormatProvider? provider) =>
+            destination.TryWrite($"{Host}:{Port}", out charsWritten);
+
+#endif
 
         #region Equality
 

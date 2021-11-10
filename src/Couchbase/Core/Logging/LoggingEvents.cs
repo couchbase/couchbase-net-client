@@ -2,23 +2,23 @@ namespace Couchbase.Core.Logging
 {
     public static class LoggingEvents
     {
-        public static int QueryEvent = 1000;
+        public const int QueryEvent = 1000;
 
-        public static int KvEvent = 2000;
+        public const int KvEvent = 2000;
 
-        public static int ViewEvent = 3000;
+        public const int ViewEvent = 3000;
 
-        public static int SearchEvent = 4000;
+        public const int SearchEvent = 4000;
 
-        public static int AnalyticsEvent = 5000;
+        public const int AnalyticsEvent = 5000;
 
-        public static int AuthenticationEvent = 6000;
+        public const int AuthenticationEvent = 6000;
 
-        public static int ConfigEvent = 7000;
+        public const int ConfigEvent = 7000;
 
-        public static int BootstrapEvent = 8000;
+        public const int BootstrapEvent = 8000;
 
-        public static int ThresholdEvent = 9000;
+        public const int ThresholdEvent = 9000;
     }
 }
 

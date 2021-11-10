@@ -90,11 +90,11 @@ namespace Couchbase.Core.IO.Authentication
 
                 var finalServerResponse = await SaslStep(connection, clientFinalMessage, rootSpan, cancellationToken)
                     .ConfigureAwait(false);
-                Logger.LogInformation(LoggingEvents.AuthenticationEvent, finalServerResponse);
+                Logger!.LogInformation(LoggingEvents.AuthenticationEvent, finalServerResponse);
             }
             catch (AuthenticationFailureException e)
             {
-                Logger.LogError(LoggingEvents.AuthenticationEvent, e, "Authentication failed.");
+                Logger!.LogError(LoggingEvents.AuthenticationEvent, e, "Authentication failed.");
                 throw;
             }
         }

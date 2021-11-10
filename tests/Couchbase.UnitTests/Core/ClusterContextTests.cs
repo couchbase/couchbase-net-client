@@ -96,7 +96,7 @@ namespace Couchbase.UnitTests.Core
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
-                new Mock<IRedactor>().Object,
+                new TypedRedactor(RedactionLevel.None),
                 new HostEndpointWithPort(hostname, port),
                 BucketType.Couchbase,
                 new NodeAdapter

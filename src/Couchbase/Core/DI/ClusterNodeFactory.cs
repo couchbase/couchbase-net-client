@@ -31,12 +31,12 @@ namespace Couchbase.Core.DI
         private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly IRequestTracer _tracer;
 
         public ClusterNodeFactory(ClusterContext clusterContext, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IRedactor redactor, IRequestTracer tracer)
+            TypedRedactor redactor, IRequestTracer tracer)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));

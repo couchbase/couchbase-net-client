@@ -198,7 +198,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             public FakeBucket(params ResponseStatus[] statuses)
                 : base(BucketName, new ClusterContext(), new Mock<IScopeFactory>().Object,
-                    CreateRetryOrchestrator(), new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                    CreateRetryOrchestrator(), new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,
@@ -224,7 +224,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<ILogger<ClusterNode>>().Object, new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object,
                     new Mock<ISaslMechanismFactory>().Object,
-                    new Mock<IRedactor>().Object,
+                    new TypedRedactor(RedactionLevel.None),
                     new HostEndpointWithPort("127.0.0.1", 11210),
                     BucketType.Couchbase,
                     new NodeAdapter(),

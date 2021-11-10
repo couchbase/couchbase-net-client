@@ -200,7 +200,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object,
                     new Mock<ISaslMechanismFactory>().Object,
-                    new Mock<IRedactor>().Object,
+                    new TypedRedactor(RedactionLevel.None),
                     endPoint,
                     BucketType.Couchbase,
                     server,
@@ -222,7 +222,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     new Mock<ILogger<ClusterNode>>().Object,
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                     new Mock<ICircuitBreaker>().Object, new Mock<ISaslMechanismFactory>().Object,
-                    new Mock<IRedactor>().Object, endPoint, BucketType.Memcached, nodesExt,
+                    new TypedRedactor(RedactionLevel.None), endPoint, BucketType.Memcached, nodesExt,
                     NoopRequestTracer.Instance);
 
                 context.AddNode(clusterNode);

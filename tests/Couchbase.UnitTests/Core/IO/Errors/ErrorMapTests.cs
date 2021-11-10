@@ -50,7 +50,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
-                new Mock<IRedactor>().Object,
+                new TypedRedactor(RedactionLevel.None),
                 new HostEndpointWithPort("127.0.0.1", 11210),
                 BucketType.Couchbase,
                 new NodeAdapter
@@ -113,7 +113,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
-                new Mock<IRedactor>().Object,
+                new TypedRedactor(RedactionLevel.None),
                 new HostEndpointWithPort("127.0.0.1", 11210),
                 BucketType.Couchbase,
                 new NodeAdapter

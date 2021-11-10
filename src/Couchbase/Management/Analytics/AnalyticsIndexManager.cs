@@ -502,8 +502,8 @@ namespace Couchbase.Management.Analytics
             if (!result.IsSuccessStatusCode)
             {
                 var body = new StringBuilder(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                body.Replace(linkName, _redactor.MetaData(linkName)?.ToString())
-                    .Replace(dataverseName, _redactor.MetaData(dataverseName)?.ToString());
+                body.Replace(linkName, _redactor.MetaData(linkName).ToString())
+                    .Replace(dataverseName, _redactor.MetaData(dataverseName).ToString());
 
                 var message = body.ToString();
                 switch (result.StatusCode)

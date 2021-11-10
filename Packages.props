@@ -13,7 +13,7 @@
     <PackageReference Update="Microsoft.Extensions.Configuration" Version="3.1.21" />
     <PackageReference Update="Microsoft.Extensions.Configuration.Binder" Version="3.1.21" />
     <PackageReference Update="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.21" />
-    <PackageReference Update="Microsoft.Extensions.Logging.Abstractions" Version="3.1.21" />
+    <PackageReference Update="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
     <PackageReference Update="Microsoft.Extensions.ObjectPool" Version="6.0.0" />
     <PackageReference Update="Microsoft.Extensions.Options" Version="3.1.21" />
     <PackageReference Update="Newtonsoft.Json" Version="11.0.2" />
@@ -41,8 +41,8 @@
     <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.1" />
     <PackageReference Update="CommandLineParser" Version="2.8.0" />
     <PackageReference Update="Microsoft.Extensions.Configuration.Json" Version="3.1.21" />
-    <PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="3.1.21" />
-    <PackageReference Update="Microsoft.Extensions.Logging" Version="3.1.21" />
+    <PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Update="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Update="Moq" Version="4.16.1" />
     <PackageReference Update="OpenTelemetry.Exporter.Console" Version="1.0.1" />

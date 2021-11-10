@@ -13,10 +13,10 @@ namespace Couchbase.UnitTests.Core.Logging
                 RedactionLevel = RedactionLevel.None
             };
 
-            var redactor = new Redactor(options);
+            var redactor = new TypedRedactor(options);
 
             Assert.Equal("1", redactor.UserData("1").ToString());
-            Assert.Null(redactor.MetaData(null));
+            Assert.Equal("", redactor.MetaData((string) null).ToString());
             Assert.Equal("system", redactor.SystemData("system").ToString());
         }
 
@@ -28,7 +28,7 @@ namespace Couchbase.UnitTests.Core.Logging
                 RedactionLevel = RedactionLevel.Partial
             };
 
-            var redactor = new Redactor(options);
+            var redactor = new TypedRedactor(options);
 
             Assert.Equal("<ud>user</ud>", redactor.UserData("user").ToString());
             Assert.Equal("meta", redactor.MetaData("meta").ToString());
@@ -43,7 +43,7 @@ namespace Couchbase.UnitTests.Core.Logging
                 RedactionLevel = RedactionLevel.Full
             };
 
-            var redactor = new Redactor(options);
+            var redactor = new TypedRedactor(options);
 
             Assert.Equal("<ud>user</ud>", redactor.UserData("user").ToString());
             Assert.Equal("<md>meta</md>", redactor.MetaData("meta").ToString());

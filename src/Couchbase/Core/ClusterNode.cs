@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -12,7 +11,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO;
@@ -24,7 +22,6 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Errors;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Utils;
 using Couchbase.Management.Buckets;
@@ -34,12 +31,12 @@ using Microsoft.Extensions.ObjectPool;
 
 namespace Couchbase.Core
 {
-    internal class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
+    internal partial class ClusterNode : IClusterNode, IConnectionInitializer, IEquatable<ClusterNode>
     {
         private readonly Guid _id = Guid.NewGuid();
         private readonly ClusterContext _context;
         private readonly ILogger<ClusterNode> _logger;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
@@ -58,7 +55,7 @@ namespace Couchbase.Core
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IRedactor redactor, HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
+            TypedRedactor redactor, HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -77,7 +74,7 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                _logger.LogDebug(e, "Cannot fetch hostname.");
+                LogCannotFetchHostName(e);
             }
 
             _cachedToString = $"{EndPoint}-{_id}";
@@ -416,10 +413,7 @@ namespace Couchbase.Core
 
         public Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
         {
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
-            }
+            LogCircuitBreakerState(_circuitBreaker.State);
 
             // This avoids an extra async/await method if circuit breakers are disabled.
             return _circuitBreaker.Enabled
@@ -460,12 +454,7 @@ namespace Couchbase.Core
 
         private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
-            var debugLoggingEnabled = _logger.IsEnabled(LogLevel.Debug);
-            if (debugLoggingEnabled)
-            {
-                _logger.LogDebug("Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.", op.OpCode,
-                    EndPoint, _redactor.UserData(op.Key), op.Opaque);
-            }
+            LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
 
             try
             {
@@ -480,12 +469,7 @@ namespace Couchbase.Core
 
                 if (status != ResponseStatus.Success)
                 {
-                    if (debugLoggingEnabled)
-                    {
-                        _logger.LogDebug(
-                            "Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.",
-                            EndPoint, status, op.OpCode, op.Key, op.Opaque);
-                    }
+                    LogKvStatusReturned(_redactor.SystemData(EndPoint), status, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
 
                     if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                     {
@@ -519,9 +503,7 @@ namespace Couchbase.Core
                         //We can ignore transport exceptions here as they are generated internally in cases a KV cannot be completed.
                         if (code != 0x0500)
                         {
-                            _logger.LogWarning(
-                                "Unexpected Status for KeyValue operation not found in Error Map: 0x{code}",
-                                code.ToString("X4"));
+                            LogKvStatusNotFound(code);
                         }
                     }
 
@@ -550,11 +532,7 @@ namespace Couchbase.Core
                     throw status.CreateException(ctx, op);
                 }
 
-                if (debugLoggingEnabled)
-                {
-                    _logger.LogDebug("Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}",
-                        op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
-                }
+                LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
             }
             catch (OperationCanceledException)
             {
@@ -567,11 +545,7 @@ namespace Couchbase.Core
 
                 if (!tokenPair.IsExternalCancellation)
                 {
-                    if (debugLoggingEnabled)
-                    {
-                        _logger.LogDebug("KV Operation timeout for op {opCode} on {endpoint} with key {key} and opaque {opaque}. Is orphaned: {isSent}",
-                            EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.IsSent);
-                    }
+                    LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.IsSent);
 
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
                     ThrowHelper.ThrowTimeoutException(op, new KeyValueErrorContext
@@ -592,10 +566,7 @@ namespace Couchbase.Core
             }
             catch (Exception e)
             {
-                if (debugLoggingEnabled)
-                {
-                    _logger.LogDebug(e, "Op failed: {op}", op);
-                }
+                LogKvOperationFailed(e, op);
 
                 throw;
             }
@@ -626,7 +597,7 @@ namespace Couchbase.Core
         {
             if (!_disposed)
             {
-                _logger.LogDebug("Starting connection initialization on server {endpoint}.", EndPoint);
+                LogConnectionInitialization(_redactor.SystemData(EndPoint));
                 using var rootSpan = RootSpan("initialize_connection");
 
                 var serverFeatureList = await Hello(connection, rootSpan, cancellationToken).ConfigureAwait(false);
@@ -669,11 +640,7 @@ namespace Couchbase.Core
                 // Use the synchronous dispose as we don't need to wait for in-flight operations to complete.
                 connection.Dispose();
 
-                var message = "The Bucket [" + _redactor.MetaData(bucketName) +
-                              "] could not be selected. Either it does not exist, " +
-                              "is unavailable or the node itself does not have the Data service enabled.";
-
-                _logger.LogError(LoggingEvents.BootstrapEvent, message);
+                LogCouldNotSelectBucket(_redactor.MetaData(bucketName));
             }
         }
 
@@ -696,8 +663,7 @@ namespace Couchbase.Core
             {
                 if (_circuitBreaker.CompletionCallback(exception))
                 {
-                    _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
-                        _redactor.SystemData(ConnectionPool.EndPoint));
+                    LogCircuitBreakerMarkFailure(op.Opaque, _redactor.SystemData(ConnectionPool.EndPoint));
 
                     _circuitBreaker.MarkFailure();
                 }
@@ -734,8 +700,7 @@ namespace Couchbase.Core
         {
             try
             {
-                _logger.LogDebug("CB: Sending a canary to {endPoint}.",
-                    _redactor.SystemData(ConnectionPool.EndPoint));
+                LogCircuitBreakerSendingCanary(_redactor.SystemData(ConnectionPool.EndPoint));
                 using (var ctp = CancellationTokenPairSource.FromTimeout(_circuitBreaker.CanaryTimeout))
                 {
                     await ExecuteOp(ConnectionPool, new Noop() { Span = parentSpan }, ctp.TokenPair)
@@ -748,8 +713,7 @@ namespace Couchbase.Core
             {
                 if (_circuitBreaker.CompletionCallback(e))
                 {
-                    _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.",
-                        _redactor.SystemData(ConnectionPool.EndPoint));
+                    LogCircuitBreakerCanaryFailed(_redactor.SystemData(ConnectionPool.EndPoint));
                     _circuitBreaker.MarkFailure();
                 }
             }
@@ -762,7 +726,7 @@ namespace Couchbase.Core
             if (_disposed) return;
             _disposed = true;
 
-            _logger.LogDebug("Disposing cluster node for {endpoint}", EndPoint);
+            LogDispose(_redactor.SystemData(EndPoint));
             ConnectionPool?.Dispose();
         }
 
@@ -805,7 +769,6 @@ namespace Couchbase.Core
 
         #region Tracing
 
-        #region tracing
         private IRequestSpan RootSpan(string operation)
         {
             var span = _tracer.RequestSpan(operation);
@@ -818,7 +781,53 @@ namespace Couchbase.Core
 
             return span;
         }
+
         #endregion
+
+        #region Logging
+
+        [LoggerMessage(1, LogLevel.Debug, "Starting connection initialization on server {endpoint}.")]
+        private partial void LogConnectionInitialization(Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(2, LogLevel.Debug, "Disposing cluster node for {endpoint}")]
+        private partial void LogDispose(Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(3, LogLevel.Debug, "Cannot fetch hostname.")]
+        private partial void LogCannotFetchHostName(Exception exception);
+
+        [LoggerMessage(LoggingEvents.BootstrapEvent, LogLevel.Error, "The Bucket [{bucketName}] could not be selected. Either it does not exist, " +
+                                                                     "is unavailable or the node itself does not have the Data service enabled.")]
+        private partial void LogCouldNotSelectBucket(Redacted<string> bucketName);
+
+        [LoggerMessage(100, LogLevel.Debug, "Executing op {opcode} on {endpoint} with key {key} and opaque {opaque}.")]
+        private partial void LogKvExecutingOperation(OpCode opcode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque);
+
+        [LoggerMessage(101, LogLevel.Debug, "Server {endpoint} returned {status} for op {opcode} with key {key} and opaque {opaque}.")]
+        private partial void LogKvStatusReturned(Redacted<HostEndpointWithPort> endpoint, ResponseStatus status, OpCode opcode, Redacted<string> key, uint opaque);
+
+        [LoggerMessage(102, LogLevel.Warning, "Unexpected Status for KeyValue operation not found in Error Map: 0x{code:X4}")]
+        private partial void LogKvStatusNotFound(short code);
+
+        [LoggerMessage(103, LogLevel.Debug, "Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}")]
+        private partial void LogKvOperationCompleted(OpCode opCode, Redacted<HostEndpointWithPort> endpoint, Redacted<string> key, uint opaque);
+
+        [LoggerMessage(104, LogLevel.Debug, "Op failed: {op}")]
+        private partial void LogKvOperationFailed(Exception ex, IOperation op);
+
+        [LoggerMessage(105, LogLevel.Debug, "KV Operation timeout for op {opCode} on {endpoint} with key {key} and opaque {opaque}. Is orphaned: {isSent}")]
+        private partial void LogKvOperationTimeout(Redacted<HostEndpointWithPort> endpoint, OpCode opCode, Redacted<string> key, uint opaque, bool isSent);
+
+        [LoggerMessage(200, LogLevel.Debug, "CB: Current state is {state}.")]
+        private partial void LogCircuitBreakerState(CircuitBreakerState state);
+
+        [LoggerMessage(201, LogLevel.Debug, "CB: Marking a failure for {opaque} to {endpoint}.")]
+        private partial void LogCircuitBreakerMarkFailure(uint opaque, Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(202, LogLevel.Debug, "CB: Sending a canary to {endpoint}.")]
+        private partial void LogCircuitBreakerSendingCanary(Redacted<HostEndpointWithPort> endpoint);
+
+        [LoggerMessage(203, LogLevel.Debug, "CB: Marking a failure for canary sent to {endpoint}.")]
+        private partial void LogCircuitBreakerCanaryFailed(Redacted<HostEndpointWithPort> endpoint);
 
         #endregion
     }

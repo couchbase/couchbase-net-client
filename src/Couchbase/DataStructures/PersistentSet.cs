@@ -32,7 +32,7 @@ namespace Couchbase.DataStructures
             catch (DocumentExistsException e)
             {
                 //ignore - the doc already exists for this collection
-                Logger.LogTrace(e, "The PersistentList backing document already exists for ID {key}. Not an error.",
+                Logger?.LogTrace(e, "The PersistentList backing document already exists for ID {key}. Not an error.",
                     Redactor?.UserData(Key));
             }
         }

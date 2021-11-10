@@ -23,7 +23,7 @@ namespace Couchbase.Core.DI
         private readonly IKetamaKeyMapperFactory _ketamaKeyMapperFactory;
         private readonly ILogger<CouchbaseBucket> _couchbaseLogger;
         private readonly ILogger<MemcachedBucket> _memcachedLogger;
-        private readonly IRedactor _redactor;
+        private readonly TypedRedactor _redactor;
         private readonly IBootstrapperFactory _bootstrapperFactory;
         private readonly IRequestTracer _tracer;
         private readonly IOperationConfigurator _operationConfigurator;
@@ -37,7 +37,7 @@ namespace Couchbase.Core.DI
             IKetamaKeyMapperFactory ketamaKeyMapperFactory,
             ILogger<CouchbaseBucket> couchbaseLogger,
             ILogger<MemcachedBucket> memcachedLogger,
-            IRedactor redactor,
+            TypedRedactor redactor,
             IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer,
             IOperationConfigurator operationConfigurator,

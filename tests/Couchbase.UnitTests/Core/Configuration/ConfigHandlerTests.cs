@@ -242,7 +242,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             public FakeBucket(ITestOutputHelper output, SemaphoreSlim eventSlim)
                 : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
-                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new Mock<IRedactor>().Object,
+                    new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,

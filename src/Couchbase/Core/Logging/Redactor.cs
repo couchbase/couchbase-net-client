@@ -1,6 +1,5 @@
-using System;
+using Couchbase.Utils;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 #nullable enable
 
@@ -9,91 +8,34 @@ namespace Couchbase.Core.Logging
     /// <summary>
     /// Represents a logging argument that is redactable.
     /// </summary>
+    /// <remarks>
+    /// Forwards redaction to a <see cref="TypedRedactor"/>.
+    /// </remarks>
     internal class Redactor : IRedactor
     {
-        private static readonly string _user = "ud";
-        private static readonly string _meta = "md";
-        private static readonly string _system = "sd";
+        private readonly TypedRedactor _typedRedactor;
 
-        public Redactor(ClusterOptions options)
+        public Redactor(TypedRedactor typedRedactor)
         {
-            RedactionLevel = options.RedactionLevel;
-        }
-
-        public RedactionLevel RedactionLevel { get; }
-
-        [return: NotNullIfNotNull("message")]
-        public object? UserData(object? message)
-        {
-            return RedactMessage(message, _user);
-        }
-
-        [return: NotNullIfNotNull("message")]
-        public object? MetaData(object? message)
-        {
-            return RedactMessage(message, _meta);
-        }
-
-        [return: NotNullIfNotNull("message")]
-        public object? SystemData(object? message)
-        {
-            return RedactMessage(message, _system);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NotNullIfNotNull("message")]
-        private object? RedactMessage(object? message, string redactionType)
-        {
-            switch (RedactionLevel)
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+            if (typedRedactor == null)
             {
-                case RedactionLevel.None:
-                    return message;
-
-                case RedactionLevel.Full:
-                    break;
-
-                case RedactionLevel.Partial:
-                    if (!ReferenceEquals(redactionType, _user))
-                    {
-                        return message;
-                    }
-                    break;
-
-                default:
-                    ThrowArgumentOutOfRangeException(RedactionLevel);
-                    break;
+                ThrowHelper.ThrowArgumentNullException(nameof(typedRedactor));
             }
 
-            return new Redacted(redactionType, message);
+            _typedRedactor = typedRedactor;
         }
 
-        // Allow RedactMessage to be inlined
-        [DoesNotReturn]
-        private static void ThrowArgumentOutOfRangeException(RedactionLevel redactionLevel)
-        {
-            throw new ArgumentOutOfRangeException(Enum.GetName(typeof(RedactionLevel), redactionLevel),
-                "Unexpected redaction level: {redactionLevel}");
-        }
+        public RedactionLevel RedactionLevel => _typedRedactor.RedactionLevel;
 
-        /// <summary>
-        /// Delays string formatting until actually logging during call to ToString. This avoids the string
-        /// formatting cost for disabled log levels, in exchange for an extra Gen 0 heap allocation for log
-        /// levels that are enabled. Given the much higher cost of string formatting compared to a small Gen 0
-        /// heap allocation, and the fact that most logs are Debug level and disabled, this is faster.
-        /// </summary>
-        private class Redacted
-        {
-            private readonly string _redactionType;
-            private readonly object? _message;
+        [return: NotNullIfNotNull("message")]
+        public object? UserData(object? message) => message is not null ? _typedRedactor.UserData(message) : null;
 
-            public Redacted(string redactionType, object? message)
-            {
-                _redactionType = redactionType;
-                _message = message;
-            }
+        [return: NotNullIfNotNull("message")]
+        public object? MetaData(object? message) => message is not null ? _typedRedactor.MetaData(message) : null;
 
-            public override string ToString() => $"<{_redactionType}>{_message}</{_redactionType}>";
-        }
+        [return: NotNullIfNotNull("message")]
+        public object? SystemData(object? message) => message is not null ? _typedRedactor.SystemData(message) : null;
     }
 }
 

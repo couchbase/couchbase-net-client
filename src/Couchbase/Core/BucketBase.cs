@@ -27,12 +27,13 @@ using Couchbase.Core.Logging;
 namespace Couchbase.Core
 {
     [DebuggerDisplay("Name = {Name}, BucketType = {BucketType}")]
-    internal abstract class BucketBase : IBucket, IConfigUpdateEventSink, IBootstrappable
+    internal abstract partial class BucketBase : IBucket, IConfigUpdateEventSink, IBootstrappable
     {
         private ClusterState _clusterState;
         protected readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new();
         public readonly ClusterNodeCollection Nodes = new();
+        private readonly ILogger _logger;
         private volatile int _disposed;
         private bool? _supportsCollections;
 
@@ -45,7 +46,7 @@ namespace Couchbase.Core
             IScopeFactory scopeFactory,
             IRetryOrchestrator retryOrchestrator,
             ILogger logger,
-            IRedactor redactor,
+            TypedRedactor redactor,
             IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer,
             IOperationConfigurator operationConfigurator,
@@ -55,7 +56,7 @@ namespace Couchbase.Core
             Context = context ?? throw new ArgumentNullException(nameof(context));
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
             RetryOrchestrator = retryOrchestrator ?? throw new ArgumentNullException(nameof(retryOrchestrator));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             Tracer = tracer;
             RetryStrategy = retryStrategy ?? throw new ArgumentNullException(nameof(retryStrategy));
@@ -66,9 +67,9 @@ namespace Couchbase.Core
         protected IRetryStrategy RetryStrategy { get; }
         public IBootstrapper Bootstrapper { get; }
         public IBootstrapperFactory BootstrapperFactory { get; }
-        protected IRedactor Redactor { get; }
+        protected TypedRedactor Redactor { get; }
         protected IRequestTracer Tracer { get; }
-        public ILogger Logger { get; }
+        public ILogger Logger => _logger;
         public ClusterContext Context { get; }
         public IRetryOrchestrator RetryOrchestrator { get; }
         public BucketConfig? CurrentConfig { get; protected set; }
@@ -92,7 +93,7 @@ namespace Couchbase.Core
 
         public virtual IScope Scope(string scopeName)
         {
-            Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
+            LogScopeLookup(Redactor.UserData(scopeName));
 
             return Scopes.GetOrAdd(scopeName, _createScopeAction ??= CreateScope);
         }
@@ -333,7 +334,7 @@ namespace Couchbase.Core
         {
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
-                Logger.LogDebug("Disposing bucket [{name}]!", Name);
+                LogDispose(Redactor.UserData(Name));
                 Bootstrapper?.Dispose();
                 Context.RemoveAllNodes(this);
                 Context.RemoveBucket(this);
@@ -353,6 +354,16 @@ namespace Couchbase.Core
                 return new ValueTask(Task.FromException(ex));
             }
         }
+
+        #region Logging
+
+        [LoggerMessage(1, LogLevel.Debug, "Fetching scope {scopeName}")]
+        private partial void LogScopeLookup(Redacted<string> scopeName);
+
+        [LoggerMessage(100, LogLevel.Debug, "Disposing bucket [{name}]!")]
+        private partial void LogDispose(Redacted<string> name);
+
+        #endregion
     }
 }
 
