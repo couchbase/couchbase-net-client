@@ -27,9 +27,9 @@ namespace Couchbase.Query
     /// </summary>
     public class QueryOptions
     {
-        private List<object>? _arguments;
-        private Dictionary<string, object>? _parameters;
-        private Dictionary<string, object>? _rawParameters;
+        private readonly List<object?> _arguments = new List<object?>();
+        private readonly Dictionary<string, object> _parameters = new Dictionary<string, object>();
+        private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
         private bool _autoExecute;
         private bool? _includeMetrics;
         private int? _maxServerParallelism;
@@ -460,7 +460,7 @@ namespace Couchbase.Query
         /// </remarks>
         public QueryOptions Parameter(string name, object value)
         {
-            (_parameters ??= new()).Add(name, value);
+            _parameters.Add(name, value);
             return this;
         }
 
@@ -474,9 +474,9 @@ namespace Couchbase.Query
         /// <remarks>
         ///     Optional.
         /// </remarks>
-        public QueryOptions Parameter(object value)
+        public QueryOptions Parameter(object? value)
         {
-            (_arguments ??= new()).Add(value);
+            _arguments.Add(value);
             return this;
         }
 
@@ -497,7 +497,6 @@ namespace Couchbase.Query
                 throw new ArgumentException("Cannot combine positional and named query parameters.");
             }
 
-            _parameters ??= new();
             foreach (var parameter in parameters) _parameters.Add(parameter.Key, parameter.Value);
 
             return this;
@@ -515,7 +514,6 @@ namespace Couchbase.Query
                 throw new ArgumentException("Cannot combine positional and named query parameters.");
             }
 
-            _arguments ??= new();
             foreach (var parameter in parameters) _arguments.Add(parameter);
 
             return this;
@@ -614,7 +612,7 @@ namespace Couchbase.Query
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Parameter name cannot be null or empty.");
 
-            (_rawParameters ??= new()).Add(name, value);
+            _rawParameters.Add(name, value);
             return this;
         }
 

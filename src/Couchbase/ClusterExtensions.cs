@@ -1,6 +1,8 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
+using Couchbase.Core.Compatibility;
 using Couchbase.Diagnostics;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -30,6 +32,107 @@ namespace Couchbase
         {
             return cluster.QueryAsync<T>(statement, QueryOptions.Create(statement));
         }
+
+#if NET6_0_OR_GREATER
+        // Note: We chose a different name here, QueryInterpolatedAsync, to avoid confusion with
+        // QueryAsync(string statement, QueryOptions options = default). If we use the same name then the compiler
+        // chooses the method directly on ICluster, missing our interpolation logic.
+        //
+        // There is also a security risk for a consumer who may unintentionally apply an interpolated string to a
+        // method thinking it is being securely parameterized when it is not. Using a different method named helps
+        // to make this clear.
+        //
+        // Finally, using a different name ensures that consumers don't receive a behavioral change upon upgrade.
+        // Consumers may be using string interpolation to build statements already and expecting them to be raw strings
+        // (i.e. including wrapping quotes, etc). Upon upgrading to .NET 6 this behavior would suddenly change.
+        // By using a different name, the consumer opts into the behavior.
+
+        /// <summary>
+        /// Executes an interpolated query.
+        /// </summary>
+        /// <typeparam name="T">Type of row returned by the query.</typeparam>
+        /// <param name="cluster">Cluster against which to execute the query.</param>
+        /// <param name="handler">The interpolated string.</param>
+        /// <returns>The query result.</returns>
+        /// <remarks>
+        /// <para>
+        /// Treats expressions in the interpolated string as positional parameters. This makes prepared queries with dynamic
+        /// parameters very easy to build. Note that format strings and alignment are ignored. Also, you may only use expressions
+        /// in locations in the query where parameters are acceptable.
+        /// </para>
+        /// <para>
+        /// This overload executes the query with AdHoc <c>false</c>, resulting in prepared queries.
+        /// </para>
+        /// </remarks>
+        [InterfaceStability(Level.Volatile)]
+        public static Task<IQueryResult<T>> QueryInterpolatedAsync<T>(this ICluster cluster, ref QueryInterpolatedStringHandler handler)
+        {
+            // handler.QueryOptions will already be filled with positional parameters and AdHoc(false) when we reach this point
+
+            return cluster.QueryAsync<T>(handler.ToStringAndClear(), handler.QueryOptions);
+        }
+
+        /// <summary>
+        /// Executes an interpolated query.
+        /// </summary>
+        /// <typeparam name="T">Type of row returned by the query.</typeparam>
+        /// <param name="cluster">Cluster against which to execute the query.</param>
+        /// <param name="configureOptions">Action to configure the <see cref="QueryOptions"/>.</param>
+        /// <param name="handler">The interpolated string.</param>
+        /// <returns>The query result.</returns>
+        /// <remarks>
+        /// <para>
+        /// Treats expressions in the interpolated string as positional parameters. This makes prepared queries with dynamic
+        /// parameters very easy to build. Note that format strings and alignment are ignored. Also, you may only use expressions
+        /// in locations in the query where parameters are acceptable.
+        /// </para>
+        /// <para>
+        /// This overload defaults AdHoc to <c>false</c>, resulting in prepared queries. This may be overridden in
+        /// <paramref name="configureOptions"/>.
+        /// </para>
+        /// </remarks>
+        [InterfaceStability(Level.Volatile)]
+        public static Task<IQueryResult<T>> QueryInterpolatedAsync<T>(this ICluster cluster, Action<QueryOptions> configureOptions,
+            ref QueryInterpolatedStringHandler handler)
+        {
+            // handler.QueryOptions will already be filled with positional parameters and AdHoc(false) when we reach this point
+
+            var options = handler.QueryOptions;
+            configureOptions.Invoke(options);
+
+            return cluster.QueryAsync<T>(handler.ToStringAndClear(), options);
+        }
+
+        /// <summary>
+        /// Executes an interpolated query.
+        /// </summary>
+        /// <typeparam name="T">Type of row returned by the query.</typeparam>
+        /// <param name="cluster">Cluster against which to execute the query.</param>
+        /// <param name="options">Options to control query execution. Should not include any positional parameters.</param>
+        /// <param name="handler">The interpolated string.</param>
+        /// <returns>The query result.</returns>
+        /// <remarks>
+        /// <para>
+        /// Treats expressions in the interpolated string as positional parameters. This makes prepared queries with dynamic
+        /// parameters very easy to build. Note that format strings and alignment are ignored. Also, you may only use expressions
+        /// in locations in the query where parameters are acceptable.
+        /// </para>
+        /// <para>
+        /// This overload does not default AdHoc to <c>false</c> like the other overloads. If you desire prepared queries,
+        /// be sure to set AdHoc to <c>false</c> in <paramref name="options"/>.
+        /// </para>
+        /// </remarks>
+        [InterfaceStability(Level.Volatile)]
+        public static Task<IQueryResult<T>> QueryInterpolatedAsync<T>(this ICluster cluster, QueryOptions options,
+            [InterpolatedStringHandlerArgument("options")] ref QueryInterpolatedStringHandler handler)
+        {
+            // options will be passed to the constructor of QueryInterpolatedStringHandler so it adds positional
+            // parameters as the query string is being built
+
+            return cluster.QueryAsync<T>(handler.ToStringAndClear(), handler.QueryOptions);
+        }
+
+#endif
 
         #region Analytics
 

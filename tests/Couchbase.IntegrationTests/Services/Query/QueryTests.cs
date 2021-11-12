@@ -142,6 +142,66 @@ namespace Couchbase.IntegrationTests.Services.Query
             }
         }
 
+#if NET6_0_OR_GREATER
+
+        [Fact]
+        public async Task Test_InterpolatedQuery()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+
+            var type = "hotel";
+            var limit = 1;
+
+            using var result = await cluster.QueryInterpolatedAsync<dynamic>($"SELECT `travel-sample`.* FROM `travel-sample` WHERE type={type} LIMIT {limit}")
+                .ConfigureAwait(false);
+
+            await foreach (var o in result.ConfigureAwait(false))
+            {
+                _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
+            }
+        }
+
+        [Fact]
+        public async Task Test_InterpolatedQueryWithPassedOptions()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+
+            var type = "hotel";
+            var limit = 1;
+
+            var options = new QueryOptions().AdHoc(false); // This can be done inline, but we do it here so we can assert afterwards
+            using var result = await cluster.QueryInterpolatedAsync<dynamic>(options, $"SELECT `travel-sample`.* FROM `travel-sample` WHERE type={type} LIMIT {limit}")
+                .ConfigureAwait(false);
+
+            await foreach (var o in result.ConfigureAwait(false))
+            {
+                _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
+            }
+
+            _testOutputHelper.WriteLine(options.StatementValue);
+            _testOutputHelper.WriteLine(options.GetAllParametersAsJson());
+        }
+
+        [Fact]
+        public async Task Test_InterpolatedQueryWithOptionsBuilder()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+
+            var type = "hotel";
+            var limit = 1;
+
+            using var result = await cluster.QueryInterpolatedAsync<dynamic>(options => options.AdHoc(false),
+                $"SELECT `travel-sample`.* FROM `travel-sample` WHERE type={type} LIMIT {limit}")
+                .ConfigureAwait(false);
+
+            await foreach (var o in result.ConfigureAwait(false))
+            {
+                _testOutputHelper.WriteLine(JsonConvert.SerializeObject(o, Formatting.None));
+            }
+        }
+
+#endif
+
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_Query_BeginWork_Affinity()
         {
