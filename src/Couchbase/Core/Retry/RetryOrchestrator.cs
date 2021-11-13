@@ -263,7 +263,7 @@ namespace Couchbase.Core.Retry
                 if (await scope.CollectionAsync(op.CName!).ConfigureAwait(false) is IInternalCollection collection)
                 {
                     //re-fetch the CID but do not allow retries in that path and force the CID update
-                    await collection.PopulateCidAsync(false, true);
+                    await collection.PopulateCidAsync(false, true).ConfigureAwait(false);
 
                     op.Reset();
                     op.Cid = collection.Cid;

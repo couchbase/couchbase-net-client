@@ -207,7 +207,7 @@ namespace Couchbase.Management.Collections
                 var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
-                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (contentBody.Contains("already exists"))
                         throw new CollectionExistsException(spec.ScopeName, spec.Name);
 
@@ -239,7 +239,7 @@ namespace Couchbase.Management.Collections
                 var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
-                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (contentBody.Contains("not found"))
                         throw new CollectionNotFoundException(spec.ScopeName, spec.Name);
                     throw new CouchbaseException(contentBody);
@@ -277,7 +277,7 @@ namespace Couchbase.Management.Collections
                 var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
-                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (contentBody.Contains("already exists")) throw new ScopeExistsException(scopeName);
                     throw new CouchbaseException(contentBody);
                 }
@@ -316,7 +316,7 @@ namespace Couchbase.Management.Collections
                 var createResult = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
-                    var contentBody = await createResult.Content.ReadAsStringAsync();
+                    var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                     if (contentBody.Contains("not found"))
                         throw new ScopeNotFoundException(scopeName);

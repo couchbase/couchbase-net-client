@@ -50,10 +50,11 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, function);
+                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, function)
+                        .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
                     {
                         switch (errorResponse.Name)
@@ -100,10 +101,11 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.DeleteAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.DeleteAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
                     {
                         switch (errorResponse.Name)
@@ -146,7 +148,8 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
                     var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -179,7 +182,8 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
                     var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -212,10 +216,11 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
                     {
                         switch (errorResponse.Name)
@@ -258,10 +263,11 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
                     {
                         switch (errorResponse.Name)
@@ -302,10 +308,11 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
                     {
                         switch (errorResponse.Name)
@@ -346,10 +353,11 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
                     {
                         switch (errorResponse.Name)
@@ -390,7 +398,8 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken);
+                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                        .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
                     var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

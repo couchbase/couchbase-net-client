@@ -208,7 +208,7 @@ namespace Couchbase
 
                 if (Nodes.TryGet(endPoint!, out var clusterNode))
                 {
-                    await clusterNode.SendAsync(op, tokenPair);
+                    await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
                     return;
                 }
 
@@ -220,7 +220,7 @@ namespace Couchbase
             if (node == null)
                 throw new NodeNotAvailableException(
                     $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
-            await node.SendAsync(op, tokenPair);
+            await node.SendAsync(op, tokenPair).ConfigureAwait(false);
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)

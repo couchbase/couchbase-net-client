@@ -397,7 +397,7 @@ namespace Couchbase.Management.Analytics
                 var formContent = new FormUrlEncodedContent(link.FormData);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
-                await HandleLinkManagementResultErrors(result, link);
+                await HandleLinkManagementResultErrors(result, link).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -419,7 +419,7 @@ namespace Couchbase.Management.Analytics
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PutAsync(uri, formContent, options.CancellationToken).ConfigureAwait(false);
                 var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-                await HandleLinkManagementResultErrors(result, link);
+                await HandleLinkManagementResultErrors(result, link).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -441,7 +441,7 @@ namespace Couchbase.Management.Analytics
                 var uri = builder.Uri;
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.DeleteAsync(uri, options.CancellationToken).ConfigureAwait(false);
-                await HandleLinkManagementResultErrors(result, linkName, dataverseName);
+                await HandleLinkManagementResultErrors(result, linkName, dataverseName).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -475,8 +475,8 @@ namespace Couchbase.Management.Analytics
                 using var httpClient = _httpClientFactory.Create();
                 var uri = builder.Uri;
                 var result = await httpClient.GetAsync(uri, options.CancellationToken).ConfigureAwait(false);
-                var responseBody = await result.Content.ReadAsStringAsync();
-                await HandleLinkManagementResultErrors(result, string.Empty, string.Empty);
+                var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                await HandleLinkManagementResultErrors(result, string.Empty, string.Empty).ConfigureAwait(false);
                 var jarray = JArray.Parse(responseBody);
                 var typedResults = jarray.Select<JToken, AnalyticsLink>(token => token["type"].Value<string>() switch
                 {

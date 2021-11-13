@@ -170,7 +170,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             Dispose();
             if (_backgroundTask != null)
             {
-                await _backgroundTask;
+                await _backgroundTask.ConfigureAwait(false);
             }
         }
     }

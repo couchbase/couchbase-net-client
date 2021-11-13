@@ -894,7 +894,10 @@ namespace Couchbase.KeyValue
             tasks.AddRange(
                 vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
 
-            return await Task.WhenAny(tasks).ConfigureAwait(false).GetAwaiter().GetResult(); //TODO BUG!
+            var firstCompleted = await Task.WhenAny(tasks).ConfigureAwait(false);
+
+            // Note: GetAwaiter().GetResult() is safe here because we know the task is already complete
+            return firstCompleted.GetAwaiter().GetResult();
         }
 
         public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id,
@@ -1005,7 +1008,7 @@ namespace Couchbase.KeyValue
         public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
         {
             Logger.LogDebug("Fetching CID for {scope}.{collection}", ScopeName, Name);
-            var waitedSuccessfully = await CidLock.WaitAsync(2500);
+            var waitedSuccessfully = await CidLock.WaitAsync(2500).ConfigureAwait(false);
             try
             {
                 if (!waitedSuccessfully)
@@ -1020,7 +1023,7 @@ namespace Couchbase.KeyValue
                 if (Cid.HasValue && !forceUpdate) return;
 
                 //for later cheshire cat builds
-                Cid = await GetCidAsync($"{ScopeName}.{Name}", true, retryIfFailure);
+                Cid = await GetCidAsync($"{ScopeName}.{Name}", true, retryIfFailure).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -1029,7 +1032,7 @@ namespace Couchbase.KeyValue
                     try
                     {
                         //if this is encountered were on a older server pre-cheshire cat changes
-                        Cid = await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure);
+                        Cid = await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure).ConfigureAwait(false);
                     }
                     catch (UnsupportedException)
                     {
