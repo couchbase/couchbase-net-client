@@ -28,8 +28,7 @@ namespace Couchbase.Core.IO.Connections
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly InFlightOperationSet _statesInFlight = new(TimeSpan.FromSeconds(75));
         private readonly Stopwatch _stopwatch;
-        private readonly object _syncObj = new();
-        private volatile bool _disposed;
+        private int _disposed;
 
         private readonly string _remoteHostString;
         private readonly string _localHostString;
@@ -119,7 +118,7 @@ namespace Couchbase.Core.IO.Connections
             {
                 throw new ValueToolargeException("Encoded document exceeds the 20MB document size limit.");
             }
-            if (_disposed)
+            if (Volatile.Read(ref _disposed) > 0)
             {
                 ThrowHelper.ThrowObjectDisposedException(nameof(MultiplexingConnection));
             }
@@ -227,20 +226,12 @@ namespace Couchbase.Core.IO.Connections
                     }
                 }
 
-                HandleDisconnect(new Exception("socket closed."));
+                HandleDisconnect(null);
             }
 #if NET452
             catch (ThreadAbortException) {}
 #endif
             catch (ObjectDisposedException) {}
-            catch (SocketException e)
-            {
-                //Dispose has already been thrown by another thread
-                if ((int) e.SocketErrorCode != 10004)
-                {
-                    HandleDisconnect(e);
-                }
-            }
             catch (Exception e)
             {
                 HandleDisconnect(e);
@@ -314,10 +305,13 @@ namespace Couchbase.Core.IO.Connections
         //our receive thread will always find out immediately when connection closes
         //we can easily catch the spots that mean connection was closed from the other
         //side and attach handling here
-        private void HandleDisconnect(Exception exception)
+        private void HandleDisconnect(Exception? exception)
         {
-            //you might throw an event here to be handled by owner of this class, or can implement reconnect directly here etc...
-            //Log.LogWarning("Handling disconnect for connection {0}: {1}", Identity, exception);
+            if (exception != null && Volatile.Read(ref _disposed) == 0)
+            {
+                //you might throw an event here to be handled by owner of this class, or can implement reconnect directly here etc...
+                _logger.LogDebug(exception, "Handling disconnect for connection {cid}", ConnectionId);
+            }
 
             //in any case the current socket object should be closed, all states in flight released etc.
             Close();
@@ -333,10 +327,10 @@ namespace Couchbase.Core.IO.Connections
 
         public void Close()
         {
-            if (_disposed) return;
-            lock (_syncObj)
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
-                _disposed = true;
+                _logger.LogInformation("Closing connection {cid}", ConnectionId);
+
                 IsDead = true;
 
                 try
@@ -359,9 +353,19 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public async ValueTask CloseAsync(TimeSpan timeout)
         {
+            if (Volatile.Read(ref _disposed) > 0)
+            {
+                return;
+            }
+
+            _logger.LogInformation("Closing connection {cid}, waiting {timeout} for {count} in-flight operations to complete.", ConnectionId, timeout, _statesInFlight.Count);
+
             try
             {
                 await _statesInFlight.WaitForAllOperationsAsync(timeout).ConfigureAwait(false);
+
+                Debug.Assert(_statesInFlight.Count == 0, "Expect no in-flight operations");
+                _logger.LogInformation("In-flight operations are complete on connection {cid}, proceeding to close.", ConnectionId);
             }
             catch (Exception ex)
             {
@@ -371,11 +375,7 @@ namespace Couchbase.Core.IO.Connections
             Close();
         }
 
-        public void Dispose()
-        {
-            if (_disposed) return;
-            Close();
-        }
+        public void Dispose() => Close();
 
         /// <inheritdoc />
         public void AddTags(IRequestSpan span)

@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Couchbase.IntegrationTests.Fixtures
 {
-    public class ClusterFixture : IAsyncLifetime
+    public class ClusterFixture : IAsyncLifetime, IAsyncDisposable
     {
         private readonly TestSettings _settings;
         private bool _bucketOpened;
@@ -18,9 +18,17 @@ namespace Couchbase.IntegrationTests.Fixtures
         public ICluster Cluster { get; private set; }
 
         public ClusterFixture()
+            : this(null)
+        {
+        }
+
+        public ClusterFixture(Action<ClusterOptions> configureOptions)
         {
             _settings = GetSettings();
-            ClusterOptions = GetClusterOptions();
+
+            var options = GetClusterOptions();
+            configureOptions?.Invoke(options);
+            ClusterOptions = options;
         }
 
         public async ValueTask<ICluster> GetCluster()
@@ -73,6 +81,7 @@ namespace Couchbase.IntegrationTests.Fixtures
                 serviceCollection.AddLogging(builder => builder
                     .AddFilter(level => level >= LogLevel.Debug)
                 );
+
                 var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
                 loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
                 options.WithLogging(loggerFactory);
@@ -85,15 +94,25 @@ namespace Couchbase.IntegrationTests.Fixtures
         {
             Cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
-                    GetClusterOptions())
+                    ClusterOptions)
                 .ConfigureAwait(false);
         }
 
         public Task DisposeAsync()
         {
-            Cluster?.Dispose();
+            if (Cluster != null)
+            {
+                var loggerFactory = Cluster.ClusterServices.GetRequiredService<ILoggerFactory>();
+
+                Cluster.Dispose();
+                Cluster = null;
+
+                loggerFactory.Dispose();
+            }
 
             return Task.CompletedTask;
         }
+
+        ValueTask IAsyncDisposable.DisposeAsync() => new ValueTask(DisposeAsync());
     }
 }
