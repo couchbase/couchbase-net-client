@@ -149,6 +149,12 @@ namespace Couchbase.Core.IO.Connections
                     .ConfigureAwait(false);
 #endif
             }
+            catch (OperationCanceledException)
+            {
+                // Don't let cancellations kill the connection, just ignore.
+                // It's also unnecessary to forward this to the operation, as it is monitoring for cancellation
+                // and throws the correct exception type based on internal vs. external cancellation.
+            }
             catch (Exception e)
             {
                 HandleDisconnect(e);
