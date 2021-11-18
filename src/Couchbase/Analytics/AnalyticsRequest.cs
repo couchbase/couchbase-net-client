@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Retry;
 
@@ -6,19 +7,22 @@ namespace Couchbase.Analytics
 {
     public class AnalyticsRequest : RequestBase
     {
-        public static AnalyticsRequest Create(string statement, IValueRecorder recorder, AnalyticsOptions options)
+        public static AnalyticsRequest Create(string statement, AnalyticsOptions options)
         {
             return new(options.ReadonlyValue)
             {
-                    RetryStrategy = options.RetryStrategyValue ?? new BestEffortRetryStrategy(),
-                    Timeout = options.TimeoutValue!.Value,
-                    ClientContextId = options.ClientContextIdValue,
-                    Statement = statement,
-                    Token = options.Token,
-                    Options = options,
-                    Recorder = recorder
-                };
+                RetryStrategy = options.RetryStrategyValue ?? new BestEffortRetryStrategy(),
+                Timeout = options.TimeoutValue!.Value,
+                ClientContextId = options.ClientContextIdValue,
+                Statement = statement,
+                Token = options.Token,
+                Options = options
+            };
         }
+
+        [Obsolete("Use the overload without IValueRecorder, this overload will be removed in a future version.")]
+        public static AnalyticsRequest Create(string statement, IValueRecorder recorder, AnalyticsOptions options) =>
+            Create(statement, options);
 
         public AnalyticsRequest(bool idempotent)
         {
@@ -29,6 +33,15 @@ namespace Couchbase.Analytics
 
         //specific to analytics
         public AnalyticsOptions? Options { get; set; }
+
+        public sealed override void StopRecording()
+        {
+            if (Stopwatch != null)
+            {
+                Stopwatch.Stop();
+                MetricTracker.Analytics.TrackOperation(Stopwatch.Elapsed);
+            }
+        }
     }
 }
 

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -71,6 +72,8 @@ namespace Couchbase.Core.IO.Connections.DataFlow
             {
                 BoundedCapacity = (int)_kvSendQueueCapacity
             });
+
+            TrackConnectionPool(this);
         }
 
         /// <inheritdoc />
@@ -114,6 +117,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     if (!_sendQueue.Post(new QueueItem
                         { Operation = operation, CancellationToken = cancellationToken }))
                     {
+                        MetricTracker.KeyValue.TrackSendQueueFull();
                         throw new SendQueueFullException();
                     }
 
@@ -132,6 +136,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                     if (!_sendQueue.Post(new QueueItem
                         { Operation = operation, CancellationToken = cancellationToken }))
                     {
+                        MetricTracker.KeyValue.TrackSendQueueFull();
                         throw new SendQueueFullException();
                     }
                 }, cancellationToken);
@@ -368,6 +373,7 @@ namespace Couchbase.Core.IO.Connections.DataFlow
                                 // Since the exception on the task is ignored, we're also eating the exception
                                 if (!_sendQueue.Post(request))
                                 {
+                                    MetricTracker.KeyValue.TrackSendQueueFull();
                                     throw new SendQueueFullException();
                                 }
                             }

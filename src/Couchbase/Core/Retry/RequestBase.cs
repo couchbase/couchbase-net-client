@@ -11,8 +11,8 @@ namespace Couchbase.Core.Retry
 {
     public abstract class RequestBase : IRequest
     {
-        private readonly Stopwatch? _stopwatch = Stopwatch.StartNew();
-        private IValueRecorder? _recorder;
+        private protected readonly Stopwatch? Stopwatch = Stopwatch.StartNew();
+
         private IRetryStrategy? _retryStrategy;
 
         public uint Attempts { get; set; }
@@ -32,20 +32,14 @@ namespace Couchbase.Core.Retry
         #region Tracing and Metrics
 
         /// <inheritdoc />
-        public void StopRecording()
-        {
-            _stopwatch?.Stop();
-            if (_stopwatch?.ElapsedMilliseconds != null)
-            {
-                _recorder?.RecordValue(_stopwatch.Elapsed.ToMicroseconds());
-            }
-        }
+        public abstract void StopRecording();
 
         /// <inheritdoc />
+        [Obsolete("Unused, will be removed in a future version.")]
         public IValueRecorder Recorder
         {
-            get => _recorder ?? NoopValueRecorder.Instance;
-            set => _recorder = value;
+            get => NoopValueRecorder.Instance;
+            set { }
         }
 
         public void LogOrphaned()

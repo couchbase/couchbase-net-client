@@ -39,6 +39,7 @@ namespace Couchbase.Core.Retry
         /// <summary>
         /// A <see cref="IValueRecorder"/> instance for measuring latencies.
         /// </summary>
+        [Obsolete("Unused, will be removed in a future version.")]
         IValueRecorder Recorder { get; set; }
 
         void LogOrphaned();

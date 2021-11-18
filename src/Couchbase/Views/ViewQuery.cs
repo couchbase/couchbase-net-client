@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Retry;
@@ -648,6 +648,15 @@ namespace Couchbase.Views
 
             /// <inheritdoc />
         public ITypeSerializer? Serializer { get; set; }
+
+        public sealed override void StopRecording()
+        {
+            if (Stopwatch != null)
+            {
+                Stopwatch.Stop();
+                MetricTracker.Views.TrackOperation(Stopwatch.Elapsed);
+            }
+        }
     }
 }
 

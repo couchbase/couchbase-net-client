@@ -38,8 +38,7 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy(),
-                NoopMeter.Instance);
+                new BestEffortRetryStrategy());
 
                 // Act
 
@@ -68,8 +67,7 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy(),
-                NoopMeter.Instance);
+                new BestEffortRetryStrategy());
 
                 // Act/Assert
 

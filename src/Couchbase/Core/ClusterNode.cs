@@ -52,13 +52,12 @@ namespace Couchbase.Core
         private readonly ObservableCollection<HostEndpointWithPort> _keyEndPoints = new();
         private readonly string _cachedToString;
         private volatile bool _disposed;
-        private readonly IValueRecorder _valueRecorder;
         private readonly string _localHostName;
         private readonly string _remoteHostName;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IRedactor redactor, HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer, IValueRecorder valueRecorder)
+            IRedactor redactor, HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -70,7 +69,6 @@ namespace Couchbase.Core
             _tracer = tracer;
             BucketType = bucketType;
             EndPoint = endPoint;
-            _valueRecorder = valueRecorder ?? throw new ArgumentNullException(nameof(valueRecorder));
 
             try
             {
@@ -455,9 +453,6 @@ namespace Couchbase.Core
 
             try
             {
-                //for capturing latencies
-                op.Recorder = _valueRecorder;
-
                 // Await the send in case the send throws an exception (i.e. SendQueueFullException)
                 await sender(op, state, tokenPair).ConfigureAwait(false);
 

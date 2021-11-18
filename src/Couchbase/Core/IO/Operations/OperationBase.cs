@@ -19,6 +19,7 @@ using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
+using Couchbase.Diagnostics;
 using Couchbase.Utils;
 using Microsoft.Extensions.ObjectPool;
 
@@ -37,7 +38,6 @@ namespace Couchbase.Core.IO.Operations
         private List<RetryReason>? _retryReasons;
         private IRetryStrategy? _retryStrategy;
         private volatile bool _isSent;
-        private IValueRecorder? _recorder;
         private readonly Stopwatch _stopwatch;
         private IRequestSpan? _dispatchSpan;
         private bool _isOrphaned;
@@ -101,10 +101,11 @@ namespace Couchbase.Core.IO.Operations
         }
 
         /// <inheritdoc />
+        [Obsolete("Unused, will be removed in a future version.")]
         public IValueRecorder Recorder
         {
-            get => _recorder ?? NoopValueRecorder.Instance;
-            set => _recorder = value;
+            get => NoopValueRecorder.Instance;
+            set { }
         }
 
         /// <inheritdoc />
@@ -348,6 +349,7 @@ namespace Couchbase.Core.IO.Operations
             {
                 _isOrphaned = true;//only create attribute once
                 Span.SetAttribute("orphaned", "true");
+                MetricTracker.KeyValue.TrackOrphaned();
             }
         }
 
@@ -672,7 +674,7 @@ namespace Couchbase.Core.IO.Operations
         public void StopRecording()
         {
             _stopwatch.Stop();
-            _recorder?.RecordValue(_stopwatch.Elapsed.ToMicroseconds(), new KeyValuePair<string, string>("opcode", OpCode.ToString()));
+            MetricTracker.KeyValue.TrackOperation(OpCode, _stopwatch.Elapsed);
         }
         #endregion
 

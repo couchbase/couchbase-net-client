@@ -57,8 +57,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 {
                     Hostname = "127.0.0.1"
                 },
-                NoopRequestTracer.Instance,
-                NoopValueRecorder.Instance)
+                NoopRequestTracer.Instance)
             {
                 ErrorMap = errorMap
             };
@@ -121,8 +120,7 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 {
                     Hostname = "127.0.0.1"
                 },
-                NoopRequestTracer.Instance,
-                NoopValueRecorder.Instance)
+                NoopRequestTracer.Instance)
             {
                 ErrorMap = errorMap
             };

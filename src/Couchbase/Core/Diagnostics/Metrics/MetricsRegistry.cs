@@ -1,3 +1,4 @@
+using System;
 using App.Metrics;
 using App.Metrics.ReservoirSampling.SlidingWindow;
 using App.Metrics.Timer;
@@ -7,6 +8,10 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// <summary>
     /// A registry for metrics definitions
     /// </summary>
+    /// <remarks>
+    /// These metrics only receive data if the logging meter is enabled.
+    /// </remarks>
+    [Obsolete("The dependency on App.Metrics may be removed in a future release.")]
     public static class MetricsRegistry
     {
         public static TimerOptions KvTimerHistogram => new()

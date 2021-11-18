@@ -1,8 +1,10 @@
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -23,6 +25,10 @@ namespace Couchbase.Core.IO.Connections
 {
     internal class MultiplexingConnection : IConnection
     {
+        private static readonly ConcurrentBag<WeakReference<MultiplexingConnection>> _connections = new();
+
+        public static int GetConnectionCount() => _connections.Count(p => p.TryGetTarget(out var connection) && !connection.IsDead);
+
         private const uint MaxDocSize = 20971520;
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
@@ -82,6 +88,8 @@ namespace Couchbase.Core.IO.Connections
                     ExecutionContext.RestoreFlow();
                 }
             }
+
+            _connections.Add(new WeakReference<MultiplexingConnection>(this, false));
         }
 
         public string ContextId { get; }

@@ -228,8 +228,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new HostEndpointWithPort("127.0.0.1", 11210),
                     BucketType.Couchbase,
                     new NodeAdapter(),
-                    NoopRequestTracer.Instance,
-                    NoopValueRecorder.Instance);
+                    NoopRequestTracer.Instance);
 
                 await clusterNode.ExecuteOp(op, token).ConfigureAwait(false);
 

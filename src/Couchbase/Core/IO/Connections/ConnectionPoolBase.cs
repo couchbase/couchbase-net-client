@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -15,6 +16,26 @@ namespace Couchbase.Core.IO.Connections
     /// </summary>
     internal abstract class ConnectionPoolBase : IConnectionPool
     {
+        #region Metrics
+
+        private static readonly ConcurrentBag<WeakReference<ConnectionPoolBase>> _connectionPools = new();
+
+        /// <summary>
+        /// Add a connection pool to the list of active connection pools. We don't want to do this in the ConnectionPoolBase
+        /// constructor because the constructor of the inherited class will not be complete yet. This will generally be the
+        /// last method called by the inherited class constructor.
+        /// </summary>
+        /// <param name="connectionPool">Connection pool to track.</param>
+        protected void TrackConnectionPool(ConnectionPoolBase connectionPool)
+        {
+            _connectionPools.Add(new WeakReference<ConnectionPoolBase>(connectionPool));
+        }
+
+        public static int GetSendQueueLength() => _connectionPools
+            .Sum(p => p.TryGetTarget(out var connectionPool) ? connectionPool.PendingSends : 0);
+
+        #endregion
+
         private readonly IConnectionInitializer _connectionInitializer;
         private readonly IConnectionFactory _connectionFactory;
 

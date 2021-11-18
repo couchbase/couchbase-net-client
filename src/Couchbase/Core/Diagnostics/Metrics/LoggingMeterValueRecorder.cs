@@ -20,11 +20,13 @@ namespace Couchbase.Core.Diagnostics.Metrics
         /// <inheritdoc />
         public void RecordValue(uint value, KeyValuePair<string, string>? tag = null)
         {
+#pragma warning disable CS0618
             if (tag == null)
                 _metrics?.Measure.Timer.Time(MetricsRegistry.KvTimerHistogram, value);
             else
                 _metrics?.Measure.Timer.Time(MetricsRegistry.KvTimerHistogram, new MetricTags(tag?.Key, tag?.Value),
                     value);
+#pragma warning restore CS0618
         }
     }
 }

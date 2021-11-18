@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
@@ -177,21 +178,26 @@ namespace Couchbase.Core.Retry
 
                     try
                     {
-                        operation.Attempts++;
+                        if (++operation.Attempts > 1)
+                        {
+                            MetricTracker.KeyValue.TrackRetry(operation.OpCode);
+                        }
 
                         try
                         {
                             await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
                             break;
                         }
-                        catch (CouchbaseException e) when(operation is not GetCid && (e is ScopeNotFoundException || e is CollectionNotFoundException))
+                        catch (CouchbaseException e) when (operation is not GetCid &&
+                                                           (e is ScopeNotFoundException ||
+                                                            e is CollectionNotFoundException))
                         {
                             // We catch CollectionOutdatedException separately from the CouchbaseException catch block
                             // in case RefreshCollectionId fails. This causes that failure to trigger normal retry logic.
 
                             _logger.LogInformation("Updating stale manifest for collection and retrying.", e);
                             if (!await RefreshCollectionId(bucket, operation)
-                                .ConfigureAwait(false))
+                                    .ConfigureAwait(false))
                             {
                                 // rethrow if we fail to refresh he collection ID so we hit retry logic
                                 // otherwise we'll loop and retry immediately
@@ -243,6 +249,8 @@ namespace Couchbase.Core.Retry
             }
             catch (OperationCanceledException) when (!tokenPair.IsExternalCancellation)
             {
+                MetricTracker.KeyValue.TrackTimeout(operation.OpCode);
+
                 ThrowHelper.ThrowTimeoutException(operation, new KeyValueErrorContext
                 {
                     BucketName = operation.BucketName,

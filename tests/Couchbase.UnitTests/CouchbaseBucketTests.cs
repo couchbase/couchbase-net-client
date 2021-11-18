@@ -32,8 +32,7 @@ namespace Couchbase.UnitTests
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy(),
-                NoopMeter.Instance);
+                new BestEffortRetryStrategy());
 
                 Assert.ThrowsAsync<ScopeNotFoundException>(async () => await bucket.ScopeAsync("doesnotexist"));
         }

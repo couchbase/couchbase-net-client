@@ -47,7 +47,7 @@ namespace Couchbase
         private volatile ClusterState _clusterState;
         private readonly IRequestTracer _tracer;
         private readonly IRetryStrategy _retryStrategy;
-        private readonly IMeter _meter;
+        private readonly MeterForwarder? _meterForwarder;
 
         // Internal is used to provide a seam for unit tests
         internal Lazy<IQueryClient> LazyQueryClient;
@@ -90,7 +90,15 @@ namespace Couchbase
             _redactor = _context.ServiceProvider.GetRequiredService<IRedactor>();
             _tracer = _context.ServiceProvider.GetRequiredService<IRequestTracer>();
             _retryStrategy = _context.ServiceProvider.GetRequiredService<IRetryStrategy>();
-            _meter = _context.ServiceProvider.GetRequiredService<IMeter>();
+
+            var meter = _context.ServiceProvider.GetRequiredService<IMeter>();
+            if (meter is not NoopMeter)
+            {
+                // Don't instantiate the meter forwarder if we're using the NoopMeter, since the meter forwarder
+                // will create subscriptions to the .NET metrics and start collecting/forwarding data. We can avoid
+                // this performance penalty when we know we're doing nothing with the data.
+                _meterForwarder = new MeterForwarder(meter);
+            }
 
             var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
@@ -309,8 +317,7 @@ namespace Couchbase
                 Statement = statement,
                 Token = options.Token,
                 Timeout = options.TimeoutValue.GetValueOrDefault(),
-                RetryStrategy =  options.RetryStrategyValue ?? _retryStrategy,
-                Recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.N1QLQuery)
+                RetryStrategy =  options.RetryStrategyValue ?? _retryStrategy
             }).ConfigureAwait(false);
         }
 
@@ -346,10 +353,7 @@ namespace Couchbase
                 return await client1.QueryAsync<T>(statement, options1).ConfigureAwait(false);
             }
 
-            //for measuring latencies
-            var recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.AnalyticsQuery);
-
-            return await _retryOrchestrator.RetryAsync(Func, AnalyticsRequest.Create(statement, recorder, options)).ConfigureAwait(false);
+            return await _retryOrchestrator.RetryAsync(Func, AnalyticsRequest.Create(statement, options)).ConfigureAwait(false);
         }
 
         #endregion
@@ -370,8 +374,7 @@ namespace Couchbase
                 Options = options,
                 Token = options.Token,
                 Timeout = options.TimeoutValue.Value,
-                RetryStrategy = options.RetryStrategyValue ?? _retryStrategy,
-                Recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.SearchQuery)
+                RetryStrategy = options.RetryStrategyValue ?? _retryStrategy
             };
 
             async Task<ISearchResult> Func()
@@ -526,6 +529,7 @@ namespace Couchbase
                 _disposed = true;
                 _bootstrapper.Dispose();
                 _context.Dispose();
+                _meterForwarder?.Dispose();
             }
         }
 

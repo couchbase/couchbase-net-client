@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Query;
 
 namespace Couchbase.Core.Retry.Query
@@ -9,6 +10,15 @@ namespace Couchbase.Core.Retry.Query
         public QueryOptions Options { get; set; }
 
         public override bool Idempotent => Options.IsReadOnly;
+
+        public sealed override void StopRecording()
+        {
+            if (Stopwatch != null)
+            {
+                Stopwatch.Stop();
+                MetricTracker.N1Ql.TrackOperation(Stopwatch.Elapsed);
+            }
+        }
     }
 }
 

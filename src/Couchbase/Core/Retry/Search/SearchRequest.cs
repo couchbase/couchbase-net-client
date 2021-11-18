@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Search;
 using Newtonsoft.Json;
 
@@ -20,6 +21,15 @@ namespace Couchbase.Core.Retry.Search
             }
 
             return json.ToString(Formatting.None);
+        }
+
+        public sealed override void StopRecording()
+        {
+            if (Stopwatch != null)
+            {
+                Stopwatch.Stop();
+                MetricTracker.Search.TrackOperation(Stopwatch.Elapsed);
+            }
         }
     }
 }

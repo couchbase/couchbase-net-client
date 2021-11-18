@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
@@ -65,6 +66,8 @@ namespace Couchbase.Core.IO.Connections.Channels
             {
                 AllowSynchronousContinuations = true
             });
+
+            TrackConnectionPool(this);
         }
 
         /// <inheritdoc />
@@ -112,6 +115,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 // operation may block longer.
                 if (!_sendQueue.Writer.TryWrite(new ChannelQueueItem(operation, cancellationToken)))
                 {
+                    MetricTracker.KeyValue.TrackSendQueueFull();
                     ThrowHelper.ThrowSendQueueFullException();
                 }
             }
