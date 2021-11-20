@@ -22,7 +22,7 @@ namespace Couchbase.IntegrationTests.Fixtures
         {
         }
 
-        public ClusterFixture(Action<ClusterOptions> configureOptions)
+        internal ClusterFixture(Action<ClusterOptions> configureOptions)
         {
             _settings = GetSettings();
 

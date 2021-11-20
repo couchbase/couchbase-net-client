@@ -42,7 +42,7 @@ namespace Couchbase.IntegrationTests.Core.IO.Connections.DataFlow
             var fakeBytes = new byte[10 * 1024];
 
             var collection = bucket.DefaultCollection();
-            using var limitedParallelization = new SemaphoreSlim(1000);
+            using var limitedParallelization = new SemaphoreSlim(100);
             // Run a bunch of get operations, but make sure we don't start too many at once.
             // We don't want timeouts just because we flood the connections
             var operations = Enumerable.Range(0, 20000 * connectionPools.Length).Select(async _ =>

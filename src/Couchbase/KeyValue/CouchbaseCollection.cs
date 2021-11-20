@@ -31,7 +31,9 @@ namespace Couchbase.KeyValue
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
         private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder();
-        private static readonly SemaphoreSlim CidLock = new(1);
+
+        private object _cidLock = new object();
+        private Task? _popuplateCidTask;
 
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
@@ -1002,58 +1004,78 @@ namespace Couchbase.KeyValue
         /// <returns>true if the server supports collections and the CID is null.</returns>
         private bool RequiresCid()
         {
-            return _bucket.Context.SupportsCollections && !Cid.HasValue;
+            return !Cid.HasValue && _bucket.Context.SupportsCollections;
         }
 
-        public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
+        public ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
         {
-            Logger.LogDebug("Fetching CID for {scope}.{collection}", ScopeName, Name);
-            var waitedSuccessfully = await CidLock.WaitAsync(2500).ConfigureAwait(false);
-            try
+            // Short-circuit if we have the CID already
+            if (!forceUpdate && !Cid.HasValue)
             {
-                if (!waitedSuccessfully)
-                {
-                    throw new AmbiguousTimeoutException($"Timed out waiting for GET_CID in {ScopeName}.{Name}");
-                }
-
-                // old servers do not support collections so we exit
-                if (!_bucket.Context.SupportsCollections) return;
-
-                // the CID has been acquired and its not a forced update exit
-                if (Cid.HasValue && !forceUpdate) return;
-
-                //for later cheshire cat builds
-                Cid = await GetCidAsync($"{ScopeName}.{Name}", true, retryIfFailure).ConfigureAwait(false);
+                return default;
             }
-            catch (Exception e)
+
+            // old servers do not support collections so we exit
+            if (!_bucket.Context.SupportsCollections)
             {
-                Logger.LogInformation(e, "Possible non-terminal error fetching CID. Cluster maybe in Dev-Preview mode.");
-                if (e is InvalidArgumentException)
-                    try
+                return default;
+            }
+
+            // This lock is only taken long enough to start the async task, if not already started, then released.
+            // The first simultaneous attempt will start a GetCidAsync, all subsequent attempts will receive the same Task.
+            // Once complete, _populateCidTask is cleared so it may be run again if required.
+            // We use Task.Run here so that the lock is held as briefly as possible, it we just call PopulateCidLocalAsync
+            // then the entire beginning of the operation until writing to the connection pool would happen within
+            // the lock. Using Task.Run causes it to queue the entire execution on the thread pool and return sooner.
+            lock (_cidLock)
+            {
+                return new ValueTask(_popuplateCidTask ??= Task.Run(PopulateCidLocalAsync));
+            }
+
+            // Local method which is called above to start the asynchronous process
+            async Task PopulateCidLocalAsync()
+            {
+                try
+                {
+                    // the CID has been acquired and its not a forced update exit
+                    // This was checked before the task was started, but just in case we hit a race condition
+                    if (Cid.HasValue && !forceUpdate)
                     {
-                        //if this is encountered were on a older server pre-cheshire cat changes
-                        Cid = await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure).ConfigureAwait(false);
+                        return;
                     }
-                    catch (UnsupportedException)
-                    {
-                        //an older server without collections enabled
-                        Logger.LogInformation("Collections are not supported on this server version.");
-                    }
-                else
-                {
-                    throw;
-                }
-            }
-            finally
-            {
-                if (waitedSuccessfully)
-                {
-                    // Release the lock if we successfully acquired it above
-                    CidLock.Release();
-                }
-            }
 
-            Logger.LogDebug("Completed fetching CID for {scope}.{collection}", ScopeName, Name);
+                    Logger.LogDebug("Fetching CID for {scope}.{collection}", ScopeName, Name);
+
+                    Cid = await GetCidAsync($"{ScopeName}.{Name}", true, retryIfFailure).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogInformation(e, "Possible non-terminal error fetching CID. Cluster maybe in Dev-Preview mode.");
+                    if (e is InvalidArgumentException)
+                        try
+                        {
+                            //if this is encountered were on a older server pre-cheshire cat changes
+                            Cid = await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure).ConfigureAwait(false);
+                        }
+                        catch (UnsupportedException)
+                        {
+                            //an older server without collections enabled
+                            Logger.LogInformation("Collections are not supported on this server version.");
+                        }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                finally
+                {
+                    // Make sure we clear the task once it has completed
+                    // This allow retry if it failed, or allows GC if in the case of success
+                    _popuplateCidTask = null;
+                }
+
+                Logger.LogDebug("Completed fetching CID for {scope}.{collection}", ScopeName, Name);
+            }
         }
 
         /// <summary>
