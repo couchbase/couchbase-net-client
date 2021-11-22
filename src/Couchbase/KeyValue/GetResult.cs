@@ -138,7 +138,38 @@ namespace Couchbase.KeyValue
                 return _transcoder.Decode<T>(spec.Bytes, Flags, OpCode.Get);
             }
 
-            JObject? root = null;
+            if (_specs.Count <= 2)
+            {
+                // A full document GET will either be the only spec, or it may be one of two specs (the other is DocExpiryTime)
+                var getSpec = _specs[0].OpCode == OpCode.Get ? _specs[0]
+                    : _specs.Count == 2 && _specs[1].OpCode == OpCode.Get ? _specs[1]
+                    : null;
+
+                if (getSpec != null)
+                {
+                    if (_projectList?.Count > 0)
+                    {
+                        //a full doc is returned if the projection count exceeds the server limit
+                        //so we remove any non-requested fields from the content returned.
+
+                        var fullDocBuilder = GetProjectionBuilder();
+                        fullDocBuilder.AddChildren(_projectList, getSpec.Bytes);
+
+                        //root projection for empty path
+                        return fullDocBuilder.ToObject<T>();
+                    }
+                    else
+                    {
+                        // A full doc was requested
+                        // We should use the transcoder for the full doc, it may not be JSON
+
+                        _logger.LogDebug("using the {transcoder} Transcoder.", _transcoder.GetType());
+                        return _transcoder.Decode<T>(getSpec.Bytes, Flags, OpCode);
+                    }
+                }
+            }
+
+            var builder = GetProjectionBuilder();
             foreach (var spec in _specs)
             {
                 //skip the expiry if it was included; it must fetched from this.Expiry
@@ -147,66 +178,14 @@ namespace Couchbase.KeyValue
                     continue;
                 }
 
-                if (spec.OpCode == OpCode.Get)
-                {
-                    //a full doc is returned if the projection count exceeds the server limit
-                    //so we remove any non-requested fields from the content returned.
-                    if (_projectList?.Count > 16)
-                    {
-                        if (_serializer == null)
-                        {
-                            ThrowHelper.ThrowInvalidOperationException("Transcoder must have a serializer for projections.");
-                        }
-
-                        root ??= new JObject();
-                        foreach (var child in _serializer.Deserialize<JToken>(spec.Bytes)!.Children())
-                        {
-                            if (_projectList.Contains(child.Path))
-                            {
-                                root.Add(child);
-                            }
-                        }
-
-                        //root projection for empty path
-                        return root.ToObject<T>();
-                    }
-                    else
-                    {
-                        // A full doc was requested with expiry
-                        // We should use the transcoder for the full doc, it may not be JSON
-
-                        _logger.LogDebug("using the {transcoder} Transcoder.", _transcoder.GetType());
-                        return _transcoder.Decode<T>(spec.Bytes, Flags, OpCode);
-                    }
-                }
-
-                if (_serializer == null)
-                {
-                    ThrowHelper.ThrowInvalidOperationException("Transcoder must have a serializer for projections.");
-                }
-
-                var content = _serializer.Deserialize<JToken>(spec.Bytes)!;
-                var projection = CreateProjection(spec.Path, content);
-
-                try
-                {
-                    root ??= new JObject();
-                    root.Add(projection.First);
-                }
-                catch (Exception e)
-                {
-                    //these are cases where a root attribute is already mapped
-                    //for example "attributes" and "attributes.hair" will cause exceptions
-                    _logger.LogInformation(e, "Deserialization failed.");
-                }
+                builder.AddPath(spec.Path, spec.Bytes);
             }
 
-            Debug.Assert(root != null);
-            if (root!.Path == string.Empty && typeof(T).IsPrimitive)
+            if (typeof(T).IsPrimitive)
             {
-                return root.First.ToObject<T>();
+                return builder.ToPrimitive<T>();
             }
-            return root.ToObject<T>();
+            return builder.ToObject<T>();
         }
 
         private void ParseSpecs()
@@ -235,48 +214,17 @@ namespace Couchbase.KeyValue
             _isParsed = true;
         }
 
-        void BuildPath(JToken token, string name, JToken? content = null)
+        private IProjectionBuilder GetProjectionBuilder()
         {
-            foreach (var child in token.Children())
+            if (_serializer == null)
             {
-                if (child is JValue value)
-                {
-                    value.Replace(new JObject(new JProperty(name, content)));
-                    break;
-                }
-                BuildPath(child, name, content);
-            }
-        }
-
-        JObject CreateProjection(string path, JToken content)
-        {
-            var elements = path.Split('.');
-            var projection = new JObject();
-            if (elements.Length == 1)
-            {
-                projection.Add(new JProperty(elements[0], content));
-            }
-            else
-            {
-                for (var i = 0; i < elements.Length; i++)
-                {
-                    if (projection.Last != null)
-                    {
-                        if (i == elements.Length - 1)
-                        {
-                            BuildPath(projection, elements[i], content);
-                            continue;
-                        }
-
-                        BuildPath(projection, elements[i]);
-                        continue;
-                    }
-
-                    projection.Add(new JProperty(elements[i], null));
-                }
+                ThrowHelper.ThrowInvalidOperationException("Transcoder must have a serializer for projections.");
             }
 
-            return projection;
+            // Fallback to default if the custom deserializer doesn't implement IProjectableTypeDeserializer
+            return _serializer is IProjectableTypeDeserializer projectableTypeDeserializer
+                ? projectableTypeDeserializer.CreateProjectionBuilder(_logger)
+                : DefaultSerializer.Instance.CreateProjectionBuilder(_logger);
         }
 
 #region Finalization and Dispose

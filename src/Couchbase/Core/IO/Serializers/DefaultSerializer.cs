@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -17,7 +18,7 @@ namespace Couchbase.Core.IO.Serializers
      /// <summary>
     /// The default serializer for the Couchbase.NET SDK. Uses Newtonsoft.JSON as the the serializer.
     /// </summary>
-    public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer
+    public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer, IProjectableTypeDeserializer
     {
         internal static DefaultSerializer Instance { get; } = new();
 
@@ -258,6 +259,9 @@ namespace Couchbase.Core.IO.Serializers
         {
             return new DefaultJsonStreamReader(stream, _deserializer);
         }
+
+        /// <inheritdoc />
+        public IProjectionBuilder CreateProjectionBuilder(ILogger logger) => new NewtonsoftProjectionBuilder(this, logger);
 
         protected internal virtual JsonSerializerSettings GetDeserializationSettings(JsonSerializerSettings baseSettings, DeserializationOptions? options)
         {
