@@ -76,6 +76,31 @@ namespace Couchbase.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task Can_get_memcached_document()
+        {
+            var cluster = await _fixture.GetCluster();
+            var bucket = await cluster.BucketAsync("memcached");
+            var collection = await bucket.DefaultCollectionAsync().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                await collection.InsertAsync(key, new { name = "mike" }).ConfigureAwait(false);
+
+                using (var result = await collection.GetAsync(key).ConfigureAwait(false))
+                {
+                    var content = result.ContentAs<dynamic>();
+
+                    Assert.Equal("mike", (string)content.name);
+                }
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
         // Regression test for NCBC-2217
         [Fact]
         public async Task Upsert_And_Fetch_Poco() {

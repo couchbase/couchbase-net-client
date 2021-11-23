@@ -46,21 +46,15 @@ namespace Couchbase
 
         public override IScope Scope(string scopeName)
         {
-            return this[scopeName];
-        }
-
-        public override IScope this[string scopeName]
-        {
-            get
+            if (scopeName == KeyValue.Scope.DefaultScopeName)
             {
-                Logger.LogDebug("Fetching scope {scopeName}", Redactor.MetaData(scopeName));
-
-                if (scopeName == KeyValue.Scope.DefaultScopeName)
-                    if (Scopes.TryGetValue(scopeName, out var scope))
-                        return scope;
-
-                throw new NotSupportedException("Only the default Scope is supported by Memcached Buckets");
+                // Base will do the logging
+                return base.Scope(scopeName);
             }
+
+            // Log here so we have info when we hit the exception path
+            Logger.LogDebug("Fetching scope {scopeName}", Redactor.MetaData(scopeName));
+            throw new NotSupportedException("Only the default Scope is supported by Memcached Buckets");
         }
 
         /// <inheritdoc />

@@ -239,7 +239,7 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
-            public override IScope this[string name] => throw new NotImplementedException();
+            public override IScope Scope(string scopeName) => throw new NotImplementedException();
 
             public override Task<IViewResult<TKey, TValue>> ViewQueryAsync<TKey, TValue>(string designDocument, string viewName, ViewOptions options = null)
             {

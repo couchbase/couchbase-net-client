@@ -57,9 +57,6 @@ namespace Couchbase.Core
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             Tracer = tracer;
             RetryStrategy = retryStrategy ?? throw new ArgumentNullException(nameof(retryStrategy));
-
-            _createDefaultScopeFunc = key => _scopeFactory.CreateScope(KeyValue.Scope.DefaultScopeName, this);
-
             BootstrapperFactory = bootstrapperFactory ?? throw new ArgumentNullException(nameof(bootstrapperFactory));
             Bootstrapper = bootstrapperFactory.Create(Context.ClusterOptions.BootstrapPollInterval);
         }
@@ -89,14 +86,18 @@ namespace Couchbase.Core
 
         #region Scopes
 
-        public abstract IScope this[string scopeName] { get; }
+        public IScope this[string scopeName] => Scope(scopeName);
 
         public virtual IScope Scope(string scopeName)
         {
             Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
 
-            return Scopes.GetOrAdd(scopeName, name => _scopeFactory.CreateScope(name, this));
+            return Scopes.GetOrAdd(scopeName, _createScopeAction ??= CreateScope);
         }
+
+        // Passed to Scopes.GetOrAdd so we only create the Func<> on the heap once per bucket
+        private Func<string, IScope>? _createScopeAction;
+        private IScope CreateScope(string scopeName) => _scopeFactory.CreateScope(scopeName, this);
 
         /// <inheritdoc />
         public ValueTask<IScope> ScopeAsync(string scopeName)
@@ -162,17 +163,6 @@ namespace Couchbase.Core
         #region Config & Manifest
 
         public abstract Task ConfigUpdatedAsync(BucketConfig config);
-
-        private readonly Func<string, IScope> _createDefaultScopeFunc;
-
-        protected void LoadDefaultScope()
-        {
-            if (!Context.SupportsCollections)
-            {
-                //build a fake scope and collection for pre-6.5 clusters or in the bootstrap failure case for deferred error handling
-                Scopes.GetOrAdd(Couchbase.KeyValue.Scope.DefaultScopeName, _createDefaultScopeFunc);
-            }
-        }
 
         #endregion
 

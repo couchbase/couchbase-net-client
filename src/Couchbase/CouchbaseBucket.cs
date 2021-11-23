@@ -60,16 +60,6 @@ namespace Couchbase
             );
         }
 
-        public override IScope this[string scopeName]
-        {
-            get
-            {
-                Logger.LogDebug("Fetching scope {scopeName}", Redactor.UserData(scopeName));
-
-                return Scopes.GetOrAdd(scopeName, s => _scopeFactory.CreateScope(s, this));
-            }
-        }
-
         public override IViewIndexManager ViewIndexes => _viewManagerLazy.Value;
 
         /// <summary>
@@ -77,7 +67,6 @@ namespace Couchbase
         /// </summary>
         /// <remarks>Volatile</remarks>
         public override ICouchbaseCollectionManager Collections => _collectionManagerLazy.Value;
-
 
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
