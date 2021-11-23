@@ -1,5 +1,9 @@
 using System.Runtime.CompilerServices;
 
+// We are not relying on InternalsVisibleToAttribute in recent frameworks to allow our dynamic assembly to access this one.
+// Instead, we're relying on the IgnoresAccessChecksToAttribute which is added to the dynamic assembly.
+#if !NET5_0_OR_GREATER
+
 #if SIGNING
 // These internals must be exposed in production builds to support dynamic proxy generation
 // Public key for Couchbase.Extensions.DependencyInjection.Dynamic is from Dynamic.snk
@@ -8,6 +12,8 @@ using System.Runtime.CompilerServices;
 #else
 [assembly: InternalsVisibleTo("Couchbase.Extensions.DependencyInjection.Dynamic")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
+#endif
+
 #endif
 
 #if !SIGNING

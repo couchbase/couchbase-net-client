@@ -13,8 +13,12 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         private readonly object _lock = new object();
         private ModuleBuilder? _moduleBuilder;
 
+        // Starting with .NET 6 we don't even have the ability to sign our dynamic assembly anymore, it will cause exceptions if we try.
+        // However, it hasn't really be required for longer. So we just disable starting with .NET 5 for simplicity.
+        // We also don't bother signing the dynamic assembly for local development where none of the projects are signed.
+
         private static readonly AssemblyName DynamicAssemblyName =
-#if SIGNING
+#if SIGNING && !NET5_0_OR_GREATER
             new AssemblyName("Couchbase.Extensions.DependencyInjection.Dynamic, PublicKeyToken=9112ac8688e923b2")
             {
                 KeyPair = new StrongNameKeyPair(GetKeyPair())
@@ -43,7 +47,7 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
             return _moduleBuilder;
         }
 
-#if SIGNING
+#if SIGNING && !NET5_0_OR_GREATER
         private static byte[] GetKeyPair()
         {
             using var stream =
