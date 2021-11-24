@@ -19,6 +19,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Authentication;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Connections;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Operations.Collections;
@@ -342,12 +343,12 @@ namespace Couchbase.Core
 
         private void BuildServiceUris()
         {
-            QueryUri = NodesAdapter?.GetQueryUri(_context.ClusterOptions);
-            SearchUri = NodesAdapter?.GetSearchUri(_context.ClusterOptions);
-            AnalyticsUri = NodesAdapter?.GetAnalyticsUri(_context.ClusterOptions);
-            ViewsUri = NodesAdapter?.GetViewsUri(_context.ClusterOptions); //TODO move to IBucket level?
-            ManagementUri = NodesAdapter?.GetManagementUri(_context.ClusterOptions);
-            EventingUri = NodesAdapter?.GetEventingUri(_context.ClusterOptions);
+            QueryUri = NodesAdapter?.GetQueryUri(_context.ClusterOptions).SetServicePointOptions(_context.ClusterOptions, _logger);
+            SearchUri = NodesAdapter?.GetSearchUri(_context.ClusterOptions).SetServicePointOptions(_context.ClusterOptions, _logger);
+            AnalyticsUri = NodesAdapter?.GetAnalyticsUri(_context.ClusterOptions).SetServicePointOptions(_context.ClusterOptions, _logger);
+            ViewsUri = NodesAdapter?.GetViewsUri(_context.ClusterOptions).SetServicePointOptions(_context.ClusterOptions, _logger); //TODO move to IBucket level?
+            ManagementUri = NodesAdapter?.GetManagementUri(_context.ClusterOptions).SetServicePointOptions(_context.ClusterOptions, _logger);
+            EventingUri = NodesAdapter?.GetEventingUri(_context.ClusterOptions).SetServicePointOptions(_context.ClusterOptions, _logger);
         }
 
         /// <summary>

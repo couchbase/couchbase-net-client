@@ -540,10 +540,22 @@ namespace Couchbase
         /// </summary>
         public TimeSpan IdleKvConnectionTimeout { get; set; } = TimeSpan.FromMinutes(1);
 
+        /// <summary>
+        /// Gets or sets the maximum number of simultaneous TCP connections allowed to a single server.
+        /// <remarks>The default is 0 which equates to the maximum value or Int32.Max.</remarks>
+        /// </summary>
         public int MaxHttpConnections { get; set; } = 0;
 
-        [Obsolete("Not supported in .NET, uses system defaults.")]
-        public TimeSpan IdleHttpConnectionTimeout { get; set; }
+        /// <summary>
+        /// The maximum time an HTTP connection will remain idle before being considered reusable.
+        /// </summary>
+        public TimeSpan IdleHttpConnectionTimeout { get; set; } = TimeSpan.FromMilliseconds(4500);
+
+        /// <summary>
+        /// Gets or sets how long a connection can be in the pool to be considered reusable.
+        /// </summary>
+        /// <remarks>Default of zero equates to the SocketsHttpHandler's default of -1 for infinite.</remarks>
+        public TimeSpan HttpConnectionLifetime { get; set; } = TimeSpan.Zero;
 
         public CircuitBreakerConfiguration? CircuitBreakerConfiguration { get; set; } =
             CircuitBreakerConfiguration.Default;
@@ -693,7 +705,7 @@ namespace Couchbase
         /// <summary>
         /// List of enabled TLS Cipher Suites.  If not set, will use default .NET Cipher Suites
         /// </summary>
-        public List<TlsCipherSuite> EnabledTlsCipherSuites { get; set; } = new List<TlsCipherSuite>();
+        public List<TlsCipherSuite> EnabledTlsCipherSuites { get; set; } = new();
 #endif
 
         #region DI

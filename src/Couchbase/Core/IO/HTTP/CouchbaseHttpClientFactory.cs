@@ -88,10 +88,7 @@ namespace Couchbase.Core.IO.HTTP
                     "Cannot set ServerCertificateCustomValidationCallback, not implemented on this platform");
             }
 #else
-            var handler = new SocketsHttpHandler
-            {
-                PooledConnectionLifetime = TimeSpan.FromMinutes(2)
-            };
+            var handler = new SocketsHttpHandler();
 
             //for x509 cert authentication
             if (_context.ClusterOptions.X509CertificateFactory != null)
@@ -116,12 +113,32 @@ namespace Couchbase.Core.IO.HTTP
             handler.SslOptions.RemoteCertificateValidationCallback =
                 _context.ClusterOptions.HttpCertificateCallbackValidation;
 
-            if (_context.ClusterOptions.EnabledTlsCipherSuites != null && _context.ClusterOptions.EnabledTlsCipherSuites.Count > 0)
+            if (_context.ClusterOptions.EnabledTlsCipherSuites.Count > 0)
             {
                 handler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_context.ClusterOptions.EnabledTlsCipherSuites);
             }
+
+            if (_context.ClusterOptions.IdleHttpConnectionTimeout > TimeSpan.Zero)
+            {
+                //https://issues.couchbase.com/browse/MB-37032
+                handler.PooledConnectionIdleTimeout = _context.ClusterOptions.IdleHttpConnectionTimeout;
+            }
+
+            if (_context.ClusterOptions.HttpConnectionLifetime > TimeSpan.Zero)
+            {
+                handler.PooledConnectionLifetime = _context.ClusterOptions.HttpConnectionLifetime;
+            }
+
 #endif
 
+#if NET5_0_OR_GREATER
+            if (_context.ClusterOptions.EnableTcpKeepAlives)
+            {
+                handler.KeepAlivePingDelay = _context.ClusterOptions.TcpKeepAliveInterval;
+                handler.KeepAlivePingTimeout = _context.ClusterOptions.TcpKeepAliveTime;
+                handler.KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always;
+            }
+#endif
             try
             {
                 if (_context.ClusterOptions.MaxHttpConnections > 0)
