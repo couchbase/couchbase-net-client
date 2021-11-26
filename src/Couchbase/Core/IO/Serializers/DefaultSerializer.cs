@@ -147,9 +147,9 @@ namespace Couchbase.Core.IO.Serializers
         #region Methods
 
         /// <inheritdoc />
-        public T Deserialize<T>(ReadOnlyMemory<byte> buffer)
+        public T? Deserialize<T>(ReadOnlyMemory<byte> buffer)
         {
-            T value = default(T)!;
+            var value = default(T);
             if (buffer.Length == 0) return value!;
             using (var ms = new MemoryReaderStream(buffer))
             {
@@ -176,17 +176,17 @@ namespace Couchbase.Core.IO.Serializers
                     }
                 }
             }
-            return value!;
+            return value;
         }
 
         /// <inheritdoc />
-        public ValueTask<T> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default)
+        public ValueTask<T?> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default)
         {
-            return new ValueTask<T>(Deserialize<T>(stream)!);
+            return new ValueTask<T?>(Deserialize<T>(stream)!);
         }
 
         /// <inheritdoc />
-        public void Serialize(Stream stream, object obj)
+        public void Serialize(Stream stream, object? obj)
         {
             using (var sw = new StreamWriter(stream, Utf8NoBomEncoding, 1024, true))
             {
@@ -202,7 +202,7 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
-        public ValueTask SerializeAsync(Stream stream, object obj, CancellationToken cancellationToken = default)
+        public ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default)
         {
             Serialize(stream, obj);
 
@@ -210,7 +210,7 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
-        public T Deserialize<T>(Stream stream)
+        public T? Deserialize<T>(Stream stream)
         {
             using (var streamReader = new StreamReader(stream))
             {

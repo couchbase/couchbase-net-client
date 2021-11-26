@@ -117,7 +117,7 @@ namespace Couchbase.KeyValue
 
         internal uint Opaque { get; set; }
 
-        public T ContentAs<T>()
+        public T? ContentAs<T>()
         {
             EnsureNotDisposed();
 
@@ -159,7 +159,7 @@ namespace Couchbase.KeyValue
                         }
 
                         root ??= new JObject();
-                        foreach (var child in _serializer.Deserialize<JToken>(spec.Bytes).Children())
+                        foreach (var child in _serializer.Deserialize<JToken>(spec.Bytes)!.Children())
                         {
                             if (_projectList.Contains(child.Path))
                             {
@@ -185,7 +185,7 @@ namespace Couchbase.KeyValue
                     ThrowHelper.ThrowInvalidOperationException("Transcoder must have a serializer for projections.");
                 }
 
-                var content = _serializer.Deserialize<JToken>(spec.Bytes);
+                var content = _serializer.Deserialize<JToken>(spec.Bytes)!;
                 var projection = CreateProjection(spec.Path, content);
 
                 try

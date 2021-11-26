@@ -44,7 +44,7 @@ namespace Couchbase.KeyValue
 
         public bool IsDeleted { get; }
 
-        public T ContentAs<T>(int index)
+        public T? ContentAs<T>(int index)
         {
             if (index < 0 || index >= _specs.Count)
             {

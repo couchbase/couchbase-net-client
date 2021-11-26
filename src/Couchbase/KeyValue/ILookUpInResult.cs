@@ -13,7 +13,7 @@ namespace Couchbase.KeyValue
 
         bool IsDeleted { get; }
 
-        T ContentAs<T>(int index);
+        T? ContentAs<T>(int index);
 
         /// <summary>
         /// Returns the index of a particular path.

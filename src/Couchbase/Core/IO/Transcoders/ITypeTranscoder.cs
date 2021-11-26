@@ -3,6 +3,8 @@ using System.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.Transcoders
 {
     /// <summary>
@@ -36,12 +38,12 @@ namespace Couchbase.Core.IO.Transcoders
         /// <param name="flags">The flags used to encode the payload.</param>
         /// <param name="opcode"></param>
         /// <returns></returns>
-        T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode);
+        T? Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode);
 
         /// <summary>
         /// Gets or sets the serializer used by the <see cref="ITypeTranscoder"/> implementation.
         /// </summary>
-        ITypeSerializer Serializer { get; set; }
+        ITypeSerializer? Serializer { get; set; }
     }
 }
 

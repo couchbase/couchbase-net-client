@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using Couchbase.Core.IO.Operations;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.Transcoders
 {
     public class RawBinaryTranscoder : BaseTranscoder

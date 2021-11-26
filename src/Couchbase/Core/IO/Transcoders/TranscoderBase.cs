@@ -5,6 +5,9 @@ using System.Runtime.CompilerServices;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Transcoders
 {
@@ -14,9 +17,9 @@ namespace Couchbase.Core.IO.Transcoders
 
         public abstract void Encode<T>(Stream stream, T value, Flags flags, OpCode opcode);
 
-        public abstract T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode);
+        public abstract T? Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode);
 
-        public ITypeSerializer Serializer { get; set; }
+        public ITypeSerializer? Serializer { get; set; }
 
         /// <summary>
         /// Deserializes as json.
@@ -24,8 +27,13 @@ namespace Couchbase.Core.IO.Transcoders
         /// <typeparam name="T"></typeparam>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        public virtual T DeserializeAsJson<T>(ReadOnlyMemory<byte> buffer)
+        public virtual T? DeserializeAsJson<T>(ReadOnlyMemory<byte> buffer)
         {
+            if (Serializer == null)
+            {
+                ThrowHelper.ThrowInvalidOperationException("A serializer is required to transcode JSON.");
+            }
+
             return Serializer.Deserialize<T>(buffer);
         }
 
@@ -35,8 +43,13 @@ namespace Couchbase.Core.IO.Transcoders
         /// <param name="stream">The stream to receive the encoded value.</param>
         /// <param name="value">The value.</param>
         /// <returns></returns>
-        public void SerializeAsJson(Stream stream, object value)
+        public void SerializeAsJson(Stream stream, object? value)
         {
+            if (Serializer == null)
+            {
+                ThrowHelper.ThrowInvalidOperationException("A serializer is required to transcode JSON.");
+            }
+
             Serializer.Serialize(stream, value);
         }
 
@@ -45,9 +58,9 @@ namespace Couchbase.Core.IO.Transcoders
         /// </summary>
         /// <param name="buffer">The buffer.</param>
         /// <returns></returns>
-        protected string DecodeString(ReadOnlySpan<byte> buffer)
+        protected string? DecodeString(ReadOnlySpan<byte> buffer)
         {
-            string result = null;
+            string? result = null;
             if (buffer.Length > 0)
             {
                 result = ByteConverter.ToString(buffer);

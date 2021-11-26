@@ -46,7 +46,7 @@ namespace Couchbase.KeyValue
 
         public ulong Cas { get; }
         public MutationToken MutationToken { get; set; }
-        public T ContentAs<T>(int index)
+        public T? ContentAs<T>(int index)
         {
             if (index < 0 || index >= _specs.Count)
             {

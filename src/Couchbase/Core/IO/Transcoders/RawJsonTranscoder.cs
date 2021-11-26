@@ -1,6 +1,9 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Couchbase.Core.IO.Operations;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Transcoders
 {
@@ -36,6 +39,7 @@ namespace Couchbase.Core.IO.Transcoders
             throw new InvalidOperationException("The RawJsonTranscoder can only encode JSON byte arrays.");
         }
 
+        [return: MaybeNull]
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
             var targetType = typeof(T);
@@ -47,8 +51,8 @@ namespace Couchbase.Core.IO.Transcoders
 
             if (targetType == typeof(string))
             {
-                object value = DecodeString(buffer.Span);
-                return (T) value;
+                object? value = DecodeString(buffer.Span);
+                return (T?) value;
             }
             throw new InvalidOperationException("The RawJsonTranscoder can only decode JSON byte arrays.");
         }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -53,7 +54,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
-            return result.ContentAs<IList<TValue>>();
+            return result.ContentAs<IList<TValue>>().EnsureNotNullForDataStructures();
         }
 
         public void Clear()
@@ -84,7 +85,7 @@ namespace Couchbase.DataStructures
             if (arrayIndex < 0) throw new IndexOutOfRangeException();
 
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var items = result.ContentAs<IList<TValue>>();
+            var items = result.ContentAs<IList<TValue>>().EnsureNotNullForDataStructures();
             items.CopyTo(array, arrayIndex);
             await Collection.UpsertAsync(Key, items).ConfigureAwait(false);
         }

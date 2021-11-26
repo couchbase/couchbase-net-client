@@ -14,12 +14,12 @@ namespace Couchbase.DataStructures
         {
         }
 
-        public TValue Dequeue()
+        public TValue? Dequeue()
         {
             return DequeueAsync().GetAwaiter().GetResult();
         }
 
-        public async Task<TValue> DequeueAsync()
+        public async Task<TValue?> DequeueAsync()
         {
             CreateBackingStore();
             var result = await Collection.LookupInAsync(Key, builder => builder.Get("[0]")).ConfigureAwait(false);
@@ -42,12 +42,12 @@ namespace Couchbase.DataStructures
             await Collection.MutateInAsync(Key, builder => builder.ArrayAppend("", item)).ConfigureAwait(false);
         }
 
-        public TValue Peek()
+        public TValue? Peek()
         {
             return PeekAsync().GetAwaiter().GetResult();
         }
 
-        public async Task<TValue> PeekAsync()
+        public async Task<TValue?> PeekAsync()
         {
             var result = await Collection.LookupInAsync(Key, builder => builder.Get("[0]")).ConfigureAwait(false);
             return result.ContentAs<TValue>(0);

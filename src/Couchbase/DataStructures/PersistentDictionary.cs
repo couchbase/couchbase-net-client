@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -49,7 +50,8 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-            return result.ContentAs<IEnumerator<KeyValuePair<string, TValue>>>();
+            return result.ContentAs<IEnumerator<KeyValuePair<string, TValue>>>()
+                .EnsureNotNullForDataStructures();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -76,7 +78,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-            var dict = result.ContentAs<IDictionary<string, TValue>>();
+            var dict = result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures();
             dict.CopyTo(array, arrayIndex);
         }
 
@@ -168,7 +170,7 @@ namespace Couchbase.DataStructures
             {
                 CreateBackingStore();
                 using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().Count);
+                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Count);
             }
         }
 
@@ -215,7 +217,7 @@ namespace Couchbase.DataStructures
             {
                 CreateBackingStore();
                 using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().Keys);
+                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Keys);
             }
         }
 
@@ -225,7 +227,7 @@ namespace Couchbase.DataStructures
             {
                 CreateBackingStore();
                 using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().Values);
+                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Values);
             }
         }
     }

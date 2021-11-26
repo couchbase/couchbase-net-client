@@ -123,13 +123,13 @@ namespace Couchbase.Core.IO.Operations.SubDocument
             if (!spec.RemoveBrackets)
             {
                 // We can serialize directly
-                Transcoder.Serializer.Serialize(builder, spec.Value!);
+                Transcoder.Serializer!.Serialize(builder, spec.Value!);
             }
             else
             {
                 using (var stream = MemoryStreamFactory.GetMemoryStream())
                 {
-                    Transcoder.Serializer.Serialize(stream, spec.Value!);
+                    Transcoder.Serializer!.Serialize(stream, spec.Value!);
 
                     ReadOnlyMemory<byte> bytes = stream.GetBuffer().AsMemory(0, (int) stream.Length);
                     bytes = bytes.StripBrackets();

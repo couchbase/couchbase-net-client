@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Query;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -40,6 +41,10 @@ namespace Couchbase.Analytics
         {
             var body = await _deserializer.DeserializeAsync<AnalyticsResultData>(ResponseStream, cancellationToken)
                 .ConfigureAwait(false);
+            if (body == null)
+            {
+                ThrowHelper.ThrowInvalidOperationException("No data received.");
+            }
 
             MetaData = new AnalyticsMetaData
             {

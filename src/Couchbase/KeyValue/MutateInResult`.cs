@@ -42,7 +42,7 @@ namespace Couchbase.KeyValue
         public ITypeSerializer Serializer => ((ITypeSerializerProvider) _inner).Serializer;
 
         /// <inheritdoc />
-        public T ContentAs<T>(int index) => _inner.ContentAs<T>(index);
+        public T? ContentAs<T>(int index) => _inner.ContentAs<T>(index);
 
         /// <inheritdoc />
         public int IndexOf(string path) => _inner.IndexOf(path);

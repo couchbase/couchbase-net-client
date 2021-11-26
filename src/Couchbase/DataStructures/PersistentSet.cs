@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -43,7 +44,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
-            return result.ContentAs<ISet<TValue>>();
+            return result.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
         }
 
         public IEnumerator<TValue> GetEnumerator()
@@ -65,7 +66,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var items = getResult.ContentAs<HashSet<TValue>>();
+            var items = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             var added = items.Add(item);
             if (added)
             {
@@ -151,7 +152,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.ExceptWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -160,7 +161,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.IntersectWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -169,7 +170,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsProperSubsetOf(other);
         }
 
@@ -177,7 +178,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsProperSupersetOf(other);
         }
 
@@ -185,7 +186,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsSubsetOf(other);
         }
 
@@ -193,7 +194,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsSupersetOf(other);
         }
 
@@ -201,7 +202,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.Overlaps(other);
         }
 
@@ -209,7 +210,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.SetEquals(other);
         }
 
@@ -217,7 +218,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.SymmetricExceptWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -226,7 +227,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.UnionWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -235,7 +236,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var items = getResult.ContentAs<HashSet<TValue>>();
+            var items = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return items.Contains(item);
         }
 
@@ -243,7 +244,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStore();
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>();
+            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             var removed = thisSet.Remove(item);
             if (removed)
             {

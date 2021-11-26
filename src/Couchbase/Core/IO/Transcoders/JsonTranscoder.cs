@@ -1,9 +1,12 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Transcoders
 {
@@ -88,6 +91,7 @@ namespace Couchbase.Core.IO.Transcoders
             }
         }
 
+        [return: MaybeNull]
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
             var typeCode = Type.GetTypeCode(typeof(T));

@@ -1,11 +1,14 @@
 using System;
 using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Utils;
 using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Transcoders
 {
@@ -189,9 +192,10 @@ namespace Couchbase.Core.IO.Transcoders
         }
 
         /// <inheritdoc />
+        [return: MaybeNull]
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
-            object value;
+            object? value;
             switch (flags.DataFormat)
             {
                 case DataFormat.Reserved:
@@ -244,7 +248,7 @@ namespace Couchbase.Core.IO.Transcoders
                     value = DecodeString(buffer.Span);
                     break;
             }
-            return (T)value;
+            return (T?)value;
         }
 
         /// <summary>
@@ -255,9 +259,9 @@ namespace Couchbase.Core.IO.Transcoders
         /// <param name="opcode">The opcode of the operation.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public virtual T Decode<T>(ReadOnlyMemory<byte> buffer, OpCode opcode)
+        public virtual T? Decode<T>(ReadOnlyMemory<byte> buffer, OpCode opcode)
         {
-            object value = default(T);
+            object? value = default(T);
 
             var typeCode = Type.GetTypeCode(typeof(T));
             switch (typeCode)
@@ -348,7 +352,7 @@ namespace Couchbase.Core.IO.Transcoders
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            return (T)value;
+            return (T?)value;
         }
      }
 }

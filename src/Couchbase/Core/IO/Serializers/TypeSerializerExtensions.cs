@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 
+#nullable enable
+
 namespace Couchbase.Core.IO.Serializers
 {
     public static class TypeSerializerExtensions
@@ -15,7 +17,7 @@ namespace Couchbase.Core.IO.Serializers
         /// <param name="length">The length of the buffer to read from.</param>
         /// <returns>The <see cref="Type"/> instance representing the value of the key.</returns>
         [Obsolete("Use the ReadOnlyMemory<byte> based overload of Deserialize<T>.")]
-        public static T Deserialize<T>(this ITypeSerializer typeSerializer, byte[] buffer, int offset, int length)
+        public static T? Deserialize<T>(this ITypeSerializer typeSerializer, byte[] buffer, int offset, int length)
         {
             return typeSerializer.Deserialize<T>(buffer.AsMemory(offset, length));
         }
@@ -26,7 +28,7 @@ namespace Couchbase.Core.IO.Serializers
         /// <param name="typeSerializer">The <see cref="ITypeSerializer"/>.</param>
         /// <param name="obj">The object to serialize.</param>
         /// <returns>A byte array containing the serialized object.</returns>
-        public static byte[] Serialize(this ITypeSerializer typeSerializer, object obj)
+        public static byte[] Serialize(this ITypeSerializer typeSerializer, object? obj)
         {
             using (var stream = new MemoryStream())
             {

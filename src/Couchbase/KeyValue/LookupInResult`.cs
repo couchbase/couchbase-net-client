@@ -37,7 +37,7 @@ namespace Couchbase.KeyValue
         public bool IsDeleted => _inner.IsDeleted;
 
         /// <inheritdoc />
-        public T ContentAs<T>(int index) => _inner.ContentAs<T>(index);
+        public T? ContentAs<T>(int index) => _inner.ContentAs<T>(index);
 
         /// <inheritdoc />
         public int IndexOf(string path) => _inner.IndexOf(path);

@@ -584,7 +584,7 @@ namespace Couchbase.KeyValue
             var isDeleted = responseStatus == ResponseStatus.SubDocSuccessDeletedDocument ||
                             responseStatus == ResponseStatus.SubdocMultiPathFailureDeleted;
             return new LookupInResult(lookup.GetCommandValues(), lookup.Cas, null,
-                options.SerializerValue ?? lookup.Transcoder.Serializer, isDeleted);
+                options.SerializerValue ?? lookup.Transcoder.Serializer!, isDeleted);
         }
 
         private async Task<MultiLookup<byte[]>> ExecuteLookupIn(string id, IEnumerable<LookupInSpec> specs,
@@ -701,7 +701,7 @@ namespace Couchbase.KeyValue
 
 #pragma warning disable 618 // MutateInResult is marked obsolete until it is made internal
             return new MutateInResult(mutation.GetCommandValues(), mutation.Cas, mutation.MutationToken,
-                options.SerializerValue ?? mutation.Transcoder.Serializer);
+                options.SerializerValue ?? mutation.Transcoder.Serializer!);
 #pragma warning restore 618
         }
 

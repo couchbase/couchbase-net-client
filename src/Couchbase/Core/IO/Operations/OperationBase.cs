@@ -667,7 +667,7 @@ namespace Couchbase.Core.IO.Operations
         {
             if (_disposed)
             {
-                ThrowHelper.ThrowObjectDisposedException(GetType().FullName);
+                ThrowHelper.ThrowObjectDisposedException(GetType().FullName!);
             }
         }
 

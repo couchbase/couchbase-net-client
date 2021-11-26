@@ -1,10 +1,13 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+
+#nullable enable
 
 namespace Couchbase.Utils
 {
@@ -58,7 +61,19 @@ namespace Couchbase.Utils
         public static void ThrowNodeUnavailableException(string message) =>
             throw new NodeNotAvailableException(message);
 
-        public static void ThrowTimeoutException(IOperation operation, IErrorContext context = null)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T EnsureNotNullForDataStructures<T>(this T? value)
+            where T : notnull
+        {
+            if (value == null)
+            {
+                ThrowInvalidOperationException("Data structure deserialization returned null.");
+            }
+
+            return value;
+        }
+
+        public static void ThrowTimeoutException(IOperation operation, IErrorContext? context = null)
         {
             var message = $"The operation {operation.ClientContextId}/{operation.Opaque} timed out after {operation.Timeout}. " +
                           $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}.";

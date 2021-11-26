@@ -6,17 +6,17 @@ namespace Couchbase.DataStructures
 {
     public interface IPersistentQueue<T> :  System.Collections.ICollection
     {
-        T Dequeue();
+        T? Dequeue();
 
-        Task<T> DequeueAsync();
+        Task<T?> DequeueAsync();
 
         void Enqueue(T item);
 
         Task EnqueueAsync(T item);
 
-        T Peek();
+        T? Peek();
 
-        Task<T> PeekAsync();
+        Task<T?> PeekAsync();
 
         void Clear();
 

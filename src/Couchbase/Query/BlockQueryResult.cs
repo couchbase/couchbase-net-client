@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -38,6 +39,10 @@ namespace Couchbase.Query
         public override async Task InitializeAsync(CancellationToken cancellationToken = default)
         {
             var body = await _deserializer.DeserializeAsync<QueryResultData>(ResponseStream, cancellationToken).ConfigureAwait(false);
+            if (body == null)
+            {
+                ThrowHelper.ThrowInvalidOperationException("No data received.");
+            }
 
             MetaData = new QueryMetaData
             {

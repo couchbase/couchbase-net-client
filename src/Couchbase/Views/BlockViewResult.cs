@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -65,6 +66,10 @@ namespace Couchbase.Views
             if (ResponseStream != null)
             {
                 var body = await _deserializer.DeserializeAsync<ViewResultData>(ResponseStream, cancellationToken).ConfigureAwait(false);
+                if (body == null)
+                {
+                    ThrowHelper.ThrowInvalidOperationException("No data received.");
+                }
 
                 MetaData = new ViewMetaData
                 {

@@ -23,7 +23,7 @@ namespace Couchbase.KeyValue
         /// This must be a path that was provided originally to the <see cref="LookupInSpecBuilder{TDocument}"/>.</param>
         /// <returns>The subdocument content.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="result"/> or <paramref name="path"/> is null.</exception>
-        public static TContent ContentAs<TDocument, TContent>(this ILookupInResult<TDocument> result, Expression<Func<TDocument, TContent>> path)
+        public static TContent? ContentAs<TDocument, TContent>(this ILookupInResult<TDocument> result, Expression<Func<TDocument, TContent>> path)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (result == null)

@@ -1,9 +1,12 @@
 using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Transcoders
 {
@@ -39,13 +42,14 @@ namespace Couchbase.Core.IO.Transcoders
             throw new InvalidOperationException("The RawStringTranscoder can only encode strings.");
         }
 
+        [return: MaybeNull]
         public override T Decode<T>(ReadOnlyMemory<byte> buffer, Flags flags, OpCode opcode)
         {
             var type = typeof(T);
             if (type == typeof(string))
             {
-                object value = DecodeString(buffer.Span);
-                return (T) value;
+                object? value = DecodeString(buffer.Span);
+                return (T?) value;
             }
 
             throw new InvalidOperationException("The RawStringTranscoder can only decode strings.");
