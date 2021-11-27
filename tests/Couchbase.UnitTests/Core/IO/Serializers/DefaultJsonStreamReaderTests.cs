@@ -112,6 +112,114 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
         }
 
         [Fact]
+        public async Task ReadToNextAttributeAsync_NestedProperties_GetsPathAndDepth()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+
+            using var reader = new DefaultJsonStreamReader(stream, CreateDefaultJsonSerializer());
+
+            Assert.True(await reader.InitializeAsync());
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            Assert.Equal("signature", await reader.ReadToNextAttributeAsync());
+
+            // Act
+
+            var result = await reader.ReadToNextAttributeAsync();
+
+            // Assert
+
+            Assert.Equal("signature.*", result);
+            Assert.Equal(2, reader.Depth);
+        }
+
+        [Fact]
+        public async Task ReadToNextAttributeAsync_NestedProperties_ReadsPast()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+
+            using var reader = new DefaultJsonStreamReader(stream, CreateDefaultJsonSerializer());
+
+            Assert.True(await reader.InitializeAsync());
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            Assert.Equal("signature.*", await reader.ReadToNextAttributeAsync());
+
+            // Act
+
+            var result = await reader.ReadToNextAttributeAsync();
+
+            // Assert
+
+            Assert.Equal("results", result);
+            Assert.Equal(1, reader.Depth);
+        }
+
+        [Fact]
+        public async Task ReadToNextAttributeAsync_NestedArray_ReadsInto()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+
+            using var reader = new DefaultJsonStreamReader(stream, CreateDefaultJsonSerializer());
+
+            Assert.True(await reader.InitializeAsync());
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            Assert.Equal("results", await reader.ReadToNextAttributeAsync());
+
+            // Act
+
+            var result = await reader.ReadToNextAttributeAsync();
+
+            // Assert
+
+            Assert.Equal("results[0].abv", result);
+            Assert.Equal(3, reader.Depth);
+        }
+
+        [Fact]
+        public async Task ReadToNextAttributeAsync_NestedArray_CorrectPathDuringIteration()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\query-200-success.json");
+
+            using var reader = new DefaultJsonStreamReader(stream, CreateDefaultJsonSerializer());
+
+            Assert.True(await reader.InitializeAsync());
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            await reader.ReadToNextAttributeAsync();
+            Assert.Equal("results", await reader.ReadToNextAttributeAsync());
+
+            string? x;
+            while ((x = await reader.ReadToNextAttributeAsync()) != "results[0].updatedUnixMillis")
+            {
+                int i = 0;
+                // Loop to get to the last attr in the first element
+            }
+
+            // Act
+
+            var result = await reader.ReadToNextAttributeAsync();
+
+            // Assert
+
+            Assert.Equal("results[1].abv", result);
+            Assert.Equal(3, reader.Depth);
+        }
+
+        [Fact]
         public async Task ReadToNextAttributeAsync_AfterLast_ReturnsNull()
         {
             // Arrange

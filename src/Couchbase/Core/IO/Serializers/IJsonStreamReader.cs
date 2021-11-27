@@ -25,6 +25,14 @@ namespace Couchbase.Core.IO.Serializers
         object? Value { get; }
 
         /// <summary>
+        /// The current depth of the reader. Zero indicates ready to read the root object, one indicates an attribute on the root object, etc.
+        /// </summary>
+        /// <remarks>
+        /// Example paths: "metrics" == 1, "metrics.count" == 2, "results[0].abv" == 3.
+        /// </remarks>
+        public int Depth { get; }
+
+        /// <summary>
         /// Initializes the reader
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
@@ -44,7 +52,8 @@ namespace Couchbase.Core.IO.Serializers
         /// <remarks>
         /// The returned path is "." separated, and relative to the overall stream. For example, if
         /// the attribute "metrics" is on the root object, returns "metrics". If the attribute reached
-        /// is "count" on the "metrics" object, the returned value is "metrics.count".
+        /// is "count" on the "metrics" object, the returned value is "metrics.count". Arrays are indicated
+        /// with square brackets, for example "results[0].abv".
         /// </remarks>
         Task<string?> ReadToNextAttributeAsync(CancellationToken cancellationToken = default);
 

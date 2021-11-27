@@ -29,6 +29,9 @@ namespace Couchbase.Core.IO.Serializers
         /// <inheritdoc />
         public object? Value => _reader.Value;
 
+        /// <inheritdoc />
+        public int Depth => _reader.Depth;
+
         /// <summary>
         /// Creates a new DefaultJsonStreamReader.
         /// </summary>
