@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
@@ -6,23 +6,14 @@
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
     <PackageId>CouchbaseNetClient</PackageId>
-    <Authors>Couchbase, Inc.</Authors>
-    <Company>Couchbase, Inc.</Company>
     <Product>CouchbaseNetClient</Product>
     <Description>The Official Couchbase .NET SDK.</Description>
-    <Copyright>Copyright 2019</Copyright>
 
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
     <PackageReleaseNotes>https://docs.couchbase.com/dotnet-sdk/current/project-docs/sdk-release-notes.html</PackageReleaseNotes>
-
-    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
     <RootNamespace>Couchbase</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>9.0</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -47,54 +38,29 @@
   <PropertyGroup Condition=" '$(TargetFramework)' != 'netstandard2.0'">
     <DefineConstants>$(DefineConstants);SPAN_SUPPORT</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework.StartsWith(`netcoreapp`))'=='true' And '$(TargetFramework.StartsWith(`netcoreapp2.`))'=='false' And '$(TargetFramework.StartsWith(`netcoreapp1.`))'=='false'">
-    <DefineConstants>$(DefineConstants);NETCOREAPP_GTE_3_0</DefineConstants>
-  </PropertyGroup>
 
   <ItemGroup>
     <Folder Include="Core\Retry\Analytics\" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="App.Metrics" Version="4.2.0" />
-    <PackageReference Include="App.Metrics.Abstractions" Version="4.2.0" />
-    <PackageReference Include="DnsClient" Version="1.3.2" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.1.1" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="5.0.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-    <PackageReference Include="System.IO.Pipelines" Version="5.0.1" />
-    <PackageReference Include="System.Linq.Async" Version="4.0.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
-    <PackageReference Include="System.Threading.Channels" Version="5.0.0" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.11.0" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="5.0.1" />
+    <PackageReference Include="App.Metrics" />
+    <PackageReference Include="App.Metrics.Abstractions" />
+    <PackageReference Include="DnsClient"/>
+    <PackageReference Include="Microsoft.CSharp" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.IO.Pipelines" />
+    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
+    <PackageReference Include="System.Threading.Channels" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" />
+    <PackageReference Include="System.Diagnostics.DiagnosticSource" />
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <PackageIcon>couchbase.png</PackageIcon>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="couchbase.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
-  <!-- Because we're building commits pulled from Gerrit, SourceLink can't find our repository URL -->
-  <!-- This will manually fill it in (though we'll still see some warnings) -->
-  <PropertyGroup>
-    <SourceLinkUrlInitializerTargets>SupplySourceRootRepositoryUrl;$(SourceLinkUrlInitializerTargets)</SourceLinkUrlInitializerTargets>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-  </PropertyGroup>
-  <Target Name="SupplySourceRootRepositoryUrl">
-    <ItemGroup>
-      <SourceRoot Update="@(SourceRoot)">
-        <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
-      </SourceRoot>
-    </ItemGroup>
-  </Target>
 </Project>

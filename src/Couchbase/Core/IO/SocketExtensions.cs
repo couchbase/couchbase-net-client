@@ -41,7 +41,7 @@ namespace Couchbase.Core.IO
             return true;
         }
 
-#if NETCOREAPP_GTE_3_0
+#if NETCOREAPP3_0_OR_GREATER
         internal static bool TryEnableKeepAlives(this Socket socket, bool enableKeepAlives, int keepAliveTimeInSeconds, int keepAliveIntervalInSeconds, out string message)
         {
             message = string.Empty;

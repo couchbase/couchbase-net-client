@@ -14,7 +14,7 @@ dotnet_diagnostic.CA2007.severity=error
 [*.{json, config}]
 indent_size = 2
 
-[*.csproj]
+[*.{csproj,props,targets}]
 indent_size = 2
 
 # CS8604: Possible null reference argument.

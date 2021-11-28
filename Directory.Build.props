@@ -1,0 +1,27 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>9</LangVersion>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework> <!-- Don't warn about EOL target frameworks like netcoreapp2.1 -->
+
+    <Authors>Couchbase, Inc.</Authors>
+    <Company>Couchbase, Inc.</Company>
+    <Copyright>Copyright (c) 2019-2021 Couchbase,Inc.</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
+    <PackageIcon>couchbase.png</PackageIcon>
+
+    <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- Because we're building commits pulled from Gerrit, SourceLink can't find our repository URL -->
+    <!-- This will manually fill it in (though we'll still see some warnings) -->
+    <SourceLinkUrlInitializerTargets>SupplySourceRootRepositoryUrl;$(SourceLinkUrlInitializerTargets)</SourceLinkUrlInitializerTargets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)src\Couchbase\couchbase.png" Pack="true" PackagePath="\">
+      <Visible>false</Visible>
+    </None>
+  </ItemGroup>
+</Project>

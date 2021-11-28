@@ -1,0 +1,13 @@
+<Project>
+  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.1.1" />
+
+  <!-- Because we're building commits pulled from Gerrit, SourceLink can't find our repository URL -->
+  <!-- This will manually fill it in (though we'll still see some warnings) -->
+  <Target Name="SupplySourceRootRepositoryUrl">
+    <ItemGroup>
+      <SourceRoot Update="@(SourceRoot)">
+        <RepositoryUrl>https://github.com/couchbase/couchbase-net-client</RepositoryUrl>
+      </SourceRoot>
+    </ItemGroup>
+  </Target>
+</Project>
