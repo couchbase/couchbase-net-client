@@ -67,7 +67,7 @@ namespace Couchbase.Core.IO.HTTP
             if (_context.ClusterOptions.X509CertificateFactory != null)
             {
                 handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                handler.SslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+                handler.SslProtocols = _context.ClusterOptions.EnabledSslProtocols;
 
                 handler.ClientCertificates.AddRange(_context.ClusterOptions.X509CertificateFactory.GetCertificates());
             }
@@ -97,7 +97,7 @@ namespace Couchbase.Core.IO.HTTP
             //for x509 cert authentication
             if (_context.ClusterOptions.X509CertificateFactory != null)
             {
-                handler.SslOptions.EnabledSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+                handler.SslOptions.EnabledSslProtocols = _context.ClusterOptions.EnabledSslProtocols;
 
                 var certificates = _context.ClusterOptions.X509CertificateFactory.GetCertificates();
                 handler.SslOptions.ClientCertificates = certificates;
@@ -116,6 +116,11 @@ namespace Couchbase.Core.IO.HTTP
                 : X509RevocationMode.NoCheck;
             handler.SslOptions.RemoteCertificateValidationCallback =
                 _context.ClusterOptions.HttpCertificateCallbackValidation;
+
+            if (_context.ClusterOptions.EnabledTlsCipherSuites != null && _context.ClusterOptions.EnabledTlsCipherSuites.Count > 0)
+            {
+                handler.SslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_context.ClusterOptions.EnabledTlsCipherSuites);
+            }
 #endif
 
             try

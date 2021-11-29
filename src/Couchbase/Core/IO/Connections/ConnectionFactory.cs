@@ -111,10 +111,26 @@ namespace Couchbase.Core.IO.Connections
                     : hostEndpoint.Host;
 
                 //create the sslstream with appropriate authentication
+#if !NETCOREAPP3_1_OR_GREATER
                 await sslStream.AuthenticateAsClientAsync(targetHost, certs,
-                        SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+                        _clusterOptions.EnabledSslProtocols,
                         _clusterOptions.EnableCertificateRevocation)
                     .ConfigureAwait(false);
+#else
+                SslClientAuthenticationOptions sslOptions = new SslClientAuthenticationOptions()
+                {
+                    TargetHost = targetHost,
+                    ClientCertificates = certs,
+                    EnabledSslProtocols = _clusterOptions.EnabledSslProtocols,
+                    CertificateRevocationCheckMode = _clusterOptions.EnableCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck
+                };
+                if (_clusterOptions.EnabledTlsCipherSuites != null && _clusterOptions.EnabledTlsCipherSuites.Count > 0)
+                {
+                    sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_clusterOptions.EnabledTlsCipherSuites);
+                }
+                await sslStream.AuthenticateAsClientAsync(sslOptions)
+                    .ConfigureAwait(false);
+#endif
 
                 var isSecure = sslStream.IsAuthenticated && sslStream.IsSigned && sslStream.IsEncrypted;
                 _sslLogger.LogDebug("IsAuthenticated {0} on {1}", sslStream.IsAuthenticated, targetHost);

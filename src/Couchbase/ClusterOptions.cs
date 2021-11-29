@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Compatibility;
@@ -683,6 +684,18 @@ namespace Couchbase
         /// <remarks>The default is false and the IP Address will be sent as the target host.</remarks>
         public bool ForceIpAsTargetHost { get; set; } = true;
 
+        /// <summary>
+        /// Enabled SSL Protocols
+        /// </summary>
+        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+
+#if NETCOREAPP3_1_OR_GREATER
+        /// <summary>
+        /// List of enabled TLS Cipher Suites.  If not set, will use default .NET Cipher Suites
+        /// </summary>
+        public List<TlsCipherSuite> EnabledTlsCipherSuites { get; set; } = new List<TlsCipherSuite>();
+#endif
+
         #region DI
 
         private readonly IDictionary<Type, IServiceFactory> _services = DefaultServices.GetDefaultServices();
@@ -696,7 +709,7 @@ namespace Couchbase
             this.AddClusterService(this);
             this.AddClusterService(Logging ??= new NullLoggerFactory());
 
-            #region Tracing & Metrics
+#region Tracing & Metrics
 
             this.AddClusterService(LoggingMeterOptions);
             if (LoggingMeterOptions.EnabledValue)
@@ -723,7 +736,7 @@ namespace Couchbase
                                                        new OrphanReporter(Logging.CreateLogger<OrphanReporter>(),
                                                            OrphanTracingOptions)));
 
-            #endregion
+#endregion
 
             if (Experiments.ChannelConnectionPools)
             {
@@ -804,7 +817,7 @@ namespace Couchbase
             return this;
         }
 
-        #endregion
+#endregion
     }
 
     [Obsolete("Use Couchbase.NetworkResolution")]
