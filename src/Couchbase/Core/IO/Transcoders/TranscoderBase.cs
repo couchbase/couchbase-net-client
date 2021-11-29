@@ -54,6 +54,24 @@ namespace Couchbase.Core.IO.Transcoders
         }
 
         /// <summary>
+        /// Serializes as json.
+        /// </summary>
+        /// <typeparam name="T">Type of value to serialize.</typeparam>
+        /// <param name="stream">The stream to receive the encoded value.</param>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public void SerializeAsJson<T>(Stream stream, T value)
+        {
+            if (Serializer == null)
+            {
+                ThrowHelper.ThrowInvalidOperationException("A serializer is required to transcode JSON.");
+            }
+
+            // For .NET Core 3.1 and later, this prefers the Serialize<T> overload.
+            Serializer.Serialize(stream, value);
+        }
+
+        /// <summary>
         /// Decodes the specified buffer as string.
         /// </summary>
         /// <param name="buffer">The buffer.</param>

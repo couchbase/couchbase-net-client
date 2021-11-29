@@ -51,6 +51,29 @@ namespace Couchbase.Core.IO.Serializers
         /// <param name="obj">The object to serialize.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default);
+
+#if NETSTANDARD2_1 || NETCOREAPP3_1_OR_GREATER
+        // We only offer these new overloads to newer frameworks which support default implementations to avoid
+        // breaking changes to existing custom serializers.
+
+        /// <summary>
+        /// Serializes the specified object onto a stream.
+        /// </summary>
+        /// <typeparam name="T">Type of object to serialize.</typeparam>
+        /// <param name="stream">The stream to receive the serialized object.</param>
+        /// <param name="obj">The object to serialize.</param>
+        public void Serialize<T>(Stream stream, T obj) => Serialize(stream, (object?)obj);
+
+        /// <summary>
+        /// Serializes the specified object onto a stream.
+        /// </summary>
+        /// <typeparam name="T">Type of object to serialize.</typeparam>
+        /// <param name="stream">The stream to receive the serialized object.</param>
+        /// <param name="obj">The object to serialize.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public ValueTask SerializeAsync<T>(Stream stream, T obj, CancellationToken cancellationToken = default) =>
+            SerializeAsync(stream, (object?)obj, cancellationToken);
+#endif
     }
 }
 
