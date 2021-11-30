@@ -257,6 +257,14 @@ namespace Couchbase.Core.IO.Connections.DataFlow
             }
         }
 
+        /// <summary>
+        /// For UNIT TESTING ONLY. Causes all future operations to fail with <see cref="SendQueueFullException"/>.
+        /// </summary>
+        protected internal void CompleteSendQueue()
+        {
+            _sendQueue.Complete();
+        }
+
         #region Connection Management
 
         /// <summary>

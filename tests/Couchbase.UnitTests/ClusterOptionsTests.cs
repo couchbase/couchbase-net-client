@@ -206,11 +206,13 @@ namespace Couchbase.UnitTests
         [Fact]
         public void When_Tracing_Disabled_Custom_To_CustomTraceListener()
         {
+            using var listener = new CustomTraceListener();
+
             var options = new ClusterOptions { TracingOptions = { Enabled = false } };
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = false,
-                ThresholdListener = new CustomTraceListener()
+                ThresholdListener = listener
             }).WithOrphanTracing(options => options.Enabled = false);
 
             var services = options.BuildServiceProvider();
@@ -222,11 +224,13 @@ namespace Couchbase.UnitTests
         [Fact]
         public void When_Tracing_Enabled_Custom_To_CustomTraceListener()
         {
+            using var listener = new CustomTraceListener();
+
             var options = new ClusterOptions();
             options.WithThresholdTracing(new ThresholdOptions
             {
                 Enabled = true,
-                ThresholdListener = new CustomTraceListener()
+                ThresholdListener = listener
             });
 
             var services = options.BuildServiceProvider();
@@ -234,7 +238,6 @@ namespace Couchbase.UnitTests
             var span = tracer.RequestSpan("works");
             span.Dispose();
 
-            var listener = options.ThresholdOptions.ThresholdListener as CustomTraceListener;
             var activities = listener.Activities.Where(x => x.OperationName == "works");
             var enumerable = activities as Activity[] ?? activities.ToArray();
 
@@ -268,13 +271,19 @@ namespace Couchbase.UnitTests
                 Start();
             }
 
-            public List<Activity> Activities { get; } = new();
+            // Due to thread sync issues, a listener may receive the same activity more than once.
+            // We use a hash set to avoid tracking it multiple times and breaking tests.
+            public HashSet<Activity> Activities { get; } = new();
 
             public sealed override void Start()
             {
                 Listener.ActivityStopped = activity =>
                 {
-                    Activities.Add(activity);
+                    // We may be receiving activities from other tests, so lock
+                    lock (Activities)
+                    {
+                        Activities.Add(activity);
+                    }
                 };
                 Listener.SampleUsingParentId = (ref ActivityCreationOptions<string> activityOptions) =>
                     ActivitySamplingResult.AllData;

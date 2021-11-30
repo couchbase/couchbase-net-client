@@ -138,18 +138,9 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                 // The second time is done after dequeueing the first op
                 if (count == 2)
                 {
-                    // simulate queue filling up during cleanup
-                    while (true)
-                    {
-                        try
-                        {
-                            pool.SendAsync(new FakeOperation()).GetAwaiter().GetResult();
-                        }
-                        catch (SendQueueFullException)
-                        {
-                            break;
-                        }
-                    }
+                    // Stop processing further messages, simulating a full send queue
+                    pool.Stop();
+
                     return true; // simulate dead connection
                 }
                 return false;
@@ -797,7 +788,18 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
 
         #region Helpers
 
-        private DataFlowConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,
+        private class StoppableDataFlowConnectionPool : DataFlowConnectionPool
+        {
+            public StoppableDataFlowConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
+                IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<DataFlowConnectionPool> logger,
+                uint kvSendQueueCapacity) : base(connectionInitializer, connectionFactory, scaleController, redactor, logger, kvSendQueueCapacity)
+            {
+            }
+
+            public void Stop() => CompleteSendQueue();
+        }
+
+        private StoppableDataFlowConnectionPool CreatePool(IConnectionInitializer connectionInitializer = null,
             IConnectionFactory connectionFactory = null)
         {
             if (connectionInitializer == null)
@@ -823,7 +825,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.DataFlow
                 connectionFactory = connectionFactoryMock.Object;
             }
 
-            return new DataFlowConnectionPool(connectionInitializer, connectionFactory,
+            return new StoppableDataFlowConnectionPool(connectionInitializer, connectionFactory,
                 new Mock<IConnectionPoolScaleController>().Object,
                 new Mock<IRedactor>().Object,
                 new Logger(_testOutput),
