@@ -52,6 +52,8 @@ namespace Couchbase.Core
         private readonly string _cachedToString;
         private volatile bool _disposed;
         private readonly IValueRecorder _valueRecorder;
+        private readonly string _localHostName;
+        private readonly string _remoteHostName;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
@@ -69,7 +71,17 @@ namespace Couchbase.Core
             EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
             _valueRecorder = valueRecorder ?? throw new ArgumentNullException(nameof(valueRecorder));
 
+            try
+            {
+                _localHostName = Dns.GetHostName();
+            }
+            catch (Exception e)
+            {
+                _logger.LogDebug(e, "Cannot fetch hostname.");
+            }
+
             _cachedToString = $"{EndPoint}-{_id}";
+            _remoteHostName = EndPoint.ToString();
 
             KeyEndPoints = new ReadOnlyObservableCollection<IPEndPoint>(_keyEndPoints);
             UpdateKeyEndPoints();
@@ -565,7 +577,9 @@ namespace Couchbase.Core
                         ScopeName = op.SName,
                         Message = errorCode?.ToString(),
                         Status = status,
-                        OpCode = op.OpCode
+                        OpCode = op.OpCode,
+                        DispatchedFrom = _localHostName,
+                        DispatchedTo = _remoteHostName
                     };
                     throw status.CreateException(ctx, op);
                 }

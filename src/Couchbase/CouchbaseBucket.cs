@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -216,7 +217,8 @@ namespace Couchbase
                     $"Cannot find a Couchbase Server node for {endPoint}.");
             }
 
-            var node = Nodes.GetRandom();
+            //Make sure we use a node with the data service
+            var node = Nodes.GetRandom(x => x.HasKv);
             if (node == null)
                 throw new NodeNotAvailableException(
                     $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
