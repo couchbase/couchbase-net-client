@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,6 +87,13 @@ namespace Couchbase.IntegrationTests.Fixtures
                 loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
                 options.WithLogging(loggerFactory);
             }
+
+#if NETCOREAPP3_1_OR_GREATER
+            if (settings.SystemTextJson)
+            {
+                options.WithSerializer(SystemTextJsonSerializer.Create());
+            }
+#endif
 
             return options;
         }

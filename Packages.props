@@ -33,6 +33,13 @@
     <PackageReference Update="System.Reflection.Emit" Version="4.7.0" />
   </ItemGroup>
 
+  <!-- Upgrade some dependencies when we're not targeting netcoreapp2.1 so we can use some new features.
+       These packages are still compatible with net461 -->
+  <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard2.0' And '$(TargetFramework)' != 'netcoreapp2.1' ">
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Update="System.Text.Json" Version="6.0.0" />
+  </ItemGroup>
+
   <!-- Dependencies only allowed for test projects -->
   <ItemGroup Condition=" '$(MSBuildProjectFile.Contains(`Test`))' == 'true' ">
     <PackageReference Update="BenchmarkDotNet" Version="0.13.1" />

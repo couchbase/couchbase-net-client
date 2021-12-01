@@ -10,4 +10,21 @@
       </SourceRoot>
     </ItemGroup>
   </Target>
+
+  <!-- Temporary until .NET 6 SDK is used on CI build agents
+       Somehow the analyzers from the NuGet package are leaking to other target frameworks
+       and the DisableSystemTextJsonSourceGenerator property is only working on the included targets
+       not the excluded ones. So we manually remove them for the excluded targets. -->
+  <Target Name="GatherJsonAnalyzers">
+    <ItemGroup>
+      <_JsonAnalyzers Include="@(Analyzer)" Condition=" '%(Analyzer.Filename)' == 'System.Text.Json.SourceGeneration' " />
+    </ItemGroup>
+  </Target>
+  <Target Name="RemoveJsonAnalyzers"
+          AfterTargets="ResolvePackageDependenciesForBuild;ResolveNuGetPackageAssets"
+          DependsOnTargets="GatherJsonAnalyzers">
+    <ItemGroup>
+      <Analyzer Remove="@(_JsonAnalyzers)" />
+    </ItemGroup>
+  </Target>
 </Project>

@@ -18,6 +18,13 @@
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn> <!-- suppress warnings for missing XML comments on public members -->
+
+    <!-- This will cause .NET 5+ targets to fail to build (with .NET 6 SDK) if we violate trimming principles
+         around RequiresUnreferencedCode attributes unless we suppress using UnconditionalSuppressMessage.
+         We can leave this in place until we fully support trimming, after which we switch to
+         IsTrimmable which marks the output assembly as trimmable.
+         https://docs.microsoft.com/en-us/dotnet/core/deploying/trimming/prepare-libraries-for-trimming#enable-library-trim-warnings -->
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -46,7 +53,7 @@
   <ItemGroup>
     <PackageReference Include="App.Metrics" />
     <PackageReference Include="App.Metrics.Abstractions" />
-    <PackageReference Include="DnsClient"/>
+    <PackageReference Include="DnsClient" />
     <PackageReference Include="Microsoft.CSharp" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
@@ -61,6 +68,17 @@
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="System.Memory" />
+  </ItemGroup>
+
+  <!-- Don't add System.Text.Json when targeting netcoreapp2.1, it is unsupported starting with 6.0.0.
+       It is supported on netstandard2.0, but we exclude that as well because it is an antipattern to
+       include API surface in the netstandard2.0 target that is not also available in netcoreapp2.1. -->
+  <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard2.0' And '$(TargetFramework)' != 'netcoreapp2.1' ">
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <Compile Remove="Core\IO\Serializers\SystemTextJson\**\*.cs" />
+    <None Include="Core\IO\Serializers\SystemTextJson\**\*.cs" />
   </ItemGroup>
 
 </Project>
