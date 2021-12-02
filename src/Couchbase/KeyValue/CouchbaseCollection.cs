@@ -31,9 +31,10 @@ namespace Couchbase.KeyValue
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
         private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder();
+        private Lazy<Task<uint?>>? GetCidLazyRetry = null;
+        private Lazy<Task<uint?>>? GetCidLazyNoRetry = null;
 
         private object _cidLock = new object();
-        private Task? _popuplateCidTask;
 
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
@@ -1007,75 +1008,49 @@ namespace Couchbase.KeyValue
             return !Cid.HasValue && _bucket.Context.SupportsCollections;
         }
 
-        public ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
+        public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
         {
             // Short-circuit if we have the CID already
-            if (!forceUpdate && !Cid.HasValue)
+            if (!forceUpdate && Cid.HasValue)
             {
-                return default;
+                return;
             }
 
             // old servers do not support collections so we exit
             if (!_bucket.Context.SupportsCollections)
             {
-                return default;
+                return;
             }
 
-            // This lock is only taken long enough to start the async task, if not already started, then released.
-            // The first simultaneous attempt will start a GetCidAsync, all subsequent attempts will receive the same Task.
-            // Once complete, _populateCidTask is cleared so it may be run again if required.
-            // We use Task.Run here so that the lock is held as briefly as possible, it we just call PopulateCidLocalAsync
-            // then the entire beginning of the operation until writing to the connection pool would happen within
-            // the lock. Using Task.Run causes it to queue the entire execution on the thread pool and return sooner.
-            lock (_cidLock)
+            if (forceUpdate)
             {
-                return new ValueTask(_popuplateCidTask ??= Task.Run(PopulateCidLocalAsync));
-            }
+                Cid = await GetCidWithFallbackAsync(retryIfFailure).ConfigureAwait(false);
+                lock (_cidLock)
+                {
+                    GetCidLazyRetry = null;
+                    GetCidLazyNoRetry = null;
+                }
 
-            // Local method which is called above to start the asynchronous process
-            async Task PopulateCidLocalAsync()
+                return;
+            }
+            else
             {
-                try
+                lock (_cidLock)
                 {
-                    // the CID has been acquired and its not a forced update exit
-                    // This was checked before the task was started, but just in case we hit a race condition
-                    if (Cid.HasValue && !forceUpdate)
-                    {
-                        return;
-                    }
-
-                    Logger.LogDebug("Fetching CID for {scope}.{collection}", ScopeName, Name);
-
-                    Cid = await GetCidAsync($"{ScopeName}.{Name}", true, retryIfFailure).ConfigureAwait(false);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogInformation(e, "Possible non-terminal error fetching CID. Cluster maybe in Dev-Preview mode.");
-                    if (e is InvalidArgumentException)
-                        try
-                        {
-                            //if this is encountered were on a older server pre-cheshire cat changes
-                            Cid = await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure).ConfigureAwait(false);
-                        }
-                        catch (UnsupportedException)
-                        {
-                            //an older server without collections enabled
-                            Logger.LogInformation("Collections are not supported on this server version.");
-                        }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                finally
-                {
-                    // Make sure we clear the task once it has completed
-                    // This allow retry if it failed, or allows GC if in the case of success
-                    _popuplateCidTask = null;
+                    GetCidLazyRetry ??= new Lazy<Task<uint?>>(
+                        () => GetCidWithFallbackAsync(retryIfFailure: true),
+                        LazyThreadSafetyMode.ExecutionAndPublication);
+                    GetCidLazyNoRetry ??= new Lazy<Task<uint?>>(
+                        () => GetCidWithFallbackAsync(retryIfFailure: true),
+                        LazyThreadSafetyMode.ExecutionAndPublication);
                 }
 
-                Logger.LogDebug("Completed fetching CID for {scope}.{collection}", ScopeName, Name);
+                Cid = retryIfFailure
+                    ? await GetCidLazyRetry.Value.ConfigureAwait(false)
+                    : await GetCidLazyNoRetry.Value.ConfigureAwait(false);
             }
+
+            Logger.LogDebug("Completed fetching CID for {scope}.{collection}", ScopeName, Name);
         }
 
         /// <summary>
@@ -1117,6 +1092,39 @@ namespace Couchbase.KeyValue
 
             var resultWithValue = getCid.GetValueAsUint();
             return resultWithValue;
+        }
+
+        private async Task<uint?> GetCidWithFallbackAsync(bool retryIfFailure)
+        {
+            var fullyQualifiedName = $"{ScopeName}.{Name}";
+            try
+            {
+                return await GetCidAsync(fullyQualifiedName, true, retryIfFailure).ConfigureAwait(false);
+            }
+            catch (Core.Exceptions.TimeoutException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                Logger.LogInformation(e, "Possible non-terminal error fetching CID. Cluster may be in Dev-Preview mode.");
+                if (e is InvalidArgumentException)
+                    try
+                    {
+                        //if this is encountered were on a older server pre-cheshire cat changes
+                        return await GetCidAsync($"{ScopeName}.{Name}", false, retryIfFailure).ConfigureAwait(false);
+                    }
+                    catch (UnsupportedException)
+                    {
+                        //an older server without collections enabled
+                        Logger.LogInformation("Collections are not supported on this server version.");
+                        return null;
+                    }
+                else
+                {
+                    throw;
+                }
+            }
         }
         #endregion
 
