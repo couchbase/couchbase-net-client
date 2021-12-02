@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -521,6 +522,56 @@ namespace Couchbase.IntegrationTests
                 var content = result.ExpiryTime;
                 Assert.NotNull(content);
                 Assert.Equal(data, result.ContentAs<byte[]>());
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Test_Memory_With_RawBinaryTranscoder()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                var data = Enumerable.Range(1, 128).Select(p => (byte)p).ToArray();
+                var transcoder = new RawBinaryTranscoder();
+
+                await collection.InsertAsync(key, data.AsMemory(), options => options.Expiry(TimeSpan.FromSeconds(30)).Transcoder(transcoder))
+                    .ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options => options.Expiry().Transcoder(transcoder))
+                    .ConfigureAwait(false);
+
+                using var content = result.ContentAs<IMemoryOwner<byte>>()!;
+                Assert.Equal(data, content.Memory.ToArray());
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+            }
+        }
+
+        [Fact]
+        public async Task Test_ReadOnlyMemory_With_RawBinaryTranscoder()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                var data = Enumerable.Range(1, 128).Select(p => (byte)p).ToArray();
+                var transcoder = new RawBinaryTranscoder();
+
+                await collection.InsertAsync<ReadOnlyMemory<byte>>(key, data.AsMemory(), options => options.Expiry(TimeSpan.FromSeconds(30)).Transcoder(transcoder))
+                    .ConfigureAwait(false);
+                var result = await collection.GetAsync(key, options => options.Expiry().Transcoder(transcoder))
+                    .ConfigureAwait(false);
+
+                using var content = result.ContentAs<IMemoryOwner<byte>>()!;
+                Assert.Equal(data, content.Memory.ToArray());
             }
             finally
             {
