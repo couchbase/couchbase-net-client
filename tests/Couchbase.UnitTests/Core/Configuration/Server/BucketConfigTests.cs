@@ -407,10 +407,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData("config_lower_rev_lower_epoch.json")]
         [InlineData("config_lower_rev_higher_epoch.json")]
         [InlineData("config_lower_rev_no_epoch.json")]
-        public void IsNewer_Throws_ArgumentException_When_Comparing_Same_Config(string configResource)
+        public void IsNewer_ReturnsFalse_When_Comparing_Same_Config(string configResource)
         {
             var config = ResourceHelper.ReadResource<BucketConfig>(configResource);
-            Assert.Throws<ArgumentException>(() => config.IsNewerThan(config));
+            Assert.False(config.IsNewerThan(config));
         }
     }
 }

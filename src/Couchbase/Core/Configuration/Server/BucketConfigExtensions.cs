@@ -10,7 +10,7 @@ namespace Couchbase.Core.Configuration.Server
         public static bool IsNewerThan(this BucketConfig newConfig, BucketConfig? oldConfig)
         {
             if (oldConfig == null) return true; //true we don't have a config yet so this is the new one
-            if (ReferenceEquals(oldConfig,  newConfig)) throw new ArgumentException("Comparing the same configs is not allowed.");
+            if (ReferenceEquals(oldConfig, newConfig)) return false; // shouldn't happen
             if (newConfig.RevEpoch > oldConfig.RevEpoch) //new one is older than the current
                 return true;
             if(newConfig.RevEpoch < oldConfig.RevEpoch) //new one is newer
