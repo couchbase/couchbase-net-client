@@ -279,7 +279,7 @@ namespace Couchbase.Management.Users
             try
             {
                 // upsert group
-                var content = new FormUrlEncodedContent(GetGroupFormValues(group));
+                var content = new FormUrlEncodedContent(GetGroupFormValues(group)!);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PutAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();

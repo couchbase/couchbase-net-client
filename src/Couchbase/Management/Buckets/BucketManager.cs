@@ -195,7 +195,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // create bucket
-                var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings));
+                var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings)!);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.BadRequest)
@@ -233,7 +233,7 @@ namespace Couchbase.Management.Buckets
             try
             {
                 // upsert bucket
-                var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings));
+                var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings)!);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 result.EnsureSuccessStatusCode();
@@ -294,7 +294,7 @@ namespace Couchbase.Management.Buckets
             {
                 // try do flush
                 using var httpClient = _httpClientFactory.Create();
-                var result = await httpClient.PostAsync(uri, null, options.TokenValue).ConfigureAwait(false);
+                var result = await httpClient.PostAsync(uri, null!, options.TokenValue).ConfigureAwait(false);
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);

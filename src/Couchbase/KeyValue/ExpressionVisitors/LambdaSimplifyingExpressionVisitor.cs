@@ -157,7 +157,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
 
             VisitChildren(children);
 
-            return node.Update(children[0], children.Skip(1)!);
+            return node.Update(children[0]!, children.Skip(1)!);
         }
 
         private static ConstantExpression ConvertToConstant(Expression node)

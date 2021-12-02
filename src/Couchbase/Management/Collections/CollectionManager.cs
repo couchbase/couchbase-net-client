@@ -202,7 +202,7 @@ namespace Couchbase.Management.Collections
                 {
                     keys.Add("maxTTL", spec.MaxExpiry.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture));
                 }
-                var content = new FormUrlEncodedContent(keys);
+                var content = new FormUrlEncodedContent(keys!);
                 using var httpClient = _httpClientFactory.Create();
                 var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
                 if (createResult.StatusCode != HttpStatusCode.OK)
@@ -269,7 +269,7 @@ namespace Couchbase.Management.Collections
             var content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 {"name", scopeName}
-            });
+            }!);
 
             try
             {

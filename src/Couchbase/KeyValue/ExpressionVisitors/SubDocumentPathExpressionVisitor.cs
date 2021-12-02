@@ -134,7 +134,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
                 ThrowHelper.ThrowNotSupportedException("The first statement in a subdocument path must be a reference to the lambda parameter.");
             }
 
-            return node.Update(body, node.Parameters);
+            return node.Update(body, node.Parameters)!;
         }
 
         protected override Expression VisitParameter(ParameterExpression node)

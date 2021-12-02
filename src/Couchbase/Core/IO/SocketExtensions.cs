@@ -6,7 +6,7 @@ namespace Couchbase.Core.IO
 {
     internal static class SocketExtensions
     {
-#if NET6_0_OR_GREATER
+#if NET5_0_OR_GREATER
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 #endif
         private static void SetKeepAlives(Socket socket, bool on, uint time, uint interval)
@@ -35,7 +35,7 @@ namespace Couchbase.Core.IO
         {
             message = string.Empty;
 
-#if NET6_0_OR_GREATER
+#if NET5_0_OR_GREATER
             if (OperatingSystem.IsWindows())
             {
                 SetKeepAlives(socket, on, time, interval);
