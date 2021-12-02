@@ -98,7 +98,7 @@ namespace Couchbase.KeyValue
             if (specCount == 0)
             {
                 // We aren't including the expiry value and we have no projections so fetch the whole doc using a Get operation
-                var getOp = new Get<byte[]>
+                using var getOp = new Get<byte[]>
                 {
                     Key = id,
                     Cid = Cid,
@@ -155,7 +155,7 @@ namespace Couchbase.KeyValue
                     .Transcoder(options.TranscoderValue)
                 : LookupInOptions.Default;
 
-            var lookupOp = await ExecuteLookupIn(id,
+            using var lookupOp = await ExecuteLookupIn(id,
                     specs, lookupInOptions, rootSpan)
                 .ConfigureAwait(false);
             rootSpan.WithOperationId(lookupOp);
@@ -618,11 +618,20 @@ namespace Couchbase.KeyValue
                 DocFlags = options.AccessDeletedValue ? SubdocDocFlags.AccessDeleted : SubdocDocFlags.None,
                 Span = span
             };
-            _operationConfigurator.Configure(lookup, options);
+            try
+            {
+                _operationConfigurator.Configure(lookup, options);
 
-            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, lookup);
-            await _bucket.RetryAsync(lookup, ctp.TokenPair).ConfigureAwait(false);
-            return lookup;
+                using var ctp = CreateRetryTimeoutCancellationTokenSource(options, lookup);
+                await _bucket.RetryAsync(lookup, ctp.TokenPair).ConfigureAwait(false);
+                return lookup;
+            }
+            catch
+            {
+                // Make sure we cleanup the operation in the error case where it isn't returned
+                lookup.Dispose();
+                throw;
+            }
         }
 
         #endregion

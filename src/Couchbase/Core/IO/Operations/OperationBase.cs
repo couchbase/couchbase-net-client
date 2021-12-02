@@ -26,6 +26,10 @@ using Microsoft.Extensions.ObjectPool;
 
 namespace Couchbase.Core.IO.Operations
 {
+    /// <remarks>
+    /// It is important for this object to be disposed. Failure to properly dispose this object may result
+    /// in memory not being returned to the ArrayPool, which will increase GC impact across various parts of the framework.
+    /// </remarks>
     internal abstract class OperationBase : IOperation, IValueTaskSource<ResponseStatus>
     {
         private SlicedMemoryOwner<byte> _data;
@@ -657,21 +661,14 @@ namespace Couchbase.Core.IO.Operations
 
         #region Finalization and Dispose
 
-        ~OperationBase()
-        {
-            Dispose(false);
-        }
-
         private bool _disposed;
 
         /// <inheritdoc />
+        /// <remarks>
+        /// It is important for this object to be disposed. Failure to properly dispose this object may result
+        /// in memory not being returned to the ArrayPool, which will increase GC impact across various parts of the framework.
+        /// </remarks>
         public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private void Dispose(bool disposing)
         {
             _disposed = true;
             _data.Dispose();
