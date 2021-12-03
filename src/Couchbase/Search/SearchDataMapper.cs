@@ -140,14 +140,11 @@ namespace Couchbase.Search
                 if(obj != null)
                 {
                     response.MetaData.ErrorCount = obj.Count;
-                    //if(response.Errors == null)
-                    //{
-                    //    response.Errors = new List<string>();
-                    //}
-                    //foreach(var err in obj)
-                    //{
-                    //    response.Errors.Add(string.Concat(err.Key, " : ", err.Value));
-                    //}
+                    response.MetaData.Errors ??= new Dictionary<string, string>();
+                    foreach (var err in obj)
+                    {
+                        response.MetaData.Errors.Add(err.Key, err.Value.Value<string>());
+                    }
                 }
             }
             if (reader.Path == "facets" && reader.TokenType == JsonToken.StartObject)

@@ -1,0 +1,35 @@
+{
+  "status": {
+    "total": 6,
+    "failed": 2,
+    "successful": 4,
+    "errors": {
+      "beer-search_44d091c58abbca5b_18572d87": "grpc_client: query got status code: 503, resp: (*bleve.SearchResult)(nil), err: rpc error: code = Unavailable desc = all SubConns are in TransientFailure, latest connection error: connection error: desc = \"transport: Error while dialing dial tcp 192.168.1.101:9130: i/o timeout\"",
+      "beer-search_44d091c58abbca5b_aa574717": "grpc_client: query got status code: 503, resp: (*bleve.SearchResult)(nil), err: rpc error: code = Unavailable desc = all SubConns are in TransientFailure, latest connection error: connection error: desc = \"transport: Error while dialing dial tcp 192.168.1.101:9130: i/o timeout\""
+    }
+  },
+  "request": {
+    "query": {
+      "match_phrase": "aas"
+    },
+    "size": 3,
+    "from": 0,
+    "highlight": null,
+    "fields": null,
+    "facets": null,
+    "explain": false,
+    "sort": [
+      "-_score"
+    ],
+    "includeLocations": false,
+    "search_after": null,
+    "search_before": null
+  },
+  "hits": [
+
+  ],
+  "total_hits": 0,
+  "max_score": 0,
+  "took": 15405697727,
+  "facets": null
+}

@@ -158,7 +158,20 @@ namespace Couchbase.Management.Collections
                 // get manifest
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
-                result.EnsureSuccessStatusCode();
+
+                var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var ctx = new ManagementErrorContext
+                {
+                    HttpStatus = result.StatusCode,
+                    Message = body,
+                    Statement = uri.ToString()
+                };
+
+                //Throw specific exception if a rate limiting exception is thrown.
+                result.ThrowIfRateLimitingError(body, ctx);
+
+                //Throw any other error cases
+                result.ThrowOnError(ctx);
 
                 // check scope & collection exists in manifest
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
@@ -205,16 +218,31 @@ namespace Couchbase.Management.Collections
                 var content = new FormUrlEncodedContent(keys!);
                 using var httpClient = _httpClientFactory.Create();
                 var createResult = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = createResult.StatusCode,
+                        Message = contentBody,
+                        Statement = uri.ToString()
+                    };
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    createResult.ThrowIfRateLimitingError(contentBody, ctx);
+
                     if (contentBody.Contains("already exists"))
-                        throw new CollectionExistsException(spec.ScopeName, spec.Name);
+                        throw new CollectionExistsException(spec.ScopeName, spec.Name)
+                        {
+                            Context = ctx
+                        };
 
                     if (contentBody.Contains("not found"))
-                        throw new ScopeNotFoundException(spec.ScopeName);
+                        throw ScopeNotFoundException.FromScopeName(spec.ScopeName);
 
-                    throw new CouchbaseException(contentBody);
+                    //Throw any other error cases
+                    createResult.ThrowOnError(ctx);
                 }
             }
             catch (Exception exception)
@@ -240,9 +268,24 @@ namespace Couchbase.Management.Collections
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = createResult.StatusCode,
+                        Message = contentBody,
+                        Statement = uri.ToString()
+                    };
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    createResult.ThrowIfRateLimitingError(contentBody, ctx);
+
                     if (contentBody.Contains("not found"))
-                        throw new CollectionNotFoundException(spec.ScopeName, spec.Name);
-                    throw new CouchbaseException(contentBody);
+                        throw new CollectionNotFoundException(spec.ScopeName, spec.Name)
+                        {
+                            Context = ctx
+                        };
+
+                    //Throw any other error cases
+                    createResult.ThrowOnError(ctx);
                 }
             }
             catch (Exception exception)
@@ -278,8 +321,24 @@ namespace Couchbase.Management.Collections
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (contentBody.Contains("already exists")) throw new ScopeExistsException(scopeName);
-                    throw new CouchbaseException(contentBody);
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = createResult.StatusCode,
+                        Message = contentBody,
+                        Statement = uri.ToString()
+                    };
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    createResult.ThrowIfRateLimitingError(contentBody, ctx);
+
+                    if (contentBody.Contains("already exists"))
+                        throw new ScopeExistsException(scopeName)
+                    {
+                        Context = ctx
+                    };
+
+                    //Throw any other error cases
+                    createResult.ThrowOnError(ctx);
                 }
             }
             catch (Exception exception)
@@ -317,10 +376,24 @@ namespace Couchbase.Management.Collections
                 if (createResult.StatusCode != HttpStatusCode.OK)
                 {
                     var contentBody = await createResult.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = createResult.StatusCode,
+                        Message = contentBody,
+                        Statement = uri.ToString()
+                    };
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    createResult.ThrowIfRateLimitingError(contentBody, ctx);
 
                     if (contentBody.Contains("not found"))
-                        throw new ScopeNotFoundException(scopeName);
-                    throw new CouchbaseException(contentBody);
+                        throw new ScopeNotFoundException(scopeName)
+                        {
+                            Context = ctx
+                        };
+
+                    //Throw any other error cases
+                    createResult.ThrowOnError(ctx);
                 }
             }
             catch (Exception exception)

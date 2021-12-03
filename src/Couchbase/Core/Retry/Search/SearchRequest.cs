@@ -9,7 +9,7 @@ namespace Couchbase.Core.Retry.Search
         public override bool Idempotent => true;
         public string Index { get; set; }
         public ISearchQuery Query { get; set; }
-        public SearchOptions Options { get; set; }
+        public SearchOptions Options { get; set; } = new();
 
         public string ToJson()
         {

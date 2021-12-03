@@ -16,7 +16,7 @@ namespace Couchbase.UnitTests.Search
         public async Task Success_Is_False_When_Errors_Returned()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("error-with-errors.js"))
+            using (var stream = OpenResource("error-with-errors.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
                 Assert.Equal(6, result.MetaData.ErrorCount);
@@ -27,7 +27,7 @@ namespace Couchbase.UnitTests.Search
         public async Task Success_WhenSuccess_IsTrue()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
                 //Assert.True(result.Success);
@@ -38,7 +38,7 @@ namespace Couchbase.UnitTests.Search
         public async Task Count_WhenSuccess_Returns32()
         {
             var mapper = new SearchDataMapper();
-            var fileStream = OpenResource("search-response-success.js");
+            var fileStream = OpenResource("search-response-success.json");
             using (var stream = fileStream)
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
@@ -51,7 +51,7 @@ namespace Couchbase.UnitTests.Search
         public async Task MaxScore_WhenSuccess_ReturnsDouble()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
@@ -63,7 +63,7 @@ namespace Couchbase.UnitTests.Search
         public async Task Took_WhenSuccess_Returns123165714()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
@@ -75,7 +75,7 @@ namespace Couchbase.UnitTests.Search
         public async Task TotalHits_WhenSuccess_Returns116()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
@@ -87,7 +87,7 @@ namespace Couchbase.UnitTests.Search
         public async Task ErrorCount_WhenSuccess_ReturnsZero()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
@@ -99,7 +99,7 @@ namespace Couchbase.UnitTests.Search
         public async Task HitsCount_WhenSuccess_ReturnsPageSize()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
@@ -111,7 +111,7 @@ namespace Couchbase.UnitTests.Search
         public async Task Hits_WhenSuccess_ReturnsValidData()
         {
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-success.js"))
+            using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
@@ -128,7 +128,7 @@ namespace Couchbase.UnitTests.Search
         {
             ISearchResult result;
             var mapper = new SearchDataMapper();
-            using (var stream = OpenResource("search-response-with-facets.js"))
+            using (var stream = OpenResource("search-response-with-facets.json"))
             {
                 result = await mapper.MapAsync(stream).ConfigureAwait(false);
             }

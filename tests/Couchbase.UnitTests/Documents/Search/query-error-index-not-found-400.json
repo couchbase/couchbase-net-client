@@ -1,0 +1,40 @@
+{
+  "error": "rest_auth: preparePerms, err: index not found",
+  "request": {
+    "ctl": { "timeout": 75000 },
+    "facets": {
+      "daterangefacet": {
+        "date_ranges": [
+          {
+            "end": "2021-11-06T18:33:51.9917646-07:00",
+            "name": null,
+            "start": "2021-11-05T18:33:51.9917611-07:00"
+          }
+        ],
+        "field": "thefield",
+        "size": 10
+      },
+      "numericrangefacet": {
+        "field": "thefield",
+        "numeric_ranges": [
+          {
+            "max": 3.5,
+            "min": 2.2,
+            "name": null
+          }
+        ],
+        "size": 2
+      },
+      "termfacet": {
+        "field": "name",
+        "size": 1
+      }
+    },
+    "query": {
+      "fuzziness": 0,
+      "match": "inn",
+      "prefix_length": 0
+    }
+  },
+  "status": "fail"
+}

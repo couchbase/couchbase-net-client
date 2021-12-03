@@ -2,7 +2,7 @@ using System;
 
 namespace Couchbase.Management.Buckets
 {
-    public class BucketNotFoundException : Exception
+    public class BucketNotFoundException : CouchbaseException
     {
         public BucketNotFoundException(string bucketName)
             : base($"Bucket with name {bucketName} does not exist or cannot be reached.")

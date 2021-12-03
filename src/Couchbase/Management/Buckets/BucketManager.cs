@@ -8,6 +8,7 @@ using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Core.RateLimiting;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -198,16 +199,31 @@ namespace Couchbase.Management.Buckets
                 var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings)!);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
+
+                if (result.IsSuccessStatusCode) return;
+
+                var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var ctx = new ManagementErrorContext
+                {
+                    HttpStatus  = result.StatusCode,
+                    Message = body,
+                    Statement = uri.ToString()
+                };
+
+                //Throw specific exception if a rate limiting exception is thrown.
+                result.ThrowIfRateLimitingError(body, ctx);
+
+                //Throw any other error cases
+                result.ThrowOnError(ctx);
+
                 if (result.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (json.IndexOf("Bucket with given name already exists", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    if (body.IndexOf("Bucket with given name already exists",
+                        StringComparison.InvariantCultureIgnoreCase) >= 0)
                     {
                         throw new BucketExistsException(settings.Name);
                     }
                 }
-
-                result.EnsureSuccessStatusCode();
             }
             catch (BucketExistsException)
             {
@@ -236,7 +252,22 @@ namespace Couchbase.Management.Buckets
                 var content = new FormUrlEncodedContent(GetBucketSettingAsFormValues(settings)!);
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(uri, content, options.TokenValue).ConfigureAwait(false);
-                result.EnsureSuccessStatusCode();
+
+                if (result.IsSuccessStatusCode) return;
+
+                var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var ctx = new ManagementErrorContext
+                {
+                    HttpStatus = result.StatusCode,
+                    Message = body,
+                    Statement = uri.ToString()
+                };
+
+                //Throw specific exception if a rate limiting exception is thrown.
+                result.ThrowIfRateLimitingError(body, ctx);
+
+                //Throw any other error cases
+                result.ThrowOnError(ctx);
             }
             catch (Exception exception)
             {
@@ -259,12 +290,27 @@ namespace Couchbase.Management.Buckets
                 // perform drop
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.DeleteAsync(uri, options.TokenValue).ConfigureAwait(false);
+
+                if (result.IsSuccessStatusCode) return;
+
                 if (result.StatusCode == HttpStatusCode.NotFound)
                 {
                     throw new BucketNotFoundException(bucketName);
                 }
 
-                result.EnsureSuccessStatusCode();
+                var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var ctx = new ManagementErrorContext
+                {
+                    HttpStatus = result.StatusCode,
+                    Message = body,
+                    Statement = uri.ToString()
+                };
+
+                //Throw specific exception if a rate limiting exception is thrown.
+                result.ThrowIfRateLimitingError(body, ctx);
+
+                //Throw any other error cases
+                result.ThrowOnError(ctx);
             }
             catch (BucketNotFoundException)
             {
@@ -295,21 +341,37 @@ namespace Couchbase.Management.Buckets
                 // try do flush
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.PostAsync(uri, null!, options.TokenValue).ConfigureAwait(false);
-                if (result.StatusCode == HttpStatusCode.NotFound)
-                {
-                    throw new BucketNotFoundException(bucketName);
-                }
 
-                if (result.StatusCode == HttpStatusCode.BadRequest)
+                var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var ctx = new ManagementErrorContext
                 {
-                    var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (json.IndexOf("Flush is disabled for the bucket", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                    HttpStatus = result.StatusCode,
+                    Message = body,
+                    Statement = uri.ToString()
+                };
+
+                if (result.IsSuccessStatusCode) return;
+                switch (result.StatusCode)
+                {
+                    case HttpStatusCode.NotFound:
+                        throw new BucketNotFoundException(bucketName);
+                    case HttpStatusCode.BadRequest:
                     {
-                        throw new BucketIsNotFlushableException(bucketName);
+                        var json = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        if (json.IndexOf("Flush is disabled for the bucket", StringComparison.InvariantCultureIgnoreCase) >= 0)
+                        {
+                            throw new BucketIsNotFlushableException(bucketName);
+                        }
+
+                        break;
                     }
                 }
 
-                result.EnsureSuccessStatusCode();
+                //Throw specific exception if a rate limiting exception is thrown.
+                result.ThrowIfRateLimitingError(body, ctx);
+
+                //Throw any other error cases
+                result.ThrowOnError(ctx);
             }
             catch (BucketNotFoundException)
             {
@@ -341,9 +403,25 @@ namespace Couchbase.Management.Buckets
             {
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
-                result.EnsureSuccessStatusCode();
 
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (!result.IsSuccessStatusCode)
+                {
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = result.StatusCode,
+                        Message = content,
+                        Statement = uri.ToString()
+                    };
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    result.ThrowIfRateLimitingError(content, ctx);
+
+                    //Throw any other error cases
+                    result.ThrowOnError(ctx);
+                }
+
                 var buckets = new Dictionary<string, BucketSettings>();
                 var json = JArray.Parse(content);
 
@@ -373,14 +451,32 @@ namespace Couchbase.Management.Buckets
             {
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
-                if (result.StatusCode == HttpStatusCode.NotFound)
-                {
-                    throw new BucketNotFoundException(bucketName);
-                }
-
-                result.EnsureSuccessStatusCode();
 
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!result.IsSuccessStatusCode)
+                {
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = result.StatusCode,
+                        Message = content,
+                        Statement = uri.ToString()
+                    };
+
+                    if (result.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        throw new BucketNotFoundException(bucketName)
+                        {
+                            Context = ctx
+                        };
+                    }
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    result.ThrowIfRateLimitingError(content, ctx);
+
+                    //Throw any other error cases
+                    result.ThrowOnError(ctx);
+                }
+
                 var json = JObject.Parse(content);
                 return GetBucketSettings(json);
             }

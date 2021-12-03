@@ -36,9 +36,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Search\error-with-errors.js" />
-    <EmbeddedResource Include="Search\search-response-success.js" />
-    <EmbeddedResource Include="Search\search-response-with-facets.js" />
+    <EmbeddedResource Include="Search\error-with-errors.json" />
+    <EmbeddedResource Include="Search\search-response-success.json" />
+    <EmbeddedResource Include="Search\search-response-with-facets.json" />
   </ItemGroup>
 
   <ItemGroup>

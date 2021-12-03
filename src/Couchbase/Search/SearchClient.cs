@@ -14,8 +14,11 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Search;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
+using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Retry.Search;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 #nullable enable
 
@@ -96,6 +99,72 @@ namespace Couchbase.Search
                     {
                         using var reader = new StreamReader(stream);
                         errors = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        var json = JsonConvert.DeserializeObject<JObject>(errors);
+                        var queryError = json.SelectToken("error");
+
+                        //If the query service returned a top level error then
+                        //use it otherwise the error is in the response body
+                        if(queryError != null)
+                        {
+                            errors = queryError.Value<string>();
+                        }
+
+                        var ctx = new SearchErrorContext
+                        {
+                            HttpStatus = response.StatusCode,
+                            IndexName = searchRequest.Index,
+                            ClientContextId = searchRequest.ClientContextId,
+                            Statement = searchRequest.Statement,
+                            Errors = errors,
+                            Query = searchRequest.ToJson()
+                        };
+
+                        //Rate limiting errors
+                        if (response.StatusCode == (HttpStatusCode) 429)
+                        {
+                            if (errors.Contains("num_concurrent_requests"))
+                            {
+                                throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached,
+                                    ctx);
+                            }
+                            if (errors.Contains("num_queries_per_min"))
+                            {
+                                throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached,
+                                    ctx);
+                            }
+                            if (errors.Contains("ingress_mib_per_min"))
+                            {
+                                throw new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached,
+                                    ctx);
+                            }
+                            if (errors.Contains("egress_mib_per_min"))
+                            {
+                                throw new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached,
+                                    ctx);
+                            }
+                        }
+                        //Quota limiting errors
+                        if (response.StatusCode == HttpStatusCode.BadRequest &&
+                            errors.Contains("num_fts_indexes"))
+                        {
+                            throw new QuotaLimitedException(QuotaLimitedReason.MaximumNumberOfIndexesReached,
+                                ctx);
+                        }
+
+                        //Internal service errors
+                        if (response.StatusCode == HttpStatusCode.InternalServerError)
+                        {
+                            throw new InternalServerFailureException { Context = ctx };
+                        }
+
+                        //Authentication errors
+                        if (response.StatusCode == HttpStatusCode.Forbidden ||
+                            response.StatusCode == HttpStatusCode.Unauthorized)
+                        {
+                            throw new AuthenticationFailureException(ctx);
+                        }
+
+                        throw new CouchbaseException(errors) { Context = ctx };
                     }
                 }
 
@@ -148,7 +217,7 @@ namespace Couchbase.Search
             return searchResult;
         }
 
-        #region tracing
+#region tracing
         private IRequestSpan RootSpan(string operation)
         {
             var span = _tracer.RequestSpan(operation);
@@ -157,7 +226,7 @@ namespace Couchbase.Search
             span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
             return span;
         }
-        #endregion
+#endregion
     }
 }
 

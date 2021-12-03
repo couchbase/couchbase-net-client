@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "description": "A basic successful response, with some errors.  Created by Sergey.",
+    "http_status": 200,
+    "reproduction": "Reproduce with this request:",
+    "request": {
+      "indexName":"beer-search",
+      "query":{
+        "match_phrase":"aas"
+      },
+      "size":3
+    },
+    "server_version": "6.5"
+  },
+  "data": {
+    "status":{
+      "total":6,
+      "failed":2,
+      "successful":4,
+      "errors":{
+        "beer-search_44d091c58abbca5b_18572d87":"pindex not available",
+        "beer-search_44d091c58abbca5b_aa574717":"pindex not available"
+      }
+    },
+    "request":{
+      "query":{
+        "match_phrase":"aas"
+      },
+      "size":3,
+      "from":0,
+      "highlight":null,
+      "fields":null,
+      "facets":null,
+      "explain":false,
+      "sort":[
+        "-_score"
+      ],
+      "includeLocations":false,
+      "search_after":null,
+      "search_before":null
+    },
+    "hits":[
+
+    ],
+    "total_hits":0,
+    "max_score":0,
+    "took":7646486,
+    "facets":null  
+  }
+}
+

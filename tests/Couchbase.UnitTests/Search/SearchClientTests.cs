@@ -1,16 +1,83 @@
+using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.HTTP;
+using Couchbase.Core.Retry.Search;
+using Couchbase.Search;
+using Couchbase.UnitTests.Helpers;
+using Couchbase.UnitTests.Utils;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Search
 {
     //TODO: update tests with new way of constructing client
-    //public class SearchClientTests
+    public class SearchClientTests
+    {
+        [Fact]
+        public async Task Query_Mismatching_Consistency_Throws_CouchbaseException()
+        {
+            const string indexName = "test-index";
+
+            using var responseStream = ResourceHelper.ReadResourceAsStream("query-error-index-not-found-400.json");
+            using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
+            {
+                // ReSharper disable once AccessToDisposedClosure
+                Content = new StreamContent(responseStream),
+                StatusCode = HttpStatusCode.BadRequest
+            });
+            var httpClient = new HttpClient(handler);
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomSearchUri())
+                .Returns(new Uri("http://localhost:8094"));
+
+            var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+
+            await Assert.ThrowsAsync<CouchbaseException>(async () => await client.QueryAsync(new SearchRequest {Index = indexName}));
+        }
+
+        [Fact]
+        public async Task Query_200_All_TimedOut_Does_Not_Throw()
+        {
+            const string indexName = "test-index";
+
+            using var responseStream = ResourceHelper.ReadResourceAsStream("alltimeouts.json");
+            using var handler = FakeHttpMessageHandler.Create(_ => new HttpResponseMessage
+            {
+                // ReSharper disable once AccessToDisposedClosure
+                Content = new StreamContent(responseStream),
+                StatusCode = HttpStatusCode.OK
+            });
+            var httpClient = new HttpClient(handler);
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomSearchUri())
+                .Returns(new Uri("http://localhost:8094"));
+
+            var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
+                new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
+
+            var response =  await client.QueryAsync(new SearchRequest { Index = indexName });
+            Assert.Equal(6, response.MetaData.ErrorCount);
+            Assert.Equal(6, response.MetaData.TotalCount);
+            Assert.Equal(0, response.MetaData.SuccessCount);
+            Assert.Equal(6, response.MetaData.Errors.Count);
+        }
+    }
     //{
     //    [Fact]
     //    public async Task Query_WhenInvalidUri_ReturnsErrorMessage()
@@ -430,25 +497,25 @@ namespace Couchbase.UnitTests.Search
     //        Assert.Equal(content.error, result.Errors.First());
     //    }
 
-    //    class FakeMessageHandler : HttpMessageHandler
-    //    {
-    //        public HttpRequestMessage RequestMessage { get; private set; }
+        class FakeMessageHandler : HttpMessageHandler
+        {
+            public HttpRequestMessage RequestMessage { get; private set; }
 
-    //        public HttpStatusCode StatusCode { get; set; }
+            public HttpStatusCode StatusCode { get; set; }
 
-    //        public HttpContent Content { get; set; }
+            public HttpContent Content { get; set; }
 
-    //        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, Token cancellationToken)
-    //        {
-    //            RequestMessage = request;
-    //            var response = new HttpResponseMessage(StatusCode);
-    //            if (Content != null)
-    //            {
-    //                response.Content = Content;
-    //            }
-    //            return Task.FromResult(response);
-    //        }
-    //    }
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+               RequestMessage = request;
+              var response = new HttpResponseMessage(StatusCode);
+              if (Content != null)
+              {
+                   response.Content = Content;
+               }
+               return Task.FromResult(response);
+           }
+       }
     //}
 }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
+using Couchbase.Core.RateLimiting;
 
 namespace Couchbase.Query
 {
@@ -79,6 +80,16 @@ namespace Couchbase.Query
 
                 if (error.Code >= 12000 && error.Code < 13000 || error.Code >= 14000 && error.Code < 15000)
                     throw new IndexFailureException(context);
+
+                //Rate Limiting Errors
+                if (error.Code == 1191 && error.Message.Contains("E_SERVICE_USER_REQUEST_EXCEEDED"))
+                    throw new RateLimitedException(RateLimitedReason.RequestRateLimitReached, context);
+                if (error.Code == 1192 && error.Message.Contains("E_SERVICE_USER_REQUEST_RATE_EXCEEDED"))
+                    throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached, context);
+                if (error.Code == 1193 && error.Message.Contains("E_SERVICE_USER_REQUEST_SIZE_EXCEEDED"))
+                    throw new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached, context);
+                if (error.Code == 1194 && error.Message.Contains("E_SERVICE_USER_REQUEST_SIZE_EXCEEDED"))
+                    throw new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, context);
             }
 
             throw new CouchbaseException(context);

@@ -19,6 +19,11 @@ namespace Couchbase
             Context = context;
         }
 
+        public CouchbaseException(IErrorContext context, string message) : base(message)
+        {
+            Context = context;
+        }
+
         public CouchbaseException(string message) : base(message) {}
 
         public CouchbaseException(string message, Exception? innerException) : base(message, innerException) {}

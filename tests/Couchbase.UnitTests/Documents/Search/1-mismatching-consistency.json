@@ -1,0 +1,22 @@
+{
+  "error": "rest_index: Query, indexName: beer-search, err: bleve: pindex_consistency mismatched partition, uuid: 122063648506179, cwr: \u0026cbgt.ConsistencyWaitReq{PartitionUUID:\"148745062697406\", ConsistencyLevel:\"at_plus\", ConsistencySeq:0x8, CancelCh:(\u003c-chan bool)(0xc0010fda40), DoneCh:(chan error)(0xc000eb98c0)}",
+  "request": {
+    "ctl": {
+      "consistency": {
+        "level": "at_plus",
+        "vectors": {
+          "beer-search": {
+            "528/148745062697406": 8
+          }
+        }
+      },
+      "timeout": 75000
+    },
+    "indexName": "beer-search",
+    "query": {
+      "match_phrase": "hello"
+    },
+    "size": 3
+  },
+  "status": "fail"
+}

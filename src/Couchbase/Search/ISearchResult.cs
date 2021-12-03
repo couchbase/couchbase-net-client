@@ -34,6 +34,8 @@ namespace Couchbase.Search
         public double MaxScore { get; internal set; }
 
         public long TotalCount { get; internal set; }
+
+        public Dictionary<string, string> Errors = new();
     }
 
     #region [ License information ]

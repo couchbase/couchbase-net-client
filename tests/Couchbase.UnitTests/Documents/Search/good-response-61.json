@@ -1,0 +1,831 @@
+{
+  "status": {
+    "total": 6,
+    "failed": 0,
+    "successful": 6
+  },
+  "request": {
+    "query": {
+      "match": "airline_137",
+      "prefix_length": 0,
+      "fuzziness": 0,
+      "operator": "or"
+    },
+    "size": 10,
+    "from": 0,
+    "highlight": {
+      "style": null,
+      "fields": null
+    },
+    "fields": [
+      "*"
+    ],
+    "facets": null,
+    "explain": false,
+    "sort": [
+      "-_score"
+    ],
+    "includeLocations": false
+  },
+  "hits": [
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_54820232",
+      "id": "route_9740",
+      "score": 0.2746407175566829,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "BIQ",
+        "distance": 543.6833486189087,
+        "equipment": "320 319",
+        "id": 9740,
+        "schedule.day": [
+          0,
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          5,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF678",
+          "AF870",
+          "AF514",
+          "AF331",
+          "AF899",
+          "AF096",
+          "AF850",
+          "AF013",
+          "AF184",
+          "AF696"
+        ],
+        "schedule.utc": [
+          "20:38:00",
+          "12:18:00",
+          "20:30:00",
+          "20:16:00",
+          "04:25:00",
+          "05:31:00",
+          "05:34:00",
+          "10:03:00",
+          "09:20:00",
+          "04:47:00"
+        ],
+        "sourceairport": "MRS",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_f4e0a48a",
+      "id": "route_9591",
+      "score": 0.2503561156659526,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "CDG",
+        "distance": 4427.107676814687,
+        "equipment": "333",
+        "id": 9591,
+        "schedule.day": [
+          0,
+          1,
+          1,
+          2,
+          2,
+          3,
+          3,
+          4,
+          5,
+          5,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF216",
+          "AF705",
+          "AF054",
+          "AF333",
+          "AF867",
+          "AF314",
+          "AF303",
+          "AF044",
+          "AF112",
+          "AF485",
+          "AF871",
+          "AF185"
+        ],
+        "schedule.utc": [
+          "19:37:00",
+          "13:16:00",
+          "08:05:00",
+          "01:57:00",
+          "06:00:00",
+          "14:49:00",
+          "21:36:00",
+          "18:57:00",
+          "07:31:00",
+          "07:02:00",
+          "21:03:00",
+          "04:24:00"
+        ],
+        "sourceairport": "JED",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_f4e0a48a",
+      "id": "route_9038",
+      "score": 0.2503561156659526,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "CAK",
+        "distance": 851.2979071008839,
+        "equipment": "M88",
+        "id": 9038,
+        "schedule.day": [
+          0,
+          0,
+          0,
+          1,
+          2,
+          2,
+          3,
+          4,
+          4,
+          4,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF217",
+          "AF044",
+          "AF525",
+          "AF291",
+          "AF456",
+          "AF504",
+          "AF563",
+          "AF949",
+          "AF815",
+          "AF800",
+          "AF094",
+          "AF461"
+        ],
+        "schedule.utc": [
+          "13:37:00",
+          "04:50:00",
+          "16:08:00",
+          "05:08:00",
+          "07:27:00",
+          "07:18:00",
+          "13:44:00",
+          "06:05:00",
+          "17:24:00",
+          "08:17:00",
+          "00:13:00",
+          "18:02:00"
+        ],
+        "sourceairport": "ATL",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_aa574717",
+      "id": "route_9272",
+      "score": 0.24819362199960104,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "BES",
+        "distance": 514.762784130111,
+        "equipment": "318 321",
+        "id": 9272,
+        "schedule.day": [
+          0,
+          0,
+          1,
+          2,
+          3,
+          3,
+          3,
+          4,
+          4,
+          5,
+          5,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF634",
+          "AF725",
+          "AF754",
+          "AF656",
+          "AF712",
+          "AF026",
+          "AF710",
+          "AF426",
+          "AF919",
+          "AF825",
+          "AF282",
+          "AF010",
+          "AF760"
+        ],
+        "schedule.utc": [
+          "03:05:00",
+          "09:51:00",
+          "13:30:00",
+          "11:09:00",
+          "05:58:00",
+          "04:33:00",
+          "07:16:00",
+          "16:20:00",
+          "23:06:00",
+          "04:53:00",
+          "04:05:00",
+          "02:46:00",
+          "05:52:00"
+        ],
+        "sourceairport": "CDG",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_54820232",
+      "id": "route_9239",
+      "score": 0.24710399134184638,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "AMS",
+        "distance": 560.6438880258129,
+        "equipment": "F70 E90",
+        "id": 9239,
+        "schedule.day": [
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          3,
+          3,
+          4,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF616",
+          "AF887",
+          "AF257",
+          "AF491",
+          "AF063",
+          "AF669",
+          "AF966",
+          "AF448",
+          "AF568",
+          "AF072",
+          "AF040",
+          "AF987",
+          "AF814"
+        ],
+        "schedule.utc": [
+          "19:11:00",
+          "06:41:00",
+          "01:00:00",
+          "07:27:00",
+          "22:39:00",
+          "15:19:00",
+          "16:36:00",
+          "10:23:00",
+          "10:53:00",
+          "02:17:00",
+          "01:49:00",
+          "19:47:00",
+          "07:42:00"
+        ],
+        "sourceairport": "BSL",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_18572d87",
+      "id": "route_9033",
+      "score": 0.24641032232959345,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "BTR",
+        "distance": 720.9382588149284,
+        "equipment": "CR7 CRJ 319 CR9",
+        "id": 9033,
+        "schedule.day": [
+          0,
+          1,
+          1,
+          2,
+          2,
+          3,
+          3,
+          3,
+          3,
+          4,
+          5,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF478",
+          "AF000",
+          "AF923",
+          "AF012",
+          "AF059",
+          "AF887",
+          "AF056",
+          "AF400",
+          "AF458",
+          "AF710",
+          "AF627",
+          "AF061",
+          "AF162"
+        ],
+        "schedule.utc": [
+          "06:34:00",
+          "05:57:00",
+          "16:55:00",
+          "14:22:00",
+          "16:12:00",
+          "05:49:00",
+          "15:53:00",
+          "17:40:00",
+          "06:22:00",
+          "16:03:00",
+          "07:15:00",
+          "13:39:00",
+          "23:42:00"
+        ],
+        "sourceairport": "ATL",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_13aa53f3",
+      "id": "route_9281",
+      "score": 0.24625554716938244,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "BLR",
+        "distance": 7842.473192131055,
+        "equipment": "332",
+        "id": 9281,
+        "schedule.day": [
+          0,
+          0,
+          1,
+          2,
+          3,
+          3,
+          3,
+          3,
+          4,
+          5,
+          5,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF487",
+          "AF644",
+          "AF411",
+          "AF806",
+          "AF913",
+          "AF525",
+          "AF760",
+          "AF522",
+          "AF408",
+          "AF186",
+          "AF740",
+          "AF663",
+          "AF137"
+        ],
+        "schedule.utc": [
+          "01:32:00",
+          "02:53:00",
+          "23:33:00",
+          "02:22:00",
+          "18:33:00",
+          "20:28:00",
+          "00:09:00",
+          "21:43:00",
+          "12:02:00",
+          "01:59:00",
+          "08:41:00",
+          "10:04:00",
+          "22:41:00"
+        ],
+        "sourceairport": "CDG",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_54820232",
+      "id": "route_9569",
+      "score": 0.245935638365899,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "CDG",
+        "distance": 1895.5628473516242,
+        "equipment": "321 320 32B E90 319",
+        "id": 9569,
+        "schedule.day": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          2,
+          2,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF717",
+          "AF414",
+          "AF549",
+          "AF382",
+          "AF206",
+          "AF840",
+          "AF647",
+          "AF354",
+          "AF315",
+          "AF274",
+          "AF346",
+          "AF518",
+          "AF842"
+        ],
+        "schedule.utc": [
+          "17:22:00",
+          "10:01:00",
+          "02:07:00",
+          "04:01:00",
+          "20:13:00",
+          "04:55:00",
+          "02:34:00",
+          "09:50:00",
+          "18:31:00",
+          "08:53:00",
+          "09:46:00",
+          "00:54:00",
+          "00:08:00"
+        ],
+        "sourceairport": "HEL",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_6ddbfb54",
+      "id": "route_9725",
+      "score": 0.24448044154435958,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "ATL",
+        "distance": 713.2899161596914,
+        "equipment": "M88",
+        "id": 9725,
+        "schedule.day": [
+          0,
+          1,
+          1,
+          2,
+          2,
+          3,
+          3,
+          4,
+          4,
+          5,
+          5,
+          5,
+          6
+        ],
+        "schedule.flight": [
+          "AF959",
+          "AF427",
+          "AF773",
+          "AF058",
+          "AF031",
+          "AF439",
+          "AF530",
+          "AF771",
+          "AF681",
+          "AF887",
+          "AF122",
+          "AF734",
+          "AF457"
+        ],
+        "schedule.utc": [
+          "15:25:00",
+          "19:00:00",
+          "21:55:00",
+          "15:00:00",
+          "20:42:00",
+          "15:27:00",
+          "05:30:00",
+          "18:09:00",
+          "15:07:00",
+          "11:10:00",
+          "20:17:00",
+          "07:07:00",
+          "01:36:00"
+        ],
+        "sourceairport": "MLB",
+        "stops": 0,
+        "type": "route"
+      }
+    },
+    {
+      "index": "travel-sample-index-stored_506ec62dab80d4af_f4e0a48a",
+      "id": "route_9251",
+      "score": 0.24225181144125973,
+      "locations": {
+        "airlineid": {
+          "airline_137": [
+            {
+              "pos": 1,
+              "start": 0,
+              "end": 11,
+              "array_positions": null
+            }
+          ]
+        }
+      },
+      "fragments": {
+        "airlineid": [
+          "\u003cmark\u003eairline_137\u003c/mark\u003e"
+        ]
+      },
+      "sort": [
+        "_score"
+      ],
+      "fields": {
+        "airline": "AF",
+        "airlineid": "airline_137",
+        "destinationairport": "CKG",
+        "distance": 965.6462875262735,
+        "equipment": "319",
+        "id": 9251,
+        "schedule.day": [
+          0,
+          1,
+          1,
+          2,
+          2,
+          2,
+          3,
+          3,
+          4,
+          4,
+          5,
+          6,
+          6
+        ],
+        "schedule.flight": [
+          "AF887",
+          "AF367",
+          "AF027",
+          "AF195",
+          "AF438",
+          "AF674",
+          "AF949",
+          "AF910",
+          "AF520",
+          "AF616",
+          "AF606",
+          "AF022",
+          "AF069"
+        ],
+        "schedule.utc": [
+          "20:16:00",
+          "12:33:00",
+          "08:38:00",
+          "14:34:00",
+          "23:29:00",
+          "11:47:00",
+          "04:39:00",
+          "04:34:00",
+          "17:40:00",
+          "04:39:00",
+          "20:01:00",
+          "03:37:00",
+          "10:26:00"
+        ],
+        "sourceairport": "CAN",
+        "stops": 0,
+        "type": "route"
+      }
+    }
+  ],
+  "total_hits": 507,
+  "max_score": 0.2746407175566829,
+  "took": 77615848,
+  "facets": null
+}

@@ -68,7 +68,6 @@ namespace Couchbase.Core.IO.HTTP
             {
                 handler.ClientCertificateOptions = ClientCertificateOption.Manual;
                 handler.SslProtocols = _context.ClusterOptions.EnabledSslProtocols;
-
                 handler.ClientCertificates.AddRange(_context.ClusterOptions.X509CertificateFactory.GetCertificates());
             }
 

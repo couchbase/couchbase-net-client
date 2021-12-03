@@ -4,6 +4,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.RateLimiting;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using CollectionNotFoundException = Couchbase.Core.Exceptions.CollectionNotFoundException;
@@ -111,6 +112,15 @@ namespace Couchbase.Core.IO
                     return new RequestCanceledException{ Context = ctx };
                 case ResponseStatus.NoCollectionsManifest:
                     return new UnsupportedException("Non-default Scopes and Collections not supported on this server version.") { Context = ctx };
+                    //Rate limiting Errors Below
+                case ResponseStatus.RateLimitedNetworkEgress:
+                    return new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, ctx);
+                case ResponseStatus.RateLimitedNetworkIngress:
+                    return new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached, ctx);
+                case ResponseStatus.RateLimitedMaxConnections:
+                    return new RateLimitedException(RateLimitedReason.MaximumConnectionsReached, ctx);
+                case ResponseStatus.RateLimitedMaxCommands:
+                    return new RateLimitedException(RateLimitedReason.RequestRateLimitReached, ctx);
                 default:
                     return new CouchbaseException { Context = ctx };
             }

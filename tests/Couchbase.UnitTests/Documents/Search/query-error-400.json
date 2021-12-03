@@ -1,0 +1,17 @@
+{
+  "error": "rest_auth: preparePerms, err: index not found",
+  "request": {
+    "ctl": { "timeout": 10000 },
+    "highlight": {
+      "fields": [ "inn" ],
+      "style": "html"
+    },
+    "query": {
+      "fuzziness": 0,
+      "match": "inn",
+      "prefix_length": 0
+    },
+    "size": 10
+  },
+  "status": "fail"
+}
