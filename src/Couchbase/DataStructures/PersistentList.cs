@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
@@ -9,14 +10,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.DataStructures
 {
-    public class PersistentList<TValue> : PersistentStoreBase<TValue>, IPersistentList<TValue>
+    public sealed class PersistentList<TValue> : PersistentStoreBase<TValue>, IPersistentList<TValue>
     {
         internal PersistentList(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
         {
         }
 
-        public  IEnumerator<TValue> GetEnumerator()
+        public IEnumerator<TValue> GetEnumerator()
         {
             return GetList().GetEnumerator();
         }
@@ -63,12 +64,12 @@ namespace Couchbase.DataStructures
         public TValue this[int index]
         {
             get => GetList()[index];
-            set => Insert(index, value);
+            set => SetAsync(index, value).GetAwaiter().GetResult();
         }
 
         public async Task AddAsync(TValue item)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             await Collection.
                 MutateInAsync(Key, builder => builder.ArrayAppend("", item)).
                     ConfigureAwait(false);
@@ -107,15 +108,30 @@ namespace Couchbase.DataStructures
 
         public async Task InsertAsync(int index, TValue item)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             await Collection.
                 MutateInAsync(Key, builder => builder.ArrayInsert($"[{index}]", new[] {item})).
                 ConfigureAwait(false);
         }
 
+        public async Task SetAsync(int index, TValue item)
+        {
+            await CreateBackingStoreAsync().ConfigureAwait(false);
+
+            try
+            {
+                await Collection.MutateInAsync(Key, builder => builder.Replace($"[{index}]", item))
+                    .ConfigureAwait(false);
+            }
+            catch (PathNotFoundException)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+        }
+
         public async Task RemoveAtAsync(int index)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             await Collection.
                 MutateInAsync(Key, builder => builder.Remove($"[{index}]")).
                 ConfigureAwait(false);

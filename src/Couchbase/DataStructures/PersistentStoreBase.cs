@@ -22,20 +22,37 @@ namespace Couchbase.DataStructures
 
         internal PersistentStoreBase(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor, object syncRoot, bool isSynchronized)
         {
-            Collection = collection ?? throw new ArgumentNullException(nameof(collection));
-            Key = key ?? throw new ArgumentNullException(nameof(key));
+            // ReSharper disable ConditionIsAlwaysTrueOrFalse
+            if (collection == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(collection));
+            }
+            if (key == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(key));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalse
+
+            Collection = collection;
+            Key = key;
             Logger = logger;
             Redactor = redactor;
             SyncRoot = syncRoot;
             IsSynchronized = isSynchronized;
         }
 
+        [Obsolete("Use asynchronous overload.")]
         protected virtual void CreateBackingStore()
+        {
+            CreateBackingStoreAsync().GetAwaiter().GetResult();
+        }
+
+        protected virtual async ValueTask CreateBackingStoreAsync()
         {
             if (BackingStoreChecked) return;
             try
             {
-                Collection.InsertAsync(Key, new List<TValue>()).GetAwaiter().GetResult();
+                await Collection.InsertAsync(Key, new List<TValue>()).ConfigureAwait(false);
                 BackingStoreChecked = true;
             }
             catch (DocumentExistsException e)
@@ -52,7 +69,7 @@ namespace Couchbase.DataStructures
 
         protected virtual async Task<IList<TValue>> GetListAsync()
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
             return result.ContentAs<IList<TValue>>().EnsureNotNullForDataStructures();
         }
@@ -64,9 +81,9 @@ namespace Couchbase.DataStructures
 
         public async Task ClearAsync()
         {
-            CreateBackingStore();
             await Collection.
                 UpsertAsync(Key, new List<TValue>()).ConfigureAwait(false);
+            BackingStoreChecked = true;
         }
 
         public Task CopyToAsync(Array array, int index)
@@ -87,10 +104,11 @@ namespace Couchbase.DataStructures
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
             var items = result.ContentAs<IList<TValue>>().EnsureNotNullForDataStructures();
             items.CopyTo(array, arrayIndex);
-            await Collection.UpsertAsync(Key, items).ConfigureAwait(false);
         }
 
-        public Task<int> CountAsync => Task.FromResult(GetListAsync().GetAwaiter().GetResult().Count);
+        // Use of GetAwaiter().GetResult() here is non-blocking because we know the task is complete.
+        // Using that pattern just cleans up behaviors when there is an exception.
+        public Task<int> CountAsync => GetListAsync().ContinueWith(task => task.GetAwaiter().GetResult().Count);
 
         public int Count => GetList().Count;
 

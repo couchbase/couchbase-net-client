@@ -1,4 +1,6 @@
 using System;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
 using Couchbase.DataStructures;
@@ -57,20 +59,22 @@ namespace Couchbase.IntegrationTests.DataStructures
             }
         }
 
-        private async Task<IPersistentList<Foo>> GetPersistentList(string id)
+        private async Task<IPersistentList<Foo>> GetPersistentList([CallerMemberName] string id = "")
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             return new PersistentList<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
         }
 
+        #region Synchronous
+
         [Fact]
-        public void Test_GetEnumerator()
+        public async Task Test_GetEnumerator()
         {
-            var collection = GetPersistentList("Test_GetEnumerator()").GetAwaiter().GetResult();
-            collection.ClearAsync().GetAwaiter().GetResult();
-            collection.Add(new Foo{Name = "Tom", Age = 50});
-            collection.Add(new Foo{Name = "Dick", Age = 27});
-            collection.Add(new Foo{Name = "Harry", Age = 66});
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo{Name = "Tom", Age = 50});
+            await collection.AddAsync(new Foo{Name = "Dick", Age = 27});
+            await collection.AddAsync(new Foo{Name = "Harry", Age = 66});
 
             var count = 0;
             using (var enumerator = collection.GetEnumerator())
@@ -85,140 +89,353 @@ namespace Couchbase.IntegrationTests.DataStructures
         }
 
         [Fact]
-        public void Test_CopyTo_Array()
+        public async Task Test_Add()
         {
-            var collection = GetPersistentList("Test_CopyTo_Array()").GetAwaiter().GetResult();
-            collection.ClearAsync().GetAwaiter().GetResult();
-            collection.Add(new Foo{Name = "Tom", Age = 50});
-            collection.Add(new Foo{Name = "Dick", Age = 27});
-            collection.Add(new Foo{Name = "Harry", Age = 66});
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
 
-            var count = collection.CountAsync.GetAwaiter().GetResult();
-            var list = new Foo[count];
-
-            collection.CopyToAsync(list, 0);
-            var actual = collection.CountAsync.GetAwaiter().GetResult();
-            Assert.Equal(list.Length, actual);
-        }
-
-        [Fact]
-        public void Test_Add()
-        {
-            var collection = GetPersistentList("Test_CopyTo_Array()").GetAwaiter().GetResult();
-            collection.ClearAsync().GetAwaiter().GetResult();
             collection.Add(new Foo{Name = "Tom", Age = 50});
 
-            var exists = collection.ContainsAsync(new Foo {Name = "Tom", Age = 50}).GetAwaiter().GetResult();
+            var exists = await collection.ContainsAsync(new Foo {Name = "Tom", Age = 50});
             Assert.True(exists);
         }
 
-
-        [Fact(Skip = "Not Implemented")]
-        public void Test_Clear()
+        [Fact]
+        public async Task Test_Clear()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            collection.Clear();
+
+            var count = await collection.CountAsync;
+            Assert.Equal(0, count);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_Contains()
+        [Fact]
+        public async Task Test_Contains_True()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = collection.Contains(new Foo { Name = "Tom", Age = 50 });
+
+            Assert.True(result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_CopyTo()
+        [Fact]
+        public async Task Test_Contains_False()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = collection.Contains(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.False(result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_Remove()
+        [Fact]
+        public async Task Test_CopyTo()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Dick", Age = 27 });
+            await collection.AddAsync(new Foo { Name = "Harry", Age = 66 });
+
+            var count = await collection.CountAsync;
+            var list = new Foo[count];
+
+            collection.CopyTo(list, 0);
+
+            Assert.Equal(new Foo { Name = "Dick", Age = 27 }, list[1]);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_IndexOf()
+        [Fact]
+        public async Task Test_Remove_IsPresent()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            Assert.Equal(1, await collection.CountAsync);
+
+            var result = collection.Remove(new Foo { Name = "Tom", Age = 50 });
+
+            Assert.Equal(0, await collection.CountAsync);
+            Assert.True(result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_Insert()
+        [Fact]
+        public async Task Test_Remove_IsNotPresent()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = collection.Remove(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(1, await collection.CountAsync);
+            Assert.False(result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_RemoveAt()
+        [Fact]
+        public async Task Test_IndexOf_Present()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Bob", Age = 51 });
+
+            var result = collection.IndexOf(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(1, result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_Indexer()
+        [Fact]
+        public async Task Test_IndexOf_NotPresent()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = collection.IndexOf(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(-1, result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_CopyToAsync()
+        [Fact]
+        public async Task Test_Insert()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            collection.Insert(1, new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(1, await collection.IndexOfAsync(new Foo { Name = "Bob", Age = 51 }));
+            Assert.Equal(3, await collection.CountAsync);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_AddAsync()
+        [Fact]
+        public async Task Test_RemoveAt()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Bob", Age = 51 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            collection.RemoveAt(1);
+
+            Assert.Equal(1, await collection.IndexOfAsync(new Foo { Name = "John", Age = 52 }));
+            Assert.Equal(2, await collection.CountAsync);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_ClearAsync()
+        [Fact]
+        public async Task Test_IndexerGet_InRange()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Bob", Age = 51 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            var result = collection[1];
+
+            Assert.Equal(new Foo { Name = "Bob", Age = 51 }, result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public void Test_ContainsAsync()
+        [Fact]
+        public async Task Test_IndexerGet_OutOfRange()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Bob", Age = 51 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => collection[3]);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public Task Test_CopyToAsync_Array()
+        [Fact]
+        public async Task Test_IndexerSet_InRange()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            collection[1] = new Foo { Name = "Bob", Age = 51 };
+
+            Assert.Equal(new Foo { Name = "Bob", Age = 51 }, collection[1]);
+            Assert.Equal(2, await collection.CountAsync);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public Task Test_RemoveAsync()
+        [Fact]
+        public async Task Test_IndexerSet_OutOfRange()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Bob", Age = 51 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => collection[3] = new Foo());
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public Task Test_CountAsync()
+        #endregion
+
+        #region Asynchronous
+
+        [Fact]
+        public async Task Test_AddAsync()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var exists = await collection.ContainsAsync(new Foo { Name = "Tom", Age = 50 });
+            Assert.True(exists);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public Task Test_IndexOfAsync()
+        [Fact]
+        public async Task Test_ClearAsync()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            await collection.ClearAsync();
+
+            var count = await collection.CountAsync;
+            Assert.Equal(0, count);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public Task Test_InsertAsync()
+        [Fact]
+        public async Task Test_ContainsAsync_True()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = await collection.ContainsAsync(new Foo { Name = "Tom", Age = 50 });
+
+            Assert.True(result);
         }
 
-        [Fact(Skip = "Not Implemented")]
-        public Task Test_RemoveAtAsync()
+        [Fact]
+        public async Task Test_ContainsAsync_False()
         {
-            throw new NotImplementedException();
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = await collection.ContainsAsync(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.False(result);
         }
+
+        [Fact]
+        public async Task Test_CopyToAsync()
+        {
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Dick", Age = 27 });
+            await collection.AddAsync(new Foo { Name = "Harry", Age = 66 });
+
+            var count = await collection.CountAsync;
+            var list = new Foo[count];
+
+            await collection.CopyToAsync(list, 0);
+
+            Assert.Equal(new Foo { Name = "Dick", Age = 27 }, list[1]);
+        }
+
+        [Fact]
+        public async Task Test_RemoveAsync_IsPresent()
+        {
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            Assert.Equal(1, await collection.CountAsync);
+
+            var result = await collection.RemoveAsync(new Foo { Name = "Tom", Age = 50 });
+
+            Assert.Equal(0, await collection.CountAsync);
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task Test_RemoveAsync_IsNotPresent()
+        {
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = await collection.RemoveAsync(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(1, await collection.CountAsync);
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task Test_IndexOfAsync_Present()
+        {
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Bob", Age = 51 });
+
+            var result = await collection.IndexOfAsync(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(1, result);
+        }
+
+        [Fact]
+        public async Task Test_IndexOfAsync_NotPresent()
+        {
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+
+            var result = await collection.IndexOfAsync(new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(-1, result);
+        }
+
+        [Fact]
+        public async Task Test_InsertAsync()
+        {
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            await collection.InsertAsync(1, new Foo { Name = "Bob", Age = 51 });
+
+            Assert.Equal(1, await collection.IndexOfAsync(new Foo { Name = "Bob", Age = 51 }));
+            Assert.Equal(3, await collection.CountAsync);
+        }
+
+        [Fact]
+        public async Task Test_RemoveAtAsync()
+        {
+            var collection = await GetPersistentList();
+            await collection.ClearAsync();
+            await collection.AddAsync(new Foo { Name = "Tom", Age = 50 });
+            await collection.AddAsync(new Foo { Name = "Bob", Age = 51 });
+            await collection.AddAsync(new Foo { Name = "John", Age = 52 });
+
+            await collection.RemoveAtAsync(1);
+
+            Assert.Equal(1, await collection.IndexOfAsync(new Foo { Name = "John", Age = 52 }));
+            Assert.Equal(2, await collection.CountAsync);
+        }
+
+        #endregion
     }
 }

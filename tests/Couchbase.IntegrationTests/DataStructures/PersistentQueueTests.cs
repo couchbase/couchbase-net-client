@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
@@ -26,42 +27,42 @@ namespace Couchbase.IntegrationTests.DataStructures
             public int Age { get; set; }
         }
 
-        private async Task<IPersistentQueue<Foo>> GetPersistentList(string id)
+        private async Task<IPersistentQueue<Foo>> GetPersistentList([CallerMemberName] string id = "")
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             return new PersistentQueue<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
         }
 
         [Fact]
-        public void Test_DequeueAsync()
+        public async Task Test_DequeueAsync()
         {
-            var queue = GetPersistentList("Test_DequeueAsync()").GetAwaiter().GetResult();
-            queue.ClearAsync().GetAwaiter().GetResult();
-            queue.EnqueueAsync(new Foo{Name = "Tom", Age = 50}).GetAwaiter().GetResult();
-            queue.EnqueueAsync(new Foo{Name = "Dick", Age = 27}).GetAwaiter().GetResult();
-            queue.EnqueueAsync(new Foo{Name = "Harry", Age = 66}).GetAwaiter().GetResult();
+            var queue = await GetPersistentList();
+            await queue.ClearAsync();
+            await queue.EnqueueAsync(new Foo{Name = "Tom", Age = 50});
+            await queue.EnqueueAsync(new Foo{Name = "Dick", Age = 27});
+            await queue.EnqueueAsync(new Foo{Name = "Harry", Age = 66});
 
-            var item = queue.DequeueAsync().GetAwaiter().GetResult();
-            Assert.Equal("Tom", item.Name);
+            var item = await queue.DequeueAsync();
+            Assert.Equal("Tom", item?.Name);
 
-            var count = queue.Count;
+            var count = await queue.CountAsync;
             Assert.Equal(2, count);
         }
 
-        
+
         [Fact]
-        public void Test_PeakAsync()
+        public async Task Test_PeekAsync()
         {
-            var queue = GetPersistentList("Test_PeakAsync()").GetAwaiter().GetResult();
-            queue.ClearAsync().GetAwaiter().GetResult();
-            queue.EnqueueAsync(new Foo{Name = "Tom", Age = 50}).GetAwaiter().GetResult();
-            queue.EnqueueAsync(new Foo{Name = "Dick", Age = 27}).GetAwaiter().GetResult();
-            queue.EnqueueAsync(new Foo{Name = "Harry", Age = 66}).GetAwaiter().GetResult();
+            var queue = await GetPersistentList();
+            await queue.ClearAsync();
+            await queue.EnqueueAsync(new Foo{Name = "Tom", Age = 50});
+            await queue.EnqueueAsync(new Foo{Name = "Dick", Age = 27});
+            await queue.EnqueueAsync(new Foo{Name = "Harry", Age = 66});
 
-            var item = queue.PeekAsync().GetAwaiter().GetResult();
-            Assert.Equal("Tom", item.Name);
+            var item = await queue.PeekAsync();
+            Assert.Equal("Tom", item?.Name);
 
-            var count = queue.Count;
+            var count = await queue.CountAsync;
             Assert.Equal(3, count);
         }
     }

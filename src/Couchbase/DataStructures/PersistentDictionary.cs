@@ -13,13 +13,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.DataStructures
 {
-    public class PersistentDictionary<TValue> : IPersistentDictionary<TValue>
+    public sealed class PersistentDictionary<TValue> : IPersistentDictionary<TValue>
     {
         private readonly ILogger? _logger;
         private readonly IRedactor? _redactor;
-        protected ICouchbaseCollection Collection { get; }
-        protected string DocId { get; }
-        protected bool BackingStoreChecked { get; set; }
+        private ICouchbaseCollection Collection { get; }
+        private string DocId { get; }
+        private bool BackingStoreChecked { get; set; }
 
         internal PersistentDictionary(ICouchbaseCollection collection, string docId, ILogger? logger, IRedactor? redactor)
         {
@@ -29,12 +29,12 @@ namespace Couchbase.DataStructures
             _redactor = redactor;
         }
 
-        protected virtual void CreateBackingStore()
+        private async ValueTask CreateBackingStoreAsync()
         {
             if (BackingStoreChecked) return;
             try
             {
-                Collection.InsertAsync(DocId, new Dictionary<string, TValue>()).GetAwaiter().GetResult();
+                await Collection.InsertAsync(DocId, new Dictionary<string, TValue>()).ConfigureAwait(false);
                 BackingStoreChecked = true;
             }
             catch (DocumentExistsException e)
@@ -48,7 +48,7 @@ namespace Couchbase.DataStructures
 
         public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
         {
-            CreateBackingStore();
+            CreateBackingStoreAsync().GetAwaiter().GetResult();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
             return result.ContentAs<IEnumerator<KeyValuePair<string, TValue>>>()
                 .EnsureNotNullForDataStructures();
@@ -76,7 +76,7 @@ namespace Couchbase.DataStructures
 
         public void CopyTo(KeyValuePair<string, TValue>[] array, int arrayIndex)
         {
-            CreateBackingStore();
+            CreateBackingStoreAsync().GetAwaiter().GetResult();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
             var dict = result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures();
             dict.CopyTo(array, arrayIndex);
@@ -110,7 +110,7 @@ namespace Couchbase.DataStructures
         public bool TryGetValue(string key, [MaybeNullWhen(false)] out TValue value)
 #pragma warning restore CS8767
         {
-            CreateBackingStore();
+            CreateBackingStoreAsync().ConfigureAwait(false);
             var success = true;
             try
             {
@@ -145,13 +145,14 @@ namespace Couchbase.DataStructures
 
         public async Task AddAsync(KeyValuePair<string, TValue> item)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             await Collection.MutateInAsync(DocId, builder => builder.Insert(item.Key.ToString(), item.Value)).ConfigureAwait(false);
         }
 
-        public Task ClearAsync()
+        public async Task ClearAsync()
         {
-           return Collection.UpsertAsync(DocId, new Dictionary<string, TValue>());
+            await Collection.UpsertAsync(DocId, new Dictionary<string, TValue>()).ConfigureAwait(false);
+            BackingStoreChecked = true;
         }
 
         public Task<bool> ContainsAsync(KeyValuePair<string, TValue> item)
@@ -164,39 +165,36 @@ namespace Couchbase.DataStructures
             return RemoveAsync(item.Key);
         }
 
-        public Task<int> CountAsync
+        public Task<int> CountAsync => Task.Run(async () =>
         {
-            get
-            {
-                CreateBackingStore();
-                using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Count);
-            }
-        }
+            await CreateBackingStoreAsync().ConfigureAwait(false);
+            using var result = await Collection.GetAsync(DocId).ConfigureAwait(false);
+            return result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Count;
+        });
 
         public async Task AddAsync(string key, TValue value)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             var exists = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
             if (exists.Exists(0))
             {
                 throw new ArgumentException("An element with the same key already exists in the Dictionary.");
             }
 
-            await Collection.MutateInAsync(DocId, builder => builder.Insert(DocId, value),
+            await Collection.MutateInAsync(DocId, builder => builder.Insert(key, value),
                 options => options.Cas(exists.Cas)).ConfigureAwait(false);
         }
 
         public async Task<bool> ContainsKeyAsync(string key)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
             return result.Exists(0);
         }
 
         public async Task<bool> RemoveAsync(string key)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             var success = true;
             try
             {
@@ -211,24 +209,20 @@ namespace Couchbase.DataStructures
             return success;
         }
 
-        public Task<ICollection<string>> KeysAsync
+        public Task<ICollection<string>> KeysAsync => KeysInternalAsync();
+        private async Task<ICollection<string>> KeysInternalAsync()
         {
-            get
-            {
-                CreateBackingStore();
-                using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Keys);
-            }
+            await CreateBackingStoreAsync().ConfigureAwait(false);
+            using var result = await Collection.GetAsync(DocId).ConfigureAwait(false);
+            return result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Keys;
         }
 
-        public Task<ICollection<TValue>> ValuesAsync
+        public Task<ICollection<TValue>> ValuesAsync => ValuesInternalAsync();
+        private async Task<ICollection<TValue>> ValuesInternalAsync()
         {
-            get
-            {
-                CreateBackingStore();
-                using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-                return Task.FromResult(result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Values);
-            }
+            await CreateBackingStoreAsync().ConfigureAwait(false);
+            using var result = await Collection.GetAsync(DocId).ConfigureAwait(false);
+            return result.ContentAs<IDictionary<string, TValue>>().EnsureNotNullForDataStructures().Values;
         }
     }
 }

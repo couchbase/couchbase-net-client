@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.DataStructures
 {
-    public class PersistentQueue<TValue> : PersistentStoreBase<TValue>, IPersistentQueue<TValue>
+    public sealed class PersistentQueue<TValue> : PersistentStoreBase<TValue>, IPersistentQueue<TValue>
     {
         internal PersistentQueue(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
@@ -21,7 +21,7 @@ namespace Couchbase.DataStructures
 
         public async Task<TValue?> DequeueAsync()
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             var result = await Collection.LookupInAsync(Key, builder => builder.Get("[0]")).ConfigureAwait(false);
             var item = result.ContentAs<TValue>(0);
 
@@ -38,7 +38,7 @@ namespace Couchbase.DataStructures
 
         public async Task EnqueueAsync(TValue item)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             await Collection.MutateInAsync(Key, builder => builder.ArrayAppend("", item)).ConfigureAwait(false);
         }
 

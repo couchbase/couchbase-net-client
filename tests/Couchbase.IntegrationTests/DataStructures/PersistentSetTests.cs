@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
 using Couchbase.DataStructures;
@@ -45,19 +46,21 @@ namespace Couchbase.IntegrationTests.DataStructures
             }
         }
 
-        private async Task<IPersistentSet<Foo>> GetPersistentSet(string id)
+        private async Task<IPersistentSet<Foo>> GetPersistentSet([CallerMemberName] string id = "")
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             return new PersistentSet<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
         }
 
         [Fact]
-        public void Test_Add()
+        public async Task Test_AddAsync()
         {
-            var set = GetPersistentSet("PersistentSetTests.Test_Add()").GetAwaiter().GetResult();
-            set.ClearAsync().GetAwaiter().GetResult();
-            set.AddAsync(new Foo{Name = "Tom", Age = 50}).GetAwaiter().GetResult();
-            set.AddAsync(new Foo{Name = "Tom", Age = 50}).GetAwaiter().GetResult();
+            var set = await GetPersistentSet();
+            await set.ClearAsync();
+            await set.AddAsync(new Foo{Name = "Tom", Age = 50});
+            await set.AddAsync(new Foo{Name = "Tom", Age = 50});
+
+            Assert.Equal(2, await set.CountAsync);
         }
     }
 }

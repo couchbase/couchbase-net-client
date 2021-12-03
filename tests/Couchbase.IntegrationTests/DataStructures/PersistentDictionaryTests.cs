@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
 using Couchbase.DataStructures;
@@ -57,24 +58,23 @@ namespace Couchbase.IntegrationTests.DataStructures
             }
         }
 
-        private async Task<IPersistentDictionary<Foo>> GetPersistentDictionary(string id)
+        private async Task<IPersistentDictionary<Foo>> GetPersistentDictionary([CallerMemberName] string id = "")
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             return new PersistentDictionary<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
-
         }
 
-        [Fact(Skip = "Not working.  PersistentDictionary needs to be re-worked to not use sync-over-async.")]
-        public void Test_Add()
+        [Fact]
+        public async Task Test_AddAsync()
         {
-            var dict = GetPersistentDictionary("PersistentDictionaryTests.Test_Add").GetAwaiter().GetResult();
-            dict.ClearAsync().GetAwaiter().GetResult();
-            dict.Add("foo", new Foo {Name = "Tom", Age = 50});
-            dict.Add("Dick", new Foo{Name = "Dick", Age = 27});
-            dict.Add("Harry", new Foo{Name = "Harry", Age = 66});
+            var dict = await GetPersistentDictionary();
+            await dict.ClearAsync();
+            await dict.AddAsync("foo", new Foo {Name = "Tom", Age = 50});
+            await dict.AddAsync("Dick", new Foo{Name = "Dick", Age = 27});
+            await dict.AddAsync("Harry", new Foo{Name = "Harry", Age = 66});
 
-            var exists = dict.ContainsKeyAsync("Dick").GetAwaiter().GetResult();
-            //Assert.True(exists);
+            var exists = await dict.ContainsKeyAsync("Dick");
+            Assert.True(exists);
         }
     }
 }

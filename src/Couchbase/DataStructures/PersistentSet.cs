@@ -12,19 +12,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.DataStructures
 {
-    public class PersistentSet<TValue> : PersistentStoreBase<TValue>, IPersistentSet<TValue>
+    public sealed class PersistentSet<TValue> : PersistentStoreBase<TValue>, IPersistentSet<TValue>
     {
         internal PersistentSet(ICouchbaseCollection collection, string key, ILogger? logger, IRedactor? redactor)
             : base(collection, key, logger, redactor, new object(), false)
         {
         }
 
-        protected override void CreateBackingStore()
+        protected override async ValueTask CreateBackingStoreAsync()
         {
             if (BackingStoreChecked) return;
             try
             {
-                Collection.InsertAsync(Key, new HashSet<TValue>()).GetAwaiter().GetResult();
+                await Collection.InsertAsync(Key, new HashSet<TValue>()).ConfigureAwait(false);
                 BackingStoreChecked = true;
             }
             catch (DocumentExistsException e)
@@ -35,14 +35,14 @@ namespace Couchbase.DataStructures
             }
         }
 
-        protected new ISet<TValue> GetList()
+        private new ISet<TValue> GetList()
         {
             return GetListAsync().GetAwaiter().GetResult();
         }
 
-        protected new async Task<ISet<TValue>> GetListAsync()
+        private new async Task<ISet<TValue>> GetListAsync()
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var result = await Collection.GetAsync(Key).ConfigureAwait(false);
             return result.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
         }
@@ -64,7 +64,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> AddAsync(TValue item)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var items = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             var added = items.Add(item);
@@ -150,7 +150,7 @@ namespace Couchbase.DataStructures
 
         public async Task ExceptWithAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.ExceptWith(other);
@@ -159,7 +159,7 @@ namespace Couchbase.DataStructures
 
         public async Task IntersectWithAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.IntersectWith(other);
@@ -168,7 +168,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> IsProperSubsetOfAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsProperSubsetOf(other);
@@ -176,7 +176,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> IsProperSupersetOfAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsProperSupersetOf(other);
@@ -184,7 +184,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> IsSubsetOfAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsSubsetOf(other);
@@ -192,7 +192,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> IsSupersetOfAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsSupersetOf(other);
@@ -200,7 +200,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> OverlapsAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.Overlaps(other);
@@ -208,7 +208,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> SetEqualsAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.SetEquals(other);
@@ -216,7 +216,7 @@ namespace Couchbase.DataStructures
 
         public async Task SymmetricExceptWithAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.SymmetricExceptWith(other);
@@ -225,7 +225,7 @@ namespace Couchbase.DataStructures
 
         public async Task UnionWithAsync(IEnumerable<TValue> other)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.UnionWith(other);
@@ -234,7 +234,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> ContainsAsync(TValue item)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var items = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             return items.Contains(item);
@@ -242,7 +242,7 @@ namespace Couchbase.DataStructures
 
         public async Task<bool> RemoveAsync(TValue item)
         {
-            CreateBackingStore();
+            await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
             var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
             var removed = thisSet.Remove(item);

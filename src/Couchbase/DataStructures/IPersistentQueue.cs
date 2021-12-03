@@ -21,6 +21,8 @@ namespace Couchbase.DataStructures
         void Clear();
 
         Task ClearAsync();
+
+        Task<int> CountAsync { get; }
     }
 }
 
