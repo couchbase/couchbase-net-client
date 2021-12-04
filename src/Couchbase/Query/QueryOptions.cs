@@ -725,7 +725,7 @@ namespace Couchbase.Query
             if (_arguments.Count > 0) formValues.Add(QueryParameters.Args, _arguments);
 
             if (_scanConsistency.HasValue)
-                formValues.Add(QueryParameters.ScanConsistency, _scanConsistency.GetDescription());
+                formValues.Add(QueryParameters.ScanConsistency, _scanConsistency.GetDescription()!);
 
             if (_scanVectors != null)
             {

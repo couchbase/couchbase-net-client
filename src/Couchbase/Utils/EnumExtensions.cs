@@ -1,40 +1,72 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+
+#nullable enable
 
 namespace Couchbase.Utils
 {
     internal static class EnumExtensions
     {
-        public static string GetDescription(this Enum value)
+        private static class EnumDescriptionCache<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>
+            where T : struct, Enum
         {
-            var type = value.GetType();
-            var name = Enum.GetName(type, value);
-            if (name != null)
+            private static readonly Dictionary<T, string> ToDescriptionCache = new();
+            private static readonly Dictionary<string, T> FromDescriptionCache = new();
+
+            static EnumDescriptionCache()
             {
-                var field = type.GetField(name);
-                if (field?.GetCustomAttribute(typeof(DescriptionAttribute)) is DescriptionAttribute attribute)
+                foreach (var field in typeof(T).GetFields())
                 {
-                    return attribute.Description;
+                    var description = field.GetCustomAttribute<DescriptionAttribute>();
+                    if (description != null)
+                    {
+                        var value = (T)field.GetValue(null)!;
+                        ToDescriptionCache.Add(value, description.Description);
+
+                        // In case two fields have the same description, only keep the first we encounter
+#if NETSTANDARD2_0
+                        if (!FromDescriptionCache.ContainsKey(description.Description))
+                        {
+                            FromDescriptionCache.Add(description.Description, value);
+                        }
+#else
+                        FromDescriptionCache.TryAdd(description.Description, value);
+#endif
+                    }
                 }
             }
-            return null;
+
+            public static bool TryGetDescription(T value, [MaybeNullWhen(false)] out string description) =>
+                ToDescriptionCache.TryGetValue(value, out description);
+
+            public static bool TryGetValue(string description, out T value) =>
+                FromDescriptionCache.TryGetValue(description, out value);
         }
 
-        public static bool TryGetFromDescription<T>(string description, out T @enum)
+        public static string? GetDescription<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>(
+            this T? value)
+            where T : struct, Enum =>
+            value?.GetDescription();
+
+        public static string? GetDescription<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>(
+            this T value)
+            where T : struct, Enum
         {
-            foreach (var entry in Enum.GetValues(typeof(T)))
+            if (!EnumDescriptionCache<T>.TryGetDescription(value, out var description))
             {
-                if ((entry as Enum).GetDescription() == description)
-                {
-                    @enum = (T) entry;
-                    return true;
-                }
+                return null;
             }
 
-            @enum = default;
-            return false;
+            return description;
         }
+
+        public static bool TryGetFromDescription<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>(
+            string description, out T @enum)
+            where T : struct, Enum =>
+            EnumDescriptionCache<T>.TryGetValue(description, out @enum);
     }
 }
 

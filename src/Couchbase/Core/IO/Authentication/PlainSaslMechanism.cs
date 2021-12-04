@@ -36,7 +36,7 @@ namespace Couchbase.Core.IO.Authentication
             using var rootSpan = Tracer.RequestSpan(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Internal.AuthenticatePlain);
             using var op = new SaslStart
             {
-                Key = MechanismType.GetDescription(),
+                Key = MechanismType.GetDescription()!,
                 Content = GetAuthData(_username, _password),
                 Opaque = SequenceGenerator.GetNext(),
                 Span = rootSpan,

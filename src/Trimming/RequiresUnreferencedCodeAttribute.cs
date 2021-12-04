@@ -1,15 +1,8 @@
-#if !NET5_0_OR_GREATER
-
-// This attribute is only included when targeting older frameworks, having the attribute
-// available means we don't need to use conditional compilation directives at every spot
-// we'd like to apply the attribute.
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #nullable enable
 
-// ReSharper disable once CheckNamespace
 namespace System.Diagnostics.CodeAnalysis
 {
     /// <summary>
@@ -21,7 +14,12 @@ namespace System.Diagnostics.CodeAnalysis
     /// code from an application.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Class, Inherited = false)]
-    internal sealed class RequiresUnreferencedCodeAttribute : Attribute
+#if SYSTEM_PRIVATE_CORELIB
+    public
+#else
+    internal
+#endif
+        sealed class RequiresUnreferencedCodeAttribute : Attribute
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RequiresUnreferencedCodeAttribute"/> class
@@ -47,5 +45,3 @@ namespace System.Diagnostics.CodeAnalysis
         public string? Url { get; set; }
     }
 }
-
-#endif

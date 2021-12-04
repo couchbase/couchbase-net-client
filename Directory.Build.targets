@@ -1,6 +1,13 @@
 <Project>
   <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.1.1" />
 
+  <!-- For older framework targets on non-test projects include attributes to support trimming -->
+  <ItemGroup Condition=" ('$(TargetFramework.StartsWith(`netcore`))' == 'true' Or '$(TargetFramework.StartsWith(`netstandard`))' == 'true') And '$(MSBuildProjectFile.Contains(`Test`))' != 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)src\Trimming\**\*.cs">
+      <Visible>false</Visible>
+    </Compile>
+  </ItemGroup>
+
   <!-- Because we're building commits pulled from Gerrit, SourceLink can't find our repository URL -->
   <!-- This will manually fill it in (though we'll still see some warnings) -->
   <Target Name="SupplySourceRootRepositoryUrl">

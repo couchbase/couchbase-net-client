@@ -44,7 +44,7 @@ namespace Couchbase.Core.IO.Authentication
             using var childSpan = span.ChildSpan(OuterRequestSpans.ServiceSpan.Internal.SaslStart);
             using var authOp = new SaslStart
             {
-                Key = MechanismType.GetDescription(),
+                Key = MechanismType.GetDescription()!,
                 Content = message,
                 Timeout = Timeout,
                 Span = childSpan
