@@ -53,6 +53,7 @@
     <PackageReference Update="OpenTelemetry.Exporter.InMemory" Version="1.1.0" />
     <PackageReference Update="OpenTelemetry.Exporter.Zipkin" Version="1.0.1" />
     <PackageReference Update="Serilog.Extensions.Logging.File" Version="2.0.0" />
+    <PackageReference Update="Snappier" Version="1.0.0" />
     <PackageReference Update="JUnitXml.TestLogger" Version="2.1.81" />
     <PackageReference Update="xunit" Version="2.4.1" />
     <PackageReference Update="xunit.runner.visualstudio" Version="2.4.3">

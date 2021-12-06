@@ -85,6 +85,30 @@ namespace Couchbase.Core.Diagnostics.Tracing
             return span;
         }
 
+        internal static IRequestSpan CompressionSpan(this IRequestSpan parentSpan)
+        {
+            var childSpan = parentSpan.ChildSpan(InnerRequestSpans.CompressionSpan.Name);
+            if (childSpan.CanWrite)
+            {
+                childSpan.SetAttribute(InnerRequestSpans.CompressionSpan.Attributes.System.Key,
+                    InnerRequestSpans.CompressionSpan.Attributes.System.Value);
+            }
+
+            return childSpan;
+        }
+
+        internal static IRequestSpan DecompressionSpan(this IRequestSpan parentSpan)
+        {
+            var childSpan = parentSpan.ChildSpan(InnerRequestSpans.DecompressionSpan.Name);
+            if (childSpan.CanWrite)
+            {
+                childSpan.SetAttribute(InnerRequestSpans.DecompressionSpan.Attributes.System.Key,
+                    InnerRequestSpans.DecompressionSpan.Attributes.System.Value);
+            }
+
+            return childSpan;
+        }
+
         internal static IRequestSpan EncodingSpan(this IRequestSpan parentSpan)
         {
             var childSpan = parentSpan.ChildSpan(InnerRequestSpans.EncodingSpan.Name);

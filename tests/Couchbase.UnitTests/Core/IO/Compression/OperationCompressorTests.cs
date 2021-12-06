@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,7 +32,7 @@ namespace Couchbase.UnitTests.Core.IO.Compression
 
             // Act
 
-            using var result = compressor.Compress(new byte[1024]);
+            using var result = compressor.Compress(new byte[1024], NoopRequestSpan.Instance);
 
             // Assert
 
@@ -55,7 +56,7 @@ namespace Couchbase.UnitTests.Core.IO.Compression
 
             // Act
 
-            using var result = compressor.Compress(new byte[31]);
+            using var result = compressor.Compress(new byte[31], NoopRequestSpan.Instance);
 
             // Assert
 
@@ -79,7 +80,7 @@ namespace Couchbase.UnitTests.Core.IO.Compression
 
             // Act
 
-            using var result = compressor.Compress(new byte[32]);
+            using var result = compressor.Compress(new byte[32], NoopRequestSpan.Instance);
 
             // Assert
 
@@ -103,7 +104,7 @@ namespace Couchbase.UnitTests.Core.IO.Compression
 
             // Act
 
-            using var result = compressor.Compress(new byte[100]);
+            using var result = compressor.Compress(new byte[100], NoopRequestSpan.Instance);
 
             // Assert
 
@@ -127,7 +128,7 @@ namespace Couchbase.UnitTests.Core.IO.Compression
 
             // Act
 
-            using var result = compressor.Compress(new byte[100]);
+            using var result = compressor.Compress(new byte[100], NoopRequestSpan.Instance);
 
             // Assert
 

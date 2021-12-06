@@ -94,6 +94,8 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
                 options.WithLogging(loggerFactory);
             }
 
+            options.WithCompressionAlgorithm<SnappierCompression>();
+
             options.TracingOptions
                 .WithEnabled(true)
                 .WithTracer(new OpenTelemetryRequestTracer());

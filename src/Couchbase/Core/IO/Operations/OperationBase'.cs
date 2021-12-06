@@ -36,7 +36,7 @@ namespace Couchbase.Core.IO.Operations
 
                     if ((Header.DataType & DataType.Snappy) != DataType.None)
                     {
-                        using var decompressed = OperationCompressor.Decompress(buffer.Slice(offset, length));
+                        using var decompressed = OperationCompressor.Decompress(buffer.Slice(offset, length), Span);
                         result = Transcoder.Decode<T>(decompressed.Memory, Flags, OpCode);
                     }
                     else

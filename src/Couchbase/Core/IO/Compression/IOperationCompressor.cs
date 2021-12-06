@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using Couchbase.Core.Diagnostics.Tracing;
 
 #nullable enable
 
@@ -14,21 +15,23 @@ namespace Couchbase.Core.IO.Compression
         /// Compresses the body of an operation.
         /// </summary>
         /// <param name="input">Buffer to compress.</param>
+        /// <param name="parentSpan">If compression is attempted, the parent span for tracing.</param>
         /// <returns>
         /// A compressed buffer. Ownership of the buffer is passed to the caller.
         /// Should return null if compression doesn't meet the configured compression rules, such as minimum size or ratio.
         /// </returns>
-        IMemoryOwner<byte>? Compress(ReadOnlyMemory<byte> input);
+        IMemoryOwner<byte>? Compress(ReadOnlyMemory<byte> input, IRequestSpan parentSpan);
 
         /// <summary>
         /// Decompresses the body of an operation.
         /// </summary>
         /// <param name="input">Buffer to compress.</param>
+        /// <param name="parentSpan">The parent span for tracing.</param>
         /// <returns>A compressed buffer. Ownership of the buffer is passed to the caller.</returns>
         /// <remarks>
         /// May throw an exception if the input buffer is not valid.
         /// </remarks>
-        IMemoryOwner<byte> Decompress(ReadOnlyMemory<byte> input);
+        IMemoryOwner<byte> Decompress(ReadOnlyMemory<byte> input, IRequestSpan parentSpan);
     }
 }
 

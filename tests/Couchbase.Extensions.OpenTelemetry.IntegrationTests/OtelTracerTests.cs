@@ -49,6 +49,36 @@ namespace Couchbase.Extensions.Tracing.Otel.IntegrationTests
             }
         }
 
+        [Fact]
+        public async Task Key_value_withcompression()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            var key = Guid.NewGuid().ToString();
+
+            try
+            {
+                await collection.InsertAsync(key, new { name = "mike mike mike mike mike mike mike mike mike mike mike mike mike mike mike" }).ConfigureAwait(false);
+                Assert.Equal("insert", _fixture.exportedItems.Last().DisplayName);
+
+                await collection.UpsertAsync(key, new { name = "john john john john john john john john john john john john john john john" }).ConfigureAwait(false);
+                Assert.Equal("upsert", _fixture.exportedItems.Last().DisplayName);
+
+                using (var result = await collection.GetAsync(key).ConfigureAwait(false))
+                {
+                    var content = result.ContentAs<dynamic>();
+
+                    Assert.Equal("john john john john john john john john john john john john john john john", (string)content.name);
+                    Assert.Contains("request_compression", _fixture.exportedItems.Select(p => p.DisplayName));
+                    Assert.Contains("response_decompression", _fixture.exportedItems.Select(p => p.DisplayName));
+                }
+            }
+            finally
+            {
+                await collection.RemoveAsync(key).ConfigureAwait(false);
+                Assert.Equal("remove", _fixture.exportedItems.Last().DisplayName);
+
+            }
+        }
 
         [Fact]
         public async Task Key_value_increment_decrement()

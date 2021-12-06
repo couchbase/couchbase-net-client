@@ -356,7 +356,7 @@ namespace Couchbase.Core.IO.Operations
 
             if ((Header.DataType & DataType.Snappy) != DataType.None)
             {
-                var result = OperationCompressor.Decompress(_data.Memory.Slice(Header.BodyOffset));
+                var result = OperationCompressor.Decompress(_data.Memory.Slice(Header.BodyOffset), Span);
 
                 // We can free the compressed memory now. Don't do this until after decompression in case an exception is thrown.
                 _data.Dispose();
@@ -530,7 +530,7 @@ namespace Couchbase.Core.IO.Operations
                 var dataType = DataType.None;
                 if (SupportsRequestCompression && connection.ServerFeatures.SnappyCompression)
                 {
-                    if (builder.AttemptBodyCompression(OperationCompressor))
+                    if (builder.AttemptBodyCompression(OperationCompressor, encodingSpan))
                     {
                         dataType |= DataType.Snappy;
                     }

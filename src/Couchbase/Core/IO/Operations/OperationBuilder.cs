@@ -3,6 +3,7 @@ using System.Buffers;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Compression;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Utils;
@@ -328,8 +329,9 @@ namespace Couchbase.Core.IO.Operations
         /// Replaces the body of the operation in the stream with a compressed body, if requirements are met.
         /// </summary>
         /// <param name="operationCompressor">The <see cref="IOperationCompressor"/>.</param>
+        /// <param name="parentSpan">If compression is attempted, the parent span for tracing.</param>
         /// <returns>True if the body was compressed, otherwise false.</returns>
-        public bool AttemptBodyCompression(IOperationCompressor operationCompressor)
+        public bool AttemptBodyCompression(IOperationCompressor operationCompressor, IRequestSpan parentSpan)
         {
             if (_bodyLength <= 0)
             {
@@ -340,7 +342,7 @@ namespace Couchbase.Core.IO.Operations
             var bodyStart = OperationHeader.Length + _framingExtrasLength + _extrasLength + _keyLength;
             var body = _stream.GetBuffer().AsMemory(bodyStart, _bodyLength);
 
-            using var compressed = operationCompressor.Compress(body);
+            using var compressed = operationCompressor.Compress(body, parentSpan);
             if (compressed == null)
             {
                 return false;

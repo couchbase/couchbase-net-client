@@ -7,6 +7,44 @@ namespace Couchbase.Core.Diagnostics.Tracing
     internal static class InnerRequestSpans
     {
         /// <summary>
+        /// The span for request compression before dispatch
+        /// </summary>
+        internal static class CompressionSpan
+        {
+            public const string Name = "request_compression";
+
+            internal static class Attributes
+            {
+                /// <summary>
+                ///     This attribute is a standard OpenTelemetry attribute and should be placed on all spans to uniquely identify them
+                ///     for couchbase.
+                /// </summary>
+                public static readonly KeyValuePair<string, string> System = new("db.system", "couchbase");
+
+                public const string CompressionRatio = "compression.ratio";
+
+                public const string CompressionUsed = "compression.used";
+            }
+        }
+
+        /// <summary>
+        /// The span for response decompression
+        /// </summary>
+        internal static class DecompressionSpan
+        {
+            public const string Name = "response_decompression";
+
+            internal static class Attributes
+            {
+                /// <summary>
+                ///     This attribute is a standard OpenTelemetry attribute and should be placed on all spans to uniquely identify them
+                ///     for couchbase.
+                /// </summary>
+                public static readonly KeyValuePair<string, string> System = new("db.system", "couchbase");
+            }
+        }
+
+        /// <summary>
         /// The span for request encoding before dispatch
         /// </summary>
         internal static class EncodingSpan
@@ -19,7 +57,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 ///     This attribute is a standard OpenTelemetry attribute and should be placed on all spans to uniquely identify them
                 ///     for couchbase.
                 /// </summary>
-                public static KeyValuePair<string, string> System = new("db.system", "couchbase");
+                public static readonly KeyValuePair<string, string> System = new("db.system", "couchbase");
             }
         }
 
@@ -42,55 +80,55 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 ///     This attribute is a standard OpenTelemetry attribute and should be placed on all spans to uniquely identify them
                 ///     for couchbase.
                 /// </summary>
-                public static KeyValuePair<string, string> System = new("db.system", "couchbase");
+                public static readonly KeyValuePair<string, string> System = new("db.system", "couchbase");
 
                 /// <summary>
                 ///     This attribute is a standard OpenTelemetry attribute and should be placed on every dispatch span.
                 /// </summary>
-                public static KeyValuePair<string, string> NetTransport = new("net.transport", "IP.TCP");
+                public static readonly KeyValuePair<string, string> NetTransport = new("net.transport", "IP.TCP");
 
                 /// <summary>
                 ///     When the execution duration is reported by the server as part of the response, it should be included in
                 ///     microseconds.
                 /// </summary>
-                public static string ServerDuration = "db.couchbase.server_duration";
+                public const string ServerDuration = "db.couchbase.server_duration";
 
                 /// <summary>
                 ///     The local ID is the connection ID used when creating the connection against the cluster. Note that right now the ID
                 ///     is only populated for the KV service.
                 /// </summary>
-                public static string LocalId = "db.couchbase.local_id";
+                public const string LocalId = "db.couchbase.local_id";
 
                 /// <summary>
                 ///     The hostname for the local side of the socket.
                 /// </summary>
-                public static string LocalHostname = "net.host.name";
+                public const string LocalHostname = "net.host.name";
 
                 /// <summary>
                 ///     The port for the local side of the socket.
                 /// </summary>
-                public static string LocalPort = "net.host.port";
+                public const string LocalPort = "net.host.port";
 
                 /// <summary>
                 ///     The hostname for the remote side of the socket.
                 /// </summary>
-                public static string RemoteHostname = "net.peer.name";
+                public const string RemoteHostname = "net.peer.name";
 
                 /// <summary>
                 ///     The port for the remote side of the socket.
                 /// </summary>
-                public static string RemotePort = "net.peer.port";
+                public const string RemotePort = "net.peer.port";
 
                 /// <summary>
                 ///     The operation ID, together with the service type, allows to (likely) distinguish the request from others. The
                 ///     operation ID is a string and depends on the service used.
                 /// </summary>
-                public static string OperationId = "db.couchbase.operation_id";
+                public const string OperationId = "db.couchbase.operation_id";
 
                 /// <summary>
                 /// The operation timeout in milliseconds
                 /// </summary>
-                public static string TimeoutMilliseconds = "timeout_ms";
+                public const string TimeoutMilliseconds = "timeout_ms";
             }
         }
     }
