@@ -1,5 +1,10 @@
 using System;
+using System.Collections.Generic;
+using Couchbase.Core.Compatibility;
+using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Buckets
 {
@@ -67,6 +72,166 @@ namespace Couchbase.Management.Buckets
         /// </summary>
         /// <remarks>Note that if the bucket does not support it, and by default, it is set to <see cref="DurabilityLevel.None"/>.</remarks>
         public DurabilityLevel DurabilityMinimumLevel { get; set; } = DurabilityLevel.None;
+
+        /// <summary>
+        /// The type of storage to use with the bucket. This is only specified for "couchbase" buckets.
+        /// </summary>
+        [InterfaceStability(Level.Uncommitted)]
+        public StorageBackend? StorageBackend { get; set; }
+
+        /// <summary>
+        /// Validates the settings and creates a list of name value pairs to send to the server as form values.
+        /// </summary>
+        /// <returns></returns>
+        internal IReadOnlyDictionary<string, string> ToFormValues()
+        {
+            var settings = this;
+            var values = new Dictionary<string, string>
+            {
+                {"name", settings.Name},
+                {"bucketType", settings.BucketType.GetDescription()},
+                {"ramQuotaMB", settings.RamQuotaMB.ToString()},
+                {"flushEnabled", settings.FlushEnabled ? "1" : "0"}
+            };
+
+            if (settings.BucketType != BucketType.Memcached)
+            {
+                values.Add("replicaNumber", settings.NumReplicas.ToString());
+            }
+
+            if (settings.BucketType == BucketType.Couchbase)
+            {
+                values.Add("replicaIndex", settings.ReplicaIndexes ? "1" : "0");
+            }
+
+            if (settings.ConflictResolutionType.HasValue)
+            {
+                values.Add("conflictResolutionType", settings.ConflictResolutionType.GetDescription());
+            }
+
+            /*Policy-assignment depends on bucket type. For a Couchbase bucket, the policy can be valueOnly (which is the default)
+                or fullEviction. For an Ephemeral bucket, the policy can be noEviction (which is the default) or nruEviction. No policy
+                can be assigned to a Memcached bucket.*/
+
+            if (settings.EvictionPolicy.HasValue)
+            {
+                if (settings.BucketType == BucketType.Couchbase)
+                {
+                    if (settings.EvictionPolicy == EvictionPolicyType.NoEviction ||
+                        settings.EvictionPolicy == EvictionPolicyType.NotRecentlyUsed)
+                    {
+                        throw new InvalidArgumentException(
+                            "For a Couchbase bucket, the eviction policy can be valueOnly (which is the default) or fullEviction.");
+                    }
+                }
+
+                if (settings.BucketType == BucketType.Ephemeral)
+                {
+                    if (settings.EvictionPolicy == EvictionPolicyType.ValueOnly ||
+                        settings.EvictionPolicy == EvictionPolicyType.FullEviction)
+                    {
+                        throw new InvalidArgumentException(
+                            "For an Ephemeral bucket, the eviction policy can be noEviction (which is the default) or nruEviction.");
+                    }
+                }
+
+                if (settings.BucketType == BucketType.Memcached)
+                {
+                    throw new InvalidArgumentException("No eviction policy can be assigned to a Memcached bucket.");
+                }
+
+                values.Add("evictionPolicy", settings.EvictionPolicy.GetDescription());
+            }
+
+            if (settings.MaxTtl > 0)
+            {
+                values.Add("maxTTL", settings.MaxTtl.ToString());
+            }
+
+            if (settings.CompressionMode.HasValue)
+            {
+                values.Add("compressionMode", settings.CompressionMode.GetDescription());
+            }
+
+            if (settings.DurabilityMinimumLevel != DurabilityLevel.None)
+            {
+                values.Add("durabilityMinLevel", settings.DurabilityMinimumLevel.GetDescription());
+            }
+
+            if (settings.StorageBackend.HasValue)
+            {
+                values.Add("storageBackend", settings.StorageBackend.GetDescription());
+            }
+
+            return values;
+        }
+
+        internal static BucketSettings FromJson(JToken json)
+        {
+            var settings = new BucketSettings
+            {
+                Name = json.GetTokenValue<string>("name"),
+                MaxTtl = json.GetTokenValue<int>("maxTTL"),
+                RamQuotaMB = json.GetTokenValue<long>("quota.rawRAM"),
+                FlushEnabled = json.SelectToken("controllers.flush") != null
+            };
+
+            var bucketTypeToken = json.SelectToken("bucketType");
+            if (bucketTypeToken != null &&
+                EnumExtensions.TryGetFromDescription(bucketTypeToken.Value<string>(), out BucketType bucketType))
+            {
+                settings.BucketType = bucketType;
+            }
+
+            if (settings.BucketType != BucketType.Memcached)
+            {
+                settings.NumReplicas = json.GetTokenValue<int>("replicaNumber");
+            }
+
+            if (settings.BucketType == BucketType.Couchbase)
+            {
+                settings.ReplicaIndexes = json.GetTokenValue<bool>("replicaIndex");
+            }
+
+            var conflictResolutionToken = json.SelectToken("conflictResolutionType");
+            if (conflictResolutionToken != null &&
+                EnumExtensions.TryGetFromDescription(conflictResolutionToken.Value<string>(), out ConflictResolutionType conflictResolutionType))
+            {
+                settings.ConflictResolutionType = conflictResolutionType;
+            }
+
+            var compressionModeToken = json.SelectToken("compressionMode");
+            if (compressionModeToken != null &&
+                EnumExtensions.TryGetFromDescription(compressionModeToken.Value<string>(), out CompressionMode compressionMode))
+            {
+                settings.CompressionMode = compressionMode;
+            }
+
+            var evictionPolicyToken = json.SelectToken("evictionPolicy");
+            if (evictionPolicyToken != null &&
+                EnumExtensions.TryGetFromDescription(evictionPolicyToken.Value<string>(), out EvictionPolicyType evictionPolicyType))
+            {
+                settings.EvictionPolicy = evictionPolicyType;
+            }
+
+            var durabilityMinLevelToken = json.SelectToken("durabilityMinLevel");
+            if (durabilityMinLevelToken != null &&
+                EnumExtensions.TryGetFromDescription(durabilityMinLevelToken.Value<string>(),
+                    out DurabilityLevel durabilityMinLevel))
+            {
+                settings.DurabilityMinimumLevel = durabilityMinLevel;
+            }
+
+            var storageBackend = json.SelectToken("storageBackend");
+            if (storageBackend != null &&
+                EnumExtensions.TryGetFromDescription(storageBackend.Value<string>(), out StorageBackend storageBackendType))
+            {
+                settings.StorageBackend = storageBackendType;
+            }
+
+            return settings;
+        }
+
     }
 }
 
