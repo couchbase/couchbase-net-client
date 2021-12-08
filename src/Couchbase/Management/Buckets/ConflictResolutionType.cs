@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Couchbase.Core.Compatibility;
 
 namespace Couchbase.Management.Buckets
 {
@@ -8,7 +9,14 @@ namespace Couchbase.Management.Buckets
         Timestamp,
 
         [Description("seqno")]
-        SequenceNumber
+        SequenceNumber,
+
+        /// <summary>
+        /// Allows for custom conflict resolution.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        [Description("custom")]
+        Custom
     }
 }
 
