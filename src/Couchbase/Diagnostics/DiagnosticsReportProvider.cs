@@ -11,6 +11,7 @@ using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
@@ -148,7 +149,18 @@ namespace Couchbase.Diagnostics
                    {
                        var index = "ping";
                        await RecordLatencyAsync(endPointDiagnostics,
-                           () => context.Cluster.SearchQueryAsync(index, new NoOpQuery())).ConfigureAwait(false);
+                           async () =>
+                           {
+                               try
+                               {
+                                   await context.Cluster.SearchQueryAsync(index, new NoOpQuery())
+                                       .ConfigureAwait(false);
+                               }
+                               catch (IndexNotFoundException)
+                               {
+                                   // This exception is expected for pings, the ping index does not exist
+                               }
+                           }).ConfigureAwait(false);
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);

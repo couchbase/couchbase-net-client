@@ -144,11 +144,17 @@ namespace Couchbase.Search
                             }
                         }
                         //Quota limiting errors
-                        if (response.StatusCode == HttpStatusCode.BadRequest &&
-                            errors.Contains("num_fts_indexes"))
+                        if (response.StatusCode == HttpStatusCode.BadRequest)
                         {
-                            throw new QuotaLimitedException(QuotaLimitedReason.MaximumNumberOfIndexesReached,
-                                ctx);
+                            if (errors.Contains("index not found"))
+                            {
+                                throw new IndexNotFoundException(ctx);
+                            }
+                            if (errors.Contains("num_fts_indexes"))
+                            {
+                                throw new QuotaLimitedException(QuotaLimitedReason.MaximumNumberOfIndexesReached,
+                                    ctx);
+                            }
                         }
 
                         //Internal service errors

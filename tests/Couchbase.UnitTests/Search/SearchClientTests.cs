@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
@@ -23,7 +24,7 @@ namespace Couchbase.UnitTests.Search
     public class SearchClientTests
     {
         [Fact]
-        public async Task Query_Mismatching_Consistency_Throws_CouchbaseException()
+        public async Task Query_IndexNotFound_Throws_IndexNotFoundException()
         {
             const string indexName = "test-index";
 
@@ -45,7 +46,7 @@ namespace Couchbase.UnitTests.Search
             var client = new SearchClient(httpClientFactory, mockServiceUriProvider.Object,
                 new Mock<ILogger<SearchClient>>().Object, NoopRequestTracer.Instance);
 
-            await Assert.ThrowsAsync<CouchbaseException>(async () => await client.QueryAsync(new SearchRequest {Index = indexName}));
+            await Assert.ThrowsAsync<IndexNotFoundException>(async () => await client.QueryAsync(new SearchRequest {Index = indexName}));
         }
 
         [Fact]
