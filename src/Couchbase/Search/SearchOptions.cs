@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
@@ -22,18 +24,19 @@ namespace Couchbase.Search
         private int? _skip;
         private bool? _explain;
         private string?  _highLightStyle;
-        private readonly List<string> _fields = new List<string>();
+        private readonly List<string> _fields = new();
         private List<string>? _highLightFields;
         private List<ISearchFacet>? _facets;
         private SearchScanConsistency? _scanConsistency;
-        private readonly JArray _sort = new JArray();
+        private readonly JArray _sort = new();
         internal  CancellationToken Token { get; set; }
         internal TimeSpan? TimeoutValue { get; set; }
-        private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
-        private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
+        private readonly Dictionary<string, object> _rawParameters = new();
+        private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new();
         private bool _disableScoring;
-        private string? _scopeName = null;
-        private string[]? _collectionNames = null;
+        private string? _scopeName;
+        private string[]? _collectionNames;
+        private bool _includeLocations;
 
         internal IRetryStrategy? RetryStrategyValue { get; set; }
 
@@ -264,6 +267,18 @@ namespace Couchbase.Search
             return this;
         }
 
+        /// <summary>
+        /// If set to true, will include the SearchRowLocations.
+        /// </summary>
+        /// <param name="includeLocations"><see cref="bool"/> indicating that the locations will be returned. The default is false.</param>
+        /// <returns><see cref="SearchOptions"/> for chaining method calls.</returns>
+        [InterfaceStability(Level.Uncommitted)]
+        public SearchOptions IncludeLocations(bool includeLocations)
+        {
+            _includeLocations = includeLocations;
+            return this;
+        }
+
         public SearchOptions Raw(string name, object value)
         {
             if (string.IsNullOrWhiteSpace(name))
@@ -396,6 +411,11 @@ namespace Couchbase.Search
             if (_collectionNames != null && _collectionNames.Length > 0)
             {
                 parameters.Add(new JProperty("collections", _collectionNames));
+            }
+
+            if (_includeLocations)
+            {
+                parameters.Add(new JProperty("includeLocations", _includeLocations));
             }
 
             return parameters;

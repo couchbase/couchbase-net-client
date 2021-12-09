@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using Couchbase.Core.Compatibility;
+using Couchbase.Utils;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Search.Queries.Simple
@@ -13,6 +15,19 @@ namespace Couchbase.Search.Queries.Simple
         private int _prefixLength;
         private int _fuzziness;
         private string _field;
+        private MatchOperator? _matchOperator;
+
+        /// <summary>
+        /// Specifies how the individual match terms should be logically concatenated.
+        /// </summary>
+        /// <param name="matchOperator">The <see cref="MatchOperator"/> used to match terms.</param>
+        /// <returns>A <see cref="MatchQuery"/> object for chaining.</returns>
+        [InterfaceStability(Level.Uncommitted)]
+        public MatchQuery MatchOperator(MatchOperator matchOperator)
+        {
+            _matchOperator = matchOperator;
+            return this;
+        }
 
         public MatchQuery(string match)
         {
@@ -72,6 +87,11 @@ namespace Couchbase.Search.Queries.Simple
             if (!string.IsNullOrEmpty(_analyzer))
             {
                 json.Add(new JProperty("analyzer", _analyzer));
+            }
+
+            if (_matchOperator.HasValue)
+            {
+                json.Add(new JProperty("operator", _matchOperator.GetDescription()));
             }
 
             return json;

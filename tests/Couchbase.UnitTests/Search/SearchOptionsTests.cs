@@ -4,6 +4,7 @@ using Couchbase.Core.Retry.Search;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Sort;
+using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -227,6 +228,65 @@ namespace Couchbase.UnitTests.Search
             {
                 ctl = new { }
             }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void Test_IncludeLocations_Not_Set()
+        {
+            var searchOptions = new SearchOptions();
+
+            var result = searchOptions.ToJson().ToString(Formatting.None);
+
+            var expected = JsonConvert.SerializeObject(new
+            {
+                ctl = new { }
+            }, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Test_IncludeLocations_Set(bool includeLocations)
+        {
+            var searchOptions = new SearchOptions();
+
+            var result = searchOptions.IncludeLocations(includeLocations).ToJson().ToString(Formatting.None);
+
+            var json = new JObject(new JProperty("ctl", new JObject()));
+            if (includeLocations)
+            {
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
+                json.Add("includeLocations", includeLocations);
+            }
+            var expected = JsonConvert.SerializeObject(json, Formatting.None);
+
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData(MatchOperator.Or)]
+        [InlineData(MatchOperator.And)]
+        public void Test_MatchQuery_MatchOperator(MatchOperator matchOperator)
+        {
+            var request = new SearchRequest
+            {
+                Index = "idx_travel",
+                Query = new MatchQuery("inn").MatchOperator(matchOperator)
+            };
+
+            var result = request.ToJson();
+
+            var json = new JObject(new JProperty("ctl",  new JObject()),
+                new JProperty("query",
+                    new JObject(new JProperty("match", "inn"), new JProperty("prefix_length", 0),
+                        new JProperty("fuzziness", 0), new JProperty("operator", matchOperator.GetDescription()))));
+
+            var expected = JsonConvert.SerializeObject(json, Formatting.None);
 
             Assert.Equal(expected, result);
         }
