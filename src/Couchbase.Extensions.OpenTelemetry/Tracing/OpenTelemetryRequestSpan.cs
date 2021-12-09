@@ -20,7 +20,7 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
         }
 
         /// <inheritdoc />
-        public bool CanWrite { get; } = true;
+        public bool CanWrite => true;
 
         /// <inheritdoc />
         public string? Id => _activity?.Id;
@@ -28,7 +28,11 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
         public uint? Duration { get; private set; }
 
         /// <inheritdoc />
-        public IRequestSpan? Parent { get; set; }
+        public IRequestSpan? Parent
+        {
+            get => _parentSpan;
+            set => throw new NotSupportedException("OpenTelemetry tracing does not support setting the parent on an existing span.");
+        }
 
         /// <inheritdoc />
         public IRequestSpan SetAttribute(string key, string value)

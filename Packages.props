@@ -17,8 +17,8 @@
     <PackageReference Update="Microsoft.Extensions.ObjectPool" Version="6.0.0" />
     <PackageReference Update="Microsoft.Extensions.Options" Version="3.1.21" />
     <PackageReference Update="Newtonsoft.Json" Version="11.0.2" />
-    <PackageReference Update="OpenTelemetry" Version="1.0.1" />
-    <PackageReference Update="OpenTelemetry.Api" Version="1.0.1" />
+    <PackageReference Update="OpenTelemetry" Version="1.1.0" />
+    <PackageReference Update="OpenTelemetry.Api" Version="1.1.0" />
     <PackageReference Update="System.IO.Pipelines" Version="5.0.1" />
     <PackageReference Update="System.Linq.Async" Version="4.1.1" />
     <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />

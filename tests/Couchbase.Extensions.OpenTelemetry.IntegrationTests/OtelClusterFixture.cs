@@ -17,6 +17,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
     {
         private readonly TestSettings _settings;
         private bool _bucketOpened;
+        private readonly TracerProvider _tracerProvider;
 
         public ClusterOptions ClusterOptions { get; }
 
@@ -28,7 +29,14 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
         {
             _settings = GetSettings();
             exportedItems = new List<Activity>();
-            ClusterOptions = GetClusterOptions(exportedItems);
+
+            _tracerProvider = Sdk.CreateTracerProviderBuilder()
+                .SetSampler(new AlwaysOnSampler())
+                .AddInMemoryExporter(exportedItems)
+                .AddCouchbaseInstrumentation()
+                .Build();
+
+            ClusterOptions = GetClusterOptions();
         }
 
         public async ValueTask<ICluster> GetCluster()
@@ -66,7 +74,7 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
                 .Get<TestSettings>();
         }
 
-        public static ClusterOptions GetClusterOptions(List<Activity> exportedItems)
+        public static ClusterOptions GetClusterOptions()
         {
             var settings = GetSettings();
             var options = new ConfigurationBuilder()
@@ -86,15 +94,9 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
                 options.WithLogging(loggerFactory);
             }
 
-            var builder = Sdk.CreateTracerProviderBuilder()
-               .SetSampler(new AlwaysOnSampler())
-               .AddInMemoryExporter(exportedItems);
-
-            var tracer = new OpenTelemetryRequestTracer(builder);
-
             options.TracingOptions
                 .WithEnabled(true)
-                .WithTracer(tracer);
+                .WithTracer(new OpenTelemetryRequestTracer());
 
             return options;
         }
@@ -103,13 +105,14 @@ namespace Couchbase.Extensions.OpenTelemetry.IntegrationTests
         {
             Cluster = await Couchbase.Cluster.ConnectAsync(
                     _settings.ConnectionString,
-                    GetClusterOptions(exportedItems))
+                    GetClusterOptions())
                 .ConfigureAwait(false);
         }
 
         public Task DisposeAsync()
         {
             Cluster?.Dispose();
+            _tracerProvider.Dispose();
 
             return Task.CompletedTask;
         }
