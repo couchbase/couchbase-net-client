@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
+#nullable enable
 
 namespace Couchbase.Core.Diagnostics.Tracing
 {
@@ -9,14 +12,39 @@ namespace Couchbase.Core.Diagnostics.Tracing
     /// </summary>
     internal class RequestTracer : IRequestTracer
     {
-        private static readonly ActivitySource ActivitySource = new("Couchbase.DotnetSdk.RequestTracer", "2.0.0");
+        internal const string ActivitySourceName = "Couchbase.DotnetSdk.RequestTracer";
+        private static readonly ActivitySource ActivitySource = new(ActivitySourceName, "2.0.0");
+
+        // Shared instance of a NoopRequestSpan which refers to this tracer and is a root span with no parent
+        private readonly NoopRequestSpan _noopRootSpan;
+
+        /// <summary>
+        /// Creates a new RequestTracer.
+        /// </summary>
+        public RequestTracer()
+        {
+            _noopRootSpan = new(this);
+        }
 
         /// <inheritdoc />
-        public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
+        public IRequestSpan RequestSpan(string name, IRequestSpan? parentSpan = null)
         {
-            var activity = parentSpan == null ?
+            if (parentSpan is NoopRequestSpan noopSpan)
+            {
+                // Skip to the real parent above the NoopRequestSpan, if any.
+                // Since we must check the type anyway, use the strongly-typed variable to get the parent so that it may be inlined.
+                parentSpan = noopSpan.Parent;
+            }
+
+            var activity = parentSpan?.Id == null ?
                 ActivitySource.StartActivity(name) :
-                ActivitySource.StartActivity(name, ActivityKind.Internal, parentSpan.Id!);
+                ActivitySource.StartActivity(name, ActivityKind.Internal, parentSpan.Id);
+
+            if (activity == null)
+            {
+                // The activity source has no listeners or this trace is not being sampled
+                return CreateNoopSpan(parentSpan);
+            }
 
             var span = new RequestSpan(this, activity, parentSpan);
             if (parentSpan == null)
@@ -36,6 +64,26 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
         public void Dispose()
         {
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private IRequestSpan CreateNoopSpan(IRequestSpan? parentSpan)
+        {
+            if (parentSpan == null)
+            {
+                // We're creating a root span, so reuse our shared root NoopRequestSpan
+                return _noopRootSpan;
+            }
+
+            if (parentSpan is NoopRequestSpan)
+            {
+                // The parent is a NoopRequestSpan, so we can reuse it. The parent will be the last real activity
+                // in the chain, subsequent children will keep referring to it.
+                return parentSpan;
+            }
+
+            // We need to make a new NoopRequestSpan that refers to the parent
+            return new NoopRequestSpan(this, parentSpan);
         }
     }
 }

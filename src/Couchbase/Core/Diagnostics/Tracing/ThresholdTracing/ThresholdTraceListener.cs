@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
+#nullable enable
+
 namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
 {
     /// <summary>
@@ -31,9 +33,9 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
             Start();
         }
 
-        private static void GenerateAndLogReport(object state)
+        private static void GenerateAndLogReport(object? state)
         {
-            ILogger logger = null;
+            ILogger? logger = null;
             try
             {
                 logger = state as ILogger;
@@ -72,7 +74,7 @@ namespace Couchbase.Core.Diagnostics.Tracing.ThresholdTracing
                 ActivitySamplingResult.AllData;
             Listener.Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
                 ActivitySamplingResult.AllData;
-            Listener.ShouldListenTo = s => true;
+            Listener.ShouldListenTo = s => s.Name == RequestTracer.ActivitySourceName;
         }
 
         public override void Dispose()

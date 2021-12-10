@@ -1,3 +1,5 @@
+#nullable enable
+
 namespace Couchbase.Core.Diagnostics.Tracing
 {
     /// <summary>
@@ -7,7 +9,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
     {
         public static IRequestTracer Instance = new NoopRequestTracer();
 
-        public IRequestSpan RequestSpan(string name, IRequestSpan parentSpan = null)
+        public IRequestSpan RequestSpan(string name, IRequestSpan? parentSpan = null)
         {
             return NoopRequestSpan.Instance;
         }
