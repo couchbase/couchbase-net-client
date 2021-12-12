@@ -6,6 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
+using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
@@ -20,6 +23,7 @@ namespace Couchbase.Core
     internal class ClusterContext : IDisposable
     {
         public readonly ITypeTranscoder GlobalTranscoder = new JsonTranscoder();
+        private readonly ClusterOptions _clusterOptions;
         private readonly ILogger<ClusterContext> _logger;
         private readonly IRedactor _redactor;
         private readonly IConfigHandler _configHandler;
@@ -27,6 +31,9 @@ namespace Couchbase.Core
         private readonly CancellationTokenSource _tokenSource;
         protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new ConcurrentDictionary<string, BucketBase>();
         private bool _disposed;
+
+        // Maintains a list of objects to be disposed when the context is disposed.
+        private readonly List<IDisposable> _ownedObjects = new();
 
         //For testing
         public ClusterContext() : this(null, new CancellationTokenSource(), new ClusterOptions())
@@ -43,6 +50,7 @@ namespace Couchbase.Core
             Cluster = cluster;
             ClusterOptions = options;
             _tokenSource = tokenSource;
+            _clusterOptions = options;
 
             // Register this instance of ClusterContext
             options.AddClusterService(this);
@@ -81,8 +89,46 @@ namespace Couchbase.Core
 
         public CancellationToken CancellationToken => _tokenSource.Token;
 
-        public void StartConfigListening()
+        public void Start()
         {
+            var requestTracer = ServiceProvider.GetRequiredService<IRequestTracer>();
+            if (requestTracer is not NoopRequestTracer)
+            {
+                //if tracing is disabled the listener will be ignored
+                if (_clusterOptions.ThresholdOptions.Enabled)
+                {
+                    var listener = _clusterOptions.ThresholdOptions.ThresholdListener;
+                    if (listener is null)
+                    {
+                        listener = new ThresholdTraceListener(
+                            ServiceProvider.GetRequiredService<ILoggerFactory>(),
+                            _clusterOptions.ThresholdOptions);
+
+                        // Since we own the listener, be sure we dispose it
+                        _ownedObjects.Add(listener);
+                    }
+
+                    requestTracer.Start(listener);
+                }
+
+                //if tracing is disabled the listener will be ignored
+                if (_clusterOptions.OrphanTracingOptions.Enabled)
+                {
+                    var listener = _clusterOptions.OrphanTracingOptions.OrphanListener;
+                    if (listener is null)
+                    {
+                        listener = new OrphanTraceListener(
+                            new OrphanReporter(ServiceProvider.GetRequiredService<ILogger<OrphanReporter>>(),
+                                _clusterOptions.OrphanTracingOptions));
+
+                        // Since we own the listener, be sure we dispose it
+                        _ownedObjects.Add(listener);
+                    }
+
+                    requestTracer.Start(listener);
+                }
+            }
+
             _configHandler.Start(ClusterOptions.EnableConfigPolling);
         }
 
@@ -522,6 +568,12 @@ namespace Couchbase.Core
             _disposed = true;
             _configHandler?.Dispose();
             _tokenSource?.Dispose();
+
+            foreach (var ownedObject in _ownedObjects)
+            {
+                ownedObject.Dispose();
+            }
+            _ownedObjects.Clear();
 
             foreach (var bucketName in Buckets.Keys)
             {

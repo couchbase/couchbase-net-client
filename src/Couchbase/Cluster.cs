@@ -72,7 +72,7 @@ namespace Couchbase
 
             var configTokenSource = new CancellationTokenSource();
             _context = new ClusterContext(this, configTokenSource, clusterOptions);
-            _context.StartConfigListening();
+            _context.Start();
 
             LazyQueryClient = new Lazy<IQueryClient>(() => _context.ServiceProvider.GetRequiredService<IQueryClient>());
             LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => _context.ServiceProvider.GetRequiredService<IAnalyticsClient>());

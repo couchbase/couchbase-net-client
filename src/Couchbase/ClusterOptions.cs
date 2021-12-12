@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
@@ -22,7 +21,6 @@ using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using IRequestTracer = Couchbase.Core.Diagnostics.Tracing.IRequestTracer;
 
 // ReSharper disable UnusedMember.Global
 
@@ -735,18 +733,6 @@ namespace Couchbase
 
             //set the tracer to be used
             this.AddClusterService(TracingOptions.Enabled ? TracingOptions.RequestTracer : NoopRequestTracer.Instance);
-
-            //if tracing is disabled the listener will be ignored
-            if (ThresholdOptions.Enabled)
-                TracingOptions.RequestTracer.Start(ThresholdOptions.ThresholdListener ??
-                                                   new ThresholdTraceListener(Logging, ThresholdOptions));
-
-            //if tracing is disabled the listener will be ignored
-            if (OrphanTracingOptions.Enabled)
-                TracingOptions.RequestTracer.Start(OrphanTracingOptions.OrphanListener ??
-                                                   new OrphanTraceListener(
-                                                       new OrphanReporter(Logging.CreateLogger<OrphanReporter>(),
-                                                           OrphanTracingOptions)));
 
 #endregion
 

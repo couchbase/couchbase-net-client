@@ -204,51 +204,6 @@ namespace Couchbase.UnitTests
         }
 
         [Fact]
-        public void When_Tracing_Disabled_Custom_To_CustomTraceListener()
-        {
-            using var listener = new CustomTraceListener();
-
-            var options = new ClusterOptions { TracingOptions = { Enabled = false } };
-            options.WithThresholdTracing(new ThresholdOptions
-            {
-                Enabled = false,
-                ThresholdListener = listener
-            }).WithOrphanTracing(options => options.Enabled = false);
-
-            var services = options.BuildServiceProvider();
-            var noopRequestTracer = services.GetService(typeof(IRequestTracer));
-
-            Assert.IsAssignableFrom<NoopRequestTracer>(noopRequestTracer);
-        }
-
-        [Fact]
-        public void When_Tracing_Enabled_Custom_To_CustomTraceListener()
-        {
-            using var listener = new CustomTraceListener();
-
-            var options = new ClusterOptions();
-            options.WithThresholdTracing(new ThresholdOptions
-            {
-                Enabled = true,
-                ThresholdListener = listener
-            });
-
-            var services = options.BuildServiceProvider();
-            var tracer = services.GetService(typeof(IRequestTracer)) as RequestTracer;
-            var span = tracer.RequestSpan("works");
-            span.Dispose();
-
-            var activities = listener.Activities.Where(x => x.OperationName == "works");
-            var enumerable = activities as Activity[] ?? activities.ToArray();
-
-            foreach (var activity in enumerable)
-            {
-                _output.WriteLine($"The name of the activity is '{activity.DisplayName}'");
-            }
-            Assert.True(enumerable.Count() == 1, $"The actual count was {enumerable.Count()}");
-        }
-
-        [Fact]
         public void When_CustomRequestTracer_Registered_Use_It()
         {
             var options = new ClusterOptions()
@@ -262,35 +217,6 @@ namespace Couchbase.UnitTests
             var tracer = services.GetService(typeof(IRequestTracer));
 
             Assert.IsAssignableFrom<CustomRequestTracer>(tracer);
-        }
-
-        public class CustomTraceListener : TraceListener
-        {
-            public CustomTraceListener()
-            {
-                Start();
-            }
-
-            // Due to thread sync issues, a listener may receive the same activity more than once.
-            // We use a hash set to avoid tracking it multiple times and breaking tests.
-            public HashSet<Activity> Activities { get; } = new();
-
-            public sealed override void Start()
-            {
-                Listener.ActivityStopped = activity =>
-                {
-                    // We may be receiving activities from other tests, so lock
-                    lock (Activities)
-                    {
-                        Activities.Add(activity);
-                    }
-                };
-                Listener.SampleUsingParentId = (ref ActivityCreationOptions<string> activityOptions) =>
-                    ActivitySamplingResult.AllData;
-                Listener.Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
-                    ActivitySamplingResult.AllData;
-                Listener.ShouldListenTo = s => true;
-            }
         }
 
         public class CustomRequestTracer : IRequestTracer
