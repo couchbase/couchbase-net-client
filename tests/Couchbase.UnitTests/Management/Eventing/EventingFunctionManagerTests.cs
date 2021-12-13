@@ -19,7 +19,7 @@ using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Management.Eventing
 {
-    public class EventingFunctionManagerTests
+    public class EventingFunctionManagerTests : IDisposable
     {
         private readonly LoggerFactory _loggerFactory;
 
@@ -27,6 +27,11 @@ namespace Couchbase.UnitTests.Management.Eventing
         {
             _loggerFactory = new LoggerFactory();
             _loggerFactory.AddProvider(new XUnitLoggerProvider(testOutputHelper));
+        }
+
+        public void Dispose()
+        {
+            _loggerFactory.Dispose();
         }
 
         [Fact]

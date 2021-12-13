@@ -12,7 +12,7 @@ using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
 {
-    public class ThresholdTracerTests
+    public class ThresholdTracerTests : IDisposable
     {
         private readonly LoggerFactory _loggerFactory;
 
@@ -20,6 +20,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing
         {
             _loggerFactory = new LoggerFactory();
             _loggerFactory.AddProvider(new XUnitLoggerProvider(testOutputHelper));
+        }
+
+        public void Dispose()
+        {
+            _loggerFactory.Dispose();
         }
 
         [Fact]
