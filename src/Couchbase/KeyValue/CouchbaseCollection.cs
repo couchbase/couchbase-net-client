@@ -159,7 +159,6 @@ namespace Couchbase.KeyValue
                     specs, lookupInOptions, rootSpan)
                 .ConfigureAwait(false);
             rootSpan.WithOperationId(lookupOp);
-            rootSpan.Dispose();
             return new GetResult(lookupOp.ExtractBody(), lookupOp.Transcoder, _getLogger, specs, projectList)
             {
                 Id = lookupOp.Key,

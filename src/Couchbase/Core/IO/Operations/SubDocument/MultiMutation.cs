@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Converters;
 using Couchbase.KeyValue;
@@ -142,6 +143,8 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             TryReadMutationToken(buffer);
+
+            TryReadServerDuration(buffer);
         }
 
         public IList<MutateInSpec> GetCommandValues()

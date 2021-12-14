@@ -26,7 +26,7 @@ namespace Couchbase.Core.IO.Operations.Errors
 
         protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
-            // no extras to read
+            TryReadServerDuration(buffer);
         }
 
         public override OpCode OpCode => OpCode.GetErrorMap;

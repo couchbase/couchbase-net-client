@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -20,6 +21,8 @@ namespace Couchbase.Core.IO.Operations
             {
                 Flags = Flags.Read(buffer.Slice(Header.ExtrasOffset));
             }
+
+            TryReadServerDuration(buffer);
         }
     }
 }

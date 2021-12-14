@@ -22,6 +22,8 @@ namespace Couchbase.Core.IO.Operations.Authentication
                 DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.String
             };
+
+            TryReadServerDuration(buffer);
         }
 
         protected override void BeginSend()

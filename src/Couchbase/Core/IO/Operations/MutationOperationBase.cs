@@ -27,6 +27,8 @@ namespace Couchbase.Core.IO.Operations
         protected override void ReadExtras(ReadOnlySpan<byte> buffer)
         {
             TryReadMutationToken(buffer);
+
+            TryReadServerDuration(buffer);
         }
 
         protected override void WriteFramingExtras(OperationBuilder builder)

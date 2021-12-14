@@ -31,6 +31,8 @@ namespace Couchbase.Core.IO.Operations
                 DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.Object
             };
+
+            TryReadServerDuration(buffer);
         }
 
         public override OpCode OpCode => OpCode.GetClusterConfig;

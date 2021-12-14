@@ -30,6 +30,8 @@ namespace Couchbase.Core.IO.Operations.Collections
                 DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.Object
             };
+
+            TryReadServerDuration(buffer);
         }
     }
 }

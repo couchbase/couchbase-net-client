@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue;
 

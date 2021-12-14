@@ -283,8 +283,14 @@ namespace Couchbase.Core.IO.Operations
 
                 Expires = ByteConverter.ToUInt32(buffer.Slice(25));
 
-                LastServerDuration = Header.GetServerDuration(buffer);
+                TryReadServerDuration(buffer);
             }
+        }
+
+        protected void TryReadServerDuration(ReadOnlySpan<byte> buffer)
+        {
+            //Fetch the time taken on the server
+            LastServerDuration = Header.GetServerDuration(buffer);
         }
 
         protected void TryReadMutationToken(ReadOnlySpan<byte> buffer)
@@ -573,12 +579,6 @@ namespace Couchbase.Core.IO.Operations
         /// <inheritdoc />
         public void HandleOperationCompleted(in SlicedMemoryOwner<byte> data)
         {
-            if (LastServerDuration.HasValue)
-            {
-                _span?.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.ServerDuration,
-                    LastServerDuration.Value.ToString());
-            }
-
             _dispatchSpan?.Dispose();
             var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
             if (prevCompleted == 1)
@@ -606,6 +606,13 @@ namespace Couchbase.Core.IO.Operations
                     data.Dispose();
                 }
 
+                //Fetch the time taken on the server
+                if (LastServerDuration.HasValue)
+                {
+                    Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.ServerDuration,
+                        LastServerDuration.Value.ToString());
+                }
+
                 _valueTaskSource.SetResult(status);
             }
             catch (Exception ex)
@@ -626,7 +633,7 @@ namespace Couchbase.Core.IO.Operations
             return Header.Status == ResponseStatus.VBucketBelongsToAnotherServer;
         }
 
-        public long? LastServerDuration { get; private set; }
+        public long? LastServerDuration { get; protected set; }
 
         #endregion
 

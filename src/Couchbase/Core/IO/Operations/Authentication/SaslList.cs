@@ -19,6 +19,8 @@ namespace Couchbase.Core.IO.Operations.Authentication
                 DataFormat = Flags.DataFormat,
                 TypeCode = TypeCode.String
             };
+
+            TryReadServerDuration(buffer);
         }
 
         public override OpCode OpCode => OpCode.SaslList;
