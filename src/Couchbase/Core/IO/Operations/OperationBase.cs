@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -607,10 +608,17 @@ namespace Couchbase.Core.IO.Operations
                 }
 
                 //Fetch the time taken on the server
-                if (LastServerDuration.HasValue)
+                if (Span.CanWrite && LastServerDuration.HasValue)
                 {
                     Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.ServerDuration,
                         LastServerDuration.Value.ToString());
+                }
+
+                //Write the timeout_ms span attribute
+                if (Span.CanWrite)
+                {
+                    Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds,
+                        Timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)!);
                 }
 
                 _valueTaskSource.SetResult(status);
