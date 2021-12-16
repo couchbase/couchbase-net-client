@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp2.1;netcoreapp3.1;net5.0</TargetFrameworks>
-    <VersionPrefix>3.0.0</VersionPrefix>
+    <TargetFrameworks>$(NetStandardTargets);$(NetSpecificTargets)</TargetFrameworks>
+    <VersionPrefix>$(CouchbaseNetClientReleasedVersion)</VersionPrefix>
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
     <AssemblyName>Couchbase.NetClient</AssemblyName>
     <PackageId>CouchbaseNetClient</PackageId>
@@ -24,7 +24,8 @@
          We can leave this in place until we fully support trimming, after which we switch to
          IsTrimmable which marks the output assembly as trimmable.
          https://docs.microsoft.com/en-us/dotnet/core/deploying/trimming/prepare-libraries-for-trimming#enable-library-trim-warnings -->
-    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <!-- trim analysis is breaking .NET 6 builds, so can't enable until we address them -->
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

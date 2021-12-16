@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>$(NetSpecificTargets)</TargetFrameworks>
     <StartupObject>Couchbase.LoadTests.Program</StartupObject>
 
     <IsPackable>false</IsPackable>
@@ -11,9 +11,12 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
 
+  <!-- Uncomment this to test with >NET Framework 4.6.1 -->
+  <!--
   <PropertyGroup Condition="'$(OS)'=='Windows_NT'">
     <TargetFrameworks>$(TargetFrameworks);net461</TargetFrameworks>
   </PropertyGroup>
+  -->
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
