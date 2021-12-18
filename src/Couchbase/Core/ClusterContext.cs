@@ -320,6 +320,8 @@ namespace Couchbase.Core
                             return;
                         }
                     }
+                    //skip to next endpoint and try again
+                    continue;
                 }
                 catch (Exception e)
                 {
