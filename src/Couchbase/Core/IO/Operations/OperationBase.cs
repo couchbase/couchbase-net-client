@@ -612,15 +612,15 @@ namespace Couchbase.Core.IO.Operations
                 }
 
                 //Fetch the time taken on the server
-                if (Span.CanWrite && LastServerDuration.HasValue)
-                {
-                    Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.ServerDuration,
-                        LastServerDuration.Value.ToString());
-                }
-
-                //Write the timeout_ms span attribute
                 if (Span.CanWrite)
                 {
+                    if (LastServerDuration.HasValue)
+                    {
+                        Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.ServerDuration,
+                            LastServerDuration.Value.ToString());
+                    }
+
+                    //Write the timeout_ms span attribute
                     Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds,
                         Timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)!);
                 }

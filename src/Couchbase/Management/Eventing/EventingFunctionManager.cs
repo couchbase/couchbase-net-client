@@ -418,9 +418,13 @@ namespace Couchbase.Management.Eventing
         private IRequestSpan RootSpan(string operation, FunctionOptionsBase options)
         {
             var span = _tracer.RequestSpan(operation, options.RequestSpan);
-            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
-            span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Eventing);
-            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            if (span.CanWrite)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+                span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Eventing);
+                span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            }
+
             return span;
         }
 

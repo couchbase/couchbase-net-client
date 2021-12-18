@@ -322,11 +322,15 @@ namespace Couchbase.Query
         private IRequestSpan RootSpan(string operation, QueryOptions options)
         {
             var span = _tracer.RequestSpan(operation, options.RequestSpanValue);
-            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
-            span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.N1QLQuery);
-            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, options.BucketName!);
-            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, options.ScopeName!);
-            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            if (span.CanWrite)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+                span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.N1QLQuery);
+                span.SetAttribute(OuterRequestSpans.Attributes.BucketName, options.BucketName!);
+                span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, options.ScopeName!);
+                span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            }
+
             return span;
         }
 

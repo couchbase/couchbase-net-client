@@ -198,9 +198,13 @@ namespace Couchbase.Core.IO.Authentication
         private IRequestSpan RootSpan(string operation)
         {
             var span = Tracer.RequestSpan(operation);
-            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
-            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
-            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            if (span.CanWrite)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+                span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
+                span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            }
+
             return span;
         }
         #endregion

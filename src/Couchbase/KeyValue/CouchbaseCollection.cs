@@ -1137,15 +1137,22 @@ namespace Couchbase.KeyValue
         #endregion
 
         #region tracing
+
+
+
         private IRequestSpan RootSpan(string operation, IRequestSpan? parentSpan = null)
         {
             var span = _tracer.RequestSpan(operation, parentSpan);
-            span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
-            span.SetAttribute(OuterRequestSpans.Attributes.Service, nameof(OuterRequestSpans.ServiceSpan.Kv).ToLowerInvariant());
-            span.SetAttribute(OuterRequestSpans.Attributes.BucketName, _bucket.Name);
-            span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, ScopeName);
-            span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
-            span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            if (span.CanWrite)
+            {
+                span.SetAttribute(OuterRequestSpans.Attributes.System.Key, OuterRequestSpans.Attributes.System.Value);
+                span.SetAttribute(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name);
+                span.SetAttribute(OuterRequestSpans.Attributes.BucketName, _bucket.Name);
+                span.SetAttribute(OuterRequestSpans.Attributes.ScopeName, ScopeName);
+                span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
+                span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
+            }
+
             return span;
         }
         #endregion
