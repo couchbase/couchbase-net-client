@@ -106,7 +106,7 @@ namespace Couchbase.Core.IO.Connections
         public bool IsSecure => false;
 
         /// <inheritdoc />
-        public bool IsDead { get; set; }
+        public bool IsDead => Volatile.Read(ref _disposed) > 0;
 
         /// <inheritdoc />
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;
@@ -330,8 +330,6 @@ namespace Couchbase.Core.IO.Connections
             if (Interlocked.Exchange(ref _disposed, 1) == 0)
             {
                 _logger.LogInformation("Closing connection {cid}", ConnectionId);
-
-                IsDead = true;
 
                 try
                 {
