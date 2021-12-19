@@ -52,7 +52,13 @@ namespace Couchbase.UnitTests.Utils
         public List<RetryReason> RetryReasons { get; set; }
         public IRetryStrategy RetryStrategy { get; set; }
         public TimeSpan Timeout { get; set; }
-        public CancellationToken Token { get; set; }
+        public CancellationToken Token
+        {
+            get => TokenPair;
+            set => throw new NotImplementedException();
+        }
+
+        public CancellationTokenPair TokenPair { get; set; }
         public string ClientContextId { get; set; }
         public string Statement { get; set; }
         public bool PreserveTtl { get; }

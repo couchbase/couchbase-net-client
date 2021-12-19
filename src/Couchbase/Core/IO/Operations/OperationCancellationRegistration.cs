@@ -11,17 +11,23 @@ namespace Couchbase.Core.IO.Operations
     /// while following logic rules regarding external vs internal cancellation. Disposing will release the
     /// registration and prevent future cancellation of the operation.
     /// </summary>
-    internal class OperationCancellationRegistration : IDisposable
+    internal struct OperationCancellationRegistration : IDisposable
     {
         private static readonly Action<object?> HandleExternalCancellationAction = HandleExternalCancellation;
         private static readonly Action<object?> HandleInternalCancellationAction = HandleInternalCancellation;
 
-        private readonly IOperation _operation;
-        private readonly CancellationTokenPair _tokenPair;
-
         private CancellationTokenRegistration _internalRegistration;
         private CancellationTokenRegistration _externalRegistration;
 
+        /// <summary>
+        /// Creates a new OperationCancellationRegistration.
+        /// </summary>
+        /// <param name="operation">Operation to be cancelled.</param>
+        /// <param name="tokenPair">Token pair which will cancel the operation.</param>
+        /// <remarks>
+        /// Only one <see cref="OperationCancellationRegistration"/> should be registered at a time on a given operation,
+        /// the provided <see cref="CancellationTokenPair"/> is saved for tracking on <see cref="IOperation.TokenPair"/>.
+        /// </remarks>
         public OperationCancellationRegistration(IOperation operation, CancellationTokenPair tokenPair)
         {
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
@@ -30,17 +36,16 @@ namespace Couchbase.Core.IO.Operations
                 ThrowHelper.ThrowArgumentNullException(nameof(operation));
             }
 
-            _operation = operation;
-            _tokenPair = tokenPair;
+            operation.TokenPair = tokenPair;
 
             // Since we're using static actions, register calls below are a fast noop for tokens which cannot be canceled
 #if NETSTANDARD2_0 || NETSTANDARD2_1 || NETCOREAPP2_1
-            _externalRegistration = tokenPair.ExternalToken.Register(HandleExternalCancellationAction, this);
-            _internalRegistration = tokenPair.InternalToken.Register(HandleInternalCancellationAction, this);
+            _externalRegistration = tokenPair.ExternalToken.Register(HandleExternalCancellationAction, operation);
+            _internalRegistration = tokenPair.InternalToken.Register(HandleInternalCancellationAction, operation);
 #else
             // On .NET Core 3 and later we can further optimize by not flowing the ExecutionContext using UnsafeRegister
-            _externalRegistration = tokenPair.ExternalToken.UnsafeRegister(HandleExternalCancellationAction, this);
-            _internalRegistration = tokenPair.InternalToken.UnsafeRegister(HandleInternalCancellationAction, this);
+            _externalRegistration = tokenPair.ExternalToken.UnsafeRegister(HandleExternalCancellationAction, operation);
+            _internalRegistration = tokenPair.InternalToken.UnsafeRegister(HandleInternalCancellationAction, operation);
 #endif
         }
 
@@ -54,36 +59,32 @@ namespace Couchbase.Core.IO.Operations
 
         /// <summary>
         /// Static method for processing external cancellation. By using a static Action instance and passing the
-        /// registration as state we reduce heap allocations.
+        /// operation as state we reduce heap allocations.
         /// </summary>
         private static void HandleExternalCancellation(object? state)
         {
-            var registration = (OperationCancellationRegistration) state!;
-            var operation = registration._operation;
-            var tokenPair = registration._tokenPair;
+            var operation = (IOperation) state!;
 
-            // We should only cancel if the operation is:
+            // We should not cancel if the operation is:
             // 1. Currently in flight
-            // 2. Is not a mutation operation
+            // 2. And a mutation operation
             // In those cases, we keep waiting for the response to avoid ambiguity on mutations
 
             if (!operation.IsSent || operation.IsReadOnly)
             {
-                operation.TrySetCanceled(tokenPair.ExternalToken);
+                operation.TrySetCanceled(operation.TokenPair.ExternalToken);
             }
         }
 
         /// <summary>
         /// Static method for processing internal cancellation. By using a static Action instance and passing the
-        /// registration as state we reduce heap allocations.
+        /// operation as state we reduce heap allocations.
         /// </summary>
         private static void HandleInternalCancellation(object? state)
         {
-            var registration = (OperationCancellationRegistration) state!;
-            var operation = registration._operation;
-            var tokenPair = registration._tokenPair;
+            var operation = (IOperation) state!;
 
-            operation.TrySetCanceled(tokenPair.InternalToken);
+            operation.TrySetCanceled(operation.TokenPair.InternalToken);
         }
     }
 }

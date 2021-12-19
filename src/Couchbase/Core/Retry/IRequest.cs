@@ -14,7 +14,11 @@ namespace Couchbase.Core.Retry
         List<RetryReason> RetryReasons { get; set; }
         IRetryStrategy RetryStrategy { get; set; }
         TimeSpan Timeout { get; set; }
-        CancellationToken Token { get; set; }
+        CancellationToken Token
+        {
+            get;
+            [Obsolete] set;
+        }
 
         /// <summary>
         /// Gets the context identifier for the analytics request. Useful for debugging.

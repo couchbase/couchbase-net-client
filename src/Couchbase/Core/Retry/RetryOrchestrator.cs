@@ -166,7 +166,6 @@ namespace Couchbase.Core.Retry
             try
             {
                 var backoff = ControlledBackoff.Create();
-                operation.Token = tokenPair;
 
                 do
                 {

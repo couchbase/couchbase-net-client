@@ -99,6 +99,11 @@ namespace Couchbase.Core.IO.Operations
         bool IsSent { get; }
 
         /// <summary>
+        /// Cancellation token pair which can cancel the operation. Usually set by the <see cref="OperationCancellationRegistration"/>.
+        /// </summary>
+        CancellationTokenPair TokenPair { get; set; }
+
+        /// <summary>
         /// Task which indicates completion of the operation. Once this task is complete,
         /// the result has been received and, if successful, read.
         /// </summary>

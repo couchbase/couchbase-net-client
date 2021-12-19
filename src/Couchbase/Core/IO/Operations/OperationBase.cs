@@ -144,7 +144,14 @@ namespace Couchbase.Core.IO.Operations
         }
 
         public TimeSpan Timeout { get; set; }
-        public CancellationToken Token { get; set; }
+
+        public CancellationTokenPair TokenPair { get; set; }
+
+        public CancellationToken Token
+        {
+            get => TokenPair;
+            set => throw new NotImplementedException();
+        }
 
         // Not necessary for operations, just throw NotImplementedException and avoid an unnecessary backing field
         public string? ClientContextId
