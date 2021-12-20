@@ -407,85 +407,40 @@ namespace Couchbase.Core
                 _logger.LogDebug("CB: Current state is {state}.", _circuitBreaker.State);
             }
 
-            if (_circuitBreaker.Enabled)
+            // This avoids an extra async/await method if circuit breakers are disabled.
+            return _circuitBreaker.Enabled
+                ? SendAsyncWithCircuitBreaker(op, tokenPair)
+                : ExecuteOp(ConnectionPool, op, tokenPair);
+        }
+
+        private async Task SendAsyncWithCircuitBreaker(IOperation op, CancellationTokenPair tokenPair = default)
+        {
+            if (_circuitBreaker.AllowsRequest())
             {
-                if (_circuitBreaker.AllowsRequest())
+                _circuitBreaker.Track();
+
+                try
                 {
-                    _circuitBreaker.Track();
+                    await ExecuteOp(ConnectionPool, op, tokenPair).ConfigureAwait(false);
 
-                    var sendTask = ExecuteOp(ConnectionPool, op, tokenPair);
-
-                    // We don't need the execution context to flow to circuit breaker handling
-                    // so we can reduce heap allocations by not flowing.
-                    using (ExecutionContext.SuppressFlow())
-                    {
-                        sendTask.ContinueWith(task =>
-                        {
-                            if (task.Status == TaskStatus.RanToCompletion)
-                            {
-                                _circuitBreaker.MarkSuccess();
-                            }
-                            else if (task.Status == TaskStatus.Faulted)
-                            {
-                                if (_circuitBreaker.CompletionCallback(task.Exception))
-                                {
-                                    _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
-                                        _redactor.SystemData(ConnectionPool.EndPoint));
-
-                                    _circuitBreaker.MarkFailure();
-                                }
-                            }
-                        }, TaskContinuationOptions.RunContinuationsAsynchronously);
-                    }
-
-                    // Returning sendTask will still propagate the result/exception to the caller.
-                    // However, circuit breaker handling will be asynchronous on another thread.
-                    // This approach helps avoid an extra Task and await on the call stack delaying operation
-                    // completion from propagating to the caller.
-                    return sendTask;
+                    UpdateCircuitBreaker(op, null);
                 }
-                else
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    if (_circuitBreaker.State == CircuitBreakerState.HalfOpen)
-                    {
-                        // Run half-open test in a separate thread to avoid an await in SendAsync.
-                        // This approach helps avoid an extra Task and await on the call stack delaying operation
-                        // completion from propagating to the caller.
-
-                        using (ExecutionContext.SuppressFlow())
-                        // ReSharper disable once MethodSupportsCancellation
-                        Task.Run(async () =>
-                        {
-                            try
-                            {
-                                _logger.LogDebug("CB: Sending a canary to {endPoint}.",
-                                    _redactor.SystemData(ConnectionPool.EndPoint));
-                                using (var ctp = CancellationTokenPairSource.FromTimeout(_circuitBreaker.CanaryTimeout))
-                                {
-                                    await ExecuteOp(ConnectionPool, new Noop() {Span = op.Span}, ctp.TokenPair)
-                                        .ConfigureAwait(false);
-                                }
-
-                                _circuitBreaker.MarkSuccess();
-                            }
-                            catch (Exception e)
-                            {
-                                if (_circuitBreaker.CompletionCallback(e))
-                                {
-                                    _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.",
-                                        _redactor.SystemData(ConnectionPool.EndPoint));
-                                    _circuitBreaker.MarkFailure();
-                                }
-                            }
-                        });
-                    }
-
-                    throw new CircuitBreakerException();
+                    // Timeouts will be Ambiguous or UnambiguousTimeoutException, but OperationCanceledException
+                    // indicates an external cancellation which shouldn't be treated as a success or a failure.
+                    UpdateCircuitBreaker(op, ex);
+                    throw;
                 }
             }
             else
             {
-                return ExecuteOp(ConnectionPool, op, tokenPair);
+                if (_circuitBreaker.State == CircuitBreakerState.HalfOpen)
+                {
+                    QueueHalfOpenCircuitBreakerTest(op.Span);
+                }
+
+                throw new CircuitBreakerException();
             }
         }
 
@@ -708,6 +663,84 @@ namespace Couchbase.Core
                               "is unavailable or the node itself does not have the Data service enabled.";
 
                 _logger.LogError(LoggingEvents.BootstrapEvent, message);
+            }
+        }
+
+        #endregion
+
+        #region Circuit Breaker
+
+        #nullable enable
+
+        /// <summary>
+        /// Updates the circuit breaker status. Null exception indicates success.
+        /// </summary>
+        private void UpdateCircuitBreaker(IOperation op, Exception? exception)
+        {
+            if (exception is null)
+            {
+                _circuitBreaker.MarkSuccess();
+            }
+            else
+            {
+                if (_circuitBreaker.CompletionCallback(exception))
+                {
+                    _logger.LogDebug("CB: Marking a failure for {opaque} to {endPoint}.", op.Opaque,
+                        _redactor.SystemData(ConnectionPool.EndPoint));
+
+                    _circuitBreaker.MarkFailure();
+                }
+            }
+        }
+
+        #nullable restore
+
+        private void QueueHalfOpenCircuitBreakerTest(IRequestSpan parentSpan)
+        {
+            // Run half-open test in a separate thread so that the test doesn't delay
+            // the circuit open exception from reaching the caller. UnsafeQueueUserWorkItem is
+            // used to avoid capturing the ExecutionContext, which could cause side effects.
+            // It also ensures that the initial work to send the half-open test, such as
+            // serialization, etc, is pushed off to a different thread.
+
+#if NETCOREAPP3_1_OR_GREATER
+            ThreadPool.UnsafeQueueUserWorkItem(state =>
+                {
+                    var _ = HalfOpenCircuitBreakerTestAsync((IRequestSpan) state);
+                },
+                state: parentSpan,
+                preferLocal: false);
+#else
+            ThreadPool.UnsafeQueueUserWorkItem(state =>
+                {
+                    var _ = HalfOpenCircuitBreakerTestAsync((IRequestSpan) state);
+                },
+                state: parentSpan);
+#endif
+        }
+
+        private async Task HalfOpenCircuitBreakerTestAsync(IRequestSpan parentSpan)
+        {
+            try
+            {
+                _logger.LogDebug("CB: Sending a canary to {endPoint}.",
+                    _redactor.SystemData(ConnectionPool.EndPoint));
+                using (var ctp = CancellationTokenPairSource.FromTimeout(_circuitBreaker.CanaryTimeout))
+                {
+                    await ExecuteOp(ConnectionPool, new Noop() { Span = parentSpan }, ctp.TokenPair)
+                        .ConfigureAwait(false);
+                }
+
+                _circuitBreaker.MarkSuccess();
+            }
+            catch (Exception e)
+            {
+                if (_circuitBreaker.CompletionCallback(e))
+                {
+                    _logger.LogDebug("CB: Marking a failure for canary sent to {endPoint}.",
+                        _redactor.SystemData(ConnectionPool.EndPoint));
+                    _circuitBreaker.MarkFailure();
+                }
             }
         }
 
