@@ -27,7 +27,7 @@ namespace Couchbase.Core.IO.Connections
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
         private readonly InFlightOperationSet _statesInFlight = new(TimeSpan.FromSeconds(75));
-        private readonly Stopwatch _stopwatch;
+        private LightweightStopwatch _stopwatch;
         private int _disposed;
 
         private readonly string _remoteHostString;
@@ -61,8 +61,7 @@ namespace Couchbase.Core.IO.Connections
             _remotePortString = ((IPEndPoint) EndPoint).Port.ToString();
             _localPortString = ((IPEndPoint) LocalEndPoint).Port.ToString();
 
-            _stopwatch = new Stopwatch();
-            _stopwatch.Start();
+            _stopwatch = LightweightStopwatch.StartNew();
 
             // We don't need the execution context to flow to the receive loop
             bool restoreFlow = false;

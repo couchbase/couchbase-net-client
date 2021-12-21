@@ -25,7 +25,7 @@ namespace Couchbase.Core.IO
         // mark the task as complete before returning. This also helps with thread sync.
         private volatile int _isCompleted;
 
-        private readonly Stopwatch _stopwatch;
+        private readonly LightweightStopwatch _stopwatch;
 
         public EndPoint? EndPoint { get; set; }
         public IOperation Operation { get; set; }
@@ -73,7 +73,7 @@ namespace Couchbase.Core.IO
             }
 
             Operation = operation;
-            _stopwatch = Stopwatch.StartNew();
+            _stopwatch = LightweightStopwatch.StartNew();
         }
 
         public void Complete(in SlicedMemoryOwner<byte> response)
