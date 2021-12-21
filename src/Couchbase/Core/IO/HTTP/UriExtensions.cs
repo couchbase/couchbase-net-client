@@ -20,15 +20,12 @@ namespace Couchbase.Core.IO.HTTP
             {
                 var servicePoint = ServicePointManager.FindServicePoint(uri);
 
+#if !NETCOREAPP3_1_OR_GREATER
                 if (options.IdleHttpConnectionTimeout > TimeSpan.Zero)
                 {
                     servicePoint.MaxIdleTime = (int) options.IdleHttpConnectionTimeout.TotalMilliseconds;
                 }
-
-                if (options.MaxHttpConnections > 0)
-                {
-                    servicePoint.ConnectionLimit = options.MaxHttpConnections;
-                }
+#endif
 
                 servicePoint.SetTcpKeepAlive(options.EnableTcpKeepAlives,
                     (int)options.TcpKeepAliveTime.TotalMilliseconds,
