@@ -36,9 +36,12 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 parentSpan = noopSpan.Parent;
             }
 
-            var activity = parentSpan?.Id == null ?
-                ActivitySource.StartActivity(name) :
-                ActivitySource.StartActivity(name, ActivityKind.Internal, parentSpan.Id);
+            var activity = parentSpan is RequestSpan requestSpan
+                // It is faster to construct directly from the parent ActivityContext than from the parent ID
+                ? ActivitySource.StartActivity(name, ActivityKind.Internal, requestSpan.ActivityContext)
+                : parentSpan?.Id == null ?
+                    ActivitySource.StartActivity(name) :
+                    ActivitySource.StartActivity(name, ActivityKind.Internal, parentSpan.Id);
 
             if (activity == null)
             {

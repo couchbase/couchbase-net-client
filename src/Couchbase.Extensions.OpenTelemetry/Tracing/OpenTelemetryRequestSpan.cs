@@ -5,7 +5,9 @@ using Couchbase.Core.Diagnostics.Tracing;
 
 namespace Couchbase.Extensions.Tracing.Otel.Tracing
 {
-    internal class OpenTelemetryRequestSpan : IRequestSpan
+    // We seal this for a minor perf gain at sites which use "span is OpenTelemetryRequestSpan", if the type is sealed
+    // it will be a simple equality comparison on the type code rather than walking the inheritance hierarchy.
+    internal sealed class OpenTelemetryRequestSpan : IRequestSpan
     {
         // Avoid re-boxing booleans on the heap when setting attributes
         private static readonly object TrueBoxed = true;
@@ -36,6 +38,8 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
             get => _parentSpan;
             set => throw new NotSupportedException("OpenTelemetry tracing does not support setting the parent on an existing span.");
         }
+
+        public ActivityContext ActivityContext => _activity.Context;
 
         /// <inheritdoc />
         public IRequestSpan SetAttribute(string key, string value)

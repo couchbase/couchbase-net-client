@@ -12,7 +12,9 @@ namespace Couchbase.Core.Diagnostics.Tracing
     /// is used for providing data for the <see cref="RequestTracer"/>.
     /// requests.
     /// </summary>
-    internal class RequestSpan : IRequestSpan
+    // We seal this for a minor perf gain at sites which use "span is RequestSpan", if the type is sealed
+    // it will be a simple equality comparison on the type code rather than walking the inheritance hierarchy.
+    internal sealed class RequestSpan : IRequestSpan
     {
         // Avoid re-boxing booleans on the heap when setting attributes
         private static readonly object TrueBoxed = true;
@@ -36,6 +38,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
             // ReSharper disable once ValueParameterNotUsed
             set => ThrowHelper.ThrowNotSupportedException("Cannot set the parent on a RequestSpan.");
         }
+
+        public ActivityContext ActivityContext => _activity.Context;
 
         /// <inheritdoc />
         public IRequestSpan ChildSpan(string name)
