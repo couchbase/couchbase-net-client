@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Query;
@@ -69,6 +70,15 @@ namespace Couchbase.Management.Query
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
             }
+            catch (IndexExistsException e)
+            {
+                if (!options.IgnoreIfExistsValue)
+                {
+                    _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
+                        _redactor.MetaData(bucketName));
+                    throw;
+                }
+            }
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Error trying to create query index {indexName} on {bucketName}",
@@ -84,14 +94,24 @@ namespace Couchbase.Management.Query
 
             try
             {
-                var statement = $"CREATE PRIMARY INDEX ON {bucketName} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+                var statement =
+                    $"CREATE PRIMARY INDEX ON {bucketName} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch (IndexExistsException e)
             {
-                _logger.LogError(exception, "Error trying to create primary query index on {bucketName}",
+                if (!options.IgnoreIfExistsValue)
+                {
+                    _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
+                        _redactor.MetaData(bucketName));
+                    throw;
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
                     _redactor.MetaData(bucketName));
                 throw;
             }
@@ -109,6 +129,15 @@ namespace Couchbase.Management.Query
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
+            }
+            catch (IndexExistsException e)
+            {
+                if (!options.IgnoreIfExistsValue)
+                {
+                    _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
+                        _redactor.MetaData(bucketName));
+                    throw;
+                }
             }
             catch (Exception exception)
             {
@@ -130,6 +159,15 @@ namespace Couchbase.Management.Query
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
+            }
+            catch (IndexExistsException e)
+            {
+                if (!options.IgnoreIfExistsValue)
+                {
+                    _logger.LogError(e, "Error trying to create primary query index on {bucketName}",
+                        _redactor.MetaData(bucketName));
+                    throw;
+                }
             }
             catch (Exception exception)
             {

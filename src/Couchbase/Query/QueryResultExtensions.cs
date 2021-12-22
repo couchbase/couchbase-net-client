@@ -56,17 +56,17 @@ namespace Couchbase.Query
 
                 if (PreparedErrorCodes.Contains(error.Code)) throw new PreparedStatementException(context);
 
-                if (error.Code == 4300 && error.Message.Contains("index") &&
+                if (error.Code == 4300 && error.Message.Contains("Index") &&
                     error.Message.Contains("already exists"))
                     throw new IndexExistsException(context);
 
                 if (error.Code >= 4000 && error.Code < 5000) throw new PlanningFailureException(context);
 
                 if (error.Code == 12004 || error.Code == 12016 ||
-                    error.Code == 5000 && error.Message.Contains("index") && error.Message.Contains("not found"))
+                    error.Code == 5000 && error.Message.Contains("Index") && error.Message.Contains("not found"))
                     throw new IndexNotFoundException(context);
 
-                if (error.Code == 5000 && error.Message.Contains("index") && error.Message.Contains("already exists"))
+                if (error.Code == 5000 && error.Message.Contains("Index") && error.Message.Contains("already exists"))
                     throw new IndexExistsException(context);
 
                 if (error.Code >= 5000 && error.Code < 6000) throw new InternalServerFailureException();
