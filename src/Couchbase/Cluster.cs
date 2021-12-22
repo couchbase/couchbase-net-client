@@ -100,6 +100,14 @@ namespace Couchbase
 
         #region Connect
 
+        public static Task<ICluster> ConnectAsync(string connectionString, Action<ClusterOptions> configureOptions)
+        {
+            var options = new ClusterOptions();
+            configureOptions.Invoke(options);
+
+            return ConnectAsync(connectionString, options);
+        }
+
         public static Task<ICluster> ConnectAsync(string connectionString, ClusterOptions? options = null)
         {
             return ConnectAsync((options ?? new ClusterOptions()).WithConnectionString(connectionString));
