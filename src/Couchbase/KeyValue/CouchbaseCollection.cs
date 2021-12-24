@@ -563,6 +563,13 @@ namespace Couchbase.KeyValue
 
         #region LookupIn
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: Exists, Get, Count or GetDoc.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An <see cref="ILookupInResult"/> as a Task for awaiting.</returns>
         public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs,
             LookupInOptions? options = null)
         {
@@ -638,6 +645,13 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
+        /// </summary>
+        /// <param name="id">The document id.</param>
+        /// <param name="specs">A list of <see cref="MutateInSpec"/>'s for chaining.</param>
+        /// <param name="options">Optional parameters.</param>
+        /// <returns>A <see cref="MutateInResult{TDocument}"/> Task for awaiting.</returns>
         public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs,
             MutateInOptions? options = null)
         {

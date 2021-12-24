@@ -5,28 +5,53 @@ using System.Collections.Generic;
 
 namespace Couchbase.KeyValue
 {
+    /// <summary>
+    /// A builder for chaining together lookup specs into a JSON document.
+    /// </summary>
     public class LookupInSpecBuilder
     {
         internal readonly List<LookupInSpec> Specs = new List<LookupInSpec>();
 
+        /// <summary>
+        /// Fetches the value of an attribute for a given path.
+        /// </summary>
+        /// <param name="path">The path to the JSON attribute.</param>
+        /// <param name="isXattr">true if the path is an xAttr; otherwise false.</param>
+        /// <returns>A <see cref="LookupInSpecBuilder"/> for chaining specs.</returns>
         public LookupInSpecBuilder Get(string path, bool isXattr = false)
         {
             Specs.Add(LookupInSpec.Get(path, isXattr));
             return this;
         }
 
+        /// <summary>
+        /// Checks for the existence of a value given a path.
+        /// </summary>
+        /// <param name="path">The path to the JSON attribute.</param>
+        /// <param name="isXattr">true if the path is an xAttr; otherwise false.</param>
+        /// <returns>A <see cref="LookupInSpecBuilder"/> for chaining specs.</returns>
         public LookupInSpecBuilder Exists(string path, bool isXattr = false)
         {
             Specs.Add(LookupInSpec.Exists(path, isXattr));
             return this;
         }
 
+        /// <summary>
+        /// Provides a count of a dictionary or list attribute given a JSON path.
+        /// </summary>
+        /// <param name="path">The path to the JSON attribute.</param>
+        /// <param name="isXattr">true if the path is an xAttr; otherwise false.</param>
+        /// <returns>A <see cref="LookupInSpecBuilder"/> for chaining specs.</returns>
         public LookupInSpecBuilder Count(string path, bool isXattr = false)
         {
             Specs.Add(LookupInSpec.Count(path, isXattr));
             return this;
         }
 
+        /// <summary>
+        /// Fetches the entire JSON document for a key.
+        /// </summary>
+        /// <returns>A <see cref="LookupInSpecBuilder"/> for chaining specs.</returns>
         public LookupInSpecBuilder GetFull()
         {
             Specs.Add(LookupInSpec.GetFull());
