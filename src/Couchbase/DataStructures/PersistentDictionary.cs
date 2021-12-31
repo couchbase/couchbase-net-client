@@ -134,9 +134,9 @@ namespace Couchbase.DataStructures
             {
                 if (TryGetValue(key, out var value))
                     return value;
-                throw new KeyNotFoundException($"Cannot find key {key.ToString()}.");
+                throw new KeyNotFoundException($"Cannot find key {key}.");
             }
-            set => Add(key, value);
+            set => SetAsync(key, value).GetAwaiter().GetResult();
         }
 
         public ICollection<string> Keys => KeysAsync.GetAwaiter().GetResult();
@@ -191,6 +191,20 @@ namespace Couchbase.DataStructures
             var result = await Collection.LookupInAsync(DocId, builder => builder.Exists(key.ToString())).ConfigureAwait(false);
             return result.Exists(0);
         }
+        public async Task<TValue> GetAsync(string key)
+        {
+            await CreateBackingStoreAsync().ConfigureAwait(false);
+
+            try
+            {
+                var result = await Collection.LookupInAsync(DocId, builder => builder.Get(key)).ConfigureAwait(false);
+                return result.ContentAs<TValue>(0)!;
+            }
+            catch (PathNotFoundException)
+            {
+                throw new KeyNotFoundException($"Cannot find key {key}.");
+            }
+        }
 
         public async Task<bool> RemoveAsync(string key)
         {
@@ -207,6 +221,13 @@ namespace Couchbase.DataStructures
             }
 
             return success;
+        }
+
+        public async Task SetAsync(string key, TValue value)
+        {
+            await CreateBackingStoreAsync().ConfigureAwait(false);
+
+            await Collection.MutateInAsync(DocId, builder => builder.Upsert(key, value)).ConfigureAwait(false);
         }
 
         public Task<ICollection<string>> KeysAsync => KeysInternalAsync();

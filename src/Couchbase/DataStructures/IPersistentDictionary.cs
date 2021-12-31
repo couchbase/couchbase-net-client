@@ -22,7 +22,11 @@ namespace Couchbase.DataStructures
 
         Task<bool> ContainsKeyAsync(string key);
 
+        Task<TValue> GetAsync(string key);
+
         Task<bool> RemoveAsync(string key);
+
+        Task SetAsync(string key, TValue value);
 
         Task<ICollection<string>> KeysAsync { get; }
 

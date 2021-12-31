@@ -76,5 +76,18 @@ namespace Couchbase.IntegrationTests.DataStructures
             var exists = await dict.ContainsKeyAsync("Dick");
             Assert.True(exists);
         }
+
+        [Fact]
+        public async Task Test_SetAsync()
+        {
+            var dict = await GetPersistentDictionary();
+            await dict.ClearAsync();
+            await dict.SetAsync("foo", new Foo { Name = "Tom", Age = 50 });
+            await dict.SetAsync("foo", new Foo { Name = "Dick", Age = 27 });
+
+            var value = await dict.GetAsync("foo");
+
+            Assert.Equal("Dick", value.Name);
+        }
     }
 }
