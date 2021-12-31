@@ -118,6 +118,11 @@ namespace Couchbase.DataStructures
                     .GetAwaiter().GetResult();
                 value = result.ContentAs<TValue>(0);
             }
+            catch (PathNotFoundException)
+            {
+                value = default!;
+                return false;
+            }
             catch (Exception e)
             {
                 value = default!;

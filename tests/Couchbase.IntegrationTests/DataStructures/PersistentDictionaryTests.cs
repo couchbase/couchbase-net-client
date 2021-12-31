@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
@@ -88,6 +89,31 @@ namespace Couchbase.IntegrationTests.DataStructures
             var value = await dict.GetAsync("foo");
 
             Assert.Equal("Dick", value.Name);
+        }
+
+        [Fact]
+        public async Task Test_TryGetValue_Exists()
+        {
+            var dict = await GetPersistentDictionary();
+            await dict.ClearAsync();
+            await dict.AddAsync("foo", new Foo { Name = "Tom", Age = 50 });
+
+            var result = dict.TryGetValue("foo", out var value);
+
+            Assert.True(result);
+            Assert.Equal("Tom", value.Name);
+        }
+
+        [Fact]
+        public async Task Test_TryGetValue_Missing()
+        {
+            var dict = await GetPersistentDictionary();
+            await dict.ClearAsync();
+            await dict.AddAsync("foo", new Foo { Name = "Tom", Age = 50 });
+
+            var result = dict.TryGetValue("bar", out _);
+
+            Assert.False(result);
         }
     }
 }

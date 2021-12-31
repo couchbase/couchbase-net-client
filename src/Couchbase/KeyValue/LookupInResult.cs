@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Serializers;
@@ -52,7 +54,30 @@ namespace Couchbase.KeyValue
             }
 
             var spec = _specs[index];
-            return Serializer.Deserialize<T>(spec.Bytes);
+
+            switch (spec.Status)
+            {
+                case ResponseStatus.Success:
+                    return Serializer.Deserialize<T>(spec.Bytes);
+                case ResponseStatus.SubDocPathNotFound:
+                    throw CreateSubDocException<PathNotFoundException>(spec, index);
+                case ResponseStatus.SubDocPathMismatch:
+                    throw CreateSubDocException<PathMismatchException>(spec, index);
+                case ResponseStatus.SubDocPathInvalid:
+                    throw CreateSubDocException<PathInvalidException>(spec, index);
+                case ResponseStatus.SubDocPathTooBig:
+                    throw CreateSubDocException<PathTooBigException>(spec, index);
+                case ResponseStatus.SubDocDocTooDeep:
+                    throw new DocumentTooDeepException();
+                case ResponseStatus.SubDocValueTooDeep:
+                    throw new ValueTooDeepException();
+                case ResponseStatus.SubDocDocNotJson:
+                    throw new DocumentNotJsonException();
+                case ResponseStatus.SubdocXattrUnknownMacro:
+                    throw new XattrUnknownMacroException();
+                default:
+                    throw CreateSubDocException<SubdocExceptionException>(spec, index);
+            }
         }
 
         public bool Exists(int index)
@@ -85,6 +110,14 @@ namespace Couchbase.KeyValue
 
             return -1;
         }
+
+        private T CreateSubDocException<T>(LookupInSpec spec, int index)
+            where T : SubdocExceptionException, new() =>
+            new()
+            {
+                SubDocumentErrorIndex = index,
+                SubDocumentStatus = spec.Status
+            };
     }
 }
 
