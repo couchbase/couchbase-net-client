@@ -498,8 +498,11 @@ namespace Couchbase.IntegrationTests.Management
                 await collectionManager.CreateScopeAsync(scopeName4).ConfigureAwait(false);
 
                 // get all scopes
-                var getAllScopesResult = await collectionManager.GetAllScopesAsync().ConfigureAwait(false);
-                Assert.NotNull(getAllScopesResult);
+                var getAllScopesResult = (await collectionManager.GetAllScopesAsync().ConfigureAwait(false)).ToList();
+                Assert.Contains(getAllScopesResult, p => p.Name == scopeName1);
+                Assert.Contains(getAllScopesResult, p => p.Name == scopeName2);
+                Assert.Contains(getAllScopesResult, p => p.Name == scopeName3);
+                Assert.Contains(getAllScopesResult, p => p.Name == scopeName4);
             }
             finally
             {

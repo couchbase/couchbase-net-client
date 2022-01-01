@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
@@ -160,21 +162,28 @@ namespace Couchbase.Management.Collections
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
 
                 var body = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var ctx = new ManagementErrorContext
-                {
-                    HttpStatus = result.StatusCode,
-                    Message = body,
-                    Statement = uri.ToString()
-                };
-
-                //Throw specific exception if a rate limiting exception is thrown.
-                result.ThrowIfRateLimitingError(body, ctx);
 
                 //Throw any other error cases
-                result.ThrowOnError(ctx);
+                if (result.StatusCode != HttpStatusCode.OK)
+                {
+                    var ctx = new ManagementErrorContext
+                    {
+                        HttpStatus = result.StatusCode,
+                        Message = body,
+                        Statement = uri.ToString()
+                    };
+
+                    //Throw specific exception if a rate limiting exception is thrown.
+                    result.ThrowIfRateLimitingError(body, ctx);
+
+                    result.ThrowOnError(ctx);
+                }
+
+                using var stream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var jsonReader = new JsonTextReader(new StreamReader(stream, Encoding.UTF8));
 
                 // check scope & collection exists in manifest
-                var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
+                var json = await JToken.ReadFromAsync(jsonReader, options.TokenValue).ConfigureAwait(false);
                 var scopes = json.SelectToken("scopes");
 
                 return scopes.Select(scope => new ScopeSpec(scope["name"].Value<string>())
