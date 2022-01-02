@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -147,6 +148,15 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         {
             return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, Options, cancellationToken));
         }
+
+        #endregion
+
+        #region Projection
+
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        public override IProjectionBuilder CreateProjectionBuilder(ILogger logger) =>
+            new ReflectionSystemTextJsonProjectionBuilder(Options, logger);
 
         #endregion
     }

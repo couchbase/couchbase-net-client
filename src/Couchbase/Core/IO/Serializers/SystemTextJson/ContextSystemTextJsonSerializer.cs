@@ -1,12 +1,11 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Utils;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -133,6 +132,13 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
 
             return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, typeInfo, cancellationToken));
         }
+
+        #endregion
+
+        #region Projection
+
+        public override IProjectionBuilder CreateProjectionBuilder(ILogger logger) =>
+            new ContextSystemTextJsonProjectionBuilder(Context, logger);
 
         #endregion
     }

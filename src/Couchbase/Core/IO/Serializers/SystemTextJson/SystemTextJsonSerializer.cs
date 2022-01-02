@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
+using Microsoft.Extensions.Logging;
 
 #nullable enable
 
@@ -24,7 +25,7 @@ namespace Couchbase.Core.IO.Serializers
     /// or projections.
     /// </remarks>
     [InterfaceStability(Level.Volatile)]
-    public abstract class SystemTextJsonSerializer : IExtendedTypeSerializer
+    public abstract class SystemTextJsonSerializer : IExtendedTypeSerializer, IProjectableTypeDeserializer
     {
         private static readonly SupportedDeserializationOptions SupportedDeserializationOptionsStatic = new();
 
@@ -168,6 +169,9 @@ namespace Couchbase.Core.IO.Serializers
             new ContextSystemTextJsonSerializer(context);
 
         #endregion
+
+        /// <inheritdoc />
+        public abstract IProjectionBuilder CreateProjectionBuilder(ILogger logger);
     }
 }
 
