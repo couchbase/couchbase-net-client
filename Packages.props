@@ -21,7 +21,8 @@
     <PackageReference Update="OpenTelemetry.Api" Version="1.1.0" />
     <PackageReference Update="System.IO.Pipelines" Version="5.0.1" />
     <PackageReference Update="System.Linq.Async" Version="4.1.1" />
-    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Update="System.Text.Json" Version="6.0.0" />
     <PackageReference Update="System.Threading.Channels" Version="5.0.0" />
     <PackageReference Update="System.Threading.Tasks.Dataflow" Version="5.0.0" />
     <PackageReference Update="System.Diagnostics.DiagnosticSource" Version="5.0.1" />
@@ -31,13 +32,6 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Update="System.Memory" Version="4.5.4" />
     <PackageReference Update="System.Reflection.Emit" Version="4.7.0" />
-  </ItemGroup>
-
-  <!-- Upgrade some dependencies when we're not targeting netcoreapp2.1 so we can use some new features.
-       These packages are still compatible with net461 -->
-  <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard2.0' And '$(TargetFramework)' != 'netcoreapp2.1' ">
-    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
-    <PackageReference Update="System.Text.Json" Version="6.0.0" />
   </ItemGroup>
 
   <!-- Dependencies only allowed for test projects -->

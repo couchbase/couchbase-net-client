@@ -409,12 +409,10 @@ namespace Couchbase.UnitTests.Core.IO.Serializers.SystemTextJson
 
         #region Helpers
 
-        // TODO: Use context for tests once CI agents have the .NET 6 SDK and support source generation
         private static SystemTextJsonSerializer CreateSerializer(bool withContext) =>
-            SystemTextJsonSerializer.Create();
-            /* withContext
+            withContext
                 ? SystemTextJsonSerializer.Create(PersonContext.Default)
-                : SystemTextJsonSerializer.Create(); */
+                : SystemTextJsonSerializer.Create();
 
         private class JsonDocument
         {

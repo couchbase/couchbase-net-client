@@ -78,14 +78,4 @@
     </None>
   </ItemGroup>
 
-  <!-- Don't add System.Text.Json when targeting netcoreapp2.1, it is unsupported starting with 6.0.0.
-       It is supported on netcoreapp3.1 and net461. -->
-  <ItemGroup Condition=" '$(TargetFramework)' != 'netcoreapp2.1' ">
-    <PackageReference Include="System.Text.Json" />
-  </ItemGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
-    <Compile Remove="Core\IO\Serializers\SystemTextJson\**\*.cs" />
-    <None Include="Core\IO\Serializers\SystemTextJson\**\*.cs" />
-  </ItemGroup>
-
 </Project>

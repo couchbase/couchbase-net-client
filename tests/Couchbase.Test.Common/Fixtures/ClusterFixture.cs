@@ -88,12 +88,10 @@ namespace Couchbase.IntegrationTests.Fixtures
                 options.WithLogging(loggerFactory);
             }
 
-#if NETCOREAPP3_1_OR_GREATER
             if (settings.SystemTextJson)
             {
                 options.WithSerializer(SystemTextJsonSerializer.Create());
             }
-#endif
 
             return options;
         }
