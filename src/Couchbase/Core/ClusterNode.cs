@@ -588,7 +588,7 @@ namespace Couchbase.Core
                 if (debugLoggingEnabled)
                 {
                     _logger.LogDebug("Completed executing op {opCode} on {endpoint} with key {key} and opaque {opaque}",
-                        EndPoint, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+                        op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
                 }
             }
             catch (OperationCanceledException)
