@@ -8,15 +8,19 @@ using Couchbase.IntegrationTests.Fixtures;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests.DataStructures
 {
     public class PersistentDictionaryTests : IClassFixture<ClusterFixture>
     {
         private readonly ClusterFixture _fixture;
-        public PersistentDictionaryTests(ClusterFixture fixture)
+        private readonly ITestOutputHelper _outputHelper;
+
+        public PersistentDictionaryTests(ClusterFixture fixture, ITestOutputHelper outputHelper)
         {
             _fixture = fixture;
+            _outputHelper = outputHelper;
         }
 
         public class Foo : IEquatable<Foo>
@@ -114,6 +118,36 @@ namespace Couchbase.IntegrationTests.DataStructures
             var result = dict.TryGetValue("bar", out _);
 
             Assert.False(result);
+        }
+
+        [Fact]
+        public async Task Test_Iteration()
+        {
+            var dict = await GetPersistentDictionary();
+
+            await dict.ClearAsync().ConfigureAwait(false);
+            await dict.AddAsync("Fred", new Foo { Name = "Tom", Age = 50 });
+            await dict.AddAsync("Bill", new Foo { Name = "Dick", Age = 30 });
+
+            foreach (var item in dict)
+            {
+                _outputHelper.WriteLine($"{item.Key} - {item.Value.Name}, {item.Value.Age}");
+            }
+        }
+
+        [Fact]
+        public async Task Test_AsyncIteration()
+        {
+            var dict = await GetPersistentDictionary();
+
+            await dict.ClearAsync().ConfigureAwait(false);
+            await dict.AddAsync("Fred", new Foo { Name = "Tom", Age = 50 });
+            await dict.AddAsync("Bill", new Foo { Name = "Dick", Age = 30 });
+
+            await foreach (var item in dict)
+            {
+                _outputHelper.WriteLine($"{item.Key} - {item.Value.Name}, {item.Value.Age}");
+            }
         }
     }
 }

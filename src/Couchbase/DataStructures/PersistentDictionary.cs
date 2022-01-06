@@ -3,11 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 #nullable enable
 
@@ -50,13 +52,23 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStoreAsync().GetAwaiter().GetResult();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-            return result.ContentAs<IEnumerator<KeyValuePair<string, TValue>>>()
-                .EnsureNotNullForDataStructures();
+            return result.ContentAs<ReadOnlyDictionary<string, TValue>>()
+                .EnsureNotNullForDataStructures().GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public async IAsyncEnumerator<KeyValuePair<string, TValue>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            await CreateBackingStoreAsync().ConfigureAwait(false);
+            using var result = await Collection.GetAsync(DocId).ConfigureAwait(false);
+            var content = result.ContentAs<ReadOnlyDictionary<string, TValue>>()
+                .EnsureNotNullForDataStructures();
+
+            foreach (var item in content) yield return item;
         }
 
         public void Add(KeyValuePair<string, TValue> item)
@@ -244,6 +256,7 @@ namespace Couchbase.DataStructures
         }
 
         public Task<ICollection<TValue>> ValuesAsync => ValuesInternalAsync();
+
         private async Task<ICollection<TValue>> ValuesInternalAsync()
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);

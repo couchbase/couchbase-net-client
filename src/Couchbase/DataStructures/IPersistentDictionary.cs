@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.DataStructures
 {
-    public interface IPersistentDictionary<TValue> : IDictionary<string, TValue>
+    public interface IPersistentDictionary<TValue> : IDictionary<string, TValue>, IAsyncEnumerable<KeyValuePair<string, TValue>>
     {
         Task AddAsync(KeyValuePair<string, TValue> item);
 
