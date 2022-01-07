@@ -1,37 +1,48 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
+using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.Management.Query;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Couchbase.IntegrationTests
 {
-    public class QueryManagerTests
+    public class QueryManagerTests : IClassFixture<ClusterFixture>
     {
-        [Fact]
-        public async Task Test()
+        private readonly ClusterFixture _fixture;
+        private readonly ITestOutputHelper _outputHelper;
+        public QueryManagerTests(ClusterFixture fixture, ITestOutputHelper outputHelper)
         {
-            var cluster = await Cluster.ConnectAsync(
-                "couchbase://localhost",
-                "Administrator",
-                "password");
+            _fixture = fixture;
+            _outputHelper = outputHelper;
+        }
 
-            var manager = cluster.QueryIndexes;
+        [Fact]
+        public async Task Test_IgnoreIfExists_True()
+        {
+            var manager = _fixture.Cluster.QueryIndexes;
             await manager.CreatePrimaryIndexAsync("default",
                 new CreatePrimaryQueryIndexOptions()
                     .Deferred(false)
                     .IgnoreIfExists(true));
 
-            Console.WriteLine("No error yet...");
-          //  Console.ReadLine();
-
             await manager.CreatePrimaryIndexAsync("default",
                 new CreatePrimaryQueryIndexOptions()
                     .Deferred(false)
                     .IgnoreIfExists(true));
+        }
 
-            await cluster.DisposeAsync();
+        [Fact]
+        public async Task Test_Create_Existing_Index_Throws_IndexExistsException()
+        {
+            var idxmgr = _fixture.Cluster.QueryIndexes;
+
+            await idxmgr.CreatePrimaryIndexAsync("default",
+               new CreatePrimaryQueryIndexOptions()
+                   .Deferred(false)
+                   .IgnoreIfExists(true));
+
+            await Assert.ThrowsAsync<IndexExistsException>(async () => await idxmgr.CreatePrimaryIndexAsync("default"));
         }
     }
 }
