@@ -34,8 +34,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData(1023)]
         public void When_Rev_Same_And_VBucketMap_Different_Fail(int index)
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var values = config2.VBucketServerMap.VBucketMap[index];
             config2.VBucketServerMap.VBucketMap[index] = new[] {values[1], values[0]};
@@ -47,8 +49,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Services_Are_Different()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\revision-28957.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\revision-28958.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\revision-28957.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\revision-28958.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             Assert.False(config2.Equals(config1));
             Assert.True(config2.ClusterNodesChanged);
@@ -57,8 +61,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Equals_True()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             Assert.True(config2.Equals(config1));
         }
@@ -66,7 +72,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Integration_Test_Environment_HasNodes()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-integration-tests.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-integration-tests.json",
+                InternalSerializationContext.Default.BucketConfig);
             var nodes = config.GetNodes();
             Assert.Equal(2, nodes.Count);
         }
@@ -74,8 +81,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Equals_False()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev96.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev96.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             Assert.False(config2.Equals(config1));
         }
@@ -83,8 +92,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Equals_NodesExt_Changed()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             config2.NodesExt.RemoveAt(0);
 
@@ -94,8 +105,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Equals_Node_Changed()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             config2.Nodes.RemoveAt(0);
 
@@ -105,8 +118,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Equals_Node_Value_Changed()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             config2.Nodes[0].Hostname = "localhost:8091";
 
@@ -118,8 +133,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
        [InlineData(false)]
         public void Test_ClusterNodeChanged(bool hasChanged)
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             if (hasChanged)
             {
@@ -137,8 +154,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Equals_NodeExt_Changed()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             config2.NodesExt.RemoveAt(0);
 
@@ -148,8 +167,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Equals_NodeExt_Value_Changed()
         {
-            var config1 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
-            var config2 = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev94.json");
+            var config1 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
+            var config2 = ResourceHelper.ReadResource(@"Documents\Configs\rev94.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             config2.NodesExt[0].Hostname = "localhost:8091";
 
@@ -161,8 +182,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData(@"Documents\Configs\rev96.json", @"Documents\Configs\rev98-single-node.json")]
         public async Task Test_Filter_Removed_Nodes(string oldConfigPath, string newConfigPath)
         {
-            var oldConfig = ResourceHelper.ReadResource<BucketConfig>(oldConfigPath);
-            var newConfig = ResourceHelper.ReadResource<BucketConfig>(newConfigPath);
+            var oldConfig = ResourceHelper.ReadResource(oldConfigPath, InternalSerializationContext.Default.BucketConfig);
+            var newConfig = ResourceHelper.ReadResource(newConfigPath, InternalSerializationContext.Default.BucketConfig);
 
             var options = new ClusterOptions();
             var bucketNodes = new ConcurrentDictionary<HostEndpointWithPort, IClusterNode>();
@@ -220,7 +241,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         {
             //Arrange
 
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-error.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-error.json",
+                InternalSerializationContext.Default.BucketConfig);
             var originalExtCount = config.NodesExt.Count;
             //Act
 
@@ -238,7 +260,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void When_Config_Has_AlternateAddresses_Hostname_And_Ports_Are_Populated()
         {
-            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Documents\Configs\config-alternate-addresses.json"));
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-alternate-addresses.json",
+                InternalSerializationContext.Default.BucketConfig);
             config.NetworkResolution = NetworkResolution.Auto;
 
             Assert.Equal(3, config.Nodes.Count);
@@ -255,7 +278,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void When_Config_Has_AlternateAddresses_NodeAdapter_Uses_External_Hostname()
         {
-            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Documents\Configs\config-alternate-addresses2.json"));
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-alternate-addresses2.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var nodes = config.GetNodes();
             var nodesExt = config.NodesExt;
@@ -276,7 +300,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData(NetworkResolution.Auto, 32178, 31903)]
         public void Test_NetworkResolution(string networkResolution, int n1qlPort, int n1qlSslPort)
         {
-            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(@"Documents\Configs\missing-query.json"));
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\missing-query.json",
+                InternalSerializationContext.Default.BucketConfig);
             config.NetworkResolution = networkResolution;
 
             var nodes = config.GetNodes();
@@ -295,7 +320,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         {
             var options = new ClusterOptions {NetworkResolution = networkResolution};
 
-            var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(configPath));
+            var config = ResourceHelper.ReadResource(configPath, InternalSerializationContext.Default.BucketConfig);
             config.SetEffectiveNetworkResolution(new HostEndpointWithPort(hostname, port), options);
 
             Assert.Equal(effectiveResolution, options.EffectiveNetworkResolution);
@@ -304,7 +329,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Max_Revision_Size()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-bigly-yuge-rev.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-bigly-yuge-rev.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var expected = 18446744073709551615ul;
             Assert.Equal(expected, config.Rev);
@@ -315,7 +341,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData("config_higher_rev_lower_epoch.json", 2ul, 1ul)]
         public void Test_RevEpoch(string configResource, ulong rev, ulong revEpoch)
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(configResource);
+            var config = ResourceHelper.ReadResource(configResource, InternalSerializationContext.Default.BucketConfig);
             Assert.Equal(rev, config.Rev);
             Assert.Equal(revEpoch, config.RevEpoch);
         }
@@ -323,7 +349,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Higher_Rev_Higher_Epoch_Config()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_higher_epoch.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config_higher_rev_higher_epoch.json",
+                InternalSerializationContext.Default.BucketConfig);
             Assert.Equal(2ul, config.Rev);
             Assert.Equal(2ul, config.RevEpoch);
         }
@@ -331,7 +358,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Higher_Rev_Lower_Epoch_Config()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_lower_epoch.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config_higher_rev_lower_epoch.json",
+                InternalSerializationContext.Default.BucketConfig);
             Assert.Equal(2ul, config.Rev);
             Assert.Equal(1ul, config.RevEpoch);
         }
@@ -339,7 +367,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Higher_Rev_Higher_No_Epoch_Config()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_no_epoch.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config_higher_rev_no_epoch.json",
+                InternalSerializationContext.Default.BucketConfig);
             Assert.Equal(2ul, config.Rev);
             Assert.Equal(0ul, config.RevEpoch);
         }
@@ -347,7 +376,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Lower_Rev_Higher_Epoch_Config()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_lower_rev_higher_epoch.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config_lower_rev_higher_epoch.json",
+                InternalSerializationContext.Default.BucketConfig);
             Assert.Equal(1ul, config.Rev);
             Assert.Equal(2ul, config.RevEpoch);
         }
@@ -356,7 +386,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         public void Test_Lower_Rev_Lower_Epoch_Config()
         {
             var config =
-                ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_lower_rev_lower_epoch.json");
+                ResourceHelper.ReadResource(@"Documents\Configs\config_lower_rev_lower_epoch.json",
+                    InternalSerializationContext.Default.BucketConfig);
             Assert.Equal(1ul, config.Rev);
             Assert.Equal(1ul, config.RevEpoch);
         }
@@ -364,7 +395,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_Lower_Rev_No_Epoch_Config()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_lower_rev_no_epoch.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config_lower_rev_no_epoch.json",
+                InternalSerializationContext.Default.BucketConfig);
             Assert.Equal(1ul, config.Rev);
             Assert.Equal(0ul, config.RevEpoch);
         }
@@ -373,7 +405,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void Test_IsUpdated_Old_Config_Is_Null()
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config_higher_rev_higher_epoch.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config_higher_rev_higher_epoch.json",
+                InternalSerializationContext.Default.BucketConfig);
             Assert.True(config.IsNewerThan(null));
         }
 
@@ -387,8 +420,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData("config_lower_rev_higher_epoch.json", "config_higher_rev_lower_epoch.json", false)]
         public void Test_Compare_Config_Revisions_And_Epochs(string oldConfigResource, string newConfigResource, bool newConfigIsHigher)
         {
-            var oldConfig = oldConfigResource == null ? null : ResourceHelper.ReadResource<BucketConfig>(oldConfigResource);
-            var newConfig = ResourceHelper.ReadResource<BucketConfig>(newConfigResource);
+            var oldConfig = oldConfigResource == null
+                ? null
+                : ResourceHelper.ReadResource(oldConfigResource, InternalSerializationContext.Default.BucketConfig);
+            var newConfig = ResourceHelper.ReadResource(newConfigResource, InternalSerializationContext.Default.BucketConfig);
 
             if (newConfigIsHigher)
             {
@@ -409,7 +444,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [InlineData("config_lower_rev_no_epoch.json")]
         public void IsNewer_ReturnsFalse_When_Comparing_Same_Config(string configResource)
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(configResource);
+            var config = ResourceHelper.ReadResource(configResource, InternalSerializationContext.Default.BucketConfig);
             Assert.False(config.IsNewerThan(config));
         }
     }

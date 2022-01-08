@@ -166,16 +166,6 @@ namespace Couchbase.Utils
             }
         }
 
-        /// <summary>
-        /// Converts an array to a JSON string.
-        /// </summary>
-        /// <param name="array">The array.</param>
-        /// <returns></returns>
-        public static string ToJson(this IEnumerable array)
-        {
-            return JsonConvert.SerializeObject(array);
-        }
-
         public static ReadOnlyMemory<byte> StripBrackets(this ReadOnlyMemory<byte> theArray)
         {
             if (theArray.Length > 1 && theArray.Span[0] == 0x5b && theArray.Span[theArray.Length-1] == 0x5d)

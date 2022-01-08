@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Couchbase.Core.IO.Operations.Errors
 {
@@ -12,19 +12,19 @@ namespace Couchbase.Core.IO.Operations.Errors
         /// <summary>
         /// Gets or sets the version of the error map.
         /// </summary>
-        [JsonProperty("version")]
+        [JsonPropertyName("version")]
         public int Version { get; set; }
 
         /// <summary>
         /// Gets or sets the revision of the error map.
         /// </summary>
-        [JsonProperty("revision")]
+        [JsonPropertyName("revision")]
         public int Revision { get; set; }
 
         /// <summary>
         /// Gets or sets the dictionary of errors codes.
         /// </summary>
-        [JsonProperty("errors")]
+        [JsonPropertyName("errors")]
         public Dictionary<string, ErrorCode> Errors { get; set; }
     }
 }

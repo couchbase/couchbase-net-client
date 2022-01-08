@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
@@ -10,7 +11,6 @@ using Couchbase.Core.DI;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 #nullable enable
 
@@ -198,7 +198,8 @@ namespace Couchbase.Core.Configuration.Server
             if (_logger.IsEnabled(LogLevel.Debug))
             {
                 // Only log if debug logging is enabled to avoid serialization cost
-                _logger.LogDebug(LoggingEvents.ConfigEvent, JsonConvert.SerializeObject(config));
+                _logger.LogDebug(LoggingEvents.ConfigEvent,
+                    JsonSerializer.Serialize(config, InternalSerializationContext.Default.BucketConfig));
             }
 
             if (_configQueue?.Completion.IsCompleted ?? true)

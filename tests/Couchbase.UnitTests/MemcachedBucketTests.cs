@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests
         public async Task Indexer_Succeeds_When_Name_Is_Default()
         {
             var localhost = HostEndpoint.Parse("10.112.192.102:8091");
-            var bucketConfig = ResourceHelper.ReadResource<BucketConfig>("mycache.json");
+            var bucketConfig = ResourceHelper.ReadResource("mycache.json", InternalSerializationContext.Default.BucketConfig);
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
@@ -76,7 +76,7 @@ namespace Couchbase.UnitTests
         public async Task ScopeAsync_Succeeds_When_Name_Is_Default()
         {
             var localhost = HostEndpoint.Parse("10.112.192.102:8091");
-            var bucketConfig = ResourceHelper.ReadResource<BucketConfig>("mycache.json");
+            var bucketConfig = ResourceHelper.ReadResource("mycache.json", InternalSerializationContext.Default.BucketConfig);
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
@@ -99,7 +99,7 @@ namespace Couchbase.UnitTests
         public async Task ScopeAsync_Throws_NotSupportedException_When_Name_Is_Not_Default()
         {
             var localhost = HostEndpoint.Parse("10.112.192.102:8091");
-            var bucketConfig = ResourceHelper.ReadResource<BucketConfig>("mycache.json");
+            var bucketConfig = ResourceHelper.ReadResource("mycache.json", InternalSerializationContext.Default.BucketConfig);
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();

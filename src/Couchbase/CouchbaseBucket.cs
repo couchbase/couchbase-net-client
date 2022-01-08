@@ -21,6 +21,7 @@ using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 #nullable enable
 
@@ -73,8 +74,13 @@ namespace Couchbase
         {
             if (newConfig.Name == Name && newConfig.IsNewerThan(CurrentConfig))
             {
-                Logger.LogDebug("Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}", newConfig.Rev, Name, CurrentConfig?.Rev);
-                Logger.LogDebug(JsonConvert.SerializeObject(CurrentConfig));
+                if (Logger.IsEnabled(LogLevel.Debug))
+                {
+                    Logger.LogDebug("Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}",
+                        newConfig.Rev, Name, CurrentConfig?.Rev);
+                    Logger.LogDebug(JsonSerializer.Serialize(CurrentConfig, InternalSerializationContext.Default.BucketConfig!));
+                }
+
                 CurrentConfig = newConfig;
                 if (CurrentConfig.VBucketMapChanged)
                 {

@@ -3,18 +3,18 @@ using Couchbase.Core.Sharding;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.Configuration.Server
 {
     internal class Ports : IEquatable<Ports>
     {
-        [JsonProperty("direct")] public int Direct { get; set; }
-        [JsonProperty("proxy")] public int Proxy { get; set; }
-        [JsonProperty("sslDirect")] public int SslDirect { get; set; }
-        [JsonProperty("httpsCAPI")] public int HttpsCapi { get; set; }
-        [JsonProperty("httpsMgmt")] public int HttpsMgmt { get; set; }
+        [JsonPropertyName("direct")] public int Direct { get; set; }
+        [JsonPropertyName("proxy")] public int Proxy { get; set; }
+        [JsonPropertyName("sslDirect")] public int SslDirect { get; set; }
+        [JsonPropertyName("httpsCAPI")] public int HttpsCapi { get; set; }
+        [JsonPropertyName("httpsMgmt")] public int HttpsMgmt { get; set; }
 
         public bool Equals(Ports other)
         {
@@ -69,12 +69,12 @@ namespace Couchbase.Core.Configuration.Server
             CouchApiBase = "http://$HOST:8092/default";
             CouchApiBaseHttps = "https://$HOST:18092/default";
         }
-        [JsonProperty("couchApiBase")] public string CouchApiBase { get; set; }
-        [JsonProperty("couchApiBaseHttps")] public string CouchApiBaseHttps { get; set; }
-        [JsonProperty("hostname")] public string Hostname { get; set; }
-        [JsonProperty("ports")] public Ports Ports { get; set; }
-        [JsonProperty("services")] public List<string> Services { get; set; }
-        [JsonProperty("version")] public string Version { get; set; }
+        [JsonPropertyName("couchApiBase")] public string CouchApiBase { get; set; }
+        [JsonPropertyName("couchApiBaseHttps")] public string CouchApiBaseHttps { get; set; }
+        [JsonPropertyName("hostname")] public string Hostname { get; set; }
+        [JsonPropertyName("ports")] public Ports Ports { get; set; }
+        [JsonPropertyName("services")] public List<string> Services { get; set; }
+        [JsonPropertyName("version")] public string Version { get; set; }
 
         public bool Equals(Node other)
         {
@@ -115,29 +115,29 @@ namespace Couchbase.Core.Configuration.Server
 
     internal class Services : IEquatable<Services>
     {
-        [JsonProperty("mgmt")] public int Mgmt { get; set; }
-        [JsonProperty("mgmtSSL")] public int MgmtSsl { get; set; }
-        [JsonProperty("indexAdmin")] public int IndexAdmin { get; set; }
-        [JsonProperty("indexScan")] public int IndexScan { get; set; }
-        [JsonProperty("indexHttp")] public int IndexHttp { get; set; }
-        [JsonProperty("indexStreamInit")] public int IndexStreamInit { get; set; }
-        [JsonProperty("indexStreamCatchup")] public int IndexStreamCatchup { get; set; }
-        [JsonProperty("indexStreamMaint")] public int IndexStreamMaint { get; set; }
-        [JsonProperty("indexHttps")] public int IndexHttps { get; set; }
-        [JsonProperty("kv")] public int Kv { get; set; }
-        [JsonProperty("kvSSL")] public int KvSsl { get; set; }
-        [JsonProperty("capi")] public int Capi { get; set; }
-        [JsonProperty("capiSSL")] public int CapiSsl { get; set; }
-        [JsonProperty("projector")] public int Projector { get; set; }
-        [JsonProperty("n1ql")] public int N1Ql { get; set; }
-        [JsonProperty("n1qlSSL")] public int N1QlSsl { get; set; }
-        [JsonProperty("cbas")] public int Cbas { get; set; }
-        [JsonProperty("cbasSSL")] public int CbasSsl { get; set; }
-        [JsonProperty("fts")] public int Fts { get; set; }
-        [JsonProperty("ftsSSL")] public int FtsSsl { get; set; }
-        [JsonProperty("moxi")] public int Moxi { get; set; }
-        [JsonProperty("eventingAdminPort")] public int EventingAdminPort { get; set; }
-        [JsonProperty("eventingSSL")] public int EventingSSL { get; set; }
+        [JsonPropertyName("mgmt")] public int Mgmt { get; set; }
+        [JsonPropertyName("mgmtSSL")] public int MgmtSsl { get; set; }
+        [JsonPropertyName("indexAdmin")] public int IndexAdmin { get; set; }
+        [JsonPropertyName("indexScan")] public int IndexScan { get; set; }
+        [JsonPropertyName("indexHttp")] public int IndexHttp { get; set; }
+        [JsonPropertyName("indexStreamInit")] public int IndexStreamInit { get; set; }
+        [JsonPropertyName("indexStreamCatchup")] public int IndexStreamCatchup { get; set; }
+        [JsonPropertyName("indexStreamMaint")] public int IndexStreamMaint { get; set; }
+        [JsonPropertyName("indexHttps")] public int IndexHttps { get; set; }
+        [JsonPropertyName("kv")] public int Kv { get; set; }
+        [JsonPropertyName("kvSSL")] public int KvSsl { get; set; }
+        [JsonPropertyName("capi")] public int Capi { get; set; }
+        [JsonPropertyName("capiSSL")] public int CapiSsl { get; set; }
+        [JsonPropertyName("projector")] public int Projector { get; set; }
+        [JsonPropertyName("n1ql")] public int N1Ql { get; set; }
+        [JsonPropertyName("n1qlSSL")] public int N1QlSsl { get; set; }
+        [JsonPropertyName("cbas")] public int Cbas { get; set; }
+        [JsonPropertyName("cbasSSL")] public int CbasSsl { get; set; }
+        [JsonPropertyName("fts")] public int Fts { get; set; }
+        [JsonPropertyName("ftsSSL")] public int FtsSsl { get; set; }
+        [JsonPropertyName("moxi")] public int Moxi { get; set; }
+        [JsonPropertyName("eventingAdminPort")] public int EventingAdminPort { get; set; }
+        [JsonPropertyName("eventingSSL")] public int EventingSSL { get; set; }
 
         public bool Equals(Services other)
         {
@@ -200,10 +200,10 @@ namespace Couchbase.Core.Configuration.Server
             Services = new Services();
         }
 
-        [JsonProperty("thisNode")] public bool ThisNode { get; set; }
-        [JsonProperty("services")] public Services Services { get; set; }
-        [JsonProperty("hostname")] public string Hostname { get; set; }
-        [JsonProperty("alternateAddresses")] public Dictionary<string, ExternalAddressesConfig> AlternateAddresses { get; set; }
+        [JsonPropertyName("thisNode")] public bool ThisNode { get; set; }
+        [JsonPropertyName("services")] public Services Services { get; set; }
+        [JsonPropertyName("hostname")] public string Hostname { get; set; }
+        [JsonPropertyName("alternateAddresses")] public Dictionary<string, ExternalAddressesConfig> AlternateAddresses { get; set; }
 
         public bool HasAlternateAddress => AlternateAddresses != null && AlternateAddresses.Any();
 
@@ -322,21 +322,21 @@ namespace Couchbase.Core.Configuration.Server
         /// </summary>
         [JsonIgnore] public bool IsGlobal { get; set; }
 
-        [JsonProperty("rev")] public ulong Rev { get; set; }
-        [JsonProperty("revEpoch")] public ulong RevEpoch { get; set; }
-        [JsonProperty("name")] public string Name { get; set; }
-        [JsonProperty("uri")] public string Uri { get; set; }
-        [JsonProperty("streamingUri")] public string StreamingUri { get; set; }
-        [JsonProperty("nodes")] public List<Node> Nodes { get; set; }
-        [JsonProperty("nodesExt")] public List<NodesExt> NodesExt { get; set; }
-        [JsonProperty("nodeLocator")] public string NodeLocator { get; set; }
-        [JsonProperty("uuid")] public string Uuid { get; set; }
-        [JsonProperty("ddocs")] public Ddocs Ddocs { get; set; }
-        [JsonProperty("vBucketServerMap")] public VBucketServerMapDto VBucketServerMap { get; set; }
-        [JsonProperty("bucketCapabilitiesVer")] public string BucketCapabilitiesVer { get; set; }
-        [JsonProperty("bucketCapabilities")] public List<string> BucketCapabilities { get; set; }
-        [JsonProperty("clusterCapabilitiesVer")] public List<int> ClusterCapabilitiesVersion { get; set; }
-        [JsonProperty("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> ClusterCapabilities { get; set; }
+        [JsonPropertyName("rev")] public ulong Rev { get; set; }
+        [JsonPropertyName("revEpoch")] public ulong RevEpoch { get; set; }
+        [JsonPropertyName("name")] public string Name { get; set; }
+        [JsonPropertyName("uri")] public string Uri { get; set; }
+        [JsonPropertyName("streamingUri")] public string StreamingUri { get; set; }
+        [JsonPropertyName("nodes")] public List<Node> Nodes { get; set; }
+        [JsonPropertyName("nodesExt")] public List<NodesExt> NodesExt { get; set; }
+        [JsonPropertyName("nodeLocator")] public string NodeLocator { get; set; }
+        [JsonPropertyName("uuid")] public string Uuid { get; set; }
+        [JsonPropertyName("ddocs")] public Ddocs Ddocs { get; set; }
+        [JsonPropertyName("vBucketServerMap")] public VBucketServerMapDto VBucketServerMap { get; set; }
+        [JsonPropertyName("bucketCapabilitiesVer")] public string BucketCapabilitiesVer { get; set; }
+        [JsonPropertyName("bucketCapabilities")] public List<string> BucketCapabilities { get; set; }
+        [JsonPropertyName("clusterCapabilitiesVer")] public List<int> ClusterCapabilitiesVersion { get; set; }
+        [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> ClusterCapabilities { get; set; }
 
         public bool Equals(BucketConfig other)
         {
@@ -408,8 +408,8 @@ namespace Couchbase.Core.Configuration.Server
 
     internal class ClusterCapabilities
     {
-        [JsonProperty("clusterCapabilitiesVer")] internal IEnumerable<int> Version { get; set; }
-        [JsonProperty("clusterCapabilities")] internal Dictionary<string, IEnumerable<string>> Capabilities { get; set; }
+        [JsonPropertyName("clusterCapabilitiesVer")] public IEnumerable<int> Version { get; set; }
+        [JsonPropertyName("clusterCapabilities")] public Dictionary<string, IEnumerable<string>> Capabilities { get; set; }
 
         internal bool EnhancedPreparedStatementsEnabled
         {
@@ -435,15 +435,15 @@ namespace Couchbase.Core.Configuration.Server
 
     internal sealed class AlternateAddressesConfig
     {
-        [JsonProperty("external")] public ExternalAddressesConfig External { get; set; }
+        [JsonPropertyName("external")] public ExternalAddressesConfig External { get; set; }
 
         public bool HasExternalAddress => External?.Hostname != null;
     }
 
     internal sealed class ExternalAddressesConfig
     {
-        [JsonProperty("hostname")] public string Hostname { get; set; }
-        [JsonProperty("ports")] public Services Ports { get; set; }
+        [JsonPropertyName("hostname")] public string Hostname { get; set; }
+        [JsonPropertyName("ports")] public Services Ports { get; set; }
     }
 }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
@@ -11,19 +12,28 @@ using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Couchbase.Core
 {
     internal class ClusterContext : IDisposable
     {
-        public readonly ITypeTranscoder GlobalTranscoder = new JsonTranscoder();
+        /// <summary>
+        /// Transcoder for use on internal key/value operations.
+        /// </summary>
+        /// <remarks>
+        /// This transcoder will only function for serializing and deserializing types registered on
+        /// <see cref="InternalSerializationContext"/>. Trying to use any other type will throw an exception.
+        /// </remarks>
+        public readonly ITypeTranscoder GlobalTranscoder =
+            new JsonTranscoder(SystemTextJsonSerializer.Create(InternalSerializationContext.Default));
+
         private readonly ClusterOptions _clusterOptions;
         private readonly ILogger<ClusterContext> _logger;
         private readonly IRedactor _redactor;
@@ -152,7 +162,12 @@ namespace Couchbase.Core
 
         public void PublishConfig(BucketConfig bucketConfig)
         {
-            _logger.LogDebug(LoggingEvents.ConfigEvent, JsonConvert.SerializeObject(bucketConfig));
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(LoggingEvents.ConfigEvent,
+                    JsonSerializer.Serialize(bucketConfig, InternalSerializationContext.Default.BucketConfig));
+            }
+
             _configHandler.Publish(bucketConfig);
         }
 

@@ -1,9 +1,8 @@
 using System;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.HTTP;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace Couchbase.Core.Configuration.Server.Streaming
 {
@@ -46,9 +45,11 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             using (var response = await httpClient.GetAsync(uri.Uri, cancellationToken).ConfigureAwait(false))
             {
                 response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
-                bucketConfig.ReplacePlaceholderWithBootstrapHost(uri.Host);
+                var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var bucketConfig = await JsonSerializer
+                    .DeserializeAsync(stream, InternalSerializationContext.Default.BucketConfig, cancellationToken)
+                    .ConfigureAwait(false);
+                bucketConfig!.ReplacePlaceholderWithBootstrapHost(uri.Host);
                 return bucketConfig;
             }
         }

@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
@@ -117,7 +118,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         [InlineData(38, "thekey100")]
         public void TestMapKey(int index, string key)
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            var config = ResourceHelper.ReadResource(@"Documents\config.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
@@ -131,7 +133,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         public void Test_That_Key_XXXXX_Maps_To_VBucket_389()
         {
             const int actual = 389;
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            var config = ResourceHelper.ReadResource(@"Documents\config.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
@@ -146,7 +149,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         {
             var expected = "default";
 
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            var config = ResourceHelper.ReadResource(@"Documents\config.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
@@ -162,7 +166,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         {
             var expected = "default";
 
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-localhost.json");
+            var config = ResourceHelper.ReadResource(@"Documents\configs\config-localhost.json",
+                InternalSerializationContext.Default.BucketConfig);
             config.ReplacePlaceholderWithBootstrapHost("127.0.0.1");
 
             var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
@@ -179,7 +184,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         [InlineData("192.168.67.101:11210", ResponseStatus.None)]
         public void Config_With_FFMaps_Uses_Them_When_NMVB(string nodeIp,  ResponseStatus responseStatus)
         {
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-with-ffmaps.json");
+            var config = ResourceHelper.ReadResource(@"Documents\configs\config-with-ffmaps.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 

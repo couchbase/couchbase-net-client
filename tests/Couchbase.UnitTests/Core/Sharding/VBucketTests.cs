@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Sharding;
@@ -19,8 +20,8 @@ namespace Couchbase.UnitTests.Core.Sharding
 
         public  VBucketTests()
         {
-            var serverConfigJson = ResourceHelper.ReadResource("bootstrap-config.json");
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+            var bucketConfig = ResourceHelper.ReadResource("bootstrap-config.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
             _vBucketServerMap = vBucketServerMap;
@@ -61,8 +62,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_Replica_Count_Is_Equal()
         {
-            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var bucketConfig = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
@@ -77,8 +78,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_Replicas_Are_Equal()
         {
-            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var bucketConfig = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
@@ -97,8 +98,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_BucketConfig_Has_Replicas_VBucketKeyMapper_LocateReplica_Returns_Correct_Server()
         {
-            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var bucketConfig = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
@@ -119,8 +120,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_Primary_Is_Negative_Random_Server_Returned()
         {
-            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json");
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var bucketConfig = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
@@ -139,8 +140,8 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_Primary_Index_Is_Greater_Than_Cluster_Count_Random_Server_Returned()
         {
-            var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json");
-            var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
+            var bucketConfig = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json",
+                InternalSerializationContext.Default.BucketConfig);
 
             //remove one server
             bucketConfig.NodesExt.Remove(bucketConfig.NodesExt.First());

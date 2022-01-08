@@ -38,7 +38,8 @@ namespace Couchbase.UnitTests.Core
         {
             //Arrange
 
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-error.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-error.json",
+                InternalSerializationContext.Default.BucketConfig);
             var context = new ClusterContext();
 
             var hosts = new List<string>{"10.143.194.101", "10.143.194.102", "10.143.194.103", "10.143.194.104"};
@@ -60,7 +61,8 @@ namespace Couchbase.UnitTests.Core
         {
             //Arrange
 
-            var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev-36310-service-per-node.json");
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\rev-36310-service-per-node.json",
+                InternalSerializationContext.Default.BucketConfig);
             var context = new ClusterContext();
 
             var hosts = new List<string> { "10.143.194.101", "10.143.194.102", "10.143.194.103", "10.143.194.104" };

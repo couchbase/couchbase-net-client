@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Couchbase.Core.IO.Operations.Errors
 {
@@ -18,25 +18,25 @@ namespace Couchbase.Core.IO.Operations.Errors
         /// <summary>
         /// Gets or sets the name of the error.
         /// </summary>
-        [JsonProperty("name")]
+        [JsonPropertyName("name")]
         public string Name { get; set; }
 
         /// <summary>
         /// Gets or sets the description of the error.
         /// </summary>
-        [JsonProperty("desc")]
+        [JsonPropertyName("desc")]
         public string Desc { get; set; }
 
         /// <summary>
         /// Gets or sets the list of attribures for the error.
         /// </summary>
-        [JsonProperty("attrs")]
+        [JsonPropertyName("attrs")]
         public IEnumerable<string> Attrs { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="RetrySpec"/> for the error.
         /// </summary>
-        [JsonProperty("retry")]
+        [JsonPropertyName("retry")]
         public RetrySpec Retry { get; set; }
 
         public override string ToString()

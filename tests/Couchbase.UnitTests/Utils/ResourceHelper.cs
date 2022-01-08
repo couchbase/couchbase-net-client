@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using Newtonsoft.Json;
 
 namespace Couchbase.UnitTests.Utils
@@ -11,10 +12,10 @@ namespace Couchbase.UnitTests.Utils
     {
         private static readonly Assembly Assembly = typeof(ResourceHelper).GetTypeInfo().Assembly;
 
-        public static T ReadResource<T>(string resourcePath)
+        public static T ReadResource<T>(string resourcePath, JsonTypeInfo<T> typeInfo)
         {
             var json = ReadResource(resourcePath);
-            return JsonConvert.DeserializeObject<T>(json);
+            return System.Text.Json.JsonSerializer.Deserialize(json, typeInfo);
         }
 
         public static string ReadResource(string resourcePath)

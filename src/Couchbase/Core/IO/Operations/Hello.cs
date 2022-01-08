@@ -2,9 +2,10 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -64,6 +65,7 @@ namespace Couchbase.Core.IO.Operations
             }
             return result;
         }
+
         internal static string BuildHelloKey(ulong connectionId)
         {
             var agent = ClientIdentifier.GetClientDescription();
@@ -72,11 +74,18 @@ namespace Couchbase.Core.IO.Operations
                 agent = agent.Substring(0, 200);
             }
 
-            return JsonConvert.SerializeObject(new
+            return JsonSerializer.Serialize(new HelloKey
             {
-                i = ClientIdentifier.FormatConnectionString(connectionId),
-                a = agent
-            }, Formatting.None);
+                Identifier = ClientIdentifier.FormatConnectionString(connectionId),
+                Agent = agent
+            }, InternalSerializationContext.Default.HelloKey);
+        }
+
+        public class HelloKey
+        {
+            [JsonPropertyName("i")] public string Identifier { get; set; }
+
+            [JsonPropertyName("a")] public string Agent { get; set; }
         }
     }
 }

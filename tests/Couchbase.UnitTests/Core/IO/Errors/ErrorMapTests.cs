@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -19,7 +20,6 @@ using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.IO.Errors
@@ -29,7 +29,8 @@ namespace Couchbase.UnitTests.Core.IO.Errors
         [Fact]
         public async Task When_Status_Indicates_Failure_Context_Is_Populated()
         {
-            var errorMap = new ErrorMap(JsonConvert.DeserializeObject<ErrorMapDto>(ResourceHelper.ReadResource("kv-error-map.json")));
+            var errorMap = new ErrorMap(JsonSerializer.Deserialize(ResourceHelper.ReadResource("kv-error-map.json"),
+                InternalSerializationContext.Default.ErrorMapDto)!);
 
             var mockConnection = new Mock<IConnection>();
 
@@ -92,7 +93,8 @@ namespace Couchbase.UnitTests.Core.IO.Errors
         [InlineData(ResponseStatus.RateLimitedNetworkIngress, "RATE_LIMITED_NETWORK_INGRESS")]
         public async Task Test_ClusterMap_Version2(ResponseStatus status, string errorCode)
         {
-            var errorMap = new ErrorMap(JsonConvert.DeserializeObject<ErrorMapDto>(ResourceHelper.ReadResource("kv-error-map-v2.json")));
+            var errorMap = new ErrorMap(JsonSerializer.Deserialize(ResourceHelper.ReadResource("kv-error-map-v2.json"),
+                InternalSerializationContext.Default.ErrorMapDto)!);
 
             var mockConnection = new Mock<IConnection>();
 

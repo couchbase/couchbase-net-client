@@ -1,6 +1,6 @@
+using System.Text.Json.Serialization;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.UnitTests.Utils;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server
@@ -17,11 +17,15 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         [Fact]
         public void EnhancedPreparedStatements_returns_true_when_enabled()
         {
-            var json = ResourceHelper.ReadResource("cluster_capabiliteis_with_enhanced_prepared_statements.json");
-
-            var capabilities = JsonConvert.DeserializeObject<ClusterCapabilities>(json);
+            var capabilities = ResourceHelper.ReadResource("cluster_capabiliteis_with_enhanced_prepared_statements.json",
+                CapabilitiesContext.Default.ClusterCapabilities);
 
             Assert.True(capabilities.EnhancedPreparedStatementsEnabled);
         }
+    }
+
+    [JsonSerializable(typeof(ClusterCapabilities))]
+    internal partial class CapabilitiesContext : JsonSerializerContext
+    {
     }
 }

@@ -1,5 +1,5 @@
 using System;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Couchbase.Core.IO.Operations.Errors
 {
@@ -11,31 +11,31 @@ namespace Couchbase.Core.IO.Operations.Errors
         /// <summary>
         /// Gets or sets the <see cref="RetryStrategy"/>.
         /// </summary>
-        [JsonProperty("strategy", Required = Required.Always)]
+        [JsonPropertyName("strategy")]
         public RetryStrategy Strategy { get; set; }
 
         /// <summary>
         /// Gets or sets the base interval in ms.
         /// </summary>
-        [JsonProperty("interval", Required = Required.Always)]
+        [JsonPropertyName("interval")]
         public int Interval { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum retry interval.
         /// </summary>
-        [JsonProperty("ceil")]
+        [JsonPropertyName("ceil")]
         public int? Ceiling { get; set; }
 
         /// <summary>
         /// Gets or sets the value to be added to the first interval.
         /// </summary>
-        [JsonProperty("after")]
+        [JsonPropertyName("after")]
         public int? FirstRetryDelay { get; set; }
 
         /// <summary>
         /// Gets or sets the maximum duration for retries or will timeout.
         /// </summary>
-        [JsonProperty("max-duration")]
+        [JsonPropertyName("max-duration")]
         public int? RetryTimeout { get; set; }
 
         public RetrySpec()

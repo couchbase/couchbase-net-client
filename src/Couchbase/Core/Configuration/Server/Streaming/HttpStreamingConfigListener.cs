@@ -1,16 +1,15 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 #nullable enable
 
@@ -126,7 +125,8 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                                     {
                                         _logger.LogDebug(LoggingEvents.ConfigEvent, config);
                                         config = config.Replace("$HOST", server.Host);
-                                        var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(config);
+                                        var bucketConfig = JsonSerializer.Deserialize(config,
+                                            InternalSerializationContext.Default.BucketConfig)!;
                                         _configHandler.Publish(bucketConfig);
                                     }
 

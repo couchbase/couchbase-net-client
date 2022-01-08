@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Utils;
 using Xunit;
@@ -15,7 +16,8 @@ namespace Couchbase.UnitTests.Utils
         public void GetQueryUri_Returns_Query_Uri(bool useSsl, string host, string expectedUri)
         {
             var clusterOptions = new ClusterOptions {EnableTls = useSsl};
-            var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            var bucketConfig = ResourceHelper.ReadResource(@"Documents\config.json",
+                InternalSerializationContext.Default.BucketConfig);
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var actual = nodeAdapter.GetQueryUri(clusterOptions);
 
@@ -30,7 +32,8 @@ namespace Couchbase.UnitTests.Utils
         public void GetViewUri_Returns_Views_Uri(bool useSsl, string host, string expectedUri)
         {
             var clusterOptions = new  ClusterOptions  {EnableTls = useSsl};
-            var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            var bucketConfig = ResourceHelper.ReadResource(@"Documents\config.json",
+                InternalSerializationContext.Default.BucketConfig);
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var actual = nodeAdapter.GetViewsUri(clusterOptions);
 
@@ -45,7 +48,8 @@ namespace Couchbase.UnitTests.Utils
         public void GetAnalyticsUri_Returns_Analytics_Uri(bool useSsl, string host, string expectedUri)
         {
             var clusterOptions = new ClusterOptions {EnableTls = useSsl};
-            var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            var bucketConfig = ResourceHelper.ReadResource(@"Documents\config.json",
+                InternalSerializationContext.Default.BucketConfig);
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var actual = nodeAdapter.GetAnalyticsUri(clusterOptions);
 
@@ -60,7 +64,8 @@ namespace Couchbase.UnitTests.Utils
         public void GetSearchUri_Returns_Search_Uri(bool useSsl, string host, string expectedUri)
         {
             var clusterOptions = new ClusterOptions  {EnableTls = useSsl};
-            var bucketConfig = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
+            var bucketConfig = ResourceHelper.ReadResource(@"Documents\config.json",
+                InternalSerializationContext.Default.BucketConfig);
             var nodeAdapter = bucketConfig.GetNodes().Find(x => x.Hostname.Equals(host));
             var actual = nodeAdapter.GetSearchUri(clusterOptions);
 

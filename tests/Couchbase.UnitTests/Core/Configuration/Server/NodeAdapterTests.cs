@@ -1,8 +1,8 @@
 using System.Collections.Generic;
+using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.UnitTests.Utils;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server
@@ -47,8 +47,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         public void When_IPv6_NodeAdapter_Does_Not_Fail()
         {
             //arrange
-            var serverConfigJson = ResourceHelper.ReadResource("config-with-ipv6.json");
-            var serverConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
+            var serverConfig = ResourceHelper.ReadResource("config-with-ipv6.json",
+                InternalSerializationContext.Default.BucketConfig);
             var mockBucketConfig = new Mock<BucketConfig>();
 
             //act
