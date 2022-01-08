@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -105,7 +106,12 @@ namespace Couchbase.Core.IO.Operations
         public void Dispose()
         {
             _globalCts?.Dispose();
-            Interlocked.Exchange(ref _timeoutCts, null)?.Dispose();
+
+            var timeoutCts = Interlocked.Exchange(ref _timeoutCts, null);
+            if (timeoutCts is not null)
+            {
+                CancellationTokenSourcePool.Shared.Return(timeoutCts);
+            }
         }
 
         /// <inheritdoc cref="CancellationToken.ThrowIfCancellationRequested" />
@@ -158,7 +164,7 @@ namespace Couchbase.Core.IO.Operations
         public static CancellationTokenPairSource FromTimeout(TimeSpan timeout,
             CancellationToken externalToken = default)
         {
-            var timeoutCts = new CancellationTokenSource(timeout);
+            var timeoutCts = CancellationTokenSourcePool.Shared.Rent(timeout);
 
             var source = new CancellationTokenPairSource(externalToken, timeoutCts.Token);
 

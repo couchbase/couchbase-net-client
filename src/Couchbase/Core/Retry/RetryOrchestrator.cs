@@ -35,7 +35,7 @@ namespace Couchbase.Core.Retry
 
             if (request.Timeout > TimeSpan.Zero)
             {
-                cts1 = new CancellationTokenSource(request.Timeout);
+                cts1 = CancellationTokenSourcePool.Shared.Rent(request.Timeout);
 
                 if (token.CanBeCanceled)
                 {
@@ -157,7 +157,11 @@ namespace Couchbase.Core.Retry
                 request.StopRecording();
 
                 cts2?.Dispose();
-                cts1?.Dispose();
+
+                if (cts1 is not null)
+                {
+                    CancellationTokenSourcePool.Shared.Return(cts1);
+                }
             }
         }
 
