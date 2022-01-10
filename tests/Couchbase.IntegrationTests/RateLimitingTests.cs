@@ -1,0 +1,786 @@
+using System;
+using System.Threading.Tasks;
+using System.Net.Http;
+using Couchbase.IntegrationTests.Fixtures;
+using Xunit;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Text;
+using Couchbase.Core.RateLimiting;
+using Couchbase.IntegrationTests.Utils;
+using Couchbase.Management.Collections;
+using Couchbase.Management.Search;
+using Couchbase.Search.Queries.Simple;
+using Newtonsoft.Json.Linq;
+using Xunit.Abstractions;
+using TimeoutException = System.TimeoutException;
+
+namespace Couchbase.IntegrationTests
+{
+    public class RateLimitingTests : IClassFixture<ClusterFixture>
+    {
+        private readonly ClusterFixture _fixture;
+        private readonly ITestOutputHelper _outputHelper;
+        private readonly HttpClient _httpClient;
+        private readonly string _connectionString;
+
+        private const string RlPassword = "password";
+
+        public RateLimitingTests(ClusterFixture fixture, ITestOutputHelper outputHelper)
+        {
+            _fixture = fixture;
+            _outputHelper = outputHelper;
+            _httpClient = new HttpClient();
+            _connectionString = _fixture.ClusterOptions.ConnectionString;
+
+            var encoded = Convert.ToBase64String(Encoding.ASCII.GetBytes(
+                String.Format("{0}:{1}", _fixture.ClusterOptions.UserName, _fixture.ClusterOptions.Password)));
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
+            var uri = "http://" + _connectionString.Replace("couchbase://", "")
+                                + ":" + _fixture.ClusterOptions.BootstrapHttpPort;
+            _httpClient.BaseAddress = new Uri(uri);
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task KV_Rate_Limit_Max_Commands()
+        {
+            await EnforceRateLimits();
+
+            var username = "kvRateLimit";
+            var limits = new Limits();
+            limits.KeyValueLimits = new KeyValueLimits(10, 10, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                var bucket = await cluster.BucketAsync(_fixture.GetDefaultBucket().Result.Name);
+                var collection = bucket.DefaultCollection();
+                await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    for (int i = 0; i < 30; i++)
+                    {
+                        await collection.UpsertAsync("rate-limit-max", "rate limit test");
+                    }
+                });
+                Assert.True(ex.Context?.Message.Contains("RATE_LIMITED_MAX_COMMANDS"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task KV_Rate_Limit_Ingress()
+        {
+            await EnforceRateLimits();
+
+            var username = "kvRateLimitIngress";
+            var limits = new Limits();
+            limits.KeyValueLimits = new KeyValueLimits(10, 100, 1, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                var bucket = await cluster.BucketAsync(_fixture.GetDefaultBucket().Result.Name);
+                var collection = bucket.DefaultCollection();
+                await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
+
+                var doc = RandomDoc(1024 * 512);
+                await collection.UpsertAsync("rate-limit-ingress", doc);
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    await collection.UpsertAsync("rate-limit-ingress", doc);
+                });
+                Assert.True(ex.Context?.Message.Contains("RATE_LIMITED_NETWORK_INGRESS"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task KV_Rate_Limit_Egress()
+        {
+            await EnforceRateLimits();
+
+            var username = "kvRateLimitEgress";
+            var limits = new Limits();
+            limits.KeyValueLimits = new KeyValueLimits(10, 100, 10, 1);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                var bucket = await cluster.BucketAsync(_fixture.GetDefaultBucket().Result.Name);
+                var collection = bucket.DefaultCollection();
+                await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
+
+                var doc = RandomDoc(1024 * 512);
+                await collection.UpsertAsync("rate-limit-egress", doc);
+                await collection.GetAsync("rate-limit-egress");
+                await collection.GetAsync("rate-limit-egress");
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    await collection.GetAsync("rate-limit-egress");
+                });
+                Assert.True(ex.Context?.Message.Contains("RATE_LIMITED_NETWORK_EGRESS"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task KV_Rate_Limit_Max_Connections()
+        {
+            await EnforceRateLimits();
+
+            var username = "kvRateLimitMaxConnections";
+            var limits = new Limits();
+            limits.KeyValueLimits = new KeyValueLimits(2, 100, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                var bucket = await cluster.BucketAsync(_fixture.GetDefaultBucket().Result.Name);
+                await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(30));
+
+                var cluster2 = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                var bucket2 = await Assert.ThrowsAsync<RateLimitedException>(
+                    async () => await cluster2.BucketAsync(_fixture.GetDefaultBucket().Result.Name));
+
+                await cluster.DisposeAsync();
+                await cluster2.DiagnosticsAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task KV_Quota_Limit_Scopes_Data_Size()
+        {
+            await EnforceRateLimits();
+
+            var scopeName = "rateLimitDataSize2";
+            var limits = new ScopeRateLimits();
+            limits.KeyValueScopeRateLimit = new KeyValueScopeRateLimit(1024 * 1024);
+            await CreateRateLimitedScope(scopeName, _fixture.GetDefaultBucket().Result.Name, limits);
+
+            var collectionManager = _fixture.GetDefaultBucket().Result.Collections;
+            await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, scopeName));
+
+            await Task.Delay(1000);//wait time
+
+            var bucket = await _fixture.Cluster.BucketAsync(_fixture.GetDefaultBucket().Result.Name);
+            var scope = await bucket.ScopeAsync(scopeName);
+            var collection = await scope.CollectionAsync(scopeName);
+
+            await _fixture.GetDefaultCollectionAsync().Result.UpsertAsync("test", "test");
+
+            try
+            {
+                await collection.UpsertAsync("rateLimitKvScope", RandomDoc(512));
+                await Assert.ThrowsAsync<QuotaLimitedException>(async () =>
+                    await collection.UpsertAsync("rateLimitKvScope", RandomDoc(2048)));
+            }
+            finally
+            {
+                await collectionManager.DropScopeAsync(scopeName);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Query_Rate_Limit_Max_Commands()
+        {
+            await EnforceRateLimits();
+
+            var username = "queryRateLimit";
+            var limits = new Limits();
+            limits.QueryLimits = new QueryLimits(10, 1, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    for (int i = 0; i < 50; i++)
+                    {
+                        await cluster.QueryAsync<JObject>("select 1 = 1");
+                    }
+                });
+                Assert.True(ex.Context?.Message.Contains("User has exceeded request rate limit"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Query_Rate_Limit_Max_Commands_WaitUntilReady()
+        {
+            await EnforceRateLimits();
+
+            var username = "queryRateLimit";
+            var limits = new Limits();
+            limits.QueryLimits = new QueryLimits(10, 1, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () => await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(30)));
+
+                Assert.True(ex.Context?.Message.Contains("User has exceeded request rate limit"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Query_Rate_Limit_Ingress()
+        {
+            await EnforceRateLimits();
+
+            var username = "queryRateLimitIngress";
+            var limits = new Limits();
+            limits.QueryLimits = new QueryLimits(10000, 10000, 1, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    for (int i = 0; i < 50; i++)
+                    {
+                        await cluster.QueryAsync<bool>("UPSERT INTO `" + _fixture.GetDefaultBucket().Result.Name +
+                                                       "` (KEY,VALUE) VALUES (\"key1\", \"" +
+                                                       RandomDoc(1024 * 1024 * 5) + "\")");
+                    }
+                });
+                Assert.True(ex.Context?.Message.Contains("User has exceeded input network traffic limit"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Query_Rate_Limit_Egress()
+        {
+            await EnforceRateLimits();
+
+            var username = "queryRateLimitEgress";
+            var limits = new Limits();
+            limits.QueryLimits = new QueryLimits(10000, 10000, 10, 1);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                await cluster.QueryAsync<bool>("UPSERT INTO `" + _fixture.GetDefaultBucket().Result.Name +
+                                               "` (KEY,VALUE) VALUES (\"key1\", \"" + RandomDoc(1024 * 1024) + "\")");
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    for (int i = 0; i < 50; i++)
+                    {
+                        await cluster.QueryAsync<Object>("SELECT * FROM `" + _fixture.GetDefaultBucket().Result.Name +
+                                                         "` USE KEYS [\"key1\"]");
+                    }
+                });
+
+                Assert.True(ex.Context?.Message.Contains("User has exceeded results size limit"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Query_Rate_Limit_Concurrent_Requests()
+        {
+            await EnforceRateLimits();
+
+            var username = "queryRateLimitConcurrentRequests";
+            var limits = new Limits();
+            limits.QueryLimits = new QueryLimits(1, 100, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    var parallelTasks = Enumerable.Range(0, 50)
+                        .Select(async _ => await cluster.QueryAsync<JObject>("select 1 = 1"))
+                        .ToList();
+
+                    await Task.WhenAll(parallelTasks).ConfigureAwait(false);
+                });
+
+                Assert.True(ex.Context?.Message.Contains("User has more requests running than allowed"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Cluster_Manager_Rate_Limit_Concurrent_Requests()
+        {
+            await EnforceRateLimits();
+
+            var username = "clusterManagerRateLimitConcurrentRequests";
+            var limits = new Limits();
+            limits.ClusterManagerLimits = new ClusterManagerLimits(1, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                var ex = await Assert.ThrowsAsync<CouchbaseException>(async () =>
+                {
+                    var parallelTasks = Enumerable.Range(0, 10)
+                        .Select(async _ => await cluster.Buckets.GetAllBucketsAsync())
+                        .ToList();
+
+                    await Task.WhenAll(parallelTasks).ConfigureAwait(false);
+                });
+
+                Assert.True(ex.Context?.Message.Contains("Limit(s) exceeded [num_concurrent_requests]"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Search_Rate_Limit_Max_Commands()
+        {
+            await EnforceRateLimits();
+
+            var username = "searchRateLimit";
+            var limits = new Limits();
+            limits.SearchLimits = new SearchLimits(100, 1, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                await _fixture.Cluster.SearchIndexes.UpsertIndexAsync(new SearchIndex()
+                {
+                    Name = "ratelimits",
+                    Type = "fulltext-index",
+                    SourceName = _fixture.GetDefaultBucket().Result.Name,
+                    SourceType = "couchbase",
+                    Params = new Dictionary<string, dynamic>()
+                {
+                    {
+                        "mapping", new Dictionary<string, dynamic>()
+                        {
+                            {
+                                "types", new Dictionary<string, dynamic>()
+                                {
+                                    {
+                                        "_default._default", new Dictionary<string, dynamic>()
+                                        {
+                                            {"enabled", true},
+                                            {"dynamic", true}
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "default_mapping", new Dictionary<string, dynamic>()
+                                {
+                                    {"enabled", true}
+                                }
+                            },
+                            {"default_type", "_default"},
+                            {"default_analyzer", "standard"},
+                            {"default_field", "_all"}
+                        }
+                    },
+                    {
+                        "doc_config", new Dictionary<string, dynamic>()
+                        {
+                            {"mode", "scope.collection.type_field"},
+                            {"type_field", "type"}
+                        }
+                    }
+                }
+                });
+
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    for (int i = 0; i < 100; i++)
+                    {
+                        try
+                        {
+                            await cluster.SearchQueryAsync("ratelimits", new QueryStringQuery("a"),
+                                options => options.Timeout(TimeSpan.FromSeconds(1)));
+                        }
+                        catch (TimeoutException ex)
+                        {
+                            //continue
+                        }
+                        catch (CouchbaseException ex)
+                        {
+                            if (ex.Message.Contains("no planPIndexes"))
+                            {
+                            }
+                            else
+                            {
+                                throw;
+                            }
+                        }
+                    }
+                });
+
+                Assert.True(ex.Context?.Message.Contains("num_queries_per_min"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+                await _fixture.Cluster.SearchIndexes.DropIndexAsync("ratelimits");
+            }
+        }
+
+        private static string RandomDoc(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            var str = new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
+            return str;
+        }
+
+        public async Task EnforceRateLimits()
+        {
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("enforceLimits", "true")
+            });
+
+            var response = await _httpClient.PostAsync("/internalSettings", content);
+            Assert.True(response.IsSuccessStatusCode);
+        }
+
+        public async Task CreateRateLimitedUser(string username, Limits limits)
+        {
+            var jsonLimits = new JObject();
+            if (limits.KeyValueLimits != null)
+            {
+                KeyValueLimits kv = limits.KeyValueLimits;
+                jsonLimits.Add("kv", new JObject
+                {
+                    {"num_connections", kv.NumConnections},
+                    {"num_ops_per_min", kv.NumOpsPerMin},
+                    {"ingress_mib_per_min", kv.IngressMibPerMin},
+                    {"egress_mib_per_min", kv.EgressMibPerMin}
+                });
+            }
+
+            if (limits.QueryLimits != null)
+            {
+                QueryLimits query = limits.QueryLimits;
+                jsonLimits.Add("query", new JObject
+                {
+                    {"num_queries_per_min", query.NumQueriesPerMin},
+                    {"num_concurrent_requests", query.NumConcurrentRequests},
+                    {"ingress_mib_per_min", query.IngressMibPerMin},
+                    {"egress_mib_per_min", query.EgressMibPerMin}
+                });
+            }
+
+            if (limits.SearchLimits != null)
+            {
+                SearchLimits search = limits.SearchLimits;
+                jsonLimits.Add("fts", new JObject
+                {
+                    {"num_queries_per_min", search.NumQueriesPerMin},
+                    {"num_concurrent_requests", search.NumConcurrentRequests},
+                    {"ingress_mib_per_min", search.IngressMibPerMin},
+                    {"egress_mib_per_min", search.EgressMibPerMin}
+                });
+            }
+
+            if (limits.ClusterManagerLimits != null)
+            {
+                ClusterManagerLimits cm = limits.ClusterManagerLimits;
+                jsonLimits.Add("clusterManager", new JObject
+                {
+                    {"num_concurrent_requests", cm.NumConcurrentRequests},
+                    {"ingress_mib_per_min", cm.IngressMibPerMin},
+                    {"egress_mib_per_min", cm.EgressMibPerMin}
+                });
+            }
+
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("password", RlPassword),
+                new KeyValuePair<string, string>("roles", "admin"),
+                new KeyValuePair<string, string>("limits", jsonLimits.ToString())
+            });
+
+            var response = await _httpClient.PutAsync($"/settings/rbac/users/local/{username}", content);
+            Assert.True(response.IsSuccessStatusCode);
+        }
+
+        public async Task CreateRateLimitedScope(string name, string bucket, ScopeRateLimits limits)
+        {
+            var jsonLimits = new JObject();
+            if (limits.KeyValueScopeRateLimit != null)
+            {
+                jsonLimits.Add("kv", new JObject
+                {
+                    {"data_size", limits.KeyValueScopeRateLimit.DataSize},
+                });
+            }
+
+            if (limits.SearchScopeRateLimit != null)
+            {
+                var fts = limits.SearchScopeRateLimit;
+                jsonLimits.Add("fts", new JObject
+                {
+                    {"num_fts_indexes", limits.SearchScopeRateLimit.NumFtsIndexes},
+                });
+            }
+
+            if (limits.IndexScopeRateLimit != null)
+            {
+                jsonLimits.Add("index", new JObject
+                {
+                    {"num_indexes", limits.IndexScopeRateLimit.NumIndexes},
+                });
+            }
+
+            if (limits.ClusterManagerScopeRateLimit != null)
+            {
+                jsonLimits.Add("clusterManager", new JObject
+                {
+                    {"num_collections", limits.ClusterManagerScopeRateLimit.NumCollections},
+                });
+            }
+
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("name", name),
+                new KeyValuePair<string, string>("limits",
+                    jsonLimits
+                        .ToString()) // var content = new StringContent(jsonLimits.ToString(), Encoding.UTF8, "application/json");
+            });
+
+            var response = await _httpClient.PostAsync($"/pools/default/buckets/{bucket}/scopes", content);
+            Assert.True(response.IsSuccessStatusCode);
+        }
+
+        public class Limits
+        {
+            public KeyValueLimits KeyValueLimits { get; set; }
+            public QueryLimits QueryLimits { get; set; }
+            public SearchLimits SearchLimits { get; set; }
+            public ClusterManagerLimits ClusterManagerLimits { get; set; }
+        }
+
+        public class KeyValueLimits
+        {
+            public int NumConnections { get; }
+            public int NumOpsPerMin { get; }
+            public int IngressMibPerMin { get; }
+            public int EgressMibPerMin { get; }
+
+            public KeyValueLimits(int numConnections, int numOpsPerMin, int ingressMibPerMin, int egressMibPerMin)
+            {
+                NumConnections = numConnections;
+                NumOpsPerMin = numOpsPerMin;
+                IngressMibPerMin = ingressMibPerMin;
+                EgressMibPerMin = egressMibPerMin;
+            }
+        }
+
+        public class QueryLimits
+        {
+            public int NumConcurrentRequests { get; }
+            public int NumQueriesPerMin { get; }
+            public int IngressMibPerMin { get; }
+            public int EgressMibPerMin { get; }
+
+            public QueryLimits(int numConcurrentRequests, int numQueriesPerMin, int ingressMibPerMin,
+                int egressMibPerMin)
+            {
+                NumConcurrentRequests = numConcurrentRequests;
+                NumQueriesPerMin = numQueriesPerMin;
+                IngressMibPerMin = ingressMibPerMin;
+                EgressMibPerMin = egressMibPerMin;
+            }
+        }
+
+        public class SearchLimits
+        {
+            public int NumConcurrentRequests { get; }
+            public int NumQueriesPerMin { get; }
+            public int IngressMibPerMin { get; }
+            public int EgressMibPerMin { get; }
+
+            public SearchLimits(int numConcurrentRequests, int numQueriesPerMin, int ingressMibPerMin,
+                int egressMibPerMin)
+            {
+                NumConcurrentRequests = numConcurrentRequests;
+                NumQueriesPerMin = numQueriesPerMin;
+                IngressMibPerMin = ingressMibPerMin;
+                EgressMibPerMin = egressMibPerMin;
+            }
+        }
+
+        public class ClusterManagerLimits
+        {
+            public int NumConcurrentRequests { get; }
+            public int IngressMibPerMin { get; }
+            public int EgressMibPerMin { get; }
+
+            public ClusterManagerLimits(int numConcurrentRequests, int ingressMibPerMin, int egressMibPerMin)
+            {
+                NumConcurrentRequests = numConcurrentRequests;
+                IngressMibPerMin = ingressMibPerMin;
+                EgressMibPerMin = egressMibPerMin;
+            }
+        }
+
+        public class ScopeRateLimits
+        {
+            public KeyValueScopeRateLimit KeyValueScopeRateLimit { get; set; }
+            public SearchScopeRateLimit SearchScopeRateLimit { get; set; }
+            public IndexScopeRateLimit IndexScopeRateLimit { get; set; }
+            public ClusterManagerScopeRateLimit ClusterManagerScopeRateLimit { get; set; }
+        }
+
+        public class KeyValueScopeRateLimit
+        {
+            public int DataSize { get; }
+
+            public KeyValueScopeRateLimit(int dataSize)
+            {
+                DataSize = dataSize;
+            }
+        }
+
+        public class SearchScopeRateLimit
+        {
+            public int NumFtsIndexes { get; set; }
+        }
+
+        public class IndexScopeRateLimit
+        {
+            public int NumIndexes { get; set; }
+        }
+
+        public class ClusterManagerScopeRateLimit
+        {
+            public int NumCollections { get; set; }
+        }
+    }
+}
