@@ -360,7 +360,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Rate limited: Max Commands
         /// </summary>
-        RateLimitedMaxCommands = 0x33
+        RateLimitedMaxCommands = 0x33,
+
+        /// <summary>
+        /// Quota limited: Max number of scopes has been exceeded
+        /// </summary>
+        ScopeSizeLimitExceeded = 0x34
     }
 }
 

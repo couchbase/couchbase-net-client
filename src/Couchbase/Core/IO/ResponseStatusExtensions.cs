@@ -121,6 +121,8 @@ namespace Couchbase.Core.IO
                     return new RateLimitedException(RateLimitedReason.MaximumConnectionsReached, ctx);
                 case ResponseStatus.RateLimitedMaxCommands:
                     return new RateLimitedException(RateLimitedReason.RequestRateLimitReached, ctx);
+                case ResponseStatus.ScopeSizeLimitExceeded:
+                    return new QuotaLimitedException(QuotaLimitedReason.ScopeSizeLimitExceeded, ctx);
                 default:
                     return new CouchbaseException { Context = ctx };
             }

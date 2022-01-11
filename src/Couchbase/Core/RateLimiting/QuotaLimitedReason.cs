@@ -6,6 +6,7 @@ namespace Couchbase.Core.RateLimiting
     public enum QuotaLimitedReason
     {
         MaximumNumberOfCollectionsReached,
-        MaximumNumberOfIndexesReached
+        MaximumNumberOfIndexesReached,
+        ScopeSizeLimitExceeded
     }
 }
