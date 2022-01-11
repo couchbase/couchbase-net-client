@@ -26,6 +26,7 @@ using Couchbase.Query;
 using Couchbase.Search;
 using Microsoft.Extensions.Logging;
 using AnalyticsOptions = Couchbase.Analytics.AnalyticsOptions;
+using Couchbase.Core.RateLimiting;
 
 #nullable enable
 
@@ -266,6 +267,10 @@ namespace Couchbase
 
                     await Task.Delay(100, token).ConfigureAwait(false);
                 }
+            }
+            catch (RateLimitedException)
+            {
+                throw;
             }
             catch (OperationCanceledException e)
             {

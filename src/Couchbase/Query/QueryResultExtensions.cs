@@ -82,13 +82,13 @@ namespace Couchbase.Query
                     throw new IndexFailureException(context);
 
                 //Rate Limiting Errors
-                if (error.Code == 1191 && error.Message.Contains("E_SERVICE_USER_REQUEST_EXCEEDED"))
+                if (error.Code == 1191)
                     throw new RateLimitedException(RateLimitedReason.RequestRateLimitReached, context);
-                if (error.Code == 1192 && error.Message.Contains("E_SERVICE_USER_REQUEST_RATE_EXCEEDED"))
+                if (error.Code == 1192)
                     throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached, context);
-                if (error.Code == 1193 && error.Message.Contains("E_SERVICE_USER_REQUEST_SIZE_EXCEEDED"))
+                if (error.Code == 1193)
                     throw new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached, context);
-                if (error.Code == 1194 && error.Message.Contains("E_SERVICE_USER_REQUEST_SIZE_EXCEEDED"))
+                if (error.Code == 1194)
                     throw new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, context);
             }
 

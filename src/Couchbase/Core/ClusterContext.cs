@@ -13,6 +13,7 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
+using Couchbase.Core.RateLimiting;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -384,6 +385,10 @@ namespace Couchbase.Core
 
                         if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
                             return bucket;
+                    }
+                    catch (RateLimitedException)
+                    {
+                        throw;
                     }
                     catch (Exception e)
                     {

@@ -17,6 +17,7 @@ using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
+using Couchbase.Core.RateLimiting;
 using Couchbase.Search;
 using Couchbase.Search.Queries;
 
@@ -234,6 +235,10 @@ namespace Couchbase.Diagnostics
             catch (ViewNotFoundException)
             {
                 endpoint.State = ServiceState.Ok;
+            }
+            catch(RateLimitedException)
+            {
+                throw;
             }
             catch(Exception)
             {

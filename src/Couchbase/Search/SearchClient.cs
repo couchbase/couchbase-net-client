@@ -116,7 +116,8 @@ namespace Couchbase.Search
                             ClientContextId = searchRequest.ClientContextId,
                             Statement = searchRequest.Statement,
                             Errors = errors,
-                            Query = searchRequest.ToJson()
+                            Query = searchRequest.ToJson(),
+                            Message = errors
                         };
 
                         //Rate limiting errors
