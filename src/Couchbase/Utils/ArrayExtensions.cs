@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using System.Reflection;
+using System.Security.Cryptography;
 
 namespace Couchbase.Utils
 {
@@ -29,13 +30,17 @@ namespace Couchbase.Utils
         }
 
         public static T GetRandom<T>(this IEnumerable<T> list)
-        {
+        { 
             var item = default(T);
 
             var enumerable = list as IList<T> ?? list.ToList();
             if (enumerable.Any())
             {
+#if NETCOREAPP3_1_OR_GREATER
+                var index = RandomNumberGenerator.GetInt32(enumerable.Count);
+#else
                 var index = Random.Next(enumerable.Count);
+#endif
                 item = enumerable[index];
             }
 
@@ -49,7 +54,11 @@ namespace Couchbase.Utils
             var list = enumerable.Where(whereClause).ToList();
             if (list.Any())
             {
+#if NETCOREAPP3_1_OR_GREATER
+                var index = RandomNumberGenerator.GetInt32(list.Count);
+#else
                 var index = Random.Next(list.Count);
+#endif
                 item = list[index];
             }
 
