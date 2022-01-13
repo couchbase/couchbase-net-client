@@ -4,6 +4,7 @@ using System.Linq;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Core.Utils;
 
 namespace Couchbase.Query
 {
@@ -56,22 +57,25 @@ namespace Couchbase.Query
 
                 if (PreparedErrorCodes.Contains(error.Code)) throw new PreparedStatementException(context);
 
-                if (error.Code == 4300 && error.Message.Contains("Index") &&
-                    error.Message.Contains("already exists"))
+                if (error.Code == 4300 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
+                    error.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
                     throw new IndexExistsException(context);
 
                 if (error.Code >= 4000 && error.Code < 5000) throw new PlanningFailureException(context);
 
                 if (error.Code == 12004 || error.Code == 12016 ||
-                    error.Code == 5000 && error.Message.Contains("Index") && error.Message.Contains("not found"))
+                    error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
+                    error.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
                     throw new IndexNotFoundException(context);
 
-                if (error.Code == 5000 && error.Message.Contains("Index") && error.Message.Contains("already exists"))
+                if (error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
+                    error.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
                     throw new IndexExistsException(context);
 
                 if (error.Code >= 5000 && error.Code < 6000) throw new InternalServerFailureException();
 
-                if (error.Code == 12009 && error.Message.Contains("CAS mismatch")) throw new CasMismatchException(context);
+                if (error.Code == 12009 &&
+                    error.Message.Contains("CAS mismatch", StringComparison.OrdinalIgnoreCase)) throw new CasMismatchException(context);
 
                 if (error.Code == 12009) throw new DmlFailureException(context);
 

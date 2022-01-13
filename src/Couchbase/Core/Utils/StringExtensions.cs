@@ -45,6 +45,18 @@ namespace Couchbase.Core.Utils
             // Already has backticks
             return value;
         }
+
+        /// <summary>
+        /// Allows for case and cultural insensitive comparisons
+        /// </summary>
+        /// <param name="source">The incoming string to compare.</param>
+        /// <param name="value">The value to check for.</param>
+        /// <param name="comparison">The <see cref="StringComparison"/> to use.</param>
+        /// <returns></returns>
+        public static bool Contains(this string source, string value, StringComparison comparison)
+        {
+            return source?.IndexOf(value, comparison) >= 0;
+        }
     }
 }
 

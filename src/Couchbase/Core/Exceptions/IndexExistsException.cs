@@ -6,7 +6,7 @@ namespace Couchbase.Core.Exceptions
     {
         public IndexExistsException(){}
 
-        public IndexExistsException(IErrorContext context)
+        public IndexExistsException(IErrorContext context) : base(context.Message)
         {
             Context = context;
         }

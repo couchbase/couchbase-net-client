@@ -44,5 +44,28 @@ namespace Couchbase.IntegrationTests
 
             await Assert.ThrowsAsync<IndexExistsException>(async () => await idxmgr.CreatePrimaryIndexAsync("default"));
         }
+
+        [Fact]
+        public async Task CreatePrimaryIndex()
+        {
+            await _fixture.Cluster.QueryIndexes.CreatePrimaryIndexAsync("`default`",
+                options =>
+                {
+                    options.IndexName("named_primary_index");
+                    options.IgnoreIfExistsValue = true;
+                });
+
+            await Task.Delay(1000);
+
+            await Assert.ThrowsAsync<IndexExistsException>(async () =>
+            {
+                await _fixture.Cluster.QueryIndexes.CreatePrimaryIndexAsync("`default`",
+                options =>
+                {
+                    options.IndexName("named_primary_index");
+                    options.IgnoreIfExistsValue = false;
+                });
+            });
+        }
     }
 }
