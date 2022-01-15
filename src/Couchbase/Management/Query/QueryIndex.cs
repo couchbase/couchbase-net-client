@@ -29,6 +29,12 @@ namespace Couchbase.Management.Query
 
         [JsonProperty("index_key")]
         public List<string> IndexKey { get; set; }
+
+        [JsonProperty("scope_id")]
+        public string ScopeName { get; set; }
+
+        [JsonProperty("bucket_id")]
+        public string BucketName { get; set; }
     }
 }
 

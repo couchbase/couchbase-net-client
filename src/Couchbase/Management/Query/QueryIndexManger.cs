@@ -32,6 +32,9 @@ namespace Couchbase.Management.Query
             options ??= BuildDeferredQueryIndexOptions.Default;
             _logger.LogInformation("Attempting to build deferred query indexes on bucket {bucketName}",
                 _redactor.MetaData(bucketName));
+
+            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
+
             try
             {
                 var indexes = await this.GetAllIndexesAsync(bucketName,
@@ -41,7 +44,7 @@ namespace Couchbase.Management.Query
                 var tasks = new List<Task>();
                 foreach (var index in indexes.Where(i => i.State == "pending" || i.State == "deferred"))
                 {
-                    var statement = $"BUILD INDEX ON {bucketName}({index.Name}) USING GSI;";
+                    var statement = QueryGenerator.CreateDeferredIndexStatement(bucketName, index.Name, options);
                     tasks.Add(_queryClient.QueryAsync<dynamic>(statement,
                         queryOptions => queryOptions.CancellationToken(options.TokenValue)
                     ));
@@ -63,9 +66,24 @@ namespace Couchbase.Management.Query
             _logger.LogInformation("Attempting to create query index {indexName} on bucket {bucketName}",
                 _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
 
+            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
+
+            if (indexName == null)
+            {
+                throw new ArgumentNullException(nameof(indexName));
+            }
+            if(fields == null)
+            {
+                throw new ArgumentNullException(nameof(indexName));
+            }
+            if(fields.Count() == 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fields));
+            }
+
             try
             {
-                var statement = $"CREATE INDEX {indexName} ON {bucketName}({string.Join(",", fields)}) USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+                var statement = QueryGenerator.CreateIndexStatement(bucketName, indexName, fields, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
@@ -92,10 +110,11 @@ namespace Couchbase.Management.Query
             options ??= CreatePrimaryQueryIndexOptions.Default;
             _logger.LogInformation("Attempting to create primary query index on bucket {bucketName}", _redactor.MetaData(bucketName));
 
+            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
+
             try
             {
-                var statement =
-                    $"CREATE PRIMARY INDEX ON {bucketName} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+                var statement = QueryGenerator.CreatePrimaryIndexStatement(bucketName, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
@@ -123,9 +142,16 @@ namespace Couchbase.Management.Query
             _logger.LogInformation("Attempting to drop query index {indexName} on bucket {bucketName}",
                 _redactor.MetaData(indexName), _redactor.MetaData(bucketName));
 
+            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
+
+            if (indexName == null)
+            {
+                throw new ArgumentNullException(nameof(indexName));
+            }
+
             try
             {
-                var statement = $"DROP INDEX {bucketName}.{indexName} USING GSI;";
+                var statement = QueryGenerator.CreateDropIndexStatement(bucketName, indexName, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
@@ -153,9 +179,11 @@ namespace Couchbase.Management.Query
             _logger.LogInformation("Attempting to drop primary query index on bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
+            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
+
             try
             {
-                var statement = $"DROP PRIMARY INDEX ON {bucketName} USING GSI;";
+                var statement = QueryGenerator.CreateDropPrimaryIndexStatement(bucketName, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
                     queryOptions => queryOptions.CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
@@ -183,10 +211,11 @@ namespace Couchbase.Management.Query
             _logger.LogInformation("Attempting to get query indexes for bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
+            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
+
             try
             {
-                var statement = $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=$bucketName AND `using`=\"gsi\";";
-
+                var statement = QueryGenerator.CreateGetAllIndexesStatement(bucketName, options);
                 var result = await _queryClient.QueryAsync<QueryIndex>(statement,
                     queryOptions => queryOptions.Parameter("bucketName", bucketName).CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);
@@ -213,6 +242,8 @@ namespace Couchbase.Management.Query
             var indexesToWatch = string.Join(", ", indexNames.ToList());
             _logger.LogInformation("Attempting to watch pending indexes ({indexesToWatch}) for bucket {bucketName}",
                 _redactor.MetaData(indexesToWatch), _redactor.MetaData(bucketName));
+
+            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
 
             try
             {
@@ -245,6 +276,26 @@ namespace Couchbase.Management.Query
                     $"Error trying to watch pending indexes ({indexesToWatch}) for bucket {bucketName}",
                     _redactor.MetaData(indexesToWatch), _redactor.MetaData(bucketName));
                 throw;
+            }
+        }
+
+        private void Validate(string bucketName, string scope, string collection)
+        {
+            if (string.IsNullOrEmpty(bucketName))
+            {
+                throw new ArgumentNullException(nameof(bucketName));
+            }
+            if(scope == null && collection == null)
+            {
+                return;
+            }
+            if(scope == null && collection != null)
+            {
+                throw new ArgumentNullException(nameof(scope));
+            }
+            if(scope != null && collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
             }
         }
     }
