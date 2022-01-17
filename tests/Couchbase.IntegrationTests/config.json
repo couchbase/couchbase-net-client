@@ -1,7 +1,8 @@
 {
   "testSettings": {
     "connectionString": "couchbase://localhost",
-    "bucketName": "default"
+    "bucketName": "default",
+    "certificatesFilePath" : ""
   },
   "couchbase": {
     "connectionString": "couchbase://localhost",

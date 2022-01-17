@@ -6,5 +6,6 @@ namespace Couchbase.IntegrationTests.Fixtures
         public string BucketName { get; set; }
         public bool EnableLogging { get; set; }
         public bool SystemTextJson { get; set; }
+        public string CertificatesFilePath { get; set; }
     }
 }

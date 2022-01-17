@@ -36,6 +36,11 @@ namespace Couchbase.IntegrationTests.Fixtures
             return bucket;
         }
 
+        public string GetCertsFilePath()
+        {
+            return GetSettings().CertificatesFilePath;
+        }
+
         internal static TestSettings GetSettings()
         {
             return new ConfigurationBuilder()
@@ -45,7 +50,7 @@ namespace Couchbase.IntegrationTests.Fixtures
                 .Get<TestSettings>();
         }
 
-        internal static ClusterOptions GetClusterOptions()
+        public ClusterOptions GetClusterOptions()
         {
             return new ConfigurationBuilder()
                 .AddJsonFile("config.json")
