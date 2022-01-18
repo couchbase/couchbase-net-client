@@ -37,6 +37,77 @@ namespace Couchbase.Query
         private string? _statement;
         private TimeSpan? _timeOut;
         private bool _flexIndex;
+        private volatile bool _isUsed;
+
+        internal QueryOptions CloneIfUsedAlready()
+        {
+            if (_isUsed)
+            {
+                var queryOptions = new QueryOptions()
+                    .Statement(_statement!)
+                    .AdHoc(IsAdHoc)
+                    .AutoExecute(_autoExecute)
+                    .CancellationToken(Token)
+                    .ClientContextId(Guid.NewGuid().ToString())
+                    .FlexIndex(_flexIndex)
+                    .Profile(_profile);
+
+                queryOptions._scanVectors = _scanVectors;
+                foreach(var arg in _arguments)
+                {
+                    queryOptions.Parameter(arg);
+                }
+                foreach(var arg in _rawParameters)
+                {
+                    queryOptions.Raw(arg.Key, arg.Value);
+                }
+                foreach(var arg in _parameters)
+                {
+                    queryOptions.Parameter(arg.Key, arg.Value);
+                }
+                if (_maxServerParallelism.HasValue)
+                {
+                    queryOptions.MaxServerParallelism(_maxServerParallelism.Value);
+                }
+                if (_includeMetrics.HasValue)
+                {
+                    queryOptions.Metrics(_includeMetrics.Value);
+                }
+                if (_pipelineCapacity.HasValue)
+                {
+                    queryOptions.PipelineCap(_pipelineCapacity.Value);
+                }
+                if (_pipelineBatch.HasValue)
+                {
+                    queryOptions.PipelineBatch(_pipelineBatch.Value);
+                }
+                if (_readOnly.HasValue)
+                {
+                    queryOptions.Readonly(_readOnly.Value);
+                }
+                if (_scanCapacity.HasValue)
+                {
+                    queryOptions.ScanCap(_scanCapacity.Value);
+                }
+                if (_timeOut.HasValue)
+                {
+                    queryOptions.Timeout(_timeOut.Value);
+                }
+                if(_scanWait.HasValue)
+                {
+                    queryOptions.ScanWait(_scanWait.Value);
+                }
+
+                queryOptions._scanConsistency = _scanConsistency;
+                queryOptions.Serializer = Serializer;
+                queryOptions.RequestSpanValue = RequestSpanValue;
+                queryOptions.BucketName = BucketName;
+                queryOptions.ScopeName = ScopeName;
+                return queryOptions;
+            }
+            _isUsed = true;
+            return this;
+        }
 
         /// <summary>
         /// Creates a new QueryOptions object.

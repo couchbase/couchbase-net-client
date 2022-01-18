@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Couchbase.Core;
+using Couchbase.KeyValue;
 using Couchbase.Query;
 using Couchbase.Query.Couchbase.N1QL;
 using Xunit;
@@ -77,6 +80,57 @@ namespace Couchbase.UnitTests.Query
 
             var values = options.GetFormValues();
             Assert.False(values.Keys.Contains("use_fts"));
+        }
+
+        [Fact]
+        public void Test_CloneIdUsedAlready()
+        {
+            var cts = new CancellationTokenSource();
+            var mutationState = new MutationState();
+            mutationState.Add(new MutationResult(0, TimeSpan.FromSeconds(10), new MutationToken("default", 1, 1, 1)));
+            var options = new QueryOptions().
+                AdHoc(true).AutoExecute(true).
+                CancellationToken(cts.Token).
+                ClientContextId("clientid").
+                ConsistentWith(mutationState).
+                FlexIndex(true).
+                MaxServerParallelism(1).
+                Metrics(true).
+                Parameter(1).
+                Parameter("name", "value").
+                PipelineBatch(1).
+                PipelineCap(1).
+                Profile(QueryProfile.Off).
+                Raw("foo", "bar").
+                Readonly(true).
+                ScanCap(1).
+                ScanWait(TimeSpan.FromSeconds(10)).
+                Timeout(TimeSpan.FromMilliseconds(1)).
+                Statement("SELECT 1;").
+                ScanCap(1);
+
+            var newOptions = options.CloneIfUsedAlready();
+            var newValues = newOptions.GetFormValues();
+            var oldValues = options.GetFormValues();
+
+            Assert.Equal(newValues.Count, oldValues.Count);
+            Assert.Equal(newValues["max_parallelism"], oldValues["max_parallelism"]);
+            Assert.Equal(newValues["statement"], oldValues["statement"]);
+            Assert.Equal(newValues["timeout"], oldValues["timeout"]);
+            Assert.Equal(newValues["readonly"], oldValues["readonly"]);
+            Assert.Equal(newValues["metrics"], oldValues["metrics"]);
+            Assert.Equal(newValues["$name"], oldValues["$name"]);
+            Assert.Equal(newValues["args"], oldValues["args"]);
+            Assert.Equal(newValues["scan_consistency"], oldValues["scan_consistency"]);
+            Assert.Equal(newValues["scan_vectors"], oldValues["scan_vectors"]);
+            Assert.Equal(newValues["scan_wait"], oldValues["scan_wait"]);
+            Assert.Equal(newValues["scan_cap"], oldValues["scan_cap"]);
+            Assert.Equal(newValues["pipeline_batch"], oldValues["pipeline_batch"]);
+            Assert.Equal(newValues["pipeline_cap"], oldValues["pipeline_cap"]);
+            Assert.Equal(newValues["foo"], oldValues["foo"]);
+            Assert.Equal(newValues["auto_execute"], oldValues["auto_execute"]);
+            Assert.Equal(newValues["client_context_id"], oldValues["client_context_id"]);
+            Assert.Equal(newValues["use_fts"], oldValues["use_fts"]);
         }
     }
 }

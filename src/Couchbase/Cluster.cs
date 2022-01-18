@@ -308,7 +308,7 @@ namespace Couchbase
                 Options = options,
                 Statement = statement,
                 Token = options.Token,
-                Timeout = options.TimeoutValue.Value,
+                Timeout = options.TimeoutValue.GetValueOrDefault(),
                 RetryStrategy =  options.RetryStrategyValue ?? _retryStrategy,
                 Recorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.N1QLQuery)
             }).ConfigureAwait(false);

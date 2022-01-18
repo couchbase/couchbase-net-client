@@ -63,6 +63,10 @@ namespace Couchbase.Query
         /// <inheritdoc />
         public async Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
         {
+            //It's possible to reuse the queryoptions which may cause odd threading behaviour
+            //So we'll clone it if it has already been used
+            options = options.CloneIfUsedAlready();
+
             if (string.IsNullOrEmpty(options.CurrentContextId))
             {
                 options.ClientContextId(Guid.NewGuid().ToString());
