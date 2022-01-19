@@ -105,35 +105,16 @@ namespace Couchbase.Configuration.Server.Providers
                     return bucketConfiguration;
                 }
 
-                // need to create new config
-                // can we copy settings from another bucket's config?
-                if (ClientConfig.BucketConfigs.Any())
+                // create new config using client configuration settings
+                bucketConfiguration = new BucketConfiguration
                 {
-                    // use settings from existing config
-                    var defaultConfig = ClientConfig.BucketConfigs.First().Value;
-                    bucketConfiguration = new BucketConfiguration
-                    {
-                        BucketName = bucketName,
-                        PoolConfiguration = defaultConfig.PoolConfiguration,
-                        Servers = defaultConfig.Servers,
-                        Port = defaultConfig.Port,
-                        Username = defaultConfig.Username,
-                        Password = string.Empty,
-                        UseSsl = defaultConfig.UseSsl
-                    };
-                }
-                else
-                {
-                    // create new config using client configuration settings
-                    bucketConfiguration = new BucketConfiguration
-                    {
-                        BucketName = bucketName,
-                        PoolConfiguration = ClientConfig.PoolConfiguration,
-                        Servers = ClientConfig.Servers,
-                        UseSsl = ClientConfig.UseSsl,
-                        Port = ClientConfig.DirectPort
-                    };
-                }
+                    BucketName = bucketName,
+                    PoolConfiguration = ClientConfig.PoolConfiguration,
+                    Servers = ClientConfig.Servers,
+                    UseSsl = ClientConfig.UseSsl,
+                    Port = ClientConfig.DirectPort,
+                    NetworkType = ClientConfig.NetworkType
+                };
 
                 SetNetworkType(bucketConfiguration.NetworkType);
 

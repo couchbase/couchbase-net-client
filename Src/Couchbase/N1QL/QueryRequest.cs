@@ -570,7 +570,7 @@ namespace Couchbase.N1QL
             if (string.IsNullOrWhiteSpace(username))
             {
                 const string usernameParameter = "username";
-                throw new ArgumentOutOfRangeException(username, ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
+                throw new ArgumentOutOfRangeException(usernameParameter, ExceptionUtil.GetMessage(ExceptionUtil.ParameterCannotBeNullOrEmptyFormat, usernameParameter));
             }
             if (isAdmin && !username.StartsWith("admin:"))
             {

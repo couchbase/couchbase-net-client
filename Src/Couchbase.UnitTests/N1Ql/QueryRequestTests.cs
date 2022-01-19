@@ -168,7 +168,7 @@ namespace Couchbase.UnitTests.N1Ql
                 Statement("SELECT * FROM authenticated").
                 AddCredentials("", "secret", false));
 
-           Assert.That(ex.Message, Is.EqualTo("username cannot be null, empty or whitespace."));
+           Assert.That(ex.Message, Is.EqualTo("username cannot be null, empty or whitespace. (Parameter 'username')"));
         }
 
         [Test]
@@ -179,7 +179,7 @@ namespace Couchbase.UnitTests.N1Ql
                  Statement("SELECT * FROM authenticated").
                  AddCredentials(" ", "secret", false));
 
-            Assert.That(ex.Message, Is.EqualTo($"username cannot be null, empty or whitespace.{Environment.NewLine}Parameter name:  "));
+            Assert.That(ex.Message, Is.EqualTo($"username cannot be null, empty or whitespace. (Parameter 'username')"));
         }
 
         [Test]
@@ -190,7 +190,7 @@ namespace Couchbase.UnitTests.N1Ql
                  Statement("SELECT * FROM authenticated").
                  AddCredentials(null, "secret", false));
 
-            Assert.That(ex.Message, Is.EqualTo("username cannot be null, empty or whitespace."));
+            Assert.That(ex.Message, Is.EqualTo("username cannot be null, empty or whitespace. (Parameter 'username')"));
         }
 
         private IQueryRequest CreateFullQueryRequest()
