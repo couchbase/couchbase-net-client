@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Xunit;
@@ -445,6 +446,70 @@ namespace Couchbase.IntegrationTests.Management
                 // get
                 var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
                 Assert.Equal(DurabilityLevel.Majority, result.DurabilityMinimumLevel);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task CreateCouchbaseBucketWith_StorageBackend_Couchstore()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Couchbase,
+                RamQuotaMB = 100,
+                StorageBackend = StorageBackend.Couchstore
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                await Task.Delay(5000).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(StorageBackend.Couchstore, result.StorageBackend);
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task CreateCouchbaseBucketWith_StorageBackend_Magma()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Couchbase,
+                RamQuotaMB = 256,
+                StorageBackend = StorageBackend.Magma
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                await Task.Delay(5000).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(StorageBackend.Magma, result.StorageBackend);
             }
             finally
             {
