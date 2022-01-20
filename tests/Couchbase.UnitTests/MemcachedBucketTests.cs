@@ -57,8 +57,7 @@ namespace Couchbase.UnitTests
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
-            mockClusterNode.Setup(x => x.BootstrapEndpoint).Returns(localhost);
+            mockClusterNode.Setup(x => x.EndPoint).Returns(new HostEndpointWithPort("127.0.0.1", 8091));
             mockClusterNode.Setup(x => x.SelectBucketAsync(It.IsAny<IBucket>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             var mockHttpClusterMap = new Mock<HttpClusterMapBase>();
@@ -81,8 +80,7 @@ namespace Couchbase.UnitTests
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
-            mockClusterNode.Setup(x => x.BootstrapEndpoint).Returns(localhost);
+            mockClusterNode.Setup(x => x.EndPoint).Returns(new HostEndpointWithPort("127.0.0.1", 8091));
             mockClusterNode.Setup(x => x.SelectBucketAsync(It.IsAny<IBucket>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             var mockHttpClusterMap = new Mock<HttpClusterMapBase>();
@@ -105,8 +103,7 @@ namespace Couchbase.UnitTests
             bucketConfig.Nodes.RemoveAt(1);
 
             var mockClusterNode = new Mock<IClusterNode>();
-            mockClusterNode.Setup(x => x.EndPoint).Returns(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8091));
-            mockClusterNode.Setup(x => x.BootstrapEndpoint).Returns(localhost);
+            mockClusterNode.Setup(x => x.EndPoint).Returns(new HostEndpointWithPort("127.0.0.1", 8091));
             mockClusterNode.Setup(x => x.SelectBucketAsync(It.IsAny<IBucket>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
             var mockHttpClusterMap = new Mock<HttpClusterMapBase>();

@@ -260,10 +260,10 @@ namespace Couchbase.Core
             }
         }
 
-        public IClusterNode GetUnassignedNode(HostEndpoint endpoint, BucketType bucketType)
+        public IClusterNode GetUnassignedNode(HostEndpointWithPort endpoint, BucketType bucketType)
         {
             return Nodes.FirstOrDefault(
-                x => !x.IsAssigned && x.BootstrapEndpoint.Equals(endpoint) && x.BucketType == bucketType);
+                x => !x.IsAssigned && x.EndPoint.Equals(endpoint) && x.BucketType == bucketType);
         }
 
         public async Task BootstrapGlobalAsync()
@@ -350,7 +350,7 @@ namespace Couchbase.Core
                         }
                         else
                         {
-                            var hostEndpoint = HostEndpoint.Create(nodeAdapter, ClusterOptions);
+                            var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
                             var newNode = await _clusterNodeFactory
                                 .CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, nodeAdapter,
                                     CancellationToken).ConfigureAwait(false);
@@ -401,7 +401,7 @@ namespace Couchbase.Core
             throw new BucketNotFoundException(name);
         }
 
-        public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpoint endpoint, BucketType type)
+        public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint, BucketType type)
         {
             var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
             var bucket = bucketFactory.Create(name, type);
@@ -479,13 +479,12 @@ namespace Couchbase.Core
 
         public async Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
-            var ipEndPointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
             foreach (var nodeAdapter in config.GetNodes())
             {
                 //log any alternate address mapping
                 _logger.LogInformation(nodeAdapter.ToString());
 
-                var endPoint = await ipEndPointService.GetIpEndPointAsync(nodeAdapter, CancellationToken).ConfigureAwait(false);
+                var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
                 if (Nodes.TryGet(endPoint, out var bootstrapNode))
                 {
                     if (bootstrapNode.Owner == null && bucket.BucketType != BucketType.Memcached)
@@ -529,7 +528,7 @@ namespace Couchbase.Core
                 var bucketType = config.NodeLocator == "ketama" ? BucketType.Memcached : BucketType.Couchbase;
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(
                     // We want the BootstrapEndpoint to use the host name, not just the IP
-                    new HostEndpoint(nodeAdapter.Hostname, endPoint.Port),
+                    new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port),
                     bucketType,
                     nodeAdapter,
                     CancellationToken).ConfigureAwait(false);
@@ -545,21 +544,19 @@ namespace Couchbase.Core
                 bucket.Nodes.Add(node);//may remove
             }
 
-            await PruneNodesAsync(config).ConfigureAwait(false);
+            PruneNodes(config);
         }
 
-        public async Task PruneNodesAsync(BucketConfig config)
+        public void PruneNodes(BucketConfig config)
         {
-            var ipEndpointService = ServiceProvider.GetRequiredService<IIpEndPointService>();
-
-            var existingEndpoints = await config.GetNodes().ToAsyncEnumerable()
-                .SelectAwait(p => ipEndpointService.GetIpEndPointAsync(p, CancellationToken))
-                .ToListAsync(CancellationToken).ConfigureAwait(false);
+            var existingEndpoints = config.GetNodes()
+                .Select(p => HostEndpointWithPort.Create(p, _clusterOptions))
+                .ToList();
 
             _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision}.", existingEndpoints, config.Rev);
 
             var removedEndpoints = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Address.Equals(y.Address))));
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Host.Equals(y.Host))));
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision}", removedEndpoints, config.Rev);
 

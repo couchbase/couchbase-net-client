@@ -7,9 +7,9 @@ using Couchbase.Utils;
 namespace Couchbase
 {
     /// <summary>
-    ///
+    /// A host name and port pair. Unlike <see cref="HostEndpoint"/> this type requires a port number.
     /// </summary>
-    public readonly struct HostEndpoint : IEquatable<HostEndpoint>
+    internal readonly struct HostEndpointWithPort : IEquatable<HostEndpointWithPort>
     {
         /// <summary>
         /// Host name or IP address. IPv6 addresses should be wrapped in square braces.
@@ -17,17 +17,18 @@ namespace Couchbase
         public string Host { get; }
 
         /// <summary>
-        /// Port number, if any.
+        /// Port number.
         /// </summary>
-        public int? Port { get; }
+        public int Port { get; }
 
         /// <summary>
         /// Creates a new HostEndpoint.
         /// </summary>
         /// <param name="host">Host name or IP address. IPv6 addresses should be wrapped in square braces.</param>
-        /// <param name="port">Port number, if any.</param>
-        public HostEndpoint(string host, int? port)
+        /// <param name="port">Port number.</param>
+        public HostEndpointWithPort(string host, int port)
         {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (host == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(host));
@@ -42,19 +43,19 @@ namespace Couchbase
             host = Host;
         }
 
-        public void Deconstruct(out string host, out int? port)
+        public void Deconstruct(out string host, out int port)
         {
             host = Host;
             port = Port;
         }
 
         /// <inheritdoc />
-        public override string ToString() => Port != null ? $"{Host}:{Port}" : Host;
+        public override string ToString() => $"{Host}:{Port}";
 
         #region Equality
 
         /// <inheritdoc />
-        public bool Equals(HostEndpoint other)
+        public bool Equals(HostEndpointWithPort other)
         {
             return Host == other.Host && Port == other.Port;
         }
@@ -62,24 +63,26 @@ namespace Couchbase
         /// <inheritdoc />
         public override bool Equals(object? obj)
         {
-            return obj is HostEndpoint other && Equals(other);
+            return obj is HostEndpointWithPort other && Equals(other);
         }
 
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            unchecked
-            {
-                return (Host.GetHashCode() * 397) ^ Port.GetHashCode();
-            }
+#if NETSTANDARD2_0
+            // Use ValueTuple to build the hash code from the components
+            return (Host, Port).GetHashCode();
+#else
+            return HashCode.Combine(Host, Port);
+#endif
         }
 
-        public static bool operator ==(HostEndpoint left, HostEndpoint right)
+        public static bool operator ==(HostEndpointWithPort left, HostEndpointWithPort right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=(HostEndpoint left, HostEndpoint right)
+        public static bool operator !=(HostEndpointWithPort left, HostEndpointWithPort right)
         {
             return !left.Equals(right);
         }
@@ -94,37 +97,36 @@ namespace Couchbase
         /// </summary>
         /// <param name="server">The server to parse.</param>
         /// <returns>The <see cref="HostEndpoint"/>.</returns>
-        public static HostEndpoint Parse(string server) =>
-            (!string.IsNullOrWhiteSpace(server) ? server : throw new ArgumentNullException(nameof(server)))
-                .StartsWith("[", StringComparison.Ordinal) ?
-                    ParseIpv6Server(server) :
-                    ParseBasicServer(server);
-
-        private static HostEndpoint ParseBasicServer(string server)
+        public static HostEndpointWithPort Parse(string server)
         {
-            const int maxSplits = 2;
-            var address = server.Split(':');
-            if (address.Length > maxSplits)
+            if (string.IsNullOrWhiteSpace(server))
             {
-                throw new ArgumentException("Invalid server.", nameof(server));
+                ThrowHelper.ThrowArgumentNullException(nameof(server));
             }
 
-            if (address.Length == maxSplits)
-            {
-                if (!int.TryParse(address[1], out var port))
-                {
-                    throw new ArgumentException("Invalid port number.", nameof(server));
-                }
-
-                return new HostEndpoint(address[0], port);
-            }
-            else
-            {
-                return new HostEndpoint(address[0], null);
-            }
+            return server.StartsWith("[", StringComparison.Ordinal)
+                ? ParseIpv6Server(server)
+                : ParseBasicServer(server);
         }
 
-        private static HostEndpoint ParseIpv6Server(string server)
+        private static HostEndpointWithPort ParseBasicServer(string server)
+        {
+            const int expectedSplits = 2;
+            var address = server.Split(':');
+            if (address.Length != expectedSplits)
+            {
+                ThrowHelper.ThrowArgumentException("Invalid server.", nameof(server));
+            }
+
+            if (!int.TryParse(address[1], out var port))
+            {
+                ThrowHelper.ThrowArgumentException("Invalid port number.", nameof(server));
+            }
+
+            return new HostEndpointWithPort(address[0], port);
+        }
+
+        private static HostEndpointWithPort ParseIpv6Server(string server)
         {
             // Assumes an address with IPv6 syntax of "[ip]:port"
             // Since ip will contain colons, we can't just split the string
@@ -134,13 +136,13 @@ namespace Couchbase
             var addressEnd = server.IndexOf(']', 1);
             if (addressEnd < 0)
             {
-                throw new ArgumentException(invalidServer, nameof(server));
+                ThrowHelper.ThrowArgumentException(invalidServer, nameof(server));
             }
 
             if (server.Length < addressEnd + 3 || server[addressEnd + 1] != ':')
             {
                 // Doesn't have the port on the end
-                return new HostEndpoint(server, null);
+                ThrowHelper.ThrowArgumentException(invalidServer, nameof(server));
             }
 
             var address = server.Substring(0, addressEnd + 1);
@@ -148,13 +150,34 @@ namespace Couchbase
             var portString = server.Substring(addressEnd + 2);
             if (!int.TryParse(portString, out var port))
             {
-                throw new ArgumentException(invalidServer, nameof(server));
+                ThrowHelper.ThrowArgumentException(invalidServer, nameof(server));
             }
 
-            return new HostEndpoint(address, port);
+            return new HostEndpointWithPort(address, port);
         }
 
         #endregion
+
+        public static HostEndpointWithPort Create(NodeAdapter nodeAdapter, ClusterOptions options)
+        {
+            return new HostEndpointWithPort(nodeAdapter.Hostname,
+                options.EffectiveEnableTls ? nodeAdapter.KeyValueSsl : nodeAdapter.KeyValue);
+        }
+
+        public static HostEndpointWithPort Create(NodesExt nodeExt, ClusterOptions options)
+        {
+            return new HostEndpointWithPort(nodeExt.Hostname,
+                options.EffectiveEnableTls ? nodeExt.Services.KvSsl : nodeExt.Services.Kv);
+        }
+
+        public static HostEndpointWithPort Create(ExternalAddressesConfig extAddressConfig, ClusterOptions options)
+        {
+            return new HostEndpointWithPort(extAddressConfig.Hostname,
+                options.EffectiveEnableTls ? extAddressConfig.Ports.KvSsl : extAddressConfig.Ports.Kv);
+        }
+
+        public static implicit operator HostEndpoint(HostEndpointWithPort hostEndpointWithPort) =>
+            new(hostEndpointWithPort.Host, hostEndpointWithPort.Port);
     }
 }
 

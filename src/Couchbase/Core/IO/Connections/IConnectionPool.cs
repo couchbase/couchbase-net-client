@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
@@ -15,9 +14,9 @@ namespace Couchbase.Core.IO.Connections
     internal interface IConnectionPool : IDisposable
     {
         /// <summary>
-        /// The <see cref="IPEndPoint"/> of the server that the <see cref="IConnection"/>s are connected to.
+        /// The <see cref="HostEndpointWithPort"/> of the server that the <see cref="IConnection"/>s are connected to.
         /// </summary>
-        IPEndPoint EndPoint { get; }
+        HostEndpointWithPort EndPoint { get; }
 
         /// <summary>
         /// Current size of the pool.

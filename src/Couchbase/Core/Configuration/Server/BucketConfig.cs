@@ -277,9 +277,9 @@ namespace Couchbase.Core.Configuration.Server
         /// time only, and then once this determination has been made, the network resolution mode should be unambiguously
         /// set to "internal" or "external".
         /// </summary>
-        /// <param name="bootstrapEndpoint">The <see cref="HostEndpoint"/> used to bootstrap.</param>
+        /// <param name="bootstrapEndpoint">The <see cref="HostEndpointWithPort"/> used to bootstrap.</param>
         /// <param name="options">THe <see cref="ClusterOptions"/> for configuration.</param>
-        public void SetEffectiveNetworkResolution(HostEndpoint bootstrapEndpoint, ClusterOptions options)
+        public void SetEffectiveNetworkResolution(HostEndpointWithPort bootstrapEndpoint, ClusterOptions options)
         {
             if (NodesExt.FirstOrDefault()!.HasAlternateAddress)
             {
@@ -288,7 +288,7 @@ namespace Couchbase.Core.Configuration.Server
                 {
                     foreach (var nodesExt in NodesExt)
                     {
-                        if (bootstrapEndpoint.Equals(HostEndpoint.Create(nodesExt, options)))
+                        if (bootstrapEndpoint.Equals(HostEndpointWithPort.Create(nodesExt, options)))
                         {
                             //We detect internal or "default" should be used
                             NetworkResolution = options.EffectiveNetworkResolution = Couchbase.NetworkResolution.Default;
@@ -296,7 +296,7 @@ namespace Couchbase.Core.Configuration.Server
                         }
 
                         if (nodesExt.AlternateAddresses.Any(extAlternateAddress =>
-                            bootstrapEndpoint.Equals(HostEndpoint.Create(extAlternateAddress.Value, options))))
+                            bootstrapEndpoint.Equals(HostEndpointWithPort.Create(extAlternateAddress.Value, options))))
                         {
                             NetworkResolution = options.EffectiveNetworkResolution =
                                 Couchbase.NetworkResolution.External;

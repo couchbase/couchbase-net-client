@@ -34,17 +34,16 @@ namespace Couchbase.IntegrationTests.Core.IO.Authentication
             var options = ClusterFixture.GetClusterOptions();
             options.WithConnectionString(ClusterFixture.GetSettings().ConnectionString);
 
-            var factory = new ConnectionFactory(options, new Mock<ILogger<MultiplexingConnection>>().Object,
+            var ipEndPointService = new IpEndPointService(
+                new DnsClientDnsResolver(new LookupClient(), new DotNetDnsClient(), new Mock<ILogger<DnsClientDnsResolver>>().Object));
+            var factory = new ConnectionFactory(options, ipEndPointService,
+                new Mock<ILogger<MultiplexingConnection>>().Object,
                 new Mock<ILogger<SslConnection>>().Object);
 
-            var ipEndPointService = new IpEndPointService(
-                new DnsClientDnsResolver(new LookupClient(), new DotNetDnsClient(), new Mock<ILogger<DnsClientDnsResolver>>().Object),
-                options);
-            var ipEndPoint = await ipEndPointService.GetIpEndPointAsync(
-                options.ConnectionStringValue.GetBootstrapEndpoints().First().Host, 11210).ConfigureAwait(false);
+            var endPoint = options.ConnectionStringValue.GetBootstrapEndpoints().First();
 
             var connection = await factory
-                .CreateAndConnectAsync(ipEndPoint, new HostEndpoint("localhost", 11210))
+                .CreateAndConnectAsync(endPoint)
                 .ConfigureAwait(false);
 
             var sha1Mechanism = new ScramShaMechanism(MechanismType.ScramSha1, options.Password,

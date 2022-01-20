@@ -1,5 +1,4 @@
 using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Sharding;
 
@@ -18,7 +17,7 @@ namespace Couchbase.Core.DI
         /// <param name="bucketConfig">Bucket configuration.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <remarks>The new <see cref="IKeyMapper"/>.</remarks>
-        Task<IKeyMapper> CreateAsync(BucketConfig bucketConfig, CancellationToken cancellationToken = default);
+        IKeyMapper Create(BucketConfig bucketConfig, CancellationToken cancellationToken = default);
     }
 }
 

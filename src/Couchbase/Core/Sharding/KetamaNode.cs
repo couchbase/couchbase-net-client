@@ -7,9 +7,9 @@ namespace Couchbase.Core.Sharding
     /// </summary>
     internal class KetamaNode : IMappedNode
     {
-        private readonly IPEndPoint _server;
+        private readonly HostEndpointWithPort _server;
 
-        public KetamaNode(IPEndPoint server)
+        public KetamaNode(HostEndpointWithPort server)
         {
             _server = server;
         }
@@ -19,7 +19,7 @@ namespace Couchbase.Core.Sharding
         /// </summary>
         /// <returns>An object implementing the <see cref="IServer"/> interface,
         /// which is the node that a key is mapped to within a cluster.</returns>
-        public IPEndPoint LocatePrimary()
+        public HostEndpointWithPort? LocatePrimary()
         {
             return _server;
         }

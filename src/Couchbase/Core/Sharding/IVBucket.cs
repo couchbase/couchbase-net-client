@@ -7,14 +7,14 @@ namespace Couchbase.Core.Sharding
     /// <summary>
     /// Represents a VBucket partition in a Couchbase cluster
     /// </summary>
-    public interface IVBucket : IMappedNode
+    internal interface IVBucket : IMappedNode
     {
         /// <summary>
         /// Locates a replica for a given index.
         /// </summary>
         /// <param name="index">The index of the replica.</param>
         /// <returns>An <see cref="IServer"/> if the replica is found, otherwise null.</returns>
-        IPEndPoint? LocateReplica(short index);
+        HostEndpointWithPort? LocateReplica(short index);
 
         /// <summary>
         /// Gets an array of replica indexes.

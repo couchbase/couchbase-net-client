@@ -49,7 +49,7 @@ namespace Couchbase.Core
         private Uri _viewsUri;
         private Uri _eventingUri;
         private NodeAdapter _nodesAdapter;
-        private readonly ObservableCollection<IPEndPoint> _keyEndPoints = new ObservableCollection<IPEndPoint>();
+        private readonly ObservableCollection<HostEndpointWithPort> _keyEndPoints = new();
         private readonly string _cachedToString;
         private volatile bool _disposed;
         private readonly IValueRecorder _valueRecorder;
@@ -58,7 +58,7 @@ namespace Couchbase.Core
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IRedactor redactor, IPEndPoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer, IValueRecorder valueRecorder)
+            IRedactor redactor, HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer, IValueRecorder valueRecorder)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -69,7 +69,7 @@ namespace Couchbase.Core
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
             BucketType = bucketType;
-            EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
+            EndPoint = endPoint;
             _valueRecorder = valueRecorder ?? throw new ArgumentNullException(nameof(valueRecorder));
 
             try
@@ -84,7 +84,7 @@ namespace Couchbase.Core
             _cachedToString = $"{EndPoint}-{_id}";
             _remoteHostName = EndPoint.ToString();
 
-            KeyEndPoints = new ReadOnlyObservableCollection<IPEndPoint>(_keyEndPoints);
+            KeyEndPoints = new ReadOnlyObservableCollection<HostEndpointWithPort>(_keyEndPoints);
             UpdateKeyEndPoints();
             ((INotifyCollectionChanged)_keyEndPoints).CollectionChanged += (_, e) => OnKeyEndPointsChanged(e);
 
@@ -128,12 +128,11 @@ namespace Couchbase.Core
             }
         }
 
-        public HostEndpoint BootstrapEndpoint { get; set; }
-        public IPEndPoint EndPoint { get; }
+        public HostEndpointWithPort EndPoint { get; }
         public BucketType BucketType { get; internal set; } = BucketType.Memcached;
 
         /// <inheritdoc />
-        public IReadOnlyCollection<IPEndPoint> KeyEndPoints { get; }
+        public IReadOnlyCollection<HostEndpointWithPort> KeyEndPoints { get; }
 
         public Uri EventingUri
         {
@@ -333,9 +332,9 @@ namespace Couchbase.Core
 
             var config = configOp.GetValue();
 
-            if (config != null && EndPoint != null)
+            if (config != null)
             {
-                config.ReplacePlaceholderWithBootstrapHost(BootstrapEndpoint.Host);
+                config.ReplacePlaceholderWithBootstrapHost(EndPoint.Host);
             }
 
             return config;
@@ -378,8 +377,8 @@ namespace Couchbase.Core
             {
                 // KeyEndPoints should be the K/V and K/V SSL ports at EndPoint.Address. Remove others add if necessary.
 
-                var kvEndpoint = new IPEndPoint(EndPoint.Address, _nodesAdapter.KeyValue);
-                var sslEndpoint = new IPEndPoint(EndPoint.Address, _nodesAdapter.KeyValueSsl);
+                var kvEndpoint = new HostEndpointWithPort(EndPoint.Host, _nodesAdapter.KeyValue);
+                var sslEndpoint = new HostEndpointWithPort(EndPoint.Host, _nodesAdapter.KeyValueSsl);
 
                 if (_keyEndPoints.Count > 0)
                 {
@@ -727,7 +726,7 @@ namespace Couchbase.Core
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return Equals(Owner, other.Owner) && BootstrapEndpoint.Equals(other.BootstrapEndpoint);
+            return Equals(Owner, other.Owner) && EndPoint.Equals(other.EndPoint);
         }
 
         public override bool Equals(object obj)
@@ -741,7 +740,8 @@ namespace Couchbase.Core
         public override int GetHashCode()
         {
 #if NETSTANDARD2_0
-            return new { EndPoint, _id }.GetHashCode();
+            // Use ValueTuple to build the hash code from the components
+            return (EndPoint, _id).GetHashCode();
 #else
             return System.HashCode.Combine(EndPoint, _id);
 #endif

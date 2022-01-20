@@ -165,7 +165,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var newConfig = ResourceHelper.ReadResource<BucketConfig>(newConfigPath);
 
             var options = new ClusterOptions();
-            var bucketNodes = new ConcurrentDictionary<IPEndPoint, IClusterNode>();
+            var bucketNodes = new ConcurrentDictionary<HostEndpointWithPort, IClusterNode>();
             var context = new ClusterContext(new CancellationTokenSource(), options);
 
             var ipEndpointService = context.ServiceProvider.GetRequiredService<IIpEndPointService>();
@@ -173,7 +173,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             //load up the initial state after bootstrapping
             foreach (var server in oldConfig.GetNodes())
             {
-                var endPoint = await ipEndpointService.GetIpEndPointAsync(server).ConfigureAwait(false);
+                var endPoint = HostEndpointWithPort.Create(server, options);
                 var clusterNode = new ClusterNode(context, new Mock<IConnectionPoolFactory>().Object,
                     new Mock<ILogger<ClusterNode>>().Object,
                     new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy()),
@@ -192,7 +192,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             foreach (var nodesExt in newConfig.GetNodes())
             {
-                var endPoint = await ipEndpointService.GetIpEndPointAsync(nodesExt).ConfigureAwait(false);
+                var endPoint = HostEndpointWithPort.Create(nodesExt, options);
                 if (bucketNodes.ContainsKey(endPoint))
                 {
                     continue;
@@ -210,7 +210,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 bucketNodes.TryAdd(endPoint, clusterNode);
             }
 
-            await context.PruneNodesAsync(newConfig).ConfigureAwait(false);
+            context.PruneNodes(newConfig);
 
             Assert.Equal(newConfig.NodesExt.Count, context.Nodes.Count);
         }
@@ -296,7 +296,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var options = new ClusterOptions {NetworkResolution = networkResolution};
 
             var config = JsonConvert.DeserializeObject<BucketConfig>(ResourceHelper.ReadResource(configPath));
-            config.SetEffectiveNetworkResolution(new HostEndpoint(hostname, port), options);
+            config.SetEffectiveNetworkResolution(new HostEndpointWithPort(hostname, port), options);
 
             Assert.Equal(effectiveResolution, options.EffectiveNetworkResolution);
         }

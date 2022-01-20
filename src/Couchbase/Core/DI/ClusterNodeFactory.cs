@@ -31,14 +31,13 @@ namespace Couchbase.Core.DI
         private readonly ObjectPool<OperationBuilder> _operationBuilderPool;
         private readonly ICircuitBreaker _circuitBreaker;
         private readonly ISaslMechanismFactory _saslMechanismFactory;
-        private readonly IIpEndPointService _ipEndPointService;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
         private readonly IMeter _meter;
 
         public ClusterNodeFactory(ClusterContext clusterContext, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            IIpEndPointService ipEndPointService, IRedactor redactor, IRequestTracer tracer, IMeter meter)
+            IRedactor redactor, IRequestTracer tracer, IMeter meter)
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
             _connectionPoolFactory = connectionPoolFactory ?? throw new ArgumentNullException(nameof(connectionPoolFactory));
@@ -46,32 +45,26 @@ namespace Couchbase.Core.DI
             _operationBuilderPool = operationBuilderPool ?? throw new ArgumentNullException(nameof(operationBuilderPool));
             _circuitBreaker = circuitBreaker ?? throw new ArgumentException(nameof(circuitBreaker));
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentNullException(nameof(saslMechanismFactory));
-            _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
             _meter = meter ?? throw new ArgumentNullException(nameof(meter));
         }
 
         /// <inheritdoc />
-        public Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, CancellationToken cancellationToken = default)
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, BucketType bucketType, CancellationToken cancellationToken = default)
         {
             return CreateAndConnectAsync(endPoint, bucketType, null, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
+        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
         {
-            var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(endPoint.Host, endPoint.Port.GetValueOrDefault(), cancellationToken).ConfigureAwait(false);
-
             //for recording k/v latencies per request
             var valueRecorder = _meter.ValueRecorder(OuterRequestSpans.ServiceSpan.Kv.Name);
 
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
-                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, ipEndPoint, bucketType,
-                nodeAdapter, _tracer, valueRecorder)
-            {
-                BootstrapEndpoint = endPoint
-            };
+                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, endPoint, bucketType,
+                nodeAdapter, _tracer, valueRecorder);
 
             //ensure server calls are made to set the state
             await clusterNode.InitializeAsync().ConfigureAwait(false);

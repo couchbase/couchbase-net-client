@@ -212,7 +212,8 @@ namespace Couchbase.Diagnostics
             return ServiceState.Disconnected;
         }
 
-        internal static EndpointDiagnostics CreateEndpointHealth(string bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity, EndPoint endPoint)
+        internal static EndpointDiagnostics CreateEndpointHealth(string bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
+            HostEndpointWithPort? endPoint)
         {
             return new EndpointDiagnostics
             {

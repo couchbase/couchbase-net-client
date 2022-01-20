@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Sharding;
@@ -15,7 +14,7 @@ namespace Couchbase.UnitTests.Core.Sharding
     public class VBucketTests
     {
         private readonly IVBucket _vBucket;
-        private readonly ICollection<IPEndPoint> _servers;
+        private readonly ICollection<HostEndpointWithPort> _servers;
         private readonly VBucketServerMap _vBucketServerMap;
 
         public  VBucketTests()
@@ -23,13 +22,13 @@ namespace Couchbase.UnitTests.Core.Sharding
             var serverConfigJson = ResourceHelper.ReadResource("bootstrap-config.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(serverConfigJson);
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(bucketConfig.VBucketServerMap);
+            var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
             _vBucketServerMap = vBucketServerMap;
 
-            _servers = new List<IPEndPoint>();
+            _servers = new List<HostEndpointWithPort>();
             foreach (var node in bucketConfig.GetNodes())
             {
-                _servers.Add(new IPEndPoint(IPAddress.Parse(node.Hostname), node.KeyValue));
+                _servers.Add(new HostEndpointWithPort(node.Hostname, node.KeyValue));
             }
 
             var vBucketMap = _vBucketServerMap.VBucketMap.First();
@@ -43,7 +42,6 @@ namespace Couchbase.UnitTests.Core.Sharding
         public void TestLocatePrimary()
         {
             var primary = _vBucket.LocatePrimary();
-            Assert.NotNull(primary);
 
             var expected = _servers.First();
             Assert.Equal(expected, primary);
@@ -56,8 +54,8 @@ namespace Couchbase.UnitTests.Core.Sharding
             var replica = _vBucket.LocateReplica(replicaIndex);
             Assert.NotNull(replica);
 
-            var expected = _vBucketServerMap.IPEndPoints[replicaIndex];
-            Assert.Same(expected, replica);
+            var expected = _vBucketServerMap.EndPoints[replicaIndex];
+            Assert.Equal(expected, replica);
         }
 
         [Fact]
@@ -66,7 +64,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(bucketConfig.VBucketServerMap);
+            var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
             var mapper = new VBucketKeyMapper(bucketConfig, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -82,7 +80,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(bucketConfig.VBucketServerMap);
+            var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
             var mapper = new VBucketKeyMapper(bucketConfig, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -102,7 +100,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-replicas-complete.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(bucketConfig.VBucketServerMap);
+            var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
             var mapper = new VBucketKeyMapper(bucketConfig, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -114,7 +112,7 @@ namespace Couchbase.UnitTests.Core.Sharding
                 Assert.NotNull(server);
 
                 var expected = bucketConfig.VBucketServerMap.ServerList[index];
-                Assert.Equal(server.Address.ToString(), expected.Split(':').First());
+                Assert.Equal(server.Value.Host, expected.Split(':').First());
             }
         }
 
@@ -124,7 +122,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var json = ResourceHelper.ReadResource(@"Data\Configuration\config-with-negative-one-primary.json");
             var bucketConfig = JsonConvert.DeserializeObject<BucketConfig>(json);
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(bucketConfig.VBucketServerMap);
+            var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
             var mapper = new VBucketKeyMapper(bucketConfig, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -148,7 +146,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             bucketConfig.NodesExt.Remove(bucketConfig.NodesExt.First());
             bucketConfig.Nodes.Remove(bucketConfig.Nodes.First());
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(bucketConfig.VBucketServerMap);
+            var vBucketServerMap = GetServerMap(bucketConfig.VBucketServerMap);
 
             var mapper = new VBucketKeyMapper(bucketConfig, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -164,9 +162,9 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_Replica_Index_OOR_LocatePrimary_Returns_Random_Server()
         {
-            var (vBucketServerMap, ipEndPoints) = GetServerMapAndIpEndPoints("127.0.0.1:10210");
+            var vBucketServerMap = GetServerMap("127.0.0.1:10210");
 
-            var vBucket = new VBucket(ipEndPoints, 100, -1, new short[] {2}, 0,
+            var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] {2}, 0,
                 vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
             var found = vBucket.LocatePrimary();
             Assert.NotNull(found);
@@ -175,9 +173,9 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_Replica_Index_1_LocatePrimary_Returns_Random_Server()
         {
-            var (vBucketServerMap, ipEndPoints) = GetServerMapAndIpEndPoints();
+            var vBucketServerMap = GetServerMap();
 
-            var vBucket = new VBucket(ipEndPoints, 100, -1, new short[] { 0 }, 0,
+            var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] { 0 }, 0,
                 vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
             var found = vBucket.LocatePrimary();
             Assert.Null(found);//should be null
@@ -186,9 +184,9 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_Replica_Index_Negative_LocatePrimary_Returns_Random_Server()
         {
-            var (vBucketServerMap, ipEndPoints) = GetServerMapAndIpEndPoints("127.0.0.1:10210");
+            var vBucketServerMap = GetServerMap("127.0.0.1:10210");
 
-            var vBucket = new VBucket(ipEndPoints, 100, -1, new short[] { -1 }, 0,
+            var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] { -1 }, 0,
                 vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
             var found = vBucket.LocatePrimary();
             Assert.NotNull(found);
@@ -197,9 +195,9 @@ namespace Couchbase.UnitTests.Core.Sharding
         [Fact]
         public void When_Replica_Index_Positive_LocatePrimary_Returns_It()
         {
-            var (vBucketServerMap, ipEndPoints) = GetServerMapAndIpEndPoints("127.0.0.1:10210", "127.0.0.2:10210");
+            var vBucketServerMap = GetServerMap("127.0.0.1:10210", "127.0.0.2:10210");
 
-            var vBucket = new VBucket(ipEndPoints, 100, -1, new short[] { 0 }, 0,
+            var vBucket = new VBucket(vBucketServerMap.EndPoints, 100, -1, new short[] { 0 }, 0,
                 vBucketServerMap, "default", new Mock<ILogger<VBucket>>().Object);
             var found = vBucket.LocatePrimary();
             Assert.NotNull(found);
@@ -207,7 +205,7 @@ namespace Couchbase.UnitTests.Core.Sharding
 
         #region Helpers
 
-        private static (VBucketServerMap serverMap, List<IPEndPoint> ipEndPoints) GetServerMapAndIpEndPoints(
+        private static VBucketServerMap GetServerMap(
             params string[] servers)
         {
             var vBucketServerMapDto = new VBucketServerMapDto
@@ -215,29 +213,13 @@ namespace Couchbase.UnitTests.Core.Sharding
                 ServerList = servers.ToArray()
             };
 
-            var ipEndPoints = vBucketServerMapDto.ServerList
-                .Select(p =>
-                {
-                    var split = p.Split(':');
-                    return new IPEndPoint(IPAddress.Parse(split[0]), int.Parse(split[1]));
-                })
-                .ToList();
-
-            return (new VBucketServerMap(vBucketServerMapDto, ipEndPoints), ipEndPoints);
+            return new VBucketServerMap(vBucketServerMapDto);
         }
 
-        private static (VBucketServerMap serverMap, List<IPEndPoint> ipEndPoints) GetServerMapAndIpEndPoints(
+        private static VBucketServerMap GetServerMap(
             VBucketServerMapDto vBucketServerMapDto)
         {
-            var ipEndPoints = vBucketServerMapDto.ServerList
-                .Select(p =>
-                {
-                    var split = p.Split(':');
-                    return new IPEndPoint(IPAddress.Parse(split[0]), int.Parse(split[1]));
-                })
-                .ToList();
-
-            return (new VBucketServerMap(vBucketServerMapDto, ipEndPoints), ipEndPoints);
+            return new VBucketServerMap(vBucketServerMapDto);
         }
 
         #endregion

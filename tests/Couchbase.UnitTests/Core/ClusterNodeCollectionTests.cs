@@ -377,7 +377,7 @@ namespace Couchbase.UnitTests.Core
 
             var args = new NotifyCollectionChangedEventArgs(
                 NotifyCollectionChangedAction.Add,
-                new List<IPEndPoint> { CreateEndpoint(2) },
+                new List<HostEndpointWithPort> { CreateEndpoint(2) },
                 1);
 
             // Act
@@ -403,7 +403,7 @@ namespace Couchbase.UnitTests.Core
 
             var args = new NotifyCollectionChangedEventArgs(
                 NotifyCollectionChangedAction.Remove,
-                new List<IPEndPoint> { CreateEndpoint(2) },
+                new List<HostEndpointWithPort> { CreateEndpoint(2) },
                 1);
 
             // Act
@@ -419,12 +419,12 @@ namespace Couchbase.UnitTests.Core
 
         #region Helpers
 
-        private IPEndPoint CreateEndpoint(byte i)
+        private HostEndpointWithPort CreateEndpoint(byte i)
         {
-            return new IPEndPoint(IPAddress.Parse($"127.0.0.{i}"), 11210);
+            return new HostEndpointWithPort($"127.0.0.{i}", 11210);
         }
 
-        private Mock<IClusterNode> CreateMockNode(params IPEndPoint[] endPoints)
+        private Mock<IClusterNode> CreateMockNode(params HostEndpointWithPort[] endPoints)
         {
             var node = new Mock<IClusterNode>();
             node
@@ -432,7 +432,7 @@ namespace Couchbase.UnitTests.Core
                 .Returns(endPoints[0]);
             node
                 .Setup(p => p.KeyEndPoints)
-                .Returns(new ReadOnlyCollection<IPEndPoint>(endPoints));
+                .Returns(new ReadOnlyCollection<HostEndpointWithPort>(endPoints));
             node
                 .SetupAdd(m => m.KeyEndPointsChanged += It.IsAny<NotifyCollectionChangedEventHandler>());
             node

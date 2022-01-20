@@ -17,9 +17,9 @@ namespace Couchbase.Core.Sharding
         private readonly short[] _replicas;
         private readonly VBucketServerMap _vBucketServerMap;
         private readonly ILogger<VBucket> _logger;
-        private readonly ICollection<IPEndPoint> _endPoints;
+        private readonly ICollection<HostEndpointWithPort> _endPoints;
 
-        public VBucket(ICollection<IPEndPoint> endPoints, short index, short primary, short[] replicas, ulong rev,
+        public VBucket(ICollection<HostEndpointWithPort> endPoints, short index, short primary, short[] replicas, ulong rev,
             VBucketServerMap vBucketServerMap, string bucketName, ILogger<VBucket> logger)
         {
             if (logger == null)
@@ -42,15 +42,15 @@ namespace Couchbase.Core.Sharding
         /// </summary>
         /// <returns>A <see cref="IServer"/> reference which is the primary server for this <see cref="VBucket"/></returns>
         ///<remarks>If the VBucket doesn't have a active, it will return a random <see cref="IServer"/> to force a NMV and reconfig.</remarks>
-        public IPEndPoint LocatePrimary()
+        public HostEndpointWithPort? LocatePrimary()
         {
-            IPEndPoint? endPoint = null;
+            HostEndpointWithPort? endPoint = null;
             if (Primary > -1 && Primary < _endPoints.Count &&
-                Primary < _vBucketServerMap.IPEndPoints.Count)
+                Primary < _vBucketServerMap.EndPoints.Count)
             {
                 try
                 {
-                    endPoint = _vBucketServerMap.IPEndPoints[Primary];
+                    endPoint = _vBucketServerMap.EndPoints[Primary];
                 }
                 catch (Exception e)
                 {
@@ -61,13 +61,13 @@ namespace Couchbase.Core.Sharding
             {
                 if (_replicas.Any(x => x != -1))
                 {
-                    var index = _replicas.GetRandom();
+                    var index = _replicas.GetRandomValueType().GetValueOrDefault();
                     if (index > -1 && index < _endPoints.Count
-                        && index < _vBucketServerMap.IPEndPoints.Count)
+                        && index < _vBucketServerMap.EndPoints.Count)
                     {
                         try
                         {
-                            endPoint = _vBucketServerMap.IPEndPoints[index];
+                            endPoint = _vBucketServerMap.EndPoints[index];
                         }
                         catch (Exception e)
                         {
@@ -76,7 +76,7 @@ namespace Couchbase.Core.Sharding
                     }
                 }
             }
-            return endPoint ?? (_endPoints.GetRandom());
+            return endPoint ?? (_endPoints.GetRandomValueType());
         }
 
         /// <summary>
@@ -84,11 +84,11 @@ namespace Couchbase.Core.Sharding
         /// </summary>
         /// <param name="index">The index of the replica.</param>
         /// <returns>An <see cref="IServer"/> if the replica is found, otherwise null.</returns>
-        public IPEndPoint? LocateReplica(short index)
+        public HostEndpointWithPort? LocateReplica(short index)
         {
             try
             {
-                return _vBucketServerMap.IPEndPoints[index];
+                return _vBucketServerMap.EndPoints[index];
             }
             catch
             {

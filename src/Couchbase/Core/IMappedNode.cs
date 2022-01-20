@@ -2,9 +2,9 @@ using System.Net;
 
 namespace Couchbase.Core
 {
-    public interface IMappedNode
+    internal interface IMappedNode
     {
-        IPEndPoint LocatePrimary();
+        HostEndpointWithPort? LocatePrimary();
 
         ulong Rev { get; }
     }

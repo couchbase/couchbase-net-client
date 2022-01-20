@@ -15,14 +15,9 @@ namespace Couchbase.Core.IO.Connections
     internal interface IConnectionInitializer
     {
         /// <summary>
-        /// <see cref="IPEndPoint"/> of the node being connected to.
+        /// <see cref="HostEndpointWithPort"/> of the node being connected to.
         /// </summary>
-        IPEndPoint EndPoint { get; }
-
-        /// <summary>
-        /// <see cref="HostEndpoint"/> of the node being connected to. Used for authenticating as the target host when TLS is enabled.
-        /// </summary>
-        HostEndpoint BootstrapEndpoint { get; }
+        HostEndpointWithPort EndPoint { get; }
 
         /// <summary>
         /// Initializes and authenticates a new <see cref="IConnection"/>.

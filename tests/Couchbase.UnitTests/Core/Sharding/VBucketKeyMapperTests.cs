@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
@@ -122,7 +119,7 @@ namespace Couchbase.UnitTests.Core.Sharding
         {
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(config.VBucketServerMap);
+            var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
             IKeyMapper mapper = new VBucketKeyMapper(config, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -136,7 +133,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             const int actual = 389;
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(config.VBucketServerMap);
+            var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
             IKeyMapper mapper = new VBucketKeyMapper(config, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -151,7 +148,7 @@ namespace Couchbase.UnitTests.Core.Sharding
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\config.json");
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(config.VBucketServerMap);
+            var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
             IKeyMapper mapper = new VBucketKeyMapper(config, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -168,7 +165,7 @@ namespace Couchbase.UnitTests.Core.Sharding
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-localhost.json");
             config.ReplacePlaceholderWithBootstrapHost("127.0.0.1");
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(config.VBucketServerMap);
+            var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
             IKeyMapper mapper = new VBucketKeyMapper(config, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -184,7 +181,7 @@ namespace Couchbase.UnitTests.Core.Sharding
         {
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\configs\config-with-ffmaps.json");
 
-            var (vBucketServerMap, _) = GetServerMapAndIpEndPoints(config.VBucketServerMap);
+            var vBucketServerMap = new VBucketServerMap(config.VBucketServerMap);
 
             IKeyMapper mapper = new VBucketKeyMapper(config, vBucketServerMap,
                 new VBucketFactory(new Mock<ILogger<VBucket>>().Object));
@@ -201,27 +198,5 @@ namespace Couchbase.UnitTests.Core.Sharding
             var mappedKey = mapper.MapKey("mykey", op.WasNmvb());
             Assert.Equal(nodeIp, mappedKey.LocatePrimary().ToString());
         }
-
-        #region Helpers
-
-        #region Helpers
-
-        private static (VBucketServerMap serverMap, List<IPEndPoint> ipEndPoints) GetServerMapAndIpEndPoints(
-            VBucketServerMapDto vBucketServerMapDto)
-        {
-            var ipEndPoints = vBucketServerMapDto.ServerList
-                .Select(p =>
-                {
-                    var split = p.Split(':');
-                    return new IPEndPoint(IPAddress.Parse(split[0]), int.Parse(split[1]));
-                })
-                .ToList();
-
-            return (new VBucketServerMap(vBucketServerMapDto, ipEndPoints), ipEndPoints);
-        }
-
-        #endregion
-
-        #endregion
     }
 }

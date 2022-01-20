@@ -20,7 +20,7 @@ namespace Couchbase.Core.Sharding
         private readonly Dictionary<short, IVBucket> _vBuckets;
         private readonly Dictionary<short, IVBucket> _vForwardBuckets;
         private readonly VBucketServerMap _vBucketServerMap;
-        private readonly ICollection<IPEndPoint> _endPoints;
+        private readonly ICollection<HostEndpointWithPort> _endPoints;
         private readonly string _bucketName;
 
         //for log redaction
@@ -45,7 +45,7 @@ namespace Couchbase.Core.Sharding
 
             Rev = config.Rev;
             _vBucketServerMap = vBucketServerMap;
-            _endPoints = _vBucketServerMap.IPEndPoints;
+            _endPoints = _vBucketServerMap.EndPoints;
             _bucketName = config.Name;
             _vBuckets = CreateVBucketMap();
             _vForwardBuckets = CreateVBucketMapForwards();

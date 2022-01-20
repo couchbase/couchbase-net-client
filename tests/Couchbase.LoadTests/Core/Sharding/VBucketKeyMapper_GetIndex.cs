@@ -24,7 +24,7 @@ namespace Couchbase.LoadTests.Core.Sharding
             _key = new string('0', KeySize);
             _keyMapper = new VBucketKeyMapper(
                 new BucketConfig(),
-                new VBucketServerMap(new VBucketServerMapDto(), new List<IPEndPoint>()),
+                new VBucketServerMap(new VBucketServerMapDto()),
                 new VBucketFactory(new NullLogger<VBucket>()));
         }
 

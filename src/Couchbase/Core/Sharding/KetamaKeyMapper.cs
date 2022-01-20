@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,11 +11,11 @@ namespace Couchbase.Core.Sharding
     /// </summary>
     internal class KetamaKeyMapper : IKeyMapper
     {
-        private readonly ICollection<IPEndPoint> _servers;
+        private readonly ICollection<HostEndpointWithPort> _servers;
         private readonly int _totalWeight;
-        internal readonly SortedDictionary<long, IPEndPoint> Hashes = new SortedDictionary<long, IPEndPoint>();
+        internal readonly SortedDictionary<long, HostEndpointWithPort> Hashes = new();
 
-        public KetamaKeyMapper(IEnumerable<IPEndPoint> servers)
+        public KetamaKeyMapper(IEnumerable<HostEndpointWithPort> servers)
         {
             _servers = servers.ToList();
             _totalWeight = _servers.Count;

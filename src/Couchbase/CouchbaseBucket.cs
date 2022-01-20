@@ -79,7 +79,7 @@ namespace Couchbase
                 if (CurrentConfig.VBucketMapChanged)
                 {
                     Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for rev#{revision} on {bucketName}", newConfig.Rev, Name);
-                    KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(CurrentConfig).ConfigureAwait(false);
+                    KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
                 }
 
                 if (CurrentConfig.ClusterNodesChanged)
@@ -207,7 +207,7 @@ namespace Couchbase
 
                 op.VBucketId = vBucket.Index;
 
-                if (Nodes.TryGet(endPoint!, out var clusterNode))
+                if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
                 {
                     await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
                     return;
@@ -245,10 +245,10 @@ namespace Couchbase
                 else
                 {
                     //A non-GCCCP cluster
-                    CurrentConfig.SetEffectiveNetworkResolution(node.BootstrapEndpoint, Context.ClusterOptions);
+                    CurrentConfig.SetEffectiveNetworkResolution(node.EndPoint, Context.ClusterOptions);
                 }
 
-                KeyMapper = await _vBucketKeyMapperFactory.CreateAsync(CurrentConfig).ConfigureAwait(false);
+                KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
 
                 Nodes.Add(node);
                 await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);

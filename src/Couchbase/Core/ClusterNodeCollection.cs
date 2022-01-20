@@ -24,13 +24,12 @@ namespace Couchbase.Core
         /// Optimized dictionary of nodes for rapid, low-lock get operations.
         /// Allows nodes to be keyed by multiple keys.
         /// </summary>
-        private readonly ConcurrentDictionary<IPEndPoint, IClusterNode> _lookupDictionary =
-            new ConcurrentDictionary<IPEndPoint, IClusterNode>();
+        private readonly ConcurrentDictionary<HostEndpointWithPort, IClusterNode> _lookupDictionary = new();
 
         /// <summary>
         /// Simple list of nodes, must be locked before using.
         /// </summary>
-        private readonly HashSet<IClusterNode> _nodes = new HashSet<IClusterNode>();
+        private readonly HashSet<IClusterNode> _nodes = new();
 
         /// <summary>
         /// Number of nodes in the collection.
@@ -56,14 +55,8 @@ namespace Couchbase.Core
         /// Optimized to be low-lock.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGet(IPEndPoint endPoint, [NotNullWhen(true)] out IClusterNode? node)
+        public bool TryGet(HostEndpointWithPort endPoint, [NotNullWhen(true)] out IClusterNode? node)
         {
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-            if (endPoint == null)
-            {
-                ThrowHelper.ThrowArgumentNullException(nameof(endPoint));
-            }
-
             // ReSharper disable once InconsistentlySynchronizedField
             return _lookupDictionary.TryGetValue(endPoint, out node);
         }
@@ -104,13 +97,8 @@ namespace Couchbase.Core
         /// <param name="endPoint"><see cref="IPEndPoint"/> of the node to remove.</param>
         /// <param name="removedNode">Node which was removed, if any.</param>
         /// <returns>True if the node was removed.</returns>
-        public bool Remove(IPEndPoint endPoint, [NotNullWhen(true)] out IClusterNode? removedNode)
+        public bool Remove(HostEndpointWithPort endPoint, [NotNullWhen(true)] out IClusterNode? removedNode)
         {
-            if (endPoint == null)
-            {
-                throw new ArgumentNullException(nameof(endPoint));
-            }
-
             lock (_nodes)
             {
                 if (_lookupDictionary.TryRemove(endPoint, out removedNode))
@@ -194,7 +182,7 @@ namespace Couchbase.Core
 
                 if (e.OldItems != null)
                 {
-                    foreach (var endPoint in e.OldItems.Cast<IPEndPoint>())
+                    foreach (var endPoint in e.OldItems.Cast<HostEndpointWithPort>())
                     {
                         _lookupDictionary.TryRemove(endPoint, out _);
                     }
@@ -202,7 +190,7 @@ namespace Couchbase.Core
 
                 if (e.NewItems != null)
                 {
-                    foreach (var endPoint in e.NewItems.Cast<IPEndPoint>())
+                    foreach (var endPoint in e.NewItems.Cast<HostEndpointWithPort>())
                     {
                         _lookupDictionary.TryAdd(endPoint, node);
                     }

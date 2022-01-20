@@ -36,59 +36,53 @@ namespace Couchbase.UnitTests.Core
         }
 
         [Fact]
-        public async Task PruneNodesAsync_Removes_Rebalanced_Node()
+        public void PruneNodes_Removes_Rebalanced_Node()
         {
             //Arrange
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\config-error.json");
             var context = new ClusterContext();
 
-            var dnsResolver = new Mock<IDnsResolver>();
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions());
-
             var hosts = new List<string>{"10.143.194.101", "10.143.194.102", "10.143.194.103", "10.143.194.104"};
-            hosts.ForEach(async x => context.AddNode(await CreateMockedNode(x, 11210, service).ConfigureAwait(false)));
+            hosts.ForEach(x => context.AddNode(CreateMockedNode(x, 11210)));
 
             //Act
 
-            await context.PruneNodesAsync(config).ConfigureAwait(false);
+            context.PruneNodes(config);
 
             //Assert
 
-            var removed = await service.GetIpEndPointAsync("10.143.194.102", 11210).ConfigureAwait(false);
+            var removed = new HostEndpointWithPort("10.143.194.102", 11210);
 
             Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Equals(removed));
         }
 
         [Fact]
-        public async Task PruneNodesAsync_Does_Not_Remove_Single_Service_Nodes()
+        public void PruneNodes_Does_Not_Remove_Single_Service_Nodes()
         {
             //Arrange
 
             var config = ResourceHelper.ReadResource<BucketConfig>(@"Documents\Configs\rev-36310-service-per-node.json");
             var context = new ClusterContext();
 
-            var dnsResolver = new Mock<IDnsResolver>();
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions());
-
             var hosts = new List<string> { "10.143.194.101", "10.143.194.102", "10.143.194.103", "10.143.194.104" };
-            hosts.ForEach(async x => context.AddNode(await CreateMockedNode(x, 11210, service).ConfigureAwait(false)));
+            hosts.ForEach(x => context.AddNode(CreateMockedNode(x, 11210)));
 
             //Act
 
-            await context.PruneNodesAsync(config).ConfigureAwait(false);
+            context.PruneNodes(config);
 
             //Assert
 
             foreach (var host in hosts)
             {
-                var removed = await service.GetIpEndPointAsync(host, 11210).ConfigureAwait(false);
+                var removed = new HostEndpointWithPort(host, 11210);
 
                 Assert.Contains(context.Nodes, node => node.EndPoint.Equals(removed));
             }
         }
 
-        private async Task<IClusterNode> CreateMockedNode(string hostname, int port, IpEndPointService service)
+        private IClusterNode CreateMockedNode(string hostname, int port)
         {
             var mockConnectionPool = new Mock<IConnectionPool>();
 
@@ -103,7 +97,7 @@ namespace Couchbase.UnitTests.Core
                 new Mock<ICircuitBreaker>().Object,
                 new Mock<ISaslMechanismFactory>().Object,
                 new Mock<IRedactor>().Object,
-                await service.GetIpEndPointAsync(hostname, port).ConfigureAwait(false),
+                new HostEndpointWithPort(hostname, port),
                 BucketType.Couchbase,
                 new NodeAdapter
                 {

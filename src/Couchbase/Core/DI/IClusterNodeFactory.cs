@@ -15,21 +15,21 @@ namespace Couchbase.Core.DI
         /// <summary>
         /// Create and connect to a <see cref="IClusterNode"/>.
         /// </summary>
-        /// <param name="endPoint"><see cref="HostEndpoint"/> of the node.</param>
+        /// <param name="endPoint"><see cref="HostEndpointWithPort"/> of the node.</param>
         /// <param name="bucketType"></param>
         /// <param name="nodeAdapter"></param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
-        Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, NodeAdapter nodeAdapter, CancellationToken cancellationToken = default);
+        Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter nodeAdapter, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Create and connect to a <see cref="IClusterNode"/>.
         /// </summary>
-        /// <param name="endPoint"><see cref="HostEndpoint"/> of the node.</param>
+        /// <param name="endPoint"><see cref="HostEndpointWithPort"/> of the node.</param>
         /// <param name="bucketType"></param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The <seealso cref="IClusterNode"/> type.</returns>
-        Task<IClusterNode> CreateAndConnectAsync(HostEndpoint endPoint, BucketType bucketType, CancellationToken cancellationToken = default);
+        Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, BucketType bucketType, CancellationToken cancellationToken = default);
     }
 }
 

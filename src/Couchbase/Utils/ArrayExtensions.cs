@@ -29,12 +29,14 @@ namespace Couchbase.Utils
             return list;
         }
 
-        public static T GetRandom<T>(this IEnumerable<T> list)
-        { 
+#nullable enable
+        public static T? GetRandom<T>(this IEnumerable<T> list)
+            where T : class
+        {
             var item = default(T);
 
             var enumerable = list as IList<T> ?? list.ToList();
-            if (enumerable.Any())
+            if (enumerable.Count > 0)
             {
 #if NETCOREAPP3_1_OR_GREATER
                 var index = RandomNumberGenerator.GetInt32(enumerable.Count);
@@ -46,6 +48,26 @@ namespace Couchbase.Utils
 
             return item;
         }
+
+        public static T? GetRandomValueType<T>(this IEnumerable<T> list)
+            where T : struct
+        {
+            T? item = null;
+
+            var enumerable = list as IList<T> ?? list.ToList();
+            if (enumerable.Count > 0)
+            {
+#if NETCOREAPP3_1_OR_GREATER
+                var index = RandomNumberGenerator.GetInt32(enumerable.Count);
+#else
+                var index = Random.Next(enumerable.Count);
+#endif
+                item = enumerable[index];
+            }
+
+            return item;
+        }
+#nullable restore
 
         public static T GetRandom<T>(this IEnumerable<T> enumerable, Func<T, bool> whereClause)
         {

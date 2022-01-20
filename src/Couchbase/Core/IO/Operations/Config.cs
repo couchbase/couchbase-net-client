@@ -7,7 +7,7 @@ namespace Couchbase.Core.IO.Operations
 {
     internal sealed class Config : OperationBase<BucketConfig>
     {
-        internal IPEndPoint EndPoint { get; set; }
+        internal HostEndpointWithPort EndPoint { get; set; }
 
         protected override void BeginSend()
         {

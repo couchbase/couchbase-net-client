@@ -101,17 +101,17 @@ namespace Couchbase
             return connectionString;
         }
 
-        public IEnumerable<HostEndpoint> GetBootstrapEndpoints(bool? overrideTls = null)
+        public IEnumerable<HostEndpointWithPort> GetBootstrapEndpoints(bool? overrideTls = null)
         {
             foreach (var endpoint in Hosts)
             {
                 if (endpoint.Port != null)
                 {
-                    yield return endpoint;
+                    yield return new HostEndpointWithPort(endpoint.Host, endpoint.Port.GetValueOrDefault());
                 }
                 else
                 {
-                    yield return new HostEndpoint(endpoint.Host,
+                    yield return new HostEndpointWithPort(endpoint.Host,
                         overrideTls.GetValueOrDefault(Scheme == Scheme.Couchbases) ? SecureKeyValuePort : KeyValuePort);
                 }
             }

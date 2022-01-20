@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.DI;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
 
@@ -21,7 +19,7 @@ namespace Couchbase.Core.IO.Connections
         private readonly IConnectionFactory _connectionFactory;
 
         /// <inheritdoc />
-        public IPEndPoint EndPoint => _connectionInitializer.EndPoint;
+        public HostEndpointWithPort EndPoint => _connectionInitializer.EndPoint;
 
         /// <inheritdoc />
         public abstract int Size { get; }
@@ -63,7 +61,7 @@ namespace Couchbase.Core.IO.Connections
         protected async Task<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
         {
             var connection = await _connectionFactory
-                .CreateAndConnectAsync(EndPoint, _connectionInitializer.BootstrapEndpoint, cancellationToken)
+                .CreateAndConnectAsync(EndPoint, cancellationToken)
                 .ConfigureAwait(false);
 
             try

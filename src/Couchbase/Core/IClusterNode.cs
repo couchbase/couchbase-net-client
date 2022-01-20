@@ -16,8 +16,7 @@ namespace Couchbase.Core
     {
         IBucket Owner { get; set; }
         NodeAdapter NodesAdapter { get; set; }
-        HostEndpoint BootstrapEndpoint { get; }
-        IPEndPoint EndPoint { get; }
+        HostEndpointWithPort EndPoint { get; }
         BucketType BucketType { get; }
 
         /// <summary>
@@ -26,7 +25,7 @@ namespace Couchbase.Core
         /// <remarks>
         /// May change over time depending on bootstrap status.
         /// </remarks>
-        IReadOnlyCollection<IPEndPoint> KeyEndPoints { get; }
+        IReadOnlyCollection<HostEndpointWithPort> KeyEndPoints { get; }
 
         Uri EventingUri { get; set; }
         Uri QueryUri { get; set; }

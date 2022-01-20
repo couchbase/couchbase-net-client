@@ -225,7 +225,7 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<ICircuitBreaker>().Object,
                     new Mock<ISaslMechanismFactory>().Object,
                     new Mock<IRedactor>().Object,
-                    new IPEndPoint(IPAddress.Parse("127.0.0.1"), 11210),
+                    new HostEndpointWithPort("127.0.0.1", 11210),
                     BucketType.Couchbase,
                     new NodeAdapter(),
                     NoopRequestTracer.Instance,

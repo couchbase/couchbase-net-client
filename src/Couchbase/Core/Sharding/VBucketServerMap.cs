@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Net;
+using System.Linq;
 using Couchbase.Utils;
 
 #nullable enable
@@ -10,15 +9,12 @@ namespace Couchbase.Core.Sharding
 {
      internal sealed class VBucketServerMap : IEquatable<VBucketServerMap>
      {
-        public VBucketServerMap(VBucketServerMapDto serverMapDto, IList<IPEndPoint> ipEndPoints)
+        public VBucketServerMap(VBucketServerMapDto serverMapDto)
         {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (serverMapDto == null)
             {
                 ThrowHelper.ThrowArgumentNullException(nameof(serverMapDto));
-            }
-            if (ipEndPoints == null)
-            {
-                ThrowHelper.ThrowArgumentNullException(nameof(ipEndPoints));
             }
 
             HashAlgorithm = serverMapDto.HashAlgorithm;
@@ -27,7 +23,8 @@ namespace Couchbase.Core.Sharding
             VBucketMap = serverMapDto.VBucketMap;
             VBucketMapForward = serverMapDto.VBucketMapForward;
 
-            IPEndPoints = new ReadOnlyCollection<IPEndPoint>(ipEndPoints);
+            EndPoints = new ReadOnlyCollection<HostEndpointWithPort>(
+                serverMapDto.ServerList.Select(HostEndpointWithPort.Parse).ToArray());
         }
 
         public string HashAlgorithm { get; }
@@ -37,7 +34,7 @@ namespace Couchbase.Core.Sharding
         public short[][] VBucketMapForward { get; }
 
         // ReSharper disable once InconsistentNaming
-        public ReadOnlyCollection<IPEndPoint> IPEndPoints { get; }
+        public ReadOnlyCollection<HostEndpointWithPort> EndPoints { get; }
 
         public bool Equals(VBucketServerMap? other)
         {

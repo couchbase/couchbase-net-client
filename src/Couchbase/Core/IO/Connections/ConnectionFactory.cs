@@ -1,12 +1,12 @@
 using System;
-using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Authentication.X509;
+using Couchbase.Core.Exceptions;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -19,21 +19,32 @@ namespace Couchbase.Core.IO.Connections
     internal class ConnectionFactory : IConnectionFactory
     {
         private readonly ClusterOptions _clusterOptions;
+        private readonly IIpEndPointService _ipEndPointService;
         private readonly ILogger<MultiplexingConnection> _multiplexLogger;
         private readonly ILogger<SslConnection> _sslLogger;
 
-        public ConnectionFactory(ClusterOptions clusterOptions, ILogger<MultiplexingConnection> multiplexLogger,
+        public ConnectionFactory(ClusterOptions clusterOptions,
+            IIpEndPointService ipEndPointService,
+            ILogger<MultiplexingConnection> multiplexLogger,
             ILogger<SslConnection> sslLogger)
         {
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
+            _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
             _multiplexLogger = multiplexLogger ?? throw new ArgumentNullException(nameof(multiplexLogger));
             _sslLogger = sslLogger ?? throw new ArgumentNullException(nameof(sslLogger));
         }
 
         /// <inheritdoc />
-        public async Task<IConnection> CreateAndConnectAsync(IPEndPoint endPoint, HostEndpoint hostEndpoint,
+        public async Task<IConnection> CreateAndConnectAsync(HostEndpointWithPort hostEndpoint,
             CancellationToken cancellationToken = default)
         {
+            var endPoint = await _ipEndPointService.GetIpEndPointAsync(hostEndpoint.Host, hostEndpoint.Port, cancellationToken)
+                .ConfigureAwait(false);
+            if (endPoint is null)
+            {
+                throw new ConnectException($"Unable to resolve host '{hostEndpoint}'.");
+            }
+
             var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             try

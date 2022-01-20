@@ -27,7 +27,7 @@ namespace Couchbase.UnitTests.Utils
 
             var dnsResolver = new Mock<IDnsResolver>();
 
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions());
+            var service = new IpEndPointService(dnsResolver.Object);
 
             // Act
 
@@ -56,7 +56,7 @@ namespace Couchbase.UnitTests.Utils
                 .Setup(m => m.GetIpAddressAsync("test.com", default))
                 .ReturnsAsync(IPAddress.Parse(ipAddress));
 
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions());
+            var service = new IpEndPointService(dnsResolver.Object);
 
             // Act
 
@@ -74,171 +74,13 @@ namespace Couchbase.UnitTests.Utils
 
             var dnsResolver = new Mock<IDnsResolver>();
 
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions());
+            var service = new IpEndPointService(dnsResolver.Object);
 
             // Act //Assert
 
             await Assert.ThrowsAsync<InvalidArgumentException>(async () =>
                 await service.GetIpEndPointAsync("test.com", 11210).ConfigureAwait(false)).
                 ConfigureAwait(false);
-        }
-
-        #endregion
-
-        #region GetIpEndPointAsync Node
-
-        [Fact]
-        public async Task GetIpEndPointAsync_NoSsl_ReturnsKvPort()
-        {
-            // Arrange
-
-            var dnsResolver = new Mock<IDnsResolver>();
-
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions()
-            {
-                EnableTls = false
-            });
-
-            // Act
-
-            var result = await service.GetIpEndPointAsync(new NodesExt
-            {
-                Hostname = "127.0.0.1",
-                Services = new Services
-                {
-                    Kv = 11210,
-                    KvSsl = 11207
-                }
-            }).ConfigureAwait(false);
-
-            // Assert
-
-            Assert.Equal("127.0.0.1:11210", result.ToString());
-        }
-
-        [Fact]
-        public async Task GetIpEndPointAsync_Ssl_ReturnsKvSslPort()
-        {
-            // Arrange
-
-            var dnsResolver = new Mock<IDnsResolver>();
-
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions()
-            {
-                EnableTls = true
-            });
-
-            // Act
-
-            var result = await service.GetIpEndPointAsync(new NodesExt
-            {
-                Hostname = "127.0.0.1",
-                Services = new Services
-                {
-                    Kv = 11210,
-                    KvSsl = 11207
-                }
-            }).ConfigureAwait(false);
-
-            // Assert
-
-            Assert.Equal("127.0.0.1:11207", result.ToString());
-        }
-
-        #endregion
-
-        #region GetIpEndPointAsync Node
-
-        [Fact]
-        public async Task GetIpEndPointAsync_NodeAdapter_NoSsl_ReturnsKvPort()
-        {
-            // Arrange
-
-            var dnsResolver = new Mock<IDnsResolver>();
-
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions()
-            {
-                EnableTls = false
-            });
-
-            // Act
-
-            var result = await service.GetIpEndPointAsync(new NodeAdapter
-            {
-                Hostname = "127.0.0.1",
-                KeyValue = 11210,
-                KeyValueSsl = 11207
-            }).ConfigureAwait(false);
-
-            // Assert
-
-            Assert.Equal("127.0.0.1:11210", result.ToString());
-        }
-
-        [Fact]
-        public async Task GetIpEndPointAsync_NodeAdapter_Ssl_ReturnsKvSslPort()
-        {
-            // Arrange
-
-            var dnsResolver = new Mock<IDnsResolver>();
-
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions()
-            {
-                EnableTls = true
-            });
-
-            // Act
-
-            var result = await service.GetIpEndPointAsync(new NodeAdapter
-            {
-                Hostname = "127.0.0.1",
-                KeyValue = 11210,
-                KeyValueSsl = 11207
-            });
-
-            // Assert
-
-            Assert.Equal("127.0.0.1:11207", result.ToString());
-        }
-
-        [Fact]
-        public async Task GetIpEndPointAsync_NodeAdapter_CachesDnsResults()
-        {
-            // Arrange
-
-            var dnsResolver = new Mock<IDnsResolver>();
-            dnsResolver
-                .Setup(m => m.GetIpAddressAsync("localhost", default))
-                .ReturnsAsync(IPAddress.Parse("127.0.0.1"));
-
-            var service = new IpEndPointService(dnsResolver.Object, new ClusterOptions()
-            {
-                EnableTls = true
-            });
-
-            var commonNodeAdapter = new NodeAdapter
-            {
-                Hostname = "localhost",
-                KeyValue = 11210,
-                KeyValueSsl = 11207
-            };
-
-            // Act
-
-            await service.GetIpEndPointAsync(commonNodeAdapter);
-            await service.GetIpEndPointAsync(commonNodeAdapter);
-            await service.GetIpEndPointAsync(new NodeAdapter
-            {
-                Hostname = "localhost",
-                KeyValue = 11210,
-                KeyValueSsl = 11207
-            });
-
-            // Assert
-
-            dnsResolver.Verify(
-                m => m.GetIpAddressAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-                Times.Exactly(2));
         }
 
         #endregion

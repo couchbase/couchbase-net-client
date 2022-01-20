@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Sharding;
 using Couchbase.Utils;
@@ -18,41 +15,35 @@ namespace Couchbase.Core.DI
     /// </summary>
     internal class KetamaKeyMapperFactory : IKetamaKeyMapperFactory
     {
-        private readonly IIpEndPointService _ipEndPointService;
-        private readonly ILogger<IIpEndPointService> _logger;
+        private readonly ClusterOptions _clusterOptions;
+        private readonly ILogger<KetamaKeyMapperFactory> _logger;
 
-        public KetamaKeyMapperFactory(IIpEndPointService ipEndPointService, ILogger<IIpEndPointService> logger)
+        public KetamaKeyMapperFactory(ClusterOptions clusterOptions, ILogger<KetamaKeyMapperFactory> logger)
         {
-            _ipEndPointService = ipEndPointService ?? throw new ArgumentNullException(nameof(ipEndPointService));
+            _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <inheritdoc />
-        public async Task<KetamaKeyMapper> CreateAsync(BucketConfig bucketConfig, CancellationToken cancellationToken = default)
+        public KetamaKeyMapper Create(BucketConfig bucketConfig)
         {
-            var ipEndPoints = await GetIpEndPointsAsync(bucketConfig, cancellationToken).ConfigureAwait(false);
+            var ipEndPoints = GetEndPoints(bucketConfig);
 
             return new KetamaKeyMapper(ipEndPoints);
         }
 
-        private async Task<IList<IPEndPoint>> GetIpEndPointsAsync(BucketConfig config, CancellationToken cancellationToken)
+        private IList<HostEndpointWithPort> GetEndPoints(BucketConfig config)
         {
-            var ipEndPoints = new List<IPEndPoint>();
+            var endPoints = new List<HostEndpointWithPort>();
             foreach (var node in config.GetNodes().Where(p => p.IsKvNode))
             {
                 //log any alternate address mapping
                 _logger.LogInformation(node.ToString());
 
-                var ipEndPoint = await _ipEndPointService.GetIpEndPointAsync(node, cancellationToken).ConfigureAwait(false);
-                if (ipEndPoint == null)
-                {
-                    throw new InvalidOperationException("IP endpoint lookup failed.");
-                }
-
-                ipEndPoints.Add(ipEndPoint);
+                endPoints.Add(HostEndpointWithPort.Create(node, _clusterOptions));
             }
 
-            return ipEndPoints;
+            return endPoints;
         }
     }
 }

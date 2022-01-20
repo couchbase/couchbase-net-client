@@ -30,6 +30,10 @@ namespace Couchbase.Utils
             throw new ArgumentOutOfRangeException(paramName);
 
         [DoesNotReturn]
+        public static void ThrowInvalidArgumentException(string message) =>
+            throw new InvalidArgumentException(message);
+
+        [DoesNotReturn]
         public static void ThrowInvalidEnumArgumentException(string argumentName, int invalidValue, Type enumClass) =>
             throw new InvalidEnumArgumentException(argumentName, invalidValue, enumClass);
 
