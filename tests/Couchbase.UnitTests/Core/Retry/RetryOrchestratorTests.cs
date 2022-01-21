@@ -496,7 +496,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 {
                     Options = queryOptions,
                     Statement = "SELECT * FROM `default`",
-                    Timeout = TimeSpan.FromMilliseconds(100),
+                    Timeout = TimeSpan.FromMilliseconds(500),
                     Token = cts.Token
                 };
 

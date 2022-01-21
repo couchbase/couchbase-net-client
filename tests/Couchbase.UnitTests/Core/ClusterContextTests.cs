@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
@@ -16,7 +15,6 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Couchbase.UnitTests.Utils;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
 using Moq;
@@ -150,7 +148,7 @@ namespace Couchbase.UnitTests.Core
             var span = tracer.RequestSpan("works");
             span.Dispose();
 
-            var activities = listener.Activities.Where(x => x.OperationName == "works").ToArray();
+            var activities = listener.GetActivities().Where(x => x.OperationName == "works").ToArray();
 
             foreach (var activity in activities)
             {
@@ -194,16 +192,16 @@ namespace Couchbase.UnitTests.Core
 
             // Due to thread sync issues, a listener may receive the same activity more than once.
             // We use a hash set to avoid tracking it multiple times and breaking tests.
-            public HashSet<Activity> Activities { get; } = new();
+            private HashSet<Activity> _activities = new();
 
             public sealed override void Start()
             {
                 Listener.ActivityStopped = activity =>
                 {
                     // We may be receiving activities from other tests, so lock
-                    lock (Activities)
+                    lock (_activities)
                     {
-                        Activities.Add(activity);
+                        _activities.Add(activity);
                     }
                 };
                 Listener.SampleUsingParentId = (ref ActivityCreationOptions<string> activityOptions) =>
@@ -211,6 +209,14 @@ namespace Couchbase.UnitTests.Core
                 Listener.Sample = (ref ActivityCreationOptions<ActivityContext> activityOptions) =>
                     ActivitySamplingResult.AllData;
                 Listener.ShouldListenTo = s => true;
+            }
+
+            public Activity[] GetActivities()
+            {
+                lock (_activities)
+                {
+                    return _activities.ToArray();
+                }
             }
 
             public override void Dispose()
