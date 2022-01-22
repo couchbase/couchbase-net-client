@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -12,14 +13,25 @@ namespace Couchbase.Core.Bootstrapping
     {
         private readonly CancellationTokenSource _tokenSource;
         private readonly ILogger<Bootstrapper> _logger;
-        private volatile bool _disposed;
+        private volatile int _disposed;
 
         public Bootstrapper(ILogger<Bootstrapper> logger) : this(new CancellationTokenSource(), logger) { }
 
         public Bootstrapper(CancellationTokenSource tokenSource, ILogger<Bootstrapper> logger)
         {
-            _tokenSource = tokenSource ?? throw new ArgumentNullException(nameof(tokenSource));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            // ReSharper disable ConditionIsAlwaysTrueOrFalse
+            if (tokenSource == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(tokenSource));
+            }
+            if (logger == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(logger));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalse
+
+            _tokenSource = tokenSource;
+            _logger = logger;
         }
 
         /// <inheritdoc />
@@ -28,46 +40,63 @@ namespace Couchbase.Core.Bootstrapping
         /// <inheritdoc />
         public void Start(IBootstrappable subject)
         {
-            var token = _tokenSource.Token;
-
             // Ensure that we don't flow the ExecutionContext into the long running task below
-            using var flowControl = ExecutionContext.SuppressFlow();
-
-            Task.Run(async () =>
+            bool restoreFlow = false;
+            try
             {
-                token.ThrowIfCancellationRequested();
-                while (!token.IsCancellationRequested)
+                if (ExecutionContext.IsFlowSuppressed())
                 {
-                    _logger.LogTrace("The subject is bootstrapped: {isBootstrapped}", subject.IsBootstrapped);
-                    if (!subject.IsBootstrapped)
-                    {
-                        _logger.LogDebug("The subject is not bootstrapped.");
-                        try
-                        {
-                            await subject.BootStrapAsync().ConfigureAwait(false);
-                            subject.DeferredExceptions.Clear();
-
-                            _logger.LogDebug("The subject has successfully bootstrapped.");
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.LogDebug("The subject has not successfully bootstrapped.", e);
-
-                            //catch any errors not caught in the bootstrap catch clause
-                            subject.DeferredExceptions.Add(e);
-                        }
-                    }
-
-                    await Task.Delay(SleepDuration, token).ConfigureAwait(false);
+                    ExecutionContext.SuppressFlow();
+                    restoreFlow = true;
                 }
-            }, token);
+
+                _ = Execute(subject);
+            }
+            finally
+            {
+                if (restoreFlow)
+                {
+                    ExecutionContext.RestoreFlow();
+                }
+            }
+        }
+
+        private async Task Execute(IBootstrappable subject)
+        {
+            var token = _tokenSource.Token;
+            while (!token.IsCancellationRequested)
+            {
+                _logger.LogTrace("The subject is bootstrapped: {isBootstrapped}", subject.IsBootstrapped);
+                if (!subject.IsBootstrapped)
+                {
+                    _logger.LogDebug("The subject is not bootstrapped.");
+                    try
+                    {
+                        await subject.BootStrapAsync().ConfigureAwait(false);
+                        subject.DeferredExceptions.Clear();
+
+                        _logger.LogDebug("The subject has successfully bootstrapped.");
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogDebug("The subject has not successfully bootstrapped.", e);
+
+                        //catch any errors not caught in the bootstrap catch clause
+                        subject.DeferredExceptions.Add(e);
+                    }
+                }
+
+                await Task.Delay(SleepDuration, token).ConfigureAwait(false);
+            }
         }
 
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
-            _tokenSource?.Dispose();
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                _tokenSource.Cancel();
+                _tokenSource.Dispose();
+            }
         }
     }
 }
