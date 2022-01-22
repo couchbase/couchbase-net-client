@@ -30,8 +30,8 @@ namespace Couchbase.Core.Configuration.Server
         private readonly ClusterContext _context;
         private readonly IHttpStreamingConfigListenerFactory _configListenerFactory;
 
-        private readonly ConcurrentDictionary<string, HttpStreamingConfigListener> _httpConfigListeners =
-            new ConcurrentDictionary<string, HttpStreamingConfigListener>();
+        // Will be set to null when disposed
+        private volatile ConcurrentDictionary<string, HttpStreamingConfigListener>? _httpConfigListeners = new();
 
         private readonly HashSet<IConfigUpdateEventSink> _configChangedSubscribers =
             new HashSet<IConfigUpdateEventSink>();
@@ -76,62 +76,78 @@ namespace Couchbase.Core.Configuration.Server
 
             if (withPolling)
             {
-                using (ExecutionContext.SuppressFlow())
-                {
-                    // We must suppress flow so that the tracing Activity which is current during bootstrap doesn't live on forever
-                    // as the parent span for all polling activities.
+                StartPoll();
+            }
+        }
 
-                    Poll();
+        private void StartPoll()
+        {
+            // We must suppress flow so that the tracing Activity which is current during bootstrap doesn't live on forever
+            // as the parent span for all polling activities.
+            bool restoreFlow = false;
+            try
+            {
+                if (ExecutionContext.IsFlowSuppressed())
+                {
+                    ExecutionContext.SuppressFlow();
+                    restoreFlow = true;
+                }
+
+                _ = Poll();
+            }
+            finally
+            {
+                if (restoreFlow)
+
+                {
+                    ExecutionContext.RestoreFlow();
                 }
             }
         }
 
-        private void Poll()
+        private async Task Poll()
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                while (!_tokenSource.IsCancellationRequested)
                 {
-                    while (!_tokenSource.IsCancellationRequested)
-                    {
-                        _logger.LogDebug("Waiting for {interval} before polling.",
-                            _context.ClusterOptions.ConfigPollInterval);
-                        await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token)
-                            .ConfigureAwait(false);
+                    _logger.LogDebug("Waiting for {interval} before polling.",
+                        _context.ClusterOptions.ConfigPollInterval);
+                    await Task.Delay(_context.ClusterOptions.ConfigPollInterval, _tokenSource.Token)
+                        .ConfigureAwait(false);
 
-                        _logger.LogDebug("Done waiting, polling...");
-                        foreach (var clusterNode in _context.Nodes.Where(x =>
-                            x.HasKv && x.BucketType != BucketType.Memcached))
+                    _logger.LogDebug("Done waiting, polling...");
+                    foreach (var clusterNode in _context.Nodes.Where(x =>
+                        x.HasKv && x.BucketType != BucketType.Memcached))
+                    {
+                        _logger.LogDebug("Checking {node} in polling.", clusterNode.EndPoint);
+                        try
                         {
-                            _logger.LogDebug("Checking {node} in polling.", clusterNode.EndPoint);
-                            try
+                            var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
+                            if (config != null)
                             {
-                                var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
-                                if (config != null)
-                                {
-                                    config.Name ??= "CLUSTER";
-                                    Publish(config);
-                                }
-                                else
-                                {
-                                    _logger.LogDebug("Null config for {node} in polling.", clusterNode.EndPoint);
-                                }
+                                config.Name ??= "CLUSTER";
+                                Publish(config);
                             }
-                            catch (Exception e)
+                            else
                             {
-                                _logger.LogWarning(LoggingEvents.ConfigEvent, e,
-                                    "Issue getting Cluster Map on server {server}!", clusterNode.EndPoint);
+                                _logger.LogDebug("Null config for {node} in polling.", clusterNode.EndPoint);
                             }
                         }
+                        catch (Exception e)
+                        {
+                            _logger.LogWarning(LoggingEvents.ConfigEvent, e,
+                                "Issue getting Cluster Map on server {server}!", clusterNode.EndPoint);
+                        }
                     }
+                }
 
-                    _logger.LogDebug("Broke out of polling loop.");
-                }
-                catch (Exception e)
-                {
-                    _logger.LogDebug("Polling exception: {e}", e);
-                }
-            }, _tokenSource.Token);
+                _logger.LogDebug("Broke out of polling loop.");
+            }
+            catch (Exception e)
+            {
+                _logger.LogDebug("Polling exception: {e}", e);
+            }
         }
 
         private async Task ProcessAsync(BucketConfig newMap)
@@ -206,15 +222,13 @@ namespace Couchbase.Core.Configuration.Server
             if (bucket is MemcachedBucket)
             {
                 var httpListener = _configListenerFactory.Create(bucket.Name, this);
-                if (_httpConfigListeners.TryAdd(bucket.Name, httpListener))
+                if (_httpConfigListeners?.TryAdd(bucket.Name, httpListener) ?? false)
                 {
                     httpListener.StartListening();
-
-                    // Dispose the listener when we're stopped
-                    _tokenSource.Token.Register(state =>
-                    {
-                        ((HttpStreamingConfigListener) state!).Dispose();
-                    }, httpListener);
+                }
+                else
+                {
+                    httpListener.Dispose();
                 }
             }
         }
@@ -228,7 +242,7 @@ namespace Couchbase.Core.Configuration.Server
 
             if (bucket is MemcachedBucket)
             {
-                if(_httpConfigListeners.TryRemove(bucket.Name, out var listener))
+                if (_httpConfigListeners?.TryRemove(bucket.Name, out var listener) ?? false)
                 {
                     listener.Dispose();
                 }
@@ -277,6 +291,15 @@ namespace Couchbase.Core.Configuration.Server
 
             _tokenSource.Cancel();
             _tokenSource.Dispose();
+
+            var httpConfigListeners = Interlocked.Exchange(ref _httpConfigListeners, null);
+            if (httpConfigListeners is not null)
+            {
+                foreach (var listener in httpConfigListeners.Values)
+                {
+                    listener.Dispose();
+                }
+            }
 
             _configQueue?.Complete();
             _configQueue = null;
