@@ -50,7 +50,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, function)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken, function)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -101,7 +101,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.DeleteAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.DeleteAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -148,7 +148,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
@@ -182,7 +182,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                   using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
@@ -216,7 +216,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -263,7 +263,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -308,7 +308,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -353,7 +353,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.PostAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     if (response.IsSuccessStatusCode) return;
 
@@ -398,7 +398,7 @@ namespace Couchbase.Management.Eventing
                 using var encodeSpan = rootSpan.DispatchSpan(options);
                 using (var tokenPair = CreateRetryTimeoutCancellationTokenSource(options))
                 {
-                    var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
+                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 

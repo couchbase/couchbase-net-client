@@ -43,7 +43,7 @@ namespace Couchbase.Management.Eventing
 
             encodeSpan.Dispose();
             using var dispatchSpan = parentSpan.DispatchSpan();
-            using var httpClient = CreateHttpClient();
+            var httpClient = CreateHttpClient();
             return httpClient.GetAsync(requestUri, token);
         }
 
@@ -59,7 +59,7 @@ namespace Couchbase.Management.Eventing
 
             encodeSpan.Dispose();
             using var dispatchSpan = parentSpan.DispatchSpan();
-            using var httpClient = CreateHttpClient();
+            var httpClient = CreateHttpClient();
             return httpClient.PostAsync(requestUri, content, token);
         }
 
@@ -71,7 +71,7 @@ namespace Couchbase.Management.Eventing
 
             encodeSpan.Dispose();
             using var dispatchSpan = parentSpan.DispatchSpan();
-            using var httpClient = CreateHttpClient();
+            var httpClient = CreateHttpClient();
             return httpClient.DeleteAsync(requestUri, token);
         }
     }
