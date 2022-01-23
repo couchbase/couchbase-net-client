@@ -51,7 +51,7 @@ namespace Couchbase.Core.IO
 
                 // This may create an extra TCS if two callers hit CompletionTask at the same time
                 // But that's unlikely so worth keeping the cost low with Interlocked.CompareExchange
-                var newTcs = new TaskCompletionSource<bool>();
+                var newTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 Interlocked.CompareExchange(ref _tcs, newTcs, null);
 
                 if (_isCompleted == 1)

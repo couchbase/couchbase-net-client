@@ -24,7 +24,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         private readonly ChannelConnectionPool _connectionPool;
         private readonly ChannelReader<ChannelQueueItem> _channelReader;
         private readonly ILogger<ChannelConnectionPool> _logger;
-        private readonly TaskCompletionSource<bool> _completion = new();
+        private readonly TaskCompletionSource<bool> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private CancellationTokenSource? _cts = new();
 
         /// <summary>
