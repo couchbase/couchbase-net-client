@@ -225,7 +225,8 @@ namespace Couchbase.Configuration.Server.Serialization
                 if (nodeExt != null && nodeExt.HasAlternateAddress && nodeExt.AlternateAddresses.HasExternalAddress)
                 {
                     //The SSL port is resolved later
-                    VBucketServerMap.ServerList[i] = nodeExt.AlternateAddresses.External.Hostname + ":" + nodeExt.Services.KV;
+                    VBucketServerMap.ServerList[i] = nodeExt.AlternateAddresses.External.Hostname + ":" +
+                                                     nodeExt.AlternateAddresses.External.Ports.KV;
                 }
             }
 
