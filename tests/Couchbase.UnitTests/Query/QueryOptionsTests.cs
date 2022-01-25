@@ -100,6 +100,7 @@ namespace Couchbase.UnitTests.Query
                 Parameter("name", "value").
                 PipelineBatch(1).
                 PipelineCap(1).
+                PreserveExpiry(true).
                 Profile(QueryProfile.Off).
                 Raw("foo", "bar").
                 Readonly(true).
@@ -127,6 +128,7 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal(newValues["scan_cap"], oldValues["scan_cap"]);
             Assert.Equal(newValues["pipeline_batch"], oldValues["pipeline_batch"]);
             Assert.Equal(newValues["pipeline_cap"], oldValues["pipeline_cap"]);
+            Assert.Equal(newValues["preserve_expiry"], oldValues["preserve_expiry"]);
             Assert.Equal(newValues["foo"], oldValues["foo"]);
             Assert.Equal(newValues["auto_execute"], oldValues["auto_execute"]);
             Assert.Equal(newValues["client_context_id"], oldValues["client_context_id"]);

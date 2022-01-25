@@ -38,10 +38,14 @@ namespace Couchbase.Query
         private TimeSpan? _timeOut;
         private bool _flexIndex;
         private volatile bool _isUsed;
+        private bool _preserveExpiry = false;
 
         internal QueryOptions CloneIfUsedAlready()
         {
-            if (_isUsed)
+            var cloneNow = _isUsed;
+            _isUsed = true;
+
+            if (cloneNow)
             {
                 var queryOptions = new QueryOptions()
                     .Statement(_statement!)
@@ -50,6 +54,7 @@ namespace Couchbase.Query
                     .CancellationToken(Token)
                     .ClientContextId(Guid.NewGuid().ToString())
                     .FlexIndex(_flexIndex)
+                    .PreserveExpiry(_preserveExpiry)
                     .Profile(_profile);
 
                 queryOptions._scanVectors = _scanVectors;
@@ -105,7 +110,7 @@ namespace Couchbase.Query
                 queryOptions.ScopeName = ScopeName;
                 return queryOptions;
             }
-            _isUsed = true;
+
             return this;
         }
 
@@ -488,6 +493,19 @@ namespace Couchbase.Query
         }
 
         /// <summary>
+        /// (v.7.1.0 and onwards)
+        /// Tells the query engine to preserve expiration values set on any documents modified by this query.
+        /// </summary>
+        /// <param name="preserveExpiry">If expiration values should be preserved, the default is false.</param>
+        /// <returns>A reference to the current <see cref="QueryOptions" /> for method chaining.</returns>
+        [InterfaceStability(Level.Uncommitted)]
+        public QueryOptions PreserveExpiry(bool preserveExpiry)
+        {
+            _preserveExpiry = preserveExpiry;
+            return this;
+        }
+
+        /// <summary>
         ///     Specifies the consistency guarantee/constraint for index scanning.
         /// </summary>
         /// <param name="scanConsistency">Specify the consistency guarantee/constraint for index scanning.</param>
@@ -750,6 +768,9 @@ namespace Couchbase.Query
             if (_profile != QueryProfile.Off)
                 formValues.Add(QueryParameters.Profile, _profile.ToString().ToLowerInvariant());
 
+            if (_preserveExpiry)
+                formValues.Add(QueryParameters.PreserveExpiry, true);
+
             foreach (var parameter in _rawParameters) formValues.Add(parameter.Key, parameter.Value);
 
             if (_autoExecute) formValues.Add(QueryParameters.AutoExecute, true);
@@ -853,6 +874,7 @@ namespace Couchbase.Query
             public const string ScanCapacity = "scan_cap";
             public const string PipelineBatch = "pipeline_batch";
             public const string PipelineCapacity = "pipeline_cap";
+            public const string PreserveExpiry = "preserve_expiry";
             public const string Profile = "profile";
             public const string AutoExecute = "auto_execute";
             public const string QueryContext = "query_context";
