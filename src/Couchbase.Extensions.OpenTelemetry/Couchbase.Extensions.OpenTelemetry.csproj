@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(NetModernTargets)</TargetFrameworks>
+    <VersionPrefix>$(CouchbaseNetClientReleasedVersion)</VersionPrefix>
+    <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
     <RootNamespace>Couchbase.Extensions.Tracing.Otel</RootNamespace>
   </PropertyGroup>
 

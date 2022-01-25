@@ -5,7 +5,7 @@
 
     <Authors>Couchbase, Inc.</Authors>
     <Company>Couchbase, Inc.</Company>
-    <Copyright>Copyright (c) 2019-2021 Couchbase,Inc.</Copyright>
+    <Copyright>Copyright (c) 2019-2022 Couchbase,Inc.</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/couchbase/couchbase-net-client</PackageProjectUrl>
     <PackageIcon>couchbase.png</PackageIcon>
@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- update this after a release-->
-    <CouchbaseNetClientReleasedVersion>3.2.5</CouchbaseNetClientReleasedVersion>
+    <CouchbaseNetClientReleasedVersion>3.2.6</CouchbaseNetClientReleasedVersion>
   </PropertyGroup>
   <PropertyGroup>
     <!-- libraries typically include NetStandardTargets for widest use cases -->
