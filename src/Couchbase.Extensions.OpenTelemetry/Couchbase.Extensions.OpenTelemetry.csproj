@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(NetModernTargets)</TargetFrameworks>
@@ -16,4 +16,7 @@
     <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(SignAssembly)'=='true'">
+    <DefineConstants>$(DefineConstants);SIGNING</DefineConstants>
+  </PropertyGroup>
 </Project>
