@@ -131,8 +131,8 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
                 last_local_id = LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalId),
                 last_local_socket = $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalHostname)}:" +
                                     $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalPort)}",
-                last_remote_socket = $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalHostname)}:" +
-                                     $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.LocalPort)}"
+                last_remote_socket = $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname)}:" +
+                                     $"{LastValueOrNull(activity, InnerRequestSpans.DispatchSpan.Attributes.RemotePort)}"
             };
         }
 
