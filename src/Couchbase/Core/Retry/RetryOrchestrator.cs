@@ -247,7 +247,9 @@ namespace Couchbase.Core.Retry
                     Cas = operation.Cas,
                     CollectionName = operation.CName,
                     ScopeName = operation.SName,
-                    OpCode = operation.OpCode
+                    OpCode = operation.OpCode,
+                    DispatchedFrom = operation.LastDispatchedFrom,
+                    DispatchedTo = operation.LastDispatchedTo
                 });
             }
         }

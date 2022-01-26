@@ -129,5 +129,9 @@ namespace Couchbase.UnitTests.Utils
         }
 
         public bool HasDurability { get; set; }
+
+        public string LastDispatchedFrom => throw new NotImplementedException();
+
+        public string LastDispatchedTo => throw new NotImplementedException();
     }
 }

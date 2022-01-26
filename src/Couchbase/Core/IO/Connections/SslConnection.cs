@@ -64,6 +64,10 @@ namespace Couchbase.Core.IO.Connections
             set => _multiplexingConnection.ServerFeatures = value;
         }
 
+        public string RemoteHost => _multiplexingConnection.RemoteHost;
+
+        public string LocalHost => _multiplexingConnection.LocalHost;
+
         /// <inheritdoc />
         public ValueTask SendAsync(ReadOnlyMemory<byte> request, IOperation operation,
             CancellationToken cancellationToken = default) =>

@@ -616,7 +616,9 @@ namespace Couchbase.Core
                         Cas = op.Cas,
                         CollectionName = op.CName,
                         ScopeName = op.SName,
-                        OpCode = op.OpCode
+                        OpCode = op.OpCode,
+                        DispatchedFrom = op.LastDispatchedFrom,
+                        DispatchedTo = op.LastDispatchedTo
                     });
                 }
 

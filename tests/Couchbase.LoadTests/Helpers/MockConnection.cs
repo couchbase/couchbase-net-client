@@ -38,6 +38,10 @@ namespace Couchbase.LoadTests.Helpers
 
         public bool InUse { get; set; }
 
+        public string RemoteHost => throw new NotImplementedException();
+
+        public string LocalHost => throw new NotImplementedException();
+
         public void Authenticate()
         {
         }

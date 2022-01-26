@@ -100,6 +100,10 @@ namespace Couchbase.Core.IO.Connections
         /// </summary>
         /// <param name="span">The tracing span to update.</param>
         void AddTags(IRequestSpan span);
+
+        string RemoteHost { get; }
+
+        string LocalHost { get; }
     }
 }
 

@@ -28,6 +28,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public bool IsDead { get; }
         public TimeSpan IdleTime { get; }
         public ServerFeatureSet ServerFeatures { get; set; }
+
+        public string RemoteHost => throw new NotImplementedException();
+
+        public string LocalHost => throw new NotImplementedException();
+
         public ValueTask SendAsync(ReadOnlyMemory<byte> buffer, IOperation operation, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();

@@ -177,6 +177,10 @@ namespace Couchbase.Core.IO.Operations
         bool WasNmvb();
 
         long? LastServerDuration { get; }
+
+        string? LastDispatchedFrom { get; }
+
+        string? LastDispatchedTo { get; }
     }
 }
 

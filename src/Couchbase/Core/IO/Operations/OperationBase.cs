@@ -41,6 +41,8 @@ namespace Couchbase.Core.IO.Operations
         private readonly Stopwatch _stopwatch;
         private IRequestSpan? _dispatchSpan;
         private bool _isOrphaned;
+        private volatile string? _lastDispatchedFrom;
+        private volatile string? _lastDispatchedTo;
 
         protected OperationBase()
         {
@@ -517,6 +519,10 @@ namespace Couchbase.Core.IO.Operations
         {
             connection.AddTags(Span);
 
+            //useful for debugging
+            _lastDispatchedFrom = connection.LocalHost;
+            _lastDispatchedTo = connection.RemoteHost;
+
             using var encodingSpan = Span.EncodingSpan();
             BeginSend();
 
@@ -653,6 +659,10 @@ namespace Couchbase.Core.IO.Operations
         }
 
         public long? LastServerDuration { get; protected set; }
+
+        public string? LastDispatchedFrom => _lastDispatchedFrom;
+
+        public string? LastDispatchedTo => _lastDispatchedTo;
 
         #endregion
 

@@ -319,6 +319,10 @@ namespace Couchbase.Core.IO.Connections
         /// <inheritdoc />
         public TimeSpan IdleTime => _stopwatch.Elapsed;
 
+        public string RemoteHost => _remoteHostString;
+
+        public string LocalHost => _localHostString;
+
         private void UpdateLastActivity()
         {
             _stopwatch.Restart();
