@@ -1,0 +1,17 @@
+{
+    "testSettings": {
+        "connectionString": "couchbase://localhost",
+        "cleanupTestBucket": false 
+    },
+    "couchbase": {
+        "connectionString": "couchbase://localhost",
+        "username": "Administrator",
+        "password": "password"
+    },
+    "couchbaseSsl": {
+        "connectionString": "couchbases://localhost",
+        "username": "Administrator",
+        "password": "password",
+        "ignoreRemoteCertificateNameMismatch": true
+    }
+}

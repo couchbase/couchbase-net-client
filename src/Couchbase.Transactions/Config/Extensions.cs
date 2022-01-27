@@ -1,0 +1,91 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+using Couchbase.KeyValue;
+using Couchbase.Query;
+
+namespace Couchbase.Transactions.Config
+{
+    /// <summary>
+    /// Extension methods with more convenient overloads for using options and configuration.
+    /// </summary>
+    public static class Extensions
+    {
+        /// <summary>
+        /// Run a single query as a transaction.
+        /// </summary>
+        /// <typeparam name="T">The type of the result.  Use <see cref="object"/> for queries with no results.</typeparam>
+        /// <param name="statement">The statement to execute.</param>
+        /// <param name="configure">An action to configure this transaction.</param>
+        /// <param name="scope">The scope</param>
+        /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
+        public static async Task<SingleQueryTransactionResult<T>> QueryAsync<T>(this Transactions transactions, string statement, Action<SingleQueryTransactionConfigBuilder>? configure = null, IScope? scope = null)
+        {
+            var singleConfig = SingleQueryTransactionConfigBuilder.Create();
+            if (configure != null)
+            {
+                configure(singleConfig);
+            }
+
+            return await transactions.QueryAsync<T>(statement, singleConfig, scope).CAF();
+        }
+
+        /// <summary>
+        /// Run a query in transaction mode.
+        /// </summary>
+        /// <typeparam name="T">The type of the result.  Use <see cref="object"/> for queries with no results.</typeparam>
+        /// <param name="statement">The statement to execute.</param>
+        /// <param name="configure">An action to configure the options for this query.</param>
+        /// <param name="scope">The scope</param>
+        /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
+        /// <remarks>IMPORTANT: Any KV operations after this query will be run via the query engine, which has performance implications.</remarks>
+        public static async Task<IQueryResult<T>> QueryAsync<T>(this AttemptContext ctx, string statement, Action<TransactionQueryOptions> configure, IScope? scope = null)
+        {
+            var options = new TransactionQueryOptions();
+            if (configure != null)
+            {
+                configure(options);
+            }
+
+            return await ctx.QueryAsync<T>(statement, options, scope).CAF();
+        }
+
+        /// <summary>
+        /// Configuration builder for values related to Query.
+        /// </summary>
+        /// <param name="configure">An action to invoke the <see cref="TransactionQueryConfigBuilder"/> to configure query options for transactions.</param>
+        /// <returns>The original <see cref="TransactionConfigBuilder"/>.</returns>
+        public static TransactionConfigBuilder QueryConfig(this TransactionConfigBuilder config, Action<TransactionQueryConfigBuilder> configure)
+        {
+            var queryConfigBuilder = TransactionQueryConfigBuilder.Create();
+            if (configure != null)
+            {
+                configure(queryConfigBuilder);
+            }
+
+            config.QueryConfig(queryConfigBuilder);
+            return config;
+        }
+    }
+}
+
+
+/* ************************************************************
+ *
+ *    @author Couchbase <info@couchbase.com>
+ *    @copyright 2021 Couchbase, Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ *
+ * ************************************************************/

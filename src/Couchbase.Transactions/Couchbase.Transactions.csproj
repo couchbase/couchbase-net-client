@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1;net6.0</TargetFrameworks>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>58fdeb9c-f0a3-449b-84bc-d7c614ab7ec8</UserSecretsId>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Copyright>$(Copyright)</Copyright>
+    <PackageIcon>couchbase-icon.png</PackageIcon>
+    <PackageIconUrl />
+    <Description>This package provides functionality for Couchbase Distributed ACID Transactions for .NET Core. Distributed ACID Transactions are operations that ensure that when multiple documents need to be modified such that only the successful modification of all justifies the modification of any, either all the modifications do occur successfully; or none of them occurs. This Atomicity supports insert, update, and delete operations, across any number of documents.</Description>
+    <!-- this is also set by the CI build -->
+    <Version>1.1.0</Version>
+    <RepositoryUrl>https://github.com/couchbase/couchbase-transactions-dotnet</RepositoryUrl>
+    <RepositoryType>GitHub</RepositoryType>
+    <PackageTags>couchbase, transactions, distributed</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(SignAssembly)'=='true'">
+    <DefineConstants>$(DefineConstants);SIGNING</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>obj\Couchbase.Transactions.xml</DocumentationFile>
+    <WarningLevel>2</WarningLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="old\**" />
+    <EmbeddedResource Remove="old\**" />
+    <None Remove="old\**" />
+    <None Include="couchbase-icon.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseNugetForCouchbaseNetClient)' == 'true'">
+    <PackageReference Include="CouchbaseNetClient" Version="3.2.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Crc32.NET" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseNugetForCouchbaseNetClient)' != 'true'">
+    <ProjectReference Include="..\Couchbase\Couchbase.csproj" />
+  </ItemGroup>
+</Project>

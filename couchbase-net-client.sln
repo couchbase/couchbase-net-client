@@ -32,7 +32,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Packages.props = Packages.props
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.CombinationTests", "tests\Couchbase.CombinationTests\Couchbase.CombinationTests.csproj", "{D728363E-EF07-49D0-9079-AD28B6A9359D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.CombinationTests", "tests\Couchbase.CombinationTests\Couchbase.CombinationTests.csproj", "{D728363E-EF07-49D0-9079-AD28B6A9359D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Trimming", "Trimming", "{890E919A-1BC9-43D7-85D4-33272E38E3EA}"
 	ProjectSection(SolutionItems) = preProject
@@ -42,6 +42,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Trimming", "Trimming", "{89
 		src\Trimming\RequiresUnreferencedCodeAttribute.cs = src\Trimming\RequiresUnreferencedCodeAttribute.cs
 		src\Trimming\UnconditionalSuppressMessageAttribute.cs = src\Trimming\UnconditionalSuppressMessageAttribute.cs
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Transactions", "src\Couchbase.Transactions\Couchbase.Transactions.csproj", "{D64799B1-6ED9-4144-8F9E-6DF243DBF6A8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Transactions.Tests.UnitTests", "tests\Couchbase.Transactions.Tests.UnitTests\Couchbase.Transactions.Tests.UnitTests.csproj", "{3408844B-DA41-48CD-9A9F-AE5F5001A9F1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.Transactions.Tests.IntegrationTests", "tests\Couchbase.Transactions.Tests.IntegrationTests\Couchbase.Transactions.Tests.IntegrationTests.csproj", "{386877D9-B1C0-4E74-A969-99E4CAC9FD63}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -97,6 +103,18 @@ Global
 		{D728363E-EF07-49D0-9079-AD28B6A9359D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D728363E-EF07-49D0-9079-AD28B6A9359D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D728363E-EF07-49D0-9079-AD28B6A9359D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D64799B1-6ED9-4144-8F9E-6DF243DBF6A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D64799B1-6ED9-4144-8F9E-6DF243DBF6A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D64799B1-6ED9-4144-8F9E-6DF243DBF6A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D64799B1-6ED9-4144-8F9E-6DF243DBF6A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3408844B-DA41-48CD-9A9F-AE5F5001A9F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3408844B-DA41-48CD-9A9F-AE5F5001A9F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3408844B-DA41-48CD-9A9F-AE5F5001A9F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3408844B-DA41-48CD-9A9F-AE5F5001A9F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{386877D9-B1C0-4E74-A969-99E4CAC9FD63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

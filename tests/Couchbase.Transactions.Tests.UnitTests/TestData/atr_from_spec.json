@@ -1,0 +1,53 @@
+﻿{
+    "attempts": {
+        // Attempt ID
+        "ef1e25ce-fa7e-4bcc-83a3-0160b1321385": {
+            // Transaction ID - optional, only available if
+            // implementation supports [ExtTransactionId]
+            "tid": "febcecce-2386-4277-9e9c-66a7c367dbe4",
+
+            // How long until the transaction (not attempt) expires, in millis
+            "exp": 3000,
+
+            // The state - see Attempt States
+            "st": "ROLLED_BACK",
+
+            // The "${Mutation.CAS}" 'timestamp' of:
+            "tst": "0x00005f07b4250016", // the "PENDING" write
+            "tsc": "0x00008f09b4250016", // any "COMMIT" write
+            "tsco": "0x00008f09b4250016", // any "COMPLETED" write
+            "tsrs": "0x00008f09b4250016", // any "ABORT" write
+            "tsrc": "0x0000d909b4250016", // any "ROLLED_BACK" write
+
+            // An array of any documents inserted in this attempt
+            "ins": [],
+
+            // An array of any documents replaced in this attempt
+            "rep": [],
+
+            // An array of any documents removed in this attempt
+            "rem": [
+                {
+                    // The bucket, scope, and collection of the document
+                    "scp": "_default",
+                    "col": "_default",
+                    "bkt": "default",
+
+                    // The document's ID
+                    "id": "syncWriteInProgressErrorDuringCommit_0"
+                }
+            ],
+            // This next field is optional
+            "fc": {
+                // The forwards-compatibility map
+                // The syntax is too dense and concise to go into here, see later
+                "CL_E": [
+                    {
+                        "p": "2.0",
+                        "b": "f"
+                    }
+                ]
+            }
+        }
+    }
+}
