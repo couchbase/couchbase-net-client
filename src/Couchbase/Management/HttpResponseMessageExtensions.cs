@@ -39,6 +39,16 @@ namespace Couchbase.Management
                 {
                     throw new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, ctx);
                 }
+
+                if (body.IndexOf("Maximum number of collections has been reached for scope",
+                        StringComparison.InvariantCultureIgnoreCase) > 0)
+                {
+                    throw new QuotaLimitedException(QuotaLimitedReason.MaximumNumberOfCollectionsReached, ctx);
+                }
+            } else if (msg.StatusCode == (HttpStatusCode) 400 && body.IndexOf("num_fts_indexes",
+                           StringComparison.InvariantCultureIgnoreCase) > 0)
+            {
+                throw new QuotaLimitedException(QuotaLimitedReason.MaximumNumberOfIndexesReached, ctx);
             }
         }
 

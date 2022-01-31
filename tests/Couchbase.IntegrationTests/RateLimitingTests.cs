@@ -9,8 +9,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using Couchbase.Core.RateLimiting;
 using Couchbase.IntegrationTests.Utils;
+using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using Couchbase.Management.Search;
+using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Newtonsoft.Json.Linq;
 using Xunit.Abstractions;
@@ -451,6 +453,35 @@ namespace Couchbase.IntegrationTests
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Scope_Quota_Limit_Max_Collections()
+        {
+            await EnforceRateLimits();
+
+            var scopeName = "clusterManager";
+            var limits = new ScopeRateLimits();
+            limits.ClusterManagerScopeRateLimit = new ClusterManagerScopeRateLimit(1);
+            await CreateRateLimitedScope(scopeName, _fixture.GetDefaultBucket().Result.Name, limits);
+
+            var collectionManager = _fixture.GetDefaultBucket().Result.Collections;
+            await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, "collectionName"));
+
+            try
+            {
+
+                var ex = await Assert.ThrowsAsync<QuotaLimitedException>(async () =>
+                {
+                    await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, "collectionName2"));
+                });
+
+                Assert.True(ex.Context?.Message.Contains("Maximum number of collections has been reached for scope"));
+            }
+            finally
+            {
+                await collectionManager.DropScopeAsync(scopeName);
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
         public async Task Search_Rate_Limit_Max_Commands()
         {
             await EnforceRateLimits();
@@ -468,42 +499,7 @@ namespace Couchbase.IntegrationTests
                     Type = "fulltext-index",
                     SourceName = _fixture.GetDefaultBucket().Result.Name,
                     SourceType = "couchbase",
-                    Params = new Dictionary<string, dynamic>()
-                {
-                    {
-                        "mapping", new Dictionary<string, dynamic>()
-                        {
-                            {
-                                "types", new Dictionary<string, dynamic>()
-                                {
-                                    {
-                                        "_default._default", new Dictionary<string, dynamic>()
-                                        {
-                                            {"enabled", true},
-                                            {"dynamic", true}
-                                        }
-                                    }
-                                }
-                            },
-                            {
-                                "default_mapping", new Dictionary<string, dynamic>()
-                                {
-                                    {"enabled", true}
-                                }
-                            },
-                            {"default_type", "_default"},
-                            {"default_analyzer", "standard"},
-                            {"default_field", "_all"}
-                        }
-                    },
-                    {
-                        "doc_config", new Dictionary<string, dynamic>()
-                        {
-                            {"mode", "scope.collection.type_field"},
-                            {"type_field", "type"}
-                        }
-                    }
-                }
+                    Params = _defaultSearchParams
                 });
 
                 var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
@@ -549,6 +545,324 @@ namespace Couchbase.IntegrationTests
                 await _fixture.Cluster.SearchIndexes.DropIndexAsync("ratelimits");
             }
         }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Search_Rate_Limit_Egress()
+        {
+            await EnforceRateLimits();
+
+            var username = "searchRateLimit";
+            var limits = new Limits();
+            limits.SearchLimits = new SearchLimits(100, 100, 10, 1);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                await _fixture.Cluster.SearchIndexes.UpsertIndexAsync(new SearchIndex()
+                {
+                    Name = "ratelimits",
+                    SourceName = _fixture.GetDefaultBucket().Result.Name,
+                    Type = "fulltext-index",
+                    SourceType = "gocbcore",
+                    Params = _defaultSearchParams
+                });
+
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                var collection = await cluster.BucketAsync(_fixture.GetDefaultBucket().Result.Name).Result
+                    .DefaultCollectionAsync();
+
+                var random = new Random();
+                var str = new string(Enumerable.Repeat("a", 1024 * 1024).Select(s => s[random.Next(s.Length)]).ToArray());
+                await collection.UpsertAsync("searchEgress", new { content= str },
+                    new UpsertOptions().Timeout(TimeSpan.FromSeconds(10)));
+
+                await Task.Delay(10000);//wait time for indexer
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    for (int i = 0; i < 15; i++)
+                    {
+                        try
+                        {
+                            var result = await cluster.SearchQueryAsync("ratelimits", new WildcardQuery("a*"),
+                                options =>
+                                {
+                                    options.Timeout(TimeSpan.FromSeconds(10));
+                                    options.Highlight(HighLightStyle.Html, "content");
+                                    options.Fields("content");
+                                });
+                        }
+                        catch (TimeoutException ex)
+                        {
+                            //continue
+                        }
+                        catch (CouchbaseException ex)
+                        {
+                            if (ex.Message.Contains("no planPIndexes"))
+                            {
+                            }
+                            else
+                            {
+                                throw;
+                            }
+                        }
+                    }
+                });
+
+                Assert.True(ex.Context?.Message.Contains("egress_mib_per_min"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.GetDefaultBucket().Result.DefaultCollection().RemoveAsync("searchEgress");
+                await _fixture.Cluster.Users.DropUserAsync(username);
+                await _fixture.Cluster.SearchIndexes.DropIndexAsync("ratelimits");
+            }
+        }
+
+
+         [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Search_Rate_Limit_Ingress()
+        {
+            await EnforceRateLimits();
+
+            var username = "searchRateLimit";
+            var limits = new Limits();
+            limits.SearchLimits = new SearchLimits(10, 10, 1, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                await _fixture.Cluster.SearchIndexes.UpsertIndexAsync(new SearchIndex()
+                {
+                    Name = "ratelimits",
+                    SourceName = _fixture.GetDefaultBucket().Result.Name,
+                    Type = "fulltext-index",
+                    SourceType = "couchbase",
+                    Params = _defaultSearchParams
+                });
+
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        try
+                        {
+                            var result = await cluster.SearchQueryAsync("ratelimits", new MatchQuery(RandomDoc(1024 * 1024)),
+                                options => options.Timeout(TimeSpan.FromSeconds(10)));
+                        }
+                        catch (TimeoutException ex)
+                        {
+                            //continue
+                        }
+                        catch (CouchbaseException ex)
+                        {
+                            if (ex.Message.Contains("no planPIndexes"))
+                            {
+                            }
+                            else
+                            {
+                                throw;
+                            }
+                        }
+                    }
+                });
+
+                Assert.True(ex.Context?.Message.Contains("ingress_mib_per_min"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+                await _fixture.Cluster.SearchIndexes.DropIndexAsync("ratelimits");
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Search_Rate_Limit_Concurrent_Requests()
+        {
+            await EnforceRateLimits();
+
+            var username = "searchRateLimit";
+            var limits = new Limits();
+            limits.SearchLimits = new SearchLimits(1, 10, 10, 10);
+            await CreateRateLimitedUser(username, limits);
+
+            try
+            {
+                await _fixture.Cluster.SearchIndexes.UpsertIndexAsync(new SearchIndex()
+                {
+                    Name = "ratelimits",
+                    SourceName = _fixture.GetDefaultBucket().Result.Name,
+                    Type = "fulltext-index",
+                    SourceType = "couchbase",
+                    Params = _defaultSearchParams
+                });
+
+                var cluster = await Cluster.ConnectAsync(_connectionString, new ClusterOptions()
+                {
+                    UserName = username,
+                    Password = RlPassword,
+                    EnableDnsSrvResolution = false
+                });
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10));
+
+                var ex = await Assert.ThrowsAsync<RateLimitedException>(async () =>
+                {
+                    var parallelTasks = Enumerable.Range(0, 10)
+                        .Select(async _ => await cluster.SearchQueryAsync("ratelimits", new MatchQuery("A"),
+                            options => options.Timeout(TimeSpan.FromSeconds(10))))
+                        .ToList();
+
+                    await Task.WhenAll(parallelTasks).ConfigureAwait(false);
+                });
+
+                Assert.True(ex.Context?.Message.Contains("num_concurrent_requests"));
+                await cluster.DisposeAsync();
+            }
+            finally
+            {
+                await _fixture.Cluster.Users.DropUserAsync(username);
+                await _fixture.Cluster.SearchIndexes.DropIndexAsync("ratelimits");
+            }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task Search_Quota_Limit_Max_Scope_Indexes()
+        {
+            await EnforceRateLimits();
+
+            var scopeName = "searchRateLimit";
+            var collectionName = "searchCollection";
+            var limits = new ScopeRateLimits();
+            limits.SearchScopeRateLimit = new SearchScopeRateLimit(1);
+            await CreateRateLimitedScope(scopeName, _fixture.GetDefaultBucket().Result.Name, limits);
+
+            var collectionManager = _fixture.GetDefaultBucket().Result.Collections;
+            await collectionManager.CreateCollectionAsync(new CollectionSpec(scopeName, collectionName));
+
+            await Task.Delay(1000);//wait time
+
+            var indexParams = new Dictionary<string, dynamic>()
+            {
+                {
+                    "mapping", new Dictionary<string, dynamic>()
+                    {
+                        {
+                            "types", new Dictionary<string, dynamic>()
+                            {
+                                {
+                                    scopeName +"."+collectionName, new Dictionary<string, dynamic>()
+                                    {
+                                        {"enabled", true},
+                                        {"dynamic", true}
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "default_mapping", new Dictionary<string, dynamic>()
+                            {
+                                {"enabled", false}
+                            }
+                        },
+                        {"default_type", "_default"},
+                        {"default_analyzer", "standard"},
+                        {"default_field", "_all"}
+                    }
+                },
+                {
+                    "doc_config", new Dictionary<string, dynamic>()
+                    {
+                        {"mode", "scope.collection.type_field"},
+                        {"type_field", "type"}
+                    }
+                }
+            };
+
+            try
+            {
+                await _fixture.Cluster.SearchIndexes.UpsertIndexAsync(new SearchIndex()
+                {
+                    Name = "ratelimits1",
+                    Type = "fulltext-index",
+                    SourceName = _fixture.GetDefaultBucket().Result.Name,
+                    SourceType = "couchbase",
+                    Params = indexParams
+                });
+
+
+                var ex = await Assert.ThrowsAsync<QuotaLimitedException>(async () =>
+                {
+                    await _fixture.Cluster.SearchIndexes.UpsertIndexAsync(new SearchIndex()
+                    {
+                        Name = "ratelimit2",
+                        Type = "fulltext-index",
+                        SourceName = _fixture.GetDefaultBucket().Result.Name,
+                        SourceType = "couchbase",
+                        Params = indexParams
+                    });
+                });
+
+                Assert.True(ex.Context?.Message.Contains("num_fts_indexes"));
+            }
+            finally
+            {
+                await collectionManager.DropScopeAsync(scopeName);
+            }
+        }
+
+        private readonly Dictionary<string, dynamic> _defaultSearchParams = new Dictionary<string, dynamic>()
+        {
+            {
+                "mapping", new Dictionary<string, dynamic>()
+                {
+                    {
+                        "types", new Dictionary<string, dynamic>()
+                        {
+                            {
+                                "_default._default", new Dictionary<string, dynamic>()
+                                {
+                                    {"enabled", true},
+                                    {"dynamic", true}
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "default_mapping", new Dictionary<string, dynamic>()
+                        {
+                            {"enabled", true}
+                        }
+                    },
+                    {"default_type", "_default"},
+                    {"default_analyzer", "standard"},
+                    {"default_field", "_all"}
+                }
+            },
+            {
+                "doc_config", new Dictionary<string, dynamic>()
+                {
+                    {"mode", "scope.collection.type_field"},
+                    {"type_field", "type"}
+                }
+            }
+        };
 
         private static string RandomDoc(int length)
         {
@@ -770,17 +1084,32 @@ namespace Couchbase.IntegrationTests
 
         public class SearchScopeRateLimit
         {
-            public int NumFtsIndexes { get; set; }
+            public int NumFtsIndexes { get; }
+
+            public SearchScopeRateLimit(int numFtsIndexes)
+            {
+                NumFtsIndexes = numFtsIndexes;
+            }
         }
 
         public class IndexScopeRateLimit
         {
             public int NumIndexes { get; set; }
+
+            public IndexScopeRateLimit(int numIndexes)
+            {
+                NumIndexes = numIndexes;
+            }
         }
 
         public class ClusterManagerScopeRateLimit
         {
-            public int NumCollections { get; set; }
+            public int NumCollections { get; }
+
+            public ClusterManagerScopeRateLimit(int numCollections)
+            {
+                NumCollections = numCollections;
+            }
         }
     }
 }
