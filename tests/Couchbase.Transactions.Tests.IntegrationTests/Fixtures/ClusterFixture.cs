@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;
 using Couchbase.Management.Buckets;
 using Couchbase.Management.Collections;
@@ -66,11 +67,19 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
 
         internal static ClusterOptions GetClusterOptions()
         {
-            return new ConfigurationBuilder()
+            var settings = GetSettings();
+            var options = new ConfigurationBuilder()
                 .AddJsonFile("config.json")
                 .Build()
                 .GetSection("couchbase")
                 .Get<ClusterOptions>();
+
+            if (settings.SystemTextJson)
+            {
+                options.WithSerializer(SystemTextJsonSerializer.Create());
+            }
+
+            return options;
         }
 
         public async Task<ICluster> OpenClusterAsync(ITestOutputHelper outputHelper)

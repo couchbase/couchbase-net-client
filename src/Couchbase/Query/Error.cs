@@ -1,13 +1,14 @@
 using Couchbase.Core.Compatibility;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Couchbase.Query
 {
     public class Error
     {
         [JsonProperty("msg")]
+        [JsonPropertyName("msg")]
         public string Message { get; set; }
 
         public int Code { get; set; }
@@ -19,8 +20,9 @@ namespace Couchbase.Query
         public bool Temp { get; set; }
 
         [InterfaceStability(Level.Volatile)]
-        [JsonExtensionData]
-        public IDictionary<string, JToken> AdditionalData { get; set; }
+        [Newtonsoft.Json.JsonExtensionData]
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public IDictionary<string, object> AdditionalData { get; set; }
     }
 
     internal class ErrorData

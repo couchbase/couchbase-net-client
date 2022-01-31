@@ -159,6 +159,15 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             new ReflectionSystemTextJsonProjectionBuilder(Options, logger);
 
         #endregion
+
+        #region Streaming
+
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        public override IJsonStreamReader CreateJsonStreamReader(Stream stream) =>
+            new ReflectionSystemTextJsonStreamReader(stream, Options);
+
+        #endregion
     }
 }
 

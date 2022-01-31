@@ -20,12 +20,42 @@ namespace Couchbase.Core.IO.Serializers
     /// A JSON serializer based on System.Text.Json.
     /// </summary>
     /// <remarks>
-    /// This class is currently experimental and subject to change. It does not support all serialization features
-    /// supported by the <see cref="DefaultSerializer"/>, such as <c>dynamic</c> support, streaming query results,
-    /// or projections.
+    /// <para>
+    ///     This class is currently experimental and subject to change. It does not support all serialization features
+    ///     supported by the <see cref="DefaultSerializer"/>. Known limitations currently include:
+    /// </para>
+    /// <list type="bullet">
+    ///     <item>
+    ///         <description>
+    ///             Couchbase.Transactions is not currently supported.
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <description>
+    ///             No support for <c>dynamic</c> types.
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <description>
+    ///             Some properties of <see cref="Couchbase.Query.QueryMetaData"/> which use <c>dynamic</c>,
+    ///             such as <see cref="Couchbase.Query.QueryMetaData.Profile"/> and <see cref="Couchbase.Query.QueryMetaData.Signature"/>,
+    ///             are not populated.
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <description>
+    ///             View-style queries are not supported using <c>JsonSerializerContext</c>, only reflection-based serialization.
+    ///         </description>
+    ///     </item>
+    ///     <item>
+    ///         <description>
+    ///             Any use of <see cref="Newtonsoft.Json.Linq.JToken"/> should be replaced with <see cref="JsonElement"/> or <c>object</c>.
+    ///         </description>
+    ///     </item>
+    /// </list>
     /// </remarks>
     [InterfaceStability(Level.Volatile)]
-    public abstract class SystemTextJsonSerializer : IExtendedTypeSerializer, IProjectableTypeDeserializer
+    public abstract class SystemTextJsonSerializer : IExtendedTypeSerializer, IProjectableTypeDeserializer, IStreamingTypeDeserializer
     {
         private static readonly SupportedDeserializationOptions SupportedDeserializationOptionsStatic = new();
 
@@ -172,6 +202,9 @@ namespace Couchbase.Core.IO.Serializers
 
         /// <inheritdoc />
         public abstract IProjectionBuilder CreateProjectionBuilder(ILogger logger);
+
+        /// <inheritdoc />
+        public abstract IJsonStreamReader CreateJsonStreamReader(Stream stream);
     }
 }
 

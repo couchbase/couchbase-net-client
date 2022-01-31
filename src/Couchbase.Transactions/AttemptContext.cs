@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Transactions;
 using Couchbase.Core;
@@ -43,6 +44,7 @@ using Newtonsoft.Json.Linq;
 using static Couchbase.Transactions.Error.ErrorBuilder;
 using Exception = System.Exception;
 using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Couchbase.Transactions
 {
@@ -1389,7 +1391,7 @@ namespace Couchbase.Transactions
                     ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ATR_COMMIT_AMBIGUITY_RESOLUTION);
                     await _testHooks.BeforeAtrCommitAmbiguityResolution(this).CAF();
                     refreshedStatus = await _atr!.LookupAtrState().CAF();
-                    
+
                 }
                 catch (Exception exAmbiguity)
                 {
@@ -2126,11 +2128,17 @@ namespace Couchbase.Transactions
                                 return new CasMismatchException(qec);
                         }
 
-                        if (chosenError.AdditionalData != null && chosenError.AdditionalData.TryGetValue("cause", out var jtoken))
+                        if (chosenError.AdditionalData != null && chosenError.AdditionalData.TryGetValue("cause", out var causeObj))
                         {
                             try
                             {
-                                var errorCause = jtoken.ToObject<QueryErrorCause>();
+                                var errorCause = causeObj switch
+                                {
+                                    JToken jToken => jToken.ToObject<QueryErrorCause>(),
+                                    JsonElement jsonElement => jsonElement.Deserialize(DataModelSerializerContext.Default.QueryErrorCause),
+                                    _ => new QueryErrorCause(null, null, null, null)
+                                };
+
                                 Logger.LogWarning("query code={code} cause={cause} raise={raise}",
                                     code,
                                     Redactor.UserData(errorCause.cause),

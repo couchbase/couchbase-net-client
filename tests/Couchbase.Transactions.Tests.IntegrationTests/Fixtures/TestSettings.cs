@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.KeyValue;
@@ -11,6 +11,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
         public string BucketName { get; set; }
 
         public bool CleanupTestBucket { get; set; } = true;
+
+        public bool SystemTextJson { get; set; }
     }
 }
 /* ************************************************************

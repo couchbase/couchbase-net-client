@@ -6,7 +6,6 @@ using Couchbase.IntegrationTests.Utils;
 using Couchbase.Query;
 using Couchbase.Test.Common.Utils;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -139,12 +138,12 @@ namespace Couchbase.IntegrationTests.Services.Query
 
             {
                 using var span = new TestOutputSpan(_testOutputHelper);
-                var results = await cluster.QueryAsync<JObject>("BEGIN WORK", options => options.RequestSpan(span)).ConfigureAwait(false);
+                var results = await cluster.QueryAsync<Transaction>("BEGIN WORK", options => options.RequestSpan(span)).ConfigureAwait(false);
                 originalQueryNode = results.MetaData?.LastDispatchedToNode;
                 await foreach (var result in results.Rows)
                 {
-                    _testOutputHelper.WriteLine(result.ToString());
-                    txid = result.Value<string>("txid");
+                    _testOutputHelper.WriteLine($"txid: {result.Txid}");
+                    txid = result.Txid;
                 }
 
                 // originalQueryNode = span.Attributes.Where(kvp => kvp.Key == "net.peer.name").Select(kvp => kvp.Value).FirstOrDefault();
@@ -170,6 +169,12 @@ namespace Couchbase.IntegrationTests.Services.Query
         {
             public string Name { get; set; }
         }
+
+        private class Transaction
+        {
+            public string Txid { get; set; }
+        }
+
         // ReSharper restore UnusedType.Local
     }
 }

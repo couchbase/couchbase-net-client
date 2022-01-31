@@ -34,4 +34,10 @@
     <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="..\Couchbase.UnitTests\Documents\**\*.json">
+      <Link>Documents\%(RecursiveDir)%(FileName)%(Extension)</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

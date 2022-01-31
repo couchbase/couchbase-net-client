@@ -15,6 +15,12 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(ErrorMapDto))]
     [JsonSerializable(typeof(Hello.HelloKey))]
     [JsonSerializable(typeof(Manifest))]
+    [JsonSerializable(typeof(Query.Error), TypeInfoPropertyName = "QueryError")]
+    [JsonSerializable(typeof(Query.ErrorData), TypeInfoPropertyName = "QueryErrorData")]
+    [JsonSerializable(typeof(Query.QueryWarning), TypeInfoPropertyName = "QueryWarning")]
+    [JsonSerializable(typeof(Query.MetricsData), TypeInfoPropertyName = "QueryMetricsData")]
+    [JsonSerializable(typeof(Analytics.WarningData), TypeInfoPropertyName = "AnalyticsWarningData")]
+    [JsonSerializable(typeof(Analytics.MetricsData), TypeInfoPropertyName = "AnalyticsMetricsData")]
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
     }

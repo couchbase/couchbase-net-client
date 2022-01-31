@@ -1,7 +1,8 @@
 {
     "testSettings": {
         "connectionString": "couchbase://localhost",
-        "cleanupTestBucket": false 
+        "cleanupTestBucket": false,
+        "systemTextJson": false
     },
     "couchbase": {
         "connectionString": "couchbase://localhost",

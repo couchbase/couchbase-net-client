@@ -141,6 +141,13 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             new ContextSystemTextJsonProjectionBuilder(Context, logger);
 
         #endregion
+
+        #region Streaming
+
+        public override IJsonStreamReader CreateJsonStreamReader(Stream stream) =>
+            new ContextSystemTextJsonStreamReader(stream, Context);
+
+        #endregion
     }
 }
 
