@@ -404,7 +404,7 @@ namespace Couchbase.IntegrationTests
                 specs => specs.Get("txn.id", isXattr: true).Get("txn.stgd", isXattr: true).Get("$document", isXattr: true),
                 opts => opts.AccessDeleted(true));
             Assert.True(lookupWithMissingXattr.IsDeleted);
-            var docMeta = lookupWithMissingXattr.ContentAs<JObject>(2);
+            var docMeta = lookupWithMissingXattr.ContentAs<object>(2);
             Assert.NotNull(docMeta);
         }
 
@@ -438,15 +438,19 @@ namespace Couchbase.IntegrationTests
             public string Bar { get; set; }
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
             public string Name { get; set; }
 
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
             public int Bah { get; set;}
 
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
             public int Zzz { get; set; }
 
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
             public int Xxx { get; set; }
         }
 

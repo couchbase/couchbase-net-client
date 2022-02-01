@@ -62,13 +62,13 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.InsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
+                await collection.InsertAsync(key, new InnerObject {Name = "mike"}).ConfigureAwait(false);
 
                 using (var result = await collection.GetAsync(key).ConfigureAwait(false))
                 {
-                    var content = result.ContentAs<dynamic>();
+                    var content = result.ContentAs<InnerObject>()!;
 
-                    Assert.Equal("mike", (string) content.name);
+                    Assert.Equal("mike", content.Name);
                 }
             }
             finally
@@ -87,13 +87,13 @@ namespace Couchbase.IntegrationTests
 
             try
             {
-                await collection.InsertAsync(key, new { name = "mike" }).ConfigureAwait(false);
+                await collection.InsertAsync(key, new InnerObject { Name = "mike" }).ConfigureAwait(false);
 
                 using (var result = await collection.GetAsync(key).ConfigureAwait(false))
                 {
-                    var content = result.ContentAs<dynamic>();
+                    var content = result.ContentAs<InnerObject>()!;
 
-                    Assert.Equal("mike", (string)content.name);
+                    Assert.Equal("mike", content.Name);
                 }
             }
             finally
