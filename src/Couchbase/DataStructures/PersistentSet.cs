@@ -24,7 +24,9 @@ namespace Couchbase.DataStructures
             if (BackingStoreChecked) return;
             try
             {
-                await Collection.InsertAsync(Key, new HashSet<TValue>()).ConfigureAwait(false);
+                // Typecast to ISet<TValue> to provide a consistent type which can be registered
+                // by the consumer on their JsonSerializerContext
+                await Collection.InsertAsync(Key, (ISet<TValue>) new HashSet<TValue>()).ConfigureAwait(false);
                 BackingStoreChecked = true;
             }
             catch (DocumentExistsException e)
@@ -66,7 +68,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var items = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var items = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             var added = items.Add(item);
             if (added)
             {
@@ -152,7 +154,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.ExceptWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -161,7 +163,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.IntersectWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -170,7 +172,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsProperSubsetOf(other);
         }
 
@@ -178,7 +180,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsProperSupersetOf(other);
         }
 
@@ -186,7 +188,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsSubsetOf(other);
         }
 
@@ -194,7 +196,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.IsSupersetOf(other);
         }
 
@@ -202,7 +204,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.Overlaps(other);
         }
 
@@ -210,7 +212,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             return thisSet.SetEquals(other);
         }
 
@@ -218,7 +220,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.SymmetricExceptWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -227,7 +229,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             thisSet.UnionWith(other);
             await Collection.UpsertAsync(Key, thisSet).ConfigureAwait(false);
         }
@@ -236,7 +238,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var items = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var items = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             return items.Contains(item);
         }
 
@@ -244,7 +246,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var getResult = await Collection.GetAsync(Key).ConfigureAwait(false);
-            var thisSet = getResult.ContentAs<HashSet<TValue>>().EnsureNotNullForDataStructures();
+            var thisSet = getResult.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
             var removed = thisSet.Remove(item);
             if (removed)
             {

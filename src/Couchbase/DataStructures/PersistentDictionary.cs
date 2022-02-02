@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using System.Collections.ObjectModel;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
@@ -36,7 +35,9 @@ namespace Couchbase.DataStructures
             if (BackingStoreChecked) return;
             try
             {
-                await Collection.InsertAsync(DocId, new Dictionary<string, TValue>()).ConfigureAwait(false);
+                // Typecast to IDictionary<string, TValue> to provide a consistent type which can be registered
+                // by the consumer on their JsonSerializerContext
+                await Collection.InsertAsync(DocId, (IDictionary<string, TValue>) new Dictionary<string, TValue>()).ConfigureAwait(false);
                 BackingStoreChecked = true;
             }
             catch (DocumentExistsException e)
@@ -52,7 +53,7 @@ namespace Couchbase.DataStructures
         {
             CreateBackingStoreAsync().GetAwaiter().GetResult();
             using var result = Collection.GetAsync(DocId).GetAwaiter().GetResult();
-            return result.ContentAs<ReadOnlyDictionary<string, TValue>>()
+            return result.ContentAs<IDictionary<string, TValue>>()
                 .EnsureNotNullForDataStructures().GetEnumerator();
         }
 
@@ -65,7 +66,7 @@ namespace Couchbase.DataStructures
         {
             await CreateBackingStoreAsync().ConfigureAwait(false);
             using var result = await Collection.GetAsync(DocId).ConfigureAwait(false);
-            var content = result.ContentAs<ReadOnlyDictionary<string, TValue>>()
+            var content = result.ContentAs<IDictionary<string, TValue>>()
                 .EnsureNotNullForDataStructures();
 
             foreach (var item in content) yield return item;

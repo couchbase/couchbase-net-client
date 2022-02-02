@@ -52,7 +52,9 @@ namespace Couchbase.DataStructures
             if (BackingStoreChecked) return;
             try
             {
-                await Collection.InsertAsync(Key, new List<TValue>()).ConfigureAwait(false);
+                // Typecast to IList<TValue> to provide a consistent type which can be registered
+                // by the consumer on their JsonSerializerContext
+                await Collection.InsertAsync(Key, (IList<TValue>) new List<TValue>()).ConfigureAwait(false);
                 BackingStoreChecked = true;
             }
             catch (DocumentExistsException e)

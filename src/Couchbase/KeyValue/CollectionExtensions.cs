@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.DI;
@@ -396,21 +397,61 @@ namespace Couchbase.KeyValue
 
         #region Data Structures
 
+        /// <summary>
+        /// Get an <see cref="IPersistentSet{TValue}"/> backed by a given document.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="docId">Document ID which backs the set.</param>
+        /// <returns>The persistent set.</returns>
+        /// <remarks>
+        /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
+        /// be sure to include <see cref="ISet{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
+        /// </remarks>
         public static IPersistentSet<T> Set<T>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentSet<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
+        /// <summary>
+        /// Get an <see cref="IPersistentList{T}"/> backed by a given document.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="docId">Document ID which backs the list.</param>
+        /// <returns>The persistent list.</returns>
+        /// <remarks>
+        /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
+        /// be sure to include <see cref="IList{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
+        /// </remarks>
         public static IPersistentList<T> List<T>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentList<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
+        /// <summary>
+        /// Get an <see cref="IPersistentQueue{T}"/> backed by a given document.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="docId">Document ID which backs the queue.</param>
+        /// <returns>The persistent queue.</returns>
+        /// <remarks>
+        /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
+        /// be sure to include <see cref="IList{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
+        /// </remarks>
         public static IPersistentQueue<T> Queue<T>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentQueue<T>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);
         }
 
+        /// <summary>
+        /// Get an <see cref="IPersistentDictionary{T}"/> backed by a given document.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="docId">Document ID which backs the dictionary.</param>
+        /// <returns>The persistent dictionary.</returns>
+        /// <remarks>
+        /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
+        /// be sure to include <c>IDictionary&lt;string, TValue&gt;</c> in a <see cref="JsonSerializableAttribute"/> on the context.
+        /// </remarks>
         public static IPersistentDictionary<TValue> Dictionary<TValue>(this ICouchbaseCollection collection, string docId)
         {
             return new PersistentDictionary<TValue>(collection, docId, (collection as CouchbaseCollection)?.Logger, (collection as CouchbaseCollection)?.Redactor);

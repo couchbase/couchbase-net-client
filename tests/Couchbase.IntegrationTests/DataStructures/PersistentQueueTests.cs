@@ -27,16 +27,16 @@ namespace Couchbase.IntegrationTests.DataStructures
             public int Age { get; set; }
         }
 
-        private async Task<IPersistentQueue<Foo>> GetPersistentList([CallerMemberName] string id = "")
+        private async Task<IPersistentQueue<Foo>> GetPersistentQueue([CallerMemberName] string id = "")
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
-            return new PersistentQueue<Foo>(collection, id, new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
+            return new PersistentQueue<Foo>(collection, $"{nameof(PersistentQueueTests)}-{id}", new Mock<ILogger>().Object, new Mock<IRedactor>().Object);
         }
 
         [Fact]
         public async Task Test_DequeueAsync()
         {
-            var queue = await GetPersistentList();
+            var queue = await GetPersistentQueue();
             await queue.ClearAsync();
             await queue.EnqueueAsync(new Foo{Name = "Tom", Age = 50});
             await queue.EnqueueAsync(new Foo{Name = "Dick", Age = 27});
@@ -53,7 +53,7 @@ namespace Couchbase.IntegrationTests.DataStructures
         [Fact]
         public async Task Test_PeekAsync()
         {
-            var queue = await GetPersistentList();
+            var queue = await GetPersistentQueue();
             await queue.ClearAsync();
             await queue.EnqueueAsync(new Foo{Name = "Tom", Age = 50});
             await queue.EnqueueAsync(new Foo{Name = "Dick", Age = 27});

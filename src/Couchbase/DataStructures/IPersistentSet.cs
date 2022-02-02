@@ -1,10 +1,20 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Serializers;
 
 #nullable enable
 
 namespace Couchbase.DataStructures
 {
+    /// <summary>
+    /// Represents an <see cref="ISet{T}"/> which is persisted to a backing store.
+    /// </summary>
+    /// <typeparam name="TValue">Type of value in the set.</typeparam>
+    /// <remarks>
+    /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
+    /// be sure to include <see cref="ISet{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
+    /// </remarks>
     public interface IPersistentSet<TValue> : ISet<TValue>
     {
         Task<bool> AddAsync(TValue item);

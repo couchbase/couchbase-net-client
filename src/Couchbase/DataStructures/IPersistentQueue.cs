@@ -1,9 +1,20 @@
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Couchbase.Core.IO.Serializers;
 
 #nullable enable
 
 namespace Couchbase.DataStructures
 {
+    /// <summary>
+    /// Represents a queue which is persisted to a backing store.
+    /// </summary>
+    /// <typeparam name="T">Type of value in the set.</typeparam>
+    /// <remarks>
+    /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
+    /// be sure to include <see cref="IList{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
+    /// </remarks>
     public interface IPersistentQueue<T> :  System.Collections.ICollection
     {
         T? Dequeue();
