@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
@@ -18,6 +19,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Search.Queries;
 
@@ -58,7 +60,7 @@ namespace Couchbase.Diagnostics
         }
 
        private static async Task<ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>> GetEndpointDiagnosticsAsync(ClusterContext context,
-           IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes,CancellationToken token)
+           IEnumerable<IClusterNode> clusterNodes, bool ping, ICollection<ServiceType> serviceTypes, CancellationToken token)
        {
            var endpoints = new ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>>();
 
@@ -75,7 +77,7 @@ namespace Couchbase.Diagnostics
                    foreach (var connection in clusterNode.ConnectionPool.GetConnections())
                    {
                        var endPointDiagnostics =
-                           CreateEndpointHealth(clusterNode.Owner?.Name, DateTime.UtcNow, connection);
+                           CreateEndpointHealth(clusterNode.Owner?.Name, DateTime.UtcNow, connection, ping);
 
                        if (ping)
                        {
@@ -86,7 +88,9 @@ namespace Couchbase.Diagnostics
                                    using var op = new Noop();
                                    operationConfigurator.Configure(op);
 
-                                   using var ctp = CancellationTokenPairSource.FromExternalToken(token);
+                                   using var ctp = token == CancellationToken.None ?
+                                   CancellationTokenPairSource.FromTimeout(context.ClusterOptions.KvTimeout) :
+                                   CancellationTokenPairSource.FromExternalToken(token);
                                    await clusterNode.ExecuteOp(connection, op, ctp.TokenPair).ConfigureAwait(false);
                                }
                                catch (ObjectDisposedException)
@@ -105,7 +109,7 @@ namespace Couchbase.Diagnostics
                    if (clusterNode.Owner is CouchbaseBucket bucket)
                    {
                        var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("view", new List<IEndpointDiagnostics>());
-                       var endPointDiagnostics = CreateEndpointHealth(bucket.Name, ServiceType.Views, DateTime.UtcNow, clusterNode.LastViewActivity, clusterNode.EndPoint);
+                       var endPointDiagnostics = CreateEndpointHealth(bucket.Name, ServiceType.Views, DateTime.UtcNow, clusterNode.LastViewActivity, clusterNode.EndPoint, ping);
 
                        if (ping)
                        {
@@ -121,13 +125,20 @@ namespace Couchbase.Diagnostics
                if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery)
                {
                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("n1ql", new List<IEndpointDiagnostics>());
-                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Query, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint);
+                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Query, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
 
                    if (ping)
                    {
-                       await RecordLatencyAsync(endPointDiagnostics,
-                               () => context.Cluster.QueryAsync<dynamic>("SELECT 1;"))
-                           .ConfigureAwait(false);
+                        await RecordLatencyAsync(endPointDiagnostics, () =>
+                        {
+                            var token1 = token;
+                            var queryOptions = new QueryOptions();
+                            if (token1 != CancellationToken.None)
+                            {
+                                queryOptions.CancellationToken(token1);
+                            }
+                            return context.Cluster.QueryAsync<dynamic>("SELECT 1;", queryOptions);
+                        }).ConfigureAwait(false);
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);
@@ -136,13 +147,20 @@ namespace Couchbase.Diagnostics
                if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics)
                {
                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("cbas", new List<IEndpointDiagnostics>());
-                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Analytics, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint);
+                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Analytics, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
 
                    if (ping)
                    {
-                       await RecordLatencyAsync(endPointDiagnostics,
-                               () => context.Cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;"))
-                           .ConfigureAwait(false);
+                       await RecordLatencyAsync(endPointDiagnostics, () =>
+                       {
+                           var token1 = token;
+                           var analyticsOptions = new AnalyticsOptions();
+                           if (token1 != CancellationToken.None)
+                           {
+                               analyticsOptions.CancellationToken(token1);
+                           }
+                           return context.Cluster.AnalyticsQueryAsync<dynamic>("SELECT 1;", analyticsOptions);
+                       }).ConfigureAwait(false);
                    }
 
                    kvEndpoints.Add(endPointDiagnostics);
@@ -151,7 +169,7 @@ namespace Couchbase.Diagnostics
                if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch)
                {
                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("fts", new List<IEndpointDiagnostics>());
-                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Search, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint);
+                   var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Search, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
 
                    if (ping)
                    {
@@ -161,7 +179,13 @@ namespace Couchbase.Diagnostics
                            {
                                try
                                {
-                                   await context.Cluster.SearchQueryAsync(index, new NoOpQuery())
+                                   var token1 = token;
+                                   var searchOptions = new SearchOptions();
+                                   if (token1 != CancellationToken.None)
+                                   {
+                                       searchOptions.CancellationToken(token1);
+                                   }
+                                   await context.Cluster.SearchQueryAsync(index, new NoOpQuery(), searchOptions)
                                        .ConfigureAwait(false);
                                }
                                catch (IndexNotFoundException)
@@ -178,13 +202,13 @@ namespace Couchbase.Diagnostics
            return endpoints;
        }
 
-       private static EndpointDiagnostics CreateEndpointHealth(string bucketName, DateTime createdAt, IConnection connection)
+       private static EndpointDiagnostics CreateEndpointHealth(string bucketName, DateTime createdAt, IConnection connection, bool ping)
         {
             return new EndpointDiagnostics
             {
                 Id = connection.ConnectionId.ToString(CultureInfo.InvariantCulture),
                 Type = ServiceType.KeyValue,
-                LastActivity = CalculateLastActivity(createdAt, DateTime.UtcNow - connection.IdleTime),
+                LastActivity = ping ? null : CalculateLastActivity(createdAt, DateTime.UtcNow - connection.IdleTime),
                 Remote = connection.EndPoint.ToString() ?? UnknownEndpointValue,
                 Local = connection.LocalEndPoint?.ToString() ?? UnknownEndpointValue,
                 State = GetConnectionServiceState(connection),
@@ -213,12 +237,12 @@ namespace Couchbase.Diagnostics
         }
 
         internal static EndpointDiagnostics CreateEndpointHealth(string bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
-            HostEndpointWithPort? endPoint)
+            HostEndpointWithPort? endPoint, bool ping)
         {
             return new EndpointDiagnostics
             {
                 Type = serviceType,
-                LastActivity = CalculateLastActivity(createdAt, lastActivity),
+                LastActivity = ping ? null : CalculateLastActivity(createdAt, lastActivity),
                 Remote = endPoint?.ToString() ?? UnknownEndpointValue,
                 State = lastActivity.HasValue ? ServiceState.Connected : ServiceState.New,
                 Scope = bucketName
