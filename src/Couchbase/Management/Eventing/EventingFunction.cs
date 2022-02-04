@@ -493,6 +493,7 @@ namespace Couchbase.Management.Eventing
         /// Indicates if the function is deployed. true=deployed, false=undeployed.
         /// </summary>
         [JsonProperty("deployment_status")]
+        [JsonConverter(typeof(EventingFunctionDeploymentStatusConverter))]
         public EventingFunctionDeploymentStatus DeploymentStatus { get; set; } =
             EventingFunctionDeploymentStatus.Undeployed;
 
@@ -500,6 +501,7 @@ namespace Couchbase.Management.Eventing
         /// Indicates if the function is running (i.e., not paused). true=running, false=paused.
         /// </summary>
         [JsonProperty("processing_status")]
+        [JsonConverter(typeof(EventingFunctionProcessingStatusConverter))]
         public EventingFunctionProcessingStatus ProcessingStatus { get; set; } =
             EventingFunctionProcessingStatus.Paused;
 
@@ -546,6 +548,7 @@ namespace Couchbase.Management.Eventing
         /// </summary>
         /// <remarks>The minimum is 1 and the default is 5.</remarks>
         [JsonProperty("lcb_timeout")]
+        [JsonConverter(typeof(Internal.TimeSpanConverter), Interval.Seconds)]
         public TimeSpan LcbTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
         /// <summary>

@@ -78,5 +78,42 @@ namespace Couchbase.Test.Common.Utils
             }
             throw new AggregateException(exceptions);
         }
+
+        /// <summary>
+        /// Retry a boolean func with exponential backoff until it returns true, or the max attempts is reached
+        /// </summary>
+        public static async Task DoUntilAsync(
+            Func<bool> supplier,
+            int retryIntervalMillis = 10,
+            int maxRetryIntervalMillis = 1000,
+            int maxAttemptCount = 32)
+        {
+            var exceptions = new List<Exception>();
+            var pow = 1;
+
+            for (var attempted = 0; attempted < maxAttemptCount; attempted++)
+            {
+                try
+                {
+                    if (attempted < 31)
+                    {
+                        pow <<= 1;
+                    }
+                    var delay = Math.Min(retryIntervalMillis * (pow - 1) / 2,
+                        maxRetryIntervalMillis);
+                    await Task.Delay(delay);
+
+                    if (supplier())
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex);
+                }
+            }
+            throw new AggregateException($"Supplier did not return true in {maxAttemptCount} attempts.", exceptions);
+        }
     }
 }
