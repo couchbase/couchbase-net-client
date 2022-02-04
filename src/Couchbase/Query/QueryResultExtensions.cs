@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Core.Utils;
 
@@ -74,10 +75,23 @@ namespace Couchbase.Query
 
                 if (error.Code >= 5000 && error.Code < 6000) throw new InternalServerFailureException();
 
-                if (error.Code == 12009 &&
-                    error.Message.Contains("CAS mismatch", StringComparison.OrdinalIgnoreCase)) throw new CasMismatchException(context);
+                if (error.Code == 12009)
+                {
+                    if(error.Message.Contains("CAS mismatch", StringComparison.OrdinalIgnoreCase) || error.Reason.Code == 12033)
+                    {
+                        throw new CasMismatchException(context);
+                    }
+                    if (error.Reason.Code == 17014)
+                    {
+                        throw new DocumentNotFoundException(context);
+                    }
+                    if (error.Reason.Code == 17012)
+                    {
+                        throw new DocumentExistsException(context);
+                    }
 
-                if (error.Code == 12009) throw new DmlFailureException(context);
+                    throw new DmlFailureException(context);
+                }
 
                 if (error.Code >= 10000 && error.Code < 11000 || error.Code == 13014)
                     throw new AuthenticationFailureException(context);

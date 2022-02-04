@@ -76,6 +76,12 @@ namespace Couchbase.Query
             var error = Errors.FirstOrDefault();
             if (error != null)
             {
+                if (error.Retry && error.Code != 12016)
+                {
+                    //If the server sends back retry even if not idempotent as long as its not 12016 (Index Not Found)
+                    //https://docs.google.com/document/d/1vIDje29TEyNLMOQEPy6G0NbVzpHF7Op6tep1-xU2oGE/edit#heading=h.8yy151bwv1es
+                    return RetryReason.QueryErrorRetryable;
+                }
                 if (enableEnhancedPreparedStatements)
                 {
                     /*

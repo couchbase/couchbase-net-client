@@ -1,0 +1,27 @@
+{
+  /*The purpose of this response is test retry true normally it would be false for this error type*/
+  "requestID": "2ac080ba-6419-4905-a20b-c881966b6402",
+  "errors": [
+    {
+      "code": 12009,
+      "msg": "DML Error, possible causes include concurrent modification. Failed to perform UPDATE on key k1 - cause: Key not found : k1",
+      "reason": {
+        "caller": "couchbase:2067",
+        "code": 17014,
+        "key": "transaction.statement.keynotfound",
+        "message": "Key not found : k1"
+      },
+      "retry": true
+    }
+  ],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "134.7944us",
+    "executionTime": "130.5518us",
+    "resultCount": 0,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}

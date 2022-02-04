@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using System.Net;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Operations;
 using Couchbase.Query;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 #nullable enable
 
@@ -9,21 +13,71 @@ namespace Couchbase.Core.Exceptions.Query
 {
     /// <remarks>Uncommitted</remarks>
     [InterfaceStability(Level.Uncommitted)]
-    public class QueryErrorContext : IQueryErrorContext
+    public class QueryErrorContext : IQueryErrorContext, IKeyValueErrorContext
     {
+        [JsonInclude]
         public string? Statement { get; set; }
 
+        [JsonInclude]
         public string? ClientContextId { get; set; }
 
+        [JsonInclude]
         public string? Parameters { get; set; }
 
+        [JsonInclude]
         public HttpStatusCode HttpStatus { get; set; }
 
+        [JsonInclude]
         public QueryStatus QueryStatus { get; set; }
 
+        [JsonInclude]
         public List<Error>? Errors { get; set; }
 
+        [JsonInclude]
         public string? Message { get; set; }
+
+        public override string ToString() => JsonSerializer.Serialize(this);
+
+        #region IKeyValueErrorContext
+
+        /*
+         * Note that in order for KV exceptions like DocumentNotFoundException and DocumentExistsException
+         * we need to coerce the treatment of the error context as they are very different from the KV
+         * context which is Bucket/Scope/Collection level to Query context which is cluter level. Now
+         * that Query throws KV exceptions this allows to do this in a non backward breaking manner.
+         */
+
+        [JsonIgnore]
+        string? IKeyValueErrorContext.DispatchedFrom => default;
+
+        [JsonIgnore]
+        string? IKeyValueErrorContext.DispatchedTo => default;
+
+        [JsonIgnore]
+        string? IKeyValueErrorContext.DocumentKey => default;
+
+        [JsonIgnore]
+        string? IKeyValueErrorContext.ClientContextId => default;
+
+        [JsonIgnore]
+        ulong IKeyValueErrorContext.Cas => default;
+
+        [JsonIgnore]
+        ResponseStatus IKeyValueErrorContext.Status => default;
+
+        [JsonIgnore]
+        string? IKeyValueErrorContext.BucketName => default;
+
+        [JsonIgnore]
+        string? IKeyValueErrorContext.CollectionName => default;
+
+        [JsonIgnore]
+        string? IKeyValueErrorContext.ScopeName => default;
+
+        [JsonIgnore]
+        OpCode IKeyValueErrorContext.OpCode { get; set; } = default;
+
+        #endregion
     }
 }
 

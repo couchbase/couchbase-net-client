@@ -140,6 +140,32 @@ namespace Couchbase.UnitTests.Query
             Assert.NotEmpty(blockResult.Errors);
         }
 
+        [Fact]
+        public async Task InitializeAsync_Error_Includes_Reason()
+        {
+            // Arrange
+
+            using var stream = ResourceHelper.ReadResourceAsStream(@"Documents\Query\failure_cas_mismatch_reason.json");
+
+            using var blockResult = new BlockQueryResult<dynamic>(stream, new DefaultSerializer());
+            await blockResult.InitializeAsync().ConfigureAwait(false);
+
+            // Act
+
+            await blockResult.ToListAsync().ConfigureAwait(false);
+            var result = blockResult.MetaData.Status;
+
+            Assert.NotEmpty(blockResult.Errors);
+            Assert.NotNull(blockResult.Errors.First().Reason);
+            Assert.Equal("CAS mismatch", blockResult.Errors.First().Reason.Message);
+            Assert.Equal("couchbase:2065", blockResult.Errors.First().Reason.Caller);
+            Assert.Equal(12033, blockResult.Errors.First().Reason.Code);
+            Assert.Equal("datastore.couchbase.CAS_mismatch", blockResult.Errors.First().Reason.Key);
+            Assert.False(blockResult.Errors.First().Retry);
+            Assert.Equal(QueryStatus.Fatal, blockResult.MetaData.Status);
+            Assert.NotNull(blockResult.MetaData.Metrics);
+        }
+
         #endregion
     }
 }

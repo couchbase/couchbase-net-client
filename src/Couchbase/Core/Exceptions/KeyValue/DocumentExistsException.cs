@@ -1,7 +1,24 @@
+using System;
+
 namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class DocumentExistsException : KeyValueException
     {
+        public DocumentExistsException()
+        {
+        }
+
+        public DocumentExistsException(IKeyValueErrorContext context) : base(context)
+        {
+        }
+
+        public DocumentExistsException(string message) : base(message)
+        {
+        }
+
+        public DocumentExistsException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
 

@@ -463,20 +463,22 @@ namespace Couchbase.UnitTests.Core.Retry
 
         [Theory]
         //only retry 4040 when enhanced prepared statements is enabled
-        [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), true, false, false)]
-        [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
-        [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
-        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
+        [InlineData(@"Documents\Query\Retrys\4040.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), true, false, false)]
+        [InlineData(@"Documents\Query\Retrys\4050.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
+        [InlineData(@"Documents\Query\Retrys\4070.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
+        [InlineData(@"Documents\Query\Retrys\5000.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, false)]
         //only retry 4040 when enhanced prepared statements is enabled
-        [InlineData("4040.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true, true)]
-        [InlineData("4050.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), false, false, true)]
-        [InlineData("4070.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), false, false, true)]
-        [InlineData("5000.json", HttpStatusCode.BadRequest, typeof(InternalServerFailureException), false, false, true)]
+        [InlineData(@"Documents\Query\Retrys\4040.json", HttpStatusCode.BadRequest, typeof(AmbiguousTimeoutException), false, true, true)]
+        [InlineData(@"Documents\Query\Retrys\4050.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), false, false, true)]
+        [InlineData(@"Documents\Query\Retrys\4070.json", HttpStatusCode.BadRequest, typeof(PreparedStatementException), false, false, true)]
+        [InlineData(@"Documents\Query\Retrys\5000.json", HttpStatusCode.BadRequest, typeof(InternalServerFailureException), false, false, true)]
+        [InlineData(@"Documents\Query\Retrys\retry_true.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true, true, true)]
+        [InlineData(@"Documents\Query\Retrys\retry_false.json", HttpStatusCode.BadRequest, typeof(DocumentNotFoundException), true, false, true)]
         public async Task Test_Query(string file, HttpStatusCode httpStatusCode, Type errorType, bool readOnly, bool canRetry, bool enableEnhancedPreparedStatements)
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
-            using (var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\Retrys\" + file))
+            using (var response = ResourceHelper.ReadResourceAsStream(file))
             {
                 var buffer = new byte[response.Length];
                 response.Read(buffer, 0, buffer.Length);

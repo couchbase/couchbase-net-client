@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Couchbase.Core.Compatibility;
 
 #nullable enable
@@ -24,6 +25,8 @@ namespace Couchbase.Core.Exceptions.Search
         public string? Message { get; set; }
 
         public string? Errors { get; set; }
+
+        public override string ToString() => JsonSerializer.Serialize(this);
     }
 }
 

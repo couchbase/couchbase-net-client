@@ -28,7 +28,8 @@ namespace Couchbase.Core.Retry
         ViewsNoActivePartition,
         SendQueueFull,
         CollectionNotFound,
-        ScopeNotFound
+        ScopeNotFound,
+        QueryErrorRetryable
     }
 }
 

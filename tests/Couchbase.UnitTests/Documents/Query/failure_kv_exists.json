@@ -1,0 +1,26 @@
+{
+  "requestID": "2ac080ba-6419-4905-a20b-c881966b6402",
+  "errors": [
+    {
+      "code": 12009,
+      "msg": "DML Error, possible causes include concurrent modification. Failed to perform INSERT on key k1 - cause: Duplicate Key: k1",
+      "reason": {
+        "caller": "couchbase:1957",
+        "code": 17012,
+        "key": "dml.statement.duplicatekey",
+        "message": "Duplicate Key: k1"
+      },
+      "retry": false
+    }
+  ],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "134.7944us",
+    "executionTime": "130.5518us",
+    "resultCount": 0,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}

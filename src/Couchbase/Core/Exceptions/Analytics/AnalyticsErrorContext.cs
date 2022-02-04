@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Net;
+using System.Text.Json;
 using Couchbase.Query;
 
 namespace Couchbase.Core.Exceptions.Analytics
@@ -18,6 +19,8 @@ namespace Couchbase.Core.Exceptions.Analytics
         public string Parameters { get; internal set; }
 
         public List<Error> Errors { get; internal set; }
+
+        public override string ToString() => JsonSerializer.Serialize(this);
     }
 }
 

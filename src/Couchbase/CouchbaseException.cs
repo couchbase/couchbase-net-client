@@ -37,7 +37,7 @@ namespace Couchbase
             var sb = new StringBuilder();
             sb.AppendLine(base.ToString());
             sb.AppendLine("-----------------------Context Info---------------------------");
-            sb.AppendLine(JsonConvert.SerializeObject(Context));
+            sb.AppendLine(Context?.ToString());
             return sb.ToString();
         }
     }

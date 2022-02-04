@@ -1,0 +1,26 @@
+{
+  "requestID": "2ac080ba-6419-4905-a20b-c881966b6402",
+  "errors": [
+    {
+      "code": 12009,
+      "msg": "DML Error, possible causes include CAS mismatch. Failed to perform UPDATE on key k1 - cause: CAS mismatch",
+      "reason": {
+        "caller": "couchbase:2065",
+        "code": 12033,
+        "key": "datastore.couchbase.CAS_mismatch",
+        "message": "CAS mismatch"
+      },
+      "retry": false
+    }
+  ],
+  "status": "fatal",
+  "metrics": {
+    "elapsedTime": "134.7944us",
+    "executionTime": "130.5518us",
+    "resultCount": 0,
+    "resultSize": 0,
+    "mutationCount": 0,
+    "errorCount": 1,
+    "warningCount": 0
+  }
+}

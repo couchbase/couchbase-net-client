@@ -1,7 +1,7 @@
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Operations;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 #nullable enable
 
@@ -11,6 +11,11 @@ namespace Couchbase.Core.Exceptions.KeyValue
     [InterfaceStability(Level.Uncommitted)]
     public class KeyValueErrorContext : IKeyValueErrorContext
     {
+        private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
+        {
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        };
+
         public string? DispatchedFrom { get; set; } //state.localendpoint
 
         public string? DispatchedTo { get; set; } //state.endpoint
@@ -31,8 +36,9 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public string? Message { get; set; } //errorcode
 
-        [JsonConverter(typeof(StringEnumConverter))]
         public OpCode OpCode { get; set; }
+
+        public override string ToString() => JsonSerializer.Serialize(this, SerializerOptions);
     }
 }
 

@@ -1,7 +1,24 @@
+using System;
+
 namespace Couchbase.Core.Exceptions.KeyValue
 {
     public class DocumentNotFoundException : KeyValueException
     {
+        public DocumentNotFoundException()
+        {
+        }
+
+        public DocumentNotFoundException(IKeyValueErrorContext context) : base(context)
+        {
+        }
+
+        public DocumentNotFoundException(string message) : base(message)
+        {
+        }
+
+        public DocumentNotFoundException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
 
