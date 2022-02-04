@@ -517,5 +517,40 @@ namespace Couchbase.IntegrationTests.Management
                 await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
             }
         }
+        [CouchbaseVersionDependentFact(MinVersion = "7.1.0")]
+        public async Task CreateCouchbaseBucketWith_CustomConflictResolution()
+        {
+            var bucketManager = _fixture.Cluster.Buckets;
+            var name = Guid.NewGuid().ToString();
+
+            var settings = new BucketSettings
+            {
+                Name = name,
+                BucketType = BucketType.Couchbase,
+                RamQuotaMB = 100,
+                ConflictResolutionType = ConflictResolutionType.Custom
+            };
+
+            try
+            {
+                // create
+                await bucketManager.CreateBucketAsync(settings).ConfigureAwait(false);
+
+                await Task.Delay(5000).ConfigureAwait(false);
+
+                // get
+                var result = await bucketManager.GetBucketAsync(settings.Name).ConfigureAwait(false);
+                Assert.Equal(ConflictResolutionType.Custom, result.ConflictResolutionType);
+            }
+            catch (CouchbaseException ex)
+            {
+                Assert.True(ex.Context?.Message.Contains("Conflict resolution type 'custom' is supported only with developer preview enabled"));
+            }
+            finally
+            {
+                // drop
+                await bucketManager.DropBucketAsync(settings.Name).ConfigureAwait(false);
+            }
+        }
     }
 }
