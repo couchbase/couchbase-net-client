@@ -939,15 +939,17 @@ namespace Couchbase.KeyValue
                 Logger.LogWarning(
                     $"Call to GetAllReplicas for key [{id}] but none are configured. Only the active document will be retrieved.");
 
-            // get primary
-            var tasks = new List<Task<IGetReplicaResult>>(vBucket.Replicas.Length + 1)
+            //get a list of replica indexes
+            var replicas = vBucket.Replicas.Where(index => index > -1).ToList();
+
+            // get the primary
+            var tasks = new List<Task<IGetReplicaResult>>(replicas.Count + 1)
             {
                 GetPrimary(id, rootSpan, options.TokenValue, options)
             };
 
-            // get replicas
-            tasks.AddRange(
-                vBucket.Replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
+            // get the replicas
+            tasks.AddRange(replicas.Select(index => GetReplica(id, index, rootSpan, options.TokenValue, options)));
 
             return tasks;
         }

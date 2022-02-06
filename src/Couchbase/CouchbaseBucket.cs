@@ -207,20 +207,27 @@ namespace Couchbase
             {
                 var vBucket = (VBucket) KeyMapper.MapKey(op.Key, op.WasNmvb());
 
-                var endPoint = op.ReplicaIdx != null
+                var endPoint = op.ReplicaIdx != null && op.ReplicaIdx > -1
                     ? vBucket.LocateReplica(op.ReplicaIdx.GetValueOrDefault())
                     : vBucket.LocatePrimary();
 
                 op.VBucketId = vBucket.Index;
 
-                if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
+                try
                 {
-                    await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
-                    return;
+                    if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
+                    {
+                        await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
+                        return;
+                    }
                 }
-
-                throw new NodeNotAvailableException(
-                    $"Cannot find a Couchbase Server node for {endPoint}.");
+                catch (ArgumentNullException)
+                {
+                    //We could not find a candidate node to send so put into the retry queue
+                    //its likely were between cluster map updates and we'll try again later
+                    throw new NodeNotAvailableException(
+                        $"Cannot find a Couchbase Server node for {endPoint}.");
+                }
             }
 
             //Make sure we use a node with the data service
