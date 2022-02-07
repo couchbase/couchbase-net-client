@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Query;
@@ -169,13 +167,12 @@ namespace Couchbase.Query
 
             span.WithRemoteAddress(queryUri);
             using var encodingSpan = span.EncodingSpan();
-            var body = options.GetFormValuesAsJson();
+            using var content = options.GetRequestBody(serializer);
             encodingSpan.Dispose();
 
             _logger.LogDebug("Sending query {contextId} to node {endpoint}.", options.CurrentContextId, queryUri);
 
             QueryResultBase<T> queryResult;
-            using var content = new StringContent(body, System.Text.Encoding.UTF8, MediaType.Json);
             try
             {
                 using var dispatchSpan = span.DispatchSpan(options);

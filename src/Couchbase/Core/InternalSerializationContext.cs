@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Errors;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 
 namespace Couchbase.Core
 {
@@ -15,6 +16,9 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(ErrorMapDto))]
     [JsonSerializable(typeof(Hello.HelloKey))]
     [JsonSerializable(typeof(Manifest))]
+    [JsonSerializable(typeof(Query.QueryOptionsDto))]
+    [JsonSerializable(typeof(Query.ScanVectorComponent))]
+    [JsonSerializable(typeof(TypeSerializerWrapper))]
     [JsonSerializable(typeof(Query.Error), TypeInfoPropertyName = "QueryError")]
     [JsonSerializable(typeof(Query.ErrorData), TypeInfoPropertyName = "QueryErrorData")]
     [JsonSerializable(typeof(Query.QueryWarning), TypeInfoPropertyName = "QueryWarning")]

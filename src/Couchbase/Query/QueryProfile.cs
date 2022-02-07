@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Couchbase.Query
 {
     /// <summary>
@@ -8,16 +10,19 @@ namespace Couchbase.Query
         /// <summary>
         /// Returns no query profile information. This is the default.
         /// </summary>
+        [Description("off")]
         Off,
 
         /// <summary>
         /// Returns phase information.
         /// </summary>
+        [Description("phases")]
         Phases,
 
         /// <summary>
         /// Returns timing information.
         /// </summary>
+        [Description("timings")]
         Timings
     }
 }

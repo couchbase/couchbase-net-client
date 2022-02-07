@@ -1,14 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
+using Couchbase.Core;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Core.Retry;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 
 #nullable enable
 
@@ -19,9 +26,9 @@ namespace Couchbase.Query
     /// </summary>
     public class QueryOptions
     {
-        private readonly List<object> _arguments = new List<object>();
-        private readonly Dictionary<string, object> _parameters = new Dictionary<string, object>();
-        private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
+        private List<object>? _arguments;
+        private Dictionary<string, object>? _parameters;
+        private Dictionary<string, object>? _rawParameters;
         private bool _autoExecute;
         private bool? _includeMetrics;
         private int? _maxServerParallelism;
@@ -32,7 +39,7 @@ namespace Couchbase.Query
         private bool? _readOnly;
         private int? _scanCapacity;
         private QueryScanConsistencyInternal? _scanConsistency;
-        private Dictionary<string, Dictionary<string, List<object>>>? _scanVectors;
+        private Dictionary<string, Dictionary<string, ScanVectorComponent>>? _scanVectors;
         private TimeSpan? _scanWait;
         private string? _statement;
         private TimeSpan? _timeOut;
@@ -58,18 +65,31 @@ namespace Couchbase.Query
                     .Profile(_profile);
 
                 queryOptions._scanVectors = _scanVectors;
-                foreach(var arg in _arguments)
+
+                if (_arguments is not null)
                 {
-                    queryOptions.Parameter(arg);
+                    foreach (var arg in _arguments)
+                    {
+                        queryOptions.Parameter(arg);
+                    }
                 }
-                foreach(var arg in _rawParameters)
+
+                if (_rawParameters is not null)
                 {
-                    queryOptions.Raw(arg.Key, arg.Value);
+                    foreach (var arg in _rawParameters)
+                    {
+                        queryOptions.Raw(arg.Key, arg.Value);
+                    }
                 }
-                foreach(var arg in _parameters)
+
+                if (_parameters is not null)
                 {
-                    queryOptions.Parameter(arg.Key, arg.Value);
+                    foreach (var arg in _parameters)
+                    {
+                        queryOptions.Parameter(arg.Key, arg.Value);
+                    }
                 }
+
                 if (_maxServerParallelism.HasValue)
                 {
                     queryOptions.MaxServerParallelism(_maxServerParallelism.Value);
@@ -199,7 +219,7 @@ namespace Couchbase.Query
                 Positional = _arguments
             };
 
-            return JsonConvert.SerializeObject(allParameters);
+            return JsonSerializer.Serialize(allParameters);
         }
 
         /// <summary>
@@ -243,40 +263,40 @@ namespace Couchbase.Query
 #pragma warning disable 618
             ScanConsistencyInternal(QueryScanConsistencyInternal.AtPlus);
 #pragma warning restore 618
-            _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
+            _scanVectors = new Dictionary<string, Dictionary<string, ScanVectorComponent>>();
             foreach (var token in mutationState)
                 if (_scanVectors.TryGetValue(token.BucketRef, out var vector))
                 {
                     var bucketId = token.VBucketId.ToString();
                     if (vector.TryGetValue(bucketId, out var bucketRef))
                     {
-                        if ((long) bucketRef.First() < token.SequenceNumber)
-                            vector[bucketId] = new List<object>
+                        if (bucketRef.SequenceNumber < token.SequenceNumber)
+                            vector[bucketId] = new ScanVectorComponent
                             {
-                                token.SequenceNumber,
-                                token.VBucketUuid.ToString()
+                                SequenceNumber = token.SequenceNumber,
+                                VBucketUuid = token.VBucketUuid
                             };
                     }
                     else
                     {
                         vector.Add(token.VBucketId.ToString(),
-                            new List<object>
+                            new ScanVectorComponent
                             {
-                                token.SequenceNumber,
-                                token.VBucketUuid.ToString()
+                                SequenceNumber = token.SequenceNumber,
+                                VBucketUuid = token.VBucketUuid
                             });
                     }
                 }
                 else
                 {
-                    _scanVectors.Add(token.BucketRef, new Dictionary<string, List<object>>
+                    _scanVectors.Add(token.BucketRef, new Dictionary<string, ScanVectorComponent>
                     {
                         {
                             token.VBucketId.ToString(),
-                            new List<object>
+                            new ScanVectorComponent
                             {
-                                token.SequenceNumber,
-                                token.VBucketUuid.ToString()
+                                SequenceNumber = token.SequenceNumber,
+                                VBucketUuid = token.VBucketUuid
                             }
                         }
                     });
@@ -439,7 +459,7 @@ namespace Couchbase.Query
         /// </remarks>
         public QueryOptions Parameter(string name, object value)
         {
-            _parameters.Add(name, value);
+            (_parameters ??= new()).Add(name, value);
             return this;
         }
 
@@ -455,7 +475,7 @@ namespace Couchbase.Query
         /// </remarks>
         public QueryOptions Parameter(object value)
         {
-            _arguments.Add(value);
+            (_arguments ??= new()).Add(value);
             return this;
         }
 
@@ -471,8 +491,12 @@ namespace Couchbase.Query
         /// </remarks>
         public QueryOptions Parameter(params KeyValuePair<string, object>[] parameters)
         {
-            if (_arguments.Any()) throw new ArgumentException("Cannot combine positional and named query parameters.");
+            if (_arguments?.Any() ?? false)
+            {
+                throw new ArgumentException("Cannot combine positional and named query parameters.");
+            }
 
+            _parameters ??= new();
             foreach (var parameter in parameters) _parameters.Add(parameter.Key, parameter.Value);
 
             return this;
@@ -485,8 +509,12 @@ namespace Couchbase.Query
         /// <returns></returns>
         public QueryOptions Parameter(params object[] parameters)
         {
-            if (_parameters.Any()) throw new ArgumentException("Cannot combine positional and named query parameters.");
+            if (_parameters?.Any() ?? false)
+            {
+                throw new ArgumentException("Cannot combine positional and named query parameters.");
+            }
 
+            _arguments ??= new();
             foreach (var parameter in parameters) _arguments.Add(parameter);
 
             return this;
@@ -585,7 +613,7 @@ namespace Couchbase.Query
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Parameter name cannot be null or empty.");
 
-            _rawParameters.Add(name, value);
+            (_rawParameters ??= new()).Add(name, value);
             return this;
         }
 
@@ -689,6 +717,84 @@ namespace Couchbase.Query
             return this;
         }
 
+        internal QueryOptionsDto CreateDto(ITypeSerializer serializer)
+        {
+            if (string.IsNullOrWhiteSpace(_statement) ||
+                IsPrepared && _preparedPayload == null)
+            {
+                ThrowHelper.ThrowInvalidOperationException("A statement or prepared plan must be provided.");
+            }
+            if (_scanVectors is not null && _scanConsistency.GetValueOrDefault() != QueryScanConsistencyInternal.AtPlus)
+            {
+                ThrowHelper.ThrowInvalidOperationException(
+                    "Only ScanConsistency.AtPlus is supported for this query request.");
+            }
+
+            var dto = new QueryOptionsDto
+            {
+                AutoExecute = _autoExecute,
+                ClientContextId = CurrentContextId,
+                FlexIndex = _flexIndex,
+                IncludeMetrics = _includeMetrics,
+                MaxServerParallelism = _maxServerParallelism,
+                PipelineBatch = _pipelineBatch,
+                PipelineCapacity = _pipelineCapacity,
+                PreserveExpiry = _preserveExpiry,
+                Profile = _profile,
+                QueryContext = QueryContext,
+                ReadOnly = _readOnly,
+                ScanCapacity = _scanCapacity,
+                ScanConsistency = _scanConsistency,
+                ScanVectors = _scanVectors,
+                ScanWait = _scanWait,
+                Timeout = _timeOut,
+            };
+
+            if (IsPrepared)
+            {
+                dto.Prepared = _preparedPayload!.Name;
+
+                // don't include empty plan
+                if (!string.IsNullOrEmpty(_preparedPayload.EncodedPlan))
+                {
+                    dto.PreparedEncoded = _preparedPayload.EncodedPlan;
+                }
+            }
+            else
+            {
+                dto.Statement = _statement;
+            }
+
+            if (_arguments is {Count: > 0})
+            {
+                dto.Arguments = _arguments.Select(p => new TypeSerializerWrapper(serializer, p)).ToList();
+            }
+
+            if (_parameters is {Count: > 0})
+            {
+                dto.AdditionalProperties ??= new Dictionary<string, object>();
+
+                foreach (var parameter in _parameters)
+                {
+                    dto.AdditionalProperties.Add(
+                        parameter.Key.Contains("$") ? parameter.Key : "$" + parameter.Key,
+                        new TypeSerializerWrapper(serializer, parameter.Value));
+                }
+            }
+
+            if (_rawParameters is {Count: > 0})
+            {
+                dto.AdditionalProperties ??= new Dictionary<string, object>();
+
+                foreach (var parameter in _rawParameters)
+                {
+                    dto.AdditionalProperties.Add(parameter.Key, new TypeSerializerWrapper(serializer, parameter.Value));
+                }
+            }
+
+            return dto;
+        }
+
         /// <summary>
         ///     Gets a <see cref="IDictionary{K, V}" /> of the name/value pairs to be POSTed to the service.
         /// </summary>
@@ -700,89 +806,7 @@ namespace Couchbase.Query
         ///     Since values will be POSTed as JSON, here we deal with unencoded typed values
         ///     (like ints, Lists, etc...) rather than only strings.
         /// </remarks>
-        public IDictionary<string, object> GetFormValues()
-        {
-            if (string.IsNullOrWhiteSpace(_statement) ||
-                IsPrepared && _preparedPayload == null)
-                throw new ArgumentException("A statement or prepared plan must be provided.");
-
-            //build the map of request parameters
-            IDictionary<string, object> formValues = new Dictionary<string, object>();
-
-            if (_maxServerParallelism.HasValue)
-                formValues.Add(QueryParameters.MaxServerParallelism, _maxServerParallelism.Value.ToString());
-
-            if (IsPrepared)
-            {
-                formValues.Add(QueryParameters.Prepared, _preparedPayload!.Name);
-
-                // don't include empty plan
-                if (!string.IsNullOrEmpty(_preparedPayload.EncodedPlan))
-                    formValues.Add(QueryParameters.PreparedEncoded, _preparedPayload.EncodedPlan);
-            }
-            else
-            {
-                formValues.Add(QueryParameters.Statement, _statement!);
-            }
-
-            if (_timeOut.HasValue)
-            {
-                formValues.Add(QueryParameters.Timeout, (uint) _timeOut.Value.TotalMilliseconds + "ms");
-            }
-
-            if (_readOnly.HasValue) formValues.Add(QueryParameters.Readonly, _readOnly.Value);
-
-            if (_includeMetrics.HasValue) formValues.Add(QueryParameters.Metrics, _includeMetrics);
-
-            if (_parameters.Count > 0)
-                foreach (var parameter in _parameters)
-                    formValues.Add(
-                        parameter.Key.Contains("$") ? parameter.Key : "$" + parameter.Key,
-                        parameter.Value);
-
-            if (_arguments.Count > 0) formValues.Add(QueryParameters.Args, _arguments);
-
-            if (_scanConsistency.HasValue)
-                formValues.Add(QueryParameters.ScanConsistency, _scanConsistency.GetDescription()!);
-
-            if (_scanVectors != null)
-            {
-#pragma warning disable 618
-                if (_scanConsistency != QueryScanConsistencyInternal.AtPlus)
-#pragma warning restore 618
-                    throw new ArgumentException("Only ScanConsistency.AtPlus is supported for this query request.");
-
-                formValues.Add(QueryParameters.ScanVectors, _scanVectors);
-            }
-
-            if (_scanWait.HasValue)
-                formValues.Add(QueryParameters.ScanWait, $"{(uint) _scanWait.Value.TotalMilliseconds}ms");
-
-            if (_scanCapacity.HasValue) formValues.Add(QueryParameters.ScanCapacity, _scanCapacity.Value.ToString());
-
-            if (_pipelineBatch.HasValue) formValues.Add(QueryParameters.PipelineBatch, _pipelineBatch.Value.ToString());
-
-            if (_pipelineCapacity.HasValue)
-                formValues.Add(QueryParameters.PipelineCapacity, _pipelineCapacity.Value.ToString());
-
-            if (_profile != QueryProfile.Off)
-                formValues.Add(QueryParameters.Profile, _profile.ToString().ToLowerInvariant());
-
-            if (_preserveExpiry)
-                formValues.Add(QueryParameters.PreserveExpiry, true);
-
-            foreach (var parameter in _rawParameters) formValues.Add(parameter.Key, parameter.Value);
-
-            if (_autoExecute) formValues.Add(QueryParameters.AutoExecute, true);
-
-            if (CurrentContextId != null) formValues.Add(QueryParameters.ClientContextId, CurrentContextId);
-
-            if (QueryContext != null) formValues.Add(QueryParameters.QueryContext, QueryContext);
-
-            if(_flexIndex) formValues.Add(QueryParameters.FlexIndex, _flexIndex);
-
-            return formValues;
-        }
+        public IDictionary<string, object?> GetFormValues() => CreateDto(Serializer ?? DefaultSerializer.Instance).ToDictionary();
 
         /// <summary>
         /// Gets the JSON representation of this query for execution in a POST.
@@ -790,8 +814,42 @@ namespace Couchbase.Query
         /// <returns>The form values as a JSON object.</returns>
         public string GetFormValuesAsJson()
         {
-            var formValues = GetFormValues();
-            return JsonConvert.SerializeObject(formValues);
+            var formValues = CreateDto(Serializer ?? DefaultSerializer.Instance);
+
+            return JsonSerializer.Serialize(formValues, InternalSerializationContext.Default.QueryOptionsDto);
+        }
+
+        /// <summary>
+        /// Gets the JSON representation of this query for execution in an HTTP POST.
+        /// </summary>
+        /// <returns>The <see cref="HttpContent"/>.</returns>
+        internal HttpContent GetRequestBody(ITypeSerializer serializer)
+        {
+            var formValues = CreateDto(serializer);
+
+            var stream = new MemoryStream(1024);
+            try
+            {
+                JsonSerializer.Serialize(stream, formValues, InternalSerializationContext.Default.QueryOptionsDto);
+                stream.Position = 0;
+
+                return new StreamContent(stream)
+                {
+                    Headers =
+                    {
+                        ContentType = new MediaTypeHeaderValue(MediaType.Json)
+                        {
+                            CharSet = "utf-8"
+                        }
+                    }
+                };
+            }
+            catch
+            {
+                // Cleanup on exception
+                stream.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
@@ -843,42 +901,6 @@ namespace Couchbase.Query
             }
 
             return request;
-        }
-
-        private struct QueryParameters
-        {
-            public const string Statement = "statement";
-            public const string PreparedEncoded = "encoded_plan";
-            public const string Prepared = "prepared";
-            public const string Timeout = "timeout";
-            public const string Readonly = "readonly";
-            public const string Metrics = "metrics";
-            public const string Args = "args";
-
-            // ReSharper disable once UnusedMember.Local
-            public const string BatchArgs = "batch_args";
-
-            // ReSharper disable once UnusedMember.Local
-            public const string BatchNamedArgs = "batch_named_args";
-            public const string Format = "format";
-            public const string Encoding = "encoding";
-            public const string Compression = "compression";
-            public const string Signature = "signature";
-            public const string ScanConsistency = "scan_consistency";
-            public const string ScanVectors = "scan_vectors";
-            public const string ScanWait = "scan_wait";
-            public const string Pretty = "pretty";
-            public const string Creds = "creds";
-            public const string ClientContextId = "client_context_id";
-            public const string MaxServerParallelism = "max_parallelism";
-            public const string ScanCapacity = "scan_cap";
-            public const string PipelineBatch = "pipeline_batch";
-            public const string PipelineCapacity = "pipeline_cap";
-            public const string PreserveExpiry = "preserve_expiry";
-            public const string Profile = "profile";
-            public const string AutoExecute = "auto_execute";
-            public const string QueryContext = "query_context";
-            public const string FlexIndex = "use_fts";
         }
     }
 }
