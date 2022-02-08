@@ -75,6 +75,51 @@ namespace Couchbase.IntegrationTests.Services.Search
             ).ConfigureAwait(false);
             Assert.Equal(3, results.Facets.Count);
         }
+
+        [Fact]
+        public async Task Search_Include_Locations()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var results = await cluster.SearchQueryAsync(IndexName,
+                new MatchQuery("inn"),
+                new SearchOptions().IncludeLocations(true).Limit(10)
+            ).ConfigureAwait(false);
+            Assert.NotEmpty(results.Hits[0].Locations);
+        }
+
+        [Fact]
+        public async Task Search_Match_Operator_Or()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var results = await cluster.SearchQueryAsync(IndexName,
+                new MatchQuery("inn hotel").MatchOperator(MatchOperator.Or),
+                new SearchOptions().Limit(10)
+            ).ConfigureAwait(false);
+            Assert.Equal(10,  results.Hits.Count);
+        }
+
+        [Fact]
+        public async Task Search_Match_Operator_And_Hit()
+        {
+            //Referring to document "hotel_31944"
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var results = await cluster.SearchQueryAsync(IndexName,
+                new MatchQuery("http://www.hotelavenuelodge.com Val-d'Isère").MatchOperator(MatchOperator.And),
+                new SearchOptions()
+            ).ConfigureAwait(false);
+            Assert.Equal(1,  results.Hits.Count);
+        }
+
+        [Fact]
+        public async Task Search_Match_Operator_And_Miss()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var results = await cluster.SearchQueryAsync(IndexName,
+                new MatchQuery("http://www.hotelavenuelodge.com asdfg").MatchOperator(MatchOperator.And),
+                new SearchOptions()
+            ).ConfigureAwait(false);
+            Assert.Equal(0,  results.Hits.Count);
+        }
     }
 }
 
