@@ -33,6 +33,7 @@ namespace Couchbase.Core
         protected readonly IScopeFactory _scopeFactory;
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new();
         public readonly ClusterNodeCollection Nodes = new();
+        private volatile int _disposed;
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }
@@ -72,7 +73,7 @@ namespace Couchbase.Core
         public BucketConfig? CurrentConfig { get; protected set; }
         protected Manifest? Manifest { get; set; }
         public IKeyMapper? KeyMapper { get; protected set; }
-        protected bool Disposed { get; private set; }
+        protected bool Disposed => _disposed > 0;
 
         //for propagating errors during bootstrapping
         private readonly List<Exception> _deferredExceptions = new();
@@ -312,11 +313,13 @@ namespace Couchbase.Core
 
         public virtual void Dispose()
         {
-            Logger.LogDebug("Disposing bucket [{name}]!", Name);
-            if (Disposed) return;
-            Disposed = true;
-            Bootstrapper?.Dispose();
-            Context.RemoveAllNodes(this);
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            {
+                Logger.LogDebug("Disposing bucket [{name}]!", Name);
+                Bootstrapper?.Dispose();
+                Context.RemoveAllNodes(this);
+                Context.RemoveBucket(this);
+            }
         }
 
         /// <inheritdoc />

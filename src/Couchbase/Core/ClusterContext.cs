@@ -160,6 +160,14 @@ namespace Couchbase.Core
             }
         }
 
+        public void RemoveBucket(BucketBase bucket)
+        {
+            if (Buckets.TryRemove(bucket.Name, out _))
+            {
+                _configHandler.Unsubscribe(bucket);
+            }
+        }
+
         public void PublishConfig(BucketConfig bucketConfig)
         {
             if (_logger.IsEnabled(LogLevel.Debug))
