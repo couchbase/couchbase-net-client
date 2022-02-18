@@ -190,7 +190,7 @@ namespace Couchbase.Management.Views
                 {
                     _logger.LogError("Failed to drop design document {_bucketName}/{designDocName} because it does not exist - {uri}",
                         _redactor.MetaData(_bucketName), _redactor.MetaData(designDocName), _redactor.SystemData(uri));
-                    throw new DesignDocumentNotFound(_bucketName, designDocName);
+                    throw new DesignDocumentNotFoundException(_bucketName, designDocName);
                 }
 
                 result.EnsureSuccessStatusCode();

@@ -211,7 +211,7 @@ namespace Couchbase.IntegrationTests.Management
                     _ = await beerSample.ViewIndexes.GetDesignDocumentAsync(designDocName, DesignDocumentNamespace.Production);
                     break;
                 }
-                catch (DesignDocumentNotFound)
+                catch (DesignDocumentNotFoundException)
                 {
                     _outputHelper.WriteLine("DesignDocumentNotFound.  Sleeping.");
                     await Task.Delay(TimeSpan.FromSeconds(5));
