@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Couchbase.Management.Users;
 using Xunit;
@@ -18,7 +19,7 @@ namespace Couchbase.IntegrationTests
             _fixture = fixture;
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "6.5.0")]
         public async Task Test_UserManager()
         {
             var userManager = _fixture.Cluster.Users;
@@ -101,7 +102,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_UserInheritsCollectionAwareRoles()
         {
             var userManager = _fixture.Cluster.Users;

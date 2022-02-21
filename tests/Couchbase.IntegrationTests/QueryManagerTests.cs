@@ -20,6 +20,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_IgnoreIfExists_True()
         {
+            await _fixture.GetCluster();//Ensures bucket is open, required for CB < 6.5
             var manager = _fixture.Cluster.QueryIndexes;
             await manager.CreatePrimaryIndexAsync("default",
                 new CreatePrimaryQueryIndexOptions()
@@ -35,6 +36,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_Create_Existing_Index_Throws_IndexExistsException()
         {
+            await _fixture.GetCluster();
             var idxmgr = _fixture.Cluster.QueryIndexes;
 
             await idxmgr.CreatePrimaryIndexAsync("default",
@@ -48,6 +50,7 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task CreatePrimaryIndex()
         {
+            await _fixture.GetCluster();
             await _fixture.Cluster.QueryIndexes.CreatePrimaryIndexAsync("`default`",
                 options =>
                 {

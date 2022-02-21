@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Xunit;
 using Xunit.Abstractions;
@@ -90,7 +91,7 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "6.5.0")]
         public async Task Test_WaitUntilReadyAsync()
         {
             var cluster = _fixture.Cluster;
@@ -105,7 +106,7 @@ namespace Couchbase.IntegrationTests
             await defaultBucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
         }
 
-        [Theory]
+        [CouchbaseVersionDependentTheory(MinVersion = "6.5.0")]
         [InlineData(ServiceType.KeyValue)]
         [InlineData(ServiceType.Views)]
         [InlineData(ServiceType.KeyValue, ServiceType.Views, ServiceType.Analytics, ServiceType.Query)]

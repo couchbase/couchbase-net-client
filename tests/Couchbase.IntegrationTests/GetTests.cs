@@ -7,7 +7,10 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.TestData;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
+using Couchbase.Management.Buckets;
+using Couchbase.Test.Common.Utils;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -77,28 +80,46 @@ namespace Couchbase.IntegrationTests
             }
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MaxVersion = "7.0.0")]//Memcached buckets deprecated
         public async Task Can_get_memcached_document()
         {
             var cluster = await _fixture.GetCluster();
-            var bucket = await cluster.BucketAsync("memcached");
-            var collection = await bucket.DefaultCollectionAsync().ConfigureAwait(false);
-            var key = Guid.NewGuid().ToString();
-
+            var bucketName = Guid.NewGuid().ToString();
             try
             {
-                await collection.InsertAsync(key, new InnerObject { Name = "mike" }).ConfigureAwait(false);
-
-                using (var result = await collection.GetAsync(key).ConfigureAwait(false))
+                var bucketSettings = new BucketSettings
                 {
-                    var content = result.ContentAs<InnerObject>()!;
+                    Name = bucketName,
+                    BucketType = BucketType.Memcached,
+                    RamQuotaMB = 200
+                };
+                await cluster.Buckets.CreateBucketAsync(bucketSettings);
 
-                    Assert.Equal("mike", content.Name);
+                await Retry.DoUntilAsync(() => CheckBucketExists(cluster, bucketName));
+
+                var bucket = await cluster.BucketAsync(bucketName);
+                var collection = await bucket.DefaultCollectionAsync().ConfigureAwait(false);
+                var key = Guid.NewGuid().ToString();
+
+                try
+                {
+                    await collection.InsertAsync(key, new {name = "mike"}).ConfigureAwait(false);
+
+                    using (var result = await collection.GetAsync(key).ConfigureAwait(false))
+                    {
+                        var content = result.ContentAs<dynamic>();
+
+                        Assert.Equal("mike", (string) content.name);
+                    }
+                }
+                finally
+                {
+                    await collection.RemoveAsync(key).ConfigureAwait(false);
                 }
             }
             finally
             {
-                await collection.RemoveAsync(key).ConfigureAwait(false);
+                await cluster.Buckets.DropBucketAsync(bucketName);
             }
         }
 
@@ -602,6 +623,19 @@ namespace Couchbase.IntegrationTests
             finally
             {
                 await collection.RemoveAsync(id).ConfigureAwait(false);
+            }
+        }
+
+        private static bool CheckBucketExists(ICluster cluster, string name)
+        {
+            try
+            {
+                var bucket = cluster.Buckets.GetBucketAsync(name).Result;
+                return bucket.Name.Equals(name);
+            }
+            catch (CouchbaseException)
+            {
+                return false;
             }
         }
     }

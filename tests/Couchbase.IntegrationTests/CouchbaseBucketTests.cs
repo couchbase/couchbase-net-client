@@ -17,8 +17,8 @@ namespace Couchbase.IntegrationTests
         [Fact]
         public async Task Test_WaitUntilReadyAsync()
         {
-            var cluster = _fixture.Cluster;
-            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket();
+            await bucket.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
         }
     }
 }

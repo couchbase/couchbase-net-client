@@ -24,7 +24,7 @@ namespace Couchbase.IntegrationTests.Services.Search
         [Fact]
         public async Task TravelSample_Index_Exists()
         {
-            var cluster = _fixture.Cluster;
+            var cluster = await _fixture.GetCluster();
             var manager = cluster.SearchIndexes;
             var allIndexes = await manager.GetAllIndexesAsync();
             var names = new HashSet<string>(allIndexes.Select(idx => idx.Name));

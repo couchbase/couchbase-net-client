@@ -115,16 +115,31 @@ namespace Couchbase.IntegrationTests.Services.Query
         public async Task Test_RawQuery()
         {
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
-            using var result = await cluster.QueryAsync<string>("SELECT RAW name FROM `default` WHERE name IS VALUED LIMIT 1;").ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket();
+            var collection = await bucket.DefaultCollectionAsync();
+            var key = Guid.NewGuid().ToString();
 
-            var found = false;
-            await foreach (var name in result.ConfigureAwait(false))
+            try
             {
-                found = true;
-                _testOutputHelper.WriteLine(name);
-            }
+                await collection.InsertAsync(key, new {name = "john"}).ConfigureAwait(false);
 
-            Assert.True(found);
+                using var result = await cluster
+                    .QueryAsync<string>("SELECT RAW name FROM `default` WHERE name IS VALUED LIMIT 1;")
+                    .ConfigureAwait(false);
+
+                var found = false;
+                await foreach (var name in result.ConfigureAwait(false))
+                {
+                    found = true;
+                    _testOutputHelper.WriteLine(name);
+                }
+
+                Assert.True(found);
+            }
+            finally
+            {
+                await collection.RemoveAsync(key);
+            }
         }
 
         [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]

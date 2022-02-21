@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management.Users;
 using Xunit;
 
@@ -22,7 +23,11 @@ namespace Couchbase.IntegrationTests.Management
             var cluster = await _fixture.GetCluster().ConfigureAwait(false);
 
             await cluster.Users.UpsertUserAsync(new User("usermgr_test") {
-                Password = "password"
+                Password = "password",
+                Roles = new List<Role>()
+                {
+                    new Role("data_reader", "default")
+                }
             }).ConfigureAwait(false);
 
             await cluster.Users.DropUserAsync("usermgr_test").ConfigureAwait(false);
@@ -46,7 +51,7 @@ namespace Couchbase.IntegrationTests.Management
             await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CreateAndDropUserWithScope()
         {
             var name = "usermgr_scope_role_test";
@@ -64,7 +69,7 @@ namespace Couchbase.IntegrationTests.Management
             await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CreateAndDropUserWithCollection()
         {
             var name = "usermgr_collection_role_test";
@@ -82,7 +87,7 @@ namespace Couchbase.IntegrationTests.Management
             await cluster.Users.DropUserAsync(name).ConfigureAwait(false);
         }
 
-        [Fact]
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
         public async Task Test_CanAssignCollectionsAwareRoles()
         {
             var name = "usermgr_collection_role_test1";

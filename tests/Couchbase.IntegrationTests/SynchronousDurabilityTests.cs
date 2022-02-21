@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
+using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
 using Xunit;
 
@@ -14,7 +15,7 @@ namespace Couchbase.IntegrationTests
             _fixture = fixture;
         }
 
-        [Theory]
+        [CouchbaseVersionDependentTheory(MinVersion = "6.5.0")]
         [InlineData(DurabilityLevel.None)]
         [InlineData(DurabilityLevel.Majority)]
         [InlineData(DurabilityLevel.MajorityAndPersistToActive)]
