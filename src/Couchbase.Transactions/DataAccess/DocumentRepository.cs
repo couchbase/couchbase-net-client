@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions.KeyValue;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.DataModel;
@@ -15,14 +16,17 @@ namespace Couchbase.Transactions.DataAccess
 {
     internal class DocumentRepository : IDocumentRepository
     {
+        private static readonly Core.IO.Serializers.ITypeSerializer DefaultSerializer = new Core.IO.Serializers.DefaultSerializer();
+        private static readonly Core.IO.Transcoders.ITypeTranscoder DefaultTranscoder = new Core.IO.Transcoders.JsonTranscoder();
         private readonly TransactionContext _overallContext;
         private readonly TimeSpan? _keyValueTimeout;
         private readonly DurabilityLevel _durability;
         private readonly string _attemptId;
         private readonly JsonSerializerSettings _metadataSerializerSettings;
         private readonly JsonSerializer _metadataSerializer;
+        private readonly Core.IO.Serializers.ITypeSerializer _userDataSerializer;
 
-        public DocumentRepository(TransactionContext overallContext, TimeSpan? keyValueTimeout, DurabilityLevel durability, string attemptId)
+        public DocumentRepository(TransactionContext overallContext, TimeSpan? keyValueTimeout, DurabilityLevel durability, string attemptId, Core.IO.Serializers.ITypeSerializer userDataSerializer)
         {
             _overallContext = overallContext;
             _keyValueTimeout = keyValueTimeout;
@@ -36,6 +40,7 @@ namespace Couchbase.Transactions.DataAccess
             };
 
             _metadataSerializer = JsonSerializer.Create(_metadataSerializerSettings);
+            _userDataSerializer = userDataSerializer;
         }
 
         public async Task<(ulong updatedCas, MutationToken mutationToken)> MutateStagedInsert(ICouchbaseCollection collection, string docId, object content, IAtrRepository atr, ulong? cas = null)
@@ -162,7 +167,7 @@ namespace Couchbase.Transactions.DataAccess
                 LookupInSpec.Get(TransactionFields.StagedData, isXattr: true)
             };
 
-            var opts = new LookupInOptions().Defaults(keyValueTimeout).AccessDeleted(true);
+            var opts = new LookupInOptions().Defaults(keyValueTimeout).Serializer(DefaultSerializer).AccessDeleted(true);
 
             int? txnIndex = 0;
             int docMetaIndex = 1;
@@ -211,10 +216,19 @@ namespace Couchbase.Transactions.DataAccess
         }
 
         private MutateInOptions GetMutateInOptions(StoreSemantics storeSemantics) => new MutateInOptions().Defaults(_durability, _keyValueTimeout)
-                .StoreSemantics(storeSemantics);
+            .Serializer(DefaultSerializer)
+            .Transcoder(DefaultTranscoder)
+            .StoreSemantics(storeSemantics);
 
         private List<MutateInSpec> CreateMutationSpecs(IAtrRepository atr, string opType, object content, DocumentMetadata? dm = null)
         {
+            object userSerializedContent = content;
+            if (!(_userDataSerializer is Core.IO.Serializers.DefaultSerializer))
+            {
+                byte[] bytes = _userDataSerializer.Serialize(content);
+                userSerializedContent = DefaultSerializer.Deserialize<object>(bytes)!;
+            }
+
             var specs = new List<MutateInSpec>
             {
                 MutateInSpec.Upsert(TransactionFields.TransactionId, _overallContext.TransactionId,
@@ -236,7 +250,7 @@ namespace Couchbase.Transactions.DataAccess
                     break;
                 case "replace":
                 case "insert":
-                    specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, content, createPath: true, isXattr: true));
+                    specs.Add(MutateInSpec.Upsert(TransactionFields.StagedData, userSerializedContent, createPath: true, isXattr: true));
                     break;
             }
 

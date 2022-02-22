@@ -1340,7 +1340,7 @@ namespace Couchbase.KeyValue
         /// Only used internally for full doc gets which also need the expiry. Should not be used for JSON-based LookupIn ops.
         /// Not exposed for public consumption.
         /// </summary>
-        internal LookupInOptions Transcoder(ITypeTranscoder? transcoder)
+        public LookupInOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             TranscoderValue = transcoder;
@@ -1385,7 +1385,7 @@ namespace Couchbase.KeyValue
 
     #region MutateInOptions
 
-    public class MutateInOptions : IKeyValueOptions, ITimeoutOptions
+    public class MutateInOptions : ITranscoderOverrideOptions, IKeyValueOptions, ITimeoutOptions
     {
         internal static MutateInOptions Default { get; } = new();
 
@@ -1417,6 +1417,9 @@ namespace Couchbase.KeyValue
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
         internal bool PreserveTtlValue { get; private set; }
+
+        internal ITypeTranscoder? TranscoderValue { get; private set; }
+        ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         /// <summary>
         /// Specifies whether an existing document's expiry should be preserved.
@@ -1456,6 +1459,13 @@ namespace Couchbase.KeyValue
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
             SerializerValue = serializer;
+            return this;
+        }
+
+        public MutateInOptions Transcoder(ITypeTranscoder? transcoder)
+        {
+            Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
+            TranscoderValue = transcoder;
             return this;
         }
 

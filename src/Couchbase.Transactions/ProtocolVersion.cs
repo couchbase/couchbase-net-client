@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,7 +27,7 @@ namespace Couchbase.Transactions
             yield return new ExtensionName("ExtStoreDurability", "EXT_STORE_DURABILITY", "SD");
             yield return new ExtensionName("BfCbd3705", "BF_CBD_3705", "BF3705");
             yield return new ExtensionName("BfCbd3838", "BF_CBD_33838", "BF3838");
-            yield return new ExtensionName("ExtUnknownATRStates", "EXT_UNKNOWN_ATR_STATES", "UA");
+            yield return new ExtensionName("ExtUnknownAtrStates", "EXT_UNKNOWN_ATR_STATES", "UA");
         }
 
         internal static bool Supported(string shortCode) => SupportedShortCodes.Value.Contains(shortCode);

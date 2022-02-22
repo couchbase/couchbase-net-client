@@ -102,7 +102,7 @@ namespace Couchbase.Transactions
             _loggerFactory = loggerFactory;
             Logger = loggerFactory.CreateLogger<AttemptContext>();
             _triage = new ErrorTriage(this, loggerFactory);
-            _docs = documentRepository ?? new DocumentRepository(_overallContext, _config.KeyValueTimeout, _effectiveDurabilityLevel, AttemptId);
+            _docs = documentRepository ?? new DocumentRepository(_overallContext, _config.KeyValueTimeout, _effectiveDurabilityLevel, AttemptId, _nonStreamingTypeSerializer);
             if (atrRepository != null)
             {
                 _atr = atrRepository;

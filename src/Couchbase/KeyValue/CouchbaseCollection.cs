@@ -718,13 +718,17 @@ namespace Couchbase.KeyValue
                 PreserveTtl = options.PreserveTtlValue
             };
             _operationConfigurator.Configure(mutation, options);
+            if (mutation.Transcoder != null && options.SerializerValue != null)
+            {
+                mutation.Transcoder.Serializer = options.SerializerValue!;
+            }
 
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, mutation);
             await _bucket.RetryAsync(mutation, ctp.TokenPair).ConfigureAwait(false);
 
 #pragma warning disable 618 // MutateInResult is marked obsolete until it is made internal
             return new MutateInResult(mutation.GetCommandValues(), mutation.Cas, mutation.MutationToken,
-                options.SerializerValue ?? mutation.Transcoder.Serializer!);
+                options.SerializerValue ?? mutation.Transcoder?.Serializer ?? Core.IO.Serializers.DefaultSerializer.Instance);
 #pragma warning restore 618
         }
 
