@@ -445,5 +445,26 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             var config = ResourceHelper.ReadResource(configResource, InternalSerializationContext.Default.BucketConfig);
             Assert.False(config.IsNewerThan(config));
         }
+
+        [Fact]
+        public void VBucketMap_DoesDeserialize()
+        {
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\config-with-ffmaps.json", InternalSerializationContext.Default.BucketConfig);
+
+            Assert.Equal(1024, config.VBucketServerMap.VBucketMap.Length);
+            Assert.All(config.VBucketServerMap.VBucketMap, p =>
+            {
+                Assert.Equal(2, p.Length);
+
+                Assert.Contains(p, q => q == 0);
+                Assert.Contains(p, q => q == 1);
+            });
+
+            Assert.Equal(1024, config.VBucketServerMap.VBucketMapForward.Length);
+            Assert.All(config.VBucketServerMap.VBucketMapForward, p =>
+            {
+                Assert.Equal(2, p.Length);
+            });
+        }
     }
 }

@@ -1,6 +1,6 @@
 using System;
+using System.Text.Json.Serialization;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 
 #nullable enable
 
@@ -17,19 +17,21 @@ namespace Couchbase.Core.Sharding
             VBucketMapForward = Array.Empty<short[]>();
         }
 
-        [JsonProperty("hashAlgorithm")]
+        [JsonPropertyName("hashAlgorithm")]
         public string HashAlgorithm { get; set; }
 
-        [JsonProperty("numReplicas")]
+        [JsonPropertyName("numReplicas")]
         public int NumReplicas { get; set; }
 
-        [JsonProperty("serverList")]
+        [JsonPropertyName("serverList")]
         public string[] ServerList { get; set; }
 
-        [JsonProperty("vBucketMap")]
+        [JsonPropertyName("vBucketMap")]
+        [JsonConverter(typeof(VBucketMapJsonConverter))]
         public short[][] VBucketMap { get; set; }
 
-        [JsonProperty("vBucketMapForward")]
+        [JsonPropertyName("vBucketMapForward")]
+        [JsonConverter(typeof(VBucketMapJsonConverter))]
         public short[][] VBucketMapForward { get; set; }
 
         public bool Equals(VBucketServerMapDto? other)
