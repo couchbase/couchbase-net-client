@@ -1,18 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.Logging;
-using Couchbase.Core.RateLimiting;
-using Couchbase.KeyValue;
-using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 #nullable enable
 
@@ -268,10 +266,10 @@ namespace Couchbase.Management.Buckets
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
 
-                var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-
                 if (!result.IsSuccessStatusCode)
                 {
+                    var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+
                     var ctx = new ManagementErrorContext
                     {
                         HttpStatus = result.StatusCode,
@@ -286,16 +284,14 @@ namespace Couchbase.Management.Buckets
                     result.ThrowOnError(ctx);
                 }
 
-                var buckets = new Dictionary<string, BucketSettings>();
-                var json = JArray.Parse(content);
+                using var contentStream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                var buckets = await JsonSerializer.DeserializeAsync(contentStream,
+                    ManagementSerializerContext.Default.ListBucketSettings,
+                    options.TokenValue).ConfigureAwait(false);
 
-                foreach (var row in json)
-                {
-                    var settings = BucketSettings.FromJson(row);
-                    buckets.Add(settings.Name, settings);
-                }
-
-                return buckets;
+                return buckets!.ToDictionary(
+                    p => p.Name,
+                    p => p);
             }
             catch (Exception exception)
             {
@@ -316,9 +312,10 @@ namespace Couchbase.Management.Buckets
                 using var httpClient = _httpClientFactory.Create();
                 var result = await httpClient.GetAsync(uri, options.TokenValue).ConfigureAwait(false);
 
-                var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 if (!result.IsSuccessStatusCode)
                 {
+                    var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+
                     var ctx = new ManagementErrorContext
                     {
                         HttpStatus = result.StatusCode,
@@ -341,8 +338,9 @@ namespace Couchbase.Management.Buckets
                     result.ThrowOnError(ctx);
                 }
 
-                var json = JObject.Parse(content);
-                return BucketSettings.FromJson(json);
+                using var contentStream = await result.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                return (await JsonSerializer.DeserializeAsync(contentStream,
+                    ManagementSerializerContext.Default.BucketSettings, options.TokenValue).ConfigureAwait(false))!;
             }
             catch (Exception exception)
             {

@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Management.Buckets
 {
+    [JsonConverter(typeof(BucketSettingsJsonConverter))]
     public class BucketSettings
     {
         /// <summary>
@@ -165,73 +166,6 @@ namespace Couchbase.Management.Buckets
 
             return values;
         }
-
-        internal static BucketSettings FromJson(JToken json)
-        {
-            var settings = new BucketSettings
-            {
-                Name = json.GetTokenValue<string>("name"),
-                MaxTtl = json.GetTokenValue<int>("maxTTL"),
-                RamQuotaMB = json.GetTokenValue<long>("quota.rawRAM"),
-                FlushEnabled = json.SelectToken("controllers.flush") != null
-            };
-
-            var bucketTypeToken = json.SelectToken("bucketType");
-            if (bucketTypeToken != null &&
-                EnumExtensions.TryGetFromDescription(bucketTypeToken.Value<string>(), out BucketType bucketType))
-            {
-                settings.BucketType = bucketType;
-            }
-
-            if (settings.BucketType != BucketType.Memcached)
-            {
-                settings.NumReplicas = json.GetTokenValue<int>("replicaNumber");
-            }
-
-            if (settings.BucketType == BucketType.Couchbase)
-            {
-                settings.ReplicaIndexes = json.GetTokenValue<bool>("replicaIndex");
-            }
-
-            var conflictResolutionToken = json.SelectToken("conflictResolutionType");
-            if (conflictResolutionToken != null &&
-                EnumExtensions.TryGetFromDescription(conflictResolutionToken.Value<string>(), out ConflictResolutionType conflictResolutionType))
-            {
-                settings.ConflictResolutionType = conflictResolutionType;
-            }
-
-            var compressionModeToken = json.SelectToken("compressionMode");
-            if (compressionModeToken != null &&
-                EnumExtensions.TryGetFromDescription(compressionModeToken.Value<string>(), out CompressionMode compressionMode))
-            {
-                settings.CompressionMode = compressionMode;
-            }
-
-            var evictionPolicyToken = json.SelectToken("evictionPolicy");
-            if (evictionPolicyToken != null &&
-                EnumExtensions.TryGetFromDescription(evictionPolicyToken.Value<string>(), out EvictionPolicyType evictionPolicyType))
-            {
-                settings.EvictionPolicy = evictionPolicyType;
-            }
-
-            var durabilityMinLevelToken = json.SelectToken("durabilityMinLevel");
-            if (durabilityMinLevelToken != null &&
-                EnumExtensions.TryGetFromDescription(durabilityMinLevelToken.Value<string>(),
-                    out DurabilityLevel durabilityMinLevel))
-            {
-                settings.DurabilityMinimumLevel = durabilityMinLevel;
-            }
-
-            var storageBackend = json.SelectToken("storageBackend");
-            if (storageBackend != null &&
-                EnumExtensions.TryGetFromDescription(storageBackend.Value<string>(), out StorageBackend storageBackendType))
-            {
-                settings.StorageBackend = storageBackendType;
-            }
-
-            return settings;
-        }
-
     }
 }
 

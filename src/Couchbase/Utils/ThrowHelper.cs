@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Couchbase.Core;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -94,6 +95,12 @@ namespace Couchbase.Utils
             {
                 Context = context
             };
+        }
+
+        [DoesNotReturn]
+        public static void ThrowJsonException(string? message = null)
+        {
+            throw new JsonException(message);
         }
     }
 }
