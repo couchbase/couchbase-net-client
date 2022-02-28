@@ -149,7 +149,10 @@ namespace Couchbase.Search
                         {
                             if (errors.Contains("index not found"))
                             {
-                                throw new IndexNotFoundException(ctx);
+                                throw new IndexNotFoundException("The search index was not found on the server.")
+                                {
+                                    Context = ctx
+                                };
                             }
                             if (errors.Contains("num_fts_indexes"))
                             {

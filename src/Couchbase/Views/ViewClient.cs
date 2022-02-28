@@ -124,7 +124,7 @@ namespace Couchbase.Views
 
                     if (viewResult.ViewNotFound())
                     {
-                        throw new ViewNotFoundException(uri.ToString())
+                        throw new ViewNotFoundException("The queried view is not found on the server.")
                         {
                             Context = new ViewContextError
                             {
