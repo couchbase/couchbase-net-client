@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Query;
 
 namespace Couchbase.Core.Exceptions.Analytics
@@ -10,6 +11,7 @@ namespace Couchbase.Core.Exceptions.Analytics
     {
         public string Statement { get; internal set; }
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public HttpStatusCode HttpStatus { get; internal set; }
 
         public string ClientContextId { get; internal set; }
@@ -20,7 +22,8 @@ namespace Couchbase.Core.Exceptions.Analytics
 
         public List<Error> Errors { get; internal set; }
 
-        public override string ToString() => JsonSerializer.Serialize(this);
+        public override string ToString() =>
+            JsonSerializer.Serialize(this, InternalSerializationContext.Default.AnalyticsErrorContext);
     }
 }
 

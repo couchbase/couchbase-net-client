@@ -1,7 +1,8 @@
-using Couchbase.Core.Compatibility;
-using Couchbase.Core.IO.Operations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Compatibility;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 
 #nullable enable
 
@@ -11,11 +12,6 @@ namespace Couchbase.Core.Exceptions.KeyValue
     [InterfaceStability(Level.Uncommitted)]
     public class KeyValueErrorContext : IKeyValueErrorContext
     {
-        private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions
-        {
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-        };
-
         public string? DispatchedFrom { get; set; } //state.localendpoint
 
         public string? DispatchedTo { get; set; } //state.endpoint
@@ -26,6 +22,7 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public ulong Cas { get; set; } //op.Cas
 
+        [JsonConverter(typeof(CamelCaseStringEnumConverter))]
         public ResponseStatus Status { get; set; } //state.Status
 
         public string? BucketName { get; set; } //collection.Bucket.BucketName
@@ -36,9 +33,11 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         public string? Message { get; set; } //errorcode
 
+        [JsonConverter(typeof(CamelCaseStringEnumConverter))]
         public OpCode OpCode { get; set; }
 
-        public override string ToString() => JsonSerializer.Serialize(this, SerializerOptions);
+        public override string ToString() =>
+            JsonSerializer.Serialize(this, InternalSerializationContext.Default.KeyValueErrorContext);
     }
 }
 

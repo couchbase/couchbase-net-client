@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Exceptions;
 using Couchbase.Management.Buckets;
+using Couchbase.Management.Eventing;
 
 namespace Couchbase.Management
 {
@@ -17,6 +19,8 @@ namespace Couchbase.Management
     [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
     [JsonSerializable(typeof(BucketSettings))]
     [JsonSerializable(typeof(List<BucketSettings>))]
+    [JsonSerializable(typeof(ManagementErrorContext))]
+    [JsonSerializable(typeof(EventingFunctionErrorContext))]
     internal partial class ManagementSerializerContext : JsonSerializerContext
     {
     }

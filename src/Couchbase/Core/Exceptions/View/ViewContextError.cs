@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
 
 #nullable enable
@@ -16,6 +17,7 @@ namespace Couchbase.Core.Exceptions.View
 
         public string? ViewName { get; set; }
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public HttpStatusCode HttpStatus { get; set; }
 
         public string? ClientContextId { get; set; }
@@ -24,7 +26,8 @@ namespace Couchbase.Core.Exceptions.View
 
         public string? Errors { get; set; }
 
-        public override string ToString() => JsonSerializer.Serialize(this);
+        public override string ToString() =>
+            JsonSerializer.Serialize(this, InternalSerializationContext.Default.ViewContextError);
     }
 }
 

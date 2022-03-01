@@ -1,7 +1,6 @@
 using System;
 using System.Text;
 using Couchbase.Core;
-using Newtonsoft.Json;
 
 #nullable enable
 

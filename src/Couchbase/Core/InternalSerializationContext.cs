@@ -26,6 +26,11 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(Analytics.WarningData), TypeInfoPropertyName = "AnalyticsWarningData")]
     [JsonSerializable(typeof(Analytics.MetricsData), TypeInfoPropertyName = "AnalyticsMetricsData")]
     [JsonSerializable(typeof(Version.ClusterVersionProvider.Pools))]
+    [JsonSerializable(typeof(Exceptions.KeyValue.KeyValueErrorContext))]
+    [JsonSerializable(typeof(Exceptions.Query.QueryErrorContext))]
+    [JsonSerializable(typeof(Exceptions.Analytics.AnalyticsErrorContext))]
+    [JsonSerializable(typeof(Exceptions.Search.SearchErrorContext))]
+    [JsonSerializable(typeof(Exceptions.View.ViewContextError))]
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
     }

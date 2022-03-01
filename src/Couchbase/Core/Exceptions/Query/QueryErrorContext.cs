@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Query;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 #nullable enable
 
@@ -25,9 +26,11 @@ namespace Couchbase.Core.Exceptions.Query
         public string? Parameters { get; set; }
 
         [JsonInclude]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public HttpStatusCode HttpStatus { get; set; }
 
         [JsonInclude]
+        [JsonConverter(typeof(CamelCaseStringEnumConverter))]
         public QueryStatus QueryStatus { get; set; }
 
         [JsonInclude]
@@ -36,7 +39,8 @@ namespace Couchbase.Core.Exceptions.Query
         [JsonInclude]
         public string? Message { get; set; }
 
-        public override string ToString() => JsonSerializer.Serialize(this);
+        public override string ToString() =>
+            JsonSerializer.Serialize(this, InternalSerializationContext.Default.QueryErrorContext);
 
         #region IKeyValueErrorContext
 
