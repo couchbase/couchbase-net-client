@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
+using Couchbase.Core;
 using Couchbase.Core.Retry.Search;
+using Couchbase.KeyValue;
+using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Search.Queries.Simple;
 using Couchbase.Search.Sort;
 using Couchbase.Utils;
+using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -289,6 +293,34 @@ namespace Couchbase.UnitTests.Search
             var expected = JsonConvert.SerializeObject(json, Formatting.None);
 
             Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void GetFormValues_ScanVector_CorrectValues()
+        {
+            // Arrange
+
+            var token1 = new MutationToken("defaultIndex", 1, 9, 12);
+            var token2 = new MutationToken("defaultIndex", 2, 1, 22);
+
+            var state = new MutationState()
+                .Add(
+                    // ReSharper disable PossibleUnintendedReferenceComparison
+                    Mock.Of<IMutationResult>(m => m.MutationToken == token1),
+                    Mock.Of<IMutationResult>(m => m.MutationToken == token2));
+                    // ReSharper restore PossibleUnintendedReferenceComparison
+
+            var options = new SearchOptions()
+                .ConsistentWith(state);
+
+            // Assert
+
+            var json = options.ToJson("defaultIndex");
+            var vectors = json.SelectToken("ctl.consistency.vectors");
+            var indexVectors = vectors["defaultIndex"];
+
+            Assert.Equal(12, indexVectors["1/9"]);
+            Assert.Equal(22, indexVectors["2/1"]);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Couchbase.Core.Retry.Search
 
         public string ToJson()
         {
-            var json = Options.ToJson();
+            var json = Options.ToJson(Index);
             if (Query != null)
             {
                 json.Add("query", Query.Export());

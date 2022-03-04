@@ -37,6 +37,7 @@ namespace Couchbase.Search
         private string? _scopeName;
         private string[]? _collectionNames;
         private bool _includeLocations;
+        private MutationState? _mutationState;
 
         internal IRetryStrategy? RetryStrategyValue { get; set; }
 
@@ -295,53 +296,12 @@ namespace Couchbase.Search
 #pragma warning disable 618
             ScanConsistency(SearchScanConsistency.AtPlus);
 #pragma warning restore 618
-            _scanVectors = new Dictionary<string, Dictionary<string, List<object>>>();
-            foreach (var token in mutationState)
-            {
-                if (_scanVectors.TryGetValue(token.BucketRef, out var vector))
-                {
-                    var bucketId = token.VBucketId.ToString();
-                    if (vector.TryGetValue(bucketId, out var bucketRef))
-                    {
-                        if ((long)bucketRef.First() < token.SequenceNumber)
-                        {
-                            vector[bucketId] = new List<object>
-                            {
-                                token.SequenceNumber,
-                                token.VBucketUuid.ToString()
-                            };
-                        }
-                    }
-                    else
-                    {
-                        vector.Add(token.VBucketId.ToString(),
-                            new List<object>
-                            {
-                                token.SequenceNumber,
-                                token.VBucketUuid.ToString()
-                            });
-                    }
-                }
-                else
-                {
-                    _scanVectors.Add(token.BucketRef, new Dictionary<string, List<object>>
-                    {
-                        {
-                            token.VBucketId.ToString(),
-                            new List<object>
-                            {
-                                token.SequenceNumber,
-                                token.VBucketUuid.ToString()
-                            }
-                        }
-                    });
-                }
-            }
 
+            _mutationState = mutationState;
             return this;
         }
 
-        public JObject ToJson()
+        public JObject ToJson(string? indexName = null)
         {
             var ctl = new JObject();
             if (TimeoutValue.HasValue)
@@ -353,9 +313,9 @@ namespace Couchbase.Search
                 var consistency = new JObject(
                         new JProperty("level", _scanConsistency.GetDescription()));
 
-                if (_scanVectors != null && _scanVectors.Count > 0)
+                if (_mutationState != null && _mutationState.Any() && indexName != null)
                 {
-                    consistency.Add(new JProperty("vectors", _scanVectors));
+                    consistency.Add(new JProperty("vectors", JToken.FromObject(_mutationState.ExportForSearch(indexName))));
                 }
 
                 ctl.Add("consistency", consistency);
@@ -430,6 +390,11 @@ namespace Couchbase.Search
         public override string ToString()
         {
             return ToJson().ToString();
+        }
+
+        public string ToString(string indexName)
+        {
+            return ToJson(indexName).ToString();
         }
     }
 }

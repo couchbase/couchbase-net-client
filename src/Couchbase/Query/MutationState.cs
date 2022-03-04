@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Core;
 using Couchbase.KeyValue;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Query
 {
@@ -87,6 +88,23 @@ namespace Couchbase.Query
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        /// <summary>
+        /// Exports this <see cref="MutationToken"/> in the FTS/Search specific format.
+        /// </summary>
+        /// <param name="indexName">The index name as the key.</param>
+        /// <returns>A <see cref="JProperty"/> in the correct FTS/Search format.</returns>
+        internal Dictionary<string, Dictionary<string, long>> ExportForSearch(string indexName)
+        {
+            indexName = indexName ?? throw new ArgumentNullException(nameof(indexName));
+
+            var vectors = new Dictionary<string, long>();
+            foreach (var token in _tokens)
+            {
+                vectors.Add($"{token.VBucketId}/{token.VBucketUuid}", token.SequenceNumber);
+            }
+            return new Dictionary<string, Dictionary<string, long>>() { { indexName, vectors } };
         }
     }
 }
