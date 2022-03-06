@@ -1,46 +1,68 @@
+using System.Text.Json.Serialization;
+
+#nullable enable
+
 namespace Couchbase.Diagnostics
 {
+    // We must put the System.Text.Json serialization directives on IEndpointDiagnostics rather than on EndpointDiagnostics
+    // since the consumer will be building serializers based on the interface.
+
     public interface IEndpointDiagnostics
     {
         /// <summary>
         /// Gets the service type.
         /// </summary>
+        [JsonIgnore]
         ServiceType Type { get; }
 
         /// <summary>
         /// Gets the report ID.
         /// </summary>
-        string Id { get; }
+        [JsonPropertyName("id")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        string? Id { get; }
 
         /// <summary>
         /// Gets the local endpoint address including port.
         /// </summary>
-        string Local { get; }
+        [JsonPropertyName("local")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        string? Local { get; }
 
         /// <summary>
         /// Gets the remote endpoint address including port.
         /// </summary>
-        string Remote { get; }
+        [JsonPropertyName("remote")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        string? Remote { get; }
 
         /// <summary>
         /// Gets the last activity for the service endpoint express as microseconds.
         /// </summary>
+        [JsonPropertyName("last_activity_us")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         long? LastActivity { get; }
 
         /// <summary>
         /// Gets the latency for service endpoint expressed as microseconds.
         /// </summary>
+        [JsonPropertyName("latency_us")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         long? Latency { get; }
 
         /// <summary>
         /// Gets the scope for the service endpoint.
         /// This could be the bucket name for <see cref="ServiceType.KeyValue"/> service endpoints.
         /// </summary>
-        string Scope { get; }
+        [JsonPropertyName("scope")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        string? Scope { get; }
 
         /// <summary>
         /// Gets the service state.
         /// </summary>
+        [JsonPropertyName("state")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         ServiceState? State { get; }
     }
 }

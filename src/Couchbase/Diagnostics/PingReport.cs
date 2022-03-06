@@ -1,7 +1,8 @@
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Couchbase.Utils;
 using Newtonsoft.Json;
+
+#nullable enable
 
 namespace Couchbase.Diagnostics
 {
@@ -29,10 +30,8 @@ namespace Couchbase.Diagnostics
         [JsonProperty("services")]
         public IDictionary<string, IEnumerable<IEndpointDiagnostics>> Services { get; }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(this, Formatting.None);
-        }
+        public override string ToString() =>
+            System.Text.Json.JsonSerializer.Serialize(this, DiagnoticsSerializerContext.Default.IPingReport);
     }
 }
 

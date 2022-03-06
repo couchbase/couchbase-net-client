@@ -1,14 +1,15 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Couchbase.Utils;
 using Newtonsoft.Json;
+
+#nullable enable
 
 namespace Couchbase.Diagnostics
 {
     internal class DiagnosticsReport : IDiagnosticsReport
     {
-        internal DiagnosticsReport(string reportId, ConcurrentDictionary<string, IEnumerable<IEndpointDiagnostics>> services)
+        internal DiagnosticsReport(string reportId, IDictionary<string, IEnumerable<IEndpointDiagnostics>> services)
         {
             Id = reportId;
             Services = services;
@@ -29,10 +30,8 @@ namespace Couchbase.Diagnostics
         [JsonProperty("services")]
         public IDictionary<string, IEnumerable<IEndpointDiagnostics>> Services { get; }
 
-        public override string ToString()
-        {
-            return JsonConvert.SerializeObject(this, Formatting.None);
-        }
+        public override string ToString() =>
+            System.Text.Json.JsonSerializer.Serialize(this, DiagnoticsSerializerContext.Default.IDiagnosticsReport);
     }
 }
 

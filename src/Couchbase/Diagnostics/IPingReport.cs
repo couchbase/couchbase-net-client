@@ -1,32 +1,43 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
+#nullable enable
 
 namespace Couchbase.Diagnostics
 {
+    // We must put the System.Text.Json serialization directives on IPingReport rather than on PingReport
+    // since the consumer will be building serializers based on the interface.
+
     public interface IPingReport
     {
         /// <summary>
         /// Gets the report identifier.
         /// </summary>
+        [JsonPropertyName("id")]
         string Id { get; }
 
         /// <summary>
         /// Gets the Ping Report version.
         /// </summary>
+        [JsonPropertyName("version")]
         short Version { get; }
 
         /// <summary>
         /// Gets the bucket configuration revision.
         /// </summary>
+        [JsonPropertyName("config_rev")]
         ulong ConfigRev { get; }
 
         /// <summary>
         /// Gets the SDK identifier.
         /// </summary>
+        [JsonPropertyName("sdk")]
         string Sdk { get; }
 
         /// <summary>
         /// Gets the service endpoints.
         /// </summary>
+        [JsonPropertyName("services")]
         IDictionary<string, IEnumerable<IEndpointDiagnostics>> Services { get; }
     }
 }

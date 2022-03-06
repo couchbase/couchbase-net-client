@@ -1,7 +1,10 @@
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 
 namespace Couchbase.Diagnostics
 {
+    [JsonConverter(typeof(CamelCaseStringEnumConverter))]
     public enum ServiceState
     {
         /// <summary>
