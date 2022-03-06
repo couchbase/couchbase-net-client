@@ -1,8 +1,13 @@
+using System;
+
+#nullable enable
+
 namespace Couchbase.Core.IO.Operations
 {
     /// <summary>
     /// The primary return type for binary Memcached operations
     /// </summary>
+    [Obsolete("This interface is not required and will be removed in a future release.")] // Delete
     public interface IOperationResult : IResult
     {
         /// <summary>
@@ -13,7 +18,7 @@ namespace Couchbase.Core.IO.Operations
         /// </value>
         /// <remarks>Note: this is used internally for enhanced durability if supported by
         /// the Couchbase server version and enabled by clusterOptions.</remarks>
-        MutationToken Token { get; }
+        MutationToken? Token { get; }
 
         /// <summary>
         /// The 'Check and Set' or 'CAS' value for enforcing optimistic concurrency.
@@ -42,7 +47,7 @@ namespace Couchbase.Core.IO.Operations
         /// <value>
         /// The identifier.
         /// </value>
-        string Id { get; }
+        string? Id { get; }
 
         /// <summary>
         /// Gets the op code.

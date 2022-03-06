@@ -1,10 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
-using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.KeyValue;
-using Couchbase.Utils;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -12,6 +11,7 @@ namespace Couchbase.Core.IO.Operations
     /// The result of an operation.
     /// </summary>
     /// <remarks>If Success is false, use the Message property to help determine the reason.</remarks>
+    [Obsolete("This class is not required and will be removed in a future release.")] // Delete
     public class OperationResult : IOperationResult
     {
         /// <summary>
@@ -23,7 +23,7 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// If Success is false, the reason why the operation failed.
         /// </summary>
-        public string Message { get; internal set; }
+        public string? Message { get; internal set; }
 
         /// <summary>
         /// Gets the mutation token for the operation if enhanced durability is enabled.
@@ -31,7 +31,7 @@ namespace Couchbase.Core.IO.Operations
         /// <value>
         /// The mutation token.
         /// </value>
-        public MutationToken Token { get; internal set; }
+        public MutationToken? Token { get; internal set; }
 
         /// <summary>
         /// The 'Check and Set' or 'CAS' value for enforcing optimistic concurrency.
@@ -54,7 +54,7 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// If Success is false and an exception has been caught internally, this field will contain the exception.
         /// </summary>
-        public System.Exception Exception { get; set; }
+        public System.Exception? Exception { get; set; }
 
         public bool ShouldRetry()
         {
@@ -116,7 +116,7 @@ namespace Couchbase.Core.IO.Operations
         /// <value>
         /// The identifier.
         /// </value>
-        public string Id { get; internal set; }
+        public string? Id { get; internal set; }
 
         /// <summary>
         /// Gets the <see cref="OpCode"/> for the operation.
@@ -134,11 +134,12 @@ namespace Couchbase.Core.IO.Operations
         /// </returns>
         public override string ToString()
         {
-            return new JObject(
-                new JProperty("id", Id),
-                new JProperty("cas", Cas),
-                new JProperty("token", Token != null ? Token.ToString() : null)).
-                ToString(Formatting.None);
+            return new JsonObject(new KeyValuePair<string, JsonNode?>[]
+            {
+                new("id", Id),
+                new("cas", Cas),
+                new("token", Token?.ToString())
+            }).ToJsonString();
         }
     }
 }

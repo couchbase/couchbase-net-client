@@ -1,15 +1,20 @@
+using System;
+
+#nullable enable
+
 namespace Couchbase.Core.IO.Operations
 {
     /// <summary>
     /// The primary return type for binary Memcached operations which return a value
     /// </summary>
     /// <typeparam name="T">The value returned by the operation.</typeparam>
+    [Obsolete("This interface is not required and will be removed in a future release.")] // Delete
     public interface IOperationResult<out T> : IOperationResult
     {
         /// <summary>
         /// The value returned by the operation.
         /// </summary>
-        T Content { get;}
+        T? Content { get;}
     }
 }
 

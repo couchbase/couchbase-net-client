@@ -1,5 +1,6 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System;
+
+#nullable enable
 
 namespace Couchbase.Core.IO.Operations
 {
@@ -7,37 +8,13 @@ namespace Couchbase.Core.IO.Operations
     /// The primary return type for binary Memcached operations which return a value
     /// </summary>
     /// <typeparam name="T">The value returned by the operation.</typeparam>
+    [Obsolete("This class is not required and will be removed in a future release.")] // Delete
     public class OperationResult<T> : OperationResult, IOperationResult<T>
     {
         /// <summary>
         /// The value of the key retrieved from Couchbase Server.
         /// </summary>
-        public T Content { get; internal set; }
-
-        /// <summary>
-        /// Returns a <see cref="System.String" /> that represents this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
-        /// </returns>
-        public override string ToString()
-        {
-            string content = null;
-            try
-            {
-                content = JsonConvert.SerializeObject(Content, Formatting.None);
-            }
-            catch
-            {
-                // ignored
-            }
-            return new JObject(
-                new JProperty("id", Id),
-                new JProperty("cas", Cas),
-                new JProperty("token", Token?.ToString()),
-                new JProperty("content", content)).
-                ToString(Formatting.None);
-        }
+        public T? Content { get; internal set; }
     }
 }
 #region [ License information ]
