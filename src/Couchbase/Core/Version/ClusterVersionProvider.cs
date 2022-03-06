@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 #nullable enable
 
@@ -110,9 +111,10 @@ namespace Couchbase.Core.Version
                 var response = await httpClient.GetAsync(uri).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
-                var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                using var responseBody = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-                return JsonConvert.DeserializeObject<Pools>(responseBody);
+                return (await JsonSerializer.DeserializeAsync(responseBody, InternalSerializationContext.Default.Pools)
+                    .ConfigureAwait(false))!;
             }
             catch (AggregateException ex)
             {
@@ -123,7 +125,7 @@ namespace Couchbase.Core.Version
 
         internal sealed class Pools
         {
-            [JsonProperty("nodes")]
+            [JsonPropertyName("nodes")]
             public Node[]? Nodes { get; set; }
         }
     }
