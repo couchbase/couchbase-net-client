@@ -40,8 +40,9 @@ namespace Couchbase.Core
         private readonly IConfigHandler _configHandler;
         private readonly IClusterNodeFactory _clusterNodeFactory;
         private readonly CancellationTokenSource _tokenSource;
-        protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new ConcurrentDictionary<string, BucketBase>();
+        protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new();
         private bool _disposed;
+        private readonly SemaphoreSlim _semaphore = new(1);
 
         // Maintains a list of objects to be disposed when the context is disposed.
         private readonly List<IDisposable> _ownedObjects = new();
@@ -397,28 +398,42 @@ namespace Couchbase.Core
                 return bucket;
             }
 
-            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
+            await _semaphore.WaitAsync(CancellationToken).ConfigureAwait(false);
+            try
             {
-                foreach (var type in Enum.GetValues(typeof(BucketType)))
+                //Bucket was already created by the previously waiting thread
+                if (Buckets.TryGetValue(name, out bucket))
                 {
-                    try
-                    {
-                        bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType) type)
-                            .ConfigureAwait(false);
+                    return bucket;
+                }
 
-                        if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
-                            return bucket;
-                    }
-                    catch (RateLimitedException)
+                foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
+                {
+                    foreach (var type in Enum.GetValues(typeof(BucketType)))
                     {
-                        throw;
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
-                            "Cannot bootstrap bucket {name} as {type}.", name, type);
+                        try
+                        {
+                            bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType)type)
+                                .ConfigureAwait(false);
+
+                            if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
+                                return bucket;
+                        }
+                        catch (RateLimitedException)
+                        {
+                            throw;
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
+                                "Cannot bootstrap bucket {name} as {type}.", name, type);
+                        }
                     }
                 }
+            }
+            finally
+            {
+                _semaphore.Release();
             }
 
             throw new BucketNotFoundException(name);
@@ -594,6 +609,7 @@ namespace Couchbase.Core
             if (_disposed) return;
             _disposed = true;
             _configHandler?.Dispose();
+            _semaphore.Dispose();
             _tokenSource?.Dispose();
 
             foreach (var ownedObject in _ownedObjects)
