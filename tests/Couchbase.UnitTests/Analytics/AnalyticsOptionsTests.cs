@@ -1,7 +1,8 @@
 using System;
 using Couchbase.Analytics;
-using Newtonsoft.Json;
+using System.Text.Json;
 using Xunit;
+using System.Collections.Generic;
 
 namespace Couchbase.UnitTests.Analytics
 {
@@ -57,10 +58,9 @@ namespace Couchbase.UnitTests.Analytics
             var formValues = options.GetFormValues(Statement);
             Assert.Equal(Statement, formValues["statement"]);
 
-            var json = JsonConvert.DeserializeObject<dynamic>(
-                options.GetFormValuesAsJson(Statement)
-            );
-            Assert.Equal(Statement, json.statement.Value);
+            var jsonDocument = JsonDocument.Parse(options.GetFormValuesAsJson(Statement));
+
+            Assert.Equal(Statement, jsonDocument.RootElement.GetProperty("statement").GetString());
 
             // set statement using method
             const string statement = "SELECT 1 FROM `datset`;";
@@ -68,10 +68,8 @@ namespace Couchbase.UnitTests.Analytics
             formValues = options.GetFormValues(statement);
             Assert.Equal(statement, formValues["statement"]);
 
-            json = JsonConvert.DeserializeObject<dynamic>(
-                options.GetFormValuesAsJson(statement)
-            );
-            Assert.Equal(statement, json.statement.Value);
+            var jsonDocument1 = JsonDocument.Parse(options.GetFormValuesAsJson(statement));
+            Assert.Equal(statement, jsonDocument1.RootElement.GetProperty("statement").GetString());
         }
 
         [Theory]
@@ -89,10 +87,8 @@ namespace Couchbase.UnitTests.Analytics
             var formValues = options.GetFormValues(statement);
             Assert.Equal(expected, formValues["statement"]);
 
-            var json = JsonConvert.DeserializeObject<dynamic>(
-                options.GetFormValuesAsJson(statement)
-            );
-            Assert.Equal(expected, json.statement.Value);
+            var jsonDocument1 = JsonDocument.Parse(options.GetFormValuesAsJson(statement));
+            Assert.Equal(expected, jsonDocument1.RootElement.GetProperty("statement").GetString());
         }
 
         [Fact]
@@ -104,10 +100,9 @@ namespace Couchbase.UnitTests.Analytics
             var formValues = options.GetFormValues(Statement);
             Assert.Equal("75000ms", formValues["timeout"]);
 
-            var json = JsonConvert.DeserializeObject<dynamic>(
-                options.GetFormValuesAsJson(Statement)
-            );
-            Assert.Equal("75000ms", json.timeout.Value);
+            var jsonDocument = JsonDocument.Parse(options.GetFormValuesAsJson(Statement));
+
+            Assert.Equal("75000ms", jsonDocument.RootElement.GetProperty("timeout").GetString());
         }
 
         [Fact]
@@ -118,10 +113,9 @@ namespace Couchbase.UnitTests.Analytics
             var formValues = options.GetFormValues(Statement);
             Assert.Equal("15000ms", formValues["timeout"]);
 
-            var json = JsonConvert.DeserializeObject<dynamic>(
-                options.GetFormValuesAsJson(Statement)
-            );
-            Assert.Equal("15000ms", json.timeout.Value);
+            var jsonDocument = JsonDocument.Parse(options.GetFormValuesAsJson(Statement));
+
+            Assert.Equal("15000ms", jsonDocument.RootElement.GetProperty("timeout").GetString());
         }
 
         [Fact]
@@ -137,12 +131,11 @@ namespace Couchbase.UnitTests.Analytics
             Assert.Equal(10, formValues["my_int"]);
             Assert.Equal(true, formValues["my_bool"]);
 
-            var json = JsonConvert.DeserializeObject<dynamic>(
-                options.GetFormValuesAsJson(Statement)
-            );
-            Assert.Equal("value", json.my_string.Value);
-            Assert.Equal(10, json.my_int.Value);
-            Assert.Equal(true, json.my_bool.Value);
+            var jsonDocument = JsonDocument.Parse(options.GetFormValuesAsJson(Statement));
+
+            Assert.Equal("value", jsonDocument.RootElement.GetProperty("my_string").ToString());
+            Assert.Equal(10, jsonDocument.RootElement.GetProperty("my_int").GetInt32());
+            Assert.True(jsonDocument.RootElement.GetProperty("my_bool").GetBoolean());
         }
 
         [Fact]
@@ -160,12 +153,12 @@ namespace Couchbase.UnitTests.Analytics
             Assert.Equal(10, args[1]);
             Assert.Equal(true, args[2]);
 
-            var json = JsonConvert.DeserializeObject<dynamic>(
-                options.GetFormValuesAsJson(Statement)
-            );
-            Assert.Equal("value", json.args[0].Value);
-            Assert.Equal(10, json.args[1].Value);
-            Assert.Equal(true, json.args[2].Value);
+            var jsonDocument = JsonDocument.Parse(options.GetFormValuesAsJson(Statement));
+            var array = jsonDocument.RootElement.GetProperty("args");
+
+            Assert.Equal("value", array[0].GetString());
+            Assert.Equal(10, array[1].GetInt32());
+            Assert.True(array[2].GetBoolean());
         }
 
         [Fact]
@@ -179,9 +172,6 @@ namespace Couchbase.UnitTests.Analytics
 
             options.Priority(false);
             Assert.Equal(0, options.PriorityValue);
-
-            //options.Priority(5); //remove?
-            //Assert.Equal(5, options.PriorityValue);
         }
 
         [Fact]
@@ -214,6 +204,32 @@ namespace Couchbase.UnitTests.Analytics
             var json = options.GetParametersAsJson();
 
             Assert.Equal("{}", json);
+        }
+
+        [Fact]
+        public void Test_GetFormValuesAsJson()
+        {
+            var options = new AnalyticsOptions()
+            {
+                BucketName = "default",
+                ScopeName = "scope1",
+                QueryContext = "queryctx",
+            }
+            .Parameter("par1")
+            .Parameter("par2")
+            .Parameter("namedpar1", "namedpar1val")
+            .Parameter("namedpar2", "namedpar2val")
+            .Raw("raw1", "val1")
+            .Raw("raw2", "val2")
+            .Readonly(true)
+            .ClientContextId("cctxid")
+            .Timeout(TimeSpan.FromSeconds(10))
+            .ScanConsistency(AnalyticsScanConsistency.RequestPlus)
+            .Priority(true);
+
+            var json = options.GetFormValuesAsJson("SELECT * FROM default");
+            var expected = "{\"statement\":\"SELECT * FROM default;\",\"timeout\":\"10000ms\",\"client_context_id\":\"cctxid\",\"query_context\":\"queryctx\",\"namedpar1\":\"namedpar1val\",\"namedpar2\":\"namedpar2val\",\"raw1\":\"val1\",\"raw2\":\"val2\",\"args\":[\"par1\",\"par2\"]}";
+            Assert.Contains(expected, json);
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 #nullable enable
 
@@ -28,7 +28,7 @@ namespace Couchbase.Analytics
         /// A parent or external span for tracing.
         /// </summary>
         /// <param name="span">An external <see cref="IRequestSpan"/> implementation for tracing.</param>
-        /// <returns></returns>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
@@ -39,13 +39,18 @@ namespace Couchbase.Analytics
         /// Overrides the global <see cref="IRetryStrategy"/> defined in <see cref="ClusterOptions"/> for a request.
         /// </summary>
         /// <param name="retryStrategy">The <see cref="IRetryStrategy"/> to use for a single request.</param>
-        /// <returns>The options.</returns>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             RetryStrategyValue = retryStrategy;
             return this;
         }
 
+        /// <summary>
+        /// The <see cref="AnalyticsScanConsistency" /> you require for your analytics query.
+        /// </summary>
+        /// <param name="scanConsistency">The <see cref="AnalyticsScanConsistency" /> for documents to be included in the analytics results.</param>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions ScanConsistency(
             AnalyticsScanConsistency scanConsistency)
         {
@@ -53,12 +58,23 @@ namespace Couchbase.Analytics
             return this;
         }
 
+        /// <summary>
+        /// Allows to specify if the query is readonly.
+        /// </summary>
+        /// <param name="readOnly"></param>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions Readonly(bool readOnly)
         {
             ReadonlyValue = readOnly;
             return this;
         }
 
+        /// <summary>
+        /// Specifies values with their key and value as presented as part of the JSON payload.
+        /// </summary>
+        /// <param name="key">The key of the raw parameter.</param>
+        /// <param name="value">The value of the raw parameter.</param>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions Raw(string key, object value)
         {
             NamedParameters.Add(key, value);
@@ -71,30 +87,56 @@ namespace Couchbase.Analytics
             return this;
         }
 
+        /// <summary>
+        /// Specifies named parameters.
+        /// </summary>
+        /// <param name="parameterName">The named parameter value.</param>
+        /// <param name="value">The named parameter key or name.</param>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions Parameter(string parameterName, object value)
         {
             NamedParameters[parameterName] = value;
             return this;
         }
 
+        /// <summary>
+        /// Specifies positional parameters.
+        /// </summary>
+        /// <param name="value">The value of the positional parameter.</param>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions Parameter(object value)
         {
             PositionalParameters.Add(value);
             return this;
         }
 
+        /// <summary>
+        /// Specifies how long to allow the operation to continue running before it is cancelled.
+        /// </summary>
+        /// <param name="timeout">A <see cref="TimeSpan"/></param> value.
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions Timeout(TimeSpan timeout)
         {
             TimeoutValue = timeout;
             return this;
         }
 
+        /// <summary>
+        /// Allows to give certain requests higher priority than others.
+        /// </summary>
+        /// <param name="priority">Set to true to prioritize the query.</param>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions Priority(bool priority)
         {
             PriorityValue = priority ? -1 : 0;
             return this;
         }
 
+        /// <summary>
+        /// A token for controlling cooperative cancellation of the query.
+        /// </summary>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> for controlling query cancellation</param>
+        /// <returns>A <see cref="AnalyticsOptions"/> object for chaining options.</returns>
         public AnalyticsOptions CancellationToken(CancellationToken cancellationToken)
         {
             Token = cancellationToken;
@@ -122,13 +164,13 @@ namespace Couchbase.Analytics
         internal string GetParametersAsJson()
         {
             if (PositionalParameters.Any())
-                return JsonConvert.SerializeObject(PositionalParameters);
-            return JsonConvert.SerializeObject(NamedParameters);
+                return JsonSerializer.Serialize(PositionalParameters);
+            return JsonSerializer.Serialize(NamedParameters);
         }
 
         internal string GetFormValuesAsJson(string statement)
         {
-            return JsonConvert.SerializeObject(GetFormValues(statement));
+            return JsonSerializer.Serialize(GetFormValues(statement));
         }
 
         internal IDictionary<string, object> GetFormValues(string statement)

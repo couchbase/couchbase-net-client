@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Analytics;
@@ -13,7 +11,6 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Utils;
-using Couchbase.Management.Analytics;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
