@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
@@ -24,6 +25,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
 
             public const string Connections = "db.couchbase.connections";
             public const string Operations = "db.couchbase.operations";
+            public const string OperationCounts = "db.couchbase.operations.count";
             public const string Orphans = "db.couchbase.orphans";
             public const string Retries = "db.couchbase.retries";
             public const string SendQueueFullErrors = "db.couchbase.sendqueue.fullerrors";
@@ -38,7 +40,12 @@ namespace Couchbase.Core.Diagnostics.Metrics
         private static readonly Histogram<long> Operations =
             KeyValueMeter.CreateHistogram<long>(name: Names.Operations,
                 unit: "Microseconds",
-                description: "Number of operations executed, excluding retries");
+                description: "Duration of operations, excluding retries");
+
+        private static readonly Counter<long> OperationCounts =
+            KeyValueMeter.CreateCounter<long>(name: Names.OperationCounts,
+                unit: "Operations",
+                description: "Number of operations executed");
 
         private static readonly Counter<long> Orphans =
             KeyValueMeter.CreateCounter<long>(name: Names.Orphans,
@@ -83,10 +90,16 @@ namespace Couchbase.Core.Diagnostics.Metrics
             /// Tracks the first attempt of an operation.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static void TrackOperation(OpCode opCode, TimeSpan duration) =>
+            public static void TrackOperation(OpCode opCode, TimeSpan duration)
+            {
                 Operations.Record(duration.ToMicroseconds(),
                     new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name),
                     new(OuterRequestSpans.Attributes.Operation, opCode.ToMetricTag()));
+
+                OperationCounts.Add(1,
+                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name),
+                    new(OuterRequestSpans.Attributes.Operation, opCode.ToMetricTag()));
+            }
 
             /// <summary>
             /// Tracks an operation retry.

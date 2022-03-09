@@ -39,6 +39,7 @@
   <ItemGroup Condition=" '$(MSBuildProjectFile.Contains(`Test`))' == 'true' ">
     <PackageReference Update="BenchmarkDotNet" Version="0.13.1" />
     <PackageReference Update="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.1" />
+    <PackageReference Update="CommandLineParser" Version="2.8.0" />
     <PackageReference Update="Microsoft.Extensions.Configuration.Json" Version="3.1.21" />
     <PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="3.1.21" />
     <PackageReference Update="Microsoft.Extensions.Logging" Version="3.1.21" />
@@ -47,7 +48,9 @@
     <PackageReference Update="OpenTelemetry.Exporter.Console" Version="1.0.1" />
     <PackageReference Update="OpenTelemetry.Exporter.InMemory" Version="1.1.0" />
     <PackageReference Update="OpenTelemetry.Exporter.Zipkin" Version="1.0.1" />
+    <PackageReference Update="Serilog.Extensions.Logging" Version="3.1.0" />
     <PackageReference Update="Serilog.Extensions.Logging.File" Version="2.0.0" />
+    <PackageReference Update="Serilog.Sinks.Console" Version="4.0.1" />
     <PackageReference Update="Snappier" Version="1.0.0" />
     <PackageReference Update="JUnitXml.TestLogger" Version="2.1.81" />
     <PackageReference Update="xunit" Version="2.4.1" />

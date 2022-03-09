@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase.ConcurrencyTests", "Couchbase.ConcurrencyTests.csproj", "{07717224-AE60-4779-9B24-633495F1E95D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Couchbase", "..\..\src\Couchbase\Couchbase.csproj", "{415C25B3-41A8-44D6-B0C3-2959A6845F07}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Other", "Other", "{DEF13B5D-4E43-40D2-80A3-AEE1C860B134}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\Directory.Build.props = ..\..\Directory.Build.props
+		..\..\Packages.props = ..\..\Packages.props
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{07717224-AE60-4779-9B24-633495F1E95D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07717224-AE60-4779-9B24-633495F1E95D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07717224-AE60-4779-9B24-633495F1E95D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07717224-AE60-4779-9B24-633495F1E95D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{415C25B3-41A8-44D6-B0C3-2959A6845F07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{415C25B3-41A8-44D6-B0C3-2959A6845F07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{415C25B3-41A8-44D6-B0C3-2959A6845F07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{415C25B3-41A8-44D6-B0C3-2959A6845F07}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {552916D0-FFD3-48CC-8D61-C274E485D028}
+	EndGlobalSection
+EndGlobal

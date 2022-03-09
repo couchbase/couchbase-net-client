@@ -389,6 +389,10 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         {
             private readonly Stack<PathStateItem> _stack = new(16);
 
+            public PathState()
+            {
+            }
+
             public string Path => TryPeek(out var item) ? item.Path : "";
 
             public void ApplyReadToken(ref Utf8JsonReader reader)
