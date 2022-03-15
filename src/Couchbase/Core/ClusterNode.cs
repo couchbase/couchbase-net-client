@@ -391,7 +391,7 @@ namespace Couchbase.Core
                     _keyEndPoints.Add(kvEndpoint);
                 }
 
-                if (!_keyEndPoints.Contains(sslEndpoint))
+                if (sslEndpoint.Port > 0 && !_keyEndPoints.Contains(sslEndpoint))
                 {
                     _keyEndPoints.Add(sslEndpoint);
                 }

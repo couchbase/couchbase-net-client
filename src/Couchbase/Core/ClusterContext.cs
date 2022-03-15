@@ -365,8 +365,10 @@ namespace Couchbase.Core
                         //log any alternate address mapping
                         _logger.LogInformation(nodeAdapter.ToString());
 
-                        if (server.Host.Equals(nodeAdapter.Hostname)) //this is the bootstrap node so update
+                        var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
+                        if (server.Equals(hostEndpoint)) //this is the bootstrap node so update
                         {
+                            _logger.LogInformation("Initializing bootstrap node [{node}].", hostEndpoint.ToString());
                             node.NodesAdapter = nodeAdapter;
                             SupportsCollections = node.ServerFeatures.Collections;
                             SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
@@ -374,7 +376,7 @@ namespace Couchbase.Core
                         }
                         else
                         {
-                            var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
+                            _logger.LogInformation("Initializing a non-bootstrap node [{node}]", hostEndpoint.ToString());
                             var newNode = await _clusterNodeFactory
                                 .CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, nodeAdapter,
                                     CancellationToken).ConfigureAwait(false);
@@ -383,6 +385,7 @@ namespace Couchbase.Core
                             AddNode(newNode);
                         }
                     }
+                    return;
                 }
                 catch (Exception e)
                 {
