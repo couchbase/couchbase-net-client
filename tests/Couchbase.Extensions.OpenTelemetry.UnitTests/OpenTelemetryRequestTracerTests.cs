@@ -54,7 +54,7 @@ namespace Couchbase.Extensions.Tracing.Otel.UnitTests
 
             using var tracer = new OpenTelemetryRequestTracer();
 
-            var parentSpan = new OpenTelemetryRequestSpan(tracer, null, null);
+            var parentSpan = new Core.Diagnostics.Tracing.NoopRequestSpan();
 
             // Act
 

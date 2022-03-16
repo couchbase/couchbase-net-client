@@ -19,8 +19,8 @@ namespace Couchbase.Extensions.Tracing.Otel.Tracing
 
         public OpenTelemetryRequestSpan(IRequestTracer tracer, Activity activity, IRequestSpan? parentSpan = null)
         {
-            _tracer = tracer;
-            _activity = activity;
+            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            _activity = activity ?? throw new ArgumentNullException(nameof(activity));
             _parentSpan = parentSpan;
         }
 
