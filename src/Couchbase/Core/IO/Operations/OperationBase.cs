@@ -632,12 +632,12 @@ namespace Couchbase.Core.IO.Operations
                     if (LastServerDuration.HasValue)
                     {
                         Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.ServerDuration,
-                            LastServerDuration.Value.ToString());
+                            LastServerDuration.Value.ToStringInvariant());
                     }
 
                     //Write the timeout_ms span attribute
                     Span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.TimeoutMilliseconds,
-                        Timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)!);
+                        Timeout.TotalMilliseconds.ToStringInvariant()!);
                 }
 
                 _valueTaskSource.SetResult(status);

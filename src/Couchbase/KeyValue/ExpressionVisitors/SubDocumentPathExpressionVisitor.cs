@@ -418,7 +418,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
                         default:
                             _path.Append(@"\u0000");
 
-                            var hexString = ((ushort) ch).ToString("x");
+                            var hexString = ((ushort) ch).ToString("x", System.Globalization.CultureInfo.InvariantCulture);
                             for (var j = 0; j < hexString.Length; j++)
                             {
                                 _path[_path.Length - (hexString.Length - j)] = hexString[j];

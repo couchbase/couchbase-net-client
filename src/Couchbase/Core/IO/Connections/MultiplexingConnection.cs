@@ -14,6 +14,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Utils;
 using Couchbase.Diagnostics;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -64,8 +65,8 @@ namespace Couchbase.Core.IO.Connections
 
             _remoteHostString = ((IPEndPoint) EndPoint).Address.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
             _localHostString = ((IPEndPoint) LocalEndPoint).Address.ToString() ?? DiagnosticsReportProvider.UnknownEndpointValue;
-            _remotePortString = ((IPEndPoint) EndPoint).Port.ToString();
-            _localPortString = ((IPEndPoint) LocalEndPoint).Port.ToString();
+            _remotePortString = ((IPEndPoint) EndPoint).Port.ToStringInvariant();
+            _localPortString = ((IPEndPoint) LocalEndPoint).Port.ToStringInvariant();
 
             _stopwatch = LightweightStopwatch.StartNew();
 

@@ -9,7 +9,7 @@ namespace Couchbase.Core.Utils
         public static string ToHexString(this uint opaque)
         {
             const string hexPrefix = "0x", hexFormat = "x";
-            return string.Join(hexPrefix, opaque.ToString(hexFormat));
+            return string.Join(hexPrefix, opaque.ToString(hexFormat, System.Globalization.CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -57,6 +57,48 @@ namespace Couchbase.Core.Utils
         {
             return source?.IndexOf(value, comparison) >= 0;
         }
+
+        /// <summary>
+        /// Convert an int to string using the Invariant culture.
+        /// </summary>
+        /// <param name="num">The integer to convert.</param>
+        /// <returns>A string representation of the value.</returns>
+        public static string ToStringInvariant(this int num) => num.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// Convert a uint to string using the Invariant culture.
+        /// </summary>
+        /// <param name="num">The integer to convert.</param>
+        /// <returns>A string representation of the value.</returns>
+        public static string ToStringInvariant(this uint num) => num.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// Convert a long to string using the Invariant culture.
+        /// </summary>
+        /// <param name="num">The long to convert.</param>
+        /// <returns>A string representation of the value.</returns>
+        public static string ToStringInvariant(this long num) => num.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// Convert a ulong to string using the Invariant culture.
+        /// </summary>
+        /// <param name="num">The ulong to convert.</param>
+        /// <returns>A string representation of the value.</returns>
+        public static string ToStringInvariant(this ulong num) => num.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// Convert a short integer to string using the Invariant culture.
+        /// </summary>
+        /// <param name="num">The integer to convert.</param>
+        /// <returns>A string representation of the value.</returns>
+        public static string ToStringInvariant(this short num) => num.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// Convert a double to string using the Invariant culture.
+        /// </summary>
+        /// <param name="num">The double to convert.</param>
+        /// <returns>A string representation of the value.</returns>
+        public static string ToStringInvariant(this double num) => num.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }
 

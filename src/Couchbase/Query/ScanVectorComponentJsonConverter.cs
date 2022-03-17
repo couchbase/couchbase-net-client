@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Utils;
 using Couchbase.Utils;
 
 namespace Couchbase.Query
@@ -20,7 +21,7 @@ namespace Couchbase.Query
         {
             writer.WriteStartArray();
             writer.WriteNumberValue(value.SequenceNumber);
-            writer.WriteStringValue(value.VBucketUuid.ToString());
+            writer.WriteStringValue(value.VBucketUuid.ToStringInvariant());
             writer.WriteEndArray();
         }
     }

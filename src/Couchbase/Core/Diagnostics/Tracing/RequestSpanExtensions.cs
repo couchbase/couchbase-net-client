@@ -4,6 +4,7 @@ using System.Net;
 using Couchbase.Analytics;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Retry.Search;
+using Couchbase.Core.Utils;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Eventing;
 using Couchbase.Query;
@@ -196,7 +197,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             if (childSpan.CanWrite)
             {
                 childSpan.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.OperationId,
-                    operation.Opaque.ToString());
+                    operation.Opaque.ToStringInvariant());
             }
 
             return childSpan;

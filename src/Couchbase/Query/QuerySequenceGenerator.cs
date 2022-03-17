@@ -1,4 +1,5 @@
-﻿using System.Threading;
+using Couchbase.Core.Utils;
+using System.Threading;
 
 namespace Couchbase.Query
 {
@@ -25,7 +26,7 @@ namespace Couchbase.Query
         /// <returns></returns>
         public static string GetNextAsString()
         {
-            return GetNext().ToString();
+            return GetNext().ToStringInvariant();
         }
 
         /// <summary>

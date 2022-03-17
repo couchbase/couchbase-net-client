@@ -26,6 +26,7 @@ using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.IO.Operations.Errors;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Utils;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -520,7 +521,7 @@ namespace Couchbase.Core
                     var ctx = new KeyValueErrorContext
                     {
                         BucketName = Owner?.Name,
-                        ClientContextId = op.Opaque.ToString(),
+                        ClientContextId = op.Opaque.ToStringInvariant(),
                         DocumentKey = op.Key,
                         Cas = op.Cas,
                         CollectionName = op.CName,
@@ -561,7 +562,7 @@ namespace Couchbase.Core
                     ThrowHelper.ThrowTimeoutException(op, new KeyValueErrorContext
                     {
                         BucketName = Owner?.Name,
-                        ClientContextId = op.Opaque.ToString(),
+                        ClientContextId = op.Opaque.ToStringInvariant(),
                         DocumentKey = op.Key,
                         Cas = op.Cas,
                         CollectionName = op.CName,

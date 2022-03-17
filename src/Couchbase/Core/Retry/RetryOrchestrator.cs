@@ -11,6 +11,7 @@ using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Sharding;
+using Couchbase.Core.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -254,7 +255,7 @@ namespace Couchbase.Core.Retry
                 ThrowHelper.ThrowTimeoutException(operation, new KeyValueErrorContext
                 {
                     BucketName = operation.BucketName,
-                    ClientContextId = operation.Opaque.ToString(),
+                    ClientContextId = operation.Opaque.ToStringInvariant(),
                     DocumentKey = operation.Key,
                     Cas = operation.Cas,
                     CollectionName = operation.CName,

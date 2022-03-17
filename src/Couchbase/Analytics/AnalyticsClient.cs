@@ -12,6 +12,7 @@ using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Utils;
 using Couchbase.Management.Analytics;
 using Microsoft.Extensions.Logging;
 
@@ -71,7 +72,7 @@ namespace Couchbase.Analytics
 
                     if (options.PriorityValue != 0)
                     {
-                        request.Headers.Add(AnalyticsPriorityHeaderName, new[] {options.PriorityValue.ToString()});
+                        request.Headers.Add(AnalyticsPriorityHeaderName, new[] {options.PriorityValue.ToStringInvariant()});
                     }
 
                     encodingSpan.Dispose();

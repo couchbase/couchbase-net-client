@@ -102,10 +102,10 @@ namespace Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting
         public static OrphanSummary CreateKvContext(uint opaque)
         {
             const string hexPrefix = "0x", hexFormat = "x";
-            return new ()
+            return new()
             {
                 ServiceType = OuterRequestSpans.ServiceSpan.Kv.Name,
-                operation_id = string.Join(hexPrefix, opaque.ToString(hexFormat))
+                operation_id = string.Join(hexPrefix, opaque.ToString(hexFormat, System.Globalization.CultureInfo.InvariantCulture)),
             };
         }
 

@@ -49,7 +49,7 @@ namespace Couchbase
         }
 
         /// <inheritdoc />
-        public override string ToString() => Port != null ? $"{Host}:{Port}" : Host;
+        public override string ToString() => Port != null ? FormattableString.Invariant($"{Host}:{Port}") : Host;
 
         #region Equality
 

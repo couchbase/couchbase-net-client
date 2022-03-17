@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 
@@ -91,13 +92,13 @@ namespace Couchbase.Management.Buckets
             {
                 {"name", settings.Name},
                 {"bucketType", settings.BucketType.GetDescription()},
-                {"ramQuotaMB", settings.RamQuotaMB.ToString()},
+                {"ramQuotaMB", settings.RamQuotaMB.ToStringInvariant()},
                 {"flushEnabled", settings.FlushEnabled ? "1" : "0"}
             };
 
             if (settings.BucketType != BucketType.Memcached)
             {
-                values.Add("replicaNumber", settings.NumReplicas.ToString());
+                values.Add("replicaNumber", settings.NumReplicas.ToStringInvariant());
             }
 
             if (settings.BucketType == BucketType.Couchbase)
@@ -146,7 +147,7 @@ namespace Couchbase.Management.Buckets
 
             if (settings.MaxTtl > 0)
             {
-                values.Add("maxTTL", settings.MaxTtl.ToString());
+                values.Add("maxTTL", settings.MaxTtl.ToStringInvariant());
             }
 
             if (settings.CompressionMode.HasValue)

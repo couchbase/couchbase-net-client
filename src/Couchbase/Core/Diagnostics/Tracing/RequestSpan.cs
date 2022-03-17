@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Couchbase.Core.Diagnostics.Tracing.ThresholdTracing;
+using Couchbase.Core.Utils;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.Diagnostics.Tracing
@@ -92,7 +93,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
 
             var duration = _activity.Duration.ToMicroseconds();
             Duration = duration;
-            return duration.ToString();
+            return duration.ToStringInvariant();
         }
 
         /// <inheritdoc />

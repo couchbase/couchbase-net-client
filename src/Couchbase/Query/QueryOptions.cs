@@ -15,6 +15,7 @@ using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Core.Retry;
+using Couchbase.Core.Utils;
 using Couchbase.Utils;
 
 #nullable enable
@@ -267,7 +268,7 @@ namespace Couchbase.Query
             foreach (var token in mutationState)
                 if (_scanVectors.TryGetValue(token.BucketRef, out var vector))
                 {
-                    var bucketId = token.VBucketId.ToString();
+                    var bucketId = token.VBucketId.ToStringInvariant();
                     if (vector.TryGetValue(bucketId, out var bucketRef))
                     {
                         if (bucketRef.SequenceNumber < token.SequenceNumber)
@@ -279,7 +280,7 @@ namespace Couchbase.Query
                     }
                     else
                     {
-                        vector.Add(token.VBucketId.ToString(),
+                        vector.Add(token.VBucketId.ToStringInvariant(),
                             new ScanVectorComponent
                             {
                                 SequenceNumber = token.SequenceNumber,
@@ -292,7 +293,7 @@ namespace Couchbase.Query
                     _scanVectors.Add(token.BucketRef, new Dictionary<string, ScanVectorComponent>
                     {
                         {
-                            token.VBucketId.ToString(),
+                            token.VBucketId.ToStringInvariant(),
                             new ScanVectorComponent
                             {
                                 SequenceNumber = token.SequenceNumber,
