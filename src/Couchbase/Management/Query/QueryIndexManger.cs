@@ -215,7 +215,7 @@ namespace Couchbase.Management.Query
 
             try
             {
-                var statement = QueryGenerator.CreateGetAllIndexesStatement(bucketName, options);
+                var statement = QueryGenerator.CreateGetAllIndexesStatement(options);
                 var result = await _queryClient.QueryAsync<QueryIndex>(statement,
                     queryOptions => queryOptions.Parameter("bucketName", bucketName).CancellationToken(options.TokenValue)
                 ).ConfigureAwait(false);

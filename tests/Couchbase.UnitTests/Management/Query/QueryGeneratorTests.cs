@@ -105,15 +105,15 @@ namespace Couchbase.UnitTests.Management.Query
         }
 
         [Theory]
-        [InlineData("default", "_default", "_default", "SELECT i.* FROM system:indexes AS i WHERE i.bucket_id=`default` AND scope_id=`_default` AND i.keyspace_id=`_default` AND `using`=\"gsi\";")]
-        [InlineData("default", null, null, "SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=`default` AND `using`=\"gsi\";")]
+        [InlineData("default", "_default", "_default", "SELECT i.* FROM system:indexes AS i WHERE i.bucket_id=$bucketName AND scope_id=`_default` AND i.keyspace_id=`_default` AND `using`=\"gsi\";")]
+        [InlineData("default", null, null, "SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=$bucketName AND `using`=\"gsi\";")]
         public void Test_CreateGetAllIndexesStatement(string bucketName, string scopeName, string collectionName, string expected)
         {
             //arrange
             var options = new GetAllQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
 
             //act
-            var statement = QueryGenerator.CreateGetAllIndexesStatement(bucketName, options);
+            var statement = QueryGenerator.CreateGetAllIndexesStatement(options);
 
             _outputHelper.WriteLine(statement);
 

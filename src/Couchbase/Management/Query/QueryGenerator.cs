@@ -50,13 +50,13 @@ namespace Couchbase.Management.Query
             return $"DROP PRIMARY INDEX ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()} USING GSI;";
         }
 
-        public static string CreateGetAllIndexesStatement(string bucketName, GetAllQueryIndexOptions options)
+        public static string CreateGetAllIndexesStatement(GetAllQueryIndexOptions options)
         {
             if(options.ScopeNameValue == null)
             {
-                return $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id={bucketName.EscapeIfRequired()} AND `using`=\"gsi\";";
+                return $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=$bucketName AND `using`=\"gsi\";";
             }
-            return $"SELECT i.* FROM system:indexes AS i WHERE i.bucket_id={bucketName.EscapeIfRequired()} AND scope_id={options.ScopeNameValue.EscapeIfRequired()} AND i.keyspace_id={options.CollectionNameValue.EscapeIfRequired()} AND `using`=\"gsi\";";
+            return $"SELECT i.* FROM system:indexes AS i WHERE i.bucket_id=$bucketName AND scope_id={options.ScopeNameValue.EscapeIfRequired()} AND i.keyspace_id={options.CollectionNameValue.EscapeIfRequired()} AND `using`=\"gsi\";";
         }
     }
 }
