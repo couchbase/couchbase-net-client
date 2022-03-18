@@ -718,7 +718,7 @@ namespace Couchbase.Core
             {
                 if (_circuitBreaker.CompletionCallback(e))
                 {
-                    LogCircuitBreakerCanaryFailed(_redactor.SystemData(ConnectionPool.EndPoint));
+                    LogCircuitBreakerCanaryFailed(e, _redactor.SystemData(ConnectionPool.EndPoint));
                     _circuitBreaker.MarkFailure();
                 }
             }
@@ -832,7 +832,7 @@ namespace Couchbase.Core
         private partial void LogCircuitBreakerSendingCanary(Redacted<HostEndpointWithPort> endpoint);
 
         [LoggerMessage(203, LogLevel.Debug, "CB: Marking a failure for canary sent to {endpoint}.")]
-        private partial void LogCircuitBreakerCanaryFailed(Redacted<HostEndpointWithPort> endpoint);
+        private partial void LogCircuitBreakerCanaryFailed(Exception ex, Redacted<HostEndpointWithPort> endpoint);
 
         #endregion
     }
