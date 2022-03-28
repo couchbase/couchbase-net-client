@@ -13,6 +13,7 @@ namespace Couchbase
 {
     public interface IBucket : IDisposable, IAsyncDisposable
     {
+        bool SupportsCollections { get; }
         string Name { get; }
 
         /// <summary>

@@ -234,6 +234,21 @@ namespace Couchbase.Core
             return new ErrorMap(errorMapOp.GetValue());
         }
 
+        public async Task HelloHello()
+        {
+            foreach (var connection in ConnectionPool.GetConnections())
+            {
+                _logger.LogDebug("Starting connection reinitialization on server {endpoint}.", EndPoint);
+                using var rootSpan = RootSpan("reinitialize_connection");
+
+                var serverFeatureList = await Hello(connection, rootSpan).ConfigureAwait(false);
+                connection.ServerFeatures = serverFeatureList != null
+                    ? new ServerFeatureSet(serverFeatureList)
+                    : ServerFeatureSet.Empty;
+                ServerFeatures = connection.ServerFeatures;
+            }
+        }
+
         private async Task<ServerFeatures[]> Hello(IConnection connection, IRequestSpan span, CancellationToken cancellationToken = default)
         {
             var features = new List<ServerFeatures>
@@ -246,7 +261,7 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.PreserveTtl
             };
 
-            if (BucketType != BucketType.Memcached)
+            if (Owner != null && Owner.SupportsCollections)
             {
                 features.Add(IO.Operations.ServerFeatures.Collections);
             }

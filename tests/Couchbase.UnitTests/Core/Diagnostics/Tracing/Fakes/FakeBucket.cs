@@ -109,6 +109,8 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public IViewIndexManager ViewIndexes { get; } = null!;
         public ICouchbaseCollectionManager Collections { get; } = null!;
 
+        public bool SupportsCollections => throw new NotImplementedException();
+
         public Task<IPingReport> PingAsync(PingOptions? options = null)
         {
             throw new NotImplementedException();

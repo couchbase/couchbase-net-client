@@ -34,6 +34,7 @@ namespace Couchbase.Core
         protected readonly ConcurrentDictionary<string, IScope> Scopes = new();
         public readonly ClusterNodeCollection Nodes = new();
         private volatile int _disposed;
+        private bool? _supportsCollections;
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         protected BucketBase() { }
@@ -285,6 +286,23 @@ namespace Couchbase.Core
         bool IBootstrappable.IsBootstrapped => IsBootstrapped;
 
         List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
+
+        public bool SupportsCollections
+        {
+            get
+            {
+                if (_supportsCollections.HasValue)
+                {
+                    return _supportsCollections.Value;
+                }
+                else
+                {
+                    _supportsCollections = CurrentConfig != null &&
+                        CurrentConfig.BucketCapabilities.Contains("collections");
+                }
+                return _supportsCollections.Value;
+            }
+        }
 
         /// <summary>
         /// Throw an exception if the bucket is not bootstrapped successfully.

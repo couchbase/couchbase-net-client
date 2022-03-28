@@ -237,11 +237,6 @@ namespace Couchbase
             {
                 await node.SelectBucketAsync(this).ConfigureAwait(false);
 
-                if (Context.SupportsCollections)
-                {
-                    Manifest = await node.GetManifest().ConfigureAwait(false);
-                }
-
                 CurrentConfig = await node.GetClusterMap().ConfigureAwait(false);
                 if (Context.ClusterOptions.HasNetworkResolution)
                 {
@@ -253,6 +248,12 @@ namespace Couchbase
                     //A non-GCCCP cluster
                     CurrentConfig.SetEffectiveNetworkResolution(node.EndPoint, Context.ClusterOptions);
                 }
+                if (SupportsCollections)
+                {
+                    Manifest = await node.GetManifest().ConfigureAwait(false);
+                }
+
+                await node.HelloHello().ConfigureAwait(false);
 
                 KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
 

@@ -1033,7 +1033,7 @@ namespace Couchbase.KeyValue
         /// <returns>true if the server supports collections and the CID is null.</returns>
         private bool RequiresCid()
         {
-            return !Cid.HasValue && _bucket.Context.SupportsCollections;
+            return !Cid.HasValue && _bucket.SupportsCollections;
         }
 
         public async ValueTask PopulateCidAsync(bool retryIfFailure = true, bool forceUpdate = false)
@@ -1045,7 +1045,7 @@ namespace Couchbase.KeyValue
             }
 
             // old servers do not support collections so we exit
-            if (!_bucket.Context.SupportsCollections)
+            if (!_bucket.SupportsCollections)
             {
                 return;
             }

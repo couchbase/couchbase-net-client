@@ -37,6 +37,8 @@ namespace Couchbase.Core
         ServerFeatureSet ServerFeatures { get; }
         IConnectionPool ConnectionPool { get; }
         List<Exception> Exceptions { get; set; } //TODO catch and hold until first operation per RFC
+
+        Task HelloHello();
         bool IsAssigned { get; }
         bool HasViews { get; }
         bool HasAnalytics { get; }

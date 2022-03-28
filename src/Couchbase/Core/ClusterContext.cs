@@ -370,7 +370,6 @@ namespace Couchbase.Core
                         {
                             _logger.LogInformation("Initializing bootstrap node [{node}].", hostEndpoint.ToString());
                             node.NodesAdapter = nodeAdapter;
-                            SupportsCollections = node.ServerFeatures.Collections;
                             SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                             AddNode(node);
                         }
@@ -380,7 +379,6 @@ namespace Couchbase.Core
                             var newNode = await _clusterNodeFactory
                                 .CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, nodeAdapter,
                                     CancellationToken).ConfigureAwait(false);
-                            SupportsCollections = node.ServerFeatures.Collections;
                             SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                             AddNode(newNode);
                         }
@@ -537,7 +535,7 @@ namespace Couchbase.Core
                         if (bootstrapNode.HasKv)
                         {
                             await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
-                            SupportsCollections = bootstrapNode.ServerFeatures.Collections;
+                            await bootstrapNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = bootstrapNode.ServerFeatures.PreserveTtl;
                         }
 
@@ -577,7 +575,7 @@ namespace Couchbase.Core
                 if (node.HasKv)
                 {
                     await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
-                    SupportsCollections = node.ServerFeatures.Collections;
+                    await node.HelloHello().ConfigureAwait(false);
                     SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                 }
 
