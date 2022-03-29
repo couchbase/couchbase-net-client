@@ -75,8 +75,7 @@ namespace Couchbase.Management.Buckets
                 //Throw specific exception if a rate limiting exception is thrown.
                 result.ThrowIfRateLimitingError(body, ctx);
 
-                //Throw any other error cases
-                result.ThrowOnError(ctx);
+
 
                 if (result.StatusCode == HttpStatusCode.BadRequest)
                 {
@@ -86,6 +85,9 @@ namespace Couchbase.Management.Buckets
                         throw new BucketExistsException(settings.Name);
                     }
                 }
+
+                //Throw any other error cases
+                result.ThrowOnError(ctx);
             }
             catch (BucketExistsException)
             {
