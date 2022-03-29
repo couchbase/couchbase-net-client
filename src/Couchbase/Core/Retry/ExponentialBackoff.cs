@@ -9,14 +9,12 @@ namespace Couchbase.Core.Retry
         private readonly int _maxRetries;
         private readonly int _delayMillis;
         private readonly int _maxDelayMillis;
-        private int _power;
 
         public ExponentialBackoff(int maxRetries, int delayMillis, int maxDelayMillis)
         {
             _maxRetries = maxRetries;
             _delayMillis = delayMillis;
             _maxDelayMillis = maxDelayMillis;
-            _power = 2;
         }
 
         public Task Delay(IRequest request)
@@ -26,17 +24,12 @@ namespace Couchbase.Core.Retry
 
         public TimeSpan CalculateBackoff(IRequest request)
         {
-            if (request.Attempts == _maxRetries)
-            {
-                ThrowHelper.ThrowOperationCanceledException();
-            }
+            int power = (int)Math.Min(request.Attempts + 2, 30);
+            int multiplier = (int)Math.Pow(2, Math.Min(request.Attempts+2, 30));
 
-            if (request.Attempts < 31)
-            {
-                _power <<= 1;
-            }
+            var thisDelay = (int)(_delayMillis * (multiplier - 1) / 2);
 
-            return TimeSpan.FromMilliseconds(Math.Min(_delayMillis * (_power - 1) / 2, _maxDelayMillis));
+            return TimeSpan.FromMilliseconds(Math.Min(thisDelay, _maxDelayMillis));
         }
 
         public static ExponentialBackoff Create(int maxRetries, int delayMillis, int maxDelayMillis)

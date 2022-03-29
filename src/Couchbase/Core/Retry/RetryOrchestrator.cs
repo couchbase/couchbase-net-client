@@ -179,10 +179,12 @@ namespace Couchbase.Core.Retry
 
                     try
                     {
-                        if (++operation.Attempts > 1)
+                        if (operation.Attempts > 1)
                         {
                             MetricTracker.KeyValue.TrackRetry(operation.OpCode);
                         }
+
+                        operation.Attempts++;
 
                         try
                         {

@@ -11,6 +11,7 @@ namespace Couchbase.UnitTests.Core.Retry
 {
     public class ExponentialBackoffTests
     {
+        [Fact]
         public void Test_Calculate()
         {
             var testData = new Dictionary<uint, int>
@@ -32,10 +33,43 @@ namespace Couchbase.UnitTests.Core.Retry
 
             foreach (var data in testData)
             {
+                mockOp.SetupGet(op => op.Attempts).Returns(data.Key);
                 var delay = backoff.CalculateBackoff(mockOp.Object);
-                Assert.Equal(data.Key, mockOp.Object.Attempts);
                 Assert.Equal(TimeSpan.FromMilliseconds(data.Value), delay);
             }
+        }
+
+        [Fact]
+        public void Is_Not_Stateful()
+        {
+            // verify that the backoff is based on the number of attempts, not the number of times CalculateBackoff is called.
+            var mockOp = new Mock<IOperation>();
+            var backoff = ExponentialBackoff.Create(100, 1, 500);
+
+            mockOp.SetupGet(op => op.Attempts).Returns(2);
+            for (int i = 0; i < 1000; i++)
+            {
+                var delay = backoff.CalculateBackoff(mockOp.Object);
+                Assert.Equal(TimeSpan.FromMilliseconds(7), delay);
+            }
+
+            mockOp.SetupGet(op => op.Attempts).Returns(4);
+
+            for (int i = 0; i < 1000; i++)
+            {
+                var delay = backoff.CalculateBackoff(mockOp.Object);
+                Assert.Equal(TimeSpan.FromMilliseconds(31), delay);
+            }
+        }
+
+        [Fact]
+        public void Does_Not_Throw_On_Max_Retries()
+        {
+            var mockOp = new Mock<IOperation>();
+            var backoff = ExponentialBackoff.Create(10, 1, 500);
+            mockOp.SetupGet(op => op.Attempts).Returns(1_000_000);
+            var delay = backoff.CalculateBackoff(mockOp.Object);
+            Assert.Equal(TimeSpan.FromMilliseconds(500), delay);
         }
     }
 }
