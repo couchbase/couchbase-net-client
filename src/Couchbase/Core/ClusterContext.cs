@@ -595,7 +595,7 @@ namespace Couchbase.Core
             _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision}.", existingEndpoints, config.Rev);
 
             var removedEndpoints = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Host.Equals(y.Host))));
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y))));
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision}", removedEndpoints, config.Rev);
 

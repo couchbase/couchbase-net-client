@@ -25,8 +25,8 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public HttpStreamingConfigListener Create(string bucketName, IConfigHandler configHandler) =>
-            new HttpStreamingConfigListener(bucketName, _clusterOptions,
+        public HttpStreamingConfigListener Create(IBucket bucket, IConfigHandler configHandler) =>
+            new HttpStreamingConfigListener(bucket, _clusterOptions,
                 _serviceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(), // Get each time so it's not a singleton
                 configHandler, _logger);
     }

@@ -4,8 +4,10 @@ using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
@@ -37,10 +39,10 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_GreaterRevisionExcepted()
         {
             //arrange
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-
-            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
+
             handler.Start();
             handler.Subscribe(_bucket);
 
@@ -69,14 +71,29 @@ namespace Couchbase.UnitTests.Core.Configuration
             Assert.Equal(config2.Rev, handler.Get("default").Rev);
         }
 
+        private Mock<IHttpStreamingConfigListenerFactory> CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context)
+        {
+            var clusterOptions = new ClusterOptions();
+            context = new ClusterContext(new CancellationTokenSource(), clusterOptions);
+            var httpStreamingConfigListenerFactory = new Mock<IHttpStreamingConfigListenerFactory>();
+            var httpClientFactory = new Mock<ICouchbaseHttpClientFactory>();
+            var configHandler = new Mock<IConfigHandler>();
+            var logger = new Mock<ILogger<HttpStreamingConfigListener>>();
+            var htpStreamingConfigListener = new HttpStreamingConfigListener(_bucket, clusterOptions, httpClientFactory.Object, configHandler.Object, logger.Object);
+            httpStreamingConfigListenerFactory.Setup(x => x.Create(It.IsAny<IBucket>(), It.IsAny<IConfigHandler>())).Returns(htpStreamingConfigListener);
+
+            return httpStreamingConfigListenerFactory;
+        }
+
         [Fact]
         public void Can_Subscribe()
         {
             //arrange
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
 
-            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
+
             handler.Start();
             handler.Subscribe(_bucket);
 
@@ -98,8 +115,8 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_LesserRevisionIgnored()
         {
             //arrange
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
@@ -132,10 +149,10 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_EqualRevisionIgnored()
         {
             //arrange
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-
-            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
+
             handler.Start();
             handler.Subscribe(_bucket);
 
@@ -165,8 +182,8 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_When_ConfigNotRegistered_Throws_BucketMissingException()
         {
             //arrange
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
@@ -180,8 +197,8 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Publish_When_Stopped_Throw_ContextStoppedException()
         {
             //arrange
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
@@ -207,8 +224,8 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Get_When_Bucket_Not_Subscribed_Throw_BucketMissingException()
         {
             //arrange
-            var context = new ClusterContext(new CancellationTokenSource(), new ClusterOptions());
-            using var handler = new ConfigHandler(context, new Mock<IHttpStreamingConfigListenerFactory>().Object,
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();

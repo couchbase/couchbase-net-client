@@ -11,10 +11,10 @@ namespace Couchbase.Core.DI
         /// <summary>
         /// Creates an <see cref="HttpStreamingConfigListener"/>.
         /// </summary>
-        /// <param name="bucketName">Bucket to monitor.</param>
+        /// <param name="bucket">Bucket to monitor.</param>
         /// <param name="configHandler"><see cref="IConfigHandler"/> to receive events.</param>
         /// <returns>The <see cref="HttpStreamingConfigListener"/></returns>
-        HttpStreamingConfigListener Create(string bucketName, IConfigHandler configHandler);
+        HttpStreamingConfigListener Create(IBucket bucket, IConfigHandler configHandler);
     }
 }
 

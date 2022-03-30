@@ -1,24 +1,15 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
-using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
-using Couchbase.Core.DI;
-using Couchbase.Core.IO.Operations;
-using Couchbase.Core.Logging;
-using Couchbase.Core.Retry;
-using Couchbase.KeyValue;
-using Couchbase.Management.Collections;
-using Couchbase.Management.Views;
 using Couchbase.UnitTests.Helpers;
-using Couchbase.Views;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Couchbase.UnitTests.Core.Configuration
 {
@@ -30,11 +21,22 @@ namespace Couchbase.UnitTests.Core.Configuration
             var clusterOptions = new ClusterOptions()
                 .WithConnectionString($"couchbases://NOSUCHHOST{nameof(Should_Continue_After_Failures)}")
                 .WithCredentials("UnitTestUser", "PasswordDoesn'tMatter");
+
             var messageHandler = new ThrowsEveryTimeMessageHandler();
             var httpClientFactory = new MockHttpClientFactory(() => new HttpClient(messageHandler, false));
             var configHandler = new Mock<IConfigHandler>(MockBehavior.Loose).Object;
             var mockLogger = new Mock<ILogger<HttpStreamingConfigListener>>(MockBehavior.Loose).Object;
-            using var configListener = new HttpStreamingConfigListener(nameof(Should_Continue_After_Failures),
+            var mockBucket = new Mock<BucketBase>();
+
+            var clusterNodeCollection = new ClusterNodeCollection();
+            var clusterNode = new Mock<IClusterNode>();
+            clusterNode.Setup(x => x.KeyEndPoints).Returns(new ReadOnlyObservableCollection<HostEndpointWithPort>(new ObservableCollection<HostEndpointWithPort>()));
+            clusterNode.Setup(x => x.ManagementUri).Returns(new Uri($"http://NOSUCHHOST{nameof(Should_Continue_After_Failures)}:8091"));
+            clusterNode.Setup(x => x.EndPoint).Returns(new HostEndpointWithPort($"NOSUCHHOST{nameof(Should_Continue_After_Failures)}", 11210));
+            clusterNodeCollection.Add(clusterNode.Object);
+            mockBucket.Object.Nodes.Add(clusterNode.Object);
+
+            using var configListener = new HttpStreamingConfigListener(mockBucket.Object,
                 clusterOptions, httpClientFactory, configHandler, mockLogger);
             configListener.StartListening();
             var exitedSpinBeforeTimeout = SpinWait.SpinUntil(() => messageHandler.CallCount > 0, TimeSpan.FromSeconds(10));

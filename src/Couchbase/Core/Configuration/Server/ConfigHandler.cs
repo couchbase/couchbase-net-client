@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
 using Microsoft.Extensions.Logging;
@@ -134,6 +135,12 @@ namespace Couchbase.Core.Configuration.Server
                                 _logger.LogDebug("Null config for {node} in polling.", clusterNode.EndPoint);
                             }
                         }
+                        catch (DocumentNotFoundException)
+                        {
+                            //If this happens were a mixed node cluster and need to break
+                            //out of the loop and switch to HTTP streaming for cluster configs.
+                           throw;
+                        }
                         catch (Exception e)
                         {
                             _logger.LogWarning(LoggingEvents.ConfigEvent, e,
@@ -143,6 +150,27 @@ namespace Couchbase.Core.Configuration.Server
                 }
 
                 _logger.LogDebug("Broke out of polling loop.");
+            }
+            catch (DocumentNotFoundException)
+            {
+                _logger.LogDebug("Switching to HTTP streaming for config handling.");
+
+                //Were in a mixed node cluster so switch to HttpStreaming
+                var httpListeners = _httpConfigListeners?.Values;
+
+                _logger.LogDebug("Getting the HTTP streaming listener ready.");
+                if (httpListeners != null)
+                {
+                    foreach (var httpListener in httpListeners)
+                    {
+                        if (!httpListener.Started)
+                        {
+                            _logger.LogDebug("Starting the HTTP streaming listener.");
+                            httpListener.StartListening();
+                            _logger.LogDebug("Started the HTTP streaming listener.");
+                        }
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -220,17 +248,19 @@ namespace Couchbase.Core.Configuration.Server
                 _configChangedSubscribers.Add(bucket);
             }
 
-            if (bucket is MemcachedBucket)
+            var httpListener = _configListenerFactory.Create(bucket, this);
+            if (_httpConfigListeners?.TryAdd(bucket.Name, httpListener) ?? false)
             {
-                var httpListener = _configListenerFactory.Create(bucket.Name, this);
-                if (_httpConfigListeners?.TryAdd(bucket.Name, httpListener) ?? false)
+                //always add the listener but only start it for memcached
+                //for couchbase buckets start if KV config fails
+                if (bucket is MemcachedBucket)
                 {
                     httpListener.StartListening();
                 }
-                else
-                {
-                    httpListener.Dispose();
-                }
+            }
+            else
+            {
+                httpListener.Dispose();
             }
         }
 

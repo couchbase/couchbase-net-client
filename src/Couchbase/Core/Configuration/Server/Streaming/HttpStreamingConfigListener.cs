@@ -23,7 +23,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         private readonly ClusterOptions _clusterOptions;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly IConfigHandler _configHandler;
-        private readonly string _bucketName;
+        private readonly IBucket _bucket;
         private readonly string _streamingUriPath;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private Task? _backgroundTask = null;
@@ -33,11 +33,11 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
         public bool Started { get; private set; }
 
-        public HttpStreamingConfigListener(string bucketName, ClusterOptions clusterOptions, ICouchbaseHttpClientFactory httpClientFactory,
+        public HttpStreamingConfigListener(IBucket bucket, ClusterOptions clusterOptions, ICouchbaseHttpClientFactory httpClientFactory,
             IConfigHandler configHandler, ILogger<HttpStreamingConfigListener> logger)
         {
-            _bucketName = bucketName ?? throw new ArgumentNullException(nameof(bucketName));
-            _streamingUriPath = "/pools/default/bs/" + _bucketName;
+            _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
+            _streamingUriPath = "/pools/default/bs/" + _bucket.Name;
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _configHandler = configHandler ?? throw new ArgumentNullException(nameof(configHandler));
@@ -76,26 +76,28 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             {
                 var delayMs = InitialDelayMs;
 
+                var bucket = _bucket as BucketBase;
+
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     try
                     {
-
-                        var servers = _clusterOptions.ConnectionStringValue?.GetBootstrapEndpoints().ToList().Shuffle();
-
-                        while (servers != null && servers.Any())
+                        var nodes = bucket?.Nodes.ToList().Shuffle();
+                        while (nodes != null && nodes.Any())
                         {
                             try
                             {
-                                var server = servers.First();
-                                servers?.Remove(server);
+                                var node = nodes.First();
+                                nodes?.Remove(node);
+
+                                _logger.LogDebug("HTTP Streaming with node {node}", node.EndPoint.Host);
 
                                 var streamingUri = new UriBuilder()
                                 {
                                     Scheme =
                                         _clusterOptions.EffectiveEnableTls ? Uri.UriSchemeHttps : Uri.UriSchemeHttp,
-                                    Host = server.Host,
-                                    Port = _clusterOptions.BootstrapHttpPort,
+                                    Host = node.ManagementUri.Host,
+                                    Port = node.ManagementUri.Port,
                                     Path = _streamingUriPath
                                 };
 
@@ -124,7 +126,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
                                     if (config != string.Empty)
                                     {
                                         _logger.LogDebug(LoggingEvents.ConfigEvent, config);
-                                        config = config.Replace("$HOST", server.Host);
+                                        config = config.Replace("$HOST", node.EndPoint.Host);
                                         var bucketConfig = JsonSerializer.Deserialize(config,
                                             InternalSerializationContext.Default.BucketConfig)!;
                                         _configHandler.Publish(bucketConfig);
