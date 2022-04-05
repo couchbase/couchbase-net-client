@@ -396,7 +396,7 @@ namespace Couchbase.Core.Configuration.Server
             for (var i = 0; i < VBucketServerMap.ServerList.Length; i++)
             {
                 var nodeExt = NodesExt?.FirstOrDefault(x => x.Hostname != null && VBucketServerMap.ServerList[i].Contains(x.Hostname));
-                if (nodeExt != null && NetworkResolution == Couchbase.NetworkResolution.External)
+                if (nodeExt != null && nodeExt.HasAlternateAddress && NetworkResolution == Couchbase.NetworkResolution.External)
                 {
                     //The SSL port is resolved later
                     var alternateAddress = nodeExt.AlternateAddresses[NetworkResolution];
