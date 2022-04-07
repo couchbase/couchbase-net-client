@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -60,6 +63,23 @@ namespace Couchbase.Core.IO.HTTP
 
         private HttpMessageHandler CreateClientHandler()
         {
+            var clusterOptions = _context.ClusterOptions;
+            if (clusterOptions.EffectiveEnableTls
+                && !clusterOptions.HttpIgnoreRemoteCertificateMismatch
+                && clusterOptions.HttpCertificateCallbackValidation == null
+                && !clusterOptions.IsCapella)
+            {
+                throw new InvalidArgumentException("When TLS is enabled, the cluster environment's security config must specify" +
+                          $" the {nameof(ClusterOptions.HttpCertificateCallbackValidation)}" +
+                          $" or use {nameof(ClusterOptions.KvIgnoreRemoteCertificateNameMismatch)}" +
+                          " (Unless connecting to cloud.couchbase.com.)");
+            }
+
+            if (clusterOptions.IsCapella && !clusterOptions.EffectiveEnableTls)
+            {
+                _logger.LogWarning("TLS is required when connecting to Couchbase Capella. Please enable TLS by prefixing the connection string with \"couchbases://\" (note the final 's').");
+            }
+
 #if !NETCOREAPP3_1_OR_GREATER
             var handler = new HttpClientHandler();
 
@@ -110,8 +130,23 @@ namespace Couchbase.Core.IO.HTTP
             handler.SslOptions.CertificateRevocationCheckMode = _context.ClusterOptions.EnableCertificateRevocation
                 ? X509RevocationMode.Online
                 : X509RevocationMode.NoCheck;
-            handler.SslOptions.RemoteCertificateValidationCallback =
-                _context.ClusterOptions.HttpCertificateCallbackValidation;
+
+            RemoteCertificateValidationCallback? certValidationCallback = _context.ClusterOptions.HttpCertificateCallbackValidation;
+            if (certValidationCallback == null)
+            {
+                certValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+                {
+                    if (_context.ClusterOptions.HttpIgnoreRemoteCertificateMismatch
+                        && CertificateFactory.ValidatorWithIgnoreNameMismatch(sender, certificate, chain, sslPolicyErrors))
+                    {
+                        return true;
+                    }
+
+                    return CertificateFactory.ValidateWithDefaultCertificates(sender, certificate, chain, sslPolicyErrors);
+                };
+            }
+
+            handler.SslOptions.RemoteCertificateValidationCallback = certValidationCallback;
 
             if (_context.ClusterOptions.EnabledTlsCipherSuites.Count > 0)
             {
@@ -166,7 +201,18 @@ namespace Couchbase.Core.IO.HTTP
             bool OnCertificateValidation(HttpRequestMessage request, X509Certificate certificate,
                 X509Chain chain, SslPolicyErrors sslPolicyErrors)
             {
-                return clusterOptions.HttpCertificateCallbackValidation(request, certificate, chain, sslPolicyErrors);
+                var callback = clusterOptions.HttpCertificateCallbackValidation;
+                if (callback == null)
+                {
+                    if (clusterOptions.HttpIgnoreRemoteCertificateMismatch)
+                    {
+                        return CertificateFactory.ValidatorWithIgnoreNameMismatch(request, certificate, chain, sslPolicyErrors);
+                    }
+
+                    return sslPolicyErrors == SslPolicyErrors.None;
+                }
+
+                return callback(request, certificate, chain, sslPolicyErrors);
             }
 
             return OnCertificateValidation;

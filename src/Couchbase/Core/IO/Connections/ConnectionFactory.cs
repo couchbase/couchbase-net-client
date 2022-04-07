@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -6,6 +7,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Authentication.X509;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -38,6 +40,22 @@ namespace Couchbase.Core.IO.Connections
         public async Task<IConnection> CreateAndConnectAsync(HostEndpointWithPort hostEndpoint,
             CancellationToken cancellationToken = default)
         {
+            if (_clusterOptions.EffectiveEnableTls
+                && !_clusterOptions.KvIgnoreRemoteCertificateNameMismatch
+                && _clusterOptions.KvCertificateCallbackValidation == null
+                && !_clusterOptions.IsCapella)
+            {
+                throw new InvalidArgumentException("When TLS is enabled, the cluster environment's security config must specify" +
+                          $" the {nameof(ClusterOptions.KvCertificateCallbackValidation)}" +
+                          $" or use {nameof(ClusterOptions.KvIgnoreRemoteCertificateNameMismatch)}" +
+                          " (Unless connecting to cloud.couchbase.com.)");
+            }
+
+            if (_clusterOptions.IsCapella && !_clusterOptions.EffectiveEnableTls)
+            {
+                _multiplexLogger.LogWarning("TLS is required when connecting to Couchbase Capella. Please enable TLS by prefixing the connection string with \"couchbases://\" (note the final 's').");
+            }
+
             var endPoint = await _ipEndPointService.GetIpEndPointAsync(hostEndpoint.Host, hostEndpoint.Port, cancellationToken)
                 .ConfigureAwait(false);
             if (endPoint is null)
@@ -94,9 +112,6 @@ namespace Couchbase.Core.IO.Connections
 
             if (_clusterOptions.EffectiveEnableTls)
             {
-                var sslStream = new SslStream(new NetworkStream(socket, true), false,
-                    _clusterOptions.KvCertificateCallbackValidation);
-
                 //Check if were using x509 auth, if so fetch the certificates
                 X509Certificate2Collection? certs = null;
                 if (_clusterOptions.X509CertificateFactory != null)
@@ -122,6 +137,24 @@ namespace Couchbase.Core.IO.Connections
                     : hostEndpoint.Host;
 
                 //create the sslstream with appropriate authentication
+                RemoteCertificateValidationCallback? certValidationCallback = _clusterOptions.KvCertificateCallbackValidation;
+                if (certValidationCallback == null)
+                {
+                    certValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+                    {
+                        if (_clusterOptions.KvIgnoreRemoteCertificateNameMismatch
+                            && CertificateFactory.ValidatorWithIgnoreNameMismatch(sender, certificate, chain, sslPolicyErrors))
+                        {
+                            return true;
+                        }
+
+                        return CertificateFactory.ValidateWithDefaultCertificates(sender, certificate, chain, sslPolicyErrors);
+                    };
+                }
+
+                var sslStream = new SslStream(new NetworkStream(socket, true), false,
+                    certValidationCallback);
+
 #if !NETCOREAPP3_1_OR_GREATER
                 await sslStream.AuthenticateAsClientAsync(targetHost, certs,
                         _clusterOptions.EnabledSslProtocols,
@@ -139,6 +172,7 @@ namespace Couchbase.Core.IO.Connections
                 {
                     sslOptions.CipherSuitesPolicy = new CipherSuitesPolicy(_clusterOptions.EnabledTlsCipherSuites);
                 }
+
                 await sslStream.AuthenticateAsClientAsync(sslOptions)
                     .ConfigureAwait(false);
 #endif

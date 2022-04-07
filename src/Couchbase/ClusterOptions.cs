@@ -33,32 +33,6 @@ namespace Couchbase
     /// </summary>
     public sealed class ClusterOptions
     {
-        public ClusterOptions()
-        {
-            HttpCertificateCallbackValidation  = (sender, certificate, chain, sslPolicyErrors) =>
-            {
-                if (HttpIgnoreRemoteCertificateMismatch)
-                {
-                    // mask out the name mismatch error, and the chain error that comes along with it
-                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
-                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
-                }
-
-                return sslPolicyErrors == SslPolicyErrors.None;
-            };
-
-            KvCertificateCallbackValidation = (sender, certificate, chain, sslPolicyErrors) =>
-            {
-                if (KvIgnoreRemoteCertificateNameMismatch)
-                {
-                    // mask out the name mismatch error, and the chain error that comes along with it
-                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
-                    sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
-                }
-
-                return sslPolicyErrors == SslPolicyErrors.None;
-            };
-        }
         internal ConnectionString? ConnectionStringValue { get; set; }
 
         /// <summary>
@@ -649,31 +623,42 @@ namespace Couchbase
         /// <summary>
         /// Ignore CertificateNameMismatch and CertificateChainMismatch for Key/Value operations, since they happen together.
         /// </summary>
+        /// <remarks>Intended for development purposes only. Has no effect if KvCertificateCallbackValidation is set.</remarks>
         public bool KvIgnoreRemoteCertificateNameMismatch { get; set; }
 
         /// <summary>
         /// The default RemoteCertificateValidationCallback called by .NET to validate the TLS/SSL certificates being used for
         /// Key/Value operations. To ignore RemoteCertificateNameMismatch and RemoteCertificateChainErrors errors caused when the
-        /// subject and subject alternative name do not match the requesting DNS name, set ClusterOptions.KvCertificateCallbackValidation
+        /// subject and subject alternative name do not match the requesting DNS name, set ClusterOptions.KvIgnoreRemoteCertificateNameMismatch
         /// to true.
         /// </summary>
-        public RemoteCertificateValidationCallback KvCertificateCallbackValidation { get; set; }
+        public RemoteCertificateValidationCallback? KvCertificateCallbackValidation { get; set; } = null;
 
         /// <summary>
         /// Ignore CertificateNameMismatch and CertificateChainMismatch for HTTP services (Query, FTS, Analytics, etc), since they happen together.
         /// </summary>
+        /// <remarks>Intended for development purposes only.  Has no effect if HttpCertificateCallbackValidation is set.</remarks>
         public bool HttpIgnoreRemoteCertificateMismatch { get; set; }
 
         /// <summary>
         /// The default RemoteCertificateValidationCallback called by .NET to validate the TLS/SSL certificates being used for
         /// HTTP services (Query, FTS, Analytics, etc). To ignore RemoteCertificateNameMismatch and RemoteCertificateChainErrors
         /// errors caused when the subject and subject alternative name do not match the requesting DNS name, set
-        /// ClusterOptions.KvCertificateCallbackValidation to true.
+        /// ClusterOptions.HttpIgnoreRemoteCertificateMismatch to true.
         /// </summary>
-        public RemoteCertificateValidationCallback HttpCertificateCallbackValidation { get; set; }
+        public RemoteCertificateValidationCallback? HttpCertificateCallbackValidation { get; set; } = null;
 
+        /// <summary>
+        /// Gets or sets the <see cref="ICertificateFactory"/> to provide client certificates during TLS authentication.
+        /// </summary>
         public ICertificateFactory? X509CertificateFactory { get; set; }
 
+        /// <summary>
+        /// Use the given <see cref="ICertificateFactory"/> to provide client certificates during TLS authentication.
+        /// </summary>
+        /// <param name="certificateFactory">The certificate factory to use.</param>
+        /// <returns>The ClusterOptions to continue configuration in a fluent style.</returns>
+        /// <exception cref="NullReferenceException">The certificateFactory parameter cannot be null.</exception>
         public ClusterOptions WithX509CertificateFactory(ICertificateFactory certificateFactory)
         {
             X509CertificateFactory = certificateFactory ?? throw new NullReferenceException(nameof(certificateFactory));
@@ -706,6 +691,7 @@ namespace Couchbase
         public List<TlsCipherSuite> EnabledTlsCipherSuites { get; set; } = new();
 #endif
 
+        internal bool IsCapella => ConnectionStringValue?.Hosts?.Any(h => h.Host.ToLowerInvariant().EndsWith(".cloud.couchbase.com")) == true;
         #region DI
 
         private readonly IDictionary<Type, IServiceFactory> _services = DefaultServices.GetDefaultServices();

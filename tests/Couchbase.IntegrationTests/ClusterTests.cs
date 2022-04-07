@@ -5,6 +5,7 @@ using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
+using Couchbase.Query;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -133,6 +134,101 @@ namespace Couchbase.IntegrationTests
 
             Assert.Equal(Scope.DefaultScopeName, scope.Name);
             Assert.Equal(CouchbaseCollection.DefaultCollectionName, collection.Name);
+        }
+
+#if NET5_0_OR_GREATER
+        [Fact(Skip = "Requires up-to-date cloud account credentials")]
+#else
+[Fact(Skip = "X509ChainPolicy.TrustMode not supported in older versions of .NET")]
+#endif
+        public async Task Test_Cloud_Default()
+        {
+            // Taken from the code given in the Capella UI for connecting with the SDK.
+            // This example should work without ignoring certificate name mismatches.
+
+            // Update this to your cluster
+            var endpoint = "cb.<YOURCLUSTER>.cloud.couchbase.com";
+            var bucketName = "travel-sample";
+
+            // In the cloud dashboard, go to Clusters -> <your cluster> -> Connect -> Database Access -> Manage Credentials
+            var username = "<YOURUSER>";
+            var password = "<YOURPASS>";
+            // User Input ends here.
+
+            // default without overriding any callbacks.
+            {
+                // Initialize the Connection
+                var opts = new ClusterOptions().WithCredentials(username, password);
+                opts.EnableTls = true;
+
+                var cluster = await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+                var bucket = await cluster.BucketAsync(bucketName);
+                var collection = bucket.DefaultCollection();
+
+                // Store a Document
+                var upsertResult = await collection.UpsertAsync("king_arthur", new
+                {
+                    Name = "Arthur",
+                    Email = "kingarthur@couchbase.com",
+                    Interests = new[] { "Holy Grail", "African Swallows" }
+                });
+
+                // Load the Document and print it
+                var getResult = await collection.GetAsync("king_arthur");
+                Console.WriteLine(getResult.ContentAs<dynamic>());
+
+                // Perform a N1QL Query
+                var queryResult = await cluster.QueryAsync<dynamic>(
+                    String.Format("SELECT name FROM `{0}` WHERE $1 IN interests", bucketName),
+                    new QueryOptions().Parameter("African Swallows")
+                );
+            }
+
+            // If a callback is specified, default certificates should not be used.
+            {
+                // Initialize the Connection
+                var opts = new ClusterOptions().WithCredentials(username, password);
+                opts.EnableTls = true;
+                opts.KvCertificateCallbackValidation = (a, b, c, d) => false;
+
+                var cluster = await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+
+                // this will fail due to certificate validation failing.
+                var ex = await Assert.ThrowsAsync<Couchbase.Management.Buckets.BucketNotFoundException>(async () => await cluster.BucketAsync(bucketName));
+
+                // this will fail because the cluster bootstraps with KV validation.
+                var queryResultEx = await Assert.ThrowsAsync<ServiceNotAvailableException>(() => cluster.QueryAsync<dynamic>(
+                    String.Format("SELECT name FROM `{0}` WHERE $1 IN interests", bucketName),
+                    new QueryOptions().Parameter("African Swallows")
+                ));
+            }
+
+            // If a query callback is specified but KV is not, KV should still work.
+            {
+                // Initialize the Connection
+                var opts = new ClusterOptions().WithCredentials(username, password);
+                opts.EnableTls = true;
+                opts.HttpCertificateCallbackValidation = (a, b, c, d) => false;
+
+                var cluster = await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+                var bucket = await cluster.BucketAsync(bucketName);
+                var collection = bucket.DefaultCollection();
+
+                // Store a Document
+                var upsertResult = await collection.UpsertAsync("king_arthur", new
+                {
+                    Name = "Arthur",
+                    Email = "kingarthur@couchbase.com",
+                    Interests = new[] { "Holy Grail", "African Swallows" }
+                });
+
+                // Perform a N1QL Query
+                // this will fail because the cluster bootstraps with KV validation.
+                var queryResultEx = await Assert.ThrowsAsync<Couchbase.Core.Exceptions.RequestCanceledException>(() => cluster.QueryAsync<dynamic>(
+                    String.Format("SELECT name FROM `{0}` WHERE $1 IN interests", bucketName),
+                    new QueryOptions().Parameter("African Swallows")
+                ));
+            }
         }
 
         [Fact]
