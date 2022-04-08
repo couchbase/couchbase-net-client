@@ -734,9 +734,11 @@ namespace Couchbase
             //set the tracer to be used
             this.AddClusterService(TracingOptions.Enabled ? TracingOptions.RequestTracer : NoopRequestTracer.Instance);
 
-#endregion
+            #endregion
 
+#pragma warning disable CS0618 // Type or member is obsolete
             if (Experiments.ChannelConnectionPools)
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 this.AddClusterService<IConnectionPoolFactory, ChannelConnectionPoolFactory>();
             }

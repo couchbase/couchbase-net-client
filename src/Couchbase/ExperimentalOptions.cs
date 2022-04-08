@@ -1,4 +1,5 @@
 using Couchbase.Core.Compatibility;
+using System;
 
 #nullable enable
 
@@ -14,7 +15,8 @@ namespace Couchbase
         /// Use System.Threading.Channels for connection pool distribution.
         /// </summary>
         [InterfaceStability(Level.Volatile)]
-        public bool ChannelConnectionPools { get; set; } = false;
+        [Obsolete("ChannelConnectionPool is now the default pool since 3.3.0. To revert back to the DataFlowConnectionPool set this to false.")]
+        public bool ChannelConnectionPools { get; set; } = true;
     }
 }
 

@@ -16,17 +16,17 @@ namespace Couchbase.Core.IO.Connections.Channels
         private readonly ClusterOptions _clusterOptions;
         private readonly IConnectionPoolScaleControllerFactory _scaleControllerFactory;
         private readonly IRedactor _redactor;
-        private readonly ILogger<ChannelConnectionPool> _dataFlowLogger;
+        private readonly ILogger<ChannelConnectionPool> _channelPoolLogger;
 
         public ChannelConnectionPoolFactory(IConnectionFactory connectionFactory, ClusterOptions clusterOptions,
             IConnectionPoolScaleControllerFactory scaleControllerFactory, IRedactor redactor,
-            ILogger<ChannelConnectionPool> dataFlowLogger)
+            ILogger<ChannelConnectionPool> channelPoolLogger)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
             _scaleControllerFactory = scaleControllerFactory ?? throw new ArgumentNullException(nameof(scaleControllerFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
-            _dataFlowLogger = dataFlowLogger ?? throw new ArgumentNullException(nameof(dataFlowLogger));
+            _channelPoolLogger = channelPoolLogger ?? throw new ArgumentNullException(nameof(channelPoolLogger));
         }
 
         /// <inheritdoc />
@@ -34,14 +34,18 @@ namespace Couchbase.Core.IO.Connections.Channels
         {
             if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
             {
+                _channelPoolLogger.LogInformation("Using the SingleConnectionPool.");
+
                 return new SingleConnectionPool(clusterNode, _connectionFactory);
             }
             else
             {
+                _channelPoolLogger.LogInformation("Using the ChannelConnectionPool.");
+
                 var scaleController = _scaleControllerFactory.Create();
 
                 return new ChannelConnectionPool(clusterNode, _connectionFactory, scaleController,
-                    _redactor, _dataFlowLogger, (int) _clusterOptions.KvSendQueueCapacity)
+                    _redactor, _channelPoolLogger, (int) _clusterOptions.KvSendQueueCapacity)
                 {
                     MinimumSize = _clusterOptions.NumKvConnections,
                     MaximumSize = _clusterOptions.MaxKvConnections

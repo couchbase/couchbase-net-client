@@ -35,10 +35,14 @@ namespace Couchbase.Core.IO.Connections
         {
             if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
             {
+                _dataFlowLogger.LogInformation("Using the SingleConnectionPool.");
+
                 return new SingleConnectionPool(clusterNode, _connectionFactory);
             }
             else
             {
+                _dataFlowLogger.LogInformation("Using the DataFlowConnectionPool.");
+
                 var scaleController = _scaleControllerFactory.Create();
 
                 return new DataFlowConnectionPool(clusterNode, _connectionFactory, scaleController,
