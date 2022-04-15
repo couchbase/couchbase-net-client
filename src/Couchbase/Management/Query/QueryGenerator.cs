@@ -5,6 +5,7 @@ namespace Couchbase.Management.Query
 {
     internal class QueryGenerator
     {
+        private const string Default = "_default";
         public static string CreateIndexStatement(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options)
         {
             if(options.ScopeNameValue == null)
@@ -52,11 +53,29 @@ namespace Couchbase.Management.Query
 
         public static string CreateGetAllIndexesStatement(GetAllQueryIndexOptions options)
         {
-            if(options.ScopeNameValue == null)
+            var bucketCondition = "(bucket_id = $bucketName)";
+            var scopeCondition = "(" + bucketCondition + " AND scope_id = $scopeName)";
+            var collectionCondition = "(" + scopeCondition + " AND keyspace_id = $collectionName)";
+
+            string whereCondition;
+            if (options.CollectionNameValue != null)
+                whereCondition = collectionCondition;
+            else if(options.ScopeNameValue != null)
+                whereCondition = scopeCondition;
+            else
+                whereCondition = bucketCondition;
+
+            if(Default.Equals(options.CollectionNameValue) ||
+                string.IsNullOrWhiteSpace(options.CollectionNameValue))
             {
-                return $"SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=$bucketName AND `using`=\"gsi\";";
+                var defaultCollectionCondition = "(bucket_id IS MISSING AND keyspace_id = $bucketName)";
+                whereCondition = "(" + whereCondition + " OR " + defaultCollectionCondition + ")";
             }
-            return $"SELECT i.* FROM system:indexes AS i WHERE i.bucket_id=$bucketName AND scope_id={options.ScopeNameValue.EscapeIfRequired()} AND i.keyspace_id={options.CollectionNameValue.EscapeIfRequired()} AND `using`=\"gsi\";";
+
+            return "SELECT idx.* FROM system:indexes AS idx" +
+                    " WHERE " + whereCondition +
+                    " AND `using` = \"gsi\"" +
+                    " ORDER BY is_primary DESC, name ASC";
         }
     }
 }

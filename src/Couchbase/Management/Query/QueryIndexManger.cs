@@ -211,14 +211,24 @@ namespace Couchbase.Management.Query
             _logger.LogInformation("Attempting to get query indexes for bucket {bucketName}",
                 _redactor.MetaData(bucketName));
 
-            Validate(bucketName, options.ScopeNameValue!, options.CollectionNameValue!);
-
             try
             {
+                var queryOptions = new QueryOptions()
+                    .Parameter("bucketName", bucketName)
+                    .CancellationToken(options.TokenValue);
+
+                if (!string.IsNullOrWhiteSpace(options.ScopeNameValue))
+                {
+                    queryOptions.Parameter("scopeName", options.ScopeNameValue!);
+                }
+                if (!string.IsNullOrWhiteSpace(options.CollectionNameValue))
+                {
+                    queryOptions.Parameter("collectionName", options.CollectionNameValue!);
+                }
+
                 var statement = QueryGenerator.CreateGetAllIndexesStatement(options);
-                var result = await _queryClient.QueryAsync<QueryIndex>(statement,
-                    queryOptions => queryOptions.Parameter("bucketName", bucketName).CancellationToken(options.TokenValue)
-                ).ConfigureAwait(false);
+                var result = await _queryClient.QueryAsync<QueryIndex>(statement, queryOptions)
+                    .ConfigureAwait(false);
 
                 var indexes = new List<QueryIndex>();
                 await foreach (var row in result.ConfigureAwait(false))
@@ -293,7 +303,7 @@ namespace Couchbase.Management.Query
             {
                 throw new ArgumentNullException(nameof(scope));
             }
-            if(scope != null && collection == null)
+            if (scope != null && collection == null)
             {
                 throw new ArgumentNullException(nameof(collection));
             }

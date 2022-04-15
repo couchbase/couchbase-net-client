@@ -105,9 +105,10 @@ namespace Couchbase.UnitTests.Management.Query
         }
 
         [Theory]
-        [InlineData("default", "_default", "_default", "SELECT i.* FROM system:indexes AS i WHERE i.bucket_id=$bucketName AND scope_id=`_default` AND i.keyspace_id=`_default` AND `using`=\"gsi\";")]
-        [InlineData("default", null, null, "SELECT i.* FROM system:indexes AS i WHERE i.keyspace_id=$bucketName AND `using`=\"gsi\";")]
-        public void Test_CreateGetAllIndexesStatement(string bucketName, string scopeName, string collectionName, string expected)
+        [InlineData("_default", "_default", "SELECT idx.* FROM system:indexes AS idx WHERE ((((bucket_id = $bucketName) AND scope_id = $scopeName) AND keyspace_id = $collectionName) OR (bucket_id IS MISSING AND keyspace_id = $bucketName)) AND `using` = \"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData("_default", null, "SELECT idx.* FROM system:indexes AS idx WHERE (((bucket_id = $bucketName) AND scope_id = $scopeName) OR (bucket_id IS MISSING AND keyspace_id = $bucketName)) AND `using` = \"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData(null, null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id = $bucketName) OR (bucket_id IS MISSING AND keyspace_id = $bucketName)) AND `using` = \"gsi\" ORDER BY is_primary DESC, name ASC")]
+        public void Test_CreateGetAllIndexesStatement(string scopeName, string collectionName, string expected)
         {
             //arrange
             var options = new GetAllQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);

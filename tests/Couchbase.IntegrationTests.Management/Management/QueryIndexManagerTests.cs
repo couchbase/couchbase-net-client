@@ -150,7 +150,39 @@ namespace Couchbase.IntegrationTests.Management
             {
                 await collectionManager.DropScopeAsync(scopeName);
             }
+        }
 
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
+        public async Task GetAllIndexesReturnsIndexesOnDefaultCollection()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var bucketName = _fixture.GetDefaultBucket().Result.Name;
+
+            var indexManager = cluster.QueryIndexes;
+
+            try
+            {
+                await indexManager.CreatePrimaryIndexAsync(bucketName).ConfigureAwait(false);
+            }
+            catch (IndexExistsException)
+            {
+                //do nothing
+            }
+
+            var allIndexes = await indexManager.GetAllIndexesAsync(bucketName).ConfigureAwait(false);
+            Assert.Single(allIndexes);
+
+            allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
+                options => options.ScopeName("_default")).ConfigureAwait(false);
+            Assert.Single(allIndexes);
+
+            allIndexes = await indexManager.GetAllIndexesAsync(bucketName,
+               options =>
+               {
+                   options.ScopeName("_default");
+                   options.CollectionName("_default");
+               }).ConfigureAwait(false);
+            Assert.Single(allIndexes);
         }
     }
 }
