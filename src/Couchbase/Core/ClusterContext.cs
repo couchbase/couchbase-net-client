@@ -399,6 +399,7 @@ namespace Couchbase.Core
                 return bucket;
             }
 
+            Exception lastException = null;
             await _semaphore.WaitAsync(CancellationToken).ConfigureAwait(false);
             try
             {
@@ -428,6 +429,7 @@ namespace Couchbase.Core
                         {
                             _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
                                 "Cannot bootstrap bucket {name} as {type}.", name, type);
+                            lastException = e;
                         }
                     }
                 }
@@ -437,6 +439,10 @@ namespace Couchbase.Core
                 _semaphore.Release();
             }
 
+            if(lastException != null)
+            {
+                throw lastException;
+            }
             throw new BucketNotFoundException(name);
         }
 
