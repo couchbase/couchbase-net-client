@@ -396,10 +396,11 @@ namespace Couchbase.Management.Collections
                     createResult.ThrowIfRateLimitingError(contentBody, ctx);
 
                     if (contentBody.Contains("not found"))
-                        throw new ScopeNotFoundException(scopeName)
-                        {
-                            Context = ctx
-                        };
+                    {
+                        var ex = ScopeNotFoundException.FromScopeName(scopeName);
+                        ex.Context = ctx;
+                        throw ex;
+                    }
 
                     //Throw any other error cases
                     createResult.ThrowOnError(ctx);
