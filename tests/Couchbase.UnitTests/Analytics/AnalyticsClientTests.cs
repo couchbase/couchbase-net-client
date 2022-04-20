@@ -8,6 +8,8 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions;
+using Couchbase.Core.Exceptions.Analytics;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Search;
@@ -121,6 +123,54 @@ namespace Couchbase.UnitTests.Analytics
             Assert.Null(client.LastActivity);
             await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(false);
             Assert.NotNull(client.LastActivity);
+        }
+
+        [Theory]
+        [InlineData(24006, typeof(LinkNotFoundException))]
+        [InlineData(24039, typeof(DataverseExistsException))]
+        [InlineData(24040, typeof(DatasetExistsException))]
+        [InlineData(24034, typeof(DataverseNotFoundException))]
+        [InlineData(24044, typeof(DatasetNotFoundException))]
+        [InlineData(24045, typeof(DatasetNotFoundException))]
+        [InlineData(24025, typeof(DatasetNotFoundException))]
+        [InlineData(23007, typeof(JobQueueFullException))]
+        [InlineData(25000, typeof(InternalServerFailureException))]
+        [InlineData(20000, typeof(AuthenticationFailureException))]
+        [InlineData(23000, typeof(TemporaryFailureException))]
+        [InlineData(24000, typeof(ParsingFailureException))]
+        [InlineData(24047, typeof(IndexNotFoundException))]
+        [InlineData(24048, typeof(IndexExistsException))]//24044, 24045, 24025
+        [InlineData(24500, typeof(CompilationFailureException))]
+        public async Task ShouldThrowException(int errorCode, Type type)
+        {
+            var response = "{\"requestID\":\"eb8a8d08-9e25-4473-81f8-6565c51a43d9\",\"signature\":{\"*\": \"*\"},\"errors\":[{\"code\":XXXX,\"msg\":\"Some error\"}],\"status\": \"fatal\"}";
+            var httpClient = new HttpClient(
+                FakeHttpMessageHandler.Create(request => new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent(response.Replace("XXXX", errorCode.ToString()))
+                })) ;
+            var httpClientFactory = new MockHttpClientFactory(httpClient);
+
+            var mockServiceUriProvider = new Mock<IServiceUriProvider>();
+            mockServiceUriProvider
+                .Setup(m => m.GetRandomAnalyticsUri())
+                .Returns(new Uri("http://localhost:8096"));
+
+            var serializer = new DefaultSerializer();
+            var client = new AnalyticsClient(httpClientFactory, mockServiceUriProvider.Object, serializer,
+                new Mock<ILogger<AnalyticsClient>>().Object, NoopRequestTracer.Instance);
+
+            try
+            {
+                await client.QueryAsync<dynamic>("SELECT * FROM `default`;", new AnalyticsOptions()).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                if(ex.GetType() != type)
+                {
+                    throw;
+                }
+            }
         }
     }
 }

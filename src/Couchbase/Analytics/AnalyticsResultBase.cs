@@ -67,8 +67,6 @@ namespace Couchbase.Analytics
                         case 23007:
                             RetryReason = RetryReason.AnalyticsTemporaryFailure;
                             return;
-                        default:
-                            throw new CouchbaseException($"Analytics query failed: {error.Code}");
                     }
                 }
             }

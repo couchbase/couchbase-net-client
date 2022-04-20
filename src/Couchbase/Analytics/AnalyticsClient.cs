@@ -124,13 +124,13 @@ namespace Couchbase.Analytics
                         if (result.DataverseNotFound()) throw new DataverseNotFoundException(context);
                         if (result.DataSetNotFound()) throw new DatasetNotFoundException(context);
                         if (result.JobQueueFull()) throw new JobQueueFullException(context);
-                        if (result.CompilationFailure()) throw new CompilationFailureException(context);
                         if (result.InternalServerFailure()) throw new InternalServerFailureException(context);
                         if (result.AuthenticationFailure()) throw new AuthenticationFailureException(context);
                         if (result.TemporaryFailure()) throw new TemporaryFailureException(context);
-                        if (result.ParsingFailure()) throw new ParsingFailureException(context);
                         if (result.IndexNotFound()) throw new IndexNotFoundException(context);
                         if (result.IndexExists()) throw new IndexExistsException(context);
+                        if (result.ParsingFailure()) throw new ParsingFailureException(context);
+                        if (result.CompilationFailure()) throw new CompilationFailureException(context);
                     }
                 }
                 catch (OperationCanceledException e)

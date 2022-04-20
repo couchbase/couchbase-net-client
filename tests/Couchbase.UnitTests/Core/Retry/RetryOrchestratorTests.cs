@@ -421,7 +421,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
         [Theory]
         [InlineData("good-request.json", HttpStatusCode.OK, null, true)]
-        [InlineData("syntax-24000.json", HttpStatusCode.BadRequest, typeof(CouchbaseException), true)]
+        [InlineData("syntax-24000.json", HttpStatusCode.BadRequest, typeof(ParsingFailureException), true)]
         [InlineData("temp-23000.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true)]
         [InlineData("temp-23003.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true)]
         [InlineData("temp-23007.json", HttpStatusCode.BadRequest, typeof(UnambiguousTimeoutException), true)]

@@ -7,7 +7,7 @@ namespace Couchbase.Core.Exceptions.Analytics
     {
         public static bool CompilationFailure<T>(this AnalyticsResultBase<T> result)
         {
-            return result.Errors.Any(error => error.Code > 24000 && error.Code < 25000);
+            return result.Errors.Any(error => error.Code > 24000 && error.Code < 24047);
         }
 
         public static bool JobQueueFull<T>(this AnalyticsResultBase<T> result)
@@ -41,6 +41,11 @@ namespace Couchbase.Core.Exceptions.Analytics
             return result.Errors.Any(error => error.Code == 24006);
         }
 
+        public static bool LinkExists<T>(this AnalyticsResultBase<T> result)
+        {
+            return result.Errors.Any(error => error.Code == 24040);
+        }
+
         public static bool InternalServerFailure<T>(this AnalyticsResultBase<T> result)
         {
             return result.Errors.Any(x => x.Code >= 25000 && x.Code < 26000);
@@ -58,17 +63,17 @@ namespace Couchbase.Core.Exceptions.Analytics
 
         public static bool ParsingFailure<T>(this AnalyticsResultBase<T> result)
         {
-            return result.Errors.Any(x => x.Code >= 24000);
+            return result.Errors.Any(x => x.Code == 24000);
         }
 
         public static bool IndexNotFound<T>(this AnalyticsResultBase<T> result)
         {
-            return result.Errors.Any(x => x.Code >= 24007);
+            return result.Errors.Any(x => x.Code == 24047);
         }
 
         public static bool IndexExists<T>(this AnalyticsResultBase<T> result)
         {
-            return result.Errors.Any(x => x.Code >= 24008);
+            return result.Errors.Any(x => x.Code == 24048);
         }
     }
 }
