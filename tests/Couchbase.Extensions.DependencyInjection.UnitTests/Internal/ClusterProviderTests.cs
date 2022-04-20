@@ -44,11 +44,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             Assert.Equal(nameof(ClusterProvider), ex.ObjectName);
         }
 
-#if NET5_0_OR_GREATER
-        [Fact(Skip = "NCBC-3054")]
-#else
         [Fact]
-#endif
         public async Task GetCluster_FirstCall_ReturnsNewCluster()
         {
             // Arrange
@@ -77,11 +73,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             Assert.Equal(cluster.Object, result);
         }
 
-#if NET5_0_OR_GREATER
-        [Fact(Skip = "NCBC-3054")]
-#else
         [Fact]
-#endif
         public async Task GetCluster_TwoCalls_OnlyCreatesOneCluster()
         {
             // Arrange
@@ -119,11 +111,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 #region Dispose
 
 
-#if NET5_0_OR_GREATER
-        [Fact(Skip = "NCBC-3054")]
-#else
         [Fact]
-#endif
         public async Task Dispose_DisposesCluster()
         {
             // Arrange
@@ -159,11 +147,7 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
 
         #region DisposeAsync
 
-#if NET5_0_OR_GREATER
-        [Fact(Skip = "NCBC-3054")]
-#else
         [Fact]
-#endif
         public async Task DisposeAsync_DisposesCluster()
         {
             // Arrange

@@ -44,7 +44,7 @@
     <PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
     <PackageReference Update="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.11.0" />
-    <PackageReference Update="Moq" Version="4.16.1" />
+    <PackageReference Update="Moq" Version="4.17.2" />
     <PackageReference Update="OpenTelemetry.Exporter.Console" Version="1.0.1" />
     <PackageReference Update="OpenTelemetry.Exporter.InMemory" Version="1.1.0" />
     <PackageReference Update="OpenTelemetry.Exporter.Zipkin" Version="1.0.1" />
