@@ -15,11 +15,7 @@ namespace Couchbase.CombinationTests
 
         public CouchbaseFixture()
         {
-            _options = new ConfigurationBuilder()
-                .AddJsonFile("settings.json")
-                .Build()
-                .GetSection("couchbase")
-                .Get<ClusterOptions>();
+            _options = GetOptionsFromConfig();
 
             IServiceCollection serviceCollection = new ServiceCollection();
             serviceCollection.AddLogging(builder => builder
@@ -30,6 +26,12 @@ namespace Couchbase.CombinationTests
 
             _options.WithLogging(loggerFactory);
         }
+
+        public ClusterOptions GetOptionsFromConfig() => new ConfigurationBuilder()
+                .AddJsonFile("settings.json")
+                .Build()
+                .GetSection("couchbase")
+                .Get<ClusterOptions>();
 
         public async Task BuildAsync()
         {
@@ -62,12 +64,15 @@ namespace Couchbase.CombinationTests
 
         public void Dispose()
         {
-            _cluster.Dispose();
+            _cluster?.Dispose();
         }
 
         public async ValueTask DisposeAsync()
         {
-            await _cluster.DisposeAsync();
+            if (_cluster != null)
+            {
+                await _cluster.DisposeAsync();
+            }
         }
     }
 }

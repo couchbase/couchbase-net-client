@@ -223,6 +223,7 @@ namespace Couchbase.Core
                 {
                     _logger.LogDebug("Using node owned by {bucket} using revision {endpoint}", node1.Owner?.Name, node1.EndPoint);
                 }
+
                 throw new ServiceNotAvailableException(service);
             }
 
@@ -334,6 +335,10 @@ namespace Couchbase.Core
 
                     GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
                     GlobalConfig.SetEffectiveNetworkResolution(server, ClusterOptions);
+                }
+                catch (AuthenticationFailureException)
+                {
+                    throw;
                 }
                 catch (CouchbaseException e)
                 {

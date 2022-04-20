@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
@@ -128,6 +129,18 @@ namespace Couchbase.UnitTests.Core
             var noopRequestTracer = services.GetService(typeof(IRequestTracer));
 
             Assert.IsAssignableFrom<NoopRequestTracer>(noopRequestTracer);
+        }
+
+        [Fact]
+        public async Task BootstrapGlobal_Should_Not_Swallow_AuthenticationFailure()
+        {
+            var options = new ClusterOptions().WithConnectionString("couchbases://localhost1,localhost2");
+            var mockNodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
+            mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<BucketType>(), It.IsAny<CancellationToken>()))
+                .Throws(new AuthenticationFailureException());
+            options.AddClusterService(mockNodeFactory.Object);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => context.BootstrapGlobalAsync());
         }
 
         [Fact]
