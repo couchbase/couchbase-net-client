@@ -184,11 +184,31 @@ namespace Couchbase.Management.Eventing
                 {
                    using var response = await _service.GetAsync(path, rootSpan, encodeSpan, tokenPair.GlobalToken)
                         .ConfigureAwait(false);
-                    response.EnsureSuccessStatusCode();
 
-                    var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    var result = JToken.Parse(rawJson);
-                    return result.ToObject<EventingFunction>();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        var result = JToken.Parse(rawJson);
+                        return result.ToObject<EventingFunction>();
+                    }
+
+                    var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    {
+                        switch (errorResponse.Name)
+                        {
+                            case "ERR_APP_NOT_BOOTSTRAPPED":
+                                throw new EventingFunctionNotBootstrappedException(errorResponse.Description);
+                            case "ERR_APP_NOT_FOUND_TS":
+                                throw new EventingFunctionNotFoundException(errorResponse.Description);
+                            case "ERR_APP_NOT_DEPLOYED":
+                                throw new EventingFunctionNotDeployedException(errorResponse.Description);
+                        }
+                    }
+
+                    //throw any non-specific errors
+                    throw new CouchbaseException(content);
+
                 }
             }
             catch (Exception e)
