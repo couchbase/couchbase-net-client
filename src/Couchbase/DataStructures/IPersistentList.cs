@@ -16,7 +16,7 @@ namespace Couchbase.DataStructures
     /// If using a <see cref="SystemTextJsonSerializer"/> backed by a <see cref="JsonSerializerContext"/>,
     /// be sure to include <see cref="IList{T}"/> in a <see cref="JsonSerializableAttribute"/> on the context.
     /// </remarks>
-    public interface IPersistentList<T> : System.Collections.ICollection, IList<T>
+    public interface IPersistentList<T> : System.Collections.ICollection, IList<T>, IAsyncEnumerable<T>
     {
         Task CopyToAsync(Array array, int index);
 

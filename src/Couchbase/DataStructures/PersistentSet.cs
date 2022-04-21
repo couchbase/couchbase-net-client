@@ -37,6 +37,7 @@ namespace Couchbase.DataStructures
             }
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         private new ISet<TValue> GetList()
         {
             return GetListAsync().GetAwaiter().GetResult();
@@ -49,16 +50,19 @@ namespace Couchbase.DataStructures
             return result.ContentAs<ISet<TValue>>().EnsureNotNullForDataStructures();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public IEnumerator<TValue> GetEnumerator()
         {
             return GetList().GetEnumerator();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Add(TValue item)
         {
             return AddAsync(item).GetAwaiter().GetResult();
@@ -78,66 +82,79 @@ namespace Couchbase.DataStructures
             return added;
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void ExceptWith(IEnumerable<TValue> other)
         {
             ExceptWithAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void IntersectWith(IEnumerable<TValue> other)
         {
             IntersectWithAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool IsProperSubsetOf(IEnumerable<TValue> other)
         {
             return IsProperSubsetOfAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool IsProperSupersetOf(IEnumerable<TValue> other)
         {
             return IsProperSupersetOfAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool IsSubsetOf(IEnumerable<TValue> other)
         {
             return IsSubsetOfAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool IsSupersetOf(IEnumerable<TValue> other)
         {
             return IsSupersetOfAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Overlaps(IEnumerable<TValue> other)
         {
             return OverlapsAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool SetEquals(IEnumerable<TValue> other)
         {
             return SetEqualsAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void SymmetricExceptWith(IEnumerable<TValue> other)
         {
             SymmetricExceptWithAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void UnionWith(IEnumerable<TValue> other)
         {
             UnionWithAsync(other).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Contains(TValue item)
         {
             return ContainsAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void CopyTo(TValue[] array, int arrayIndex)
         {
            CopyToAsync(array, arrayIndex).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Remove(TValue item)
         {
             return RemoveAsync(item).GetAwaiter().GetResult();
@@ -145,6 +162,7 @@ namespace Couchbase.DataStructures
 
         public bool IsReadOnly => false;
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         void ICollection<TValue>.Add(TValue item)
         {
             AddAsync(item).GetAwaiter().GetResult();

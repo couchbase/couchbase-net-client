@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Logging;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.DataStructures
 {
-    public abstract class PersistentStoreBase<TValue>: System.Collections.ICollection
+    public abstract class PersistentStoreBase<TValue>: System.Collections.ICollection, IAsyncEnumerable<TValue>
     {
         protected ILogger? Logger { get; }
         protected ICouchbaseCollection Collection { get; }
@@ -64,6 +65,8 @@ namespace Couchbase.DataStructures
                     Redactor?.UserData(Key));
             }
         }
+
+        [Obsolete("This method is blocking; please use the async version instead.")]
         protected virtual IList<TValue> GetList()
         {
             return GetListAsync().GetAwaiter().GetResult();
@@ -76,6 +79,7 @@ namespace Couchbase.DataStructures
             return result.ContentAs<IList<TValue>>().EnsureNotNullForDataStructures();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void Clear()
         {
             ClearAsync().GetAwaiter().GetResult();
@@ -93,6 +97,7 @@ namespace Couchbase.DataStructures
             return CopyToAsync((TValue[]) array, index);
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void CopyTo(Array array, int index)
         {
             CopyToAsync(array, index).GetAwaiter().GetResult();
@@ -112,15 +117,23 @@ namespace Couchbase.DataStructures
         // Using that pattern just cleans up behaviors when there is an exception.
         public Task<int> CountAsync => GetListAsync().ContinueWith(task => task.GetAwaiter().GetResult().Count);
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public int Count => GetList().Count;
 
         public bool IsSynchronized { get; }
 
         public object SyncRoot { get; }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetListAsync().GetAwaiter().GetResult().GetEnumerator();
+        }
+
+        public async IAsyncEnumerator<TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            var content = await GetListAsync().ConfigureAwait(false);
+            foreach (var item in content) yield return item;
         }
     }
 }

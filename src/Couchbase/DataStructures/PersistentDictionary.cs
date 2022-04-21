@@ -49,6 +49,7 @@ namespace Couchbase.DataStructures
             }
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public IEnumerator<KeyValuePair<string, TValue>> GetEnumerator()
         {
             CreateBackingStoreAsync().GetAwaiter().GetResult();
@@ -57,6 +58,7 @@ namespace Couchbase.DataStructures
                 .EnsureNotNullForDataStructures().GetEnumerator();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
@@ -72,21 +74,25 @@ namespace Couchbase.DataStructures
             foreach (var item in content) yield return item;
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void Add(KeyValuePair<string, TValue> item)
         {
             AddAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void Clear()
         {
             ClearAsync().GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Contains(KeyValuePair<string, TValue> item)
         {
             return ContainsAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void CopyTo(KeyValuePair<string, TValue>[] array, int arrayIndex)
         {
             CreateBackingStoreAsync().GetAwaiter().GetResult();
@@ -95,30 +101,36 @@ namespace Couchbase.DataStructures
             dict.CopyTo(array, arrayIndex);
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Remove(KeyValuePair<string, TValue> item)
         {
            return RemoveAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public int Count => CountAsync.GetAwaiter().GetResult();
 
         public bool IsReadOnly => false;
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void Add(string key, TValue value)
         {
             AddAsync(key, value).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool ContainsKey(string key)
         {
             return ContainsKeyAsync(key).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Remove(string key)
         {
             return RemoveAsync(key).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
 #pragma warning disable CS8767
         public bool TryGetValue(string key, [MaybeNullWhen(false)] out TValue value)
 #pragma warning restore CS8767
@@ -146,6 +158,7 @@ namespace Couchbase.DataStructures
             return success;
         }
 
+        [Obsolete("This method is blocking; please use the async equivalent instead.")]
         public TValue this[string key]
         {
             get
@@ -157,8 +170,10 @@ namespace Couchbase.DataStructures
             set => SetAsync(key, value).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public ICollection<string> Keys => KeysAsync.GetAwaiter().GetResult();
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public ICollection<TValue> Values => ValuesAsync.GetAwaiter().GetResult();
 
         public async Task AddAsync(KeyValuePair<string, TValue> item)

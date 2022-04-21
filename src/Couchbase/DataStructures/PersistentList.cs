@@ -17,50 +17,60 @@ namespace Couchbase.DataStructures
         {
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public IEnumerator<TValue> GetEnumerator()
         {
             return GetList().GetEnumerator();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void Add(TValue item)
         {
             AddAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Contains(TValue item)
         {
             return ContainsAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void CopyTo(TValue[] array, int arrayIndex)
         {
             CopyToAsync(array, arrayIndex).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public bool Remove(TValue item)
         {
             return RemoveAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         int ICollection<TValue>.Count => base.Count;
 
         public bool IsReadOnly => false;
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public int IndexOf(TValue item)
         {
             return IndexOfAsync(item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void Insert(int index, TValue item)
         {
             InsertAsync(index, item).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void RemoveAt(int index)
         {
             RemoveAtAsync(index).GetAwaiter().GetResult();
         }
 
+        [Obsolete("This method is blocking; please use the async equivalent instead.")]
         public TValue this[int index]
         {
             get => GetList()[index];

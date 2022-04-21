@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
@@ -31,6 +32,7 @@ namespace Couchbase.DataStructures
             return item;
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public void Enqueue(TValue item)
         {
             EnqueueAsync(item).GetAwaiter().GetResult();
@@ -42,6 +44,7 @@ namespace Couchbase.DataStructures
             await Collection.MutateInAsync(Key, builder => builder.ArrayAppend("", item)).ConfigureAwait(false);
         }
 
+        [Obsolete("This method is blocking; please use the async version instead.")]
         public TValue? Peek()
         {
             return PeekAsync().GetAwaiter().GetResult();
