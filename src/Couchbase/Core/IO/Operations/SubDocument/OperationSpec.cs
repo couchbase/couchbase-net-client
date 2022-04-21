@@ -2,9 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
-using Newtonsoft.Json;
 
 #nullable enable
 
@@ -181,7 +181,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this);
+            return JsonSerializer.Serialize(this);
         }
 
         internal static XattrFirstComparer ByXattr { get; } = new XattrFirstComparer();
