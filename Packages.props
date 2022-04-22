@@ -17,8 +17,8 @@
     <PackageReference Update="Microsoft.Extensions.ObjectPool" Version="6.0.0" />
     <PackageReference Update="Microsoft.Extensions.Options" Version="3.1.21" />
     <PackageReference Update="Newtonsoft.Json" Version="11.0.2" />
-    <PackageReference Update="OpenTelemetry" Version="1.1.0" />
-    <PackageReference Update="OpenTelemetry.Api" Version="1.1.0" />
+    <PackageReference Update="OpenTelemetry" Version="1.2.0" />
+    <PackageReference Update="OpenTelemetry.Api" Version="1.2.0" />
     <PackageReference Update="System.IO.Pipelines" Version="5.0.1" />
     <PackageReference Update="System.Linq.Async" Version="4.1.1" />
     <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
@@ -45,9 +45,9 @@
     <PackageReference Update="Microsoft.Extensions.Logging" Version="6.0.0" />
     <PackageReference Update="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Update="Moq" Version="4.17.2" />
-    <PackageReference Update="OpenTelemetry.Exporter.Console" Version="1.0.1" />
-    <PackageReference Update="OpenTelemetry.Exporter.InMemory" Version="1.1.0" />
-    <PackageReference Update="OpenTelemetry.Exporter.Zipkin" Version="1.0.1" />
+    <PackageReference Update="OpenTelemetry.Exporter.Console" Version="1.2.0" />
+    <PackageReference Update="OpenTelemetry.Exporter.InMemory" Version="1.2.0-rc5" />
+    <PackageReference Update="OpenTelemetry.Exporter.Zipkin" Version="1.2.0" />
     <PackageReference Update="Serilog.Extensions.Logging" Version="3.1.0" />
     <PackageReference Update="Serilog.Extensions.Logging.File" Version="2.0.0" />
     <PackageReference Update="Serilog.Sinks.Console" Version="4.0.1" />

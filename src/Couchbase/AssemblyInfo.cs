@@ -22,6 +22,7 @@ using System.Runtime.InteropServices;
 [assembly: InternalsVisibleTo("Couchbase.LoadTests")]
 [assembly: InternalsVisibleTo("Couchbase.IntegrationTests")]
 [assembly: InternalsVisibleTo("Couchbase.IntegrationTests.Management")]
+[assembly: InternalsVisibleTo("Couchbase.Extensions.OpenTelemetry.UnitTests")]
 [assembly: InternalsVisibleTo("Sdkd")]
 [assembly: InternalsVisibleTo("SdkdConsole")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
