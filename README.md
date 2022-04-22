@@ -1,6 +1,6 @@
-The Official Couchbase .NET SDK 
+The Official Couchbase .NET SDK
 
-[Chat with us on Discord](https://forums.couchbase.com/c/net-sdk/6) | [Couchbase Forums](https://forums.couchbase.com/c/net-sdk/6)
+[Chat with us on Discord](https://discord.com/invite/sQ5qbPZuTh) | [Couchbase Forums](https://forums.couchbase.com/c/net-sdk/6)
 
 * master is 3.0 development branch
 * release27 is 2.7.X development branch
