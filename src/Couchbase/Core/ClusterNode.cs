@@ -703,8 +703,13 @@ namespace Couchbase.Core
                 LogCircuitBreakerSendingCanary(_redactor.SystemData(ConnectionPool.EndPoint));
                 using (var ctp = CancellationTokenPairSource.FromTimeout(_circuitBreaker.CanaryTimeout))
                 {
-                    await ExecuteOp(ConnectionPool, new Noop() { Span = parentSpan }, ctp.TokenPair)
-                        .ConfigureAwait(false);
+                    await ExecuteOp(ConnectionPool, new Noop
+                    {
+                        Transcoder = _context.GlobalTranscoder,
+                        OperationBuilderPool = _operationBuilderPool,
+                        Opaque = SequenceGenerator.GetNext(),
+                        Span = parentSpan
+                    }, ctp.TokenPair).ConfigureAwait(false);
                 }
 
                 _circuitBreaker.MarkSuccess();
