@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Management.Eventing.Internal;
 using Newtonsoft.Json;
@@ -11,6 +12,7 @@ namespace Couchbase.Management.Eventing
     /// <summary>
     /// The manager allows the user to read functions, modify them and change their deployment state.
     /// </summary>
+    [InterfaceStability(Level.Uncommitted)]
     public interface IEventingFunctionManager
     {
         Task UpsertFunctionAsync(EventingFunction function, UpsertFunctionOptions options = null);
