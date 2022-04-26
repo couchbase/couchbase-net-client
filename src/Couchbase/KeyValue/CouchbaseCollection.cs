@@ -22,7 +22,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.KeyValue
 {
-    /// <remarks>Volatile</remarks>
     internal class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection, IInternalCollection
     {
         public const string DefaultCollectionName = "_default";
@@ -55,17 +54,21 @@ namespace Couchbase.KeyValue
 
         internal IRedactor Redactor { get; }
 
+        /// <inheritdoc />
         public string ScopeName => Scope.Name;
 
+        /// <inheritdoc />
         public uint? Cid { get; set; }
 
         public ILogger<CouchbaseCollection> Logger { get; }
 
+        /// <inheritdoc />
         public string Name { get; }
 
         /// <inheritdoc />
         public IScope Scope { get; }
 
+        /// <inheritdoc />
         public IBinaryCollection Binary => this;
 
         /// <inheritdoc />
@@ -73,6 +76,7 @@ namespace Couchbase.KeyValue
 
         #region Get
 
+        /// <inheritdoc />
         public async Task<IGetResult> GetAsync(string id, GetOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -174,6 +178,7 @@ namespace Couchbase.KeyValue
 
         #region Exists
 
+        /// <inheritdoc />
         public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null)
         {
             try
@@ -224,6 +229,7 @@ namespace Couchbase.KeyValue
 
         #region Insert
 
+        /// <inheritdoc />
         public async Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -259,6 +265,7 @@ namespace Couchbase.KeyValue
 
         #region Replace
 
+        /// <inheritdoc />
         public async Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -304,6 +311,7 @@ namespace Couchbase.KeyValue
 
         #region Remove
 
+        /// <inheritdoc />
         public async Task RemoveAsync(string id, RemoveOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -339,6 +347,7 @@ namespace Couchbase.KeyValue
 
         #region Unlock
 
+        /// <inheritdoc />
         [Obsolete("Use overload that does not have a Type parameter T.")]
         public async Task UnlockAsync<T>(string id, ulong cas, UnlockOptions? options = null)
         {
@@ -369,6 +378,7 @@ namespace Couchbase.KeyValue
             await _bucket.RetryAsync(unlockOp, ctp.TokenPair).ConfigureAwait(false);
         }
 
+        /// <inheritdoc />
         public async Task UnlockAsync(string id, ulong cas, UnlockOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -402,6 +412,7 @@ namespace Couchbase.KeyValue
 
         #region Touch
 
+        /// <inheritdoc />
         public async Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -436,6 +447,7 @@ namespace Couchbase.KeyValue
 
         #region GetAndTouch
 
+        /// <inheritdoc />
         public async Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -477,6 +489,7 @@ namespace Couchbase.KeyValue
 
         #region GetAndLock
 
+        /// <inheritdoc />
         public async Task<IGetResult> GetAndLockAsync(string id, TimeSpan lockTime, GetAndLockOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -518,6 +531,7 @@ namespace Couchbase.KeyValue
 
         #region Upsert
 
+        /// <inheritdoc />
         public async Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -563,13 +577,7 @@ namespace Couchbase.KeyValue
 
         #region LookupIn
 
-        /// <summary>
-        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
-        /// </summary>
-        /// <param name="id">The id of the document.</param>
-        /// <param name="specs">An array of fetch operations - requires at least one: Exists, Get, Count or GetDoc.</param>
-        /// <param name="options">Any optional parameters.</param>
-        /// <returns>An <see cref="ILookupInResult"/> as a Task for awaiting.</returns>
+        /// <inheritdoc />
         public async Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs,
             LookupInOptions? options = null)
         {
@@ -645,13 +653,7 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
-        /// <summary>
-        /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
-        /// </summary>
-        /// <param name="id">The document id.</param>
-        /// <param name="specs">A list of <see cref="MutateInSpec"/>'s for chaining.</param>
-        /// <param name="options">Optional parameters.</param>
-        /// <returns>A <see cref="MutateInResult{TDocument}"/> Task for awaiting.</returns>
+        /// <inheritdoc />
         public async Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs,
             MutateInOptions? options = null)
         {
@@ -752,6 +754,7 @@ namespace Couchbase.KeyValue
 
         #region Append
 
+        /// <inheritdoc />
         public async Task<IMutationResult> AppendAsync(string id, byte[] value, AppendOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -786,6 +789,7 @@ namespace Couchbase.KeyValue
 
         #region Prepend
 
+        /// <inheritdoc />
         public async Task<IMutationResult> PrependAsync(string id, byte[] value, PrependOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -820,6 +824,7 @@ namespace Couchbase.KeyValue
 
         #region Increment
 
+        /// <inheritdoc />
         public async Task<ICounterResult> IncrementAsync(string id, IncrementOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -856,6 +861,7 @@ namespace Couchbase.KeyValue
 
         #region Decrement
 
+        /// <inheritdoc />
         public async Task<ICounterResult> DecrementAsync(string id, DecrementOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -892,6 +898,7 @@ namespace Couchbase.KeyValue
 
         #region GetAnyReplica / GetAllReplicas
 
+        /// <inheritdoc />
         public async Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
@@ -929,6 +936,7 @@ namespace Couchbase.KeyValue
             return firstCompleted.GetAwaiter().GetResult();
         }
 
+        /// <inheritdoc />
         public IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id,
             GetAllReplicasOptions? options = null)
         {

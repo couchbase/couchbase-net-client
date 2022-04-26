@@ -14,6 +14,9 @@ namespace Couchbase.KeyValue
 {
     #region GetOptions
 
+    /// <summary>
+    /// Optional parameters for <see cref="ICouchbaseCollection.GetAsync(string, GetOptions?)"/>
+    /// </summary>
     public class GetOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         private static readonly ReadOnlyCollection<string> EmptyProjectList = new(Array.Empty<string>());
@@ -44,12 +47,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>A <see cref="GetOptions"/> instance for chaining.</returns>
         public GetOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>A <see cref="GetOptions"/> instance for chaining.</returns>
         public GetOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -57,6 +70,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns></returns>
         public GetOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -64,6 +82,10 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time for the key/value pair to exist on the server.
+        /// </summary>
+        /// <returns>A <see cref="GetOptions"/> instance for chaining.</returns>
         public GetOptions Expiry()
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -71,6 +93,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A list or array of fields to project - if called will switch to subdoc and only fetch the fields requested.
+        /// If the number of fields is > 16, then it will perform a full-doc lookup instead.
+        /// </summary>
+        /// <param name="fields"></param>
+        /// <returns>A <see cref="GetOptions"/> instance for chaining.</returns>
         public GetOptions Projection(params string[] fields)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -83,6 +111,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>A <see cref="GetOptions"/> instance for chaining.</returns>
         public GetOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -90,6 +123,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>A <see cref="GetOptions"/> instance for chaining.</returns>
         public GetOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -102,6 +140,9 @@ namespace Couchbase.KeyValue
 
     #region GetAnyReplicaOptions
 
+    /// <summary>
+    /// Optional parameters for <see cref="ICouchbaseCollection.GetAllReplicasAsync(string, GetAllReplicasOptions?)"/>
+    /// </summary>
     public class GetAllReplicasOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         TimeSpan? ITimeoutOptions.Timeout => default;
@@ -117,12 +158,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>A <see cref="GetAllReplicasOptions"/> instance for chaining.</returns>
         public GetAllReplicasOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>A <see cref="GetAllReplicasOptions"/> instance for chaining.</returns>
         public GetAllReplicasOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -130,6 +181,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>A <see cref="GetAllReplicasOptions"/> instance for chaining.</returns>
         public GetAllReplicasOptions Transcoder(ITypeTranscoder? transcoder)
         {
             if (ReferenceEquals(this, Default) && transcoder != null)
@@ -144,6 +200,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>A <see cref="GetAllReplicasOptions"/> instance for chaining.</returns>
         public GetAllReplicasOptions CancellationToken(CancellationToken token)
         {
             if (ReferenceEquals(this, Default) && token != default)
@@ -165,6 +226,9 @@ namespace Couchbase.KeyValue
 
     #region GetAllReplicaOptions
 
+    /// <summary>
+    /// Optional parameters for <see cref="ICouchbaseCollection.GetAnyReplicaAsync(string, GetAnyReplicaOptions?)"/>
+    /// </summary>
     public class GetAnyReplicaOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         TimeSpan? ITimeoutOptions.Timeout => default;
@@ -183,6 +247,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>A <see cref="GetAnyReplicaOptions"/> instance for chaining.</returns>
         public GetAnyReplicaOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -190,6 +259,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>A <see cref="GetAnyReplicaOptions"/> instance for chaining.</returns>
         public GetAnyReplicaOptions Transcoder(ITypeTranscoder? transcoder)
         {
             if (ReferenceEquals(this, Default) && transcoder != null)
@@ -207,6 +281,11 @@ namespace Couchbase.KeyValue
         internal CancellationToken TokenValue { get; private set; }
         CancellationToken ITimeoutOptions.Token => TokenValue;
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>A <see cref="GetAnyReplicaOptions"/> instance for chaining.</returns>
         public GetAnyReplicaOptions CancellationToken(CancellationToken token)
         {
             if (ReferenceEquals(this, Default) && token != default)
@@ -228,6 +307,9 @@ namespace Couchbase.KeyValue
 
     #region Exists Options
 
+    /// <summary>
+    /// Optional parameters for <see cref="ICouchbaseCollection.ExistsAsync(string, ExistsOptions?)"/>
+    /// </summary>
     public class ExistsOptions : ITimeoutOptions
     {
         internal static ExistsOptions Default { get; } = new();
@@ -243,12 +325,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>A <see cref="ExistsOptions"/> instance for chaining.</returns>
         public ExistsOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public ExistsOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -256,6 +348,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public ExistsOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -263,6 +360,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public ExistsOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -308,12 +410,22 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>A <see cref="UpsertOptions"/> instance for chaining.</returns>
         public UpsertOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>A <see cref="UpsertOptions"/> instance for chaining.</returns>
         public UpsertOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -330,6 +442,11 @@ namespace Couchbase.KeyValue
         internal ITypeTranscoder? TranscoderValue { get; private set; }
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>A <see cref="UpsertOptions"/> instance for chaining.</returns>
         public UpsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -349,6 +466,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An options instance for chaining.</returns>
         public UpsertOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -357,6 +480,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public UpsertOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -364,6 +492,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>A <see cref="UpsertOptions"/> instance for chaining.</returns>
         public UpsertOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -371,6 +504,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>A <see cref="UpsertOptions"/> instance for chaining.</returns>
         public UpsertOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -415,6 +553,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>A <see cref="InsertOptions"/> instance for chaining.</returns>
         public InsertOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -422,6 +565,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>A <see cref="InsertOptions"/> instance for chaining.</returns>
         public InsertOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -441,6 +589,13 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An options instance for chaining.</returns>
         public InsertOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -449,6 +604,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public InsertOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -456,6 +616,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>A <see cref="InsertOptions"/> instance for chaining.</returns>
         public InsertOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -463,6 +628,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>A <see cref="UpsertOptions"/> instance for chaining.</returns>
         public InsertOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -519,12 +689,22 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>A <see cref="ExistsOptions"/> instance for chaining.</returns>
         public ReplaceOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public ReplaceOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -532,6 +712,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>An options instance for chaining.</returns>
         public ReplaceOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -552,6 +737,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Compare and Set value for optimistic locking of a document.
+        /// </summary>
+        /// <param name="cas">A <see cref="ulong"/> value returned by the server in a previous operation.</param>
+        /// <returns>An options object for chaining.</returns>
         public ReplaceOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -559,6 +749,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An options instance for chaining.</returns>
         public ReplaceOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -567,6 +763,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public ReplaceOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -574,6 +775,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public ReplaceOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -581,6 +787,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public ReplaceOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -616,12 +827,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public RemoveOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public RemoveOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -629,6 +850,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Compare and Set value for optimistic locking of a document.
+        /// </summary>
+        /// <param name="cas">A <see cref="ulong"/> value returned by the server in a previous operation.</param>
+        /// <returns>An options object for chaining.</returns>
         public RemoveOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -636,6 +862,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An options instance for chaining.</returns>
         public RemoveOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -644,6 +876,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public RemoveOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -651,6 +888,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public RemoveOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -658,6 +900,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public RemoveOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -685,12 +932,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public UnlockOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public UnlockOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -698,6 +955,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public UnlockOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -705,6 +967,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public UnlockOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -732,12 +999,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public TouchOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public TouchOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -745,6 +1022,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public TouchOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -752,6 +1034,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public TouchOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -786,12 +1073,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public IncrementOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public IncrementOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -949,6 +1246,11 @@ namespace Couchbase.KeyValue
         internal IRetryStrategy? RetryStrategyValue { get; private set; }
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public DecrementOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -968,6 +1270,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The initial value to start from.
+        /// </summary>
+        /// <param name="initial">A <see cref="ulong"/> inital value.</param>
+        // <returns>An options object for chaining.</returns>
         public DecrementOptions Initial(ulong initial)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -975,6 +1282,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The value to decrement by.
+        /// </summary>
+        /// <param name="delta">A <see cref="ulong"/> value to decrement by..</param>
+        // <returns>An options object for chaining.</returns>
         public DecrementOptions Delta(ulong delta)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -990,6 +1302,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An options instance for chaining.</returns>
         public DecrementOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -998,6 +1316,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public DecrementOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1005,6 +1328,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public DecrementOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1012,6 +1340,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public DecrementOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1047,12 +1380,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public AppendOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public AppendOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1060,6 +1403,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Compare and Set value for optimistic locking of a document.
+        /// </summary>
+        /// <param name="cas">A <see cref="ulong"/> value returned by the server in a previous operation.</param>
+        /// <returns>An options object for chaining.</returns>
         public AppendOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1067,6 +1415,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An options instance for chaining.</returns>
         public AppendOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1075,6 +1429,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public AppendOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1082,6 +1441,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public AppendOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1089,6 +1453,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public AppendOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1124,12 +1493,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public PrependOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public PrependOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1137,6 +1516,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Compare and Set value for optimistic locking of a document.
+        /// </summary>
+        /// <param name="cas">A <see cref="ulong"/> value returned by the server in a previous operation.</param>
+        /// <returns>An options object for chaining.</returns>
         public PrependOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1152,6 +1536,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public PrependOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1159,6 +1548,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public PrependOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1166,6 +1560,12 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public PrependOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1196,12 +1596,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndLockOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndLockOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1209,6 +1619,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndLockOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1216,6 +1631,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndLockOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1223,6 +1643,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndLockOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1253,12 +1678,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndTouchOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndTouchOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1266,6 +1701,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndTouchOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1273,6 +1713,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndTouchOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1280,6 +1725,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public GetAndTouchOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1316,12 +1766,22 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public LookupInOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public LookupInOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1329,6 +1789,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        ///A custom <see cref="ITypeSerializer"/> implementation for serialization.
+        /// </summary>
+        /// <param name="serializer">A custom <see cref="ITypeSerializer"/> implementation for serialization.</param>
+        /// <returns>An options instance for chaining.</returns>
         public LookupInOptions Serializer(ITypeSerializer? serializer)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1347,6 +1812,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public LookupInOptions Timeout(TimeSpan? timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1354,6 +1824,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public LookupInOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1435,12 +1910,22 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions RetryStrategy(IRetryStrategy retryStrategy)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1448,6 +1933,14 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// StoreSemantics - the storage action
+        /// Replace - replace the document, fail if it doesn't exist
+        /// Upsert - replace the document or create it if it doesn't exist (0x01)
+        /// Insert - create document, fail if it exists(0x02)
+        /// </summary>
+        /// <param name="storeSemantics"></param>
+        /// <returns></returns>
         public MutateInOptions StoreSemantics(StoreSemantics storeSemantics)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1455,6 +1948,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        ///A custom <see cref="ITypeSerializer"/> implementation for serialization.
+        /// </summary>
+        /// <param name="serializer">A custom <see cref="ITypeSerializer"/> implementation for serialization.</param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions Serializer(ITypeSerializer? serializer)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1462,6 +1960,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Inject a <see cref="ITypeTranscoder"/> other than the default <see cref="JsonTranscoder"/>.
+        /// </summary>
+        /// <param name="transcoder"></param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions Transcoder(ITypeTranscoder? transcoder)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1481,6 +1984,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// Compare and Set value for optimistic locking of a document.
+        /// </summary>
+        /// <param name="cas">A <see cref="ulong"/> value returned by the server in a previous operation.</param>
+        /// <returns>An options object for chaining.</returns>
         public MutateInOptions Cas(ulong cas)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1488,6 +1996,13 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="persistTo">The durability requirement for persistence.</param>
+        /// <param name="replicateTo">The durability requirement for replication.</param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions Durability(PersistTo persistTo, ReplicateTo replicateTo)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1495,6 +2010,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The durability level required for persisting a JSON document across the cluster.
+        /// </summary>
+        /// <param name="durabilityLevel">The <see cref="DurabilityLevel"/> required for persistance.</param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions Durability(DurabilityLevel durabilityLevel)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1502,6 +2022,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// The time in which the operation will timeout if it does not complete.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions Timeout(TimeSpan timeout)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1509,6 +2034,11 @@ namespace Couchbase.KeyValue
             return this;
         }
 
+        /// <summary>
+        /// A <see cref="CancellationToken"/> for cooperative cancellation.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOptions CancellationToken(CancellationToken token)
         {
             Debug.Assert(!ReferenceEquals(this, Default), "Default should be immutable");
@@ -1548,18 +2078,32 @@ namespace Couchbase.KeyValue
 
         internal IRequestSpan? RequestSpanValue { get; private set; }
 
+        /// <summary>
+        /// Inject an external span which will the be the parent span of the internal span(s).
+        /// </summary>
+        /// <param name="span">An <see cref="IRequestSpan"/></param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInXattrOperation RequestSpan(IRequestSpan span)
         {
             RequestSpanValue = span;
             return this;
         }
 
+        /// <summary>
+        /// Inject a custom <see cref="IRetryStrategy"/>.
+        /// </summary>
+        /// <param name="retryStrategy"></param>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInXattrOperation RetryStrategy(IRetryStrategy retryStrategy)
         {
             RetryStrategyValue = retryStrategy;
             return this;
         }
 
+        /// <summary>
+        /// If true then this is an xattr operation.
+        /// </summary>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInXattrOperation XAttr()
         {
             XAttrValue = true;
@@ -1571,6 +2115,10 @@ namespace Couchbase.KeyValue
     {
         internal bool CreatePathValue { get; private set; }
 
+        /// <summary>
+        /// Create the path if it doesn't exist.
+        /// </summary>
+        /// <returns>An options instance for chaining.</returns>
         public MutateInOperationOptions CreatePath()
         {
             CreatePathValue = true;
@@ -1578,24 +2126,34 @@ namespace Couchbase.KeyValue
         }
     }
 
+
+    /// <inheritdoc />
     public sealed class MutateInInsertOptions : MutateInOperationOptions {}
 
+    /// <inheritdoc />
     public sealed class MutateInUpsertOptions : MutateInOperationOptions {}
 
+    /// <inheritdoc />
     public sealed class MutateInReplaceOptions : MutateInXattrOperation {}
 
+    /// <inheritdoc />
     public sealed class MutateInRemoveOptions : MutateInXattrOperation {}
 
+    /// <inheritdoc />
     public sealed class MutateInArrayAppendOptions : MutateInOperationOptions {}
 
     public sealed class MutateInArrayPrependOptions :MutateInOperationOptions {}
 
+    /// <inheritdoc />
     public sealed class MutateInArrayInsertOptions : MutateInOperationOptions {}
 
+    /// <inheritdoc />
     public sealed class MutateInArrayAddUniqueOptions : MutateInOperationOptions {}
 
+    /// <inheritdoc />
     public sealed class MutateInIncrementOptions : MutateInOperationOptions {}
 
+    /// <inheritdoc />
     public sealed class MutateInDecrementOptions : MutateInOperationOptions {}
 
     #endregion

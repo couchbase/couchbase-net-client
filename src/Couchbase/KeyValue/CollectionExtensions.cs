@@ -15,11 +15,24 @@ namespace Couchbase.KeyValue
     {
         #region Get
 
+        /// <summary>
+        /// Fetches a value from the server if it exists.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">Primary key as a string.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in an <see cref="IGetResult"></see> API object.</returns>
         public static Task<IGetResult> GetAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.GetAsync(id, GetOptions.Default);
         }
 
+        /// <summary>
+        /// Fetches a value from the server if it exists.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">Primary key as a string.</param>
+        /// <param name="configureOptions">Optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in an <see cref="IGetResult"></see> API object.</returns>
         public static Task<IGetResult> GetAsync(this ICouchbaseCollection collection, string id, Action<GetOptions> configureOptions)
         {
             var options = new GetOptions();
@@ -32,11 +45,28 @@ namespace Couchbase.KeyValue
 
         #region GetAnyReplica
 
+
+        /// <summary>
+        /// Gets a document for a given id, leveraging both the active and all available replicas.
+        /// This method follows the same semantics of GetAllReplicas (including the fetch from ACTIVE),
+        /// but returns the first response as opposed to returning all responses.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetReplicaResult"/> API object.</returns>
         public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.GetAnyReplicaAsync(id, GetAnyReplicaOptions.Default);
         }
 
+        /// <summary>
+        /// Gets a list of document data from the server, leveraging both the active and all available
+        /// replicas.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="configureOptions">Optional parameters</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
         public static Task<IGetReplicaResult> GetAnyReplicaAsync(this ICouchbaseCollection collection, string id, Action<GetAnyReplicaOptions> configureOptions)
         {
             var options = new GetAnyReplicaOptions();
@@ -49,11 +79,26 @@ namespace Couchbase.KeyValue
 
         #region GetAllReplicas
 
+        /// <summary>
+        /// Gets a list of document data from the server, leveraging both the active and all available
+        /// replicas.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
         public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.GetAllReplicasAsync(id, GetAllReplicasOptions.Default);
         }
 
+        /// <summary>
+        /// Gets a list of document data from the server, leveraging both the active and all available
+        /// replicas.
+        /// </summary>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="configureOptions">Optional parameters</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
         public static IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(this ICouchbaseCollection collection, string id, Action<GetAllReplicasOptions> configureOptions)
         {
             var options = new GetAllReplicasOptions();
@@ -66,11 +111,24 @@ namespace Couchbase.KeyValue
 
         #region Exists
 
+        /// <summary>
+        /// Returns true if a document exists for a given id, otherwise false.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing an <see cref="IExistsResult"/> object with a boolean value indicating the presence of the document.</returns>
         public static Task<IExistsResult> ExistsAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.ExistsAsync(id, ExistsOptions.Default);
         }
 
+        /// <summary>
+        /// Returns true if a document exists for a given id, otherwise false.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureOptions">Optional parameters</param>
+        /// <returns>An asychronous <see cref="Task"/> containing an <see cref="IExistsResult"/> object with a boolean value indicating the presence of the document.</returns>
         public static Task<IExistsResult> ExistsAsync(this ICouchbaseCollection collection, string id,
             Action<ExistsOptions> configureOptions)
         {
@@ -84,11 +142,28 @@ namespace Couchbase.KeyValue
 
         #region Upsert
 
+        /// <summary>
+        /// Insert a new document or overwrite an existing document in Couchbase server. Maps to Memcached Set command.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of content to upsert.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="content">The content or document body.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing an <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
         public static Task<IMutationResult> UpsertAsync<T>(this ICouchbaseCollection collection, string id, T content)
         {
             return collection.UpsertAsync(id, content, UpsertOptions.Default);
         }
 
+        /// <summary>
+        /// Insert a new document or overwrite an existing document in Couchbase server. Maps to Memcached Set command.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of content to upsert.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="content">The content or document body.</param>
+        /// <param name="configureOptions">Optional parameters</param>
+        /// <returns>An asychronous <see cref="Task"/> containing an <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
         public static Task<IMutationResult> UpsertAsync<T>(this ICouchbaseCollection collection, string id, T content,
             Action<UpsertOptions> configureOptions)
         {
@@ -102,11 +177,28 @@ namespace Couchbase.KeyValue
 
         #region Insert
 
+        /// <summary>
+        /// Insert a JSON document, failing if it already exists. Maps to Memcached Add command.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of content to insert.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="content">The content or document body.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing a IMutationResult object if successful otherwise an exception with details for the reason the operation failed.</returns>
         public static Task<IMutationResult> InsertAsync<T>(this ICouchbaseCollection collection, string id, T content)
         {
             return collection.InsertAsync(id, content, InsertOptions.Default);
         }
 
+        /// <summary>
+        /// Insert a JSON document, failing if it already exists. Maps to Memcached Add command.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of content to insert.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="content">The content or document body.</param>
+        /// <param name="optionsAction">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing a IMutationResult object if successful otherwise an exception with details for the reason the operation failed.</returns>
         public static Task<IMutationResult> InsertAsync<T>(this ICouchbaseCollection collection, string id, T content,
             Action<InsertOptions> optionsAction)
         {
@@ -120,11 +212,28 @@ namespace Couchbase.KeyValue
 
         #region Replace
 
+        /// <summary>
+        /// Replaces an existing document in Couchbase server, failing if it does not exist. Maps to Memcached SET command.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of content to insert.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="content">The content or document body.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing a <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
         public static Task<IMutationResult> ReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content)
         {
             return collection.ReplaceAsync(id, content, ReplaceOptions.Default);
         }
 
+        /// <summary>
+        /// Replaces an existing document in Couchbase server, failing if it does not exist. Maps to Memcached SET command.
+        /// </summary>
+        /// <typeparam name="T">The <see cref="Type"/> of content to insert.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="content">The content or document body.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing a <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
         public static Task<IMutationResult> ReplaceAsync<T>(this ICouchbaseCollection collection, string id, T content,
             Action<ReplaceOptions> configureOptions)
         {
@@ -138,11 +247,24 @@ namespace Couchbase.KeyValue
 
         #region Remove
 
+        /// <summary>
+        /// Removes an existing document in Couchbase server, failing if it does not exist.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
         public static Task RemoveAsync(this ICouchbaseCollection collection, string id)
         {
             return collection.RemoveAsync(id, RemoveOptions.Default);
         }
 
+        /// <summary>
+        /// Removes an existing document in Couchbase server, failing if it does not exist.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
         public static Task RemoveAsync(this ICouchbaseCollection collection, string id, Action<RemoveOptions> configureOptions)
         {
             var options = new RemoveOptions();
@@ -170,11 +292,26 @@ namespace Couchbase.KeyValue
             return collection.UnlockAsync<T>(id, cas, options);
         }
 
+        /// <summary>
+        /// Unlocks a document pessimistically locked by a GetAndLock operation.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="cas">The CAS from the GetAndLock operation.</param>
+        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
         public static Task UnlockAsync(this ICouchbaseCollection collection, string id, ulong cas)
         {
             return collection.UnlockAsync(id, cas, UnlockOptions.Default);
         }
 
+        /// <summary>
+        /// Unlocks a document pessimistically locked by a GetAndLock operation.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="cas">The CAS from the GetAndLock operation.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
         public static Task UnlockAsync(this ICouchbaseCollection collection, string id, ulong cas, Action<UnlockOptions> configureOptions)
         {
             var options = new UnlockOptions();
@@ -187,11 +324,27 @@ namespace Couchbase.KeyValue
 
         #region Touch
 
+
+        /// <summary>
+        /// Updates the expiration a document given an id, without modifying or returning its value.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
         public static Task TouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
         {
             return collection.TouchAsync(id, expiry, TouchOptions.Default);
         }
 
+        /// <summary>
+        /// Updates the expiration a document given an id, without modifying or returning its value.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
         public static Task TouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry,
             Action<TouchOptions> configureOptions)
         {
@@ -205,11 +358,26 @@ namespace Couchbase.KeyValue
 
         #region GetAndTouch
 
+        /// <summary>
+        /// Gets a document for a given id and extends its expiration.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
         public static Task<IGetResult> GetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
         {
             return collection.GetAndTouchAsync(id, expiry, GetAndTouchOptions.Default);
         }
 
+        /// <summary>
+        /// Gets a document for a given id and extends its expiration.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
         public static Task<IGetResult> GetAndTouchAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry,
             Action<GetAndTouchOptions> configureOptions)
         {
@@ -223,11 +391,26 @@ namespace Couchbase.KeyValue
 
         #region GetAndLock
 
+        /// <summary>
+        /// Gets a document for a given id and places a pessimistic lock on it for mutations.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The duration of the lock.</param>
+        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
         public static Task<IGetResult> GetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry)
         {
             return collection.GetAndLockAsync(id, expiry, GetAndLockOptions.Default);
         }
 
+        /// <summary>
+        /// Gets a document for a given id and places a pessimistic lock on it for mutations.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
         public static Task<IGetResult> GetAndLockAsync(this ICouchbaseCollection collection, string id, TimeSpan expiry,
             Action<GetAndLockOptions> configureOptions)
         {
@@ -241,6 +424,13 @@ namespace Couchbase.KeyValue
 
         #region LookupIn
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">The builder for chaining sub doc operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> object.</returns>
         public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             Action<LookupInSpecBuilder> configureBuilder)
         {
@@ -250,6 +440,14 @@ namespace Couchbase.KeyValue
             return collection.LookupInAsync(id, builder.Specs, LookupInOptions.Default);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">The builder for chaining sub doc operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> object.</returns>
         public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             Action<LookupInSpecBuilder> configureBuilder, Action<LookupInOptions> configureOptions)
         {
@@ -262,6 +460,14 @@ namespace Couchbase.KeyValue
             return collection.LookupInAsync(id, builder.Specs, options);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">The builder for chaining sub doc operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> object.</returns>
         public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             Action<LookupInSpecBuilder> configureBuilder, LookupInOptions? options)
         {
@@ -271,12 +477,27 @@ namespace Couchbase.KeyValue
             return collection.LookupInAsync(id, lookupInSpec.Specs, options);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> object.</returns>
         public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<LookupInSpec> specs)
         {
             return collection.LookupInAsync(id, specs, LookupInOptions.Default);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> object.</returns>
         public static Task<ILookupInResult> LookupInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<LookupInSpec> specs, Action<LookupInOptions> configureOptions)
         {
@@ -290,6 +511,15 @@ namespace Couchbase.KeyValue
 
         #region LookupIn Typed
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch. The result is strongly typed.
+        /// </summary>
+        /// <typeparam name="TDocument">The document <see cref="Type"/>.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> of type T.</returns>
         [InterfaceStability(Level.Volatile)]
         public static Task<ILookupInResult<TDocument>> LookupInAsync<TDocument>(this ICouchbaseCollection collection,
             string id, Action<LookupInSpecBuilder<TDocument>> configureBuilder,
@@ -301,6 +531,15 @@ namespace Couchbase.KeyValue
             return collection.LookupInAsync(id, configureBuilder, options);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch. The result is strongly typed.
+        /// </summary>
+        /// <typeparam name="TDocument">The document <see cref="Type"/>.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> of type T.</returns>
         [InterfaceStability(Level.Volatile)]
         public static async Task<ILookupInResult<TDocument>> LookupInAsync<TDocument>(this ICouchbaseCollection collection,
             string id, Action<LookupInSpecBuilder<TDocument>> configureBuilder, LookupInOptions? options = null)
@@ -319,6 +558,13 @@ namespace Couchbase.KeyValue
 
         #region MutateIn
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of mutation Sub-Document operations: Iinsert, Upsert, Replace, Remove, ArrayPrepend, ArrayAppend, ArrayInsert, ArrayAddUnique, Increment and/or Decrement. </param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
         public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder)
         {
@@ -328,6 +574,14 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, builder.Specs, MutateInOptions.Default);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// /// <param name="configureBuilder">An array of mutation Sub-Document operations: Insert, Upsert, Replace, Remove, ArrayPrepend, ArrayAppend, ArrayInsert, ArrayAddUnique, Increment and/or Decrement. </param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
         public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder, Action<MutateInOptions> configureOptions)
         {
@@ -340,6 +594,14 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, builder.Specs, options);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// /// <param name="configureBuilder">An array of mutation Sub-Document operations: Insert, Upsert, Replace, Remove, ArrayPrepend, ArrayAppend, ArrayInsert, ArrayAddUnique, Increment and/or Decrement. </param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
         public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             Action<MutateInSpecBuilder> configureBuilder, MutateInOptions? options)
         {
@@ -349,12 +611,27 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, mutateInSpec.Specs, options);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of mutation Sub-Document operations: Insert, Upsert, Replace, Remove, ArrayPrepend, ArrayAppend, ArrayInsert, ArrayAddUnique, Increment and/or Decrement. </param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
         public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<MutateInSpec> specs)
         {
             return collection.MutateInAsync(id, specs, MutateInOptions.Default);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document mutation operations on a specific document in a single atomic transaction.
+        /// </summary>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="specs">An array of mutation Sub-Document operations: Insert, Upsert, Replace, Remove, ArrayPrepend, ArrayAppend, ArrayInsert, ArrayAddUnique, Increment and/or Decrement. </param>
+        /// /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
         public static Task<IMutateInResult> MutateInAsync(this ICouchbaseCollection collection, string id,
             IEnumerable<MutateInSpec> specs, Action<MutateInOptions> configureOptions)
         {
@@ -368,6 +645,15 @@ namespace Couchbase.KeyValue
 
         #region MutateIn Typed
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch. The result is strongly typed.
+        /// </summary>
+        /// <typeparam name="TDocument">The document <see cref="Type"/>.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count.</param>
+        /// <param name="configureOptions">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> of type T.</returns>
         [InterfaceStability(Level.Volatile)]
         public static Task<IMutateInResult<TDocument>> MutateInAsync<TDocument>(this ICouchbaseCollection collection,
             string id, Action<MutateInSpecBuilder<TDocument>> configureBuilder, Action<MutateInOptions> configureOptions)
@@ -378,6 +664,15 @@ namespace Couchbase.KeyValue
             return collection.MutateInAsync(id, configureBuilder, options);
         }
 
+        /// <summary>
+        /// Allows the chaining of Sub-Document fetch operations like, Get("path") and Exists("path") into a single atomic fetch. The result is strongly typed.
+        /// </summary>
+        /// <typeparam name="TDocument">The document <see cref="Type"/>.</typeparam>
+        /// <param name="collection">Couchbase collection.</param>
+        /// <param name="id">The id of the document.</param>
+        /// <param name="configureBuilder">An array of fetch operations - requires at least one: exists, get, count.</param>
+        /// <param name="options">Any optional parameters.</param>
+        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> of type T.</returns>
         [InterfaceStability(Level.Volatile)]
         public static async Task<IMutateInResult<TDocument>> MutateInAsync<TDocument>(
             this ICouchbaseCollection collection, string id,  Action<MutateInSpecBuilder<TDocument>> configureBuilder,
