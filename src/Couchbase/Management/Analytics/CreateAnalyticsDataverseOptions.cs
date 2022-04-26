@@ -22,7 +22,7 @@ namespace Couchbase.Management.Analytics
             return this;
         }
 
-        internal TimeSpan TimeoutValue { get; set; }
+        internal TimeSpan? TimeoutValue { get; set; }
 
         public CreateAnalyticsDataverseOptions Timeout(TimeSpan timeout)
         {
@@ -32,9 +32,15 @@ namespace Couchbase.Management.Analytics
 
         internal AnalyticsOptions CreateAnalyticsOptions()
         {
-            return new AnalyticsOptions()
-                .CancellationToken(TokenValue)
-                .Timeout(TimeoutValue);
+            var options = new AnalyticsOptions()
+                .CancellationToken(TokenValue);
+
+            if (TimeoutValue.HasValue)
+            {
+                  options.Timeout(TimeoutValue.Value);
+            }
+
+            return options;
         }
     }
 }
