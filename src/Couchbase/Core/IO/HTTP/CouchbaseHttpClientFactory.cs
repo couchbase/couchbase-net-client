@@ -64,16 +64,6 @@ namespace Couchbase.Core.IO.HTTP
         private HttpMessageHandler CreateClientHandler()
         {
             var clusterOptions = _context.ClusterOptions;
-            if (clusterOptions.EffectiveEnableTls
-                && !clusterOptions.HttpIgnoreRemoteCertificateMismatch
-                && clusterOptions.HttpCertificateCallbackValidation == null
-                && !clusterOptions.IsCapella)
-            {
-                throw new InvalidArgumentException("When TLS is enabled, the cluster environment's security config must specify" +
-                          $" the {nameof(ClusterOptions.HttpCertificateCallbackValidation)}" +
-                          $" or use {nameof(ClusterOptions.KvIgnoreRemoteCertificateNameMismatch)}" +
-                          " (Unless connecting to cloud.couchbase.com.)");
-            }
 
             if (clusterOptions.IsCapella && !clusterOptions.EffectiveEnableTls)
             {

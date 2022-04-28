@@ -40,17 +40,6 @@ namespace Couchbase.Core.IO.Connections
         public async Task<IConnection> CreateAndConnectAsync(HostEndpointWithPort hostEndpoint,
             CancellationToken cancellationToken = default)
         {
-            if (_clusterOptions.EffectiveEnableTls
-                && !_clusterOptions.KvIgnoreRemoteCertificateNameMismatch
-                && _clusterOptions.KvCertificateCallbackValidation == null
-                && !_clusterOptions.IsCapella)
-            {
-                throw new InvalidArgumentException("When TLS is enabled, the cluster environment's security config must specify" +
-                          $" the {nameof(ClusterOptions.KvCertificateCallbackValidation)}" +
-                          $" or use {nameof(ClusterOptions.KvIgnoreRemoteCertificateNameMismatch)}" +
-                          " (Unless connecting to cloud.couchbase.com.)");
-            }
-
             if (_clusterOptions.IsCapella && !_clusterOptions.EffectiveEnableTls)
             {
                 _multiplexLogger.LogWarning("TLS is required when connecting to Couchbase Capella. Please enable TLS by prefixing the connection string with \"couchbases://\" (note the final 's').");
