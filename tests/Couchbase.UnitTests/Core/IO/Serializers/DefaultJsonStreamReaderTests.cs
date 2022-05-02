@@ -406,6 +406,9 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
         [Fact]
         public async Task ReadObjectAsync_OnDateTimeOffset_PreservesTimeZone()
         {
+            // Note: this emulates a "SELECT RAW" query returning a DateTimeOffset value, and currently requires
+            // that the serializer be set to DateParseHandling.DateTimeOffset. It will fail with DateParseHandling.DateTime.
+
             {
                 using var stream = new MemoryStream(
                     System.Text.Encoding.UTF8.GetBytes("{\"value\":\"2021-06-21T10:16:56.9714243+10:00\"}"));
@@ -434,6 +437,38 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
                 await reader.ReadToNextAttributeAsync();
                 var value = await reader.ReadObjectAsync<DateTimeOffset>();
                 Assert.Equal(-8, value.Offset.Hours);
+            }
+        }
+
+        [Theory]
+        [InlineData(DateParseHandling.DateTime)]
+        [InlineData(DateParseHandling.DateTimeOffset)]
+        public async Task ReadObjectAsync_HasDateTimeOffsetAttribute_PreservesTimeZone(DateParseHandling handling)
+        {
+            {
+                using var stream = new MemoryStream(
+                    System.Text.Encoding.UTF8.GetBytes("{\"value\":\"2021-06-21T10:16:56.9714243+10:00\"}"));
+
+                var serializer = CreateDefaultJsonSerializer();
+                serializer.DateParseHandling = handling;
+                using var reader = new DefaultJsonStreamReader(stream, serializer);
+                Assert.True(await reader.InitializeAsync());
+
+                var value = await reader.ReadObjectAsync<JsonDocument>();
+                Assert.Equal(10, value.Value.Offset.Hours);
+            }
+            {
+                // check again, just in case the test was run in the +10 timezone and would have given a false positive.
+                using var stream = new MemoryStream(
+                    System.Text.Encoding.UTF8.GetBytes("{\"value\":\"2021-06-21T10:16:56.9714243-8:00\"}"));
+
+                var serializer = CreateDefaultJsonSerializer();
+                serializer.DateParseHandling = handling;
+                using var reader = new DefaultJsonStreamReader(stream, serializer);
+                Assert.True(await reader.InitializeAsync());
+
+                var value = await reader.ReadObjectAsync<JsonDocument>();
+                Assert.Equal(-8, value.Value.Offset.Hours);
             }
         }
 
@@ -540,6 +575,11 @@ namespace Couchbase.UnitTests.Core.IO.Serializers
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             });
+
+        private class JsonDocument
+        {
+            public DateTimeOffset Value { get; set; }
+        }
 
         #endregion
     }

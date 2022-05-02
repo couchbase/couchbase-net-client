@@ -25,7 +25,16 @@ namespace Couchbase.Core.IO.Serializers
         #region Constructors
 
         public DefaultSerializer() : this(
-            new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() },
+            new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                // https://issues.couchbase.com/browse/NCBC-3195
+                // When deserializing of "SELECT RAW" queries of a plain DateTimeOffset, this setting
+                // is required to avoid the loss of time zone data. This is due to the internals of the JsonTextReader
+                // used in DefaultJsonStreamReader reading the value to a boxed DateTime before the target type
+                // is provided in the call to ReadObjectAsync.
+                DateParseHandling = DateParseHandling.DateTimeOffset
+            },
             new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() })
         {
         }

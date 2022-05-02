@@ -49,7 +49,12 @@ namespace Couchbase.Core.IO.Serializers
             _reader = new JsonTextReader(new StreamReader(stream))
             {
                 ArrayPool = JsonArrayPool.Instance,
-                DateParseHandling = Deserializer.DateParseHandling
+                DateParseHandling = deserializer.DateParseHandling,
+                DateFormatString = deserializer.DateFormatString,
+                DateTimeZoneHandling = deserializer.DateTimeZoneHandling,
+                FloatParseHandling = deserializer.FloatParseHandling,
+                MaxDepth = deserializer.MaxDepth,
+                Culture = deserializer.Culture
             };
         }
 
@@ -87,12 +92,8 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
-        public async Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default)
-        {
-            var jObject = await JToken.ReadFromAsync(_reader, cancellationToken)
-                .ConfigureAwait(false);
-            return jObject.ToObject<T>(Deserializer);
-        }
+        public Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Deserializer.Deserialize<T>(_reader));
 
         /// <inheritdoc />
         public async IAsyncEnumerable<T> ReadArrayAsync<T>(
