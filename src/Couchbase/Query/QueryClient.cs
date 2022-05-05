@@ -205,7 +205,8 @@ namespace Couchbase.Query
 
                     if (queryResult.ShouldRetry(EnhancedPreparedStatementsEnabled))
                     {
-                        if(queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
+                        queryResult.NoRetryException = queryResult.CreateExceptionForError(ErrorContextFactory(queryResult, response.StatusCode));
+                        if (queryResult.Errors.Any(x=>x.Code == 4040 && EnhancedPreparedStatementsEnabled))
                         {
                             //clear the cache of stale query plan
                             var statement = options.StatementValue ?? string.Empty;

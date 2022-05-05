@@ -11,7 +11,7 @@ namespace Couchbase.Search
     /// The result of a search query.
     /// </summary>
     /// <seealso cref="ISearchResult" />
-    internal class SearchResult : ISearchResult, IDisposable
+    internal class SearchResult : ISearchResult, IServiceResultExceptionInfo, IDisposable
     {
         internal SearchResult()
         {
@@ -72,6 +72,8 @@ namespace Couchbase.Search
         }
 
         public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
+
+        public Exception NoRetryException { get; set; }
 
         internal HttpStatusCode HttpStatusCode { get; set; }
 

@@ -12,7 +12,7 @@ using Couchbase.Query;
 
 namespace Couchbase.Analytics
 {
-    internal abstract class AnalyticsResultBase<T> : IAnalyticsResult<T>
+    internal abstract class AnalyticsResultBase<T> : IAnalyticsResult<T>, IServiceResultExceptionInfo
     {
         /// <summary>
         /// Creates a new AnalyticsResultBase.
@@ -73,6 +73,8 @@ namespace Couchbase.Analytics
         }
 
         public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
+
+        public Exception? NoRetryException { get; set; }
 
         /// <summary>
         /// Initializes the reader, and reads all attributes until result rows are encountered.

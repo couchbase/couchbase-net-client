@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -8,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.DataMapping;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.Search;
@@ -181,6 +179,21 @@ namespace Couchbase.Search
                 searchResult.HttpStatusCode = response.StatusCode;
                 if (searchResult.ShouldRetry())
                 {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        searchResult.NoRetryException = new CouchbaseException()
+                        {
+                            Context = new SearchErrorContext
+                            {
+                                HttpStatus = response.StatusCode,
+                                IndexName = searchRequest.Index,
+                                ClientContextId = searchRequest.ClientContextId,
+                                Statement = searchRequest.Statement,
+                                Errors = errors,
+                                Query = searchRequest.ToJson()
+                            }
+                        };
+                    }
                     UpdateLastActivity();
                     return searchResult;
                 }

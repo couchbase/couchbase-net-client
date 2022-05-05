@@ -1,19 +1,16 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
-using Couchbase.Core.Retry;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -118,6 +115,17 @@ namespace Couchbase.Views
 
                     if (viewResult.ShouldRetry())
                     {
+                        viewResult.NoRetryException = new CouchbaseException()
+                        {
+                            Context = new ViewContextError
+                            {
+                                DesignDocumentName = query.DesignDocName,
+                                ViewName = query.ViewName,
+                                ClientContextId = query.ClientContextId,
+                                HttpStatus = response.StatusCode,
+                                Errors = viewResult.Message
+                            }
+                        };
                         UpdateLastActivity();
                         return viewResult;
                     }

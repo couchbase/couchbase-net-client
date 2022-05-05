@@ -15,7 +15,7 @@ namespace Couchbase.Query
     /// Abstract base class for with shared implementations of <see cref="IQueryResult{T}"/>.
     /// </summary>
     /// <typeparam name="T">The Type of each row returned.</typeparam>
-    internal abstract class QueryResultBase<T> : IQueryResult<T>
+    internal abstract class QueryResultBase<T> : IQueryResult<T>, IServiceResultExceptionInfo
     {
         /// <summary>
         /// Creates a new QueryResultBase.
@@ -116,6 +116,8 @@ namespace Couchbase.Query
         }
 
         public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
+
+        public Exception? NoRetryException { get; set; }
 
         /// <summary>
         /// Get the prepared query plan name stored in the cluster.

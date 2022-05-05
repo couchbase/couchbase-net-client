@@ -50,67 +50,86 @@ namespace Couchbase.Query
                    queryResult.Errors.Any(error => StaleErrorCodes.Contains(error.Code));
         }
 
-        public static Exception ThrowExceptionOnError<T>(this IQueryResult<T> result, QueryErrorContext context)
+        /// <summary>
+        /// Create the appropriate Exception for an error context
+        /// </summary>
+        /// <typeparam name="T">Result type</typeparam>
+        /// <param name="result">Result</param>
+        /// <param name="context">Error context</param>
+        /// <returns>Exception</returns>
+        public static CouchbaseException CreateExceptionForError<T>(this IQueryResult<T> result, QueryErrorContext context)
         {
             foreach (var error in result.Errors)
             {
-                if (error.Code == 3000) throw new ParsingFailureException(context);
+                if (error.Code == 3000) return new ParsingFailureException(context);
 
-                if (PreparedErrorCodes.Contains(error.Code)) throw new PreparedStatementException(context);
+                if (PreparedErrorCodes.Contains(error.Code)) return new PreparedStatementException(context);
 
                 if (error.Code == 4300 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
                     error.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
-                    throw new IndexExistsException(context);
+                    return new IndexExistsException(context);
 
-                if (error.Code >= 4000 && error.Code < 5000) throw new PlanningFailureException(context);
+                if (error.Code >= 4000 && error.Code < 5000) return new PlanningFailureException(context);
 
                 if (error.Code == 12004 || error.Code == 12016 ||
                     error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
                     error.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-                    throw new IndexNotFoundException(context);
+                    return new IndexNotFoundException(context);
 
                 if (error.Code == 5000 && error.Message.Contains("index", StringComparison.OrdinalIgnoreCase) &&
                     error.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
-                    throw new IndexExistsException(context);
+                    return new IndexExistsException(context);
 
-                if (error.Code >= 5000 && error.Code < 6000) throw new InternalServerFailureException();
+                if (error.Code >= 5000 && error.Code < 6000) return new InternalServerFailureException();
 
                 if (error.Code == 12009)
                 {
-                    if(error.Message.Contains("CAS mismatch", StringComparison.OrdinalIgnoreCase) || error.Reason.Code == 12033)
+                    if (error.Message.Contains("CAS mismatch", StringComparison.OrdinalIgnoreCase) || error.Reason.Code == 12033)
                     {
-                        throw new CasMismatchException(context);
+                        return new CasMismatchException(context);
                     }
                     if (error.Reason.Code == 17014)
                     {
-                        throw new DocumentNotFoundException(context);
+                        return new DocumentNotFoundException(context);
                     }
                     if (error.Reason.Code == 17012)
                     {
-                        throw new DocumentExistsException(context);
+                        return new DocumentExistsException(context);
                     }
 
-                    throw new DmlFailureException(context);
+                    return new DmlFailureException(context);
                 }
 
                 if (error.Code >= 10000 && error.Code < 11000 || error.Code == 13014)
-                    throw new AuthenticationFailureException(context);
+                    return new AuthenticationFailureException(context);
 
                 if (error.Code >= 12000 && error.Code < 13000 || error.Code >= 14000 && error.Code < 15000)
-                    throw new IndexFailureException(context);
+                    return new IndexFailureException(context);
 
                 //Rate Limiting Errors
                 if (error.Code == 1191)
-                    throw new RateLimitedException(RateLimitedReason.RequestRateLimitReached, context);
+                    return new RateLimitedException(RateLimitedReason.RequestRateLimitReached, context);
                 if (error.Code == 1192)
-                    throw new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached, context);
+                    return new RateLimitedException(RateLimitedReason.ConcurrentRequestLimitReached, context);
                 if (error.Code == 1193)
-                    throw new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached, context);
+                    return new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached, context);
                 if (error.Code == 1194)
-                    throw new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, context);
+                    return new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, context);
             }
 
-            throw new CouchbaseException(context);
+            return new CouchbaseException(context);
+        }
+
+        /// <summary>
+        /// Create/throw the appropriate Exception given an error context
+        /// </summary>
+        /// <typeparam name="T">Result type</typeparam>
+        /// <param name="result">Result</param>
+        /// <param name="context">Error context</param>
+        /// <returns></returns>
+        public static Exception ThrowExceptionOnError<T>(this IQueryResult<T> result, QueryErrorContext context)
+        {
+            throw CreateExceptionForError(result, context);
         }
 
         public static bool InternalFailure<T>(this IQueryResult<T> result, out bool isRetryable)

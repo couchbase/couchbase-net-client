@@ -1,4 +1,3 @@
-using System;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;

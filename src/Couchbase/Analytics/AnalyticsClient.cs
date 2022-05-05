@@ -100,12 +100,6 @@ namespace Couchbase.Analytics
 
                     if (response.StatusCode != HttpStatusCode.OK)
                     {
-                        if (result.ShouldRetry())
-                        {
-                            UpdateLastActivity();
-                            return result;
-                        }
-
                         var context = new AnalyticsErrorContext
                         {
                             ClientContextId = options.ClientContextIdValue,
@@ -115,19 +109,15 @@ namespace Couchbase.Analytics
                             Errors = result.Errors
                         };
 
-                        if (result.LinkNotFound()) throw new LinkNotFoundException(context);
-                        if (result.DataverseExists()) throw new DataverseExistsException(context);
-                        if (result.DatasetExists()) throw new DatasetExistsException();
-                        if (result.DataverseNotFound()) throw new DataverseNotFoundException(context);
-                        if (result.DataSetNotFound()) throw new DatasetNotFoundException(context);
-                        if (result.JobQueueFull()) throw new JobQueueFullException(context);
-                        if (result.InternalServerFailure()) throw new InternalServerFailureException(context);
-                        if (result.AuthenticationFailure()) throw new AuthenticationFailureException(context);
-                        if (result.TemporaryFailure()) throw new TemporaryFailureException(context);
-                        if (result.IndexNotFound()) throw new IndexNotFoundException(context);
-                        if (result.IndexExists()) throw new IndexExistsException(context);
-                        if (result.ParsingFailure()) throw new ParsingFailureException(context);
-                        if (result.CompilationFailure()) throw new CompilationFailureException(context);
+                        if (result.ShouldRetry())
+                        {
+                            result.NoRetryException = CreateExceptionForError(result, context, true);
+                            UpdateLastActivity();
+                            return result;
+                        }
+
+                        CouchbaseException? ex = CreateExceptionForError(result, context, false);
+                        if (ex != null) { throw ex; }
                     }
                 }
                 catch (OperationCanceledException e)
@@ -180,6 +170,39 @@ namespace Couchbase.Analytics
             return result;
         }
 
+        /// <summary>
+        /// Create the appropriate Exception for an error context
+        /// </summary>
+        /// <typeparam name="T">Result type</typeparam>
+        /// <param name="result">Result</param>
+        /// <param name="context">Error context</param>
+        /// <param name="couchbaseExceptionFallback">Flag on whether a fallback CouchbaseException should be created</param>
+        /// <returns>Nullable Exception</returns>
+        private CouchbaseException? CreateExceptionForError<T>(AnalyticsResultBase<T> result, AnalyticsErrorContext context, bool couchbaseExceptionFallback)
+        {
+            if (result.LinkNotFound()) return new LinkNotFoundException(context);
+            if (result.DataverseExists()) return new DataverseExistsException(context);
+            if (result.DatasetExists()) return new DatasetExistsException();
+            if (result.DataverseNotFound()) return new DataverseNotFoundException(context);
+            if (result.DataSetNotFound()) return new DatasetNotFoundException(context);
+            if (result.JobQueueFull()) return new JobQueueFullException(context);
+            if (result.InternalServerFailure()) return new InternalServerFailureException(context);
+            if (result.AuthenticationFailure()) return new AuthenticationFailureException(context);
+            if (result.TemporaryFailure()) return new TemporaryFailureException(context);
+            if (result.IndexNotFound()) return new IndexNotFoundException(context);
+            if (result.IndexExists()) return new IndexExistsException(context);
+            if (result.ParsingFailure()) return new ParsingFailureException(context);
+            if (result.CompilationFailure()) return new CompilationFailureException(context);
+
+            if (couchbaseExceptionFallback)
+            {
+                return new CouchbaseException(context);
+            }
+            else
+            {
+                return null;
+            }
+        }
 
         #region tracing
         private IRequestSpan RootSpan(string operation, AnalyticsOptions options)

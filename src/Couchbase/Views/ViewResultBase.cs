@@ -4,7 +4,6 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Retry;
 
 #nullable enable
@@ -16,7 +15,7 @@ namespace Couchbase.Views
     /// </summary>
     /// <typeparam name="TKey">Type of the key for each result row.</typeparam>
     /// <typeparam name="TValue">Type of the value for each result row.</typeparam>
-    internal abstract class ViewResultBase<TKey, TValue> : IViewResult<TKey, TValue>
+    internal abstract class ViewResultBase<TKey, TValue> : IViewResult<TKey, TValue>, IServiceResultExceptionInfo
     {
         /// <summary>
         /// Creates a new ViewResultBase.
@@ -117,6 +116,8 @@ namespace Couchbase.Views
         }
 
         public RetryReason RetryReason { get; protected set; } = RetryReason.NoRetry;
+
+        public Exception? NoRetryException { get; set; }
 
         /// <summary>
         /// Initializes the reader, and reads all attributes until result rows are encountered.

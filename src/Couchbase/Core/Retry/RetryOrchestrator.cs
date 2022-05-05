@@ -9,7 +9,6 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
-using Couchbase.Core.Sharding;
 using Couchbase.Core.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
@@ -125,6 +124,11 @@ namespace Couchbase.Core.Retry
 
                                 AmbiguousTimeoutException.ThrowWithRetryReasons(request);
                             }
+                        }
+                        else
+                        {
+                            //don't retry
+                            result.ThrowOnNoRetry();
                         }
                     }
                     catch (TaskCanceledException _)
