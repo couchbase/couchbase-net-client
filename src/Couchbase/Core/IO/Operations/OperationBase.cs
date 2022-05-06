@@ -204,6 +204,8 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         public ObjectPool<OperationBuilder> OperationBuilderPool { get; set; } = null!;  // Assumes we always initialize with OperationConfigurator
 
+        public TimeSpan Elapsed => _stopwatch.Elapsed;
+
         #endregion
 
         #region Protected Properties

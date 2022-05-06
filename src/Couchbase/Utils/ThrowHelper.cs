@@ -80,7 +80,7 @@ namespace Couchbase.Utils
 
         public static void ThrowTimeoutException(IOperation operation, IErrorContext? context = null)
         {
-            var message = $"The operation {operation.ClientContextId}/{operation.Opaque} timed out after {operation.Timeout}. " +
+            var message = $"The operation {operation.ClientContextId}/{operation.Opaque} timed out after {operation.Elapsed}. " +
                           $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}.";
 
             if (operation.IsSent && !operation.IsReadOnly)

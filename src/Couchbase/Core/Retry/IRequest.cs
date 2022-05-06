@@ -14,6 +14,7 @@ namespace Couchbase.Core.Retry
         List<RetryReason> RetryReasons { get; set; }
         IRetryStrategy RetryStrategy { get; set; }
         TimeSpan Timeout { get; set; }
+        TimeSpan Elapsed { get; }
         CancellationToken Token
         {
             get;

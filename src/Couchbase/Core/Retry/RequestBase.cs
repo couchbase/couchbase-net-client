@@ -23,6 +23,7 @@ namespace Couchbase.Core.Retry
             set => _retryStrategy = value;
         }
         public TimeSpan Timeout { get; set; }
+        public TimeSpan Elapsed => Stopwatch?.Elapsed ?? TimeSpan.Zero;
         public CancellationToken Token { get; set; }
         public string? ClientContextId { get; set; }
         public abstract  bool Idempotent { get; }

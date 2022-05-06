@@ -22,6 +22,9 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             throw new NotImplementedException();
         }
 
+        private System.Diagnostics.Stopwatch _operationAge = System.Diagnostics.Stopwatch.StartNew();
+        public TimeSpan Elapsed => _operationAge.Elapsed;
+
         public Couchbase.Core.Diagnostics.Tracing.IRequestSpan Span2 { get; set; }
         public uint Attempts { get; set; }
         public bool Idempotent { get; }
