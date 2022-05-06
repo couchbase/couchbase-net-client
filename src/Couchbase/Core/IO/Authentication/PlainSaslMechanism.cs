@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using SaslStart = Couchbase.Core.IO.Operations.Authentication.SaslStart;
@@ -40,8 +39,11 @@ namespace Couchbase.Core.IO.Authentication
                 Content = GetAuthData(_username, _password),
                 Opaque = SequenceGenerator.GetNext(),
                 Span = rootSpan,
+                Timeout = Timeout
             };
             OperationConfigurator.Configure(op, SaslOptions.Instance);
+
+            using var ctp = CancellationTokenPairSource.FromTimeout(Timeout, cancellationToken);
             await SendAsync(op, connection, cancellationToken).ConfigureAwait(false);
         }
 

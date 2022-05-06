@@ -22,7 +22,7 @@ namespace Couchbase.Core.IO.Authentication
     {
         public IRequestTracer Tracer { get; }
         protected ILogger? Logger;
-        private TimeSpan Timeout { get; set; } = TimeSpan.FromMilliseconds(2500);
+        protected TimeSpan Timeout { get; set; } = TimeSpan.FromMilliseconds(2500);
         protected readonly IOperationConfigurator OperationConfigurator;
 
         protected SaslMechanismBase(IRequestTracer tracer, IOperationConfigurator operationConfigurator)
@@ -49,6 +49,8 @@ namespace Couchbase.Core.IO.Authentication
                 Timeout = Timeout,
                 Span = childSpan
             };
+
+            using var ctp = CancellationTokenPairSource.FromTimeout(Timeout, token);
             OperationConfigurator.Configure(authOp, SaslOptions.Instance);
             return await SendAsync(authOp, connection, token).ConfigureAwait(false);
         }
@@ -63,8 +65,10 @@ namespace Couchbase.Core.IO.Authentication
                 Timeout = Timeout,
                 Span = childSpan,
             };
+
+            using var ctp = CancellationTokenPairSource.FromTimeout(Timeout, token);
             OperationConfigurator.Configure(op, SaslOptions.Instance);
-            return await SendAsync(op, connection, token).ConfigureAwait(false);
+            return await SendAsync(op, connection, ctp.TokenPair).ConfigureAwait(false);
         }
 
         protected async Task<string> SaslList(IConnection connection, IRequestSpan span, CancellationToken token)
@@ -74,8 +78,10 @@ namespace Couchbase.Core.IO.Authentication
                 Timeout = Timeout,
                 Span = span,
             };
+
+            using var ctp = CancellationTokenPairSource.FromTimeout(Timeout, token);
             OperationConfigurator.Configure(op, SaslOptions.Instance);
-            return await SendAsync(op, connection, token).ConfigureAwait(false);
+            return await SendAsync(op, connection, ctp.TokenPair).ConfigureAwait(false);
         }
 
         protected async Task<T> SendAsync<T>(IOperation<T> op, IConnection connection, CancellationToken cancellationToken)
@@ -84,7 +90,7 @@ namespace Couchbase.Core.IO.Authentication
 
             ResponseStatus status;
 
-            using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
+            using var ctp = CancellationTokenPairSource.FromTimeout(Timeout, cancellationToken);
             using (new OperationCancellationRegistration(op, ctp.TokenPair))
             {
                 status = await op.Completed.ConfigureAwait(false);

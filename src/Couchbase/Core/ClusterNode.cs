@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -226,8 +225,20 @@ namespace Couchbase.Core
                 Span = childSpan
             };
 
-            using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
-            await ExecuteOp(connection, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
+            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+            try
+            {
+                await ExecuteOp(ConnectionPool, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                //Check to see if it was because of a "hung" socket which causes the token to timeout
+                if (ctp.IsInternalCancellation)
+                {
+                    ThrowHelper.ThrowTimeoutException(errorMapOp);
+                }
+                throw;
+            }
             return new ErrorMap(errorMapOp.GetValue());
         }
 
@@ -299,8 +310,20 @@ namespace Couchbase.Core
                 Span = childSpan,
             };
 
-            using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
-            await ExecuteOp(connection, heloOp, ctp.TokenPair).ConfigureAwait(false);
+            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+            try
+            {
+                await ExecuteOp(ConnectionPool, heloOp, ctp.TokenPair).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                //Check to see if it was because of a "hung" socket which causes the token to timeout
+                if (ctp.IsInternalCancellation)
+                {
+                    ThrowHelper.ThrowTimeoutException(heloOp);
+                }
+                throw;
+            }
             return heloOp.GetValue();
         }
 
@@ -314,7 +337,21 @@ namespace Couchbase.Core
                 Opaque = SequenceGenerator.GetNext(),
                 Span = rootSpan,
             };
-            await ExecuteOp(ConnectionPool, manifestOp).ConfigureAwait(false);
+
+            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+            try
+            {
+                await ExecuteOp(ConnectionPool, manifestOp, ctp.TokenPair).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                //Check to see if it was because of a "hung" socket which causes the token to timeout
+                if (ctp.IsInternalCancellation)
+                {
+                    ThrowHelper.ThrowTimeoutException(manifestOp);
+                }
+                throw;
+            }
             return manifestOp.GetValue();
         }
 
@@ -339,8 +376,19 @@ namespace Couchbase.Core
             };
 
             using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
-            await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);
-
+            try
+            {
+                await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                //Check to see if it was because of a "hung" socket which causes the token to timeout
+                if (ctp.IsInternalCancellation)
+                {
+                    ThrowHelper.ThrowTimeoutException(configOp);
+                }
+                throw;
+            }
             var config = configOp.GetValue();
 
             if (config != null)
@@ -600,13 +648,19 @@ namespace Couchbase.Core
                 LogConnectionInitialization(_redactor.SystemData(EndPoint));
                 using var rootSpan = RootSpan("initialize_connection");
 
-                var serverFeatureList = await Hello(connection, rootSpan, cancellationToken).ConfigureAwait(false);
-                connection.ServerFeatures = serverFeatureList != null
-                    ? new ServerFeatureSet(serverFeatureList)
-                    : ServerFeatureSet.Empty;
-                ServerFeatures = connection.ServerFeatures;
+                using (var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken))
+                {
+                    var serverFeatureList = await Hello(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
+                    connection.ServerFeatures = serverFeatureList != null
+                        ? new ServerFeatureSet(serverFeatureList)
+                        : ServerFeatureSet.Empty;
+                    ServerFeatures = connection.ServerFeatures;
+                }
 
-                ErrorMap = await GetErrorMap(connection, rootSpan, cancellationToken).ConfigureAwait(false);
+                using (var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken))
+                {
+                    ErrorMap = await GetErrorMap(connection, rootSpan, ctp.TokenPair).ConfigureAwait(false);
+                }
 
                 var mechanismType = _context.ClusterOptions.EffectiveEnableTls
                     ? MechanismType.Plain
@@ -631,8 +685,21 @@ namespace Couchbase.Core
                     Key = bucketName,
                     Span = rootSpan,
                 };
-                using var ctp = CancellationTokenPairSource.FromInternalToken(cancellationToken);
-                await ExecuteOp(connection, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
+
+                using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+                try
+                {
+                    await ExecuteOp(ConnectionPool, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    //Check to see if it was because of a "hung" socket which causes the token to timeout
+                    if (ctp.IsInternalCancellation)
+                    {
+                        ThrowHelper.ThrowTimeoutException(selectBucketOp);
+                    }
+                    throw;
+                }
             }
             catch (DocumentNotFoundException)
             {

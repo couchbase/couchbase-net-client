@@ -53,7 +53,6 @@ namespace Couchbase.Core.IO.Connections
             }
 
             var socket = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
             try
             {
                 var connectTask = socket.ConnectAsync(endPoint);

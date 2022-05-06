@@ -3,21 +3,16 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
-using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.View;
-using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.RateLimiting;
 using Couchbase.Query;
 using Couchbase.Search;
@@ -29,7 +24,6 @@ namespace Couchbase.Diagnostics
     {
         internal const string UnknownEndpointValue = "Unknown";
         private const long TicksPerMicrosecond = 10;
-        private static readonly ITypeTranscoder DefaultTranscoder = new LegacyTranscoder();
 
         private static readonly ServiceType[] AllServiceTypes =
         {
@@ -46,7 +40,7 @@ namespace Couchbase.Diagnostics
             var clusterNodes = context.GetNodes(config.Name);
             var endpoints =
                 await GetEndpointDiagnosticsAsync(context, clusterNodes, true, options.ServiceTypesValue,
-                    CancellationToken.None).ConfigureAwait(false);
+                   options.Token).ConfigureAwait(false);
             return new PingReport(options.ReportIdValue ?? Guid.NewGuid().ToString(), config.Rev, endpoints);
         }
 
