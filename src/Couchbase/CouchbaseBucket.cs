@@ -246,7 +246,7 @@ namespace Couchbase
                 else
                 {
                     //A non-GCCCP cluster
-                    CurrentConfig.SetEffectiveNetworkResolution(node.EndPoint, Context.ClusterOptions);
+                    CurrentConfig.SetEffectiveNetworkResolution(Context.ClusterOptions);
                 }
                 if (SupportsCollections)
                 {

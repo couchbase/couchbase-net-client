@@ -311,15 +311,15 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         }
 
         [Theory]
-        [InlineData(NetworkResolution.Auto, NetworkResolution.External, @"Documents\Configs\missing-query.json", "10.100.62.66", 31124)]
-        [InlineData(NetworkResolution.External, NetworkResolution.External, @"Documents\Configs\missing-query.json", "10.100.62.66", 31124)]
-        [InlineData(NetworkResolution.Auto, NetworkResolution.Default, @"Documents\Configs\config-alternate-addresses.json", "172.17.0.2", 11210)]
-        public void Test_SetNetworkResolution(string networkResolution, string effectiveResolution, string configPath, string hostname, int port)
+        [InlineData(NetworkResolution.Auto, NetworkResolution.External, @"Documents\Configs\missing-query.json")]
+        [InlineData(NetworkResolution.External, NetworkResolution.External, @"Documents\Configs\missing-query.json")]
+        [InlineData(NetworkResolution.Auto, NetworkResolution.Default, @"Documents\Configs\config-integration-tests.json")]
+        public void Test_SetNetworkResolution(string networkResolution, string effectiveResolution, string configPath)
         {
             var options = new ClusterOptions {NetworkResolution = networkResolution};
 
             var config = ResourceHelper.ReadResource(configPath, InternalSerializationContext.Default.BucketConfig);
-            config.SetEffectiveNetworkResolution(new HostEndpointWithPort(hostname, port), options);
+            config.SetEffectiveNetworkResolution(options);
 
             Assert.Equal(effectiveResolution, options.EffectiveNetworkResolution);
         }

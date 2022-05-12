@@ -334,7 +334,7 @@ namespace Couchbase.Core
                         .ConfigureAwait(false);
 
                     GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
-                    GlobalConfig.SetEffectiveNetworkResolution(server, ClusterOptions);
+                    GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
                 }
                 catch (AuthenticationFailureException)
                 {
