@@ -8,7 +8,7 @@ The Official Couchbase .NET SDK
 
 ## Getting Started
 
-To get up and running with the SDK, please visit the [online documentation](http://developer.couchbase.com/documentation/server/4.5/sdk/dotnet/start-using-sdk.html).
+To get up and running with the SDK, please visit the [online documentation](https://docs.couchbase.com/dotnet-sdk/current/hello-world/start-using-sdk.html).
 
 ## Running Tests
 
@@ -46,4 +46,3 @@ Being an Open Source project, the Couchbase SDK depends upon feedback and submis
 
 Once the CLA is signed, a Couchbase engineer will push the pull request to Gerrit and one or more Couchbase engineers will review the submission. If it looks good they will then +2 the changeset and merge it with master. In addition, if the submission needs more work, you will need to amend the Changeset with another Patchset. Note that is strongly encouraged to submit a Unit Test with each submission and also include a description of the submission, what changed and what the result is.
 
-<img src="https://d3nmt5vlzunoa1.cloudfront.net/dotnet/files/2016/08/ReSharper2016_2_2_512x197.png" height="100"></img>
