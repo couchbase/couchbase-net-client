@@ -225,10 +225,10 @@ namespace Couchbase.Core
                 Span = childSpan
             };
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
             try
             {
-                await ExecuteOp(ConnectionPool, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
+                await ExecuteOp(connection, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -310,10 +310,10 @@ namespace Couchbase.Core
                 Span = childSpan,
             };
 
-            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+            using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
             try
             {
-                await ExecuteOp(ConnectionPool, heloOp, ctp.TokenPair).ConfigureAwait(false);
+                await ExecuteOp(connection, heloOp, ctp.TokenPair).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -686,10 +686,10 @@ namespace Couchbase.Core
                     Span = rootSpan,
                 };
 
-                using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout);
+                using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
                 try
                 {
-                    await ExecuteOp(ConnectionPool, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
+                    await ExecuteOp(connection, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
