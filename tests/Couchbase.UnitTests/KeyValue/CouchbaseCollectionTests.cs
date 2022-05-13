@@ -202,8 +202,9 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,
-                    new BestEffortRetryStrategy())
-                    {
+                    new BestEffortRetryStrategy(), null)
+
+            {
                 foreach (var responseStatus in statuses) _statuses.Enqueue(responseStatus);
             }
 
@@ -226,7 +227,6 @@ namespace Couchbase.UnitTests.KeyValue
                     new Mock<ISaslMechanismFactory>().Object,
                     new TypedRedactor(RedactionLevel.None),
                     new HostEndpointWithPort("127.0.0.1", 11210),
-                    BucketType.Couchbase,
                     new NodeAdapter(),
                     NoopRequestTracer.Instance);
 

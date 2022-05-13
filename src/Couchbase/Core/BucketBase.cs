@@ -50,8 +50,10 @@ namespace Couchbase.Core
             IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer,
             IOperationConfigurator operationConfigurator,
-            IRetryStrategy retryStrategy)
+            IRetryStrategy retryStrategy,
+            BucketConfig config)
         {
+            CurrentConfig = config;
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Context = context ?? throw new ArgumentNullException(nameof(context));
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));

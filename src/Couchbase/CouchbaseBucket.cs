@@ -32,8 +32,8 @@ namespace Couchbase
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory,
-            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy)
-            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
+            IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy, config)
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
 
@@ -235,18 +235,20 @@ namespace Couchbase
         {
             try
             {
-                await node.SelectBucketAsync(this).ConfigureAwait(false);
-
-                CurrentConfig = await node.GetClusterMap().ConfigureAwait(false);
+                Logger.LogInformation("Bootstrapping: server negotiation started for {name}.", Redactor.UserData(Name));
                 if (Context.ClusterOptions.HasNetworkResolution)
                 {
                     //Network resolution determined at the GCCCP level
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                     CurrentConfig.NetworkResolution = Context.ClusterOptions.EffectiveNetworkResolution;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                 }
                 else
                 {
                     //A non-GCCCP cluster
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                     CurrentConfig.SetEffectiveNetworkResolution(Context.ClusterOptions);
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                 }
                 if (SupportsCollections)
                 {
@@ -260,6 +262,8 @@ namespace Couchbase
                 Nodes.Add(node);
                 await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
                 ClearErrors();
+
+                Logger.LogInformation("Bootstrapping: server negotiation completed for {name}.", Redactor.UserData(Name));
             }
             catch (Exception e)
             {
@@ -271,11 +275,6 @@ namespace Couchbase
                     }
                 }
 
-                //Memcached not supported call to CCCP GET_MAP
-                if (e is DocumentNotFoundException)
-                {
-                    throw new NotSupportedException("CCCP is not supported by this bucket type.");
-                }
                 CaptureException(e);
             }
 

@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Management.Buckets;
 
 #nullable enable
@@ -15,8 +16,9 @@ namespace Couchbase.Core.DI
         /// </summary>
         /// <param name="name">Name of the bucket.</param>
         /// <param name="bucketType">Type of the bucket.</param>
+        /// <param name="config">The initial bootstrap cluster map config.</param>
         /// <returns>Correct bucket implementation.</returns>
-        BucketBase Create(string name, BucketType bucketType);
+        BucketBase Create(string name, BucketType bucketType, BucketConfig config);
     }
 }
 

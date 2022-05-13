@@ -5,6 +5,7 @@ using Couchbase.Analytics;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DataMapping;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Authentication;
@@ -126,6 +127,7 @@ namespace Couchbase.Core.DI
                         MaximumOperationBuilderCapacity = serviceProvider.GetRequiredService<ClusterOptions>()
                             .Tuning.MaximumOperationBuilderCapacity
                     })));
+            yield return (typeof(IHttpClusterMapFactory), new SingletonServiceFactory(typeof(HttpClusterMapFactory)));
         }
     }
 }

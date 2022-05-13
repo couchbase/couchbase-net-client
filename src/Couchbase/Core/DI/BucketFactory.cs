@@ -1,5 +1,7 @@
 using System;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
@@ -28,6 +30,7 @@ namespace Couchbase.Core.DI
         private readonly IRequestTracer _tracer;
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRetryStrategy _retryStrategy;
+        private readonly IHttpClusterMapFactory _httpClusterMapFactory;
 
         public BucketFactory(
             ClusterContext clusterContext,
@@ -41,7 +44,8 @@ namespace Couchbase.Core.DI
             IBootstrapperFactory bootstrapperFactory,
             IRequestTracer tracer,
             IOperationConfigurator operationConfigurator,
-            IRetryStrategy retryStrategy
+            IRetryStrategy retryStrategy,
+            IHttpClusterMapFactory httpClusterMapFactory
             )
         {
             _clusterContext = clusterContext ?? throw new ArgumentNullException(nameof(clusterContext));
@@ -56,18 +60,19 @@ namespace Couchbase.Core.DI
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
             _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
             _retryStrategy = retryStrategy ?? throw new ArgumentNullException(nameof(retryStrategy));
+            _httpClusterMapFactory = httpClusterMapFactory ?? throw new ArgumentNullException(nameof(httpClusterMapFactory));
         }
 
         /// <inheritdoc />
-        public BucketBase Create(string name, BucketType bucketType) =>
+        public BucketBase Create(string name, BucketType bucketType, BucketConfig config) =>
             bucketType switch
             {
                 BucketType.Couchbase =>
-                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger, _redactor, _bootstrapperFactory, _tracer, _operationConfigurator, _retryStrategy),
+                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger, _redactor, _bootstrapperFactory, _tracer, _operationConfigurator, _retryStrategy, config),
                 BucketType.Ephemeral =>
-                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger, _redactor, _bootstrapperFactory, _tracer, _operationConfigurator, _retryStrategy),
+                    new CouchbaseBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _vBucketKeyMapperFactory, _couchbaseLogger, _redactor, _bootstrapperFactory, _tracer, _operationConfigurator, _retryStrategy, config),
                 BucketType.Memcached =>
-                    new MemcachedBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _ketamaKeyMapperFactory, _memcachedLogger, _redactor, _bootstrapperFactory, _tracer, _operationConfigurator, _retryStrategy),
+                    new MemcachedBucket(name, _clusterContext, _scopeFactory, _retryOrchestrator, _ketamaKeyMapperFactory, _memcachedLogger, _redactor, _bootstrapperFactory, _tracer, _operationConfigurator, _retryStrategy, _httpClusterMapFactory, config),
                 _ => throw new ArgumentOutOfRangeException(nameof(bucketType), bucketType, null)
             };
     }

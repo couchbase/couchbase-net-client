@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Couchbase.Management.Collections;
 using Xunit;
+using Couchbase.Core.Configuration.Server;
 
 namespace Couchbase.UnitTests
 {
@@ -32,7 +33,8 @@ namespace Couchbase.UnitTests
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                new BucketConfig());
 
                 Assert.ThrowsAsync<ScopeNotFoundException>(async () => await bucket.ScopeAsync("doesnotexist"));
         }

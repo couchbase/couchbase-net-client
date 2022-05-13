@@ -10,6 +10,7 @@ using Couchbase.Analytics;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.CircuitBreakers;
+using Couchbase.Core.Configuration.Server;
 //using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -152,7 +153,7 @@ namespace Couchbase.UnitTests.Core.Retry
             var bucketMock = new Mock<BucketBase>("fake", new ClusterContext(), new Mock<Couchbase.Core.DI.IScopeFactory>().Object,
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance, new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(), new BucketConfig());
 
                 bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op1, CancellationTokenPair ct) =>
             {
@@ -259,7 +260,8 @@ namespace Couchbase.UnitTests.Core.Retry
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                new BucketConfig());
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
@@ -286,7 +288,8 @@ namespace Couchbase.UnitTests.Core.Retry
                 retryOrchestrator, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                 new Mock<IBootstrapperFactory>().Object, NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                new BucketConfig());
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
                 .Returns(Task.CompletedTask);
@@ -314,7 +317,8 @@ namespace Couchbase.UnitTests.Core.Retry
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy())
+                new BestEffortRetryStrategy(),
+                new BucketConfig())
             {
                 CallBase = true
             };

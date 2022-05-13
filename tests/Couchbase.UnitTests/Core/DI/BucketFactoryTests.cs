@@ -1,6 +1,8 @@
 using System;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
+using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Metrics;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -38,11 +40,12 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                new Mock<IHttpClusterMapFactory>().Object);
 
                 // Act
 
-            var result = bucketFactory.Create("bucket_name", bucketType);
+            var result = bucketFactory.Create("bucket_name", bucketType, new BucketConfig());
 
             // Assert
 
@@ -67,12 +70,13 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                new Mock<IHttpClusterMapFactory>().Object);
 
-                // Act/Assert
+            // Act/Assert
 
             var ex = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                bucketFactory.Create("bucket_name", (BucketType) 500));
+                bucketFactory.Create("bucket_name", (BucketType) 500, new BucketConfig()));
 
             Assert.Equal("bucketType", ex.ParamName);
         }

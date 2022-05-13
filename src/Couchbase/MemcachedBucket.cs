@@ -25,23 +25,25 @@ namespace Couchbase
     internal class MemcachedBucket : BucketBase
     {
         private readonly IKetamaKeyMapperFactory _ketamaKeyMapperFactory;
+        private readonly IHttpClusterMapFactory _httpClusterMapFactory;
         private readonly HttpClusterMapBase _httpClusterMap;
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy) :
+            ILogger<MemcachedBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, IHttpClusterMapFactory httpClusterMapFactory, BucketConfig config) :
             this(name, context, scopeFactory, retryOrchestrator, ketamaKeyMapperFactory, logger,
-                new HttpClusterMap(context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(), context), redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
+                httpClusterMapFactory, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy, config)
         {
         }
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
-            ILogger<MemcachedBucket> logger, HttpClusterMapBase httpClusterMap, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy)
-            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy)
+            ILogger<MemcachedBucket> logger, IHttpClusterMapFactory httpClusterMapFactory, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, BucketConfig config)
+            : base(name, context, scopeFactory, retryOrchestrator, logger, redactor, bootstrapperFactory, tracer, operationConfigurator, retryStrategy, config)
         {
             BucketType = BucketType.Memcached;
             Name = name;
             _ketamaKeyMapperFactory = ketamaKeyMapperFactory ?? throw new ArgumentNullException(nameof(ketamaKeyMapperFactory));
-            _httpClusterMap = httpClusterMap;
+            _httpClusterMapFactory = httpClusterMapFactory ?? throw new ArgumentNullException(nameof(httpClusterMapFactory));
+            _httpClusterMap = _httpClusterMapFactory.Create(Context);
         }
 
         public override IScope Scope(string scopeName)
@@ -105,12 +107,10 @@ namespace Couchbase
         {
             try
             {
-                //the initial bootstrapping endpoint;
-                await node.SelectBucketAsync(this).ConfigureAwait(false);
-
                 //fetch the cluster map to avoid race condition with streaming http
                 CurrentConfig = await _httpClusterMap.GetClusterMapAsync(
                     Name, node.EndPoint, CancellationToken.None).ConfigureAwait(false);
+
                 if (Context.ClusterOptions.HasNetworkResolution)
                 {
                     //Network resolution determined at the GCCCP level

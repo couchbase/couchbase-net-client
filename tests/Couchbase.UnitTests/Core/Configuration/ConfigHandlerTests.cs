@@ -246,7 +246,8 @@ namespace Couchbase.UnitTests.Core.Configuration
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
                     new Mock<IOperationConfigurator>().Object,
-                    new BestEffortRetryStrategy())
+                    new BestEffortRetryStrategy(),
+                    new Mock<BucketConfig>().Object)
                     {
                 _output = output;
                 _event = eventSlim;

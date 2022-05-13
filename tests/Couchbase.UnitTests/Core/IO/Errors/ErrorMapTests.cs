@@ -52,7 +52,6 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 new Mock<ISaslMechanismFactory>().Object,
                 new TypedRedactor(RedactionLevel.None),
                 new HostEndpointWithPort("127.0.0.1", 11210),
-                BucketType.Couchbase,
                 new NodeAdapter
                 {
                     Hostname = "127.0.0.1"
@@ -115,7 +114,6 @@ namespace Couchbase.UnitTests.Core.IO.Errors
                 new Mock<ISaslMechanismFactory>().Object,
                 new TypedRedactor(RedactionLevel.None),
                 new HostEndpointWithPort("127.0.0.1", 11210),
-                BucketType.Couchbase,
                 new NodeAdapter
                 {
                     Hostname = "127.0.0.1"

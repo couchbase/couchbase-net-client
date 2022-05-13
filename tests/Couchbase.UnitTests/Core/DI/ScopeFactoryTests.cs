@@ -88,7 +88,8 @@ namespace Couchbase.UnitTests.Core.DI
                 new Mock<IBootstrapperFactory>().Object,
                 NoopRequestTracer.Instance,
                 new Mock<IOperationConfigurator>().Object,
-                new BestEffortRetryStrategy());
+                new BestEffortRetryStrategy(),
+                new BucketConfig());
 
             mock.SetupGet(it => it.Name).Returns("default");
 

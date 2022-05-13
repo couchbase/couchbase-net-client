@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Diagnostics.Tracing.OrphanResponseReporting;
@@ -43,6 +44,8 @@ namespace Couchbase.Core
         protected readonly ConcurrentDictionary<string, BucketBase> Buckets = new();
         private bool _disposed;
         private readonly SemaphoreSlim _semaphore = new(1);
+        private readonly HttpClusterMapBase _httpClusterMap;
+        private readonly IHttpClusterMapFactory _httpClusterMapFactory;
 
         // Maintains a list of objects to be disposed when the context is disposed.
         private readonly List<IDisposable> _ownedObjects = new();
@@ -73,7 +76,9 @@ namespace Couchbase.Core
             _redactor = ServiceProvider.GetRequiredService<IRedactor>();
             _configHandler = ServiceProvider.GetRequiredService<IConfigHandler>();
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
-        }
+            _httpClusterMapFactory = ServiceProvider.GetRequiredService<IHttpClusterMapFactory>();
+            _httpClusterMap = _httpClusterMapFactory.Create(this);
+         }
 
         /// <summary>
         /// Nodes currently being managed.
@@ -221,7 +226,8 @@ namespace Couchbase.Core
 
                 foreach (var node1 in Nodes)
                 {
-                    _logger.LogDebug("Using node owned by {bucket} using revision {endpoint}", node1.Owner?.Name, node1.EndPoint);
+                    _logger.LogDebug("Using node owned by {bucket} using revision {endpoint}",
+                        _redactor.UserData(node1.Owner?.Name), _redactor.SystemData(node1.EndPoint));
                 }
 
                 throw new ServiceNotAvailableException(service);
@@ -285,10 +291,10 @@ namespace Couchbase.Core
             }
         }
 
-        public IClusterNode GetUnassignedNode(HostEndpointWithPort endpoint, BucketType bucketType)
+        public IClusterNode GetUnassignedNode(HostEndpointWithPort endpoint)
         {
             return Nodes.FirstOrDefault(
-                x => !x.IsAssigned && x.EndPoint.Equals(endpoint) && x.BucketType == bucketType);
+                x => !x.IsAssigned && x.EndPoint.Equals(endpoint));
         }
 
         public async Task BootstrapGlobalAsync()
@@ -328,9 +334,9 @@ namespace Couchbase.Core
                 IClusterNode node = null;
                 try
                 {
-                    _logger.LogDebug("Bootstrapping with node {server}", server.Host);
+                    _logger.LogDebug("Bootstrapping: global bootstrapping with node {server}", server.Host);
                     node = await _clusterNodeFactory
-                        .CreateAndConnectAsync(server, BucketType.Couchbase, CancellationToken)
+                        .CreateAndConnectAsync(server, CancellationToken)
                         .ConfigureAwait(false);
 
                     GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
@@ -356,7 +362,9 @@ namespace Couchbase.Core
                 catch (Exception e)
                 {
                     //something else failed, try the next hostname
-                    _logger.LogDebug(e, "Attempted bootstrapping on endpoint {endpoint} has failed.", server.Host);
+                    _logger.LogDebug(e, "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
+                        server.Host);
+
                     continue;
                 }
 
@@ -373,16 +381,20 @@ namespace Couchbase.Core
                         var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
                         if (server.Equals(hostEndpoint)) //this is the bootstrap node so update
                         {
-                            _logger.LogInformation("Initializing bootstrap node [{node}].", hostEndpoint.ToString());
+                            _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
+                                _redactor.SystemData(hostEndpoint.ToString()));
+
                             node.NodesAdapter = nodeAdapter;
                             SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                             AddNode(node);
                         }
                         else
                         {
-                            _logger.LogInformation("Initializing a non-bootstrap node [{node}]", hostEndpoint.ToString());
+                            _logger.LogInformation("Bootstrapping: initializing a global non-bootstrap node [{node}]",
+                                _redactor.SystemData(hostEndpoint.ToString()));
+
                             var newNode = await _clusterNodeFactory
-                                .CreateAndConnectAsync(hostEndpoint, BucketType.Couchbase, nodeAdapter,
+                                .CreateAndConnectAsync(hostEndpoint, nodeAdapter,
                                     CancellationToken).ConfigureAwait(false);
                             SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                             AddNode(newNode);
@@ -392,7 +404,8 @@ namespace Couchbase.Core
                 }
                 catch (Exception e)
                 {
-                    _logger.LogDebug(e, "Attempted bootstrapping on endpoint {endpoint} has failed.", server);
+                    _logger.LogDebug(e, "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
+                        _redactor.MetaData(server));
                 }
             }
         }
@@ -416,26 +429,23 @@ namespace Couchbase.Core
 
                 foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
                 {
-                    foreach (var type in Enum.GetValues(typeof(BucketType)))
+                    try
                     {
-                        try
-                        {
-                            bucket = await CreateAndBootStrapBucketAsync(name, server, (BucketType)type)
-                                .ConfigureAwait(false);
+                        bucket = await CreateAndBootStrapBucketAsync(name, server)
+                            .ConfigureAwait(false);
 
-                            if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
-                                return bucket;
-                        }
-                        catch (RateLimitedException)
-                        {
-                            throw;
-                        }
-                        catch (Exception e)
-                        {
-                            _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
-                                "Cannot bootstrap bucket {name} as {type}.", name, type);
-                            lastException = e;
-                        }
+                        if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
+                            return bucket;
+                    }
+                    catch (RateLimitedException)
+                    {
+                        throw;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
+                            "Bootstrapping: cannot bootstrap bucket {name}.", name);
+                        lastException = e;
                     }
                 }
             }
@@ -451,29 +461,61 @@ namespace Couchbase.Core
             throw new BucketNotFoundException(name);
         }
 
-        public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint, BucketType type)
+        public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint)
         {
-            var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
-            var bucket = bucketFactory.Create(name, type);
-
-            var node = GetUnassignedNode(endpoint, type);
+            BucketBase bucket;
+            var node = GetUnassignedNode(endpoint);
             if (node == null)
             {
-                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, type, CancellationToken).ConfigureAwait(false);
-                node.Owner = bucket;
+                node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
                 AddNode(node);
             }
+
+            BucketConfig config;
+            try
+            {
+                //The bucket must be selected so that a bucket specific config is returned
+                await node.SelectBucketAsync(name).ConfigureAwait(false);
+
+                _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
+                    _redactor.MetaData(name));
+
+               //First try CCCP to fetch the config
+               config = await node.GetClusterMap().ConfigureAwait(false);
+            }
+            catch (DocumentNotFoundException)
+            {
+                _logger.LogInformation("Bootstrapping: switching to HTTP Streaming for bucket {name}.",
+                    _redactor.MetaData(name));
+
+                //In this case CCCP has failed for whatever reason
+                //We need to now try HTTP Streaming for config fetching
+                config = await _httpClusterMap.GetClusterMapAsync(
+                    name, node.EndPoint, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            //Determine the bucket type to create based off the bucket capabilities
+            var type = config.BucketCapabilities.Contains("cccp") ? BucketType.Couchbase : BucketType.Memcached;
+            var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
+            bucket = bucketFactory.Create(name, type, config);
+
+            _logger.LogInformation("Bootstrapping: created a {bucketType} bucket for {name}.",
+                type.GetDescription(), _redactor.MetaData(name));
 
             try
             {
                 await bucket.BootstrapAsync(node).ConfigureAwait(false);
-
                 if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
+                {
                     RegisterBucket(bucket);
+                }
+                node.Owner = bucket;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                _logger.LogError(e, "Could not bootstrap bucket {name}.", _redactor.MetaData(name));
+                _logger.LogError(e, "Bootstrapping: could not bootstrap bucket {name}.",
+                    _redactor.MetaData(name));
+
                 RemoveAllNodes(bucket);
                 UnRegisterBucket(bucket);
                 await bucket.DisposeAsync().ConfigureAwait(false);
@@ -500,10 +542,10 @@ namespace Couchbase.Core
                 foreach (var endpoint in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
                     .EnableTls))
                 {
-                    var node = GetUnassignedNode(endpoint, BucketType.Couchbase);
+                    var node = GetUnassignedNode(endpoint);
                     if (node == null)
                     {
-                        node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, BucketType.Couchbase, CancellationToken)
+                        node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken)
                             .ConfigureAwait(false);
                         AddNode(node);
                     }
@@ -545,7 +587,7 @@ namespace Couchbase.Core
 
                         if (bootstrapNode.HasKv)
                         {
-                            await bootstrapNode.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
+                            await bootstrapNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                             await bootstrapNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = bootstrapNode.ServerFeatures.PreserveTtl;
                         }
@@ -575,17 +617,15 @@ namespace Couchbase.Core
                 _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
                     _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
-                var bucketType = config.NodeLocator == "ketama" ? BucketType.Memcached : BucketType.Couchbase;
                 var node = await _clusterNodeFactory.CreateAndConnectAsync(
                     // We want the BootstrapEndpoint to use the host name, not just the IP
                     new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port),
-                    bucketType,
                     nodeAdapter,
                     CancellationToken).ConfigureAwait(false);
 
                 if (node.HasKv)
                 {
-                    await node.SelectBucketAsync(bucket, CancellationToken).ConfigureAwait(false);
+                    await node.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                     await node.HelloHello().ConfigureAwait(false);
                     SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
                 }

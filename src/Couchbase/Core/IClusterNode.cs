@@ -57,9 +57,9 @@ namespace Couchbase.Core
         /// <summary>
         /// Selects the <see cref="IBucket"/> this <see cref="ClusterNode" /> is associated to.
         /// </summary>
-        /// <param name="bucket">The <see cref="IBucket"/>.</param>
+        /// <param name="bucketName">The bucket's name.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        Task SelectBucketAsync(IBucket bucket, CancellationToken cancellationToken = default);
+        Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default);
 
         Task<BucketConfig> GetClusterMap();
 

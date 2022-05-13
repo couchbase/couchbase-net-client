@@ -99,7 +99,6 @@ namespace Couchbase.UnitTests.Core
                 new Mock<ISaslMechanismFactory>().Object,
                 new TypedRedactor(RedactionLevel.None),
                 new HostEndpointWithPort(hostname, port),
-                BucketType.Couchbase,
                 new NodeAdapter
                 {
                     Hostname = hostname,
@@ -136,7 +135,7 @@ namespace Couchbase.UnitTests.Core
         {
             var options = new ClusterOptions().WithConnectionString("couchbases://localhost1,localhost2");
             var mockNodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Strict);
-            mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<BucketType>(), It.IsAny<CancellationToken>()))
+            mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
                 .Throws(new AuthenticationFailureException());
             options.AddClusterService(mockNodeFactory.Object);
             using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);

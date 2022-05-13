@@ -54,7 +54,7 @@ namespace Couchbase.Core
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
-            TypedRedactor redactor, HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter nodeAdapter, IRequestTracer tracer)
+            TypedRedactor redactor, HostEndpointWithPort endPoint, NodeAdapter nodeAdapter, IRequestTracer tracer)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -64,7 +64,6 @@ namespace Couchbase.Core
             _saslMechanismFactory = saslMechanismFactory ?? throw new ArgumentException(nameof(saslMechanismFactory));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
-            BucketType = bucketType;
             EndPoint = endPoint;
 
             try
@@ -124,7 +123,7 @@ namespace Couchbase.Core
         }
 
         public HostEndpointWithPort EndPoint { get; }
-        public BucketType BucketType { get; internal set; } = BucketType.Memcached;
+        public BucketType BucketType { get; internal set; }
 
         /// <inheritdoc />
         public IReadOnlyCollection<HostEndpointWithPort> KeyEndPoints { get; }
@@ -355,11 +354,9 @@ namespace Couchbase.Core
             return manifestOp.GetValue();
         }
 
-        public async Task SelectBucketAsync(IBucket bucket, CancellationToken cancellationToken = default)
+        public async Task SelectBucketAsync(string bucketName, CancellationToken cancellationToken = default)
         {
-            await ConnectionPool.SelectBucketAsync(bucket.Name, cancellationToken).ConfigureAwait(false);
-
-            Owner = bucket;
+            await ConnectionPool.SelectBucketAsync(bucketName, cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<BucketConfig> GetClusterMap()

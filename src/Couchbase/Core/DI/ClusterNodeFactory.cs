@@ -49,16 +49,16 @@ namespace Couchbase.Core.DI
         }
 
         /// <inheritdoc />
-        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, BucketType bucketType, CancellationToken cancellationToken = default)
+        public Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, CancellationToken cancellationToken = default)
         {
-            return CreateAndConnectAsync(endPoint, bucketType, null, cancellationToken);
+            return CreateAndConnectAsync(endPoint, null, cancellationToken);
         }
 
         /// <inheritdoc />
-        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, BucketType bucketType, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
+        public async Task<IClusterNode> CreateAndConnectAsync(HostEndpointWithPort endPoint, NodeAdapter? nodeAdapter, CancellationToken cancellationToken = default)
         {
             var clusterNode = new ClusterNode(_clusterContext, _connectionPoolFactory, _logger,
-                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, endPoint, bucketType,
+                _operationBuilderPool, _circuitBreaker, _saslMechanismFactory, _redactor, endPoint,
                 nodeAdapter, _tracer);
 
             //ensure server calls are made to set the state
