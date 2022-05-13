@@ -5,6 +5,10 @@ namespace Couchbase.Core.Exceptions
         public InvalidArgumentException(string message) : base(message)
         {
         }
+        public InvalidArgumentException(string message, System.Exception innerException) : base(message, innerException)
+        {
+        }
+
         public InvalidArgumentException() {}
     }
 }

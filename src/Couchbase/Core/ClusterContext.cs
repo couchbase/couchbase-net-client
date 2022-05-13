@@ -469,6 +469,20 @@ namespace Couchbase.Core
                         _logger.LogInformation(LoggingEvents.BootstrapEvent, e,
                             "Bootstrapping: cannot bootstrap bucket {name}.", name);
                         lastException = e;
+                        if (e is System.Security.Authentication.AuthenticationException authException
+                            && authException.Message.Contains("certificate"))
+                        {
+                            if (_clusterOptions.EffectiveEnableTls
+                                && !_clusterOptions.KvIgnoreRemoteCertificateNameMismatch
+                                && _clusterOptions.KvCertificateCallbackValidation == null
+                                && !_clusterOptions.IsCapella)
+                            {
+                                throw new Exceptions.InvalidArgumentException("When TLS is enabled, the cluster environment's security config must specify" +
+                                          $" the {nameof(ClusterOptions.KvCertificateCallbackValidation)}" +
+                                          $" or use {nameof(ClusterOptions.KvIgnoreRemoteCertificateNameMismatch)}" +
+                                          " (Unless connecting to cloud.couchbase.com.)", authException);
+                            }
+                        }
                     }
                 }
             }
