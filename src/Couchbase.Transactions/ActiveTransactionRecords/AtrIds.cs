@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Text;
-using Force.Crc32;
+using Couchbase.Core.Sharding;
 
 namespace Couchbase.Transactions.ActiveTransactionRecords
 {
@@ -16,7 +15,9 @@ namespace Couchbase.Transactions.ActiveTransactionRecords
         public const int MAX_ATR_BLOCKS = 20;
         public const int MAX_ATRS = 1024 * MAX_ATR_BLOCKS;
         private const int VBucketPartitionCount = 1024;
-        private static readonly IReadOnlyList<string> AllAtrIds = new List<string>
+        private static readonly short VBucketMask = VBucketMapper.GetMask(VBucketPartitionCount);
+
+        private static readonly List<string> AllAtrIds = new()
         {
             "_txn:atr-0-#14",
             "_txn:atr-1-#10b6",
@@ -1047,8 +1048,7 @@ namespace Couchbase.Transactions.ActiveTransactionRecords
 
         public static string GetAtrId(string key)
         {
-            var vBucketId = GetVBucketId(key);
-            return AllAtrIds[vBucketId];
+            return GetAtrId(GetVBucketId(key));
         }
 
         public static string GetAtrId(int vBucketId)
@@ -1056,12 +1056,7 @@ namespace Couchbase.Transactions.ActiveTransactionRecords
             return AllAtrIds[vBucketId];
         }
 
-        public static int GetVBucketId(string key)
-        {
-            var bytes = Encoding.UTF8.GetBytes(key);
-            long rv = (Crc32Algorithm.Compute(bytes) >> 16) & 0x7fff;
-            return (int)rv & VBucketPartitionCount - 1;
-        }
+        public static int GetVBucketId(string key) => VBucketMapper.GetVBucketId(key, VBucketMask);
 
         public static IEnumerable<string> Nth(int startIndex, int n)
         {

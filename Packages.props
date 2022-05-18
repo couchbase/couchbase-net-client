@@ -26,7 +26,6 @@
     <PackageReference Update="System.Threading.Channels" Version="5.0.0" />
     <PackageReference Update="System.Threading.Tasks.Dataflow" Version="5.0.0" />
     <PackageReference Update="System.Diagnostics.DiagnosticSource" Version="6.0.0" />
-    <PackageReference Update="Crc32.NET" Version="1.2.0" />
   </ItemGroup>
 
   <!-- Dependencies only allowed for .NET Standard 2.0 -->

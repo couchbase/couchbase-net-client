@@ -41,9 +41,6 @@
   <ItemGroup Condition="'$(UseNugetForCouchbaseNetClient)' == 'true'">
     <PackageReference Include="CouchbaseNetClient" Version="3.2.*" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Crc32.NET" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(UseNugetForCouchbaseNetClient)' != 'true'">
     <ProjectReference Include="..\Couchbase\Couchbase.csproj" />

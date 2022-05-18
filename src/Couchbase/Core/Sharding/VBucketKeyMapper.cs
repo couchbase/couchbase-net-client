@@ -49,7 +49,9 @@ namespace Couchbase.Core.Sharding
             _bucketName = config.Name;
             _vBuckets = CreateVBucketMap();
             _vForwardBuckets = CreateVBucketMapForwards();
-            _mask =  (short) (_vBuckets.Count - 1);
+
+            // Cache the mask for reuse as an optimization
+            _mask = VBucketMapper.GetMask(_vBuckets.Count);
         }
 
         /// <summary>
@@ -91,21 +93,7 @@ namespace Couchbase.Core.Sharding
             return _vForwardBuckets.Count > 0;
         }
 
-        [SkipLocalsInit] // Avoid unnecessary cost of zero-filling keyBytes in Span scenario
-        public short GetIndex(string key)
-        {
-#if !SPAN_SUPPORT
-            var keyBytes = Encoding.UTF8.GetBytes(key);
-#else
-            Span<byte> keyBytes = stackalloc byte[OperationHeader.MaxKeyLength];
-            var bytes = Encoding.UTF8.GetBytes(key.AsSpan(), keyBytes);
-            keyBytes = keyBytes.Slice(0, bytes);
-#endif
-
-            var hash = Crc32.ComputeHash(keyBytes);
-
-            return (short) (hash & _mask);
-        }
+        public short GetIndex(string key) => VBucketMapper.GetVBucketId(key, _mask);
 
         /// <summary>
         /// Creates a mapping of VBuckets to nodes.
