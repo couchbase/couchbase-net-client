@@ -161,8 +161,7 @@ namespace Couchbase
 
         public ValueTask<IBucket> BucketAsync(string name)
         {
-            var cluster = this as IBootstrappable;
-            if (cluster.IsBootstrapped)
+            if (IsBootstrapped)
             {
                 if (_hasBootStrapped)
                 {
@@ -174,20 +173,25 @@ namespace Couchbase
                     return _context.GetOrCreateBucketAsync(name);
                 }
 
-                return new ValueTask<IBucket>(Task.Run(async () =>
-                {
-                    var bucket = await _context.GetOrCreateBucketAsync(name).ConfigureAwait(false);
-                    _hasBootStrapped = true; //for legacy pre-6.5 servers
-                    return bucket;
-                }));
+                return new ValueTask<IBucket>(GetOrCreateBucketAsync(name));
             }
 
-            var message = cluster.DeferredExceptions.Any()
+            var message = _deferredExceptions.Count > 0
                 ? "Cluster has not yet bootstrapped. Call WaitUntilReadyAsync(..) to wait for it to complete."
                 : "The Cluster cannot bootstrap. Check the client the inner exception for details.";
 
             return new ValueTask<IBucket>(
-                Task.FromException<IBucket>(new AggregateException(message, cluster.DeferredExceptions)));
+                Task.FromException<IBucket>(new AggregateException(message, _deferredExceptions)));
+        }
+
+        private async Task<IBucket> GetOrCreateBucketAsync(string name)
+        {
+            // This is a separate method rather than a lambda within BucketAsync to prevent allocating
+            // a closure in the hot path where we are already bootstrapped.
+
+            var bucket = await _context.GetOrCreateBucketAsync(name).ConfigureAwait(false);
+            _hasBootStrapped = true; //for legacy pre-6.5 servers
+            return bucket;
         }
 
         #endregion
@@ -463,7 +467,8 @@ namespace Couchbase
             }
         }
 
-        bool IBootstrappable.IsBootstrapped => !_deferredExceptions.Any();
+        private bool IsBootstrapped => _deferredExceptions.Count == 0;
+        bool IBootstrappable.IsBootstrapped => IsBootstrapped;
 
         List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;
 

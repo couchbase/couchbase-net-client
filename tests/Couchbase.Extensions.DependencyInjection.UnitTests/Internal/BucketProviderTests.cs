@@ -116,6 +116,47 @@ namespace Couchbase.Extensions.DependencyInjection.UnitTests.Internal
             cluster.Verify(m => m.BucketAsync("bucket1"), Times.Once);
         }
 
+        [Fact]
+        public async Task GetBucket_FirstTimeFails_OpensAgain()
+        {
+            // Arrange
+
+            var bucket1 = new Mock<IBucket>();
+
+            var cluster = new Mock<ICluster>();
+            cluster
+                .SetupSequence(m => m.BucketAsync("bucket1"))
+                .Returns(() => new ValueTask<IBucket>(Task.Run(async Task<IBucket> () =>
+                {
+                    await Task.Delay(10);
+
+                    throw new InvalidOperationException("test");
+                })))
+                .ReturnsAsync(bucket1.Object);
+
+            var clusterProvider = new Mock<IClusterProvider>();
+            clusterProvider
+                .Setup(m => m.GetClusterAsync())
+                .ReturnsAsync(cluster.Object);
+
+            var provider = new BucketProvider(clusterProvider.Object);
+
+            var firstEx = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            {
+                return provider.GetBucketAsync("bucket1").AsTask();
+            });
+            Assert.Equal("test", firstEx.Message);
+
+            // Act
+
+            var result = await provider.GetBucketAsync("bucket1");
+
+            // Assert
+
+            Assert.Equal(bucket1.Object, result);
+            cluster.Verify(m => m.BucketAsync("bucket1"), Times.Exactly(2));
+        }
+
         #endregion
 
         #region Dispose
