@@ -498,6 +498,7 @@ namespace Couchbase.Core
             var type = config.BucketCapabilities.Contains("cccp") ? BucketType.Couchbase : BucketType.Memcached;
             var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
             bucket = bucketFactory.Create(name, type, config);
+            node.Owner = bucket;
 
             _logger.LogInformation("Bootstrapping: created a {bucketType} bucket for {name}.",
                 type.GetDescription(), _redactor.MetaData(name));
@@ -509,7 +510,6 @@ namespace Couchbase.Core
                 {
                     RegisterBucket(bucket);
                 }
-                node.Owner = bucket;
             }
             catch (Exception e)
             {
