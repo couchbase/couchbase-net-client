@@ -40,7 +40,7 @@ namespace Couchbase.Core.Exceptions.Query
         public string? Message { get; set; }
 
         public override string ToString() =>
-            JsonSerializer.Serialize(this, InternalSerializationContext.Default.QueryErrorContext);
+            InternalSerializationContext.Default.SerializeWithFallback(this, InternalSerializationContext.Default.QueryErrorContext);
 
         #region IKeyValueErrorContext
 

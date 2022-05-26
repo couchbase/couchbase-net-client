@@ -33,5 +33,50 @@ namespace Couchbase.Core
     [JsonSerializable(typeof(Exceptions.View.ViewContextError))]
     internal partial class InternalSerializationContext : JsonSerializerContext
     {
+#nullable enable
+        public string SerializeWithFallback<TValue>(TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
+        {
+            try
+            {
+                return System.Text.Json.JsonSerializer.Serialize<TValue>(value, jsonTypeInfo);
+            }
+            catch (NotSupportedException)
+            {
+                try
+                {
+                    using var memoryStream = new System.IO.MemoryStream();
+                    Couchbase.Core.IO.Serializers.DefaultSerializer.Instance.Serialize(memoryStream, value);
+                    return System.Text.Encoding.UTF8.GetString(memoryStream.GetBuffer(), 0, (int)memoryStream.Length);
+                }
+                catch (Exception)
+                {
+                    // do nothing.  Re-throw the original exception.
+                }
+
+                throw;
+            }
+        }
+
+        public void SerializeWithFallback<TValue>(System.IO.Stream stream, TValue value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> jsonTypeInfo)
+        {
+            try
+            {
+                System.Text.Json.JsonSerializer.Serialize<TValue>(stream, value, jsonTypeInfo);
+            }
+            catch (NotSupportedException)
+            {
+                try
+                {
+                    Couchbase.Core.IO.Serializers.DefaultSerializer.Instance.Serialize(stream, value);
+                    return;
+                }
+                catch (Exception)
+                {
+                    // do nothing.  Re-throw the original exception.
+                }
+
+                throw;
+            }
+        }
     }
 }

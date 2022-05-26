@@ -815,7 +815,7 @@ namespace Couchbase.Query
         {
             var formValues = CreateDto(Serializer ?? DefaultSerializer.Instance);
 
-            return JsonSerializer.Serialize(formValues, InternalSerializationContext.Default.QueryOptionsDto);
+            return InternalSerializationContext.Default.SerializeWithFallback(formValues, InternalSerializationContext.Default.QueryOptionsDto);
         }
 
         /// <summary>
@@ -829,7 +829,7 @@ namespace Couchbase.Query
             var stream = new MemoryStream(1024);
             try
             {
-                JsonSerializer.Serialize(stream, formValues, InternalSerializationContext.Default.QueryOptionsDto);
+                InternalSerializationContext.Default.SerializeWithFallback(stream, formValues, InternalSerializationContext.Default.QueryOptionsDto);
                 stream.Position = 0;
 
                 return new StreamContent(stream)

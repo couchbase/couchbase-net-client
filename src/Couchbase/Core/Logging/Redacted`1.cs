@@ -88,7 +88,7 @@ namespace Couchbase.Core.Logging
         {
             // Span<char>.TryWrite uses a stack allocated string interpolation handler, so it's formatting to the span without heap allocation
             return _redactionType != null
-                ? destination.TryWrite(provider, $"<{_redactionType}>{_value}</{_redactionType}", out charsWritten)
+                ? destination.TryWrite(provider, $"<{_redactionType}>{_value}</{_redactionType}>", out charsWritten)
                 : destination.TryWrite(provider, $"{_value}", out charsWritten);
         }
 #endif

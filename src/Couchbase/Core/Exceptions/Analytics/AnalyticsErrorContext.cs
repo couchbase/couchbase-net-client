@@ -23,7 +23,7 @@ namespace Couchbase.Core.Exceptions.Analytics
         public List<Error> Errors { get; internal set; }
 
         public override string ToString() =>
-            JsonSerializer.Serialize(this, InternalSerializationContext.Default.AnalyticsErrorContext);
+            InternalSerializationContext.Default.SerializeWithFallback(this, InternalSerializationContext.Default.AnalyticsErrorContext);
     }
 }
 

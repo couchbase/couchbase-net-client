@@ -49,5 +49,19 @@ namespace Couchbase.UnitTests.Core.Logging
             Assert.Equal("<md>meta</md>", redactor.MetaData("meta").ToString());
             Assert.Equal("<sd>system</sd>", redactor.SystemData("system").ToString());
         }
+
+        [Fact]
+        public void SpanFormattable_Redacts_Properly()
+        {
+            var options = new ClusterOptions
+            {
+                RedactionLevel = RedactionLevel.Full
+            };
+
+            var redactor = new TypedRedactor(options);
+            var spanFormattable = new HostEndpointWithPort("localhost", 8675309);
+            var asString = $"{redactor.UserData(spanFormattable)} is formatted";
+            Assert.Contains("</ud>", asString);
+        }
     }
 }
