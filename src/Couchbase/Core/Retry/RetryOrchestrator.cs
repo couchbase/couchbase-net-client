@@ -176,8 +176,6 @@ namespace Couchbase.Core.Retry
                             MetricTracker.KeyValue.TrackRetry(operation.OpCode);
                         }
 
-                        operation.Attempts++;
-
                         try
                         {
                             await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
@@ -214,6 +212,7 @@ namespace Couchbase.Core.Retry
                             {
                                 operation.Reset();
                             }
+                            operation.IncrementAttempts(reason);
 
                             continue;
                         }
@@ -227,6 +226,7 @@ namespace Couchbase.Core.Retry
 
                             // Reset first so operation is not marked as sent if canceled during the delay
                             operation.Reset();
+                            operation.IncrementAttempts(reason);
 
                             await Task.Delay(action.DurationValue.GetValueOrDefault(), tokenPair)
                                 .ConfigureAwait(false);
@@ -252,7 +252,8 @@ namespace Couchbase.Core.Retry
                     ScopeName = operation.SName,
                     OpCode = operation.OpCode,
                     DispatchedFrom = operation.LastDispatchedFrom,
-                    DispatchedTo = operation.LastDispatchedTo
+                    DispatchedTo = operation.LastDispatchedTo,
+                    RetryReasons = operation.RetryReasons
                 });
             }
         }

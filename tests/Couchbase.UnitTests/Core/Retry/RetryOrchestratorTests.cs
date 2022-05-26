@@ -161,10 +161,10 @@ namespace Couchbase.UnitTests.Core.Retry
                     Assert.True(false, "operation result should be reset before retry");
 
                 // complete the operation if circuit breaker is not open (ResponseStatus does not matter for this test)
-                if (exp.GetType() != typeof(CircuitBreakerException) || op.Attempts != 1)
+                if (exp.GetType() != typeof(CircuitBreakerException) || op.Attempts != 0)
                     op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.TemporaryFailure));
 
-                if (op1.Attempts == 1)
+                if (op1.Attempts == 0)
                 {
                     throw exp;
                 }
@@ -181,7 +181,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 var msg = ex.Message;
                 Assert.True(false, "Expected operation to succeed after retry");
             }
-            Assert.True(op.Attempts > 1);
+            Assert.True(op.Attempts > 0);
         }
 
         [Theory(Skip = "test race condition needs debugging NCBC-2935")]
@@ -202,7 +202,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var exception = new OperationCanceledException();
 
-            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 1)
+            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 0)
                 .ConfigureAwait(false);
         }
 
@@ -218,7 +218,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             using var cts = new CancellationTokenSource(5000);
 
-            await AssertRetryAsync<OperationCanceledException>(operation, exception, minAttempts: 1,
+            await AssertRetryAsync<OperationCanceledException>(operation, exception, minAttempts: 0,
                 externalCancellationToken: cts.Token).ConfigureAwait(false);
         }
 
@@ -233,7 +233,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var exception = new OperationCanceledException();
 
-            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 1).ConfigureAwait(false);
+            await AssertRetryAsync<UnambiguousTimeoutException>(operation, exception, minAttempts: 0).ConfigureAwait(false);
         }
 
         [Fact]
@@ -247,7 +247,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             var exception = new OperationCanceledException();
 
-            await AssertRetryAsync<AmbiguousTimeoutException>(operation, exception, minAttempts: 1).ConfigureAwait(false);
+            await AssertRetryAsync<AmbiguousTimeoutException>(operation, exception, minAttempts: 0).ConfigureAwait(false);
         }
 
         private static async Task AssertRetryAsync<TExpected>(IOperation op, Exception exp, int minAttempts = 2,
@@ -298,7 +298,7 @@ namespace Couchbase.UnitTests.Core.Retry
 
             await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(false);
 
-            Assert.Equal(1u, op.Attempts);
+            Assert.Equal(0u, op.Attempts);
         }
 
         [Theory]
@@ -343,7 +343,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 }
             }
 
-            Assert.True(op.Attempts == 1);
+            Assert.True(op.Attempts == 0);
         }
 
         [Fact(Skip = "Test incomplete")]

@@ -6,6 +6,7 @@ using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
+using Couchbase.Core.Retry;
 using Couchbase.Query;
 
 #nullable enable
@@ -42,12 +43,14 @@ namespace Couchbase.Core.Exceptions.Query
         public override string ToString() =>
             InternalSerializationContext.Default.SerializeWithFallback(this, InternalSerializationContext.Default.QueryErrorContext);
 
+        public List<RetryReason>? RetryReasons { get; internal set; }
+
         #region IKeyValueErrorContext
 
         /*
          * Note that in order for KV exceptions like DocumentNotFoundException and DocumentExistsException
          * we need to coerce the treatment of the error context as they are very different from the KV
-         * context which is Bucket/Scope/Collection level to Query context which is cluter level. Now
+         * context which is Bucket/Scope/Collection level to Query context which is cluster level. Now
          * that Query throws KV exceptions this allows to do this in a non backward breaking manner.
          */
 

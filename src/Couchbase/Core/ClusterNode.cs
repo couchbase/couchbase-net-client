@@ -572,7 +572,8 @@ namespace Couchbase.Core
                         Status = status,
                         OpCode = op.OpCode,
                         DispatchedFrom = _localHostName,
-                        DispatchedTo = _remoteHostName
+                        DispatchedTo = _remoteHostName,
+                        RetryReasons = op.RetryReasons
                     };
                     throw status.CreateException(ctx, op);
                 }
@@ -603,7 +604,8 @@ namespace Couchbase.Core
                         ScopeName = op.SName,
                         OpCode = op.OpCode,
                         DispatchedFrom = op.LastDispatchedFrom,
-                        DispatchedTo = op.LastDispatchedTo
+                        DispatchedTo = op.LastDispatchedTo,
+                        RetryReasons = op.RetryReasons
                     });
                 }
 

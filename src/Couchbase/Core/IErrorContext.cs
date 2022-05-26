@@ -1,8 +1,13 @@
+using Couchbase.Core.Retry;
+using System.Collections.Generic;
+
 namespace Couchbase.Core
 {
     public interface IErrorContext
     {
         string Message { get; }
+
+        public List<RetryReason> RetryReasons { get; }
     }
 }
 

@@ -2,25 +2,30 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Couchbase.Core.Retry;
 using Couchbase.Query;
+
+#nullable enable
 
 namespace Couchbase.Core.Exceptions.Analytics
 {
     /// <remarks>Uncommitted</remarks>
     public class AnalyticsErrorContext : IErrorContext
     {
-        public string Statement { get; internal set; }
+        public string? Statement { get; internal set; }
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public HttpStatusCode HttpStatus { get; internal set; }
 
-        public string ClientContextId { get; internal set; }
+        public string? ClientContextId { get; internal set; }
 
-        public string Message { get; internal set; }
+        public string? Message { get; internal set; }
 
-        public string Parameters { get; internal set; }
+        public string? Parameters { get; internal set; }
 
-        public List<Error> Errors { get; internal set; }
+        public List<Error>? Errors { get; internal set; }
+
+        public List<RetryReason>? RetryReasons { get; internal set; }
 
         public override string ToString() =>
             InternalSerializationContext.Default.SerializeWithFallback(this, InternalSerializationContext.Default.AnalyticsErrorContext);

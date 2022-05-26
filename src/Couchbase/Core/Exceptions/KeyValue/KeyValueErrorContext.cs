@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers.SystemTextJson;
+using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -35,6 +37,8 @@ namespace Couchbase.Core.Exceptions.KeyValue
 
         [JsonConverter(typeof(CamelCaseStringEnumConverter))]
         public OpCode OpCode { get; set; }
+
+        public List<RetryReason>? RetryReasons { get; internal set; }
 
         public override string ToString() =>
             JsonSerializer.Serialize(this, InternalSerializationContext.Default.KeyValueErrorContext);

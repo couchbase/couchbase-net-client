@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Compatibility;
+using Couchbase.Core.Retry;
 
 #nullable enable
 
@@ -25,6 +27,8 @@ namespace Couchbase.Core.Exceptions.View
         public string? Message { get; set; }
 
         public string? Errors { get; set; }
+
+        public List<RetryReason>? RetryReasons { get; internal set; }
 
         public override string ToString() =>
             JsonSerializer.Serialize(this, InternalSerializationContext.Default.ViewContextError);

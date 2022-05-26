@@ -24,7 +24,6 @@ namespace Couchbase.Core.Retry
 
         public TimeSpan CalculateBackoff(IRequest request)
         {
-            int power = (int)Math.Min(request.Attempts + 2, 30);
             int multiplier = (int)Math.Pow(2, Math.Min(request.Attempts+2, 30));
 
             var thisDelay = (int)(_delayMillis * (multiplier - 1) / 2);

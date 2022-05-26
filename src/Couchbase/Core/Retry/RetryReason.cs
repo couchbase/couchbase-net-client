@@ -1,7 +1,11 @@
+using Couchbase.Core.Compatibility;
 using System;
+using System.Text.Json.Serialization;
 
 namespace Couchbase.Core.Retry
 {
+    [InterfaceStability(Level.Volatile)]
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum RetryReason
     {
         NoRetry = -1,
