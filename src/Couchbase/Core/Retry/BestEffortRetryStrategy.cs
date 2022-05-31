@@ -14,7 +14,7 @@ namespace Couchbase.Core.Retry
             _backoffCalculator = calculator;
         }
 
-        public RetryAction RetryAfter(IRequest request, RetryReason reason)
+        public virtual RetryAction RetryAfter(IRequest request, RetryReason reason)
         {
             if (reason == RetryReason.NoRetry)
             {
