@@ -49,7 +49,7 @@ namespace Couchbase.IntegrationTests.Management
 
                 using var cts = new CancellationTokenSource(10000);
 
-                await cluster.QueryIndexes.WatchIndexesAsync(bucketName, new[] {indexName},
+                await cluster.QueryIndexes.WatchIndexesAsync(bucketName, new[] { indexName },
                     options => { options.CancellationToken(cts.Token); }).ConfigureAwait(false);
 
                 var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucketName);
@@ -90,7 +90,7 @@ namespace Couchbase.IntegrationTests.Management
                 const string indexName = "indexmgr_test_collection";
                 try
                 {
-                    await cluster.QueryIndexes.CreateIndexAsync(bucketName, indexName, new[] {"type"}, options =>
+                    await cluster.QueryIndexes.CreateIndexAsync(bucketName, indexName, new[] { "type" }, options =>
                         {
                             options.ScopeNameValue = scopeName;
                             options.CollectionNameValue = collectionName;
@@ -112,7 +112,7 @@ namespace Couchbase.IntegrationTests.Management
 
                     using var cts = new CancellationTokenSource(10000);
 
-                    await cluster.QueryIndexes.WatchIndexesAsync(bucketName, new[] {indexName},
+                    await cluster.QueryIndexes.WatchIndexesAsync(bucketName, new[] { indexName },
                         options =>
                         {
                             options.CancellationToken(cts.Token);
@@ -183,6 +183,55 @@ namespace Couchbase.IntegrationTests.Management
                    options.CollectionName("_default");
                }).ConfigureAwait(false);
             Assert.Single(allIndexes);
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "7.0.0")]
+        public async Task CreateIndexWithMissingField()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+            var bucket = await _fixture.GetDefaultBucket();
+            var indexManager = cluster.QueryIndexes;
+
+            const string indexName = "idxCreateIndexWithMissingField_test";
+            try
+            {
+                //CREATE INDEX idx4 ON default(age MISSING, body)
+                await cluster.QueryIndexes.CreateIndexAsync(
+                    bucket.Name, indexName, new[] { "age MISSING", "body" }).ConfigureAwait(false);
+            }
+            catch (IndexExistsException)
+            {
+                _outputHelper.WriteLine("IndexExistsException.  Maybe from a previous run.  Skipping.");
+            }
+
+            bool failedCleanup = false;
+            try
+            {
+                await cluster.QueryIndexes.BuildDeferredIndexesAsync(bucket.Name).ConfigureAwait(false);
+
+                using var cts = new CancellationTokenSource(10000);
+
+                await cluster.QueryIndexes.WatchIndexesAsync(bucket.Name, new[] { indexName },
+                    options => { options.CancellationToken(cts.Token); }).ConfigureAwait(false);
+
+                var getIndexes = await cluster.QueryIndexes.GetAllIndexesAsync(bucket.Name);
+                Assert.Contains(indexName, getIndexes.Select(idx => idx.Name));
+            }
+            finally
+            {
+                try
+                {
+                    await cluster.QueryIndexes.DropIndexAsync(bucket.Name, indexName).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    _outputHelper.WriteLine($"Failure during cleanup: {e}");
+                    failedCleanup = true;
+                }
+            }
+
+            Assert.False(failedCleanup);
+
         }
     }
 }
