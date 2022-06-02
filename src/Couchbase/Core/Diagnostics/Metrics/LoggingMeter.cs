@@ -53,6 +53,10 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 var intervalInSeconds = _intervalMilliseconds / 1000u;
                 _logger.LogInformation(LoggingMeterReport.Generate(histograms, intervalInSeconds).ToString());
             }
+            catch(Exception e)
+            {
+                _logger.LogWarning(e, "Logging Report Generation failed.");
+            }
             finally
             {
                 // Refresh the value of timer in case we were disposed while doing the work

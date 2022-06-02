@@ -37,26 +37,32 @@ namespace Couchbase.Core.Diagnostics.Metrics
                         {
                             case OuterRequestSpans.ServiceSpan.N1QLQuery:
                                 report.operations.query ??= new();
-                                report.operations.query.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
+
+                                if(!report.operations.query.ContainsKey(metric.Key))
+                                    report.operations.query.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             case OuterRequestSpans.ServiceSpan.AnalyticsQuery:
                                 report.operations.analytics ??= new();
-                                report.operations.analytics.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
+                                if (!report.operations.analytics.ContainsKey(metric.Key))
+                                    report.operations.analytics.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             case OuterRequestSpans.ServiceSpan.ViewQuery:
                                 report.operations.views ??= new();
-                                report.operations.views.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
+                                if (!report.operations.views.ContainsKey(metric.Key))
+                                    report.operations.views.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             case OuterRequestSpans.ServiceSpan.SearchQuery:
                                 report.operations.search ??= new();
-                                report.operations.search.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
+                                if (!report.operations.search.ContainsKey(metric.Key))
+                                    report.operations.search.Add(metric.Key, new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 break;
                             default:
                                 if (meterValueSource.Tags.Count > 0)
                                 {
                                     var opcode = meterValueSource.Tags.Values[0];
                                     report.operations.kv ??= new();
-                                    report.operations.kv.Add(opcode,
+                                    if (!report.operations.kv.ContainsKey(opcode))
+                                        report.operations.kv.Add(opcode,
                                         new Operation(histogramValue.Count, new PercentilesUs(histogramValue)));
                                 }
 
