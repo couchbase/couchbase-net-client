@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +14,7 @@ namespace Couchbase.Transactions.DataAccess
 {
     internal class CleanerRepository : ICleanerRepository
     {
+        private static readonly Core.IO.Serializers.ITypeSerializer DefaultSerializer = new Core.IO.Serializers.DefaultSerializer();
         private static readonly int ExpiresSafetyMarginMillis = 20_000;
         private static readonly TimeSpan RemoveClientTimeout = TimeSpan.FromMilliseconds(500);
         private static readonly object PlaceholderEmptyJObject = JObject.Parse("{}");
@@ -28,7 +29,7 @@ namespace Couchbase.Transactions.DataAccess
 
         public async Task CreatePlaceholderClientRecord(ulong? cas = null)
         {
-            var opts = new MutateInOptions().Timeout(_keyValueTimeout).StoreSemantics(StoreSemantics.Insert);
+            var opts = new MutateInOptions().Timeout(_keyValueTimeout).StoreSemantics(StoreSemantics.Insert).Serializer(DefaultSerializer);
             if (cas != null)
             {
                 // NOTE: To handle corrupt case where placeholder "_txn:client-record" was there, but 'records' XATTR was not.
@@ -47,7 +48,7 @@ namespace Couchbase.Transactions.DataAccess
 
         public async Task<(ClientRecordsIndex? clientRecord, ParsedHLC parsedHlc, ulong? cas)> GetClientRecord()
         {
-            var opts = new LookupInOptions().Timeout(_keyValueTimeout);
+            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Serializer(DefaultSerializer);
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(ClientRecordsIndex.FIELD_RECORDS, isXattr: true),
@@ -62,7 +63,7 @@ namespace Couchbase.Transactions.DataAccess
 
         public async Task<(Dictionary<string, AtrEntry> attempts, ParsedHLC parsedHlc)> LookupAttempts(string atrId)
         {
-            var opts = new LookupInOptions().Timeout(_keyValueTimeout);
+            var opts = new LookupInOptions().Timeout(_keyValueTimeout).Serializer(DefaultSerializer);
             var specs = new LookupInSpec[]
             {
                 LookupInSpec.Get(TransactionFields.AtrFieldAttempts, isXattr: true),
@@ -77,7 +78,7 @@ namespace Couchbase.Transactions.DataAccess
 
         public async Task RemoveClient(string clientUuid, DurabilityLevel durability = DurabilityLevel.None)
         {
-            var opts = new MutateInOptions().Timeout(RemoveClientTimeout).Durability(DurabilityLevel.None);
+            var opts = new MutateInOptions().Timeout(RemoveClientTimeout).Durability(DurabilityLevel.None).Serializer(DefaultSerializer);
             var specs = new MutateInSpec[]
             {
                 MutateInSpec.Remove(ClientRecordEntry.PathForEntry(clientUuid), isXattr: true),
@@ -89,7 +90,7 @@ namespace Couchbase.Transactions.DataAccess
         public async Task UpdateClientRecord(string clientUuid, TimeSpan cleanupWindow, int numAtrs, IReadOnlyList<string> expiredClientIds)
         {
             var prefix = ClientRecordEntry.PathForEntry(clientUuid);
-            var opts = new MutateInOptions().Timeout(_keyValueTimeout);
+            var opts = new MutateInOptions().Timeout(_keyValueTimeout).Serializer(DefaultSerializer);
             var specs = new List<MutateInSpec>
             {
                 MutateInSpec.Upsert(ClientRecordEntry.PathForHeartbeat(clientUuid), MutationMacro.Cas, createPath: true),
@@ -105,7 +106,14 @@ namespace Couchbase.Transactions.DataAccess
                 specs.Add(spec);
             }
 
-            var mutateInReuslt = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            try
+            {
+                var mutateInReuslt = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
+            }
+            catch (Core.Exceptions.KeyValue.XattrException ex)
+            {
+                throw;
+            }
         }
     }
 }
