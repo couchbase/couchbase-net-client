@@ -735,7 +735,7 @@ namespace Couchbase.Query
                 ClientContextId = CurrentContextId,
                 FlexIndex = _flexIndex,
                 IncludeMetrics = _includeMetrics,
-                MaxServerParallelism = _maxServerParallelism,
+                MaxServerParallelism = _maxServerParallelism?.ToString(),
                 PipelineBatch = _pipelineBatch,
                 PipelineCapacity = _pipelineCapacity,
                 PreserveExpiry = _preserveExpiry,

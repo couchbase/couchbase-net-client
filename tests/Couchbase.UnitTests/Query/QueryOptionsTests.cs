@@ -330,9 +330,28 @@ namespace Couchbase.UnitTests.Query
             Assert.Equal("210", vBucketComponent2[1]);
         }
 
-        #endregion
 
         [Fact]
+        public async Task GetRequestBody_MaxServerParallelism_SentAsString()
+        {
+            // Arrange
+
+            var options = new QueryOptions("SELECT 1;").MaxServerParallelism(1);
+
+            // Act
+
+            var content = options.GetRequestBody(GetSerializer());
+            var values = await ExtractValuesAsync(content);
+
+            // Assert
+
+            Assert.Equal(typeof(string), values["max_parallelism"].GetType());
+        }
+
+
+            #endregion
+
+            [Fact]
         public void Test_CloneIdUsedAlready()
         {
             var cts = new CancellationTokenSource();

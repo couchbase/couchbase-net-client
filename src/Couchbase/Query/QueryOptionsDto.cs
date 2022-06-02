@@ -64,7 +64,7 @@ namespace Couchbase.Query
 
         [JsonPropertyName("max_parallelism")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? MaxServerParallelism { get; set; }
+        public string? MaxServerParallelism { get; set; }
 
         [JsonPropertyName("preserve_expiry")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
