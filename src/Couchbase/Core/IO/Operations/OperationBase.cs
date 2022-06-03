@@ -260,6 +260,7 @@ namespace Couchbase.Core.IO.Operations
         {
             _data.Dispose();
             _data = SlicedMemoryOwner<byte>.Empty;
+            Opaque = SequenceGenerator.GetNext();
 
             Header = new OperationHeader
             {
@@ -268,7 +269,8 @@ namespace Couchbase.Core.IO.Operations
                 Cas = Header.Cas,
                 BodyLength = Header.BodyLength,
                 Key = Key,
-                Status = status
+                Status = status,
+                Opaque = Opaque
             };
 
             _isSent = false;
