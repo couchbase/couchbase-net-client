@@ -202,7 +202,7 @@ namespace Couchbase.Core.IO.Connections
                     {
                         try
                         {
-                            var opaque = ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque));
+                            var opaque = ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque), false);
 
                             if (_statesInFlight.TryRemove(opaque, out var state))
                             {

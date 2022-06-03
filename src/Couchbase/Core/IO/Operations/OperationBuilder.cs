@@ -239,7 +239,7 @@ namespace Couchbase.Core.IO.Operations
 
             var totalLength = _framingExtrasLength + _extrasLength + _keyLength + _bodyLength;
             ByteConverter.FromInt32(totalLength, headerBytes.Slice(HeaderOffsets.BodyLength));
-            ByteConverter.FromUInt32(header.Opaque, headerBytes.Slice(HeaderOffsets.Opaque));
+            ByteConverter.FromUInt32(header.Opaque, headerBytes.Slice(HeaderOffsets.Opaque), false);
             ByteConverter.FromUInt64(header.Cas, headerBytes.Slice(HeaderOffsets.Cas));
 
             _headerWritten = true;
