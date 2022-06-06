@@ -130,6 +130,8 @@ namespace Couchbase.KeyValue
         /// <param name="expiry">The duration of the lock.</param>
         /// <param name="options">Any optional parameters.</param>
         /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
+        /// <remarks> The maximum amount of time a key can be locked is 30 seconds; any parameter you provide that is more than 30 seconds will be set
+        /// to 30 seconds; negative numbers will be interpreted as 30 seconds also.</remarks>
         Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions? options = null);
 
         /// <summary>
