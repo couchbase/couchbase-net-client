@@ -3,11 +3,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core;
 using Couchbase.Core.Retry;
+using Couchbase.Core.Compatibility;
 
 #nullable enable
 
 namespace Couchbase.Management.Eventing
 {
+    [InterfaceStability(Level.Uncommitted)]
     public class EventingFunctionErrorContext : IErrorContext
     {
         public string? Message { get; set; }

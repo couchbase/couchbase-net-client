@@ -1,8 +1,10 @@
 using Couchbase.Core.Retry;
 using System.Collections.Generic;
+using Couchbase.Core.Compatibility;
 
 namespace Couchbase.Core
 {
+    [InterfaceStability(Level.Uncommitted)]
     public interface IErrorContext
     {
         string Message { get; }

@@ -4,11 +4,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Retry;
 using Couchbase.Management;
+using Couchbase.Core.Compatibility;
 
 #nullable enable
 
 namespace Couchbase.Core.Exceptions
 {
+    [InterfaceStability(Level.Uncommitted)]
     public class ManagementErrorContext : IErrorContext
     {
         public string? Message { get; set; }

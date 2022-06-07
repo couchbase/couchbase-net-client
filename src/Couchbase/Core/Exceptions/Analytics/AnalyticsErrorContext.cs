@@ -4,12 +4,14 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
+using Couchbase.Core.Compatibility;
 
 #nullable enable
 
 namespace Couchbase.Core.Exceptions.Analytics
 {
     /// <remarks>Uncommitted</remarks>
+    [InterfaceStability(Level.Uncommitted)]
     public class AnalyticsErrorContext : IErrorContext
     {
         public string? Statement { get; internal set; }
