@@ -60,15 +60,15 @@ namespace Couchbase.Management.Eventing
                         switch (errorResponse.Name)
                         {
                             case "ERR_HANDLER_COMPILATION":
-                                throw new EventingFunctionCompilationFailureException(errorResponse.Description);
+                                throw new EventingFunctionCompilationFailureException(errorResponse.GetDescription());
                             case "ERR_COLLECTION_MISSING":
-                                throw new CollectionNotFoundException(errorResponse.Description);
+                                throw new CollectionNotFoundException(errorResponse.GetDescription());
                             case "ERR_SRC_MB_SAME":
-                                throw new EventingFunctionIdenticalKeyspaceException(errorResponse.Description);
+                                throw new EventingFunctionIdenticalKeyspaceException(errorResponse.GetDescription());
                             case "ERR_BUCKET_MISSING":
-                                throw new BucketNotFoundException(errorResponse.Description);
+                                throw new BucketNotFoundException(errorResponse.GetDescription());
                             case "ERR_INVALID_CONFIG":
-                                throw new InvalidArgumentException(errorResponse.Description);
+                                throw new InvalidArgumentException(errorResponse.GetDescription());
                         }
                     }
 
