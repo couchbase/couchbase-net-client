@@ -20,7 +20,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.KeyNotFound:
                     return new DocumentNotFoundException {Context = ctx};
                 case ResponseStatus.KeyExists:
-                    if (ctx.OpCode != OpCode.Add)
+                    if (ctx.OpCode != OpCode.Add && ctx.OpCode != OpCode.SubMultiMutation)
                     {
                         return new CasMismatchException { Context = ctx };
                     }
