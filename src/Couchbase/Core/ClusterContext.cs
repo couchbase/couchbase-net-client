@@ -622,6 +622,7 @@ namespace Couchbase.Core
                     nodeAdapter,
                     CancellationToken).ConfigureAwait(false);
 
+                node.Owner = bucket;
                 if (node.HasKv)
                 {
                     await node.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
@@ -630,7 +631,6 @@ namespace Couchbase.Core
                 }
 
                 AddNode(node);
-                bucket.Nodes.Add(node);//may remove
             }
 
             PruneNodes(config);
