@@ -261,6 +261,21 @@ namespace Couchbase
 
                 Nodes.Add(node);
                 await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
+
+                var nodes = Context.GetNodes(Name);
+
+                //update the local nodes collection
+                lock (Nodes)
+                {
+                    foreach (var clusterNode in nodes)
+                    {
+                        if (!Nodes.TryGet(clusterNode.EndPoint, out _))
+                        {
+                            Nodes.Add(clusterNode);
+                        }
+                    }
+                }
+
                 ClearErrors();
 
                 Logger.LogInformation("Bootstrapping: server negotiation completed for {name}.", Redactor.UserData(Name));
