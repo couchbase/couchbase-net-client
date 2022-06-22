@@ -47,6 +47,16 @@ namespace Couchbase.UnitTests.Management
         #region Uris
 
         [Fact]
+        public void When_NotConnected_CollectionManager_Throws_NodeUnavailableException()
+        {
+            var clusterContext = new ClusterContext();
+            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
+
+            var serviceUriProvider = serviceUriProviderMock.Object;
+            Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomManagementUri());
+        }
+
+        [Fact]
         public void Test_Retrieve_Scope_And_Manifest_For_Bucket()
         {
             var expected = new Uri(BaseUri + $"pools/default/buckets/{BucketName}/scopes");

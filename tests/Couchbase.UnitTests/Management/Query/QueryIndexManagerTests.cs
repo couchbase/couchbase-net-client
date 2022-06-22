@@ -26,6 +26,17 @@ namespace Couchbase.UnitTests.Management.Query
 {
     public class QueryIndexManagerTests
     {
+
+        [Fact]
+        public void When_NotConnected_QueryIndexManager_Throws_NodeUnavailableException()
+        {
+            var clusterContext = new ClusterContext();
+            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
+
+            var serviceUriProvider = serviceUriProviderMock.Object;
+            Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomQueryUri());
+        }
+
         [Fact]
         public async Task Test_GetAllIndexesAsync()
         {

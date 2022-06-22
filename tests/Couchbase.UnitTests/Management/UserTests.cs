@@ -1,12 +1,24 @@
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Core;
 using Couchbase.Management.Users;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Management
 {
     public class UserTests
     {
+        [Fact]
+        public void When_NotConnected_UserManager_Throws_NodeUnavailableException()
+        {
+            var clusterContext = new ClusterContext();
+            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
+
+            var serviceUriProvider = serviceUriProviderMock.Object;
+            Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomManagementUri());
+        }
+
         [Fact]
         public void Test_GetUserFormValues_RoleApplicableToAllBucket()
         {

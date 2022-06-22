@@ -23,7 +23,10 @@ namespace Couchbase
         Analytics = 5,
 
         [Description("eventing")]
-        Eventing = 6
+        Eventing = 6,
+
+        [Description("mgmt")]
+        Management = 7
     }
 }
 

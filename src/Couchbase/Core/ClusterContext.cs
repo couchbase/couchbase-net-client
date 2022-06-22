@@ -251,7 +251,12 @@ namespace Couchbase.Core
 
         public IClusterNode GetRandomNode()
         {
-            return Nodes.GetRandom();
+            var node = Nodes.GetRandom();
+            if(node == null)
+            {
+                ThrowHelper.ThrowServiceNotAvailableException(ServiceType.Management);
+            }
+            return node;
         }
 
         public void AddNode(IClusterNode node)

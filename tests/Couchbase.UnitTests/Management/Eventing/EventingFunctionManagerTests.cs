@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Management.Eventing;
@@ -32,6 +33,16 @@ namespace Couchbase.UnitTests.Management.Eventing
         public void Dispose()
         {
             _loggerFactory.Dispose();
+        }
+
+        [Fact]
+        public void When_NotConnected_EventingFunctionManager_Throws_NodeUnavailableException()
+        {
+            var clusterContext = new ClusterContext();
+            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
+
+            var serviceUriProvider = serviceUriProviderMock.Object;
+            Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomEventingUri());
         }
 
         [Fact]

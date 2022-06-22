@@ -50,6 +50,16 @@ namespace Couchbase.UnitTests.Management
             return stream;
         }
 
+        [Fact]
+        public void When_NotConnected_AnalyticsIndexManager_Throws_NodeUnavailableException()
+        {
+            var clusterContext = new ClusterContext();
+            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
+
+            var serviceUriProvider = serviceUriProviderMock.Object;
+            Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomAnalyticsUri());
+        }
+
         [Theory]
         [InlineData(false, "test_dataverse", "CREATE DATAVERSE `test_dataverse`")]
         [InlineData(true, "test_dataverse", "CREATE DATAVERSE `test_dataverse` IF NOT EXISTS")]

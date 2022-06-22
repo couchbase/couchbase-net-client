@@ -20,6 +20,16 @@ namespace Couchbase.UnitTests.Management
     public class SearchClientTests : IClassFixture<ClusterFixture>
     {
         [Fact]
+        public void When_NotConnected_SearchIndexManager_Throws_NodeUnavailableException()
+        {
+            var clusterContext = new ClusterContext();
+            var serviceUriProviderMock = new Mock<ServiceUriProvider>(clusterContext);
+
+            var serviceUriProvider = serviceUriProviderMock.Object;
+            Assert.Throws<ServiceNotAvailableException>(() => serviceUriProvider.GetRandomSearchUri());
+        }
+
+        [Fact]
         public async Task SearchQueriesUseCorrectPath()
         {
             const string indexName = "test-index";

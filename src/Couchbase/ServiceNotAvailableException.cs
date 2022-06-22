@@ -6,7 +6,7 @@ namespace Couchbase
     public class ServiceNotAvailableException : CouchbaseException
     {
         public ServiceNotAvailableException(ServiceType serviceType)
-            : base($"Service {serviceType.GetDescription()} not available.")
+            : base($"Service {serviceType.GetDescription()} is either not configured or cannot be reached. Check logs for details.")
         {
         }
     }

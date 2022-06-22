@@ -15,6 +15,10 @@ namespace Couchbase.Utils
     internal static class ThrowHelper
     {
         [DoesNotReturn]
+        public static void ThrowServiceNotAvailableException(ServiceType serviceType) =>
+            throw new ServiceNotAvailableException(serviceType);
+
+        [DoesNotReturn]
         public static void ThrowArgumentException(string message, string paramName) =>
             throw new ArgumentException(message, paramName);
 

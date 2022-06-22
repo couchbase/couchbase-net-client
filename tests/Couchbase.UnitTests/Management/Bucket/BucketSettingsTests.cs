@@ -61,7 +61,7 @@ namespace Couchbase.UnitTests.Management.Bucket
             Assert.Equal("travel-sample", result.Name);
             Assert.Equal(0, result.MaxTtl);
             Assert.Equal(209715200, result.RamQuotaMB);
-            Assert.Equal(false, result.FlushEnabled);
+            Assert.False(result.FlushEnabled);
             Assert.Equal(BucketType.Couchbase, result.BucketType);
             Assert.Equal(1, result.NumReplicas);
             Assert.Equal(ConflictResolutionType.SequenceNumber, result.ConflictResolutionType);
