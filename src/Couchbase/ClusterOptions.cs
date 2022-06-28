@@ -466,18 +466,57 @@ namespace Couchbase
         public string? Password { get; set; }
 
         //Foundation RFC conformance
+        /// <summary>
+        /// The time to wait while attempting to connect to a node’s KV service via a socket. Initial connection, reconnecting, node added, etc.
+        /// </summary>
+        /// <remarks> The default is 10s.</remarks>
         public TimeSpan KvConnectTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The time to wait before timing out a KV operation by the client.
+        /// </summary>
+        /// <remarks>The default is 2.5s.</remarks>
         public TimeSpan KvTimeout { get; set; } = TimeSpan.FromSeconds(2.5);
+
+        /// <summary>
+        /// The time to wait before timing out a KV operation that is either using synchronous durability or observe-based durability.
+        /// </summary>
+        /// <remarks>The default is 10s.</remarks>
         public TimeSpan KvDurabilityTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The time to wait before timing out a View request by the client.
+        /// </summary>
+        /// <remarks>The default is 75s.</remarks>
         public TimeSpan ViewTimeout { get; set; } = TimeSpan.FromSeconds(75);
+
+        /// <summary>
+        /// The time to wait before timing out a Query or N1QL request by the client.
+        /// </summary>
+        /// <remarks>The default is 75s.</remarks>
         public TimeSpan QueryTimeout { get; set; } = TimeSpan.FromSeconds(75);
+
+        /// <summary>
+        /// The time to wait before timing out an Analytics request by the client.
+        /// </summary>
+        /// <remarks>The default is 75s.</remarks>
         public TimeSpan AnalyticsTimeout { get; set; } = TimeSpan.FromSeconds(75);
+
+        /// <summary>
+        /// Number of seconds to wait before timing out a Search request by the client.
+        /// </summary>
+        /// <remarks>The default is 75s.</remarks>
         public TimeSpan SearchTimeout { get; set; } = TimeSpan.FromSeconds(75);
+
+        /// <summary>
+        /// Number of seconds to wait before timing out a Management API request by the client.
+        /// </summary>
+        /// <remarks>The default is 75s.</remarks>
         public TimeSpan ManagementTimeout { get; set; } = TimeSpan.FromSeconds(75);
 
         /// <summary>
         /// Gets or sets the maximum number of operations that will be queued for processing per node.
-        /// If this value is exceeded, any additional operations will be put into  the retry loop.
+        /// If this value is exceeded, any additional operations will be put into the retry loop.
         /// </summary>
         /// <remarks>Defaults to 1024 operations.</remarks>
         [InterfaceStability(Level.Volatile)]
@@ -487,40 +526,79 @@ namespace Couchbase
         /// Overrides the TLS behavior in <see cref="ConnectionString"/>, enabling or
         /// disabling TLS.
         /// </summary>
+        ///<remarks>Disabled default.</remarks>
         public bool? EnableTls { get; set; }
 
+        /// <summary>
+        /// Enables mutation tokens for read consistency in Query searches.
+        /// </summary>
+        ///<remarks>They are enabled by default.</remarks>
         public bool EnableMutationTokens { get; set; } = true;
+
+        /// <summary>
+        ///  The duration between two keepalive transmissions in idle condition.
+        /// </summary>
+        /// <remarks>The default is every 1m.</remarks>
         public TimeSpan TcpKeepAliveTime { get; set; } = TimeSpan.FromMinutes(1);
+
+        /// <summary>
+        /// The duration between two successive keepalive retransmissions, if acknowledgement to the previous keepalive transmission is not received.
+        /// </summary>
+        /// <remarks>The default is every 1s.</remarks>
         public TimeSpan TcpKeepAliveInterval { get; set; } = TimeSpan.FromSeconds(1);
+
+        /// <summary>
+        /// Forces the SDK use IPv4 over IPv6
+        /// </summary>
+        /// <remarks>Defaults to disabled.</remarks>
         public bool ForceIPv4 { get; set; }
+
+        /// <summary>
+        /// The time between querying the server for new cluster map revisions.
+        /// </summary>
+        /// <remarks>The default is 2.5s.</remarks>
         public TimeSpan ConfigPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
+
+        /// <summary>
+        /// Not currently used.
+        /// </summary>
         public TimeSpan ConfigPollFloorInterval { get; set; } = TimeSpan.FromMilliseconds(50);
+
+        /// <summary>
+        /// Not currently used.
+        /// </summary>
         public TimeSpan ConfigIdleRedialTimeout { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
         /// Minimum number of connections per key/value node.
         /// </summary>
+        /// <remarks>The default is 2; use the smallest number possible for best performance.</remarks>
         public int NumKvConnections { get; set; } = 2;
 
         /// <summary>
         /// Maximum number of connections per key/value node.
         /// </summary>
+        /// <remarks>The default is 5; use the smallest number possible for best performance.
+        /// A higher number of socket connections will increase the amount resources used by
+        /// the server and harm performance.</remarks>
         public int MaxKvConnections { get; set; } = 5;
 
         /// <summary>
         /// Amount of time with no activity before a key/value connection is considered idle.
         /// </summary>
+        /// <remarks>The default is 1m.</remarks>
         public TimeSpan IdleKvConnectionTimeout { get; set; } = TimeSpan.FromMinutes(1);
 
         /// <summary>
         /// Gets or sets the maximum number of simultaneous TCP connections allowed to a single server.
-        /// <remarks>The default is 0 which equates to the maximum value or Int32.Max.</remarks>
         /// </summary>
+        /// <remarks>The default is 0 which equates to the maximum value or Int32.Max.</remarks>
         public int MaxHttpConnections { get; set; } = 0;
 
         /// <summary>
         /// The maximum time an HTTP connection will remain idle before being considered reusable.
         /// </summary>
+        /// <remarks>The default is 4.5s.</remarks>
         public TimeSpan IdleHttpConnectionTimeout { get; set; } = TimeSpan.FromMilliseconds(4500);
 
         /// <summary>
@@ -529,29 +607,39 @@ namespace Couchbase
         /// <remarks>Default of zero equates to the SocketsHttpHandler's default of -1 for infinite.</remarks>
         public TimeSpan HttpConnectionLifetime { get; set; } = TimeSpan.Zero;
 
+        /// <summary>
+        /// The configuration for tuning the circuit breaker; if the default is changed ensure that the change is properly measured and tested.
+        /// </summary>
         public CircuitBreakerConfiguration? CircuitBreakerConfiguration { get; set; } =
             CircuitBreakerConfiguration.Default;
 
         /// <summary>
         /// If true the server duration for an operation will be enabled and the value collected per K/V operation.
         /// </summary>
+        /// <remarks>The default is enabled.</remarks>
         public bool EnableOperationDurationTracing { get; set; } = true;
 
+        /// <summary>
+        /// The redaction level for log files.
+        /// </summary>
+        /// <remarks>The default is <see cref="RedactionLevel.None"/></remarks>
         public RedactionLevel RedactionLevel { get; set; } = RedactionLevel.None;
 
         /// <summary>
-        /// Port used for HTTP bootstrapping fallback if other bootstrap methods are not available.
+        /// Port used for HTTP bootstrapping fallback if other bootstrap methods are not available. Do not change unless the Cochbase server default ports have be changed.
         /// </summary>
+        /// <remarks>The default is 8091.</remarks>
         public int BootstrapHttpPort { get; set; } = 8091;
 
         /// <summary>
-        /// Port used for TLS HTTP bootstrapping fallback if other bootstrap methods are not available.
+        /// Port used for TLS HTTP bootstrapping fallback if other bootstrap methods are not available. Do not change unless the Cochbase server default ports have be changed.
         /// </summary>
         public int BootstrapHttpPortTls { get; set; } = 18091;
 
         /// <summary>
         /// Used for checking that the SDK has bootstrapped and potentially retrying if not.
         /// </summary>
+        /// <remarks>The default is 2.5s.</remarks>
         public TimeSpan BootstrapPollInterval { get; set; } = TimeSpan.FromSeconds(2.5);
 
         //Volatile or obsolete options
@@ -560,6 +648,10 @@ namespace Couchbase
         [Obsolete("This property is ignored; set the ClusterOptions.X509CertificateFactory property to a "
                   +" ICertificateFactory instance - Couchbase.Core.IO.Authentication.X509.CertificateStoreFactory for example.")]
         public bool EnableCertificateAuthentication { get; set; }
+
+        /// <summary>
+        /// A <see cref="System.Boolean"/> value that specifies whether the certificate revocation list is checked during authentication.
+        /// </summary>
         public bool EnableCertificateRevocation { get; set; }
 
         /// <summary>
@@ -572,9 +664,30 @@ namespace Couchbase
             set => KvIgnoreRemoteCertificateNameMismatch = HttpIgnoreRemoteCertificateMismatch = value;
         }
 
+        /// <summary>
+        /// Polls the server for cluster map configuration revision changes. This should always be enabled unless debugging the SDK.
+        /// </summary>
+        /// <remarks>This is enabled by default.</remarks>
         public bool EnableConfigPolling { get; set; } = true;
+
+        /// <summary>
+        /// Enables TCP Keep Alives.
+        /// </summary>
+        /// <remarks>This is enabled by default.</remarks>
         public bool EnableTcpKeepAlives { get; set; } = true;
+
+        /// <summary>
+        /// When bootstrapping, checks first that the connection string is a DNS SRV lookup;
+        /// this can cause slower bootstrap times if not needed and can be disabled if DNS SRV is not being used.
+        /// </summary>
+        /// <remarks>This is enabled by default.</remarks>
         public bool EnableDnsSrvResolution { get; set; } = true;
+
+        /// <summary>
+        /// Specifies the network resolution strategy to use for alternative network; used in some container
+        /// environments where there maybe internal and external addresses for connecting.
+        /// </summary>
+        /// <remarks>The derault is "Auto"; Alternative addresses will be used if available.</remarks>
         public string NetworkResolution { get; set; } = Couchbase.NetworkResolution.Auto;
         [CanBeNull] internal string? EffectiveNetworkResolution { get; set; }
         internal bool HasNetworkResolution => !string.IsNullOrWhiteSpace(EffectiveNetworkResolution);
@@ -592,6 +705,7 @@ namespace Couchbase
         /// If compression is enabled, the minimum document size considered for compression (in bytes).
         /// Documents smaller than this size are always sent to the server uncompressed.
         /// </summary>
+        /// <remarks>The default is 32.</remarks>
         public int CompressionMinSize { get; set; } = 32;
 
         /// <summary>
@@ -669,6 +783,7 @@ namespace Couchbase
         /// <summary>
         /// Allows unordered execution of commands by the server.
         /// </summary>
+        /// <remarks>The default is enabled.</remarks>
         public bool UnorderedExecutionEnabled { get; set; } = true;
 
         /// <summary>
@@ -676,12 +791,13 @@ namespace Couchbase
         /// then mimic the default SDK2 behavior; the hostname or IP as defined by the server will be sent as the target host during TLS authentication.
         /// </summary>
         /// <remarks>Only applies when <see cref="EnableTls"/> is true.</remarks>
-        /// <remarks>The default is false and the IP Address will be sent as the target host.</remarks>
+        /// <remarks>The default is true and the IP Address will be sent as the target host.</remarks>
         public bool ForceIpAsTargetHost { get; set; } = true;
 
         /// <summary>
         /// Enabled SSL Protocols
         /// </summary>
+        /// <remarks>The defaults are Tls, Tls1 nd Tls3</remarks>
         public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
 #if NETCOREAPP3_1_OR_GREATER
