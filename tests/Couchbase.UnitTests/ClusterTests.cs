@@ -50,7 +50,25 @@ namespace Couchbase.UnitTests
         [Fact]
         public async Task WaitUntilReady_Throws_NotSupportedException_If_GC3P_Not_Supported()
         {
-            var cluster = new Cluster(ClusterOptions.Default.WithCredentials("Administrator", "password"));
+            var dnsResolver = new Mock<IDnsResolver>();
+            var mockNode = new Mock<Couchbase.Core.IClusterNode>();
+            var errorContext = new Couchbase.Core.Exceptions.KeyValue.KeyValueErrorContext()
+            {
+                Status = Couchbase.Core.IO.Operations.ResponseStatus.BucketNotConnected
+            };
+
+            mockNode.Setup(n => n.GetClusterMap()).Throws(() => new CouchbaseException(errorContext));
+            var nodeFactory = new Mock<Couchbase.Core.DI.IClusterNodeFactory>();
+            nodeFactory.Setup(nf => nf.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(mockNode.Object));
+
+            var cluster = new Cluster(ClusterOptions.Default
+                .WithCredentials("Administrator", "password")
+                .WithConnectionString("couchbases://HostThatDoesNotExist.NoSuchDomain")
+                .WithDnsResolver(dnsResolver.Object)
+                .AddClusterService<Couchbase.Core.DI.IClusterNodeFactory>(nodeFactory.Object)
+                );
+            await ((Couchbase.Core.Bootstrapping.IBootstrappable)cluster).BootStrapAsync();
             await Assert.ThrowsAsync<NotSupportedException>(async () =>
                 await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false)).ConfigureAwait(false);
         }

@@ -39,7 +39,7 @@ namespace Couchbase
         private readonly object _syncObject = new object();
         private bool _disposed;
         private readonly ClusterContext _context;
-        private bool _hasBootStrapped;
+        private bool _hasBootStrapped = false;
         private readonly SemaphoreSlim _bootstrapLock = new SemaphoreSlim(1);
         private readonly IRedactor _redactor;
         private readonly IBootstrapper _bootstrapper;
@@ -222,11 +222,6 @@ namespace Couchbase
         /// <param name="options">The optional arguments.</param>
         public async Task WaitUntilReadyAsync(TimeSpan timeout, WaitUntilReadyOptions? options = null)
         {
-            if (!_context.IsGlobal)
-                throw new NotSupportedException(
-                    "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
-                    "If you think this exception is caused by another error, please check your SDK logs for detail.");
-
             options ??= new WaitUntilReadyOptions();
             if(options.DesiredStateValue == ClusterState.Offline)
                 throw new ArgumentException(nameof(options.DesiredStateValue));
@@ -240,11 +235,28 @@ namespace Couchbase
                 token = tokenSource.Token;
             }
 
+            var bootstrappable = (IBootstrappable)this;
             try
             {
                 token.ThrowIfCancellationRequested();
                 while (!token.IsCancellationRequested)
                 {
+                    if (!IsBootstrapped)
+                    {
+                        await bootstrappable.BootStrapAsync().ConfigureAwait(false);
+                        if (!IsBootstrapped)
+                        {
+                            await Task.Delay(100, token).ConfigureAwait(false);
+                            continue;
+                        }
+                    }
+
+
+                    if (!_context.IsGlobal)
+                        throw new NotSupportedException(
+                            "Cluster level WaitUntilReady is only supported by Couchbase Server 6.5 or greater. " +
+                            "If you think this exception is caused by another error, please check your SDK logs for detail.");
+
                     var pingReport =
                         await DiagnosticsReportProvider.CreatePingReportAsync(_context, _context.GlobalConfig,
                             new PingOptions
@@ -279,15 +291,25 @@ namespace Couchbase
 
                     await Task.Delay(100, token).ConfigureAwait(false);
                 }
+
+                if (token.IsCancellationRequested)
+                {
+                    throw new UnambiguousTimeoutException($"Timed out after {timeout} with {_context.Nodes.Count} nodes.");
+                }
             }
             catch (RateLimitedException)
             {
                 throw;
             }
+            catch (NotSupportedException)
+            {
+                throw;
+            }
             catch (OperationCanceledException e)
             {
-                throw new UnambiguousTimeoutException($"Timed out after {timeout}.", e);
+                throw new UnambiguousTimeoutException($"Timed out after {timeout} with {_context.Nodes.Count} nodes.", e);
             }
+
             catch (Exception e)
             {
                 throw new CouchbaseException("An error has occurred, see the inner exception for details.", e);
@@ -467,7 +489,7 @@ namespace Couchbase
             }
         }
 
-        private bool IsBootstrapped => _deferredExceptions.Count == 0;
+        private bool IsBootstrapped => _deferredExceptions.Count == 0 && _context.Nodes.Count > 0;
         bool IBootstrappable.IsBootstrapped => IsBootstrapped;
 
         List<Exception> IBootstrappable.DeferredExceptions => _deferredExceptions;

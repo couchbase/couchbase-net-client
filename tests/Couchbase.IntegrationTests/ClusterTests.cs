@@ -96,7 +96,9 @@ namespace Couchbase.IntegrationTests
         public async Task Test_WaitUntilReadyAsync()
         {
             var cluster = _fixture.Cluster;
-            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+
+            // To test properly, start this test without any nodes running.
+            await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(120)).ConfigureAwait(false);
         }
 
         [Fact]
