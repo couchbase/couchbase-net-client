@@ -184,16 +184,16 @@ namespace Couchbase.Management.Collections
 
                 // check scope & collection exists in manifest
                 var json = await JToken.ReadFromAsync(jsonReader, options.TokenValue).ConfigureAwait(false);
-                var scopes = json.SelectToken("scopes");
+                var scopes = json.SelectToken("scopes")!;
 
-                return scopes.Select(scope => new ScopeSpec(scope["name"].Value<string>())
+                return scopes.Select(scope => new ScopeSpec(scope["name"]?.Value<string>())
                 {
-                    Collections = scope["collections"].Select(collection =>
-                        new CollectionSpec(scope["name"].Value<string>(), collection["name"].Value<string>())
+                    Collections = scope["collections"]!.Select(collection =>
+                        new CollectionSpec(scope["name"]?.Value<string>(), collection["name"]?.Value<string>())
                         {
                             MaxExpiry = collection["maxTTL"] == null
                                 ? (TimeSpan?) null
-                                : TimeSpan.FromSeconds(collection["maxTTL"].Value<long>())
+                                : TimeSpan.FromSeconds(collection["maxTTL"]!.Value<long>())
                         }
                     ).ToList()
                 }).ToList();

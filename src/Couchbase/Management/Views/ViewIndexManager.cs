@@ -82,7 +82,7 @@ namespace Couchbase.Management.Views
 
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var designDocument = JsonConvert.DeserializeObject<DesignDocument>(content);
-                designDocument.Name = designDocName;
+                designDocument!.Name = designDocName;
 
                 return designDocument;
             }
@@ -121,17 +121,17 @@ namespace Couchbase.Management.Views
                     {
                         var designDoc = new DesignDocument
                         {
-                            Name = row.SelectToken("doc.meta.id").Value<string>().Replace("_design/", string.Empty)
+                            Name = row.SelectToken("doc.meta.id")!.Value<string>()!.Replace("_design/", string.Empty)
                         };
 
                         foreach (var view in row.SelectTokens("doc.json.views"))
                         {
-                            var name = view.First.Path.Substring(view.First.Path.LastIndexOf(".", StringComparison.Ordinal) + 1);
-                            var map = view.First.First.SelectToken("map");
+                            var name = view.First!.Path.Substring(view.First.Path.LastIndexOf(".", StringComparison.Ordinal) + 1);
+                            var map = view.First!.First!.SelectToken("map");
                             var reduce = view.First.First.SelectToken("reduce");
                             designDoc.Views.Add(name, new View
                             {
-                                Map = map.Value<string>(),
+                                Map = map?.Value<string>(),
                                 Reduce = reduce?.Value<string>()
                             });
                         }

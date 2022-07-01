@@ -93,7 +93,7 @@ namespace Couchbase.Core.IO.Serializers
 
         /// <inheritdoc />
         public Task<T> ReadObjectAsync<T>(CancellationToken cancellationToken = default) =>
-            Task.FromResult(Deserializer.Deserialize<T>(_reader));
+            Task.FromResult(Deserializer.Deserialize<T>(_reader)!);
 
         /// <inheritdoc />
         public async IAsyncEnumerable<T> ReadArrayAsync<T>(

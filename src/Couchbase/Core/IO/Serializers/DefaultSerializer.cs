@@ -175,7 +175,7 @@ namespace Couchbase.Core.IO.Serializers
                         if (typeof(T).GetTypeInfo().IsValueType && (!typeof(T).GetTypeInfo().IsGenericType || typeof(T).GetGenericTypeDefinition() != typeof(Nullable<>)))
                         {
                             //we can't declare Nullable<T> because T is not restricted to struct in this method scope
-                            object nullableVal = _deserializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
+                            object? nullableVal = _deserializer.Deserialize(jr, typeof(Nullable<>).MakeGenericType(typeof(T)));
                             //either we have a null or an instance of Nullabte<T> that can be cast directly to T
                             value = nullableVal == null ? default(T)! : (T)nullableVal;
                         }
@@ -246,7 +246,7 @@ namespace Couchbase.Core.IO.Serializers
                 throw new ArgumentNullException("member");
             }
 
-            var contract = SerializerSettings.ContractResolver.ResolveContract(member.DeclaringType) as JsonObjectContract;
+            var contract = SerializerSettings.ContractResolver?.ResolveContract(member.DeclaringType!) as JsonObjectContract;
 
             if (contract != null)
             {

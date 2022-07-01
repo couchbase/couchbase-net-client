@@ -478,15 +478,15 @@ namespace Couchbase.Management.Analytics
                 var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 await HandleLinkManagementResultErrors(result, string.Empty, string.Empty).ConfigureAwait(false);
                 var jarray = JArray.Parse(responseBody);
-                var typedResults = jarray.Select<JToken, AnalyticsLink>(token => token["type"].Value<string>() switch
+                var typedResults = jarray.Select<JToken, AnalyticsLink?>(token => token["type"]?.Value<string>() switch
                 {
-                    "s3" => token.ToObject<S3ExternalAnalyticsLinkResponse>().AsRequest(),
-                    "couchbase" => token.ToObject<CouchbaseRemoteAnalyticsLinkResponse>().AsRequest(),
-                    "azureblob" => token.ToObject<AzureBlobExternalAnalyticsLinkResponse>().AsRequest(),
-                    _ => token.ToObject<GeneralAnalyticsLinkResponse>()
+                    "s3" => token.ToObject<S3ExternalAnalyticsLinkResponse>()?.AsRequest(),
+                    "couchbase" => token.ToObject<CouchbaseRemoteAnalyticsLinkResponse>()?.AsRequest(),
+                    "azureblob" => token.ToObject<AzureBlobExternalAnalyticsLinkResponse>()?.AsRequest(),
+                    _ => token.ToObject<GeneralAnalyticsLinkResponse>(),
                 });
 
-                return typedResults;
+                return typedResults.Where(tr => tr != null).Select(tr => tr!); ;
             }
             catch (Exception exception)
             {

@@ -197,7 +197,7 @@ namespace Couchbase.Management.Search
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri).ConfigureAwait(false);
 
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                return json["indexDefs"]["indexDefs"].ToObject<Dictionary<string, SearchIndex>>().Values;
+                return json["indexDefs"]!["indexDefs"]!.ToObject<Dictionary<string, SearchIndex>>()!.Values;
             }
             catch (Exception exception)
             {
@@ -222,7 +222,7 @@ namespace Couchbase.Management.Search
                 await CheckStatusAndThrowIfErrorsAsync(result, baseUri, indexName).ConfigureAwait(false);
 
                 var json = JObject.Parse(await result.Content.ReadAsStringAsync().ConfigureAwait(false));
-                return json["indexDef"].ToObject<SearchIndex>();
+                return json["indexDef"]!.ToObject<SearchIndex>()!;
             }
             catch (Exception exception)
             {
@@ -249,7 +249,7 @@ namespace Couchbase.Management.Search
 
                 var responseBody = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var jobj = JObject.Parse(responseBody);
-                return jobj["count"].Value<int>();
+                return jobj["count"]!.Value<int>();
             }
             catch (Exception exception)
             {

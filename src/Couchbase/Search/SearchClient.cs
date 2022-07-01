@@ -98,13 +98,13 @@ namespace Couchbase.Search
                         using var reader = new StreamReader(stream);
                         errors = await reader.ReadToEndAsync().ConfigureAwait(false);
                         var json = JsonConvert.DeserializeObject<JObject>(errors);
-                        var queryError = json.SelectToken("error");
+                        var queryError = json?.SelectToken("error");
 
                         //If the query service returned a top level error then
                         //use it otherwise the error is in the response body
                         if(queryError != null)
                         {
-                            errors = queryError.Value<string>();
+                            errors = queryError.Value<string>() ?? "";
                         }
 
                         var ctx = new SearchErrorContext

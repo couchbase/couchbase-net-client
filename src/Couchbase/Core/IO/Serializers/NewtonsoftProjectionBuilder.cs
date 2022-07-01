@@ -59,10 +59,10 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
-        public T ToObject<T>() => _root.ToObject<T>();
+        public T ToObject<T>() => _root.ToObject<T>()!;
 
         /// <inheritdoc />
-        public T ToPrimitive<T>() => _root.First.ToObject<T>();
+        public T ToPrimitive<T>() => (_root.First!.ToObject<T>())!;
 
         private static void BuildPath(JToken token, string name, JToken? content = null)
         {
@@ -101,7 +101,7 @@ namespace Couchbase.Core.IO.Serializers
                         continue;
                     }
 
-                    projection.Add(new JProperty(elements[i], null));
+                    projection.Add(new JProperty(elements[i], (object?)null));
                 }
             }
 

@@ -43,15 +43,15 @@ namespace Couchbase.Core.IO.Serializers
             {
                 var value = _token[key];
 
-                return value != null ? new NewtonsoftJsonToken(_token[key], _deserializer) : null;
+                return value != null ? new NewtonsoftJsonToken(value, _deserializer) : null;
             }
         }
 
         /// <inheritdoc />
-        public T ToObject<T>() => _token.ToObject<T>(_deserializer);
+        public T ToObject<T>() => _token.ToObject<T>(_deserializer)!;
 
         /// <inheritdoc />
-        public T Value<T>() => _token.Value<T>();
+        public T Value<T>() => _token.Value<T>()!;
 
         /// <inheritdoc />
         public dynamic ToDynamic() => _token;
