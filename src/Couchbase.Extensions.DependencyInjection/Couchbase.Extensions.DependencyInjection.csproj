@@ -2,20 +2,9 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(NetStandardTargets);$(NetSpecificTargets)</TargetFrameworks>
-    <VersionPrefix>3.0.1</VersionPrefix>
     <VersionSuffix>local-$([System.DateTime]::UtcNow.ToString('yyyyMMddHHmm'))</VersionSuffix>
-    <AssemblyName>Couchbase.Extensions.DependencyInjection</AssemblyName>
-    <PackageId>Couchbase.Extensions.DependencyInjection</PackageId>
-    <Product>Couchbase.Extensions.DependencyInjection</Product>
+    <RootNamespace>Couchbase.Extensions.DependencyInjection</RootNamespace>
     <Description>Extensions for CouchbaseNetClient 3.x supporing .NET Core configuration and dependency injection.</Description>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Version>3.0.1</Version>
-    <SignAssembly>false</SignAssembly>
-    <AssemblyOriginatorKeyFile>Couchbase.snk</AssemblyOriginatorKeyFile>
-
-    <AssemblyVersion>3.0.1.0</AssemblyVersion>
-    <FileVersion>3.0.1.0</FileVersion>
-
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
