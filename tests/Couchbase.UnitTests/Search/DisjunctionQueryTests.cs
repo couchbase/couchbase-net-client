@@ -41,8 +41,6 @@ namespace Couchbase.UnitTests.Search
                     new
                     {
                         term = "hotel",
-                        prefix_length = 0,
-                        fuzziness = 0,
                         field = "type"
                     }
                 }
