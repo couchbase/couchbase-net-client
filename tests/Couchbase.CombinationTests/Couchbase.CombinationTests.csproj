@@ -23,8 +23,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
     <ProjectReference Include="..\Couchbase.Test.Common\Couchbase.Test.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ExplicitCouchbaseNetClientNuget)' == ''">
+    <ProjectReference Include="..\..\src\Couchbase.Transactions\Couchbase.Transactions.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ExplicitCouchbaseNetClientNuget)' != ''">
+    <PackageReference Include="CouchbaseNetClient" VersionOverride="$(ExplicitCouchbaseNetClientNuget)" />
   </ItemGroup>
 
   <ItemGroup>

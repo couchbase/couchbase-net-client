@@ -129,7 +129,7 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             Assert.False(result1.Exists);
         }
 
-        [Fact]
+        [Fact(Skip = "NCBC-3204")]
         public async Task Test_GetAndLockAsync_Locked()
         {
             var col = await _fixture.GetDefaultCollection();

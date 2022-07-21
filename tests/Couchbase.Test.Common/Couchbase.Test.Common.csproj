@@ -18,8 +18,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Couchbase\Couchbase.csproj" />
+  <ItemGroup Condition="'$(ExplicitCouchbaseNetClientNuget)' == ''">
+    <ProjectReference Include="..\..\src\Couchbase.Transactions\Couchbase.Transactions.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(ExplicitCouchbaseNetClientNuget)' != ''">
+    <PackageReference Include="CouchbaseNetClient" VersionOverride="$(ExplicitCouchbaseNetClientNuget)" />
   </ItemGroup>
 
 </Project>
