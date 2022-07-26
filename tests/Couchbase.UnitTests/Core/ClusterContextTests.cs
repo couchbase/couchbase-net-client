@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -140,6 +142,32 @@ namespace Couchbase.UnitTests.Core
             options.AddClusterService(mockNodeFactory.Object);
             using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
             var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => context.BootstrapGlobalAsync());
+        }
+
+
+        [Fact]
+        public async Task BootstrapGlobal_Should_Continue_After_AuthenticationFailureException()
+        {
+            var options = new ClusterOptions().WithConnectionString("couchbase://localhost1,localhost2");
+            var mockNodeFactory = new Mock<IClusterNodeFactory>(MockBehavior.Loose);
+
+            mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(new HostEndpointWithPort("localhost1", 11210), It.IsAny<CancellationToken>()))
+                .Throws(new AuthenticationFailureException());
+
+            var config = ResourceHelper.ReadResource(@"Documents\Configs\cluster-level-config-rev69.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            config.VBucketServerMap = new Couchbase.Core.Sharding.VBucketServerMapDto();
+
+            var mockClusterNode = new Mock<IClusterNode>();
+            mockClusterNode.Setup(cn => cn.GetClusterMap()).Returns(Task.FromResult(config));
+
+            mockNodeFactory.Setup(cnf => cnf.CreateAndConnectAsync(new HostEndpointWithPort("localhost2", 11210), It.IsAny<CancellationToken>()))
+               .Returns(Task.FromResult(mockClusterNode.Object));
+
+            options.AddClusterService(mockNodeFactory.Object);
+            using var context = new ClusterContext(Mock.Of<ICluster>(), new CancellationTokenSource(), options);
+            await context.BootstrapGlobalAsync();
         }
 
         [Fact]

@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Configuration.Server.Streaming;
 using Couchbase.Core.DI;
@@ -20,6 +13,14 @@ using Couchbase.Core.RateLimiting;
 using Couchbase.Management.Buckets;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.ExceptionServices;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Couchbase.Core
 {
@@ -333,27 +334,31 @@ namespace Couchbase.Core
                 }
             }
 
+            //defer throwing exceptions until all nodes have been tried.
+            //if this is non null that means and we haven't bootstrapped
+            //then bootstrapping has failed and we can throw the agg exception
+            List<Exception> exceptions = new List<Exception>();
+
             //Try to bootstrap each node in the servers list - either from DNS-SRV lookup or from client configuration
             foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
             {
                 IClusterNode node = null;
                 try
                 {
-                    _logger.LogDebug("Bootstrapping: global bootstrapping with node {server}", server.Host);
+                    _logger.LogDebug("Bootstrapping: global bootstrapping with node {server}", server);
                     node = await _clusterNodeFactory
                         .CreateAndConnectAsync(server, CancellationToken)
                         .ConfigureAwait(false);
 
                     GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
                     GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
+
+                    //ignore the exceptions since at least one node bootstrapped
+                    exceptions.Clear();
                 }
-                catch (AuthenticationFailureException)
+                catch (Exception e)
                 {
-                    throw;
-                }
-                catch (CouchbaseException e)
-                {
-                    if (e.Context is KeyValueErrorContext ctx)
+                    if (e is CouchbaseException cbe && cbe.Context is KeyValueErrorContext ctx)
                     {
                         if (ctx.Status == ResponseStatus.BucketNotConnected)
                         {
@@ -361,15 +366,15 @@ namespace Couchbase.Core
                             return;
                         }
                     }
-                    //skip to next endpoint and try again
-                    continue;
-                }
-                catch (Exception e)
-                {
-                    //something else failed, try the next hostname
-                    _logger.LogDebug(e, "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
-                        server.Host);
 
+                    // something else failed, try the next hostname
+                    _logger.LogDebug(e, "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
+                        server);
+
+                    //hold on to the exception to create agg exception if none complete.
+                    exceptions.Add(e);
+
+                    //skip to next endpoint and try again
                     continue;
                 }
 
@@ -413,6 +418,19 @@ namespace Couchbase.Core
                         _redactor.MetaData(server));
                 }
             }
+
+            if (exceptions?.Count > 0)
+            {
+                //for backwards compatibility return an auth exception if one exists (logs will show others).
+                var authException = exceptions.FirstOrDefault(e => e.GetType() == typeof(AuthenticationFailureException));
+                if(authException != null)
+                {
+                    ExceptionDispatchInfo.Capture(authException).Throw();
+                }
+                //Not an auth exception but still cannot bootstrap so return all the exceptions
+                throw new AggregateException("Bootstrapping has failed!", exceptions);
+            }
+
         }
 
         public async ValueTask<IBucket> GetOrCreateBucketAsync(string name)

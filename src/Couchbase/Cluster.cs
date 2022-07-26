@@ -178,7 +178,7 @@ namespace Couchbase
 
             var message = _deferredExceptions.Count > 0
                 ? "Cluster has not yet bootstrapped. Call WaitUntilReadyAsync(..) to wait for it to complete."
-                : "The Cluster cannot bootstrap. Check the client the inner exception for details.";
+                : "The Cluster cannot bootstrap. Check the inner exceptions for details.";
 
             return new ValueTask<IBucket>(
                 Task.FromException<IBucket>(new AggregateException(message, _deferredExceptions)));
