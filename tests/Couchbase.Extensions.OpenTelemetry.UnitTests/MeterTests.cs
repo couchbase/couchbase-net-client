@@ -48,6 +48,7 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
             }
 
             var duration = exportedItems
+                .ToList()
                 .Where(p => p.Name == "db.couchbase.operations")
                 .SelectMany(Enumerate)
                 .Last();
@@ -55,6 +56,7 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
             Assert.Equal(1000000, duration.GetHistogramSum());
 
             var count = exportedItems
+                .ToList()
                 .Where(p => p.Name == "db.couchbase.operations.count")
                 .SelectMany(Enumerate)
                 .Last();
