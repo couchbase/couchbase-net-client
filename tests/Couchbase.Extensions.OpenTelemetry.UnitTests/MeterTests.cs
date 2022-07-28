@@ -35,6 +35,11 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
 
             // Give the exporter time
             await Task.Delay(100);
+            tracerProvider.ForceFlush();
+
+            // Shut down tracer provider to prevent simultaneous access to the List<T>
+            tracerProvider.Shutdown();
+            await Task.Delay(100);
 
             // Assert
 
@@ -48,7 +53,6 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
             }
 
             var duration = exportedItems
-                .ToList()
                 .Where(p => p.Name == "db.couchbase.operations")
                 .SelectMany(Enumerate)
                 .Last();
@@ -56,7 +60,6 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
             Assert.Equal(1000000, duration.GetHistogramSum());
 
             var count = exportedItems
-                .ToList()
                 .Where(p => p.Name == "db.couchbase.operations.count")
                 .SelectMany(Enumerate)
                 .Last();
