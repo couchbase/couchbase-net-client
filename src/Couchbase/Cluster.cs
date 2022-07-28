@@ -176,7 +176,7 @@ namespace Couchbase
                 return new ValueTask<IBucket>(GetOrCreateBucketAsync(name));
             }
 
-            var message = _deferredExceptions.Count > 0
+            var message = _deferredExceptions.Count == 0
                 ? "Cluster has not yet bootstrapped. Call WaitUntilReadyAsync(..) to wait for it to complete."
                 : "The Cluster cannot bootstrap. Check the inner exceptions for details.";
 
