@@ -33,7 +33,7 @@ var clusterOptions = new ClusterOptions()
 {
     UserName = "Administrator",
     Password = "password",
-    ConnectionString = "couchbase://localhost"
+    ConnectionString = mainOpts.ConnectionString,
 };
 
 Serilog.Log.Logger = new Serilog.LoggerConfiguration()

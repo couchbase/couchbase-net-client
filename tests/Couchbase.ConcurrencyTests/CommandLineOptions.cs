@@ -30,6 +30,10 @@ namespace Couchbase.ConcurrencyTests
             HelpText = "Length of time to run in TimeSpan format.")]
         public TimeSpan? Time { get; set; } = null;
 
+        [Option('c', longName: "connectionString",
+            Default = "couchbase://localhost")]
+        public string ConnectionString { get; set; } = "couchbase://localhost";
+
         public override string ToString() => $"{nameof(WaitForCounters)}={WaitForCounters}, {nameof(Scenarios)}={Scenarios}, {nameof(LogLevel)}={LogLevel}, {nameof(Time)}={Time}";
     }
 }
