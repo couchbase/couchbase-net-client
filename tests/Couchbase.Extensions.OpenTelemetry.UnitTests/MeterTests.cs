@@ -13,7 +13,7 @@ namespace Couchbase.Extensions.OpenTelemetry.UnitTests
 {
     public class MeterTests
     {
-        [Fact]
+        [Fact(Skip = "NCBC-3254")]
         public async Task BasicMetric_IsExported()
         {
             // Arrange
