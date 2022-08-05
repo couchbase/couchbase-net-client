@@ -125,6 +125,7 @@ namespace Couchbase
                 KeyMapper = _ketamaKeyMapperFactory.Create(CurrentConfig);
 
                 node.Owner = this;
+                Nodes.Add(node);
                 await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
             }
             catch (CouchbaseException e)
