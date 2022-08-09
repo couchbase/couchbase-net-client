@@ -103,7 +103,8 @@ namespace Couchbase.Search
                 var took = reader.ReadAsString();
                 if (took != null)
                 {
-                    response.MetaData.TimeTook = new TimeSpan(long.Parse(took));
+                    var nanoseconds = long.Parse(took);
+                    response.MetaData.TimeTook = Utils.TimeSpanExtensions.FromNanoseconds(nanoseconds);
                     return;
                 }
             }

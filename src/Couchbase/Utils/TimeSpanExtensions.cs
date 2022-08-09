@@ -5,6 +5,7 @@ namespace Couchbase.Utils
 {
     public static class TimeSpanExtensions
     {
+        private const long NanosecondsPerSecond = 1_000_000_000;
         private const long TicksPerMicrosecond = TimeSpan.TicksPerMillisecond / 1000;
         private static readonly TimeSpan RelativeTtlThreshold = TimeSpan.FromDays(30);
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1);
@@ -126,6 +127,24 @@ namespace Couchbase.Utils
 
             return true;
         }
+
+        /// <summary>
+        /// Convert nanoseconds to ticks
+        /// </summary>
+        /// <param name="nanoseconds">The nanoseconds value to convert.</param>
+        /// <returns>The number of ticks represented, which is probably lower resolution.</returns>
+        internal static double NanosecondsToTicks(long nanoseconds)
+        {
+            var ticksPerNs = (double)TimeSpan.TicksPerSecond / NanosecondsPerSecond;
+             return (long)(nanoseconds * ticksPerNs);
+        }
+
+        /// <summary>
+        /// Convert nanoseconds to a TimeSpan
+        /// </summary>
+        /// <param name="nanoseconds">The nanosecond to convert</param>
+        /// <returns>A TimeSpan</returns>
+        internal static TimeSpan FromNanoseconds(long nanoseconds) => TimeSpan.FromTicks((long)NanosecondsToTicks(nanoseconds));
     }
 }
 

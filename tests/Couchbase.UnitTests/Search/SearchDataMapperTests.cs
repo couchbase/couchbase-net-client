@@ -30,6 +30,8 @@ namespace Couchbase.UnitTests.Search
             using (var stream = OpenResource("search-response-success.json"))
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
+                Assert.NotEqual(0, result.MetaData.SuccessCount);
+                Assert.Equal(result.MetaData.TotalCount, result.MetaData.SuccessCount);
                 //Assert.True(result.Success);
             }
         }
@@ -67,7 +69,8 @@ namespace Couchbase.UnitTests.Search
             {
                 var result = await mapper.MapAsync(stream).ConfigureAwait(false);
 
-                Assert.Equal(new TimeSpan(123165714), result.MetaData.TimeTook);
+                Assert.Equal(123, result.MetaData.TimeTook.Milliseconds);
+                Assert.Equal(1231657, result.MetaData.TimeTook.Ticks); // <- max resolution of TimeStamp, currently
             }
         }
 
