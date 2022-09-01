@@ -51,11 +51,6 @@ namespace Couchbase.Core.Configuration.Server
 
     internal class Node : IEquatable<Node>
     {
-
-        const string LocalHost = "127.0.0.1";
-        private const string HostToken = "$HOST";
-        private const string ViewPort = "8091";
-
         public Node()
         {
             Ports = new Ports
@@ -315,6 +310,13 @@ namespace Couchbase.Core.Configuration.Server
         /// Set to true if a GCCCP config
         /// </summary>
         [JsonIgnore] public bool IsGlobal { get; set; }
+
+        /// <summary>
+        ///When true, we want to ignore the config revision and just accept the
+        ///config provided. This happens when a DNS SRV refresh is detected and
+        ///we need to "rebootstrap".
+        /// </summary>
+        [JsonIgnore] public bool IgnoreRev { get; set; }
 
         [JsonPropertyName("rev")] public ulong Rev { get; set; }
         [JsonPropertyName("revEpoch")] public ulong RevEpoch { get; set; }

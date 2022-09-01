@@ -76,13 +76,13 @@ namespace Couchbase
                 }
 
                 CurrentConfig = newConfig;
-                if (CurrentConfig.VBucketMapChanged)
+                if (CurrentConfig.VBucketMapChanged || newConfig.IgnoreRev)
                 {
                     Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for rev#{revision} on {bucketName}", newConfig.Rev, Name);
                     KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
                 }
 
-                if (CurrentConfig.ClusterNodesChanged)
+                if (CurrentConfig.ClusterNodesChanged || newConfig.IgnoreRev)
                 {
                     Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating cluster nodes for rev#{revision} on {bucketName}", newConfig.Rev, Name);
                     await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);

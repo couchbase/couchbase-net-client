@@ -77,7 +77,7 @@ namespace Couchbase
 
                 KeyMapper = _ketamaKeyMapperFactory.Create(CurrentConfig);
 
-                if (CurrentConfig.ClusterNodesChanged)
+                if (CurrentConfig.ClusterNodesChanged || newConfig.IgnoreRev)
                 {
                     await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
                 }

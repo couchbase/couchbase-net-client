@@ -325,7 +325,7 @@ namespace Couchbase.Core
                         _logger.LogInformation(
                             $"Successfully retrieved DNS SRV entries: [{_redactor.SystemData(string.Join(",", servers))}]");
                         ClusterOptions.ConnectionStringValue =
-                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers);
+                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers, true);
                     }
                 }
                 catch (Exception exception)
@@ -561,20 +561,17 @@ namespace Couchbase.Core
             return bucket;
         }
 
+        public async Task RebootstrapAllBuckets()
+        {
+            foreach(var bucket in Buckets)
+            {
+                await RebootStrapAsync(bucket.Key).ConfigureAwait(false);
+            }
+        }
         public async Task RebootStrapAsync(string name)
         {
             if(Buckets.TryGetValue(name, out var bucket))
             {
-                //need to remove the old nodes
-                var oldNodes = Nodes.Where(x => x.Owner == bucket).ToArray();
-                foreach (var node in oldNodes)
-                {
-                    if (Nodes.Remove(node.EndPoint, out var removedNode))
-                    {
-                        removedNode.Dispose();
-                    }
-                }
-
                 //start going through the bootstrap list trying to connect
                 foreach (var endpoint in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
                     .EnableTls))
@@ -589,9 +586,34 @@ namespace Couchbase.Core
 
                     try
                     {
-                        //connected so let bootstrapping continue on the bucket
-                        await bucket.BootstrapAsync(node).ConfigureAwait(false);
-                        RegisterBucket(bucket);
+                        //The bucket must be selected so that a bucket specific config is returned
+                        await node.SelectBucketAsync(name).ConfigureAwait(false);
+
+                        BucketConfig config;
+                        try
+                        {
+                            _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
+                                _redactor.MetaData(name));
+
+                            //First try CCCP to fetch the config
+                            config = await node.GetClusterMap().ConfigureAwait(false);
+                        }
+                        catch (DocumentNotFoundException)
+                        {
+                            _logger.LogInformation("Bootstrapping: switching to HTTP Streaming for bucket {name}.",
+                                _redactor.MetaData(name));
+
+                            //In this case CCCP has failed for whatever reason
+                            //We need to now try HTTP Streaming for config fetching
+                            config = await _httpClusterMap.GetClusterMapAsync(
+                                name, node.EndPoint, CancellationToken.None).ConfigureAwait(false);
+                        }
+
+                        //make sure the bucket has the latest config as the current config
+                        config.IgnoreRev = true;
+                        await bucket.ConfigUpdatedAsync(config).ConfigureAwait(false);
+
+                        return;
                     }
                     catch (Exception e)
                     {

@@ -118,6 +118,8 @@ namespace Couchbase.Core.Configuration.Server
                         .ConfigureAwait(false);
 
                     _logger.LogDebug("Done waiting, polling...");
+
+                    bool connected = false;
                     foreach (var clusterNode in _context.Nodes.Where(x =>
                         x.HasKv && x.BucketType != BucketType.Memcached))
                     {
@@ -127,6 +129,7 @@ namespace Couchbase.Core.Configuration.Server
                             var config = await clusterNode.GetClusterMap().ConfigureAwait(false);
                             if (config != null)
                             {
+                                connected = true;
                                 config.Name ??= "CLUSTER";
                                 Publish(config);
                             }
@@ -146,6 +149,17 @@ namespace Couchbase.Core.Configuration.Server
                             _logger.LogWarning(LoggingEvents.ConfigEvent, e,
                                 "Issue getting Cluster Map on server {server}!", clusterNode.EndPoint);
                         }
+                    }
+
+                    if (!connected && _context!.ClusterOptions!.ConnectionStringValue!.IsDnsSrv)
+                    {
+                        //If we reach here, we cannot connect to the cluster via CCCP
+                        //and we know we are using DNS SRV lookup. Since, the bucket
+                        //may have moved to a different cluster so we want to refresh
+                        //the seed list by doing a DNS SRV lookup and then continuing
+                        //to cycle threw the new nodes list.
+                        await _context.BootstrapGlobalAsync().ConfigureAwait(false);
+                        await _context.RebootstrapAllBuckets().ConfigureAwait(false);
                     }
                 }
 

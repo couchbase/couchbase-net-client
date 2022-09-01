@@ -9,8 +9,10 @@ namespace Couchbase.Core.Configuration.Server
     {
         public static bool IsNewerThan(this BucketConfig newConfig, BucketConfig? oldConfig)
         {
+            if (newConfig.IgnoreRev) return true; //in this case, its a DNS SRV refresh so ignore and just accept the config
             if (oldConfig == null) return true; //true we don't have a config yet so this is the new one
             if (ReferenceEquals(oldConfig, newConfig)) return false; // shouldn't happen
+
             if (newConfig.RevEpoch > oldConfig.RevEpoch) //new one is older than the current
                 return true;
             if(newConfig.RevEpoch < oldConfig.RevEpoch) //new one is newer

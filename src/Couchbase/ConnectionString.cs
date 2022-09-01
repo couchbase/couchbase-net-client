@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -29,6 +28,8 @@ namespace Couchbase
         public IList<HostEndpoint> Hosts { get; private set; } = new List<HostEndpoint>();
         public IDictionary<string, string> Parameters { get; private set; } = new Dictionary<string, string>();
 
+        public bool IsDnsSrv { get; private set; }
+
         private ConnectionString()
         {
         }
@@ -39,6 +40,12 @@ namespace Couchbase
             Username = source.Username;
             Hosts = newHosts.ToList();
             Parameters = source.Parameters;
+        }
+
+        internal ConnectionString(ConnectionString source, IEnumerable<HostEndpoint> newHosts, bool isDnsSrv)
+            : this(source, newHosts)
+        {
+            IsDnsSrv = isDnsSrv;
         }
 
         internal static ConnectionString Parse(string input)
