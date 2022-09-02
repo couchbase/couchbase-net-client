@@ -97,16 +97,17 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         protected override void WriteBody(OperationBuilder builder)
         {
-            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength))
+            var buffer = ArrayPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
+            try
             {
-                var buffer = bufferOwner.Memory.Span;
+                var bufferSpan = buffer.AsSpan();
 
                 foreach (var mutate in MutateCommands)
                 {
                     builder.BeginOperationSpec(true);
 
-                    var pathLength = ByteConverter.FromString(mutate.Path, buffer);
-                    builder.Write(bufferOwner.Memory.Slice(0, pathLength));
+                    var pathLength = ByteConverter.FromString(mutate.Path, bufferSpan);
+                    builder.Write(buffer, 0, pathLength);
 
                     if (mutate.OpCode != OpCode.SubDelete)
                     {
@@ -116,6 +117,10 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
                     builder.CompleteOperationSpec(mutate);
                 }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 

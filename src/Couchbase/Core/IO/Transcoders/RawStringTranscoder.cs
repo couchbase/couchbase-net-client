@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Text.Json;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Utils;
@@ -33,9 +34,17 @@ namespace Couchbase.Core.IO.Transcoders
             }
             if (value is string str)
             {
-                using var bufferOwner = MemoryPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str));
-                var length = ByteConverter.FromString(str, bufferOwner.Memory.Span);
-                stream.Write(bufferOwner.Memory.Slice(0, length));
+                var buffer = ArrayPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str));
+                try
+                {
+                    var length = ByteConverter.FromString(str, buffer.AsSpan());
+                    stream.Write(buffer, 0, length);
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer);
+                }
+
                 return;
             }
 

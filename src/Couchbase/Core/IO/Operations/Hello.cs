@@ -16,10 +16,12 @@ namespace Couchbase.Core.IO.Operations
         protected override void WriteBody(OperationBuilder builder)
         {
             var contentLength = Content.Length;
+            var bufferLength = contentLength * 2;
 
-            using (var bufferOwner = MemoryPool<byte>.Shared.Rent(contentLength * 2))
+            var buffer = ArrayPool<byte>.Shared.Rent(bufferLength);
+            try
             {
-                var body = bufferOwner.Memory.Span;
+                var body = buffer.AsSpan();
 
                 for (var i = 0; i < contentLength; i++)
                 {
@@ -27,7 +29,11 @@ namespace Couchbase.Core.IO.Operations
                     body = body.Slice(2);
                 }
 
-                builder.Write(bufferOwner.Memory.Slice(0, contentLength * 2));
+                builder.Write(buffer, 0, bufferLength);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 

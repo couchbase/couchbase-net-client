@@ -113,10 +113,15 @@ namespace Couchbase.Core.IO.Transcoders
                 case TypeCode.String:
                 case TypeCode.Char:
                     var str = Convert.ToString(value);
-                    using (var bufferOwner = MemoryPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str)))
+                    var buffer = ArrayPool<byte>.Shared.Rent(ByteConverter.GetStringByteCount(str));
+                    try
                     {
-                        var length = ByteConverter.FromString(str, bufferOwner.Memory.Span);
-                        stream.Write(bufferOwner.Memory.Slice(0, length));
+                        var length = ByteConverter.FromString(str, buffer.AsSpan());
+                        stream.Write(buffer, 0, length);
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
                     }
                     break;
 

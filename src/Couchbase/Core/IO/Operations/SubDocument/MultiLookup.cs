@@ -56,15 +56,22 @@ namespace Couchbase.Core.IO.Operations.SubDocument
 
         protected override void WriteBody(OperationBuilder builder)
         {
-            using var bufferOwner = MemoryPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
-            var buffer = bufferOwner.Memory.Span;
-
-            foreach (var lookup in LookupCommands)
+            var buffer = ArrayPool<byte>.Shared.Rent(OperationSpec.MaxPathLength);
+            try
             {
-                var pathLength = ByteConverter.FromString(lookup.Path, buffer);
-                builder.BeginOperationSpec(false);
-                builder.Write(bufferOwner.Memory.Slice(0, pathLength));
-                builder.CompleteOperationSpec(lookup);
+                var bufferSpan = buffer.AsSpan();
+
+                foreach (var lookup in LookupCommands)
+                {
+                    var pathLength = ByteConverter.FromString(lookup.Path, bufferSpan);
+                    builder.BeginOperationSpec(false);
+                    builder.Write(buffer, 0, pathLength);
+                    builder.CompleteOperationSpec(lookup);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
