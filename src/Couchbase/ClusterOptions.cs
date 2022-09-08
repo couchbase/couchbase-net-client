@@ -152,6 +152,57 @@ namespace Couchbase
         }
 
         /// <summary>
+        /// Applies pre-set configuration values based on a named configuration profile.  Values defined in the named profile are applied and overwrite existing values.
+        /// Values <em>not</em> defined in the profile do not overwrite existing values.
+        /// </summary>
+        /// <param name="profileName">The name of the profile to apply. (e.g. "default" or "wan-development")</param>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>
+        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions ApplyProfile(string profileName) => profileName switch
+        {
+            "default" => ApplyProfile(ConfigProfiles.PreDefined.Default),
+            "wan-development" => ApplyProfile(ConfigProfiles.PreDefined.WanDevelopment),
+            _ => throw new ArgumentOutOfRangeException(nameof(profileName), "No such profile defined"),
+        };
+
+        /// <summary>
+        /// Applies pre-set configuration values based on a named configuration profile.  Values defined in the named profile are applied and overwrite existing values.
+        /// Values <em>not</em> defined in the profile do not overwrite existing values.
+        /// </summary>
+        /// <param name="profile">The profile to apply.</param>
+        /// <returns>
+        /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
+        /// </returns>        [InterfaceStability(Level.Volatile)]
+        public ClusterOptions ApplyProfile(ConfigProfiles.ConfigProfile profile)
+        {
+            // values in the Config Profile override current values only if they are set.
+
+            // By explicitly calling the generated Deconstruct method here, the compiler will error out if we add new members to ConfigProfile and forget to handle them here.
+            profile.Deconstruct(
+                out var kvConnectTimeout,
+                out var kvTimeout,
+                out var kvDurabilityTimeout,
+                out var viewTimeout,
+                out var queryTimeout,
+                out var analyticsTimeout,
+                out var searchTimeout,
+                out var managementTimeout
+                );
+
+            this.KvConnectTimeout = kvConnectTimeout ?? this.KvConnectTimeout;
+            this.KvTimeout = kvTimeout ?? this.KvTimeout;
+            this.KvDurabilityTimeout = kvDurabilityTimeout ?? this.KvDurabilityTimeout;
+            this.ViewTimeout = viewTimeout ?? this.ViewTimeout;
+            this.QueryTimeout = queryTimeout ?? this.QueryTimeout;
+            this.AnalyticsTimeout = analyticsTimeout ?? this.AnalyticsTimeout;
+            this.SearchTimeout = searchTimeout ?? this.SearchTimeout;
+            this.ManagementTimeout = managementTimeout ?? this.ManagementTimeout;
+            return this;
+        }
+
+        /// <summary>
         /// Set the connection string for the cluster.
         /// </summary>
         /// <param name="connectionString">The connection string.</param>
