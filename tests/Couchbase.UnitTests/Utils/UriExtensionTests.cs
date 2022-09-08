@@ -11,8 +11,8 @@ namespace Couchbase.UnitTests.Utils
         #region GetQueryUri
 
         [Theory]
-        [InlineData(true, "10.143.192.101", "https://10.143.192.101:18093/query")]
-        [InlineData(false, "10.143.192.101", "http://10.143.192.101:8093/query")]
+        [InlineData(true, "10.143.192.101", "https://10.143.192.101:18093/query/service")]
+        [InlineData(false, "10.143.192.101", "http://10.143.192.101:8093/query/service")]
         public void GetQueryUri_Returns_Query_Uri(bool useSsl, string host, string expectedUri)
         {
             var clusterOptions = new ClusterOptions {EnableTls = useSsl};
