@@ -90,11 +90,17 @@ namespace Couchbase.KeyValue.ExpressionVisitors
             }
             // ReSharper restore ConditionIsAlwaysTrueOrFalse
 
-            var visitor = new SubDocumentPathExpressionVisitor(serializer);
+            var visitor = VisitorCache.Acquire(serializer);
+            try
+            {
+                visitor.Visit(path);
 
-            visitor.Visit(path);
-
-            return visitor.Path;
+                return visitor.Path;
+            }
+            finally
+            {
+                VisitorCache.Release(visitor);
+            }
         }
 
         /// <summary>
@@ -157,7 +163,17 @@ namespace Couchbase.KeyValue.ExpressionVisitors
         {
             if (_inSpecialExpression == SpecialExpressionType.ArrayIndex)
             {
-                if (!IntegralTypes.Contains(node.Type))
+                var isIntegralType = false;
+                for (var i = 0; i < IntegralTypes.Length; i++)
+                {
+                    if (IntegralTypes[i] == node.Type)
+                    {
+                        isIntegralType = true;
+                        break;
+                    }
+                }
+
+                if (!isIntegralType)
                 {
                     ThrowHelper.ThrowNotSupportedException("Non-integral array indices are not supported in subdocument paths.");
                 }
@@ -204,14 +220,14 @@ namespace Couchbase.KeyValue.ExpressionVisitors
             if ((node.Method.DeclaringType == null) || (node.Object == null) ||
                 !node.Method.IsSpecialName || !node.Method.Name.StartsWith("get_"))
             {
-                throw new NotSupportedException("Method calls are not supported in subdocument paths.");
+                ThrowHelper.ThrowNotSupportedException("Method calls are not supported in subdocument paths.");
             }
 
             var property = node.Method.DeclaringType.GetProperties()
                 .FirstOrDefault(p => p.GetMethod == node.Method);
             if (property == null)
             {
-                throw new NotSupportedException("Method calls are not supported in subdocument paths.");
+                ThrowHelper.ThrowNotSupportedException("Method calls are not supported in subdocument paths.");
             }
 
             var obj = Visit(node.Object);
@@ -220,7 +236,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
             {
                 if (node.Arguments.Count > 1)
                 {
-                    throw new NotSupportedException(
+                    ThrowHelper.ThrowNotSupportedException(
                         "Array/dictionary indices with more than one dimension are not supported in subdocument paths.");
                 }
 
@@ -228,7 +244,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
 
                 if (!node.Method.DeclaringType.GetDefaultMembers().Contains(property))
                 {
-                    throw new NotSupportedException(
+                    ThrowHelper.ThrowNotSupportedException(
                         "Only default indexed properties are not supported in subdocument paths.");
                 }
 
@@ -380,7 +396,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
             {
                 var ch = str[i];
 
-                if (ch < EscapeCharacters.Length && !escapeCharacters[ch])
+                if (ch < escapeCharacters.Length && !escapeCharacters[ch])
                 {
                     _path.Append(ch);
                 }
@@ -437,7 +453,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
         /// </summary>
         internal static string GetEscapedString(string str)
         {
-            var visitor = new SubDocumentPathExpressionVisitor(new DefaultSerializer());
+            var visitor = new SubDocumentPathExpressionVisitor(DefaultSerializer.Instance);
 
             visitor.WriteEscapedString(str);
 
@@ -458,6 +474,51 @@ namespace Couchbase.KeyValue.ExpressionVisitors
 
         private static NotSupportedException CreateExpressionNotSupportedException(Expression node) =>
             new($"{node.NodeType} expressions are not supported in subdocument paths.");
+
+        #endregion
+
+        #region Cache
+
+        internal static class VisitorCache
+        {
+            // Stores a separate cached instance for each thread. At most one will be retained per thread,
+            // and if the StringBuilder is too large it will be discarded. The cache is also only reused
+            // if the same serializer instance is supplied. This is based on the theory that the IExtendedTypeSerializer
+            // will be constant, which should be the case in a single cluster environment. In other cases
+            // the caching won't be as effective but still has very little cost compared to a new visitor on
+            // every invocation.
+            [ThreadStatic]
+            private static SubDocumentPathExpressionVisitor? t_cachedVisitor;
+
+            public static SubDocumentPathExpressionVisitor Acquire(IExtendedTypeSerializer serializer)
+            {
+                var visitor = t_cachedVisitor;
+                if (visitor is not null && ReferenceEquals(visitor._serializer, serializer))
+                {
+                    t_cachedVisitor = null;
+
+                    // Ready for reuse
+                    visitor._path.Clear();
+                    visitor._parameter = null;
+                    visitor._parameterEncountered = false;
+                    visitor._inSpecialExpression = SpecialExpressionType.None;
+
+                    return visitor;
+                }
+
+                return new SubDocumentPathExpressionVisitor(serializer);
+            }
+
+            public static void Release(SubDocumentPathExpressionVisitor visitor)
+            {
+                // Throw away visitors with long StringBuilder instances to keep memory utilization low.
+                // Large paths are unlikely.
+                if (visitor._path.Length <= 256)
+                {
+                    t_cachedVisitor = visitor;
+                }
+            }
+        }
 
         #endregion
     }

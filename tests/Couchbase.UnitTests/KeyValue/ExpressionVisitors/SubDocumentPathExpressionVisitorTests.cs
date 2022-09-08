@@ -21,7 +21,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -38,7 +38,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -55,7 +55,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -72,7 +72,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -89,7 +89,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -110,7 +110,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -127,7 +127,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -144,7 +144,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -161,7 +161,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -180,7 +180,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -199,7 +199,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -218,7 +218,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -237,7 +237,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -254,7 +254,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -271,7 +271,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -291,7 +291,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -312,7 +312,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -329,7 +329,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -346,7 +346,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -364,7 +364,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -382,7 +382,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -399,7 +399,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -416,7 +416,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -437,7 +437,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -454,7 +454,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -471,7 +471,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act
 
-            var result = SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression);
+            var result = SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression);
 
             // Assert
 
@@ -505,7 +505,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
             // Act/Assert
 
             var result = Assert.Throws<ArgumentNullException>(
-                () => SubDocumentPathExpressionVisitor.GetPath<Document, Document>(new DefaultSerializer(), null));
+                () => SubDocumentPathExpressionVisitor.GetPath<Document, Document>(DefaultSerializer.Instance, null));
 
             Assert.Equal("path", result.ParamName);
         }
@@ -521,7 +521,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act/Assert
 
-            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression));
+            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression));
         }
 
         [Fact]
@@ -534,7 +534,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act/Assert
 
-            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression));
+            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression));
         }
 
         [Fact]
@@ -547,7 +547,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act/Assert
 
-            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression));
+            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression));
         }
 
         [Fact]
@@ -560,7 +560,7 @@ namespace Couchbase.UnitTests.KeyValue.ExpressionVisitors
 
             // Act/Assert
 
-            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(new DefaultSerializer(), expression));
+            Assert.Throws<NotSupportedException>(() => SubDocumentPathExpressionVisitor.GetPath(DefaultSerializer.Instance, expression));
         }
 
         #endregion
