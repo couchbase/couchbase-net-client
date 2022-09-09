@@ -450,7 +450,7 @@ namespace Couchbase.Core
                     return bucket;
                 }
 
-                foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
+                foreach (var server in GetHostEndpointWithPorts(ClusterOptions.EnableTls))
                 {
                     try
                     {
@@ -496,6 +496,22 @@ namespace Couchbase.Core
                 throw lastException;
             }
             throw new BucketNotFoundException(name);
+        }
+
+        /// <summary>
+        /// This method tries to fetch the bootstrap list from the global GCCCP config
+        /// and then falls back to using the connection string if the GCCCP config does
+        /// not exist because its an older server version that does not support GCCCP.
+        /// </summary>
+        /// <param name="enableTls"></param>
+        /// <returns></returns>
+        private IEnumerable<HostEndpointWithPort> GetHostEndpointWithPorts(bool? enableTls)
+        {
+            if(GlobalConfig != null)
+            {
+                return GlobalConfig.GetBootstrapEndpoints(enableTls);
+            }
+            return ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(enableTls);
         }
 
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint)

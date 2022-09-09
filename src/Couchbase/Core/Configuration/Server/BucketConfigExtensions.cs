@@ -23,6 +23,29 @@ namespace Couchbase.Core.Configuration.Server
             return newConfig.Rev > oldConfig.Rev; //fall back for older behavior
         }
 
+        /// <summary>
+        /// This method generates a list of <see cref="HostEndpointWithPort"/>'s that can be used
+        /// for bootstrapping buckets.
+        /// </summary>
+        /// <param name="bucketConfig">The <see cref="BucketConfig"/> reference which was returned from the server.</param>
+        /// <param name="enableTls">If true, use TLS ports.</param>
+        /// <returns>A list of <see cref="HostEndpointWithPort"/> for bootstrapping.</returns>
+        public static IEnumerable<HostEndpointWithPort> GetBootstrapEndpoints(this BucketConfig bucketConfig, bool? enableTls)
+        {
+            var endpoints = new List<HostEndpointWithPort>();
+            foreach (var nodeAdapter in bucketConfig.GetNodes())
+            {
+                if (nodeAdapter.IsKvNode)
+                {
+                    endpoints.Add(new HostEndpointWithPort(nodeAdapter.Hostname,
+                        enableTls.GetValueOrDefault(false) ?
+                        nodeAdapter.KeyValueSsl : nodeAdapter.KeyValue));
+                }
+            }
+
+            return endpoints;
+        }
+
         public static List<NodeAdapter> GetNodes(this BucketConfig bucketConfig)
         {
             var nodeAdapters = new List<NodeAdapter>();
