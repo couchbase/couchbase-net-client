@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.KeyValue;
@@ -67,16 +67,16 @@ namespace Couchbase.Transactions.Config
         /// <summary>
         /// Gets or sets the relative expiration time for this single query transaction.
         /// </summary>
-        public TimeSpan? ExpirationTimeValue { get; internal set; } = null;
+        public TimeSpan? TimeoutValue { get; internal set; } = null;
 
         /// <summary>
-        /// Set the expiration time of this transaction.
+        /// Set the timeout of this transaction.
         /// </summary>
-        /// <param name="expirationTime">The expiration time, relative to now.</param>
+        /// <param name="timeout">The expiration time, relative to now.</param>
         /// <returns>The builder.</returns>
-        public SingleQueryTransactionConfigBuilder ExpirationTime(TimeSpan expirationTime)
+        public SingleQueryTransactionConfigBuilder Timeout(TimeSpan timeout)
         {
-            ExpirationTimeValue = expirationTime;
+            TimeoutValue = timeout;
             return this;
         }
 
@@ -84,7 +84,7 @@ namespace Couchbase.Transactions.Config
         {
             // Build a TransactionConfig, setting only the values that have been set to non-default.
             var config = new PerTransactionConfig();
-            config.ExpirationTime = this.ExpirationTimeValue ?? config.ExpirationTime;
+            config.Timeout = this.TimeoutValue ?? config.Timeout;
             config.DurabilityLevel = this.DurabilityLevelValue ?? config.DurabilityLevel;
             return config;
         }

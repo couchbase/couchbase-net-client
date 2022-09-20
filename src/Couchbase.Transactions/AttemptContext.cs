@@ -12,6 +12,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Transactions;
 using Couchbase.Core;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -53,7 +54,7 @@ namespace Couchbase.Transactions
         private static readonly TimeSpan ExpiryThreshold = TimeSpan.FromMilliseconds(10);
         private static readonly TimeSpan WriteWriteConflictTimeLimit = TimeSpan.FromSeconds(1);
         private readonly TransactionContext _overallContext;
-        private readonly TransactionConfigImmutable _config;
+        private readonly MergedTransactionConfig _config;
         private readonly ITestHooks _testHooks;
         internal IRedactor Redactor { get; }
         private AttemptStates _state = AttemptStates.NOTHING_WRITTEN;
@@ -73,14 +74,23 @@ namespace Couchbase.Transactions
         private readonly IRequestTracer _requestTracer;
         private bool _queryMode = false;
         private Uri? _lastDispatchedQueryNode = null;
+        private bool _singleQueryTransactionMode = false;
 
+
+        /// <summary>
+        /// Gets the ID of this individual attempt.
+        /// </summary>
         public string AttemptId { get; }
+
+        /// <summary>
+        /// Gets the ID of this overall transaction.
+        /// </summary>
         public string TransactionId => _overallContext.TransactionId;
 
         internal bool UnstagingComplete { get; private set; } = false;
 
-        internal AttemptContext(TransactionContext overallContext,
-            TransactionConfigImmutable config,
+        internal AttemptContext(
+            TransactionContext overallContext,
             string attemptId,
             ITestHooks? testHooks,
             IRedactor redactor,
@@ -88,21 +98,23 @@ namespace Couchbase.Transactions
             ICluster cluster,
             IDocumentRepository? documentRepository = null,
             IAtrRepository? atrRepository = null,
-            IRequestTracer? requestTracer = null)
+            IRequestTracer? requestTracer = null,
+            bool singleQueryTransactionMode = false)
         {
             _cluster = cluster;
             _nonStreamingTypeSerializer = NonStreamingSerializerWrapper.FromCluster(_cluster);
             _requestTracer = requestTracer ?? new NoopRequestTracer();
             AttemptId = attemptId ?? throw new ArgumentNullException(nameof(attemptId));
             _overallContext = overallContext ?? throw new ArgumentNullException(nameof(overallContext));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _config = _overallContext.Config;
             _testHooks = testHooks ?? DefaultTestHooks.Instance;
             Redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
-            _effectiveDurabilityLevel = _overallContext.PerConfig?.DurabilityLevel ?? config.DurabilityLevel;
+            _effectiveDurabilityLevel = _config.DurabilityLevel;
             _loggerFactory = loggerFactory;
             Logger = loggerFactory.CreateLogger<AttemptContext>();
             _triage = new ErrorTriage(this, loggerFactory);
             _docs = documentRepository ?? new DocumentRepository(_overallContext, _config.KeyValueTimeout, _effectiveDurabilityLevel, AttemptId, _nonStreamingTypeSerializer);
+            _singleQueryTransactionMode = singleQueryTransactionMode;
             if (atrRepository != null)
             {
                 _atr = atrRepository;
@@ -777,7 +789,7 @@ namespace Couchbase.Transactions
                 {
                     try
                     {
-                        var docDurability = _overallContext.PerConfig?.DurabilityLevel ?? _overallContext.Config.DurabilityLevel;
+                        var docDurability = _effectiveDurabilityLevel;
                         ErrorIfExpiredAndNotInExpiryOvertimeMode(ITestHooks.HOOK_ATR_PENDING);
                         await _testHooks.BeforeAtrPending(this).CAF();
                         var t1 = _overallContext.StartTime;
@@ -1582,7 +1594,7 @@ namespace Couchbase.Transactions
                 statementId: fixmeStatementId,
                 scope: scope,
                 statement: statement,
-                options: options.Build(),
+                options: options.Build(txImplicit),
                 hookPoint: ITestHooks.HOOK_QUERY,
                 parentSpan: traceSpan.Item,
                 txImplicit: txImplicit
@@ -1794,7 +1806,7 @@ namespace Couchbase.Transactions
         protected async Task InitAtrIfNeeded(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
-            var atrCollection = _overallContext.Config.MetadataCollection ?? collection.Scope.Bucket.DefaultCollection();
+            var atrCollection = _config.MetadataCollection ?? collection.Scope.Bucket.DefaultCollection();
             var testHookAtrId = await _testHooks.AtrIdForVBucket(this, AtrIds.GetVBucketId(id)).CAF();
             var atrId = AtrIds.GetAtrId(id);
             lock (_initAtrLock)
@@ -1999,13 +2011,17 @@ namespace Couchbase.Transactions
 
             if (!_queryMode && !isBeginWork)
             {
-                await QueryBeginWork(traceSpan?.Item).CAF();
+                if (!txImplicit)
+                {
+                    await QueryBeginWork(traceSpan?.Item).CAF();
+                }
+
                 _queryMode = true;
             }
 
             QueryPreCheck(statement, hookPoint, existingErrorCheck);
 
-            if (!isBeginWork)
+            if (!isBeginWork && !txImplicit)
             {
                 options = options.Raw("txid", AttemptId);
                 if (_lastDispatchedQueryNode != null)
@@ -2022,46 +2038,87 @@ namespace Couchbase.Transactions
             if (txImplicit)
             {
                 options = options.Raw("tximplicit", true);
+                QueryTxData txdataSingleQuery = CreateBeginWorkTxData();
+                options = InitializeBeginWorkQueryOptions(options);
+                options = options.Raw("txdata", txdataSingleQuery);
             }
 
             options = options.Metrics(true);
             try
             {
-                await _testHooks.BeforeQuery(this, statement).CAF();
-                IQueryResult<T> results = scope != null
-                    ? await scope.QueryAsync<T>(statement, options).CAF()
-                    : await _cluster.QueryAsync<T>(statement, options).CAF();
-                await _testHooks.AfterQuery(this, statement).CAF();
-                if (results.MetaData?.Status == QueryStatus.Fatal)
+                try
                 {
-                    var err = CreateError(this, ErrorClass.FailOther).Build();
-                    SaveErrorWrapper(err);
-                    throw err;
-                }
+                    await _testHooks.BeforeQuery(this, statement).CAF();
+                    IQueryResult<T> results = scope != null
+                        ? await scope.QueryAsync<T>(statement, options).CAF()
+                        : await _cluster.QueryAsync<T>(statement, options).CAF();
+                    await _testHooks.AfterQuery(this, statement).CAF();
+                    if (results.MetaData?.Status == QueryStatus.Fatal)
+                    {
+                        var err = CreateError(this, ErrorClass.FailOther).Build();
+                        SaveErrorWrapper(err);
+                        throw err;
+                    }
 
-                if (results.MetaData?.LastDispatchedToNode != null)
+                    if (results.MetaData?.LastDispatchedToNode != null)
+                    {
+                        _lastDispatchedQueryNode = results.MetaData.LastDispatchedToNode;
+                    }
+
+                    return results;
+                }
+                catch (Exception exByQuery)
                 {
-                    _lastDispatchedQueryNode = results.MetaData.LastDispatchedToNode;
-                }
+                    Logger.LogError("[{attemptId}] query failed at {hookPoint}: {cause}", AttemptId, hookPoint, exByQuery);
+                    var converted = ConvertQueryError(exByQuery);
+                    if (converted is TransactionOperationFailedException err)
+                    {
+                        SaveErrorWrapper(err);
+                    }
 
-                return results;
+                    if (converted == null)
+                    {
+                        throw;
+                    }
+
+                    throw converted;
+                }
             }
-            catch (Exception exByQuery)
+            catch (TransactionExpiredException err)
             {
-                Logger.LogError("[{attemptId}] query failed at {hookPoint}", AttemptId, hookPoint);
-                var converted = ConvertQueryError(exByQuery);
-                if (converted is TransactionOperationFailedException err)
-                {
-                    SaveErrorWrapper(err);
-                }
-
-                if (converted == null)
-                {
-                    throw;
-                }
-
-                throw converted;
+                // ExtSingleQuery: As the very final stage .. If err is a TransactionExpiredException, raise an UnambiguousTimeoutException instead.
+                throw new UnambiguousTimeoutException("Single Query Transaction timed out", err);
             }
+        }
+
+        private QueryTxData CreateBeginWorkTxData()
+        {
+            var state = new TxDataState((long)_overallContext.RemainingUntilExpiration.TotalMilliseconds);
+            var txConfig = new TxDataReportedConfig((long?)_config?.KeyValueTimeout?.TotalMilliseconds ?? 10_000, AtrIds.NumAtrs, _effectiveDurabilityLevel.ToString().ToUpperInvariant());
+
+            var mutations = _stagedMutations?.ToList().Select(sm => sm.AsTxData()) ?? Array.Empty<TxDataMutation>();
+            var txid = new CompositeId()
+            {
+                Transactionid = _overallContext.TransactionId,
+                AttemptId = AttemptId
+            };
+
+            var atrRef = _atr?.AtrRef;
+            if (atrRef == null && _config?.MetadataCollection != null)
+            {
+                var col = _config.MetadataCollection;
+                var scp = col.Scope;
+                var bkt = scp.Bucket;
+                atrRef = new AtrRef()
+                {
+                    BucketName = bkt.Name,
+                    ScopeName = scp.Name,
+                    CollectionName = col.Name
+                };
+            }
+
+            var txdataSingleQuery = new QueryTxData(txid, state, txConfig, atrRef, mutations);
+            return txdataSingleQuery;
         }
 
         private void QueryPreCheck(string statement, string hookPoint, bool existingErrorCheck)
@@ -2086,12 +2143,20 @@ namespace Couchbase.Transactions
             }
         }
 
-
+        // TODO:  This should be internal.  As that's a breaking change, we'll do it with the other minor breaking changes in ExtSdkIntegration
+        /// <summary>
+        /// INTERNAL
+        /// </summary>
+        /// <param name="err">INTERNAL</param>
+        /// <returns>INTERNAL</returns>
+        [InterfaceStability(Level.Volatile)]
         public Exception? ConvertQueryError(Exception err)
         {
             if (err is Couchbase.Core.Exceptions.TimeoutException)
             {
-                return new AttemptExpiredException(this, "attempt expired during query", err);
+                return CreateError(this, ErrorClass.FailExpiry)
+                    .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
+                    .Build();
             }
             else if (err is CouchbaseException ce)
             {
@@ -2121,9 +2186,9 @@ namespace Couchbase.Transactions
                                     .RaiseException(TransactionOperationFailedException.FinalError.TransactionExpired)
                                     .Build();
                             case 17012: // Duplicate key
-                                return new DocumentExistsException(); // { Context = qec };
+                                return new DocumentExistsException(qec);
                             case 17014: // Key not found
-                                return new DocumentNotFoundException(); // { Context = qec };
+                                return new DocumentNotFoundException(qec);
                             case 17015: // CAS mismatch
                                 return new CasMismatchException(qec);
                         }
@@ -2205,7 +2270,7 @@ namespace Couchbase.Transactions
                 }
             }
 
-            return qec.Errors.First();
+            return qec.Errors.FirstOrDefault();
         }
 
         private async Task QueryBeginWork(IRequestSpan? parentSpan)
@@ -2223,28 +2288,8 @@ namespace Couchbase.Transactions
                 AttemptId = AttemptId
             };
 
-            var state = new TxDataState((long)_overallContext.RemainingUntilExpiration.TotalMilliseconds);
-            var txConfig = new TxDataReportedConfig((long?)_config?.KeyValueTimeout?.TotalMilliseconds ?? 10_000, AtrIds.NumAtrs, _effectiveDurabilityLevel.ToString().ToUpperInvariant());
-
-            var mutations = _stagedMutations?.ToList().Select(sm => sm.AsTxData()) ?? Array.Empty<TxDataMutation>();
-            var txdata = new QueryTxData(txid, state, txConfig, _atr?.AtrRef, mutations);
-            var queryOptions = NonStreamingQuery()
-                .ScanConsistency(QueryScanConsistency.RequestPlus) // TODO: From mergedConfig
-                .Raw("durability_level", _effectiveDurabilityLevel switch
-                {
-                    DurabilityLevel.None => "none",
-                    DurabilityLevel.Majority => "majority",
-                    DurabilityLevel.MajorityAndPersistToActive => "majorityAndPersistToActive",
-                    DurabilityLevel.PersistToMajority => "persistToMajority",
-                    _ => _effectiveDurabilityLevel.ToString()
-                })
-                .Raw("txtimeout", $"{_overallContext.RemainingUntilExpiration.TotalMilliseconds}ms");
-
-            if (_overallContext.Config.MetadataCollection != null)
-            {
-                var mc = _overallContext.Config.MetadataCollection;
-                queryOptions.Raw("atrcollection", $"`{mc.Scope.Bucket.Name}`.`{mc.Scope.Name}`.`{mc.Name}`");
-            }
+            var txdata = CreateBeginWorkTxData();
+            QueryOptions queryOptions = InitializeBeginWorkQueryOptions(NonStreamingQuery());
 
             var results = await QueryWrapper<QueryBeginWorkResponse>(
                 statementId: 0,
@@ -2270,6 +2315,29 @@ namespace Couchbase.Transactions
                     Logger.LogDebug(result.ToString());
                 }
             }
+        }
+
+        private QueryOptions InitializeBeginWorkQueryOptions(QueryOptions queryOptions)
+        {
+            queryOptions
+                .ScanConsistency(_config.ScanConsistency ?? QueryScanConsistency.RequestPlus)
+                .Raw("durability_level", _effectiveDurabilityLevel switch
+                {
+                    DurabilityLevel.None => "none",
+                    DurabilityLevel.Majority => "majority",
+                    DurabilityLevel.MajorityAndPersistToActive => "majorityAndPersistToActive",
+                    DurabilityLevel.PersistToMajority => "persistToMajority",
+                    _ => _effectiveDurabilityLevel.ToString()
+                })
+                .Raw("txtimeout", $"{_overallContext.RemainingUntilExpiration.TotalMilliseconds}ms");
+
+            if (_config.MetadataCollection != null)
+            {
+                var mc = _config.MetadataCollection;
+                queryOptions.Raw("atrcollection", $"`{mc.Scope.Bucket.Name}`.`{mc.Scope.Name}`.`{mc.Name}`");
+            }
+
+            return queryOptions;
         }
 
         internal void SaveErrorWrapper(TransactionOperationFailedException ex)
@@ -2346,7 +2414,7 @@ namespace Couchbase.Transactions
                 return null;
             }
 
-            var durabilityShort = new ShortStringDurabilityLevel(_overallContext.PerConfig.DurabilityLevel ?? _overallContext.Config.DurabilityLevel).ToString();
+            var durabilityShort = new ShortStringDurabilityLevel(_effectiveDurabilityLevel).ToString();
             var cleanupRequest = new CleanupRequest(
                 AttemptId: AttemptId,
                 AtrId: _atr.AtrId,

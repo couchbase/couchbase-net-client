@@ -39,15 +39,13 @@ namespace Couchbase.Transactions.Tests.UnitTests
         public void TransactionLogger_Redacts_Properly()
         {
             var testOutputLogger = new TestOutputLogger(this.outputHelper, nameof(LoggerTests));
-            var config = new TransactionConfigImmutable(
-                ExpirationTime: TimeSpan.FromMinutes(10),
-                CleanupLostAttempts: false,
-                CleanupClientAttempts: false,
-                CleanupWindow: TimeSpan.FromSeconds(10),
-                KeyValueTimeout: TimeSpan.FromSeconds(10),
-                DurabilityLevel: DurabilityLevel.Majority,
-                LoggerFactory: null,
-                MetadataCollection: null
+            var config = new TransactionConfig(
+                expirationTime: TimeSpan.FromMinutes(10),
+                cleanupLostAttempts: false,
+                cleanupClientAttempts: false,
+                cleanupWindow: TimeSpan.FromSeconds(10),
+                keyValueTimeout: TimeSpan.FromSeconds(10),
+                durabilityLevel: DurabilityLevel.Majority
                 );
             var ctx = new TransactionContext(Guid.NewGuid().ToString(), DateTimeOffset.UtcNow, config, null);
             var loggerFactory = new TransactionsLoggerFactory(new TestOutputLoggerFactory(this.outputHelper), ctx);

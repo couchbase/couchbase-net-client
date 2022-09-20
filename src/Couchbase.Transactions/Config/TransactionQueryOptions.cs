@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core.Compatibility;
@@ -31,8 +31,9 @@ namespace Couchbase.Transactions.Config
         /// <summary>
         /// Build a new instance of QueryOptions based on these TransactionQueryOptions.
         /// </summary>
+        /// <param name="txImplicit">Whether this is a single query transaction.</param>
         /// <returns>A new instance of QueryOptions</returns>
-        internal QueryOptions Build()
+        internal QueryOptions Build(bool txImplicit)
         {
             QueryOptions opts = new();
             foreach (var kvp in _parameters)
@@ -53,6 +54,12 @@ namespace Couchbase.Transactions.Config
             if (_scanConsistency != null)
             {
                 opts.ScanConsistency(_scanConsistency.Value);
+            }
+            else if (txImplicit)
+            {
+                // Due to MB-50914, query is not setting the expected scan consistency level of request_plus on some server versions.
+                // So we set it client-side if the user has not specified a scan consistency.
+                opts.ScanConsistency(QueryScanConsistency.RequestPlus);
             }
 
             if (_flexIndex != null)

@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.KeyValue;
+using Couchbase.Query;
 
 namespace Couchbase.Transactions.Config
 {
@@ -19,9 +20,9 @@ namespace Couchbase.Transactions.Config
         public DurabilityLevel? DurabilityLevel { get; set; }
 
         /// <summary>
-        /// Gets an optional value indicating the relative expiration time of the transaction for this transaction..
+        /// Gets an optional value indicating the relative expiration time of the transaction for this transaction.
         /// </summary>
-        public TimeSpan? ExpirationTime { get; set; }
+        public TimeSpan? Timeout { get; set; }
 
 
         /// <summary>
@@ -29,19 +30,11 @@ namespace Couchbase.Transactions.Config
         /// </summary>
         public TimeSpan? KeyValueTimeout { get; set; }
 
-        internal PerTransactionConfigImmutable AsImmutable() => new(
-            DurabilityLevel: DurabilityLevel,
-            ExpirationTime: ExpirationTime,
-            KeyValueTimeout: KeyValueTimeout);
+        /// <summary>
+        /// The scan consistency to use for query operations (default: RequestPlus)
+        /// </summary>
+        public QueryScanConsistency? ScanConsistency { get; set; }
     }
-
-    /// <summary>
-    /// An immutable version of <see cref="PerTransactionConfig"/>.
-    /// </summary>
-    internal record PerTransactionConfigImmutable(
-        DurabilityLevel? DurabilityLevel,
-        TimeSpan? ExpirationTime,
-        TimeSpan? KeyValueTimeout);
 }
 
 

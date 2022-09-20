@@ -139,7 +139,9 @@ namespace Couchbase.Transactions
         /// <param name="transactionLogic">A func representing the transaction logic. All data operations should use the methods on the <see cref="AttemptContext"/> provided.  Do not mix and match non-transactional data operations.</param>
         /// <param name="perConfig">A config with values unique to this specific transaction.</param>
         /// <returns>The result of the transaction.</returns>
-        public async Task<TransactionResult> RunAsync(Func<AttemptContext, Task> transactionLogic, PerTransactionConfig perConfig)
+        public Task<TransactionResult> RunAsync(Func<AttemptContext, Task> transactionLogic, PerTransactionConfig perConfig) => RunAsync(transactionLogic, perConfig, false);
+
+        internal async Task<TransactionResult> RunAsync(Func<AttemptContext, Task> transactionLogic, PerTransactionConfig perConfig, bool singleQueryTransactionMode)
         {
             // https://hackmd.io/foGjnSSIQmqfks2lXwNp8w?view#The-Core-Loop
 
@@ -149,8 +151,8 @@ namespace Couchbase.Transactions
             var overallContext = new TransactionContext(
                 transactionId: txId,
                 startTime: DateTimeOffset.UtcNow,
-                config: Config.AsImmutable(),
-                perConfig: perConfig.AsImmutable()
+                config: Config,
+                perConfig: perConfig
                 );
 
             var result = new TransactionResult() { TransactionId =  overallContext.TransactionId };
@@ -161,56 +163,73 @@ namespace Couchbase.Transactions
             {
                 try
                 {
-                    await ExecuteApplicationLambda(transactionLogic, overallContext, loggerFactory, result, rootSpan).CAF();
-                    return result;
-                }
-                catch (TransactionOperationFailedException ex)
-                {
-                    // If anything above fails with error err
-                    if (ex.RetryTransaction && !overallContext.IsExpired)
+                    try
                     {
-                        // If err.retry is true, and the transaction has not expired
-                        //Apply OpRetryBackoff, with randomized jitter. E.g.each attempt will wait exponentially longer before retrying, up to a limit.
-                        var jitter = randomJitter.Next(10);
-                        var delayMs = opRetryBackoffMillisecond + jitter;
-                        await Task.Delay(delayMs).CAF();
-                        opRetryBackoffMillisecond = Math.Min(opRetryBackoffMillisecond * 10, 100);
-                        //    Go back to the start of this loop, e.g.a new attempt.
-                        continue;
+                        await ExecuteApplicationLambda(transactionLogic, overallContext, loggerFactory, result, rootSpan, singleQueryTransactionMode).CAF();
+                        return result;
                     }
-                    else
+                    catch (TransactionOperationFailedException ex)
                     {
-                        // Otherwise, we are not going to retry. What happens next depends on err.raise
-                        switch (ex.FinalErrorToRaise)
+                        // If anything above fails with error err
+                        if (ex.RetryTransaction && !overallContext.IsExpired)
                         {
-                            //  Failure post-commit may or may not be a failure to the application,
-                            // as the cleanup process should complete the commit soon. It often depends on
-                            // whether the application wants RYOW, e.g. AT_PLUS. So, success will be returned,
-                            // but TransactionResult.unstagingComplete() will be false.
-                            // The application can interpret this as it needs.
-                            case TransactionOperationFailedException.FinalError.TransactionFailedPostCommit:
-                                result.UnstagingComplete = false;
-                                return result;
+                            // If err.retry is true, and the transaction has not expired
+                            //Apply OpRetryBackoff, with randomized jitter. E.g.each attempt will wait exponentially longer before retrying, up to a limit.
+                            var jitter = randomJitter.Next(10);
+                            var delayMs = opRetryBackoffMillisecond + jitter;
+                            await Task.Delay(delayMs).CAF();
+                            opRetryBackoffMillisecond = Math.Min(opRetryBackoffMillisecond * 10, 100);
+                            //    Go back to the start of this loop, e.g.a new attempt.
+                            continue;
+                        }
+                        else
+                        {
+                            // Otherwise, we are not going to retry. What happens next depends on err.raise
+                            switch (ex.FinalErrorToRaise)
+                            {
+                                //  Failure post-commit may or may not be a failure to the application,
+                                // as the cleanup process should complete the commit soon. It often depends on
+                                // whether the application wants RYOW, e.g. AT_PLUS. So, success will be returned,
+                                // but TransactionResult.unstagingComplete() will be false.
+                                // The application can interpret this as it needs.
+                                case TransactionOperationFailedException.FinalError.TransactionFailedPostCommit:
+                                    result.UnstagingComplete = false;
+                                    return result;
 
-                            // Raise TransactionExpired to application, with a cause of err.cause.
-                            case TransactionOperationFailedException.FinalError.TransactionExpired:
-                                throw new TransactionExpiredException("Transaction Expired", ex.Cause, result);
+                                // Raise TransactionExpired to application, with a cause of err.cause.
+                                case TransactionOperationFailedException.FinalError.TransactionExpired:
+                                    throw new TransactionExpiredException("Transaction Expired", ex.Cause, result);
 
-                            // Raise TransactionCommitAmbiguous to application, with a cause of err.cause.
-                            case TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous:
-                                throw new TransactionCommitAmbiguousException("Transaction may have failed to commit.", ex.Cause, result);
+                                // Raise TransactionCommitAmbiguous to application, with a cause of err.cause.
+                                case TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous:
+                                    throw new TransactionCommitAmbiguousException("Transaction may have failed to commit.", ex.Cause, result);
 
-                            default:
-                                throw new TransactionFailedException("Transaction failed.", ex.Cause ?? ex, result);
+                                default:
+                                    throw new TransactionFailedException("Transaction failed.", ex.Cause ?? ex, result);
+                            }
                         }
                     }
+                    catch (Exception notWrapped)
+                    {
+                        if (singleQueryTransactionMode)
+                        {
+                            if (notWrapped is TransactionExpiredException)
+                            {
+                                throw new Core.Exceptions.UnambiguousTimeoutException("Timed out during single query transaction (L2)", notWrapped);
+                            }
+
+                            throw;
+                        }
+
+                        // Assert err is an ErrorWrapper
+                        throw new InvalidOperationException(
+                            $"All exceptions should have been wrapped in an {nameof(TransactionOperationFailedException)}.",
+                            notWrapped);
+                    }
                 }
-                catch (Exception notWrapped)
+                catch (TransactionExpiredException err) when (singleQueryTransactionMode)
                 {
-                    // Assert err is an ErrorWrapper
-                    throw new InvalidOperationException(
-                        $"All exceptions should have been wrapped in an {nameof(TransactionOperationFailedException)}.",
-                        notWrapped);
+                    throw new Core.Exceptions.UnambiguousTimeoutException("Timed out during single query transaction (L3)", err);
                 }
             }
 
@@ -234,11 +253,13 @@ namespace Couchbase.Transactions
             var options = config.QueryOptionsValue ?? new();
             var perTransactionConfig = config.Build();
 
+            var txImplicit = true;
             IQueryResult<T>? queryResult = null;
             var transactionResult = await RunAsync(async ctx =>
             {
-                queryResult = await ctx.QueryAsync<T>(statement, options, true, scope, rootSpan).CAF();
-            }, perTransactionConfig).CAF();
+                var originalQueryResult = await ctx.QueryAsync<T>(statement, options, txImplicit, scope, rootSpan).CAF();
+                queryResult = new Internal.SingleQueryResultWrapper<T>(originalQueryResult, ctx);
+            }, perTransactionConfig, singleQueryTransactionMode: true).CAF();
 
             return new SingleQueryTransactionResult<T>()
             {
@@ -248,7 +269,12 @@ namespace Couchbase.Transactions
             };
         }
 
-        private async Task ExecuteApplicationLambda(Func<AttemptContext, Task> transactionLogic, TransactionContext overallContext, ILoggerFactory loggerFactory, TransactionResult result, IRequestSpan parentSpan)
+        private async Task ExecuteApplicationLambda(Func<AttemptContext, Task> transactionLogic,
+                                                    TransactionContext overallContext,
+                                                    ILoggerFactory loggerFactory,
+                                                    TransactionResult result,
+                                                    IRequestSpan parentSpan,
+                                                    bool singleQueryTransactionMode)
         {
             var attemptid = Guid.NewGuid().ToString();
             using var traceSpan = parentSpan.ChildSpan(nameof(ExecuteApplicationLambda))
@@ -257,7 +283,6 @@ namespace Couchbase.Transactions
             var memoryLogger = delegatingLoggerFactory.CreateLogger(nameof(ExecuteApplicationLambda));
             var ctx = new AttemptContext(
                 overallContext,
-                overallContext.Config,
                 attemptid,
                 TestHooks,
                 _redactor,
@@ -273,7 +298,10 @@ namespace Couchbase.Transactions
                 try
                 {
                     await transactionLogic(ctx).CAF();
-                    await ctx.AutoCommit(traceSpan).CAF();
+                    if (!singleQueryTransactionMode)
+                    {
+                        await ctx.AutoCommit(traceSpan).CAF();
+                    }
                 }
                 catch (TransactionOperationFailedException)
                 {
@@ -282,6 +310,11 @@ namespace Couchbase.Transactions
                 }
                 catch (Exception innerEx)
                 {
+                    if (singleQueryTransactionMode)
+                    {
+                        throw;
+                    }
+
                     // If err is not an ErrorWrapper, follow
                     // Exceptions Raised by the Application Lambda logic to turn it into one.
                     // From now on, all errors must be an ErrorWrapper.
@@ -298,7 +331,7 @@ namespace Couchbase.Transactions
             catch (TransactionOperationFailedException ex)
             {
                 // If err.rollback is true (it generally will be), auto-rollback the attempt by calling rollbackInternal with appRollback=false.
-                if (ex.AutoRollbackAttempt)
+                if (ex.AutoRollbackAttempt && !singleQueryTransactionMode)
                 {
                     try
                     {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
@@ -88,13 +88,19 @@ namespace Couchbase.Transactions.Config
         /// </summary>
         public ICouchbaseCollection? MetadataCollection { get; internal set; }
 
+        /// <summary>
+        /// Gets the <see cref="QueryScanConsistency"/> to use for transaction query operations.
+        /// </summary>
+        public QueryScanConsistency? ScanConsistency { get; internal set; }
+
         internal TransactionConfig(
             DurabilityLevel durabilityLevel = DefaultDurabilityLevel,
             TimeSpan? expirationTime = null,
             TimeSpan? cleanupWindow = null,
             TimeSpan? keyValueTimeout = null,
             bool cleanupClientAttempts = DefaultCleanupClientAttempts,
-            bool cleanupLostAttempts = DefaultCleanupLostAttempts
+            bool cleanupLostAttempts = DefaultCleanupLostAttempts,
+            QueryScanConsistency? scanConsistency = null
         )
         {
             ExpirationTime = expirationTime ?? TimeSpan.FromMilliseconds(DefaultExpirationMilliseconds);
@@ -103,34 +109,9 @@ namespace Couchbase.Transactions.Config
             CleanupWindow = cleanupWindow ?? TimeSpan.FromMilliseconds(DefaultCleanupWindowMilliseconds);
             KeyValueTimeout = keyValueTimeout;
             DurabilityLevel = durabilityLevel;
+            ScanConsistency = scanConsistency;
         }
-
-        // Configs should probably be immutable by default to avoid this problem, but changing TransactionConfig to being immutable
-        // would be a breaking change.
-        // Using named parameters style here helps to use the compiler to ensure that any new properties are not missed.
-        internal TransactionConfigImmutable AsImmutable() => new(
-            ExpirationTime: ExpirationTime,
-            CleanupLostAttempts: CleanupLostAttempts,
-            CleanupClientAttempts: CleanupClientAttempts,
-            CleanupWindow: CleanupWindow,
-            KeyValueTimeout: KeyValueTimeout,
-            DurabilityLevel: DurabilityLevel,
-            LoggerFactory: LoggerFactory,
-            MetadataCollection: MetadataCollection);
     }
-
-    /// <summary>
-    /// An immutable version of <see cref="TransactionConfig"/>, to prevent bugs from user changing config in the middle of a transactions.
-    /// </summary>
-    internal record TransactionConfigImmutable(
-        TimeSpan ExpirationTime,
-        bool CleanupLostAttempts,
-        bool CleanupClientAttempts,
-        TimeSpan CleanupWindow,
-        TimeSpan? KeyValueTimeout,
-        DurabilityLevel DurabilityLevel,
-        ILoggerFactory? LoggerFactory,
-        ICouchbaseCollection? MetadataCollection);
 }
 
 

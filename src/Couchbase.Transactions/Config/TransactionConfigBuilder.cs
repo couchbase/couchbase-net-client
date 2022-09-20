@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core.IO.Operations;
@@ -129,7 +129,7 @@ namespace Couchbase.Transactions.Config
         /// <returns>The original <see cref="TransactionConfigBuilder"/>.</returns>
         public TransactionConfigBuilder QueryConfig(TransactionQueryConfigBuilder queryConfigBuilder)
         {
-            _queryConfigBuilder = queryConfigBuilder;
+            _config.ScanConsistency = queryConfigBuilder.ScanConsistencyValue;
             return this;
         }
     }

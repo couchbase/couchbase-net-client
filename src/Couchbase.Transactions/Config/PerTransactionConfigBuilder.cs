@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.KeyValue;
+using Couchbase.Query;
 
 namespace Couchbase.Transactions.Config
 {
@@ -31,6 +32,39 @@ namespace Couchbase.Transactions.Config
         public PerTransactionConfigBuilder DurabilityLevel(DurabilityLevel durabilityLevel)
         {
             _config.DurabilityLevel = durabilityLevel;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the per-transaction specific query options.
+        /// </summary>
+        /// <param name="perTransactionQueryConfig">The per-transaction specific query options.</param>
+        /// <returns>The continued instance of this builder.</returns>
+        public PerTransactionConfigBuilder QueryConfig(PerTransactionQueryConfig perTransactionQueryConfig)
+        {
+            _config.ScanConsistency = perTransactionQueryConfig.ScanConsistency;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets an optional value indicating the relative expiration time of the transaction for this transaction.
+        /// </summary>
+        /// <param name="timeout">The relative expiration time of the transaction for this transaction</param>
+        /// <returns>The continued instance of this builder.</returns>
+        public PerTransactionConfigBuilder Timeout(TimeSpan? timeout)
+        {
+            _config.Timeout = timeout;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets an option value indicating the timeout on Couchbase Key/Value operations for this transaction.
+        /// </summary>
+        /// <param name="keyValueTimeout">The timeout on Couchbase Key/Value operations for this transaction</param>
+        /// <returns>The continued instance of this builder.</returns>
+        public PerTransactionConfigBuilder KeyValueTimeout(TimeSpan? keyValueTimeout)
+        {
+            _config.KeyValueTimeout = keyValueTimeout;
             return this;
         }
 

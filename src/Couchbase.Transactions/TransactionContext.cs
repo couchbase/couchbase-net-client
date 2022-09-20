@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -13,8 +13,7 @@ namespace Couchbase.Transactions
 
         public string TransactionId { get; }
         public DateTimeOffset StartTime { get; }
-        public TransactionConfigImmutable Config { get; }
-        public PerTransactionConfigImmutable PerConfig { get; }
+        public MergedTransactionConfig Config { get; }
 
         public DateTimeOffset AbsoluteExpiration => StartTime + Config.ExpirationTime;
         public bool IsExpired => AbsoluteExpiration <= DateTimeOffset.UtcNow;
@@ -24,13 +23,12 @@ namespace Couchbase.Transactions
         public TransactionContext(
             string transactionId,
             DateTimeOffset startTime,
-            TransactionConfigImmutable config,
-            PerTransactionConfigImmutable? perConfig)
+            TransactionConfig config,
+            PerTransactionConfig? perConfig)
         {
             TransactionId = transactionId;
             StartTime = startTime;
-            Config = config;
-            PerConfig = perConfig ?? new PerTransactionConfig().AsImmutable();
+            Config = MergedTransactionConfig.Create(config, perConfig);
         }
 
         internal void AddLog(string msg) => _logs.Enqueue(msg);
