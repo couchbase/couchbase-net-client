@@ -22,6 +22,11 @@ namespace Couchbase.Core.IO.Operations
         Failure = -3,
 
         /// <summary>
+        /// The circuit breaker has been tripped and the operation will retry until timeout. Used internally.
+        /// </summary>
+        CircuitBreakerOpen = -4,
+
+        /// <summary>
         /// The operation was successful
         /// </summary>
         Success = 0x0000,
@@ -298,12 +303,12 @@ namespace Couchbase.Core.IO.Operations
         SubdocInvalidXattrOrder = 0xd4,
 
         /// <summary>
-        /// Collection does not exist.
+        /// Collection does not exist/Collection Outdated
         /// </summary>
         UnknownCollection = 0x88,
 
         /// <summary>
-        /// The Scope does not exist.
+        /// The Scope does not exist/Collection Outdated
         /// </summary>
         UnknownScope = 0x8C,
 

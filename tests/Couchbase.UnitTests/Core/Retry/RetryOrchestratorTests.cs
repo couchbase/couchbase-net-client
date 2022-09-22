@@ -44,71 +44,71 @@ namespace Couchbase.UnitTests.Core.Retry
         {
             public IEnumerator<object[]> GetEnumerator()
             {
-                yield return new object[] {new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new ReplicaRead<dynamic>("key", 1) {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new Config {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
-                yield return new object[] {new Observe {RetryStrategy = new BestEffortRetryStrategy()}, new NotMyVBucketException()};
+                yield return new object[] {new Get<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer};
+                yield return new object[] {new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer };
+                yield return new object[] {new ReplicaRead<dynamic>("key", 1) {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer };
+                yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer };
+                yield return new object[] {new GetL<dynamic> {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer };
+                yield return new object[] {new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer };
+                yield return new object[] {new Config {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer };
+                yield return new object[] {new Observe {RetryStrategy = new BestEffortRetryStrategy()}, ResponseStatus.VBucketBelongsToAnotherServer };
 
-                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
-                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new TemporaryFailureException() };
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
+                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.TemporaryFailure };
 
-                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
-                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
-                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
-                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
-                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new CircuitBreakerException() };
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen};
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen };
+                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.CircuitBreakerOpen };
 
-                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
-                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
-                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
-                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
-                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new CollectionNotFoundException() };
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
+                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.UnknownCollection };
 
-                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
-                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, new DocumentLockedException() };
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
+                yield return new object[] { new ReplicaRead<dynamic>("key", 1) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
+                yield return new object[] { new GetL<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
+                yield return new object[] { new MultiLookup<dynamic>("key", Array.Empty<LookupInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
+                yield return new object[] { new Config { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
+                yield return new object[] { new Observe { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.Locked };
 
-                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Replace<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Delete { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Increment("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Decrement("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
-                yield return new object[] { new MultiMutation<object>("key", Array.Empty<MutateInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteInProgressException() };
+                yield return new object[] { new Get<dynamic> { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Replace<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Delete { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Increment("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Decrement("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
+                yield return new object[] { new MultiMutation<object>("key", Array.Empty<MutateInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteInProgress };
 
-                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new Replace<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new Delete { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new Increment("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new Decrement("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
-                yield return new object[] { new MultiMutation<object>("key", Array.Empty<MutateInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, new DurableWriteReCommitInProgressException() };
+                yield return new object[] { new Set<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new Add<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new Replace<dynamic>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new Delete { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new Increment("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new Decrement("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new Append<byte[]>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new Prepend<byte>("fake", "fakeKey") { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
+                yield return new object[] { new MultiMutation<object>("key", Array.Empty<MutateInSpec>()) { RetryStrategy = new BestEffortRetryStrategy() }, ResponseStatus.SyncWriteReCommitInProgress };
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -141,12 +141,12 @@ namespace Couchbase.UnitTests.Core.Retry
         [Theory]
         [ClassData(typeof(RetryTestData))]
         public async Task Operation_Succeeds_After_N_Retries_Using_BestEffort_When_TemporaryFailure(
-            object operation, Exception exception)
+            object operation, ResponseStatus status)
         {
-            await AssertRetryThenSuccessAsync((OperationBase)operation, exception).ConfigureAwait(false);
+            await AssertRetryThenSuccessAsync((OperationBase)operation, status).ConfigureAwait(false);
         }
 
-        private async Task AssertRetryThenSuccessAsync(OperationBase op, Exception exp)
+        private async Task AssertRetryThenSuccessAsync(OperationBase op, ResponseStatus status)
         {
             var retryOrchestrator = CreateRetryOrchestrator();
 
@@ -156,30 +156,33 @@ namespace Couchbase.UnitTests.Core.Retry
                 new BestEffortRetryStrategy(), new BucketConfig());
 
                 bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Callback((IOperation op1, CancellationTokenPair ct) =>
-            {
-                if (op1.Completed.IsCompleted)
-                    Assert.True(false, "operation result should be reset before retry");
-
-                // complete the operation if circuit breaker is not open (ResponseStatus does not matter for this test)
-                if (exp.GetType() != typeof(CircuitBreakerException) || op.Attempts != 0)
-                    op.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, ResponseStatus.TemporaryFailure));
-
-                if (op1.Attempts == 0)
                 {
-                    throw exp;
+                    if (op1.Completed.IsCompleted && status != ResponseStatus.CircuitBreakerOpen)
+                        Assert.True(false, "operation result should be reset before retry");
+
+                    // complete the operation if circuit breaker is not open
+                    if (op.Attempts != 0)
+                    {
+                        op1.Reset();
+                        status = ResponseStatus.Success;
+                        op1.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, status));
+                    }
+                    else
+                        op1.HandleOperationCompleted(AsyncState.BuildErrorResponse(op.Opaque, status));
+
+            }).Returns(() => Task.FromResult(status));
+
+            using (var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500000)))
+            {
+                try
+                {
+                   var status1 = await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(false);
                 }
-            }).Returns(op.Completed.AsTask());
-
-            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500));
-
-            try
-            {
-                await retryOrchestrator.RetryAsync(bucketMock.Object, op, tokenPair.TokenPair).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                var msg = ex.Message;
-                Assert.True(false, "Expected operation to succeed after retry");
+                catch (Exception ex)
+                {
+                    var msg = ex.Message;
+                    Assert.True(false, $"Expected operation to succeed after retry: {ex.Message}");
+                }
             }
             Assert.True(op.Attempts > 0);
         }
@@ -292,7 +295,7 @@ namespace Couchbase.UnitTests.Core.Retry
                 new BucketConfig());
 
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>()))
-                .Returns(Task.CompletedTask);
+                .Returns(Task.FromResult(ResponseStatus.Success));
 
             using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500));
 
@@ -324,11 +327,10 @@ namespace Couchbase.UnitTests.Core.Retry
             };
             bucketMock.Setup(x => x.SendAsync(op, It.IsAny<CancellationTokenPair>())).Throws(exp);
 
-            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(2500));
+            using var tokenPair = CancellationTokenPairSource.FromTimeout(TimeSpan.FromMilliseconds(250000));
 
             try
             {
-
                 await bucketMock.Object.RetryAsync(op, tokenPair.TokenPair).ConfigureAwait(false);
             }
             catch (Exception e)

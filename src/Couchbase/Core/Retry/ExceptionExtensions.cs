@@ -12,23 +12,13 @@ namespace Couchbase.Core.Retry
         {
             switch (e)
             {
-                case NotMyVBucketException _: return RetryReason.KvNotMyVBucket;
-                case DocumentLockedException _: return RetryReason.KvLocked;
-                case TemporaryFailureException _: return RetryReason.KvTemporaryFailure;
-                //case SocketNotAvailableException _: return RetryReason.SocketNotAvailable;
-                //case SocketException _: return RetryReason.SocketClosedWhileInFlight;
-                case DurableWriteInProgressException _: return RetryReason.KvSyncWriteInProgress;
-                case DurableWriteReCommitInProgressException _: return RetryReason.KvSyncWriteReCommitInProgress;
                 case ServiceNotAvailableException _: return RetryReason.ServiceNotAvailable;
                 case NodeNotAvailableException _:return RetryReason.NodeNotAvailable;
                 case KvErrorMapRetryException _: return RetryReason.KvErrorMapRetryIndicated;
-                //case ServiceResponseRetryException _: return RetryReason.ServiceResponseCodeIndicated;
                 case PreparedStatementException _: return RetryReason.QueryPreparedStatementFailure;
                 case IndexFailureException _: return RetryReason.QueryIndexNotFound;
                 case SendQueueFullException _: return RetryReason.SendQueueFull;
                 case CircuitBreakerException _: return RetryReason.CircuitBreakerOpen;
-                case CollectionNotFoundException _: return RetryReason.CollectionNotFound;
-                case ScopeNotFoundException _: return RetryReason.ScopeNotFound;
                 default:
                 {
                     return RetryReason.NoRetry;

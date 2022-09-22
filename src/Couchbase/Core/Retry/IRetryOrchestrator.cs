@@ -8,7 +8,7 @@ namespace Couchbase.Core.Retry
     {
         Task<T> RetryAsync<T>(Func<Task<T>> send, IRequest request) where T : IServiceResult;
 
-        Task RetryAsync(BucketBase bucket, IOperation operation, CancellationTokenPair tokenPair = default);
+        Task<ResponseStatus> RetryAsync(BucketBase bucket, IOperation operation, CancellationTokenPair tokenPair = default);
     }
 }
 

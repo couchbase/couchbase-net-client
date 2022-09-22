@@ -264,7 +264,7 @@ namespace Couchbase.UnitTests.Core.Configuration
                 throw new NotImplementedException();
             }
 
-            internal override Task SendAsync(IOperation op, CancellationTokenPair token = default)
+            internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default)
             {
                 throw new NotImplementedException();
             }

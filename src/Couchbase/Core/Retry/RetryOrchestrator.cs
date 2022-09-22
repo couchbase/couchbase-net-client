@@ -12,6 +12,7 @@ using Couchbase.Core.Retry.Query;
 using Couchbase.Core.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
+using Couchbase.Core.IO;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Retry
@@ -159,12 +160,12 @@ namespace Couchbase.Core.Retry
             }
         }
 
-        public async Task RetryAsync(BucketBase bucket, IOperation operation, CancellationTokenPair tokenPair = default)
+        public async Task<ResponseStatus> RetryAsync(BucketBase bucket, IOperation operation, CancellationTokenPair tokenPair = default)
         {
             try
             {
                 var backoff = ControlledBackoff.Create();
-                System.Exception lastRetriedException = null;
+                Exception lastRetriedException = null;
 
                 do
                 {
@@ -183,32 +184,83 @@ namespace Couchbase.Core.Retry
                             MetricTracker.KeyValue.TrackRetry(operation.OpCode);
                         }
 
-                        try
+                        var status = await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
+                        if (status == ResponseStatus.Success)
                         {
-                            await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
-                            break;
+                            return status;
                         }
-                        catch (CouchbaseException e) when (operation is not GetCid &&
-                                                           (e is ScopeNotFoundException ||
-                                                            e is CollectionNotFoundException))
-                        {
-                            // We catch CollectionOutdatedException separately from the CouchbaseException catch block
-                            // in case RefreshCollectionId fails. This causes that failure to trigger normal retry logic.
 
-                            LogRefreshingCollectionId(e);
-                            if (!await RefreshCollectionId(bucket, operation)
-                                    .ConfigureAwait(false))
+                        //For ICouchbaseCollection.ExistsAsync so we do not need to throw and capture the exception
+                        if (status == ResponseStatus.KeyNotFound && operation.OpCode == OpCode.GetMeta)
+                        {
+                            return status;
+                        }
+                        if (status.IsRetriable(operation))
+                        {
+                            if (status == ResponseStatus.UnknownScope || status == ResponseStatus.UnknownCollection)
                             {
-                                // rethrow if we fail to refresh he collection ID so we hit retry logic
-                                // otherwise we'll loop and retry immediately
-                                throw;
+                                // LogRefreshingCollectionId(e);
+                                if (!await RefreshCollectionId(bucket, operation)
+                                        .ConfigureAwait(false))
+                                {
+                                    // rethrow if we fail to refresh the collection ID so we hit retry logic
+                                    // otherwise we'll loop and retry immediately
+                                    operation.Reset();
+                                    operation.IncrementAttempts(status == ResponseStatus.UnknownScope ?
+                                        RetryReason.ScopeNotFound :
+                                        RetryReason.CollectionNotFound);
+                                    continue;
+                                }
                             }
+
+                            var reason = status.ResolveRetryReason();
+                            if (reason.AlwaysRetry())
+                            {
+                                LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason);
+
+                                await backoff.Delay(operation).ConfigureAwait(false);
+
+                                // no need to reset op in this case as it was not actually sent
+                                if (reason != RetryReason.CircuitBreakerOpen)
+                                {
+                                    operation.Reset();
+                                }
+                                operation.IncrementAttempts(reason);
+                                continue;
+                            }
+                            var strategy = operation.RetryStrategy;
+                            var action = strategy.RetryAfter(operation, reason);
+
+                            if (action.Retry)
+                            {
+                                LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
+
+                                // Reset first so operation is not marked as sent if canceled during the delay
+                                operation.Reset();
+                                operation.IncrementAttempts(reason);
+
+                                await Task.Delay(action.DurationValue.GetValueOrDefault(), tokenPair)
+                                    .ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                throw status.CreateException(operation, bucket);
+                            }
+                        }
+                        else
+                        {
+                            //do not retry just raise the exception
+                            throw status.CreateException(operation, bucket);
                         }
                     }
                     catch (CouchbaseException e) when (e is IRetryable && !tokenPair.IsCancellationRequested)
                     {
+                        /*
+                         * Note this section is duplicate logic so we can the case when an exception is thrown
+                         * but the operation may be retried. There are only a few corner cases because most all
+                         * of the cases are handled above in the try block.
+                         */
                         var reason = e.ResolveRetryReason();
-
                         if (reason.AlwaysRetry())
                         {
                             lastRetriedException = e;
@@ -217,7 +269,8 @@ namespace Couchbase.Core.Retry
                             try
                             {
                                 await backoff.Delay(operation).ConfigureAwait(false);
-                            } catch (OperationCanceledException)
+                            }
+                            catch (OperationCanceledException)
                             { }
 
                             // no need to reset op in this case as it was not actually sent
@@ -226,18 +279,14 @@ namespace Couchbase.Core.Retry
                                 operation.Reset();
                             }
                             operation.IncrementAttempts(reason);
-
                             continue;
                         }
-
                         var strategy = operation.RetryStrategy;
                         var action = strategy.RetryAfter(operation, reason);
-
                         if (action.Retry)
                         {
                             lastRetriedException = e;
                             LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
-
                             // Reset first so operation is not marked as sent if canceled during the delay
                             operation.Reset();
                             operation.IncrementAttempts(reason);
@@ -282,6 +331,8 @@ namespace Couchbase.Core.Retry
                     RetryReasons = operation.RetryReasons
                 });
             }
+
+            return ResponseStatus.Failure;//what to do here?
         }
 
         // protected internal for a unit test seam

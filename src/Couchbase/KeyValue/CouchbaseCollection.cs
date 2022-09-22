@@ -181,48 +181,38 @@ namespace Couchbase.KeyValue
         /// <inheritdoc />
         public async Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null)
         {
-            try
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+
+            //Check to see if the CID is needed
+            if (RequiresCid())
             {
-                //sanity check for deferred bootstrapping errors
-                _bucket.ThrowIfBootStrapFailed();
-
-                //Check to see if the CID is needed
-                if (RequiresCid())
-                {
-                    //Get the collection ID
-                    await PopulateCidAsync().ConfigureAwait(false);
-                }
-
-                options ??= ExistsOptions.Default;
-
-                using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, options.RequestSpanValue);
-                using var getMetaOp = new GetMeta
-                {
-                    Key = id,
-                    Cid = Cid,
-                    CName = Name,
-                    SName = ScopeName,
-                    Span = rootSpan
-                };
-                _operationConfigurator.Configure(getMetaOp, options);
-
-                using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getMetaOp);
-                await _bucket.RetryAsync(getMetaOp, ctp.TokenPair).ConfigureAwait(false);
-                var result = getMetaOp.GetValue();
-
-                return new ExistsResult
-                {
-                    Cas = getMetaOp.Cas,
-                    Exists = !result.Deleted
-                };
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
             }
-            catch (DocumentNotFoundException)
+
+            options ??= ExistsOptions.Default;
+
+            using var rootSpan = RootSpan(OuterRequestSpans.ServiceSpan.Kv.GetMetaExists, options.RequestSpanValue);
+            using var getMetaOp = new GetMeta
             {
-                return new ExistsResult
-                {
-                    Exists = false
-                };
-            }
+                Key = id,
+                Cid = Cid,
+                CName = Name,
+                SName = ScopeName,
+                Span = rootSpan
+            };
+            _operationConfigurator.Configure(getMetaOp, options);
+
+            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getMetaOp);
+            var status = await _bucket.RetryAsync(getMetaOp, ctp.TokenPair).ConfigureAwait(false);
+            var result = getMetaOp.GetValue();
+
+            return new ExistsResult
+            {
+                Cas = getMetaOp.Cas,
+                Exists = !result.Deleted && status == ResponseStatus.Success
+            };
         }
 
         #endregion

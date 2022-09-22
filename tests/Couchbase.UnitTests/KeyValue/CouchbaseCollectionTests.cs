@@ -212,7 +212,7 @@ namespace Couchbase.UnitTests.KeyValue
 
             public override ICouchbaseCollectionManager Collections => throw new NotImplementedException();
 
-            internal override async Task SendAsync(IOperation op, CancellationTokenPair token = default)
+            internal override async Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair token = default)
             {
                 var mockConnectionPool = new Mock<IConnectionPool>();
 
@@ -240,6 +240,8 @@ namespace Couchbase.UnitTests.KeyValue
                 {
                     throw new InvalidOperationException();
                 }
+
+                return status;
             }
 
             public override IScope Scope(string scopeName) => throw new NotImplementedException();
@@ -259,12 +261,12 @@ namespace Couchbase.UnitTests.KeyValue
                 throw new NotImplementedException();
             }
 
-            public virtual Task MockableRetryAsync(IOperation operation, CancellationTokenPair cancellationToken)
+            public virtual Task<ResponseStatus> MockableRetryAsync(IOperation operation, CancellationTokenPair cancellationToken)
             {
                 // BucketBase.RetryAsync forwards to our mock IRetryOrchestrator, which forwards back to this method
                 // This allows us to mock retry behavior, while BucketBase.RetryAsync remains non-virtual for performance.
 
-                return Task.CompletedTask;
+                return Task.FromResult<ResponseStatus>(ResponseStatus.Success);
             }
 
             private static IRetryOrchestrator CreateRetryOrchestrator()
@@ -293,7 +295,7 @@ namespace Couchbase.UnitTests.KeyValue
                         Status = getResult
                     };
 
-                    return Task.CompletedTask;
+                    return Task.FromResult<ResponseStatus>(ResponseStatus.Success);
                 });
 
             mockBucket.Setup(m => m.SendAsync(
@@ -308,7 +310,7 @@ namespace Couchbase.UnitTests.KeyValue
 
                     Assert.Equal(FakeBucket.BucketName, operation.BucketName);
 
-                    return Task.CompletedTask;
+                    return Task.FromResult<ResponseStatus>(ResponseStatus.Success);
                 });
 
             var operationConfigurator = new OperationConfigurator(new LegacyTranscoder(),

@@ -16,6 +16,8 @@ namespace Couchbase.Core.IO.Operations
 {
     internal interface IOperation : IDisposable, IRequest
     {
+        public string? LastErrorMessage { get; set; }
+
         bool PreserveTtl { get; }
 
         /// <summary>

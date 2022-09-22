@@ -5,6 +5,8 @@ using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.RateLimiting;
+using Couchbase.Core.Retry;
+using Couchbase.Core.Utils;
 using Couchbase.KeyValue;
 using Couchbase.Management.Collections;
 using CollectionNotFoundException = Couchbase.Core.Exceptions.CollectionNotFoundException;
@@ -13,6 +15,82 @@ namespace Couchbase.Core.IO
 {
     internal static class ResponseStatusExtensions
     {
+        public static RetryReason ResolveRetryReason(this ResponseStatus status)
+        {
+            switch (status)
+            {
+                case ResponseStatus.CircuitBreakerOpen: return RetryReason.CircuitBreakerOpen;
+                case ResponseStatus.VBucketBelongsToAnotherServer: return RetryReason.KvNotMyVBucket;
+                case ResponseStatus.Locked: return RetryReason.KvLocked;
+                case ResponseStatus.TemporaryFailure:
+                case ResponseStatus.OutOfMemory:
+                case ResponseStatus.Busy:
+                case ResponseStatus.NotInitialized:
+                    return RetryReason.KvTemporaryFailure;
+                case ResponseStatus.TransportFailure: return RetryReason.SocketClosedWhileInFlight;
+                case ResponseStatus.SyncWriteInProgress: return RetryReason.KvSyncWriteInProgress;
+                case ResponseStatus.SyncWriteReCommitInProgress: return RetryReason.KvSyncWriteReCommitInProgress;
+                case ResponseStatus.UnknownCollection: return RetryReason.CollectionNotFound;
+                case ResponseStatus.UnknownScope: return RetryReason.ScopeNotFound;
+                default:
+                    return RetryReason.NoRetry;
+            }
+        }
+        public static bool IsRetriable(this ResponseStatus status, IOperation op)
+        {
+            //sub-doc path failures for lookups are handled when the ContentAs() method is called.
+            //so we simply return back to the caller and let it be handled later.
+            if (status == ResponseStatus.SubDocMultiPathFailure && op.OpCode == OpCode.MultiLookup)
+            {
+                return false;
+            }
+
+            // The sub-doc operation was a success, but the doc remains deleted/tombstone.
+            if (status == ResponseStatus.SubDocSuccessDeletedDocument
+                || status == ResponseStatus.SubdocMultiPathFailureDeleted)
+            {
+                return false;
+            }
+
+            switch (status)
+            {
+                case ResponseStatus.VBucketBelongsToAnotherServer:
+                case ResponseStatus.Locked:
+                case ResponseStatus.TemporaryFailure:   //temp fail via RFC
+                case ResponseStatus.OutOfMemory:        //temp fail via RFC
+                case ResponseStatus.Busy:               //temp fail via RFC
+                case ResponseStatus.NotInitialized:     //temp fail via RFC
+                case ResponseStatus.SyncWriteInProgress:
+                case ResponseStatus.SyncWriteReCommitInProgress:
+                case ResponseStatus.UnknownCollection:
+                case ResponseStatus.UnknownScope:
+                case ResponseStatus.CircuitBreakerOpen:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static Exception CreateException(this ResponseStatus status, IOperation op, IBucket bucket)
+        {
+            var ctx = new KeyValueErrorContext
+            {
+                BucketName = bucket.Name,
+                ClientContextId = op.Opaque.ToStringInvariant(),
+                DocumentKey = op.Key,
+                Cas = op.Cas,
+                CollectionName = op.CName,
+                ScopeName = op.SName,
+                Message = op.LastErrorMessage,
+                Status = status,
+                OpCode = op.OpCode,
+                DispatchedFrom = op.LastDispatchedFrom,
+                DispatchedTo = op.LastDispatchedTo,
+                RetryReasons = op.RetryReasons
+            };
+
+            return CreateException(status, ctx, op);
+        }
         public static Exception CreateException(this ResponseStatus status,  KeyValueErrorContext ctx, IOperation op)
         {
             switch (status)

@@ -670,6 +670,8 @@ namespace Couchbase.Core.IO.Operations
 
         public string? LastDispatchedTo => _lastDispatchedTo;
 
+        public string? LastErrorMessage { get; set; }
+
         #endregion
 
         #region Tracing and Metrics

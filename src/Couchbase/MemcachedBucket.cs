@@ -84,7 +84,7 @@ namespace Couchbase
             }
         }
 
-        internal override Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
+        internal override Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
         {
             if (KeyMapper == null)
             {
@@ -94,13 +94,25 @@ namespace Couchbase
             var bucket = KeyMapper.MapKey(op.Key);
             var endPoint = bucket.LocatePrimary().GetValueOrDefault();
 
-            if (Nodes.TryGet(endPoint, out var clusterNode))
+            try
             {
-                return clusterNode.ExecuteOp(op, tokenPair);
+                if (Nodes.TryGet(endPoint, out var clusterNode))
+                {
+                    return clusterNode.ExecuteOp(op, tokenPair);
+                }
+                else
+                {
+                    throw new NodeNotAvailableException(
+                           $"Cannot find a Couchbase Server node for {endPoint}.");
+                }
             }
-
-            //raise exception that node is not found
-            return Task.CompletedTask;
+            catch (ArgumentNullException)
+            {
+                //We could not find a candidate node to send so put into the retry queue
+                //its likely were between cluster map updates and we'll try again later
+                throw new NodeNotAvailableException(
+                    $"Cannot find a Couchbase Server node for {endPoint}.");
+            }
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)

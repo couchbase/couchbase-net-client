@@ -457,17 +457,9 @@ namespace Couchbase.Core
             }
         }
 
-        public Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
-        {
-            LogCircuitBreakerState(_circuitBreaker.State);
+        #region Send and Return ResponseStatus
 
-            // This avoids an extra async/await method if circuit breakers are disabled.
-            return _circuitBreaker.Enabled
-                ? SendAsyncWithCircuitBreaker(op, tokenPair)
-                : ExecuteOp(ConnectionPool, op, tokenPair);
-        }
-
-        private async Task SendAsyncWithCircuitBreaker(IOperation op, CancellationTokenPair tokenPair = default)
+        private async Task<ResponseStatus> SendAsyncWithCircuitBreaker(IOperation op, CancellationTokenPair tokenPair = default)
         {
             if (_circuitBreaker.AllowsRequest())
             {
@@ -475,9 +467,11 @@ namespace Couchbase.Core
 
                 try
                 {
-                    await ExecuteOp(ConnectionPool, op, tokenPair).ConfigureAwait(false);
+                    var status = await ExecuteOp(ConnectionPool, op, tokenPair).ConfigureAwait(false);
 
                     UpdateCircuitBreaker(op, null);
+
+                    return status;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
@@ -494,11 +488,39 @@ namespace Couchbase.Core
                     QueueHalfOpenCircuitBreakerTest(op.Span);
                 }
 
-                throw new CircuitBreakerException();
+                return ResponseStatus.CircuitBreakerOpen;
             }
         }
+        public Task<ResponseStatus> ExecuteOp(IOperation op, CancellationTokenPair tokenPair = default)
+        {
+            return ExecuteOp(ConnectionPool, op, tokenPair);
+        }
 
-        private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair)
+        public Task<ResponseStatus> ExecuteOp(IConnection connection, IOperation op, CancellationTokenPair tokenPair = default)
+        {
+            // op and connection come back via lambda parameters to prevent an extra closure heap allocation
+            return ExecuteOp((op2, state, effectiveToken) => op2.SendAsync((IConnection)state, effectiveToken),
+                op, connection, tokenPair);
+        }
+
+        public Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
+        {
+            LogCircuitBreakerState(_circuitBreaker.State);
+
+            // This avoids an extra async/await method if circuit breakers are disabled.
+            return _circuitBreaker.Enabled
+                ? SendAsyncWithCircuitBreaker(op, tokenPair)
+                : ExecuteOp(ConnectionPool, op, tokenPair);
+        }
+
+        private Task<ResponseStatus> ExecuteOp(IConnectionPool connectionPool, IOperation op, CancellationTokenPair tokenPair = default)
+        {
+            // op and connectionPool come back via lambda parameters to prevent an extra closure heap allocation
+            return ExecuteOp((op2, state, effectiveToken) => ((IConnectionPool)state).SendAsync(op2, effectiveToken),
+                op, connectionPool, tokenPair);
+        }
+
+        private async Task<ResponseStatus> ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
         {
             LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
 
@@ -515,7 +537,12 @@ namespace Couchbase.Core
 
                 Diagnostics.Metrics.MetricTracker.KeyValue.TrackResponseStatus(op.OpCode, status);
 
-                if (status != ResponseStatus.Success)
+                if(status == ResponseStatus.Success)
+                {
+                    LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
+                    return status;
+                }
+                else
                 {
                     LogKvStatusReturned(_redactor.SystemData(EndPoint), status, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
 
@@ -531,21 +558,7 @@ namespace Couchbase.Core
                         _context.PublishConfig(config);
                     }
 
-                    //sub-doc path failures for lookups are handled when the ContentAs() method is called.
-                    //so we simply return back to the caller and let it be handled later.
-                    if (status == ResponseStatus.SubDocMultiPathFailure && op.OpCode == OpCode.MultiLookup)
-                    {
-                        return;
-                    }
-
-                    // The sub-doc operation was a success, but the doc remains deleted/tombstone.
-                    if (status == ResponseStatus.SubDocSuccessDeletedDocument
-                        || status == ResponseStatus.SubdocMultiPathFailureDeleted)
-                    {
-                        return;
-                    }
-
-                    var code = (short) status;
+                    var code = (short)status;
                     if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
                     {
                         //We can ignore transport exceptions here as they are generated internally in cases a KV cannot be completed.
@@ -553,6 +566,7 @@ namespace Couchbase.Core
                         {
                             LogKvStatusNotFound(code);
                         }
+                        op.LastErrorMessage = errorCode?.ToString();//need for the ctx creation in retryorchestrator
                     }
 
                     //Likely an "orphaned operation"
@@ -562,26 +576,8 @@ namespace Couchbase.Core
                         op.LogOrphaned();
                     }
 
-                    //Contextual error information
-                    var ctx = new KeyValueErrorContext
-                    {
-                        BucketName = Owner?.Name,
-                        ClientContextId = op.Opaque.ToStringInvariant(),
-                        DocumentKey = op.Key,
-                        Cas = op.Cas,
-                        CollectionName = op.CName,
-                        ScopeName = op.SName,
-                        Message = errorCode?.ToString(),
-                        Status = status,
-                        OpCode = op.OpCode,
-                        DispatchedFrom = _localHostName,
-                        DispatchedTo = _remoteHostName,
-                        RetryReasons = op.RetryReasons
-                    };
-                    throw status.CreateException(ctx, op);
+                    return status;
                 }
-
-                LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
             }
             catch (OperationCanceledException ex)
             {
@@ -630,24 +626,7 @@ namespace Couchbase.Core
             }
         }
 
-        public Task ExecuteOp(IOperation op, CancellationTokenPair tokenPair = default)
-        {
-            return ExecuteOp(ConnectionPool, op, tokenPair);
-        }
-
-        private Task ExecuteOp(IConnectionPool connectionPool, IOperation op, CancellationTokenPair tokenPair = default)
-        {
-            // op and connectionPool come back via lambda parameters to prevent an extra closure heap allocation
-            return ExecuteOp((op2, state, effectiveToken) => ((IConnectionPool)state).SendAsync(op2, effectiveToken),
-                op, connectionPool, tokenPair);
-        }
-
-        public Task ExecuteOp(IConnection connection, IOperation op, CancellationTokenPair tokenPair = default)
-        {
-            // op and connection come back via lambda parameters to prevent an extra closure heap allocation
-            return ExecuteOp((op2, state, effectiveToken) => op2.SendAsync((IConnection)state, effectiveToken),
-                op, connection, tokenPair);
-        }
+        #endregion
 
         #region IConnectionInitializer
 

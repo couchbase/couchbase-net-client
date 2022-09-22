@@ -192,7 +192,7 @@ namespace Couchbase
             return await RetryOrchestrator.RetryAsync(Func, query).ConfigureAwait(false);
         }
 
-        internal override async Task SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
+        internal override async Task<ResponseStatus> SendAsync(IOperation op, CancellationTokenPair tokenPair = default)
         {
             if (KeyMapper == null) ThrowHelper.ThrowInvalidOperationException($"Bucket {Name} is not bootstrapped.");
 
@@ -210,8 +210,7 @@ namespace Couchbase
                 {
                     if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
                     {
-                        await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
-                        return;
+                        return await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
                     }
                 }
                 catch (ArgumentNullException)
@@ -228,7 +227,7 @@ namespace Couchbase
             if (node == null)
                 throw new NodeNotAvailableException(
                     $"Cannot find a Couchbase Server node for executing {op.GetType()}.");
-            await node.SendAsync(op, tokenPair).ConfigureAwait(false);
+            return await node.SendAsync(op, tokenPair).ConfigureAwait(false);
         }
 
         internal override async Task BootstrapAsync(IClusterNode node)
