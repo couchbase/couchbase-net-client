@@ -96,14 +96,26 @@ namespace Couchbase.KeyValue
             return CreateSpec(OpCode.SubArrayAddUnique, path, value, createPath, isXattr, removeBrackets);
         }
 
+        [Obsolete("Use the Increment overload which accepts an unsigned long.")]
         public static MutateInSpec Increment(string path, long delta, bool createPath = false, bool isXattr = false, bool removeBrackets = false)
         {
             return CreateSpec(OpCode.SubCounter, path, delta, createPath, isXattr, removeBrackets);
         }
 
+        public static MutateInSpec Increment(string path, ulong delta, bool createPath = false, bool isXattr = false, bool removeBrackets = false)
+        {
+            return CreateSpec(OpCode.SubCounter, path, delta, createPath, isXattr, removeBrackets);
+        }
+
+        [Obsolete("Use the Decrement overload which accepts an unsigned long. Negative signed long deltas may produce unexpected results.")]
         public static MutateInSpec Decrement(string path, long delta, bool createPath = false, bool isXattr = false, bool removeBrackets = false)
         {
             return CreateSpec(OpCode.SubCounter, path, delta, createPath, isXattr, removeBrackets);
+        }
+
+        public static MutateInSpec Decrement(string path, ulong delta, bool createPath = false, bool isXattr = false, bool removeBrackets = false)
+        {
+            return CreateSpec(OpCode.SubCounter, path, -(long)delta, createPath, isXattr, removeBrackets);
         }
 
         /// <summary>

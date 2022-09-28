@@ -267,8 +267,39 @@ namespace Couchbase.KeyValue
         /// <param name="createPath">If true, create parents along the path if they don't exist.</param>
         /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
+        [Obsolete("Use the Increment overload which accepts an unsigned long.")]
         public static MutateInSpecBuilder<TDocument> Increment<TDocument, TContent>(this MutateInSpecBuilder<TDocument> builder,
             Expression<Func<TDocument, TContent>> path, long delta, bool createPath = false)
+        {
+            // ReSharper disable ConditionIsAlwaysTrueOrFalse
+            if (builder == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(builder));
+            }
+            if (path == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(path));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalse
+
+            return (MutateInSpecBuilder<TDocument>)
+                builder.Increment(SubDocumentPathExpressionVisitor.GetPath(builder, path), delta, createPath);
+        }
+
+        /// <summary>
+        /// Increment a counter of type <typeparamref name="TContent"/> in a document of type <typeparamref name="TDocument"/>,
+        /// using a given lambda expression path.
+        /// </summary>
+        /// <typeparam name="TDocument">Type of the parent document.</typeparam>
+        /// <typeparam name="TContent">Type of the subdocument.</typeparam>
+        /// <param name="builder"><see cref="MutateInSpecBuilder{TDocument}"/> where the the subdocument mutation is being built.</param>
+        /// <param name="path">Lambda expression path that navigates to the counter from the parent document.</param>
+        /// <param name="delta">Amount to increment the counter.</param>
+        /// <param name="createPath">If true, create parents along the path if they don't exist.</param>
+        /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
+        public static MutateInSpecBuilder<TDocument> Increment<TDocument, TContent>(this MutateInSpecBuilder<TDocument> builder,
+            Expression<Func<TDocument, TContent>> path, ulong delta, bool createPath = false)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (builder == null)
@@ -297,8 +328,39 @@ namespace Couchbase.KeyValue
         /// <param name="createPath">If true, create parents along the path if they don't exist.</param>
         /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
+        [Obsolete("Use the Decrement overload which accepts an unsigned long. Negative signed long deltas may produce unexpected results.")]
         public static MutateInSpecBuilder<TDocument> Decrement<TDocument, TContent>(this MutateInSpecBuilder<TDocument> builder,
             Expression<Func<TDocument, TContent>> path, long delta, bool createPath = false)
+        {
+            // ReSharper disable ConditionIsAlwaysTrueOrFalse
+            if (builder == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(builder));
+            }
+            if (path == null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(path));
+            }
+            // ReSharper restore ConditionIsAlwaysTrueOrFalse
+
+            return (MutateInSpecBuilder<TDocument>)
+                builder.Decrement(SubDocumentPathExpressionVisitor.GetPath(builder, path), delta, createPath);
+        }
+
+        /// <summary>
+        /// Decrement a counter of type <typeparamref name="TContent"/> in a document of type <typeparamref name="TDocument"/>,
+        /// using a given lambda expression path.
+        /// </summary>
+        /// <typeparam name="TDocument">Type of the parent document.</typeparam>
+        /// <typeparam name="TContent">Type of the subdocument.</typeparam>
+        /// <param name="builder"><see cref="MutateInSpecBuilder{TDocument}"/> where the the subdocument mutation is being built.</param>
+        /// <param name="path">Lambda expression path that navigates to the counter from the parent document.</param>
+        /// <param name="delta">Amount to decrement the counter.</param>
+        /// <param name="createPath">If true, create parents along the path if they don't exist.</param>
+        /// <returns>The <paramref name="builder"/> for expression chaining.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="path"/> is null.</exception>
+        public static MutateInSpecBuilder<TDocument> Decrement<TDocument, TContent>(this MutateInSpecBuilder<TDocument> builder,
+            Expression<Func<TDocument, TContent>> path, ulong delta, bool createPath = false)
         {
             // ReSharper disable ConditionIsAlwaysTrueOrFalse
             if (builder == null)

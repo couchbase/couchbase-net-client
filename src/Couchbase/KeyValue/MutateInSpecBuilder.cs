@@ -188,7 +188,22 @@ namespace Couchbase.KeyValue
         /// <param name="createPath"></param>
         /// <param name="isXattr"></param>
         /// <returns></returns>
+        [Obsolete("Use the Increment overload which accepts an unsigned long.")]
         public MutateInSpecBuilder Increment(string path, long delta, bool createPath = default(bool), bool isXattr = default(bool))
+        {
+            Specs.Add(MutateInSpec.Increment(path, delta, createPath, isXattr));
+            return this;
+        }
+
+        /// <summary>
+        /// Performs an arithmetic increment or decrement on a numeric element within a document.
+        /// </summary>
+        /// <param name="path">The path to the element.</param>
+        /// <param name="delta"> the amount to increase the value by</param>
+        /// <param name="createPath"></param>
+        /// <param name="isXattr"></param>
+        /// <returns></returns>
+        public MutateInSpecBuilder Increment(string path, ulong delta, bool createPath = default(bool), bool isXattr = default(bool))
         {
             Specs.Add(MutateInSpec.Increment(path, delta, createPath, isXattr));
             return this;
@@ -202,6 +217,7 @@ namespace Couchbase.KeyValue
         /// <param name="createPath"></param>
         /// <param name="isXattr"></param>
         /// <returns></returns>
+        [Obsolete("Use the Decrement overload which accepts an unsigned long. Negative signed long deltas may produce unexpected results.")]
         public MutateInSpecBuilder Decrement(string path, long delta, bool createPath = default(bool), bool isXattr = default(bool))
         {
             // delta must be negative
@@ -210,6 +226,20 @@ namespace Couchbase.KeyValue
                 delta = -delta;
             }
 
+            Specs.Add(MutateInSpec.Decrement(path, delta, createPath, isXattr));
+            return this;
+        }
+
+        /// <summary>
+        /// Performs an arithmetic increment or decrement on a numeric element within a document.
+        /// </summary>
+        /// <param name="path">The path to the element.</param>
+        /// <param name="delta"> the amount to decrease the value by</param>
+        /// <param name="createPath"></param>
+        /// <param name="isXattr"></param>
+        /// <returns></returns>
+        public MutateInSpecBuilder Decrement(string path, ulong delta, bool createPath = default(bool), bool isXattr = default(bool))
+        {
             Specs.Add(MutateInSpec.Decrement(path, delta, createPath, isXattr));
             return this;
         }

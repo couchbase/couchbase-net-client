@@ -138,7 +138,8 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
-        public async Task Can_perform_mutate_in()
+        [Obsolete()]
+        public async Task Can_perform_mutate_in_signedcounters()
         {
             var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
             await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
@@ -150,6 +151,42 @@ namespace Couchbase.IntegrationTests
                 ops.Insert("bah", 0);
                 ops.Increment("zzz", 10, true);
                 ops.Decrement("xxx", 5, true);
+                ops.Increment("zzzneg", -10, true);
+                ops.Decrement("xxxneg", -5, true);
+            }).ConfigureAwait(false);
+
+            using (var getResult = await collection.GetAsync(DocumentKey, options=>options.Transcoder(new LegacyTranscoder())).ConfigureAwait(false))
+            {
+                var content = getResult.ContentAs<string>();
+
+                var expected = new
+                {
+                    foo = "bar",
+                    bar = "bar",
+                    name = "mike",
+                    bah = 0,
+                    zzz = 10,
+                    xxx = -5,
+                    zzzneg = -10,
+                    xxxneg = -5 // Here an obsolete defect on signed long Spec is asserted for inverse of a negative delta not applied
+                };
+                Assert.Equal(JsonConvert.SerializeObject(expected), content);
+            }
+        }
+
+        [Fact]
+        public async Task Can_perform_mutate_in_unsignedcounters()
+        {
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            await collection.UpsertAsync(DocumentKey,  new {foo = "bar", bar = "foo"}).ConfigureAwait(false);
+
+            await collection.MutateInAsync(DocumentKey, ops =>
+            {
+                ops.Upsert("name", "mike");
+                ops.Replace("bar", "bar");
+                ops.Insert("bah", 0);
+                ops.Increment("zzz", 10UL, true);
+                ops.Decrement("xxx", 5UL, true);
             }).ConfigureAwait(false);
 
             using (var getResult = await collection.GetAsync(DocumentKey, options=>options.Transcoder(new LegacyTranscoder())).ConfigureAwait(false))
@@ -170,7 +207,8 @@ namespace Couchbase.IntegrationTests
         }
 
         [Fact]
-        public async Task Can_perform_mutate_in_via_lambda()
+        [Obsolete()]
+        public async Task Can_perform_mutate_in_via_lambda_signedcounters()
         {
             var key = Guid.NewGuid().ToString();
 
@@ -186,6 +224,52 @@ namespace Couchbase.IntegrationTests
                     ops.Insert(p => p.Bah, 0);
                     ops.Increment(p => p.Zzz, 10, true);
                     ops.Decrement(p => p.Xxx, 5, true);
+                    ops.Increment(p => p.Zzzneg, -10, true);
+                    ops.Decrement(p => p.Xxxneg, -5, true);
+                }).ConfigureAwait(false);
+
+                using (var getResult = await collection
+                    .GetAsync(key, options => options.Transcoder(new LegacyTranscoder())).ConfigureAwait(false))
+                {
+                    var content = getResult.ContentAs<string>();
+
+                    var expected = new
+                    {
+                        foo = "bar",
+                        bar = "bar",
+                        name = "mike",
+                        bah = 0,
+                        zzz = 10,
+                        xxx = -5,
+                        zzzneg = -10,
+                        xxxneg = -5 // Here an obsolete defect on signed long Spec is asserted for inverse of a negative delta not applied
+                    };
+                    Assert.Equal(JsonConvert.SerializeObject(expected), content);
+                }
+            }
+            finally
+            {
+                await collection.RemoveAsync(key);
+            }
+        }
+
+        [Fact]
+        public async Task Can_perform_mutate_in_via_lambda_unsignedcounters()
+        {
+            var key = Guid.NewGuid().ToString();
+
+            var collection = await _fixture.GetDefaultCollectionAsync().ConfigureAwait(false);
+            await collection.UpsertAsync(key, new TestDoc {Foo = "bar", Bar = "foo"}).ConfigureAwait(false);
+
+            try
+            {
+                var res = await collection.MutateInAsync<TestDoc>(key, ops =>
+                {
+                    ops.Upsert(p => p.Name, "mike");
+                    ops.Replace(p => p.Bar, "bar");
+                    ops.Insert(p => p.Bah, 0);
+                    ops.Increment(p => p.Zzz, 10UL, true);
+                    ops.Decrement(p => p.Xxx, 5UL, true);
                 }).ConfigureAwait(false);
 
                 using (var getResult = await collection
@@ -452,6 +536,14 @@ namespace Couchbase.IntegrationTests
             [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
             [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
             public int Xxx { get; set; }
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+            public int Zzzneg { get; set; }
+
+            [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+            public int Xxxneg { get; set; }
         }
 
         #endregion
