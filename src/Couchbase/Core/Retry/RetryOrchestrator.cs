@@ -248,6 +248,7 @@ namespace Couchbase.Core.Retry
                     ClientContextId = operation.Opaque.ToStringInvariant(),
                     DocumentKey = operation.Key,
                     Cas = operation.Cas,
+                    Status = ResponseStatus.OperationTimeout,
                     CollectionName = operation.CName,
                     ScopeName = operation.SName,
                     OpCode = operation.OpCode,

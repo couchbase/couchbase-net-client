@@ -600,6 +600,7 @@ namespace Couchbase.Core
                         ClientContextId = op.Opaque.ToStringInvariant(),
                         DocumentKey = op.Key,
                         Cas = op.Cas,
+                        Status = ResponseStatus.OperationTimeout,
                         CollectionName = op.CName,
                         ScopeName = op.SName,
                         OpCode = op.OpCode,
