@@ -190,6 +190,38 @@ namespace Couchbase.Management.Users
             }
         }
 
+        private IEnumerable<KeyValuePair<string, string>> FormatPassword(string newPassword)
+        {
+            return new Dictionary<string, string>{{"password", newPassword}};
+        }
+
+        public async Task ChangeUserPasswordAsync(string newPassword, ChangePasswordOptions? options = null)
+        {
+            options ??= ChangePasswordOptions.Default;
+            var builder = new UriBuilder(_serviceUriProvider.GetRandomManagementUri())
+            {
+                Path = "controller/changePassword"
+            };
+
+            var content = new FormUrlEncodedContent(FormatPassword(newPassword)!);
+
+            try
+            {
+                using var httpClient = _httpClientFactory.Create();
+                var result = await httpClient.PostAsync(builder.Uri, content, options.TokenValue).ConfigureAwait(false);
+
+                if (!result.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Error when attempting to change user password. HTTP Error: {(int)result.StatusCode} - {result.StatusCode}.");
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, $"Unknown error while attempting to change user password.");
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<RoleAndDescription>> GetRolesAsync(AvailableRolesOptions? options = null)
         {
             options ??= AvailableRolesOptions.Default;

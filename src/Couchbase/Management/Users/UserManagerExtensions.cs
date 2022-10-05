@@ -60,6 +60,18 @@ namespace Couchbase.Management.Users
             return userManager.DropUserAsync(username, options);
         }
 
+        public static Task ChangeUserPasswordAsync(this IUserManager userManager, string password)
+        {
+            return userManager.ChangeUserPasswordAsync(password, ChangePasswordOptions.Default);
+        }
+        public static Task ChangeUserPasswordAsync(this IUserManager userManager, string password, Action<ChangePasswordOptions> configureOptions)
+        {
+            var options = new ChangePasswordOptions();
+            configureOptions(options);
+
+            return userManager.ChangeUserPasswordAsync(password, options);
+        }
+
         public static Task<IEnumerable<RoleAndDescription>> AvailableRolesAsync(this IUserManager userManager)
         {
             return userManager.GetRolesAsync(AvailableRolesOptions.Default);

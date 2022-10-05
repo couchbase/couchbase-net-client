@@ -15,6 +15,8 @@ namespace Couchbase.Management.Users
 
         Task DropUserAsync(string username, DropUserOptions? options = null);
 
+        Task ChangeUserPasswordAsync(string password, ChangePasswordOptions? options = null);
+
         Task<IEnumerable<RoleAndDescription>> GetRolesAsync(AvailableRolesOptions? options = null);
 
         Task<Group> GetGroupAsync(string groupName, GetGroupOptions? options = null);

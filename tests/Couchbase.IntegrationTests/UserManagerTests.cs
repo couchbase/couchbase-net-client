@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Management;
 using Couchbase.Management.Users;
+using Couchbase.Query;
 using Xunit;
 
 namespace Couchbase.IntegrationTests
@@ -142,6 +144,49 @@ namespace Couchbase.IntegrationTests
                 // drop group
                 await userManager.DropGroupAsync(groupName).ConfigureAwait(false);
             }
+        }
+
+        [CouchbaseVersionDependentFact(MinVersion = "6.0.0")]
+        public async Task Test_ChangeUserPassword()
+        {
+            var globalUserManager = _fixture.Cluster.Users;
+
+            const string username = "username", originalPassword = "password", newPassword = "newPassword", groupName = "groupName";
+
+            var group = new Group(groupName)
+            {
+                Roles = new[]
+                {
+                    new Role("admin")
+                }};
+
+            var user = new User(username)
+            {
+                Password = originalPassword,
+                Groups = new[] { groupName }
+            };
+
+            await globalUserManager.UpsertGroupAsync(@group).ConfigureAwait(false);
+            await globalUserManager.UpsertUsersAsync(user).ConfigureAwait(false);
+
+            try
+            {
+                var disposableConnection =
+                    await Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword).ConfigureAwait(false);
+                var disposableUserManager = disposableConnection.Users;
+                await disposableUserManager.ChangeUserPasswordAsync(newPassword).ConfigureAwait(false);
+
+                var exception = await Record.ExceptionAsync(() => Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, newPassword));
+                Assert.Null(exception);
+
+                await Assert.ThrowsAsync<AuthenticationFailureException>( () => Cluster.ConnectAsync(_fixture.ClusterOptions.ConnectionString, username, originalPassword));
+            }
+            finally
+            {
+                await globalUserManager.DropUserAsync(username).ConfigureAwait(false);
+                await globalUserManager.DropGroupAsync(groupName).ConfigureAwait(false);
+            }
+
         }
     }
 }
