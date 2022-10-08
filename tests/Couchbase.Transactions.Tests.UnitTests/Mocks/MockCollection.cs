@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue;
+using Couchbase.KeyValue.RangeScan;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -116,6 +117,11 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
             throw new NotImplementedException();
         }
 
+        public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
         public uint? Cid { get; }
         public string Name { get; } = "default";
         public IScope Scope { get; set; } = new Mock<IScope>().Object;
@@ -207,6 +213,11 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
         }
 
         public Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
         {
             throw new NotImplementedException();
         }

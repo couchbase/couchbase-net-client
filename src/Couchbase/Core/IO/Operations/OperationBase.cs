@@ -227,6 +227,12 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         protected virtual bool SupportsRequestCompression => false;
 
+        /// <summary>
+        /// Overriden in derived operation classes that support JSON datatype. If true is returned and JSON has
+        /// been negotiated with the server, then the JSON datatype will be used after the call to <see cref="WriteBody"/>.
+        /// </summary>
+        protected virtual bool SupportsJsonDataType => false;
+
         #endregion
 
         #region Async Completion
@@ -254,6 +260,29 @@ namespace Couchbase.Core.IO.Operations
         public virtual void Reset()
         {
             Reset(ResponseStatus.None);
+        }
+
+        protected void ResetAllButValueTask()
+        {
+            _data.Dispose();
+            _data = SlicedMemoryOwner<byte>.Empty;
+            Opaque = SequenceGenerator.GetNext();
+
+            Header = new OperationHeader
+            {
+                Magic = Header.Magic,
+                OpCode = OpCode,
+                Cas = Header.Cas,
+                BodyLength = Header.BodyLength,
+                Key = Key,
+                Status = ResponseStatus.None,
+                Opaque = Opaque
+            };
+
+            _isSent = false;
+
+            //_valueTaskSource.Reset();
+            _isCompleted = 0;
         }
 
         private void Reset(ResponseStatus status)
@@ -547,6 +576,11 @@ namespace Couchbase.Core.IO.Operations
                 WriteBody(builder);
 
                 var dataType = DataType.None;
+                if(SupportsJsonDataType && connection.ServerFeatures.Json)
+                {
+                    //override None
+                    dataType = DataType.Json;
+                }
                 if (SupportsRequestCompression && connection.ServerFeatures.SnappyCompression)
                 {
                     if (builder.AttemptBodyCompression(OperationCompressor, encodingSpan))
@@ -612,6 +646,7 @@ namespace Couchbase.Core.IO.Operations
                 return;
             }
 
+            //TODO: Error on large Range Scan documents happens here
             var status = (ResponseStatus) ByteConverter.ToInt16(data.Memory.Span.Slice(HeaderOffsets.Status));
 
             try
@@ -621,7 +656,9 @@ namespace Couchbase.Core.IO.Operations
                     || status == ResponseStatus.AuthenticationContinue
                     || status == ResponseStatus.SubDocMultiPathFailure
                     || status == ResponseStatus.SubdocMultiPathFailureDeleted
-                    || status == ResponseStatus.SubDocSuccessDeletedDocument)
+                    || status == ResponseStatus.SubDocSuccessDeletedDocument
+                    || status == ResponseStatus.RangeScanMore
+                    || status == ResponseStatus.RangeScanComplete)
                 {
                     Read(in data);
                 }
@@ -671,6 +708,7 @@ namespace Couchbase.Core.IO.Operations
         public string? LastDispatchedTo => _lastDispatchedTo;
 
         public string? LastErrorMessage { get; set; }
+        public virtual bool CanStream => false;
 
         #endregion
 

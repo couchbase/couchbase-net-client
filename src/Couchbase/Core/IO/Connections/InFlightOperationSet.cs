@@ -15,7 +15,7 @@ namespace Couchbase.Core.IO.Connections
     /// </summary>
     internal class InFlightOperationSet : IDisposable
     {
-        private readonly ConcurrentDictionary<uint, AsyncState> _statesInFlight = new();
+        private readonly ConcurrentDictionary<uint, AsyncStateBase> _statesInFlight = new();
         private volatile CancellationTokenSource? _cts = new();
 
         public int Count => _statesInFlight.Count;
@@ -66,7 +66,7 @@ namespace Couchbase.Core.IO.Connections
         /// Adds a operation to the set.
         /// </summary>
         /// <param name="state">Operation to add.</param>
-        public void Add(AsyncState state)
+        public void Add(AsyncStateBase state)
         {
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             if (state == null)
@@ -83,7 +83,7 @@ namespace Couchbase.Core.IO.Connections
         /// <param name="opaque">Opaque identifier of the operation to remove.</param>
         /// <param name="state">The operation state, if found.</param>
         /// <returns>True if the operation was found.</returns>
-        public bool TryRemove(uint opaque, [NotNullWhen(true)] out AsyncState? state) =>
+        public bool TryRemove(uint opaque, [NotNullWhen(true)] out AsyncStateBase? state) =>
             _statesInFlight.TryRemove(opaque, out state);
 
         /// <summary>

@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
@@ -11,10 +11,12 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
+using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
+using Couchbase.KeyValue.RangeScan;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -73,6 +75,144 @@ namespace Couchbase.KeyValue
 
         /// <inheritdoc />
         public bool IsDefaultCollection { get; }
+
+        #region KV Range Scan
+
+        public async IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
+        {
+            //sanity check for deferred bootstrapping errors
+            _bucket.ThrowIfBootStrapFailed();
+
+            //Check to see if the CID is needed
+            if (RequiresCid())
+            {
+                //Get the collection ID
+                await PopulateCidAsync().ConfigureAwait(false);
+            }
+
+            options ??= ScanOptions.Default;
+
+            var partitions = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
+            var streams = new Dictionary<short, Task<ConcurrentQueue<IScanResult>>>(partitions);
+
+            for (short i = 0; i < partitions; i++)
+            {
+                streams.Add(i, StreamForPartition(scanType, i, options));
+            }
+
+            if (options.SortValue != ScanSort.Ascending)
+            {
+                foreach (var taskQueue in streams.Values)
+                {
+                    var queue = await taskQueue.ConfigureAwait(false);
+                    while (!queue.IsEmpty)
+                    {
+                        if (queue.TryDequeue(out var scanResult)) yield return scanResult;
+                    }
+                }
+            }
+            else
+            {
+                while (streams.Count > 0)
+                {
+                    var lowestId = "";
+                    short lowestPartition = 0;
+
+                    await foreach (var kvp in streams.ToAsyncEnumerable())
+                    {
+                        var queue = await kvp.Value.ConfigureAwait(false);
+
+                        //Start sorting
+                        if (queue.TryPeek(out var peeked))
+                        {
+                            var comparison = string.Compare(peeked.Id, lowestId, StringComparison.Ordinal);
+
+                            if (lowestId == "" || comparison < 0)
+                            {
+                                lowestId = peeked.Id;
+                                lowestPartition = kvp.Key;
+                            }
+                        }
+                        else
+                        {
+                            streams.Remove(kvp.Key);
+                        }
+                    }
+                    if (streams.Count > 0 && streams[lowestPartition].Result.TryDequeue(out var dequeued)) yield return dequeued;
+                }
+            }
+        }
+
+        public async Task<ConcurrentQueue<IScanResult>> StreamForPartition(IScanType scanType, short partition, ScanOptions? options = null)
+        {
+            var results = new ConcurrentQueue<IScanResult>();
+
+            var scanOp = new RangeScanCreate
+            {
+                Content = scanType as IScanTypeExt, //need to change this
+                KeyOnly = options!.WithoutContentValue,
+                Cid = Cid,
+                CName = Name,
+                SName = ScopeName,
+                VBucketId = partition
+            };
+
+            _operationConfigurator.Configure(scanOp, options);
+            using var ctp = CreateRetryTimeoutCancellationTokenSource(options, scanOp);
+
+            try
+            {
+                await _bucket.RetryAsync(scanOp, ctp.TokenPair).ConfigureAwait(false);
+            }
+            catch (DocumentNotFoundException)
+            {
+            }
+
+            if (scanOp.GetResponseStatus() == ResponseStatus.Success)
+            {
+                var uuid = scanOp.ExtractBody();
+                RangeScanContinue scanContinueOp = new RangeScanContinue()
+                {
+                    Cid = Cid,
+                    CName = Name,
+                    SName = ScopeName,
+                    VBucketId = partition,
+                    Content = uuid,
+                    Transcoder = scanOp.Transcoder,
+                    ByteLimit = options.BatchByteLimit,
+                    ItemLimit = options.BatchItemLimit
+                };
+                _operationConfigurator.Configure(scanContinueOp, options);
+
+                using var ctp2 = CreateRetryTimeoutCancellationTokenSource(options, scanContinueOp);
+                await _bucket.RetryAsync(scanContinueOp, ctp2.TokenPair).ConfigureAwait(false);
+
+                //loop through the results as they are pushed
+                if (options!.WithoutContentValue)
+                {
+                    await foreach (var scanResult in scanContinueOp.ReadKeys())
+                    {
+                        if (!scanResult.IsEmpty())
+                        {
+                            results.Enqueue(scanResult);
+                        }
+                    }
+                }
+                else
+                {
+                    await foreach (var scanResult in scanContinueOp.Read())
+                    {
+                        if (!scanResult.IsEmpty())
+                        {
+                            results.Enqueue(scanResult);
+                        }
+                    }
+                }
+            }
+            return results;
+        }
+
+        #endregion
 
         #region Get
 

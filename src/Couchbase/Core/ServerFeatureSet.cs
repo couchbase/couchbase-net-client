@@ -66,6 +66,9 @@ namespace Couchbase.Core
         /// <inheritdoc cref="ServerFeatures.PreserveTtl"/>
         public bool PreserveTtl { get; private set; }
 
+        /// <inheritdoc cref="ServerFeatures.JSON"/>
+        public bool Json { get; private set; }
+
         /// <summary>
         /// Create a new ServerFeatureSet.
         /// </summary>
@@ -159,6 +162,10 @@ namespace Couchbase.Core
 
                     case ServerFeatures.PreserveTtl:
                         PreserveTtl = true;
+                        break;
+
+                    case ServerFeatures.JSON:
+                        Json = true;
                         break;
                 }
             }

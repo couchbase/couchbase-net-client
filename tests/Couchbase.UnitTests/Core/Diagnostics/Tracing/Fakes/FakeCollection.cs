@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Couchbase.KeyValue;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Utils;
+using Couchbase.KeyValue.RangeScan;
 using Moq;
 
 #nullable enable
@@ -146,6 +147,11 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
             span.SetAttribute(OuterRequestSpans.Attributes.CollectionName, Name);
             span.SetAttribute(OuterRequestSpans.Attributes.Operation, operation);
             return span;
+        }
+
+        public IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -37,7 +37,7 @@ namespace Couchbase.UnitTests.Core.Utils
             Assert.Equal(expected, bytes.Take(length));
 
             var decoded = Leb128.Read(bytes);
-            Assert.Equal(value, decoded);
+            Assert.Equal(value, decoded.Item1);
         }
 
         [Theory]
@@ -53,13 +53,13 @@ namespace Couchbase.UnitTests.Core.Utils
             _output.WriteLine("{0} => {1}", value, cid);
             Assert.Equal(cid <= 1000, lessThan);
         }
-        
+
         [Theory]
         [InlineData(new byte[]{ 0xab, 0x04}, 555u)]
         public void Test_Read(byte[] bytes, uint expected)
         {
             var actual = Leb128.Read(bytes);
-            Assert.Equal(expected, actual);
+            Assert.Equal(expected, actual.Item1);
         }
     }
 }

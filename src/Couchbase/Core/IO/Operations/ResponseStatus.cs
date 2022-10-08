@@ -370,7 +370,18 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Quota limited: Max number of scopes has been exceeded
         /// </summary>
-        ScopeSizeLimitExceeded = 0x34
+        ScopeSizeLimitExceeded = 0x34,
+
+        /// <summary>
+        /// Scan has reached a limit and has not reached the end key, more data maybe
+        /// available and the client must issue another continue.
+        /// </summary>
+        RangeScanMore = 0xA6,
+
+        /// <summary>
+        /// Scan has reached the end of the range.
+        /// </summary>
+        RangeScanComplete = 0x00a7
     }
 }
 

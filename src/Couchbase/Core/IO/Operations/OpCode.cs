@@ -98,7 +98,22 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         GetSidByName = 0xBC,
 
-        GetMeta = 0xa0
+        GetMeta = 0xa0,
+
+        /// <summary>
+        /// Requests that the server creates a new range scan for a collection in an active vbucket.
+        /// </summary>
+        RangeScanCreate = 0xDA,
+
+        /// <summary>
+        /// Requests that the server continues an existing range scan, returning to the client a sequence of keys or documents.
+        /// </summary>
+        RangeScanContinue = 0xDB,
+
+        /// <summary>
+        /// Requests that the server cancels an existing range scan.
+        /// </summary>
+        RangeScanCancel = 0xDC
     }
 }
 

@@ -5,7 +5,10 @@ using Couchbase.Diagnostics;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.KeyValue;
+using Couchbase.KeyValue.RangeScan;
 using Couchbase.Query;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -139,22 +142,23 @@ namespace Couchbase.IntegrationTests
         }
 
 #if NET5_0_OR_GREATER
-        [Fact(Skip = "Requires up-to-date cloud account credentials")]
+    //   [Fact(Skip = "Requires up-to-date cloud account credentials")]
 #else
-[Fact(Skip = "X509ChainPolicy.TrustMode not supported in older versions of .NET")]
+        //[Fact(Skip = "X509ChainPolicy.TrustMode not supported in older versions of .NET")]
 #endif
+        [Fact]
         public async Task Test_Cloud_Default()
         {
             // Taken from the code given in the Capella UI for connecting with the SDK.
             // This example should work without ignoring certificate name mismatches.
 
             // Update this to your cluster
-            var endpoint = "cb.<YOURCLUSTER>.cloud.couchbase.com";
+            var endpoint = "cb.3nakwwqp5hwkuek.nonprod-project-avengers.com";
             var bucketName = "travel-sample";
 
             // In the cloud dashboard, go to Clusters -> <your cluster> -> Connect -> Database Access -> Manage Credentials
-            var username = "<YOURUSER>";
-            var password = "<YOURPASS>";
+            var username = "myelixirtest01";
+            var password = "!Salmon2";
             // User Input ends here.
 
             // default without overriding any callbacks.
@@ -162,11 +166,29 @@ namespace Couchbase.IntegrationTests
                 // Initialize the Connection
                 var opts = new ClusterOptions().WithCredentials(username, password);
                 opts.EnableTls = true;
+                opts.ForceIpAsTargetHost = false;
+
+                IServiceCollection serviceCollection = new ServiceCollection();
+                serviceCollection.AddLogging(builder => builder
+                    .AddFilter(level => level >= LogLevel.Debug)
+                );
+
+                var loggerFactory = serviceCollection.BuildServiceProvider().GetService<ILoggerFactory>();
+                loggerFactory.AddFile("Logs/myapp-{Date}.txt", LogLevel.Debug);
+                opts.WithLogging(loggerFactory);
 
                 var cluster = await Cluster.ConnectAsync("couchbases://" + endpoint, opts);
+
+                await cluster.WaitUntilReadyAsync(TimeSpan.FromSeconds(49));
                 var bucket = await cluster.BucketAsync(bucketName);
                 var collection = bucket.DefaultCollection();
 
+                var scan = collection.ScanAsync(new RangeScan(ScanTerm.Minimum(), ScanTerm.Maximum()));
+
+                await foreach(var i in scan)
+                {
+
+                }
                 // Store a Document
                 var upsertResult = await collection.UpsertAsync("king_arthur", new
                 {
@@ -187,7 +209,7 @@ namespace Couchbase.IntegrationTests
             }
 
             // If a callback is specified, default certificates should not be used.
-            {
+          /*  {
                 // Initialize the Connection
                 var opts = new ClusterOptions().WithCredentials(username, password);
                 opts.EnableTls = true;
@@ -230,7 +252,7 @@ namespace Couchbase.IntegrationTests
                     String.Format("SELECT name FROM `{0}` WHERE $1 IN interests", bucketName),
                     new QueryOptions().Parameter("African Swallows")
                 ));
-            }
+            }*/
         }
 
         [Fact]

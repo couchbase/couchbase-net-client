@@ -18,6 +18,8 @@ namespace Couchbase.Core.IO.Operations
     {
         public string? LastErrorMessage { get; set; }
 
+        bool CanStream { get; }
+
         bool PreserveTtl { get; }
 
         /// <summary>

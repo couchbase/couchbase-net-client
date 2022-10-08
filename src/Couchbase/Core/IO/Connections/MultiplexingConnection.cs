@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
@@ -14,6 +15,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Converters;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Core.Utils;
 using Couchbase.Diagnostics;
 using Couchbase.Utils;
@@ -24,7 +26,7 @@ using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 namespace Couchbase.Core.IO.Connections
 {
-    internal class MultiplexingConnection : IConnection
+    internal class MultiplexingConnection : IConnection, IObservable<RangeScanState>
     {
         private static readonly ConcurrentBag<WeakReference<MultiplexingConnection>> _connections = new();
 
@@ -136,7 +138,13 @@ namespace Couchbase.Core.IO.Connections
                 ThrowHelper.ThrowObjectDisposedException(nameof(MultiplexingConnection));
             }
 
-            var state = new AsyncState(operation)
+            AsyncStateBase state = operation.CanStream ?
+                new AsyncStateStreaming(operation, _statesInFlight)
+            {
+                EndPoint = EndPoint,
+                ConnectionId = ConnectionId,
+                LocalEndpoint = _localHostString
+            } : new AsyncState(operation)
             {
                 EndPoint = EndPoint,
                 ConnectionId = ConnectionId,
@@ -208,7 +216,6 @@ namespace Couchbase.Core.IO.Connections
                         try
                         {
                             var opaque = ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque), false);
-
                             if (_statesInFlight.TryRemove(opaque, out var state))
                             {
                                 state.Complete(in operationResponse);
@@ -406,6 +413,36 @@ namespace Couchbase.Core.IO.Connections
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, _remoteHostString);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemotePort, _remotePortString);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalId, ContextId);
+            }
+        }
+
+        public IDisposable Subscribe(IObserver<RangeScanState> observer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    internal class Unsubscriber : IDisposable
+    {
+        private ConcurrentDictionary<uint, IObserver<RangeScanState>> _observers;
+        private IObserver<RangeScanState> _observer;
+
+        public Unsubscriber(ConcurrentDictionary<uint, IObserver<RangeScanState>> observers,
+                            IObserver<RangeScanState> observer)
+        {
+            this._observers = observers;
+            this._observer = observer;
+        }
+
+        public void Dispose()
+        {
+            if (!(_observer == null))
+            {
+                var state = _observer as RangeScanState;
+                if (_observers.TryRemove(state!.Opaque, out _))
+                {
+
+                }
             }
         }
     }

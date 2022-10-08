@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Core.IO.Operations.RangeScan;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;
@@ -27,6 +28,19 @@ namespace Couchbase.UnitTests.Core.IO.Connections
 
             await Assert.ThrowsAsync<ValueToolargeException>(() =>
                 conn.SendAsync(bytes, Mock.Of<IOperation>()).AsTask()).ConfigureAwait(false);
+        }
+
+        [Fact]
+        public void WhenSubscribedCanRemove()
+        {
+            var conn = new MultiplexingConnection(new SslStream(new MemoryStream()), new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+                new Logger<MultiplexingConnection>(new LoggerFactory()));
+
+            var rangeScanOp = new RangeScanContinue();
+           // rangeScanOp.Subscribe(conn);
+           // rangeScanOp.Unsubscribe();
+
+
         }
     }
 }

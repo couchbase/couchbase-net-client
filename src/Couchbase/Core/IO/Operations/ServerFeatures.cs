@@ -84,7 +84,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Enables preserving expiry when updating document.
         /// </summary>
-        PreserveTtl = 0x14
+        PreserveTtl = 0x14,
+
+        /// <summary>
+        /// Enables JSON as a data type for KV range scans.
+        /// </summary>
+        JSON = 0x0b
     }
 }
 

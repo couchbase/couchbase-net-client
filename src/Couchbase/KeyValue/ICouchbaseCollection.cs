@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations.SubDocument;
+using Couchbase.KeyValue.RangeScan;
 
 #nullable enable
 
@@ -174,6 +175,12 @@ namespace Couchbase.KeyValue
         /// <param name="options">Any optional parameters.</param>
         /// <returns>An asychronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
         Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null);
+
+        #endregion
+
+        #region K/V Range Scan
+
+        IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null);
 
         #endregion
     }

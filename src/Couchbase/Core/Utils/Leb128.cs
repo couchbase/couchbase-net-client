@@ -1,4 +1,6 @@
 using System;
+using System.Text;
+using Couchbase.Core.IO.Converters;
 using Couchbase.Utils;
 
 namespace Couchbase.Core.Utils
@@ -36,11 +38,11 @@ namespace Couchbase.Core.Utils
             }
         }
 
-        public static uint Read(ReadOnlySpan<byte> bytes)
+        public static (long, short) Read(ReadOnlySpan<byte> bytes)
         {
-            var result = 0u;
-            uint current;
-            var count = 0;
+            long result = 0;
+            long current;
+            short count = 0;
 
             do
             {
@@ -53,7 +55,7 @@ namespace Couchbase.Core.Utils
             {
                 ThrowHelper.ThrowInvalidOperationException("Invalid LEB128 sequence.");
             }
-            return result;
+            return (result, count);
         }
 
         public static int WrittenSize(uint value)

@@ -266,7 +266,8 @@ namespace Couchbase.Core
                 IO.Operations.ServerFeatures.SynchronousReplication,
                 IO.Operations.ServerFeatures.SubdocXAttributes,
                 IO.Operations.ServerFeatures.XError,
-                IO.Operations.ServerFeatures.PreserveTtl
+                IO.Operations.ServerFeatures.PreserveTtl,
+                IO.Operations.ServerFeatures.JSON
             };
 
             if (Owner != null && Owner.SupportsCollections)
@@ -537,47 +538,45 @@ namespace Couchbase.Core
 
                 Diagnostics.Metrics.MetricTracker.KeyValue.TrackResponseStatus(op.OpCode, status);
 
-                if(status == ResponseStatus.Success)
+                if (!status.Failure())
                 {
                     LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
                     return status;
                 }
-                else
+
+                LogKvStatusReturned(_redactor.SystemData(EndPoint), status, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
+
+                if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
                 {
-                    LogKvStatusReturned(_redactor.SystemData(EndPoint), status, op.OpCode, _redactor.UserData(op.Key), op.Opaque);
-
-                    if (status == ResponseStatus.TransportFailure && op is Hello && ErrorMap == null)
-                    {
-                        throw new ConnectException(
-                            "General network failure - Check server ports and cluster encryption setting.");
-                    }
-
-                    if (status == ResponseStatus.VBucketBelongsToAnotherServer)
-                    {
-                        var config = op.ReadConfig(_context.GlobalTranscoder);
-                        _context.PublishConfig(config);
-                    }
-
-                    var code = (short)status;
-                    if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
-                    {
-                        //We can ignore transport exceptions here as they are generated internally in cases a KV cannot be completed.
-                        if (code != 0x0500)
-                        {
-                            LogKvStatusNotFound(code);
-                        }
-                        op.LastErrorMessage = errorCode?.ToString();//need for the ctx creation in retryorchestrator
-                    }
-
-                    //Likely an "orphaned operation"
-                    if (status == ResponseStatus.TransportFailure || status == ResponseStatus.OperationTimeout)
-                    {
-                        //log as orphan if internal criteria met
-                        op.LogOrphaned();
-                    }
-
-                    return status;
+                    throw new ConnectException(
+                        "General network failure - Check server ports and cluster encryption setting.");
                 }
+
+                if (status == ResponseStatus.VBucketBelongsToAnotherServer)
+                {
+                    var config = op.ReadConfig(_context.GlobalTranscoder);
+                    _context.PublishConfig(config);
+                }
+
+                var code = (short)status;
+                if (!ErrorMap.TryGetGetErrorCode(code, out var errorCode))
+                {
+                    //We can ignore transport exceptions here as they are generated internally in cases a KV cannot be completed.
+                    if (code != 0x0500)
+                    {
+                        LogKvStatusNotFound(code);
+                    }
+                    op.LastErrorMessage = errorCode?.ToString();//need for the ctx creation in retryorchestrator
+                }
+
+                //Likely an "orphaned operation"
+                if (status == ResponseStatus.TransportFailure || status == ResponseStatus.OperationTimeout)
+                {
+                    //log as orphan if internal criteria met
+                    op.LogOrphaned();
+                }
+
+                return status;
             }
             catch (OperationCanceledException ex)
             {

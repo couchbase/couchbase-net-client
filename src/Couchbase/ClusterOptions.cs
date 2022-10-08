@@ -534,6 +534,11 @@ namespace Couchbase
         public TimeSpan KvTimeout { get; set; } = TimeSpan.FromSeconds(2.5);
 
         /// <summary>
+        /// The time to wait before timing out a KV Range Scan.
+        /// </summary>
+        public TimeSpan KvScanTimeout { get; set; } = TimeSpan.FromSeconds(75);
+
+        /// <summary>
         /// The time to wait before timing out a KV operation that is either using synchronous durability or observe-based durability.
         /// </summary>
         /// <remarks>The default is 10s.</remarks>
