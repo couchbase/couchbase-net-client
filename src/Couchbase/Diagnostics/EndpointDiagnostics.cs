@@ -17,6 +17,10 @@ namespace Couchbase.Diagnostics
         [JsonConverter(typeof(StringEnumConverter))]
         public ServiceState? State { get; internal set; }
 
+        [JsonProperty("endpoint_state", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(StringEnumConverter))]
+        public EndpointState? EndpointState { get; internal set; }
+
         [JsonProperty("local", NullValueHandling = NullValueHandling.Ignore)]
         public string? Local { get; internal set; }
 

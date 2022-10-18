@@ -7,6 +7,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Authentication;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
+using Couchbase.Diagnostics;
 using Couchbase.KeyValue;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -100,6 +101,11 @@ namespace Couchbase.Core.IO.Authentication
             {
                 throw new AuthenticationFailureException(
                     $"Cannot authenticate the user. Reason: {status}");
+            }
+
+            if (status == ResponseStatus.Success)
+            {
+                connection.EndpointState = EndpointState.Connected;
             }
 
             return op.GetValue()!;

@@ -64,6 +64,10 @@ namespace Couchbase.Diagnostics
         [JsonPropertyName("state")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         ServiceState? State { get; }
+
+        [JsonPropertyName("endpoint_state")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        EndpointState? EndpointState { get; }
     }
 }
 

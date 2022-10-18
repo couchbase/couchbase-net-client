@@ -8,6 +8,7 @@ using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Diagnostics;
 
 namespace Couchbase.LoadTests.Helpers
 {
@@ -26,6 +27,7 @@ namespace Couchbase.LoadTests.Helpers
         public bool IsConnected { get; set; }
         public EndPoint EndPoint { get; set; }
         public EndPoint LocalEndPoint { get; set; }
+        public EndpointState EndpointState { get; set; }
         public bool IsDead { get; set; }
         public TimeSpan IdleTime { get; set; }
         public ServerFeatureSet ServerFeatures { get; set; } = ServerFeatureSet.Empty;

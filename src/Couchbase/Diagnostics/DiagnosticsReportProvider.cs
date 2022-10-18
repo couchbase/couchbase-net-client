@@ -205,32 +205,12 @@ namespace Couchbase.Diagnostics
                 LastActivity = ping ? null : CalculateLastActivity(createdAt, DateTime.UtcNow - connection.IdleTime),
                 Remote = connection.EndPoint.ToString() ?? UnknownEndpointValue,
                 Local = connection.LocalEndPoint?.ToString() ?? UnknownEndpointValue,
-                State = GetConnectionServiceState(connection),
+                EndpointState = connection.EndpointState,
                 Scope = bucketName
             };
         }
 
-        internal static ServiceState GetConnectionServiceState(IConnection connection)
-        {
-            if (!connection.IsConnected)
-            {
-                return ServiceState.New;
-            }
-
-            if (!connection.IsAuthenticated)
-            {
-                return ServiceState.Authenticating;
-            }
-
-            if (!connection.IsDead)
-            {
-                return ServiceState.Connected;
-            }
-
-            return ServiceState.Disconnected;
-        }
-
-        internal static EndpointDiagnostics CreateEndpointHealth(string bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
+       internal static EndpointDiagnostics CreateEndpointHealth(string bucketName, ServiceType serviceType, DateTime createdAt, DateTime? lastActivity,
             HostEndpointWithPort? endPoint, bool ping)
         {
             return new EndpointDiagnostics
@@ -238,7 +218,7 @@ namespace Couchbase.Diagnostics
                 Type = serviceType,
                 LastActivity = ping ? null : CalculateLastActivity(createdAt, lastActivity),
                 Remote = endPoint?.ToString() ?? UnknownEndpointValue,
-                State = lastActivity.HasValue ? ServiceState.Connected : ServiceState.New,
+                State = lastActivity.HasValue ? ServiceState.Active : ServiceState.New,
                 Scope = bucketName
             };
         }

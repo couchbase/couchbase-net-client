@@ -486,7 +486,7 @@ namespace Couchbase.Management.Analytics
                     _ => token.ToObject<GeneralAnalyticsLinkResponse>(),
                 });
 
-                return typedResults.Where(tr => tr != null).Select(tr => tr!); ;
+                return typedResults.Where(tr => tr != null).Select(tr => tr!);
             }
             catch (Exception exception)
             {

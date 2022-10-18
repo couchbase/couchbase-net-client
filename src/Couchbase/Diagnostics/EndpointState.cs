@@ -1,25 +1,37 @@
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
+
 namespace Couchbase.Diagnostics
 {
+    /// <summary>
+    /// State of the connection to the endpoint.
+    /// </summary>
+    [JsonConverter(typeof(CamelCaseStringEnumConverter))]
     public enum EndpointState
     {
         /// <summary>
         /// The endpoint socket is not reachable.
         /// </summary>
+        [EnumMember(Value = "disconnected")]
         Disconnected,
 
         /// <summary>
         /// Currently connecting - including auth, etc.
         /// </summary>
+        [EnumMember(Value = "connecting")]
         Connecting,
 
         /// <summary>
         /// Connected and ready.
         /// </summary>
+        [EnumMember(Value = "connected")]
         Connected,
 
         /// <summary>
         /// Disconnected after being connected.
         /// </summary>
+        [EnumMember(Value = "disconnecting")]
         Disconnecting
     }
 }

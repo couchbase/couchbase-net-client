@@ -66,7 +66,14 @@ namespace Couchbase.Diagnostics
         /// There was an error when trying to ping a Couchbase server.
         /// </summary>
         [EnumMember(Value = "error")]
-        Error
+        Error,
+
+
+        /// <summary>
+        /// The service has been in-use since its creation
+        /// </summary>
+        [EnumMember(Value = "active")]
+        Active
 
         #endregion
     }

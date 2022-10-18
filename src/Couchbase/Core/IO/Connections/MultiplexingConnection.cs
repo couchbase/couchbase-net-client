@@ -68,6 +68,8 @@ namespace Couchbase.Core.IO.Connections
             _remotePortString = ((IPEndPoint) EndPoint).Port.ToStringInvariant();
             _localPortString = ((IPEndPoint) LocalEndPoint).Port.ToStringInvariant();
 
+            EndpointState = EndpointState.Connecting;
+
             _stopwatch = LightweightStopwatch.StartNew();
 
             // We don't need the execution context to flow to the receive loop
@@ -106,6 +108,9 @@ namespace Couchbase.Core.IO.Connections
 
         /// <inheritdoc />
         public EndPoint LocalEndPoint { get; }
+
+        /// <inheritdoc />
+        public EndpointState EndpointState { get; set; } = EndpointState.Disconnected;
 
         /// <inheritdoc />
         public bool IsAuthenticated { get; set; }
@@ -357,6 +362,8 @@ namespace Couchbase.Core.IO.Connections
                 }
 
                 _statesInFlight.Dispose();
+
+                EndpointState = EndpointState.Disconnected;
             }
         }
 
@@ -381,6 +388,8 @@ namespace Couchbase.Core.IO.Connections
             {
                 _logger.LogWarning(ex, "Error waiting for all operations to gracefully complete before connection close.");
             }
+
+            EndpointState = EndpointState.Disconnecting;
 
             Close();
         }

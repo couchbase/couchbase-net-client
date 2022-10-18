@@ -1,13 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Diagnostics;
 
 namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 {
@@ -25,6 +24,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public bool IsConnected { get; }
         public EndPoint EndPoint { get; internal set; }
         public EndPoint LocalEndPoint { get; internal set; }
+        public EndpointState EndpointState { get; set; }
         public bool IsDead { get; }
         public TimeSpan IdleTime { get; }
         public ServerFeatureSet ServerFeatures { get; set; }

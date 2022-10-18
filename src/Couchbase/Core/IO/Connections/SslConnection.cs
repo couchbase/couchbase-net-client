@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -40,6 +41,13 @@ namespace Couchbase.Core.IO.Connections
 
         /// <inheritdoc />
         public EndPoint LocalEndPoint => _multiplexingConnection.LocalEndPoint;
+
+        /// <inheritdoc />
+        public EndpointState EndpointState
+        {
+            get => _multiplexingConnection.EndpointState;
+            set => _multiplexingConnection.EndpointState = value;
+        }
 
         /// <inheritdoc />
         public bool IsAuthenticated

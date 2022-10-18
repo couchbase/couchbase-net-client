@@ -1,11 +1,10 @@
 using System;
-using System.Buffers;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Operations.Errors;
+using Couchbase.Diagnostics;
 
 #nullable enable
 
@@ -56,6 +55,11 @@ namespace Couchbase.Core.IO.Connections
         /// Gets the local endpoint for the connected socket.
         /// </summary>
         EndPoint LocalEndPoint { get; }
+
+        /// <summary>
+        /// State of the connection. Default is "Disconnected"
+        /// </summary>
+        EndpointState EndpointState { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is dead.
