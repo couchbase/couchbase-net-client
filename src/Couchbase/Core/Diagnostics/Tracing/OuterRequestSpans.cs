@@ -49,6 +49,11 @@ namespace Couchbase.Core.Diagnostics.Tracing
             ///     db.statement set.
             /// </summary>
             public static string Operation = "db.operation";
+
+            /// <summary>
+            /// The status code for an individual response from a couchbase node.
+            /// </summary>
+            public static string ResponseStatus = "db.couchbase.response.status";
         }
 
         /// <summary>

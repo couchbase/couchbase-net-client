@@ -33,7 +33,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.OutOfMemory:
                 case ResponseStatus.Busy:
                 case ResponseStatus.NotInitialized:
-                    return new TemporaryFailureException { Context = ctx };
+                    return new TemporaryFailureException(status.ToString()) { Context = ctx };
                 case ResponseStatus.OperationTimeout:
                     return new AmbiguousTimeoutException { Context = ctx };
                 case ResponseStatus.Locked:
@@ -56,7 +56,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.AuthStale:
                     return new AuthenticationFailureException("Either the bucket is not present, " +
                         "the user does not have the right privileges to access it, " +
-                        "or the bucket is hibernated")
+                        "or the bucket is hibernated: " + status.ToString())
                     { Context = ctx };
                 case ResponseStatus.VBucketBelongsToAnotherServer:
                     return new NotMyVBucketException { Context = ctx };

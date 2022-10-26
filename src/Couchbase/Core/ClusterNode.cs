@@ -101,11 +101,12 @@ namespace Couchbase.Core
         {
         }
 
-        public ClusterNode(ClusterContext context, ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker)
+        public ClusterNode(ClusterContext context, ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ILogger<ClusterNode> logger = null)
         {
             _context = context;
             _operationBuilderPool = operationBuilderPool;
             _circuitBreaker = circuitBreaker;
+            _logger = logger;
         }
 
         public bool IsAssigned => Owner != null;
@@ -229,12 +230,12 @@ namespace Couchbase.Core
             {
                 await ExecuteOp(connection, errorMapOp, ctp.TokenPair).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
                 //Check to see if it was because of a "hung" socket which causes the token to timeout
                 if (ctp.IsInternalCancellation)
                 {
-                    ThrowHelper.ThrowTimeoutException(errorMapOp);
+                    ThrowHelper.ThrowTimeoutException(errorMapOp, ex, _redactor);
                 }
                 throw;
             }
@@ -314,12 +315,12 @@ namespace Couchbase.Core
             {
                 await ExecuteOp(connection, heloOp, ctp.TokenPair).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
                 //Check to see if it was because of a "hung" socket which causes the token to timeout
                 if (ctp.IsInternalCancellation)
                 {
-                    ThrowHelper.ThrowTimeoutException(heloOp);
+                    ThrowHelper.ThrowTimeoutException(heloOp, ex, _redactor);
                 }
                 throw;
             }
@@ -342,12 +343,12 @@ namespace Couchbase.Core
             {
                 await ExecuteOp(ConnectionPool, manifestOp, ctp.TokenPair).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
                 //Check to see if it was because of a "hung" socket which causes the token to timeout
                 if (ctp.IsInternalCancellation)
                 {
-                    ThrowHelper.ThrowTimeoutException(manifestOp);
+                    ThrowHelper.ThrowTimeoutException(manifestOp, ex, _redactor);
                 }
                 throw;
             }
@@ -377,12 +378,12 @@ namespace Couchbase.Core
             {
                 await ExecuteOp(ConnectionPool, configOp, ctp.TokenPair).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
                 //Check to see if it was because of a "hung" socket which causes the token to timeout
                 if (ctp.IsInternalCancellation)
                 {
-                    ThrowHelper.ThrowTimeoutException(configOp);
+                    ThrowHelper.ThrowTimeoutException(configOp, ex, _redactor);
                 }
                 throw;
             }
@@ -497,7 +498,7 @@ namespace Couchbase.Core
             }
         }
 
-        private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair = default)
+        private async Task ExecuteOp(Func<IOperation, object, CancellationToken, Task> sender, IOperation op, object state, CancellationTokenPair tokenPair)
         {
             LogKvExecutingOperation(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
 
@@ -511,6 +512,8 @@ namespace Couchbase.Core
                 {
                     status = await op.Completed.ConfigureAwait(false);
                 }
+
+                Diagnostics.Metrics.MetricTracker.KeyValue.TrackResponseStatus(op.OpCode, status);
 
                 if (status != ResponseStatus.Success)
                 {
@@ -580,8 +583,10 @@ namespace Couchbase.Core
 
                 LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
+                op.StopRecording();
+
                 // Timeout handling logic is also in RetryOrchestrator, however this method can also be reached without
                 // passing through RetryOrchestrator for cases like diagnostics or bootstrapping. Therefore, we need the logic
                 // in both places.
@@ -591,10 +596,15 @@ namespace Couchbase.Core
 
                 if (!tokenPair.IsExternalCancellation)
                 {
+                    if (op.Elapsed < op.Timeout)
+                    {
+                        _logger.LogWarning("KV Operation timed out in ({elapsed}) less than timeout target ({timeout}) for {opaque}", op.Elapsed, op.Timeout, op.Opaque);
+                    }
+
                     LogKvOperationTimeout(_redactor.SystemData(EndPoint), op.OpCode, _redactor.UserData(op.Key), op.Opaque, op.IsSent);
 
                     // If this wasn't an externally requested cancellation, it's a timeout, so convert to a TimeoutException
-                    ThrowHelper.ThrowTimeoutException(op, new KeyValueErrorContext
+                    ThrowHelper.ThrowTimeoutException(op, ex, _redactor, new KeyValueErrorContext
                     {
                         BucketName = Owner?.Name,
                         ClientContextId = op.Opaque.ToStringInvariant(),
@@ -691,12 +701,12 @@ namespace Couchbase.Core
                 {
                     await ExecuteOp(connection, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex)
                 {
                     //Check to see if it was because of a "hung" socket which causes the token to timeout
                     if (ctp.IsInternalCancellation)
                     {
-                        ThrowHelper.ThrowTimeoutException(selectBucketOp);
+                        ThrowHelper.ThrowTimeoutException(selectBucketOp, ex, _redactor);
                     }
                     throw;
                 }

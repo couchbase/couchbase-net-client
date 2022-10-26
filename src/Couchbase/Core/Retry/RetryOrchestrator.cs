@@ -164,10 +164,17 @@ namespace Couchbase.Core.Retry
             try
             {
                 var backoff = ControlledBackoff.Create();
+                System.Exception lastRetriedException = null;
 
                 do
                 {
-                    tokenPair.ThrowIfCancellationRequested();
+                    if (tokenPair.IsCancellationRequested)
+                    {
+                        var isExternal = tokenPair.IsExternalCancellation ? "(External)" : string.Empty;
+                        var isInternal = tokenPair.IsInternalCancellation ? "(Internal)" : string.Empty;
+                        var msg = $"Operation {operation.Opaque}/{_redactor.UserData(operation.Key)} cancelled {isExternal}{isInternal} after {operation.Elapsed.TotalMilliseconds}ms. ({String.Join(",", operation.RetryReasons)})";
+                        throw new OperationCanceledException(msg, lastRetriedException, tokenPair.CanceledToken);
+                    }
 
                     try
                     {
@@ -201,11 +208,17 @@ namespace Couchbase.Core.Retry
                     catch (CouchbaseException e) when (e is IRetryable && !tokenPair.IsCancellationRequested)
                     {
                         var reason = e.ResolveRetryReason();
+
                         if (reason.AlwaysRetry())
                         {
+                            lastRetriedException = e;
                             LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason);
 
-                            await backoff.Delay(operation).ConfigureAwait(false);
+                            try
+                            {
+                                await backoff.Delay(operation).ConfigureAwait(false);
+                            } catch (OperationCanceledException)
+                            { }
 
                             // no need to reset op in this case as it was not actually sent
                             if (reason != RetryReason.CircuitBreakerOpen)
@@ -222,14 +235,19 @@ namespace Couchbase.Core.Retry
 
                         if (action.Retry)
                         {
+                            lastRetriedException = e;
                             LogRetryDueToDuration(operation.Opaque, _redactor.UserData(operation.Key), reason);
 
                             // Reset first so operation is not marked as sent if canceled during the delay
                             operation.Reset();
                             operation.IncrementAttempts(reason);
 
-                            await Task.Delay(action.DurationValue.GetValueOrDefault(), tokenPair)
-                                .ConfigureAwait(false);
+                            try
+                            {
+                                await backoff.Delay(operation).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                            { }
                         }
                         else
                         {
@@ -238,11 +256,28 @@ namespace Couchbase.Core.Retry
                     }
                 } while (true);
             }
-            catch (OperationCanceledException) when (!tokenPair.IsExternalCancellation)
+            catch (OperationCanceledException ex) when (!tokenPair.IsExternalCancellation)
             {
-                MetricTracker.KeyValue.TrackTimeout(operation.OpCode);
+                operation.StopRecording();
 
-                ThrowHelper.ThrowTimeoutException(operation, new KeyValueErrorContext
+                if (operation.Elapsed < operation.Timeout)
+                {
+                    // cancelled due to non-timeout
+                    // TODO:  What should be thrown instead of OperationCancelled?  Is it documented what the user should expect and do in response?
+                    // TODO: Audit all Task.Delay calls that use a CancellationToken, considering they will potentially throw OperationCancelledException.
+
+                    ////_logger.LogWarning("Timed out in ({elapsed}) less than timeout target ({timeout}) for {opaque}", operation.Elapsed, operation.Timeout, operation.Opaque);
+                    ////_logger.LogCritical(ex, "Questionable timeout");
+                    ////if (operation.RetryReasons.Count > 0)
+                    ////{
+                    ////    _logger.LogWarning("RetryReasons: {reasons}", String.Join(", ", operation.RetryReasons));
+                    ////}
+
+                    throw;
+                }
+
+                MetricTracker.KeyValue.TrackTimeout(operation.OpCode);
+                ThrowHelper.ThrowTimeoutException(operation, ex, _redactor, new KeyValueErrorContext
                 {
                     BucketName = operation.BucketName,
                     ClientContextId = operation.Opaque.ToStringInvariant(),

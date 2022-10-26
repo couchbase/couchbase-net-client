@@ -26,6 +26,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
             public const string Connections = "db.couchbase.connections";
             public const string Operations = "db.couchbase.operations";
             public const string OperationCounts = "db.couchbase.operations.count";
+            public const string OperationStatus = "db.couchbase.operations.status";
             public const string Orphans = "db.couchbase.orphans";
             public const string Retries = "db.couchbase.retries";
             public const string SendQueueFullErrors = "db.couchbase.sendqueue.fullerrors";
@@ -46,6 +47,11 @@ namespace Couchbase.Core.Diagnostics.Metrics
             KeyValueMeter.CreateCounter<long>(name: Names.OperationCounts,
                 unit: "Operations",
                 description: "Number of operations executed");
+
+        private static readonly Counter<long> ResponseStatus =
+            KeyValueMeter.CreateCounter<long>(name: Names.OperationStatus,
+                unit: "Operation",
+                description: "KVResponse");
 
         private static readonly Counter<long> Orphans =
             KeyValueMeter.CreateCounter<long>(name: Names.Orphans,
@@ -99,6 +105,18 @@ namespace Couchbase.Core.Diagnostics.Metrics
                 OperationCounts.Add(1,
                     new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name),
                     new(OuterRequestSpans.Attributes.Operation, opCode.ToMetricTag()));
+            }
+
+            /// <summary>
+            /// Tracks the response status for each response from the server.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public static void TrackResponseStatus(OpCode opCode, ResponseStatus status)
+            {
+                ResponseStatus.Add(1,
+                    new(OuterRequestSpans.Attributes.Service, OuterRequestSpans.ServiceSpan.Kv.Name),
+                    new(OuterRequestSpans.Attributes.Operation, opCode.ToMetricTag()),
+                    new(OuterRequestSpans.Attributes.ResponseStatus, status));
             }
 
             /// <summary>

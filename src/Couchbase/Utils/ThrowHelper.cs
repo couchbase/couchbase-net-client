@@ -82,20 +82,20 @@ namespace Couchbase.Utils
             return value;
         }
 
-        public static void ThrowTimeoutException(IOperation operation, IErrorContext? context = null)
+        public static void ThrowTimeoutException(IOperation operation, Exception innerException, Core.Logging.TypedRedactor redactor, IErrorContext? context = null)
         {
-            var message = $"The operation {operation.Opaque}/{operation.Key} timed out after {operation.Elapsed}. " +
+            var message = $"The operation {operation.Opaque}/{redactor.UserData(operation.Key)} timed out after {operation.Elapsed}. " +
                           $"It was retried {operation.Attempts} times using {operation.RetryStrategy.GetType()}.";
 
             if (operation.IsSent && !operation.IsReadOnly)
             {
-                throw new AmbiguousTimeoutException(message)
+                throw new AmbiguousTimeoutException(message, innerException)
                 {
                     Context = context
                 };
             }
 
-            throw new UnambiguousTimeoutException(message)
+            throw new UnambiguousTimeoutException(message, innerException)
             {
                 Context = context
             };
