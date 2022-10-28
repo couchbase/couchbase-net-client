@@ -32,5 +32,17 @@ namespace Couchbase.CombinationTests.Tests.Cluster
             var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => t);
             // ServiceNotAvailableException would be raised later, when a Query was attempted and no endpoints were bootstrapped.
         }
+
+        [Fact]
+        public async Task Test_BucketDoesNotExist_ThrowsAuthenticationFailure()
+        {
+            using var loggerFactory = new TestOutputLoggerFactory(_outputHelper);
+            var clusterOptions = _fixture.GetOptionsFromConfig();
+            clusterOptions.WithLogging(loggerFactory);
+            var cluster = await Couchbase.Cluster.ConnectAsync(clusterOptions);
+            var t = cluster.BucketAsync("BUCKET_THAT_DOES_NOT_EXIST");
+            var ex = await Assert.ThrowsAsync<AuthenticationFailureException>(() => t.AsTask());
+            Assert.Contains("hibernat", ex.Message);
+        }
     }
 }

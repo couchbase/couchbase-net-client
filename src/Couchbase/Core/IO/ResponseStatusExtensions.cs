@@ -54,7 +54,10 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.AuthenticationError:
                 case ResponseStatus.AuthenticationContinue: //likely remove
                 case ResponseStatus.AuthStale:
-                    return new AuthenticationFailureException { Context = ctx };
+                    return new AuthenticationFailureException("Either the bucket is not present, " +
+                        "the user does not have the right privileges to access it, " +
+                        "or the bucket is hibernated")
+                    { Context = ctx };
                 case ResponseStatus.VBucketBelongsToAnotherServer:
                     return new NotMyVBucketException { Context = ctx };
                 case ResponseStatus.SubdocXattrUnknownVattr:
