@@ -63,6 +63,25 @@ namespace Couchbase.UnitTests.Search
             new DisjunctionQuery()
                 .Or(new MatchQuery("term1").Field("field1").Boost(2.0));
         }
+
+        [Fact]
+        public void Min_WhenMinIsLessThanZero_ThrowsArgumentOutOfRangeException()
+        {
+            var query = new DisjunctionQuery();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => query.Min(-1));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void Can_create_disjunction_that_includes_query_with_min_bigger_than_or_equal_to_zero(int min)
+        {
+            var query = new DisjunctionQuery().Min(min);
+
+            Assert.IsType<DisjunctionQuery>(query);
+        }
     }
 }
 

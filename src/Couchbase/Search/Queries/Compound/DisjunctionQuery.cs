@@ -38,9 +38,9 @@ namespace Couchbase.Search.Queries.Compound
         /// <returns></returns>
         public DisjunctionQuery Min(int min)
         {
-            if (min > 0)
+            if (min < 0)
             {
-                throw new ArgumentOutOfRangeException("min");
+                throw new ArgumentOutOfRangeException(nameof(min));
             }
             _min = min;
             return this;
