@@ -34,6 +34,24 @@ namespace Couchbase.IntegrationTests.Management
         }
 
         [Fact]
+        public async Task Test_CreateAndDropUserWithRoleNamesOnly()
+        {
+            var cluster = await _fixture.GetCluster().ConfigureAwait(false);
+
+            await cluster.Users.UpsertUserAsync(new User("usermgr_test") {
+                Password = "password",
+                Roles = new List<Role>()
+                {
+                    new Role("admin"),
+                    new Role("ro_admin"),
+                    new Role("cluster_admin")
+                }
+            }).ConfigureAwait(false);
+
+            await cluster.Users.DropUserAsync("usermgr_test").ConfigureAwait(false);
+        }
+
+        [Fact]
         public async Task Test_CreateAndDropUserWithBucket()
         {
             var name = "usermgr_bucket_role_test";

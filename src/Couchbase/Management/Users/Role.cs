@@ -10,7 +10,7 @@ namespace Couchbase.Management.Users
         /// Creates a new system-wide role (not specific to a bucket)
         /// </summary>
         /// <param name="roleName">symbolic name of the role</param>
-        public Role(string roleName) : this(roleName, "*")
+        public Role(string roleName) : this(roleName, null)
         {
         }
 
@@ -48,8 +48,7 @@ namespace Couchbase.Management.Users
         public Role(string roleName, string bucketName, string scopeName, string collectionName)
         {
             Name = roleName;
-            Bucket = bucketName ?? "*";
-            if (Name == "admin") Bucket = null;
+            Bucket = bucketName;
             Scope = scopeName;
             Collection = collectionName;
         }
@@ -108,14 +107,18 @@ namespace Couchbase.Management.Users
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.Append(Name).Append("[").Append(Bucket);
+            sb.Append(Name);
+
+            if (!string.IsNullOrEmpty(Bucket)) { sb.Append("[").Append(Bucket); }
+
             if (!string.IsNullOrWhiteSpace(Scope))
             {
                 sb.Append(":").Append(Scope);
 
                 if (!string.IsNullOrWhiteSpace(Collection)) sb.Append(":").Append(Collection);
             }
-            return sb.Append("]").ToString();
+
+            return !string.IsNullOrEmpty(Bucket) ? sb.Append("]").ToString() : sb.ToString();
         }
     }
 }

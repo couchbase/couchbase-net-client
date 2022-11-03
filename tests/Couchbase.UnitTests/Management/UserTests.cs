@@ -24,7 +24,7 @@ namespace Couchbase.UnitTests.Management
         {
             //Setup
 
-            const string roleApplicableToAllBucket = "data_reader[*]";
+            const string roleApplicableToAllBucket = "data_reader";
 
             var user = new User("username")
             {
@@ -131,7 +131,7 @@ namespace Couchbase.UnitTests.Management
         public void Test_GetUserFormValues_All()
         {
             //Setup
-            const string all = "data_reader[*],data_reader[bucket],data_reader[bucket:s],data_reader[bucket:s:c]";
+            const string all = "data_reader,data_reader[bucket],data_reader[bucket:s],data_reader[bucket:s:c]";
 
             var user = new User("username")
             {
