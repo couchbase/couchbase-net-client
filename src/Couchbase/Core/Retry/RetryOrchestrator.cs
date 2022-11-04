@@ -262,17 +262,7 @@ namespace Couchbase.Core.Retry
 
                 if (operation.Elapsed < operation.Timeout)
                 {
-                    // cancelled due to non-timeout
-                    // TODO:  What should be thrown instead of OperationCancelled?  Is it documented what the user should expect and do in response?
-                    // TODO: Audit all Task.Delay calls that use a CancellationToken, considering they will potentially throw OperationCancelledException.
-
-                    ////_logger.LogWarning("Timed out in ({elapsed}) less than timeout target ({timeout}) for {opaque}", operation.Elapsed, operation.Timeout, operation.Opaque);
-                    ////_logger.LogCritical(ex, "Questionable timeout");
-                    ////if (operation.RetryReasons.Count > 0)
-                    ////{
-                    ////    _logger.LogWarning("RetryReasons: {reasons}", String.Join(", ", operation.RetryReasons));
-                    ////}
-
+                    // not a true timeout.
                     throw;
                 }
 
