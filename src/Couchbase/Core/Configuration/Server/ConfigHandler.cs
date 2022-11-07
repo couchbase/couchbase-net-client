@@ -153,6 +153,9 @@ namespace Couchbase.Core.Configuration.Server
 
                     if (!connected && _context!.ClusterOptions!.ConnectionStringValue!.IsDnsSrv)
                     {
+                        _logger.LogInformation("Bootstrapping: The handler can no longer connect " +
+                            " to the cluster and will attempt to rebootstrap against the DNS SRV records.");
+
                         //If we reach here, we cannot connect to the cluster via CCCP
                         //and we know we are using DNS SRV lookup. Since, the bucket
                         //may have moved to a different cluster so we want to refresh

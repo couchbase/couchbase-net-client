@@ -318,14 +318,22 @@ namespace Couchbase.Core
                     // It can be disabled by returning an empty URI list from IDnsResolver
                     var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
 
-                    var bootstrapUri = ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
+                    //if we have a cached original DNS SRV uri we can use that to bootstrap
+                    var bootstrapUri = ClusterOptions.ConnectionStringValue.IsDnsSrv ?
+                        ClusterOptions.ConnectionStringValue.DnsSrvUri :
+                        ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
+
                     var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken).ConfigureAwait(false)).ToList();
                     if (servers.Any())
                     {
                         _logger.LogInformation(
                             $"Successfully retrieved DNS SRV entries: [{_redactor.SystemData(string.Join(",", servers))}]");
                         ClusterOptions.ConnectionStringValue =
-                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers, true);
+                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers, true, bootstrapUri);
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Bootstrapping: the DNS SRV succeeded, but no records were returned for {bootstrapUri}.");
                     }
                 }
                 catch (Exception exception)
@@ -592,6 +600,8 @@ namespace Couchbase.Core
                 foreach (var endpoint in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
                     .EnableTls))
                 {
+                    _logger.LogInformation($"Bootstrapping: a rebootstrap action is starting on host {endpoint}.");
+
                     var node = GetUnassignedNode(endpoint);
                     if (node == null)
                     {
@@ -608,7 +618,7 @@ namespace Couchbase.Core
                         BucketConfig config;
                         try
                         {
-                            _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
+                            _logger.LogInformation("Bootstrapping: fetching the config using CCCP for bucket {name}.",
                                 _redactor.MetaData(name));
 
                             //First try CCCP to fetch the config

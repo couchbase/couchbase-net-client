@@ -22,6 +22,52 @@ namespace Couchbase.UnitTests
             _output = output;
         }
 
+        [Fact]
+        public void WhenDnsSrvAllowReconfigure()
+        {
+            var options = new ClusterOptions()
+            {
+                UserName = "Administrator",
+                Password = "password",
+                EnableDnsSrvResolution = true
+            }.WithConnectionString("dotnet123.cbqeoc.com");
+
+            //fake like DNS SRV records were returned
+            var serversOld = new List<HostEndpoint>
+            {
+                new HostEndpoint("node1-e4c8609a.cbqeoc.com", 11210),
+                new HostEndpoint("node2-e4c8609a.cbqeoc.com", 11210),
+                new HostEndpoint("node3-e4c8609a.cbqeoc.com", 11210)
+            };
+
+            var dnsUri = options.ConnectionStringValue.GetDnsBootStrapUri();
+
+            options.ConnectionStringValue =
+                            new ConnectionString(options.ConnectionStringValue, serversOld, true, dnsUri);
+
+            Assert.True(options.ConnectionStringValue.IsValidDnsSrv());
+            Assert.Equal(3, options.ConnectionStringValue.Hosts.Count);
+            Assert.Equal(new HostEndpoint("node1-e4c8609a.cbqeoc.com", 11210), options.ConnectionStringValue.Hosts[0]);
+            Assert.Equal(new HostEndpoint("node2-e4c8609a.cbqeoc.com", 11210), options.ConnectionStringValue.Hosts[1]);
+            Assert.Equal(new HostEndpoint("node3-e4c8609a.cbqeoc.com", 11210), options.ConnectionStringValue.Hosts[2]);
+
+            var serversNew = new List<HostEndpoint>
+            {
+                new HostEndpoint("node1-fd229c81.cbqeoc.com", 11210),
+                new HostEndpoint("node2-fd229c81.cbqeoc.com", 11210),
+                new HostEndpoint("node3-fd229c81.cbqeoc.com", 11210)
+            };
+
+            options.ConnectionStringValue =
+                            new ConnectionString(options.ConnectionStringValue, serversNew, true, dnsUri);
+
+            Assert.True(options.ConnectionStringValue.IsValidDnsSrv());
+            Assert.Equal(3, options.ConnectionStringValue.Hosts.Count);
+            Assert.Equal(new HostEndpoint("node1-fd229c81.cbqeoc.com", 11210), options.ConnectionStringValue.Hosts[0]);
+            Assert.Equal(new HostEndpoint("node2-fd229c81.cbqeoc.com", 11210), options.ConnectionStringValue.Hosts[1]);
+            Assert.Equal(new HostEndpoint("node3-fd229c81.cbqeoc.com", 11210), options.ConnectionStringValue.Hosts[2]);
+        }
+
         #region KvSendQueueCapacity
 
         [Fact]

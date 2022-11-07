@@ -30,6 +30,8 @@ namespace Couchbase
 
         public bool IsDnsSrv { get; private set; }
 
+        public Uri? DnsSrvUri { get; private set; }
+
         private ConnectionString()
         {
         }
@@ -42,10 +44,11 @@ namespace Couchbase
             Parameters = source.Parameters;
         }
 
-        internal ConnectionString(ConnectionString source, IEnumerable<HostEndpoint> newHosts, bool isDnsSrv)
+        internal ConnectionString(ConnectionString source, IEnumerable<HostEndpoint> newHosts, bool isDnsSrv, Uri dnsSrvUri)
             : this(source, newHosts)
         {
             IsDnsSrv = isDnsSrv;
+            DnsSrvUri = dnsSrvUri;
         }
 
         internal static ConnectionString Parse(string input)
@@ -140,6 +143,10 @@ namespace Couchbase
         /// <seealso cref="GetDnsBootStrapUri"/>.
         public bool IsValidDnsSrv()
         {
+            if(IsDnsSrv)
+            {
+                return true;
+            }
             if (Scheme != Scheme.Couchbase && Scheme != Scheme.Couchbases)
             {
                 return false;
