@@ -1071,9 +1071,22 @@ namespace Couchbase.KeyValue
                         LazyThreadSafetyMode.ExecutionAndPublication);
                 }
 
-                Cid = retryIfFailure
-                    ? await GetCidLazyRetry.Value.ConfigureAwait(false)
-                    : await GetCidLazyNoRetry.Value.ConfigureAwait(false);
+                try
+                {
+                    Cid = retryIfFailure
+                        ? await GetCidLazyRetry.Value.ConfigureAwait(false)
+                        : await GetCidLazyNoRetry.Value.ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    lock (_cidLock)
+                    {
+                        GetCidLazyRetry = null;
+                        GetCidLazyNoRetry = null;
+                    }
+
+                    throw;
+                }
             }
 
             Logger.LogDebug("Completed fetching CID for {scope}.{collection}", ScopeName, Name);
