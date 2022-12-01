@@ -107,7 +107,7 @@ namespace Couchbase.UnitTests
         [InlineData(false, null, false)]
         [InlineData(false, "couchbase", false)]
         [InlineData(false, "http", false)]
-        [InlineData(false, "couchbases", false)]
+        [InlineData(false, "couchbases", true)]
         [InlineData(true, null, true)]
         [InlineData(true, "couchbase", true)]
         [InlineData(true, "http", true)]

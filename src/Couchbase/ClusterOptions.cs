@@ -147,6 +147,10 @@ namespace Couchbase
                     {
                         NetworkResolution = networkResolution;
                     }
+                    if (ConnectionStringValue?.Scheme == Scheme.Couchbases)
+                    {
+                        EnableTls = true;
+                    }
                 }
             }
         }

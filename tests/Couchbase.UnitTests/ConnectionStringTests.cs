@@ -114,5 +114,21 @@ namespace Couchbase.UnitTests
             Assert.Equal(networkResolution, options.NetworkResolution);
         }
         #endregion
+
+        #region EnableTls
+
+        [Theory]
+        [InlineData("couchbases://localhost")]
+        public void Test_Couchbases_Enables_Tls(string cstring)
+        {
+            var options = new ClusterOptions
+            {
+                ConnectionString = cstring
+            };
+
+            Assert.Equal(true, options.EnableTls);
+        }
+
+        #endregion
     }
 }
