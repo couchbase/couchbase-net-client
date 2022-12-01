@@ -59,6 +59,10 @@ namespace Couchbase.Utils
             throw new ObjectDisposedException(objectName);
 
         [DoesNotReturn]
+        public static void ThrowSocketNotAvailableException(string objectName) =>
+            throw new SocketNotAvailableException(objectName);
+
+        [DoesNotReturn]
         public static void ThrowOperationCanceledException() =>
             throw new OperationCanceledException();
 

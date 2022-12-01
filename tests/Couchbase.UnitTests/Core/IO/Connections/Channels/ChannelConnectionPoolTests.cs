@@ -18,8 +18,7 @@ using Xunit.Abstractions;
 namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 {
 #pragma warning disable xUnit1000 // Test classes must be public
-    /*public*/
-    class ChannelConnectionPoolTests
+    public class ChannelConnectionPoolTests
 #pragma warning restore xUnit1000 // Test classes must be public
     {
         private readonly ITestOutputHelper _testOutput;
@@ -161,7 +160,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             var operations = Enumerable.Range(1, toSendCount)
                 .Select(_ => new FakeOperation
                 {
-                    Delay = TimeSpan.FromMilliseconds(1000),
+                    Delay = TimeSpan.FromMilliseconds(100),
                     SendStarted = SendStarted,
                     SendComplete = SendCompleted
                 })
@@ -269,6 +268,11 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         #endregion
 
         #region Dispose
+
+        public async Task Disposed_Connection_Throws_ODE()
+        {
+
+        }
 
         [Fact]
         public async Task Dispose_ClosesAllConnections()

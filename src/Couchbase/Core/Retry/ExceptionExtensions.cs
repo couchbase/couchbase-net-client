@@ -19,6 +19,7 @@ namespace Couchbase.Core.Retry
                 case IndexFailureException _: return RetryReason.QueryIndexNotFound;
                 case SendQueueFullException _: return RetryReason.SendQueueFull;
                 case CircuitBreakerException _: return RetryReason.CircuitBreakerOpen;
+                case SocketNotAvailableException _: return RetryReason.SocketNotAvailable;
                 default:
                 {
                     return RetryReason.NoRetry;

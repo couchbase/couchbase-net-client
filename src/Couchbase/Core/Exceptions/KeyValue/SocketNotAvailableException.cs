@@ -1,20 +1,14 @@
-namespace Couchbase.Core.Retry
-{
-    public static class RetryReasonExtensions
-    {
-        public static bool AllowsNonIdempotentRetries(this RetryReason reason)
-        {
-            return !(reason == RetryReason.Unknown || reason == RetryReason.SocketClosedWhileInFlight);
-        }
+using Couchbase.Core.Retry;
 
-        public static bool AlwaysRetry(this RetryReason reason)
+namespace Couchbase.Core.Exceptions.KeyValue
+{
+    /// <summary>
+    /// Thrown when a socket is temporarily unavailable. This exception is caught and will force a retry.
+    /// </summary>
+    public class SocketNotAvailableException : KeyValueException, IRetryable
+    {
+        public SocketNotAvailableException(string message) : base(message)
         {
-            return reason == RetryReason.KvNotMyVBucket ||
-                   reason == RetryReason.ScopeNotFound ||
-                   reason == RetryReason.CollectionNotFound ||
-                   reason == RetryReason.ViewsNoActivePartition ||
-                   reason == RetryReason.CircuitBreakerOpen ||
-                   reason == RetryReason.SocketNotAvailable;
         }
     }
 }

@@ -191,7 +191,8 @@ namespace Couchbase.Core.IO.Connections.Channels
         {
             if (_cts.IsCancellationRequested)
             {
-                ThrowHelper.ThrowObjectDisposedException(nameof(ChannelConnectionPool));
+                //Were not throwing an ODE because we want a more specific exception that reuse the retry logic in the RetryOrchestrator
+                ThrowHelper.ThrowSocketNotAvailableException(nameof(ChannelConnectionPool));
             }
         }
 
