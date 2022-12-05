@@ -51,6 +51,8 @@ namespace Couchbase.KeyValue.RangeScan
             return false;
         }
 
+        public bool IdOnly => _idOnly;
+
         /// <inheritdoc />
         public string Id => _id;
 
@@ -82,6 +84,7 @@ namespace Couchbase.KeyValue.RangeScan
 
         public override string ToString()
         {
+            //Todo:
             var sb = new StringBuilder();
             sb.Append("ScanResult{");
             sb.Append("id = ").Append(Id);

@@ -137,10 +137,8 @@ namespace Couchbase.UnitTests.Utils
 
         public string LastDispatchedTo => throw new NotImplementedException();
 
-
         public string LastErrorMessage { get; set; }
 
         public bool CanStream => throw new NotImplementedException();
-
     }
 }

@@ -31,7 +31,7 @@ namespace Couchbase.KeyValue.RangeScan
 
         internal IRequestSpan? ParentSpanValue { get; set; }
 
-        internal bool WithoutContentValue { get; set; }
+        internal bool IdsOnlyValue { get; set; }
 
         internal MutationState? ConsistentWithValue { get; set; }
 
@@ -104,9 +104,9 @@ namespace Couchbase.KeyValue.RangeScan
         /// </summary>
         /// <param name="withoutContent">True to not send content.</param>
         /// <returns>A <see cref="ScanOptions"/> instance for chaining.</returns>
-        public ScanOptions WithoutContent(bool withoutContent)
+        public ScanOptions IdsOnly(bool withoutContent)
         {
-            WithoutContentValue = withoutContent;
+            IdsOnlyValue = withoutContent;
             return this;
         }
 

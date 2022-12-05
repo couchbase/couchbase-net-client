@@ -8,12 +8,17 @@ namespace Couchbase.KeyValue.RangeScan
     public interface IScanResult
     {
         /// <summary>
+        /// Indicates if the scan was requested with IDs only.
+        /// </summary>
+        bool IdOnly { get; }
+
+        /// <summary>
         /// The identifier for the document.
         /// </summary>
         string Id { get; }
 
         /// <summary>
-        /// Returns the content of the scan result if <see cref="ScanOptions.WithoutContent(bool)"/> is false.
+        /// Returns the content of the scan result if <see cref="ScanOptions.IdsOnly"/> is false.
         /// </summary>
         /// <typeparam name="T">The underlying document type; POCO or dynamic/object for example.</typeparam>
         /// <returns></returns>

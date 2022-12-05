@@ -27,6 +27,7 @@ namespace Couchbase.KeyValue
     internal class CouchbaseCollection : ICouchbaseCollection, IBinaryCollection, IInternalCollection
     {
         public const string DefaultCollectionName = "_default";
+        private bool _rangeScanSupported;
         private readonly BucketBase _bucket;
         private readonly ILogger<GetResult> _getLogger;
         private readonly IOperationConfigurator _operationConfigurator;
@@ -52,6 +53,10 @@ namespace Couchbase.KeyValue
             _tracer = tracer;
             Scope = scope ?? throw new ArgumentNullException(nameof(scope));
             IsDefaultCollection = scope.IsDefaultScope && name == DefaultCollectionName;
+            if (_bucket.CurrentConfig != null)
+            {
+                if (_bucket.CurrentConfig.BucketCapabilities.Contains(BucketCapabilities.RANGE_SCAN)) _rangeScanSupported = true;
+            }
         }
 
         internal IRedactor Redactor { get; }
@@ -80,6 +85,12 @@ namespace Couchbase.KeyValue
 
         public async IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
         {
+            if (!_rangeScanSupported)
+            {
+                throw new FeatureNotAvailableException(
+                    "The cluster does not support the scan operation (Only supported with Couchbase Server 7.5 and later).");
+            }
+
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
 
@@ -150,7 +161,7 @@ namespace Couchbase.KeyValue
             var scanOp = new RangeScanCreate
             {
                 Content = scanType as IScanTypeExt, //need to change this
-                KeyOnly = options!.WithoutContentValue,
+                KeyOnly = options!.IdsOnlyValue,
                 Cid = Cid,
                 CName = Name,
                 SName = ScopeName,
@@ -187,8 +198,8 @@ namespace Couchbase.KeyValue
                 using var ctp2 = CreateRetryTimeoutCancellationTokenSource(options, scanContinueOp);
                 await _bucket.RetryAsync(scanContinueOp, ctp2.TokenPair).ConfigureAwait(false);
 
-                //loop through the results as they are pushed
-                if (options!.WithoutContentValue)
+                //loop through the results as the are pushed
+                if (options!.IdsOnlyValue)
                 {
                     await foreach (var scanResult in scanContinueOp.ReadKeys())
                     {

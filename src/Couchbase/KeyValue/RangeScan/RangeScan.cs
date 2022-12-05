@@ -2,6 +2,7 @@ using Couchbase.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace Couchbase.KeyValue.RangeScan
@@ -13,17 +14,25 @@ namespace Couchbase.KeyValue.RangeScan
     {
         public RangeScan(ScanTerm from, ScanTerm to)
         {
-            //sanity checks
-            if (from == null) throw new ArgumentNullException(nameof(from));
-            if (to == null) throw new ArgumentNullException(nameof(to));
-            if (from.IsExclusive != to.IsExclusive)
-                throw new ArgumentException("Both terms must be either inclusive or exclusive");
+            from ??= ScanTerm.Minimum();
+            to ??= ScanTerm.Maximum();
 
             From = from;
             To = to;
         }
 
+        public RangeScan(ScanTerm from)
+        {
+            From = from;
+            To = ScanTerm.Exclusive(from.Id.Concat(new byte[] { 0xFF }).ToArray());
+        }
+
         public RangeScan(ScanTerm from, ScanTerm to, string collectionName) : this(from, to)
+        {
+            _collectionName = collectionName;
+        }
+
+        public RangeScan(ScanTerm from, string collectionName) : this(from)
         {
             _collectionName = collectionName;
         }

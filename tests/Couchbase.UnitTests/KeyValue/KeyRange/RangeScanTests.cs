@@ -4,10 +4,13 @@ using Couchbase.KeyValue.RangeScan;
 using Moq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Couchbase.UnitTests.KeyValue.KeyRange
 {
@@ -101,21 +104,26 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         }
 
         [Fact]
-        public void MissingFromTermThrowsArgumentNullException()
+        public void MissingFromTermIsMinimum()
         {
-            Assert.Throws<ArgumentNullException>(() => new RangeScan(null, ScanTerm.Inclusive(new byte[] { 0xFF })));
+            var scan = new RangeScan(null, ScanTerm.Inclusive(new byte[] { 0xFF }));
+            Assert.True(scan.From.ToString() == ScanTerm.Minimum().ToString());
+
         }
 
         [Fact]
-        public void MissingToTermThrowsArgumentNullException()
+        public void MissingToTermIsFromTermWithMaximumConcatenated()
         {
-            Assert.Throws<ArgumentNullException>(() => new RangeScan(ScanTerm.Inclusive(new byte[] { 0x00 }), null));
+            var from = ScanTerm.Inclusive(new byte[] { 0x00 });
+            var scan = new RangeScan(from);
+            Assert.True(scan.To.ToString() == ScanTerm.Exclusive(from.Id.Concat(new byte[] { 0xFF }).ToArray()).ToString());
         }
 
         [Fact]
-        public void MixingExlusiveInclusiveThrowsInvalidArgumentException()
+        public void MixingExclusiveInclusiveIsSuccessful()
         {
-            Assert.Throws<ArgumentException>(() => new RangeScan(ScanTerm.Exclusive(new byte[] { 0x00 }), ScanTerm.Inclusive(new byte[] { 0xFF })));
+            var exception = Record.Exception(() => new RangeScan(ScanTerm.Exclusive(new byte[] { 0x00 }), ScanTerm.Inclusive(new byte[] { 0xFF })));
+            Assert.Null(exception);
         }
 
         [Fact]

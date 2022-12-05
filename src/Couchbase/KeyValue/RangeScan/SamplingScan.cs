@@ -1,6 +1,7 @@
-using Couchbase.Core;
 using System;
+using Couchbase.Core;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace Couchbase.KeyValue.RangeScan
@@ -13,7 +14,7 @@ namespace Couchbase.KeyValue.RangeScan
         public SamplingScan(ulong limit)
         {
             Limit = limit;
-            Seed = 0;
+            Seed = GenerateRandomLong();
         }
         public SamplingScan(ulong limit, ulong seed)
         {
@@ -78,6 +79,15 @@ namespace Couchbase.KeyValue.RangeScan
             writer.Flush();
 
             return ms.ToArray();
+        }
+
+        private static ulong GenerateRandomLong()
+        {
+            var bytes = new byte[8];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(bytes);
+
+            return Convert.ToUInt64(bytes);
         }
     }
 }
