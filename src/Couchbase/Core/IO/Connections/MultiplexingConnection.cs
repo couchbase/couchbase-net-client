@@ -33,7 +33,7 @@ namespace Couchbase.Core.IO.Connections
         private const uint MaxDocSize = 20971520;
         private readonly Stream _stream;
         private readonly ILogger<MultiplexingConnection> _logger;
-        private readonly InFlightOperationSet _statesInFlight = new(TimeSpan.FromSeconds(75));
+        private readonly InFlightOperationSet _statesInFlight;
         private LightweightStopwatch _stopwatch;
         private int _disposed;
 
@@ -47,18 +47,21 @@ namespace Couchbase.Core.IO.Connections
         // implementation of socket writes may interleave large buffers written from different threads.
         private readonly SemaphoreSlim _writeMutex = new(1);
 
-        public MultiplexingConnection(Socket socket, ILogger<MultiplexingConnection> logger)
-            : this(new NetworkStream(socket, true), socket.LocalEndPoint!, socket.RemoteEndPoint!, logger)
+        public MultiplexingConnection(Socket socket, int maximumInFlightOperations, ILogger<MultiplexingConnection> logger)
+            : this(new NetworkStream(socket, true), maximumInFlightOperations,
+                socket.LocalEndPoint!, socket.RemoteEndPoint!, logger)
         {
         }
 
-        public MultiplexingConnection(Stream stream, EndPoint localEndPoint, EndPoint remoteEndPoint,
-            ILogger<MultiplexingConnection> logger)
+        public MultiplexingConnection(Stream stream, int maximumInFlightOperations,
+            EndPoint localEndPoint, EndPoint remoteEndPoint, ILogger<MultiplexingConnection> logger)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             LocalEndPoint = localEndPoint ?? throw new ArgumentNullException(nameof(localEndPoint));
             EndPoint = remoteEndPoint ?? throw new ArgumentNullException(nameof(remoteEndPoint));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            _statesInFlight = new InFlightOperationSet(maximumInFlightOperations, TimeSpan.FromSeconds(75));
 
             ConnectionId = ConnectionIdProvider.GetRandomLong();
             ContextId = ClientIdentifier.FormatConnectionString(ConnectionId);
@@ -82,7 +85,7 @@ namespace Couchbase.Core.IO.Connections
                     restoreFlow = true;
                 }
 
-                Task.Run(ReceiveResponsesAsync);
+                _ = ReceiveResponsesAsync();
             }
             finally
             {
@@ -137,7 +140,7 @@ namespace Couchbase.Core.IO.Connections
             }
 
             AsyncStateBase state = operation.CanStream ?
-                new AsyncStateStreaming(operation, _statesInFlight, _logger)
+                new AsyncStateStreaming(operation, _logger)
             {
                 EndPoint = EndPoint,
                 ConnectionId = ConnectionId,
@@ -149,7 +152,7 @@ namespace Couchbase.Core.IO.Connections
                 LocalEndpoint = _localHostString
             };
 
-            _statesInFlight.Add(state);
+            await _statesInFlight.AddAsync(state, cancellationToken).ConfigureAwait(false);
 
             await _writeMutex.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -226,9 +229,12 @@ namespace Couchbase.Core.IO.Connections
                                 var opaque =
                                     ByteConverter.ToUInt32(operationResponse.Memory.Span.Slice(HeaderOffsets.Opaque),
                                         false);
-                                if (_statesInFlight.TryRemove(opaque, out var state))
+                                if (_statesInFlight.TryGet(opaque, out var stateMatch))
                                 {
-                                    state.Complete(in operationResponse);
+                                    if (stateMatch.State.Complete(in operationResponse))
+                                    {
+                                        stateMatch.Remove();
+                                    }
                                 }
                                 else
                                 {

@@ -18,7 +18,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         [Fact]
         public async Task When_Packet_Exceeds_MaxDocSize_ThrowValueTooLargeException()
         {
-            var conn = new MultiplexingConnection(new MemoryStream(), new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+            var conn = new MultiplexingConnection(new MemoryStream(), 8, new IPEndPoint(0, 0), new IPEndPoint(0, 0),
                 new Logger<MultiplexingConnection>(new LoggerFactory()));
 
             var json = JsonConvert.SerializeObject(new string[1024 * 6145]);

@@ -20,7 +20,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         [Fact]
         public async Task When_Packet_Exceeds_MaxDocSize_ThrowValueTooLargeException()
         {
-            var conn = new SslConnection(new SslStream(new MemoryStream()), new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+            var conn = new SslConnection(new SslStream(new MemoryStream()), 8, new IPEndPoint(0, 0), new IPEndPoint(0, 0),
                 new Logger<SslConnection>(new LoggerFactory()),
                 new Logger<MultiplexingConnection>(new LoggerFactory()));
 
@@ -34,7 +34,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections
         [Fact]
         public void WhenSubscribedCanRemove()
         {
-            var conn = new MultiplexingConnection(new SslStream(new MemoryStream()), new IPEndPoint(0, 0), new IPEndPoint(0, 0),
+            var conn = new MultiplexingConnection(new SslStream(new MemoryStream()), 8, new IPEndPoint(0, 0), new IPEndPoint(0, 0),
                 new Logger<MultiplexingConnection>(new LoggerFactory()));
 
             var rangeScanOp = new RangeScanContinue();

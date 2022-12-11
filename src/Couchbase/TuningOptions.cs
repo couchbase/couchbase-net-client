@@ -25,6 +25,19 @@ namespace Couchbase
         /// </summary>
         [InterfaceStability(Level.Volatile)]
         public int MaximumRetainedOperationBuilders { get; set; } = Environment.ProcessorCount * 4;
+
+        /// <summary>
+        /// Maximum number of operations which may be sent and still awaiting a response from the server
+        /// per connection. This value may need tuning on high latency connections or based on average
+        /// operation response size. Defaults to 8 operations per connection.
+        /// </summary>
+        /// <remarks>
+        /// Note that this is not directly limiting the total number of in-flight operations, each bucket
+        /// and each node gets a dedicated pool of connections that scale based on the minimum and
+        /// maximum pool size. This limit is per connection.
+        /// </remarks>
+        [InterfaceStability(Level.Volatile)]
+        public int MaximumInFlightOperationsPerConnection { get; set; } = 8;
     }
 }
 

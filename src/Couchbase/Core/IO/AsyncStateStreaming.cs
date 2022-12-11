@@ -1,28 +1,23 @@
 using System;
-using System.Buffers;
-using System.ComponentModel;
-using System.Data;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Utils;
 using Couchbase.Core.IO.Connections;
-using System.IO;
 using Microsoft.Extensions.Logging;
 using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
 namespace Couchbase.Core.IO
 {
-    internal class AsyncStateStreaming : AsyncStateBase
+    internal sealed class AsyncStateStreaming : AsyncStateBase
     {
-        InFlightOperationSet _statesInFlight;
-        private ILogger<MultiplexingConnection> _logger;
-        public AsyncStateStreaming(IOperation operation, InFlightOperationSet statesInFlight, ILogger<MultiplexingConnection> logger) : base(operation)
+        private readonly ILogger<MultiplexingConnection> _logger;
+
+        public AsyncStateStreaming(IOperation operation, ILogger<MultiplexingConnection> logger) : base(operation)
         {
             _logger = logger;
-            _statesInFlight = statesInFlight;
         }
 
-        public override void Complete(in SlicedMemoryOwner<byte> response)
+        public override bool Complete(in SlicedMemoryOwner<byte> response)
         {
             var status = (ResponseStatus)ByteConverter.ToInt16(response.Memory.Span.Slice(HeaderOffsets.Status), true);
             var observer = (RangeScanContinue)Operation;
@@ -35,8 +30,7 @@ namespace Couchbase.Core.IO
 
                         observer.OnNext(response);
                         observer.OnCompleted();
-                        base.Complete(response);
-                        break;
+                        return base.Complete(response);
                     }
                 case ResponseStatus.Success: //scan intermediate response
                     {
@@ -45,15 +39,13 @@ namespace Couchbase.Core.IO
 
                         //put the op back on the stack so the next response can be read
                         Operation.Reset();
-                        _statesInFlight.Add(this);
-                        break;
+                        return false;
                     }
                 case ResponseStatus.RangeScanMore:
                 {
                     observer.OnNext(response);
                     observer.OnCompleted();
-                    base.Complete(response);
-                    break;
+                    return base.Complete(response);
                 }
                 default:
                 {

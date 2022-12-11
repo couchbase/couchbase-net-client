@@ -74,14 +74,19 @@ namespace Couchbase.Core.IO
             }
         }
 
-        public virtual void Complete(in SlicedMemoryOwner<byte> response)
+        /// <summary>
+        /// Complete an operation.
+        /// </summary>
+        /// <param name="response">Operation response.</param>
+        /// <returns>True if the operation was completed. False if further responses are expected.</returns>
+        public virtual bool Complete(in SlicedMemoryOwner<byte> response)
         {
             var prevCompleted = Interlocked.Exchange(ref _isCompleted, 1);
             if (prevCompleted == 1)
             {
                 // Operation is already completed
                 response.Dispose();
-                return;
+                return true;
             }
 
             if (response.IsEmpty)
@@ -96,6 +101,7 @@ namespace Couchbase.Core.IO
             }
 
             _tcs?.TrySetResult(true);
+            return true;
         }
 
         public void Dispose()
