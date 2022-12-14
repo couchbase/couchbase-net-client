@@ -185,7 +185,7 @@ namespace Couchbase.Core.Retry
                         }
 
                         var status = await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
-                        if (status == ResponseStatus.Success)
+                        if (status == ResponseStatus.Success || status == ResponseStatus.RangeScanComplete)
                         {
                             return status;
                         }
