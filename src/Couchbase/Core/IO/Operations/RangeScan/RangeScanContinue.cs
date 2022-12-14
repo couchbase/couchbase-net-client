@@ -115,7 +115,9 @@ namespace Couchbase.Core.IO.Operations.RangeScan
                         var bodyLength = Leb128.Read(data.Slice(processed).Memory.Span);
                         var body = data.Slice(processed + bodyLength.Item2, (int)bodyLength.Item1);
 
-                        processed += (int)bodyLength.Item1 + (int)bodyLength.Item2;
+                        processed += (int)bodyLength.Item1 + (int)bodyLength.Item2 - 1;
+
+                        processed += (length - processed == 1) ? 1 : 0;
 
                         scanResult = new ScanResult(body, key, false, DateTime.UtcNow.AddTicks(expiry), seqno, cas, OpCode, Transcoder, flags);
                     }
