@@ -80,7 +80,7 @@ namespace Couchbase.Query
                     error.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
                     return new IndexExistsException(context);
 
-                if (error.Code >= 5000 && error.Code < 6000) return new InternalServerFailureException();
+                if (error.Code >= 5000 && error.Code < 6000) return new InternalServerFailureException(context);
 
                 if (error.Code == 12009)
                 {

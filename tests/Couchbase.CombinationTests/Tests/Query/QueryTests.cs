@@ -1,6 +1,7 @@
 using Couchbase.KeyValue;
 using System;
 using System.Threading.Tasks;
+using Couchbase.Core.Exceptions;
 using Xunit;
 
 namespace Couchbase.CombinationTests.Tests.Query
@@ -47,6 +48,25 @@ namespace Couchbase.CombinationTests.Tests.Query
             {
                 // for < 7.1.0, we expect an appropriate error.
                 Assert.Contains("Unrecognized parameter in request: preserve_expiry", ex.Message); ;
+            }
+        }
+        [Fact]
+        public async Task Task_InternalServerFailureException_Contains_Message()
+        {
+            await _fixture.BuildAsync();
+            var cluster = _fixture.Cluster;
+
+            try
+            {
+                var result = await cluster.QueryAsync<dynamic>("SELECT default.* FROM `default` WHERE type=$name;",
+                    parameter => { }).ConfigureAwait(false);
+                Assert.False(true, "Exception should have been thrown.");
+            }
+            catch (InternalServerFailureException e)
+            {
+                Assert.Equal(
+                    "Error evaluating filter - cause: No value for named parameter $name (near line 1, column 43). [5010]",
+                    e.Message);
             }
         }
     }
