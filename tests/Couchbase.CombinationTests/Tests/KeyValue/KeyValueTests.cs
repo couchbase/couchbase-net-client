@@ -451,6 +451,20 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             Assert.Equal(1, content?.SelectToken("counter").Value<int>());
         }
 
+        [Fact]
+        public async Task Test_LookupInAsync_DoesNot_Exists()
+        {
+            var col = await _fixture.GetDefaultCollection();
+            var doc1 = "Test_LookupInAsync_DoesNot_Exists";
+
+            await col.UpsertAsync(doc1, new { Name = doc1, Id = 1, Items = new[] { 1, 2, 3 } },
+                                    options => options.Expiry(TimeSpan.FromSeconds(1000)));
+
+            var result = await col.LookupInAsync(doc1, specs => specs.Exists("name1"));
+            Assert.False(result.Exists(0));
+        }
+
+
         private class Foo
         {
             public string Name { get; set; }

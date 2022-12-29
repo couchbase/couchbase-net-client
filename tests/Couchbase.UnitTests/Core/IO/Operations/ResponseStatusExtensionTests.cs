@@ -6,20 +6,20 @@ namespace Couchbase.UnitTests.Core.IO.Operations
     public class ResponseStatusExtensionTests
     {
         [Theory]
-        [InlineData(ResponseStatus.Success)]
-        [InlineData(ResponseStatus.RangeScanComplete)]
-        [InlineData(ResponseStatus.RangeScanMore)]
-        //[InlineData(ResponseStatus.KeyNotFound)]
-        public void TestFailureFalse(ResponseStatus status)
+        [InlineData(ResponseStatus.Success, OpCode.Get)]
+        [InlineData(ResponseStatus.RangeScanComplete, OpCode.Get)]
+        [InlineData(ResponseStatus.RangeScanMore, OpCode.Get)]
+        [InlineData(ResponseStatus.SubDocMultiPathFailure, OpCode.MultiLookup)]
+        public void TestFailureFalse(ResponseStatus status, OpCode opCode)
         {
-            Assert.False(status.Failure());
+            Assert.False(status.Failure(opCode));
         }
 
-        //[Theory]
-       // [InlineData(ResponseStatus.KeyNotFound)]
-        public void TestFailureTrue(ResponseStatus status)
+        [Theory]
+        [InlineData(ResponseStatus.KeyNotFound, OpCode.Add)]
+        public void TestFailureTrue(ResponseStatus status, OpCode opCode)
         {
-            Assert.True(status.Failure());
+            Assert.True(status.Failure(opCode));
         }
     }
 }

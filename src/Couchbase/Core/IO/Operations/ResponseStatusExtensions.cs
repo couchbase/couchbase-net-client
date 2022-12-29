@@ -7,13 +7,15 @@ namespace Couchbase.Core.IO.Operations
             status == ResponseStatus.RangeScanMore ||
             status == ResponseStatus.RangeScanComplete;
 
-        internal static bool Failure(this ResponseStatus status)
+        internal static bool Failure(this ResponseStatus status, OpCode opcode)
         {
             switch (status)
             {
                 case ResponseStatus.RangeScanComplete:
                 case ResponseStatus.RangeScanMore:
                 case ResponseStatus.Success: return false;
+                case ResponseStatus.SubDocMultiPathFailure:
+                    return opcode != OpCode.MultiLookup;
                 default:
                     return true;
             }

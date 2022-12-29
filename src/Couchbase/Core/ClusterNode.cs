@@ -538,7 +538,7 @@ namespace Couchbase.Core
 
                 Diagnostics.Metrics.MetricTracker.KeyValue.TrackResponseStatus(op.OpCode, status);
 
-                if (!status.Failure())
+                if (!status.Failure(op.OpCode))
                 {
                     LogKvOperationCompleted(op.OpCode, _redactor.SystemData(EndPoint), _redactor.UserData(op.Key), op.Opaque);
                     return status;
