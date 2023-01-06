@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Couchbase.KeyValue.RangeScan;
 
-internal record PartitionScan
+internal class PartitionScan
 {
     public PartitionScan(IOperationConfigurator operationConfigurator, BucketBase bucket, ICouchbaseCollection collection, ILogger<GetResult> getLogger, ScanOptions options, IScanType scanType, short partitionId)
     {
@@ -71,6 +71,7 @@ internal record PartitionScan
                         Uuid = _uuid.Value,
                         IdsOnly = _options.IdsOnlyValue,
                         Logger = _getLogger,
+                        TimeLimit = _options.BatchTimeLimit,
                         ItemLimit = _options.BatchItemLimit,
                         ByteLimit = _options.BatchByteLimit
                     };
@@ -96,6 +97,7 @@ internal record PartitionScan
                 Uuid = _uuid.Value,
                 IdsOnly = _options.IdsOnlyValue,
                 Logger = _getLogger,
+                TimeLimit = _options.BatchTimeLimit,
                 ItemLimit = _options.BatchItemLimit,
                 ByteLimit = _options.BatchByteLimit
             };

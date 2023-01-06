@@ -39,9 +39,11 @@ namespace Couchbase.KeyValue.RangeScan
 
         internal CancellationToken TokenValue { get; private set; }
 
-        internal uint BatchItemLimit { get; set; }
+        internal uint BatchItemLimit { get; set; } = 0;
 
-        internal uint BatchByteLimit { get; set; }
+        internal uint BatchByteLimit { get; set; } = 0;
+
+        internal uint BatchTimeLimit { get; set; } = 0;
 
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
@@ -164,6 +166,17 @@ namespace Couchbase.KeyValue.RangeScan
         public ScanOptions ByteLimit(uint limit)
         {
             BatchByteLimit = limit;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the Time Limit in milliseconds for the scan to keep returning documents. This will be applied to each stream individually.
+        /// </summary>
+        /// <param name="limit"></param>
+        /// <returns>A <see cref="ScanOptions"/> instance for chaining.</returns>
+        public ScanOptions TimeLimit(uint limit)
+        {
+            BatchTimeLimit = limit;
             return this;
         }
 
