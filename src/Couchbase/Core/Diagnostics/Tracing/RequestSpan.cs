@@ -24,6 +24,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
         private readonly IRequestTracer _tracer;
         private readonly Activity _activity;
         private readonly IRequestSpan? _parentSpan;
+        private volatile bool _disposed;
 
         public RequestSpan(IRequestTracer tracer, Activity activity, IRequestSpan? parentSpan = null)
         {
@@ -99,6 +100,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// <inheritdoc />
         public void End()
         {
+            if (_disposed) return;//ensure this is only called once
             if (_parentSpan == null)
             {
                 // This is the outer span
@@ -140,6 +142,8 @@ namespace Couchbase.Core.Diagnostics.Tracing
                         Duration = _activity.Duration.ToMicroseconds();
                         break;
                 }
+
+                _disposed = true;
             }
 
             //This needs to be improved as the parent activity is null for some reason along this code path.
@@ -166,7 +170,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// <inheritdoc />
         public void Dispose()
         {
-            End();
+            End();//disposed logic is forwarded to this method
         }
     }
 }
