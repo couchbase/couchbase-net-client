@@ -21,7 +21,7 @@ namespace Couchbase.KeyValue
     {
         private static readonly ReadOnlyCollection<string> EmptyProjectList = new(Array.Empty<string>());
         internal static GetOptions Default { get; }
-        public static readonly GetOptionsReadOnly DefaultReadOnly;
+        public static readonly ReadOnly DefaultReadOnly;
 
         static GetOptions()
         {
@@ -148,22 +148,22 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public GetOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out bool includeExpiry, out ReadOnlyCollection<string> projectList, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new GetOptionsReadOnly(includeExpiry, projectList, timeout, token, transcoder, timeout, retryStrategy, requestSpan);
+            return new ReadOnly(includeExpiry, projectList, timeout, token, transcoder, timeout, retryStrategy, requestSpan);
         }
-    }
 
-    public record GetOptionsReadOnly(
-        bool IncludeExpiry,
-        ReadOnlyCollection<string> ProjectList,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        ITypeTranscoder? Transcoder,
-        TimeSpan? TimeSpan,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
+        public record ReadOnly(
+            bool IncludeExpiry,
+            ReadOnlyCollection<string> ProjectList,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder,
+            TimeSpan? TimeSpan,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
+    }
 
     #endregion
 
@@ -174,7 +174,7 @@ namespace Couchbase.KeyValue
     /// </summary>
     public class GetAllReplicasOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        public static readonly GetAllReplicasOptionsReadOnly DefaultReadOnly = new GetAllReplicasOptions().AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = new GetAllReplicasOptions().AsReadOnly();
         TimeSpan? ITimeoutOptions.Timeout => default;
 
         internal CancellationToken TokenValue { get; private set; }
@@ -259,18 +259,19 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public GetAllReplicasOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new GetAllReplicasOptionsReadOnly(token, transcoder, retryStrategy, requestSpan);
+            return new ReadOnly(token, transcoder, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record GetAllReplicasOptionsReadOnly(
-        CancellationToken Token,
-        ITypeTranscoder? Transcoder,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region GetAllReplicaOptions
@@ -280,7 +281,7 @@ namespace Couchbase.KeyValue
     /// </summary>
     public class GetAnyReplicaOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        public static readonly GetAnyReplicaOptionsReadonly DefaultReadOnly = new GetAnyReplicaOptions().AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = new GetAnyReplicaOptions().AsReadOnly();
         TimeSpan? ITimeoutOptions.Timeout => default;
 
         internal ITypeTranscoder? TranscoderValue { get; private set; }
@@ -360,18 +361,19 @@ namespace Couchbase.KeyValue
             token = TokenValue;
         }
 
-        public GetAnyReplicaOptionsReadonly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out CancellationToken token);
-            return new GetAnyReplicaOptionsReadonly(transcoder, retryStrategy, requestSpan, token);
+            return new ReadOnly(transcoder, retryStrategy, requestSpan, token);
         }
+
+        public record ReadOnly(
+            ITypeTranscoder? Transcoder,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan,
+            CancellationToken Token);
     }
 
-    public record GetAnyReplicaOptionsReadonly(
-        ITypeTranscoder? Transcoder,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan,
-        CancellationToken Token);
     #endregion
 
     #region Exists Options
@@ -382,7 +384,7 @@ namespace Couchbase.KeyValue
     public class ExistsOptions : ITimeoutOptions
     {
         internal static ExistsOptions Default { get; } = new();
-        public static readonly ExistsOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -450,25 +452,26 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public ExistsOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new ExistsOptionsReadOnly(timeout, token, retryStrategy, requestSpan);
+            return new ReadOnly(timeout, token, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record ExistsOptionsReadOnly(
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region Upsert Options
 
     public class UpsertOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        public static readonly UpsertOptionsReadOnly DefaultReadOnly = new UpsertOptions().AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = new UpsertOptions().AsReadOnly();
 
         internal static UpsertOptions Default { get; } = new();
 
@@ -621,24 +624,24 @@ namespace Couchbase.KeyValue
             transcoder = TranscoderValue;
         }
 
-        public UpsertOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan expiry, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder);
-            return new UpsertOptionsReadOnly(expiry, replicateTo, persistTo, durabilityLevel, retryStrategy, requestSpan, preserveTtl, timeout, token, transcoder);
+            return new ReadOnly(expiry, replicateTo, persistTo, durabilityLevel, retryStrategy, requestSpan, preserveTtl, timeout, token, transcoder);
         }
-    }
 
-    public record UpsertOptionsReadOnly(
-        TimeSpan Expiry,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan,
-        bool PreserveTtl,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        ITypeTranscoder? Transcoder);
+        public record ReadOnly(
+            TimeSpan Expiry,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan,
+            bool PreserveTtl,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder);
+    }
 
     #endregion
 
@@ -646,7 +649,7 @@ namespace Couchbase.KeyValue
 
     public class InsertOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
-        public static readonly InsertOptionsReadOnly DefaultReadOnly = new InsertOptions().AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = new InsertOptions().AsReadOnly();
 
         internal static InsertOptions Default { get; } = new();
 
@@ -778,23 +781,23 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public InsertOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan expiry, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new InsertOptionsReadOnly(expiry, replicateTo, persistTo, durabilityLevel, timeout, token, transcoder, retryStrategy, requestSpan);
+            return new ReadOnly(expiry, replicateTo, persistTo, durabilityLevel, timeout, token, transcoder, retryStrategy, requestSpan);
         }
-    }
 
-    public record InsertOptionsReadOnly(
-        TimeSpan Expiry,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        ITypeTranscoder? Transcoder,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
+        public record ReadOnly(
+            TimeSpan Expiry,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
+    }
 
     #endregion
 
@@ -803,7 +806,7 @@ namespace Couchbase.KeyValue
     public class ReplaceOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal static ReplaceOptions Default { get; } = new();
-        public static readonly ReplaceOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan ExpiryValue { get; private set; }
 
@@ -970,25 +973,26 @@ namespace Couchbase.KeyValue
             preserveTtl = PreserveTtlValue;
         }
 
-        public ReplaceOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan expiry, out ulong cas, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategyValue, out IRequestSpan? requestSpan, out bool preserveTtl);
-            return new ReplaceOptionsReadOnly(expiry, cas, replicateTo, persistTo, durabilityLevel, timeout, token, transcoder, retryStrategyValue, requestSpan, preserveTtl);
+            return new ReadOnly(expiry, cas, replicateTo, persistTo, durabilityLevel, timeout, token, transcoder, retryStrategyValue, requestSpan, preserveTtl);
         }
+
+        public record ReadOnly(
+            TimeSpan Expiry,
+            ulong Cas,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan,
+            bool PreserveTtl);
     }
 
-    public record ReplaceOptionsReadOnly(
-        TimeSpan Expiry,
-        ulong Cas,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        ITypeTranscoder? Transcoder,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan,
-        bool PreserveTtl);
     #endregion
 
     #region Remove Options
@@ -996,7 +1000,7 @@ namespace Couchbase.KeyValue
     public class RemoveOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal static RemoveOptions Default { get; } = new();
-        public static readonly RemoveOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal ulong CasValue { get; private set; }
 
@@ -1114,22 +1118,23 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public RemoveOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out ulong cas, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new RemoveOptionsReadOnly(cas, replicateTo, persistTo, durabilityLevel, timeout, token, retryStrategy, requestSpan);
+            return new ReadOnly(cas, replicateTo, persistTo, durabilityLevel, timeout, token, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            ulong Cas,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record RemoveOptionsReadOnly(
-        ulong Cas,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region Unlock Options
@@ -1137,7 +1142,7 @@ namespace Couchbase.KeyValue
     public class UnlockOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal static UnlockOptions Default { get; } = new();
-        public static readonly UnlockOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -1205,18 +1210,19 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public UnlockOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new UnlockOptionsReadOnly(timeout, token, retryStrategy, requestSpan);
+            return new ReadOnly(timeout, token, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record UnlockOptionsReadOnly(
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region Touch Options
@@ -1224,7 +1230,7 @@ namespace Couchbase.KeyValue
     public class TouchOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal static TouchOptions Default { get; } = new();
-        public static readonly TouchOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -1292,18 +1298,20 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public TouchOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new TouchOptionsReadOnly(timeout, token, retryStrategy, requestSpan);
+            return new ReadOnly(timeout, token, retryStrategy, requestSpan);
         }
+
+
+        public record ReadOnly(
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record TouchOptionsReadOnly(
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region Increment Options
@@ -1311,7 +1319,7 @@ namespace Couchbase.KeyValue
     public class IncrementOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal static IncrementOptions Default { get; } = new();
-        public static readonly IncrementOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal ulong InitialValue { get; private set; } = 1;
 
@@ -1477,24 +1485,25 @@ namespace Couchbase.KeyValue
             expiry = ExpiryValue;
         }
 
-        public IncrementOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out ulong initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry);
-            return new IncrementOptionsReadOnly(initial, delta, replicateTo, persistTo, durabilityLevel, retryStrategy, requestSpan, timeout, token, expiry);
+            return new ReadOnly(initial, delta, replicateTo, persistTo, durabilityLevel, retryStrategy, requestSpan, timeout, token, expiry);
         }
+
+        public record ReadOnly(
+            ulong Initial,
+            ulong Delta,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            TimeSpan Expiry);
     }
 
-    public record IncrementOptionsReadOnly(
-        ulong Initial,
-        ulong Delta,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        TimeSpan Expiry);
     #endregion
 
     #region Decrement options
@@ -1502,7 +1511,7 @@ namespace Couchbase.KeyValue
     public class DecrementOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal static DecrementOptions Default { get; } = new();
-        public static readonly DecrementOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal ulong InitialValue { get; private set; } = 1;
 
@@ -1656,24 +1665,25 @@ namespace Couchbase.KeyValue
             retryStrategy = RetryStrategyValue;
         }
 
-        public DecrementOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out ulong initial, out ulong delta, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out TimeSpan expiry, out IRequestSpan? requestSpan, out IRetryStrategy? retryStrategy);
-            return new DecrementOptionsReadOnly(initial, delta, replicateTo, persistTo, durabilityLevel, timeout, token, expiry, requestSpan, retryStrategy);
+            return new ReadOnly(initial, delta, replicateTo, persistTo, durabilityLevel, timeout, token, expiry, requestSpan, retryStrategy);
         }
+
+        public record ReadOnly(
+            ulong Initial,
+            ulong Delta,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            TimeSpan Expiry,
+            IRequestSpan? RequestSpan,
+            IRetryStrategy? RetryStrategy);
     }
 
-    public record DecrementOptionsReadOnly(
-        ulong Initial,
-        ulong Delta,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        TimeSpan Expiry,
-        IRequestSpan? RequestSpan,
-        IRetryStrategy? RetryStrategy);
     #endregion
 
     #region Append Options
@@ -1681,7 +1691,7 @@ namespace Couchbase.KeyValue
     public class AppendOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal static AppendOptions Default { get; } = new();
-        public static readonly AppendOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal ulong CasValue { get; private set; }
 
@@ -1799,22 +1809,24 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public AppendOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out ulong cas, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new AppendOptionsReadOnly(cas, replicateTo, persistTo, durabilityLevel, timeout, token, retryStrategy, requestSpan);
+            return new ReadOnly(cas, replicateTo, persistTo, durabilityLevel, timeout, token, retryStrategy, requestSpan);
         }
+
+
+        public record ReadOnly(
+            ulong Cas,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record AppendOptionsReadOnly(
-        ulong Cas,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region Prepend Options
@@ -1822,7 +1834,7 @@ namespace Couchbase.KeyValue
     public class PrependOptions : IKeyValueOptions, ITimeoutOptions
     {
         internal static PrependOptions Default { get; } = new();
-        public static readonly PrependOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal ulong CasValue { get; private set; }
 
@@ -1935,22 +1947,23 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public PrependOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out ulong cas, out ReplicateTo replicateTo, out PersistTo persistTo, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new PrependOptionsReadOnly(cas, replicateTo, persistTo, durabilityLevel, timeout, token, retryStrategy, requestSpan);
+            return new ReadOnly(cas, replicateTo, persistTo, durabilityLevel, timeout, token, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            ulong Cas,
+            ReplicateTo ReplicateTo,
+            PersistTo PersistTo,
+            DurabilityLevel DurabilityLevel,
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record PrependOptionsReadOnly(
-        ulong Cas,
-        ReplicateTo ReplicateTo,
-        PersistTo PersistTo,
-        DurabilityLevel DurabilityLevel,
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region GetAndLock Options
@@ -1958,7 +1971,7 @@ namespace Couchbase.KeyValue
     public class GetAndLockOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal static GetAndLockOptions Default { get; } = new();
-        public static readonly GetAndLockOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -2042,19 +2055,20 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public GetAndLockOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new GetAndLockOptionsReadOnly(timeout, token, transcoder, retryStrategy, requestSpan);
+            return new ReadOnly(timeout, token, transcoder, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record GetAndLockOptionsReadOnly(
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        ITypeTranscoder? Transcoder,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region GetAndTouch Options
@@ -2062,7 +2076,7 @@ namespace Couchbase.KeyValue
     public class GetAndTouchOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal static GetAndTouchOptions Default { get; } = new();
-        public static readonly GetAndTouchOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -2146,19 +2160,20 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public GetAndTouchOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new GetAndTouchOptionsReadOnly(timeout, token, transcoder, retryStrategy, requestSpan);
+            return new ReadOnly(timeout, token, transcoder, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            ITypeTranscoder? Transcoder,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record GetAndTouchOptionsReadOnly(
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        ITypeTranscoder? Transcoder,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region LookupInOptions
@@ -2166,7 +2181,7 @@ namespace Couchbase.KeyValue
     public class LookupInOptions : IKeyValueOptions, ITimeoutOptions, ITranscoderOverrideOptions
     {
         internal static LookupInOptions Default { get; } = new();
-        public static readonly LookupInOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
@@ -2289,22 +2304,23 @@ namespace Couchbase.KeyValue
             requestSpan = RequestSpanValue;
         }
 
-        public LookupInOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan? timeout, out CancellationToken token, out bool expiry, out ITypeSerializer? serializer, out ITypeTranscoder? transcoder, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new LookupInOptionsReadOnly(timeout, token, expiry, serializer, transcoder, accessDeleted, retryStrategy, requestSpan);
+            return new ReadOnly(timeout, token, expiry, serializer, transcoder, accessDeleted, retryStrategy, requestSpan);
         }
+
+        public record ReadOnly(
+            TimeSpan? Timeout,
+            CancellationToken Token,
+            bool Expiry,
+            ITypeSerializer? Serializer,
+            ITypeTranscoder? Transcoder,
+            bool AccessDeleted,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 
-    public record LookupInOptionsReadOnly(
-        TimeSpan? Timeout,
-        CancellationToken Token,
-        bool Expiry,
-        ITypeSerializer? Serializer,
-        ITypeTranscoder? Transcoder,
-        bool AccessDeleted,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan);
     #endregion
 
     #region MutateInOptions
@@ -2312,7 +2328,7 @@ namespace Couchbase.KeyValue
     public class MutateInOptions : ITranscoderOverrideOptions, IKeyValueOptions, ITimeoutOptions
     {
         internal static MutateInOptions Default { get; } = new();
-        public static readonly MutateInOptionsReadOnly DefaultReadOnly = Default.AsReadOnly();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
 
         internal TimeSpan ExpiryValue { get; private set; }
 
@@ -2532,28 +2548,29 @@ namespace Couchbase.KeyValue
             transcoder = TranscoderValue;
         }
 
-        public MutateInOptionsReadOnly AsReadOnly()
+        public ReadOnly AsReadOnly()
         {
             this.Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder);
-            return new MutateInOptionsReadOnly(expiry, storeSemantics, cas, durability, durabilityLevel, timeout, token, serializer, createAsDeleted, accessDeleted, retryStrategy, requestSpan, preserveTtl, transcoder);
+            return new ReadOnly(expiry, storeSemantics, cas, durability, durabilityLevel, timeout, token, serializer, createAsDeleted, accessDeleted, retryStrategy, requestSpan, preserveTtl, transcoder);
         }
+
+        public record ReadOnly(
+            TimeSpan Expiry,
+            StoreSemantics StoreSemantics,
+            ulong Cas,
+            (PersistTo, ReplicateTo) Durability,
+            DurabilityLevel DurabilityLevel,
+            TimeSpan Timeout,
+            CancellationToken Token,
+            ITypeSerializer? Serializer,
+            bool CreateAsDeleted,
+            bool AccessDeleted,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan,
+            bool PreserveTtl,
+            ITypeTranscoder? Transcoder);
     }
 
-    public record MutateInOptionsReadOnly(
-        TimeSpan Expiry,
-        StoreSemantics StoreSemantics,
-        ulong Cas,
-        (PersistTo, ReplicateTo) Durability,
-        DurabilityLevel DurabilityLevel,
-        TimeSpan Timeout,
-        CancellationToken Token,
-        ITypeSerializer? Serializer,
-        bool CreateAsDeleted,
-        bool AccessDeleted,
-        IRetryStrategy? RetryStrategy,
-        IRequestSpan? RequestSpan,
-        bool PreserveTtl,
-        ITypeTranscoder? Transcoder);
     #endregion
 
     #region MutateIn Options
