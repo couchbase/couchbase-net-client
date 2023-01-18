@@ -39,9 +39,9 @@ namespace Couchbase.KeyValue.RangeScan
 
         internal CancellationToken TokenValue { get; private set; }
 
-        internal uint BatchItemLimit { get; set; } = 50;
+        internal uint BatchItemLimit { get; set; }
 
-        internal uint BatchByteLimit { get; set; } = 15_000;
+        internal uint BatchByteLimit { get; set; }
 
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 

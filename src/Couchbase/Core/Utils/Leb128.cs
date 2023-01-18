@@ -38,7 +38,7 @@ namespace Couchbase.Core.Utils
             }
         }
 
-        public static (long, short) Read(ReadOnlySpan<byte> bytes)
+        public static (long Value, short Length) Read(ReadOnlySpan<byte> bytes)
         {
             long result = 0;
             long current;

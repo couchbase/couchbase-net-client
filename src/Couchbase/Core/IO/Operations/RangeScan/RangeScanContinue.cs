@@ -1,17 +1,19 @@
 using Couchbase.Utils;
 using System;
 using Couchbase.Core.IO.Converters;
-using System.Threading.Tasks.Dataflow;
 using Couchbase.KeyValue.RangeScan;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Channels;
 using Couchbase.Core.Utils;
+using Couchbase.KeyValue;
+using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.IO.Operations.RangeScan
 {
-    internal class RangeScanContinue : OperationBase<SlicedMemoryOwner<byte>>, IObserver<AsyncStateStreaming>
+    internal class RangeScanContinue : OperationBase<IDictionary<string, IScanResult>>, IObserver<SlicedMemoryOwner<byte>>
     {
+        //To hold the intermediate responses
+        private List<SlicedMemoryOwner<byte>> _responses = new();
+
         /// <summary>
         /// Maximum key/document count to return (when 0 there is no limit)
         /// </summary>
@@ -27,13 +29,17 @@ namespace Couchbase.Core.IO.Operations.RangeScan
         /// </summary>
         public uint ByteLimit { get; set; } = 0;
 
+        public SlicedMemoryOwner<byte>  Uuid { private get; set; }
+
         public override OpCode OpCode => OpCode.RangeScanContinue;
 
         public override bool RequiresVBucketId => false;
 
         public override bool CanStream => true;
 
+        public bool IdsOnly { get; set; }
 
+        public ILogger<GetResult> Logger { get;set; }
 
         protected override void WriteKey(OperationBuilder builder)
         {
@@ -47,13 +53,17 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         protected override void WriteExtras(OperationBuilder builder)
         {
-            //Todo: implement ByteBatchLimit and ItemLimit from options
             Span<byte> extras = stackalloc byte[28];
-            Content.Memory.Span.CopyTo(extras);
+            Uuid.Memory.Span.CopyTo(extras);
             ByteConverter.FromUInt32(ItemLimit, extras.Slice(16)); //write item limit 16
             ByteConverter.FromUInt32(TimeLimit, extras.Slice(20)); //write time limit 20
             ByteConverter.FromUInt32(ByteLimit, extras.Slice(24)); //write byte limit 24
             builder.Write(extras);
+        }
+
+        protected override void ReadExtras(ReadOnlySpan<byte> buffer)
+        {
+            //not needed?
         }
 
         public override void Reset()
@@ -67,7 +77,14 @@ namespace Couchbase.Core.IO.Operations.RangeScan
 
         public void OnCompleted()
         {
-            _channel.Writer.Complete();
+            if (IdsOnly)
+            {
+                ReadKeys();
+            }
+            else
+            {
+                ReadKeysAndBody();
+            }
         }
 
         public void OnError(Exception error)
@@ -75,103 +92,101 @@ namespace Couchbase.Core.IO.Operations.RangeScan
             throw new NotImplementedException();
         }
 
-        public void OnNext(AsyncStateStreaming value)
+        public void OnNext(SlicedMemoryOwner<byte> value)
         {
-            var data = value._response.Slice(Header.BodyOffset + 3);
-            value._response = SlicedMemoryOwner<byte>.Empty;
-
-            _channel.Writer.WriteAsync(data).ConfigureAwait(false);
+            _responses.Add(value);
         }
 
-        private Channel<SlicedMemoryOwner<byte>> _channel = Channel.CreateUnbounded<SlicedMemoryOwner<byte>>();
-
-        public async IAsyncEnumerable<ScanResult> Read()
+        private void ReadKeys()
         {
-            while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
+            Content = new Dictionary<string, IScanResult>();
+            foreach (var response in _responses)
             {
-                var data = await _channel.Reader.ReadAsync().ConfigureAwait(false);
+                //First we need to process the MCBP header
+                var header = response.Memory.Span.CreateHeader();
+                var opaque = ByteConverter.ToUInt32(response.Memory.Span.Slice(HeaderOffsets.Opaque), false);
+                var length = header.TotalLength;
+                var processed = header.BodyOffset;
 
-                var length = data.Memory.Length;
-                var processed = 0;
-
+                //Then we process each document in the body
                 while (processed < length)
                 {
-                    ScanResult scanResult = null;
+                    IScanResult scanResult = null;
+
                     try
                     {
-                        var header = data.Slice(processed, 25);
-                        var flags = Flags.Read(header.Slice(0, 4).Memory.Span);
-                        var expiry = ByteConverter.ToInt32(header.Slice(4, 4).Memory.Span, true);
-                        var seqno = ByteConverter.ToInt32(header.Slice(8,8).Memory.Span, true);
-                        var cas = ByteConverter.ToUInt64(header.Slice(16, 8).Memory.Span, true);
+                        var keyLength = Leb128.Read(response.Slice(processed).Memory.Span);
+                        var key = ByteConverter.ToString(response
+                            .Slice(processed += keyLength.Length, (int)keyLength.Value).Memory.Span);
+                        processed += (int)keyLength.Item1;
 
-                        processed += header.Memory.Length + 1; //+1 Comes from the DataType Byte which is not used by the .NET client since compression is not used.
-
-                        var keyLength = Leb128.Read(data.Slice(processed).Memory.Span);
-                        var key = ByteConverter.ToString(data.Slice(processed + keyLength.Item2, (int)keyLength.Item1).Memory.Span);
-
-                        processed += (int)keyLength.Item2 + (int)keyLength.Item1;
-
-                        var bodyLength = Leb128.Read(data.Slice(processed).Memory.Span);
-                        var body = data.Slice(processed + bodyLength.Item2, (int)bodyLength.Item1);
-
-                        processed += (int)bodyLength.Item1 + (int)bodyLength.Item2 - 1;
-
-                        processed += (length - processed == 1) ? 1 : 0;
-
-                        scanResult = new ScanResult(body, key, false, DateTime.UtcNow.AddTicks(expiry), seqno, cas, OpCode, Transcoder, flags);
+                        scanResult = new ScanResult(SlicedMemoryOwner<byte>.Empty, key, true, DateTime.UtcNow, 0, 0,
+                            OpCode, Transcoder);
                     }
                     catch(Exception e)
                     {
                         var ex = e.ToString();
-                        yield break;
+                        Logger.LogError(ex);
                     }
-                    yield return scanResult;
+
+                    if (scanResult != null)
+                    {
+                        Content.Add(scanResult.Id, scanResult);
+                    }
                 }
             }
         }
 
-        public async IAsyncEnumerable<ScanResult> ReadKeys()
+        private void ReadKeysAndBody()
         {
-            while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
+            Content = new Dictionary<string, IScanResult>();
+            foreach (var response in _responses)
             {
-                var data = await _channel.Reader.ReadAsync().ConfigureAwait(false);
-                var length = data.Memory.Length;
-                var processed = 0;
+                //First we need to process the MCBP header
+                var header = response.Memory.Span.CreateHeader();
+                var opaque = ByteConverter.ToUInt32(response.Memory.Span.Slice(HeaderOffsets.Opaque), false);
 
+                //HeaderOffsets.ExtrasLength
+                var length = header.TotalLength;
+                var processed = header.BodyOffset; //MCBP header (24) + Extras (4) + FlexibleFramingExtras (3)
+
+                //Then we process each document in the body
                 while (processed < length)
                 {
-                    ScanResult scanResult = null;
+                    IScanResult scanResult = null;
+
                     try
                     {
-                        (long, short) keyLength = Leb128.Read(data.Slice(processed).Memory.Span);
-                        var key = ByteConverter.ToString(data.Slice(processed += keyLength.Item2, (int)keyLength.Item1).Memory.Span);
-                        processed += (int)keyLength.Item1;
+                        var flags = ByteConverter.ToInt32(response.Slice(processed, 4).Memory.Span);
+                        var expiry = ByteConverter.ToUInt32(response.Slice(processed += 4, 4).Memory.Span);
+                        var seqno = ByteConverter.ToUInt32(response.Slice(processed += 4, 8).Memory.Span);
+                        var cas = ByteConverter.ToUInt32(response.Slice(processed += 8, 8).Memory.Span);
+                        var dataType = response.Slice(processed += 8, 1).Memory.Span;
 
-                        scanResult = new ScanResult(SlicedMemoryOwner<byte>.Empty, key, true, DateTime.UtcNow, 0, 0, OpCode, Transcoder);
+                        var keyLength = Leb128.Read(response.Slice(processed += 1).Memory.Span);
+                        var key = ByteConverter.ToString(response.Slice(processed += keyLength.Length, (int)keyLength.Value).Memory.Span);
+
+                        Logger.LogDebug("Range Scan processing item {Content.Count} for opaque {opaque} for key {key}", Content.Count, Opaque, Key);//TODO: remove this later
+
+                        var bodyLength = Leb128.Read(response.Slice(processed += (int)keyLength.Value).Memory.Span);
+                        SlicedMemoryOwner<byte> body = response.Slice(processed += bodyLength.Length, (int)bodyLength.Value);
+                        processed += (int)bodyLength.Value;
+
+                        scanResult = new ScanResult(body, key, false, DateTime.UtcNow.AddTicks(expiry), (int)seqno, cas,
+                            OpCode, Transcoder, null);
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         var ex = e.ToString();
-                        yield break;
+                        Logger.LogError(ex);
                     }
-                    yield return scanResult;
+
+                    if (scanResult != null)
+                    {
+                        Content.Add(scanResult.Id, scanResult);
+                    }
                 }
             }
         }
-    }
-
-    internal class RangeScanState
-    {
-        public RangeScanState(uint opaque)
-        {
-            Opaque = opaque;
-        }
-
-        public uint Opaque { get; private set; }
-
-        public ResponseStatus Status { get; set; }
-
-        public SlicedMemoryOwner<byte> Response { get; set; }
     }
 }

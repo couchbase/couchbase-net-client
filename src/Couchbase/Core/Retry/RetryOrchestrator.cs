@@ -185,7 +185,7 @@ namespace Couchbase.Core.Retry
                         }
 
                         var status = await bucket.SendAsync(operation, tokenPair).ConfigureAwait(false);
-                        if (status == ResponseStatus.Success || status == ResponseStatus.RangeScanComplete)
+                        if (status == ResponseStatus.Success || status == ResponseStatus.RangeScanComplete || status == ResponseStatus.RangeScanMore)
                         {
                             return status;
                         }
@@ -202,6 +202,12 @@ namespace Couchbase.Core.Retry
                         {
                             return status;
                         }
+
+                        if (status == ResponseStatus.KeyNotFound && operation.OpCode == OpCode.RangeScanCreate)
+                        {
+                            return status;
+                        }
+
                         if (status.IsRetriable(operation))
                         {
                             if (status == ResponseStatus.UnknownScope || status == ResponseStatus.UnknownCollection)

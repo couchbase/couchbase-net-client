@@ -26,7 +26,7 @@ using IRequestSpan = Couchbase.Core.Diagnostics.Tracing.IRequestSpan;
 
 namespace Couchbase.Core.IO.Connections
 {
-    internal class MultiplexingConnection : IConnection, IObservable<RangeScanState>
+    internal class MultiplexingConnection : IConnection
     {
         private static readonly ConcurrentBag<WeakReference<MultiplexingConnection>> _connections = new();
 
@@ -139,7 +139,7 @@ namespace Couchbase.Core.IO.Connections
             }
 
             AsyncStateBase state = operation.CanStream ?
-                new AsyncStateStreaming(operation, _statesInFlight)
+                new AsyncStateStreaming(operation, _statesInFlight, _logger)
             {
                 EndPoint = EndPoint,
                 ConnectionId = ConnectionId,
@@ -413,36 +413,6 @@ namespace Couchbase.Core.IO.Connections
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemoteHostname, _remoteHostString);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.RemotePort, _remotePortString);
                 span.SetAttribute(InnerRequestSpans.DispatchSpan.Attributes.LocalId, ContextId);
-            }
-        }
-
-        public IDisposable Subscribe(IObserver<RangeScanState> observer)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    internal class Unsubscriber : IDisposable
-    {
-        private ConcurrentDictionary<uint, IObserver<RangeScanState>> _observers;
-        private IObserver<RangeScanState> _observer;
-
-        public Unsubscriber(ConcurrentDictionary<uint, IObserver<RangeScanState>> observers,
-                            IObserver<RangeScanState> observer)
-        {
-            this._observers = observers;
-            this._observer = observer;
-        }
-
-        public void Dispose()
-        {
-            if (!(_observer == null))
-            {
-                var state = _observer as RangeScanState;
-                if (_observers.TryRemove(state!.Opaque, out _))
-                {
-
-                }
             }
         }
     }
