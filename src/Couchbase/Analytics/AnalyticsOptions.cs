@@ -13,8 +13,11 @@ namespace Couchbase.Analytics
     public class AnalyticsOptions
     {
         //note in a future commit this will be private and AnalyticsOptions will be sent to AnalyticsClient instead of AnalyticsRequest (legacy)
+        internal static AnalyticsOptions Default { get; } = new();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
+
         internal string? ClientContextIdValue;
-        internal Dictionary<string, object> NamedParameters  = new();
+        internal Dictionary<string, object> NamedParameters = new();
         internal List<object> PositionalParameters = new();
         internal CancellationToken Token = System.Threading.CancellationToken.None;
         internal AnalyticsScanConsistency ScanConsistencyValue = Analytics.AnalyticsScanConsistency.NotBounded;
@@ -178,9 +181,9 @@ namespace Couchbase.Analytics
             statement = CleanStatement(statement);
             var formValues = new Dictionary<string, object>
             {
-                {"statement", statement},
-                {"timeout", $"{TimeoutValue?.TotalMilliseconds}ms"},
-                {"client_context_id", ClientContextIdValue ?? Guid.NewGuid().ToString()}
+                { "statement", statement },
+                { "timeout", $"{TimeoutValue?.TotalMilliseconds}ms" },
+                { "client_context_id", ClientContextIdValue ?? Guid.NewGuid().ToString() }
             };
 
             if (!string.IsNullOrWhiteSpace(QueryContext))
@@ -213,8 +216,86 @@ namespace Couchbase.Analytics
             {
                 statement += ";";
             }
+
             return statement;
         }
+
+        public void Deconstruct(out string? clientContextIdValue,
+            out IReadOnlyDictionary<string, object> namedParameters,
+            out IReadOnlyList<object> positionalParameters,
+            out CancellationToken token,
+            out AnalyticsScanConsistency scanConsistencyValue,
+            out bool readonlyValue,
+            out int priorityValue,
+            out TimeSpan? timeoutValue,
+            out IRetryStrategy? retryStrategyValue,
+            out IRequestSpan? requestSpanValue,
+            out string? queryContext,
+            out string? bucketName,
+            out string? scopeName)
+        {
+            clientContextIdValue = ClientContextIdValue;
+            namedParameters = NamedParameters;
+            positionalParameters = PositionalParameters;
+            token = Token;
+            scanConsistencyValue = ScanConsistencyValue;
+            readonlyValue = ReadonlyValue;
+            priorityValue = PriorityValue;
+            timeoutValue = TimeoutValue;
+            retryStrategyValue = RetryStrategyValue;
+            requestSpanValue = RequestSpanValue;
+            queryContext = QueryContext;
+            bucketName = BucketName;
+            scopeName = ScopeName;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(
+                out string? clientContextIdValue,
+                out IReadOnlyDictionary<string, object> namedParameters,
+                out IReadOnlyList<object> positionalParameters,
+                out CancellationToken token,
+                out AnalyticsScanConsistency scanConsistencyValue,
+                out bool readonlyValue,
+                out int priorityValue,
+                out TimeSpan? timeoutValue,
+                out IRetryStrategy? retryStrategyValue,
+                out IRequestSpan? requestSpanValue,
+                out string? queryContext,
+                out string? bucketName,
+                out string? scopeName);
+
+            return new ReadOnly(
+                clientContextIdValue,
+                namedParameters,
+                positionalParameters,
+                token,
+                scanConsistencyValue,
+                readonlyValue,
+                priorityValue,
+                timeoutValue,
+                retryStrategyValue,
+                requestSpanValue,
+                queryContext,
+                bucketName,
+                scopeName);
+        }
+
+        public record ReadOnly(
+            string? ClientContextId,
+            IReadOnlyDictionary<string, object> NamedParameters,
+            IReadOnlyList<object> PositionalParameters,
+            CancellationToken Token,
+            AnalyticsScanConsistency ScanConsistency,
+            bool Readonly,
+            int Priority,
+            TimeSpan? Timeout,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan,
+            string? QueryContext,
+            string? BucketName,
+            string? ScopeName);
     }
 }
 

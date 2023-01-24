@@ -27,6 +27,9 @@ namespace Couchbase.Query
     /// </summary>
     public class QueryOptions
     {
+        internal static QueryOptions Default { get; } = new();
+        public static readonly ReadOnlyRecord DefaultReadOnly = Default.AsReadOnly();
+
         private readonly List<object?> _arguments = new List<object?>();
         private readonly Dictionary<string, object> _parameters = new Dictionary<string, object>();
         private readonly Dictionary<string, object> _rawParameters = new Dictionary<string, object>();
@@ -900,6 +903,183 @@ namespace Couchbase.Query
             }
 
             return request;
+        }
+
+        public void Deconstruct(out IReadOnlyList<object?> arguments,
+            out IReadOnlyDictionary<string, object> parameters,
+            out IReadOnlyDictionary<string, object> rawParameters,
+            out bool autoExecute,
+            out bool? includeMetrics,
+            out int? maxServerParallelism,
+            out int? pipelineBatch,
+            out int? pipelineCapacity,
+            out QueryPlan? preparedPayload,
+            out QueryProfile profile,
+            out bool? readOnly,
+            out int? scanCapacity,
+            out QueryScanConsistency scanConsistency,
+            // out IReadOnlyDictionary<string, Dictionary<string, ScanVectorComponent>>? scanVectors,
+            out TimeSpan? scanWait,
+            out string? statement,
+            out TimeSpan? timeOut,
+            out bool flexIndex,
+            out bool isUsed,
+            out bool preserveExpiry,
+            out string? bucketName,
+            out string? scopeName,
+            out IRequestSpan? requestSpanValue,
+            out IRetryStrategy? retryStrategyValue,
+            out CancellationToken token,
+            out Uri? lastDispatchedNode,
+            out bool isPrepared,
+            out bool isAdHoc,
+            out string? currentContextId,
+            out ITypeSerializer? serializer,
+            out string? queryContext)
+        {
+            arguments = _arguments;
+            parameters = _parameters;
+            rawParameters = _rawParameters;
+            autoExecute = _autoExecute;
+            includeMetrics = _includeMetrics;
+            maxServerParallelism = _maxServerParallelism;
+            pipelineBatch = _pipelineBatch;
+            pipelineCapacity = _pipelineCapacity;
+            preparedPayload = _preparedPayload;
+            profile = _profile;
+            readOnly = _readOnly;
+            scanCapacity = _scanCapacity;
+            scanConsistency = ConvertScanConsistency(_scanConsistency);
+            // scanVectors = _scanVectors;
+            scanWait = _scanWait;
+            statement = _statement;
+            timeOut = _timeOut;
+            flexIndex = _flexIndex;
+            isUsed = _isUsed;
+            preserveExpiry = _preserveExpiry;
+            bucketName = BucketName;
+            scopeName = ScopeName;
+            requestSpanValue = RequestSpanValue;
+            retryStrategyValue = RetryStrategyValue;
+            token = Token;
+            lastDispatchedNode = LastDispatchedNode;
+            isPrepared = IsPrepared;
+            isAdHoc = IsAdHoc;
+            currentContextId = CurrentContextId;
+            serializer = Serializer;
+            queryContext = QueryContext;
+        }
+
+        public ReadOnlyRecord AsReadOnly()
+        {
+            this.Deconstruct(
+                out IReadOnlyList<object?> arguments,
+                out IReadOnlyDictionary<string, object> parameters,
+                out IReadOnlyDictionary<string, object> rawParameters,
+                out bool autoExecute,
+                out bool? includeMetrics,
+                out int? maxServerParallelism,
+                out int? pipelineBatch,
+                out int? pipelineCapacity,
+                out QueryPlan? preparedPayload,
+                out QueryProfile profile,
+                out bool? readOnly,
+                out int? scanCapacity,
+                out QueryScanConsistency scanConsistency,
+                // out IReadOnlyDictionary<string, Dictionary<string, ScanVectorComponent>>? scanVectors,
+                out TimeSpan? scanWait,
+                out string? statement,
+                out TimeSpan? timeOut,
+                out bool flexIndex,
+                out bool isUsed,
+                out bool preserveExpiry,
+                out string? bucketName,
+                out string? scopeName,
+                out IRequestSpan? requestSpanValue,
+                out IRetryStrategy? retryStrategyValue,
+                out CancellationToken token,
+                out Uri? lastDispatchedNode,
+                out bool isPrepared,
+                out bool isAdHoc,
+                out string? currentContextId,
+                out ITypeSerializer? serializer,
+                out string? queryContext);
+
+            return new ReadOnlyRecord(
+                arguments,
+                parameters,
+                rawParameters,
+                autoExecute,
+                includeMetrics,
+                maxServerParallelism,
+                pipelineBatch,
+                pipelineCapacity,
+                preparedPayload,
+                profile,
+                readOnly,
+                scanCapacity,
+                scanConsistency,
+                // scanVectors,
+                scanWait,
+                statement,
+                timeOut,
+                flexIndex,
+                isUsed,
+                preserveExpiry,
+                bucketName,
+                scopeName,
+                requestSpanValue,
+                retryStrategyValue,
+                token,
+                lastDispatchedNode,
+                isPrepared,
+                isAdHoc,
+                currentContextId,
+                serializer,
+                queryContext);
+        }
+
+        public record ReadOnlyRecord(
+            IReadOnlyList<object?> Arguments,
+            IReadOnlyDictionary<string, object> Parameters,
+            IReadOnlyDictionary<string, object> RawParameters,
+            bool AutoExecute,
+            bool? IncludeMetrics,
+            int? MaxServerParallelism,
+            int? PipelineBatch,
+            int? PipelineCapacity,
+            QueryPlan? PreparedPayload,
+            QueryProfile Profile,
+            bool? ReadOnly,
+            int? ScanCapacity,
+            QueryScanConsistency ScanConsistency,
+            // IReadOnlyDictionary<string, Dictionary<string, ScanVectorComponent>>? ScanVectors,
+            TimeSpan? ScanWait,
+            string? Statement,
+            TimeSpan? TimeOut,
+            bool FlexIndex,
+            bool IsUsed,
+            bool PreserveExpiry,
+            string? BucketName,
+            string? ScopeName,
+            IRequestSpan? RequestSpan,
+            IRetryStrategy? RetryStrategy,
+            CancellationToken Token,
+            Uri? LastDispatchedNode,
+            bool IsPrepared,
+            bool IsAdHoc,
+            string? CurrentContextId,
+            ITypeSerializer? Serializer,
+            string? QueryContext);
+
+        private static QueryScanConsistency ConvertScanConsistency(QueryScanConsistencyInternal? scanConsistency)
+        {
+            if (scanConsistency is QueryScanConsistencyInternal.AtPlus or QueryScanConsistencyInternal.RequestPlus)
+            {
+                return QueryScanConsistency.RequestPlus;
+            }
+
+            return QueryScanConsistency.NotBounded;
         }
     }
 }

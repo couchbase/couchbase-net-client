@@ -20,6 +20,9 @@ namespace Couchbase.Search
     /// </summary>
     public class SearchOptions
     {
+        internal static SearchOptions Default { get; } = new();
+        public static readonly ReadOnly DefaultReadOnly = Default.AsReadOnly();
+
         private int? _limit;
         private int? _skip;
         private bool? _explain;
@@ -29,7 +32,7 @@ namespace Couchbase.Search
         private List<ISearchFacet>? _facets;
         private SearchScanConsistency? _scanConsistency;
         private readonly JArray _sort = new();
-        internal  CancellationToken Token { get; set; }
+        internal CancellationToken Token { get; set; }
         internal TimeSpan? TimeoutValue { get; set; }
         private readonly Dictionary<string, object> _rawParameters = new();
         private Dictionary<string, Dictionary<string, List<object>>> _scanVectors = new();
@@ -396,6 +399,118 @@ namespace Couchbase.Search
         {
             return ToJson(indexName).ToString();
         }
+
+        public void Deconstruct(out int? limit,
+            out int? skip,
+            out bool? explain,
+            out string? highLightStyle,
+            out IReadOnlyList<string> fields,
+            out IReadOnlyList<string>? highLightFields,
+            out IReadOnlyList<ISearchFacet>? facets,
+            out SearchScanConsistency? scanConsistency,
+            out JArray sort,
+            out IReadOnlyDictionary<string, object> rawParameters,
+            out IReadOnlyDictionary<string, Dictionary<string, List<object>>> scanVectors,
+            out bool disableScoring,
+            out string? scopeName,
+            out string[]? collectionNames,
+            out bool includeLocations,
+            out MutationState? mutationState,
+            out CancellationToken token,
+            out TimeSpan? timeoutValue,
+            out IRetryStrategy? retryStrategyValue,
+            out IRequestSpan? requestSpanValue)
+        {
+            limit = _limit;
+            skip = _skip;
+            explain = _explain;
+            highLightStyle = _highLightStyle;
+            fields = _fields;
+            highLightFields = _highLightFields;
+            facets = _facets;
+            scanConsistency = _scanConsistency;
+            sort = _sort;
+            rawParameters = _rawParameters;
+            scanVectors = _scanVectors;
+            disableScoring = _disableScoring;
+            scopeName = _scopeName;
+            collectionNames = _collectionNames;
+            includeLocations = _includeLocations;
+            mutationState = _mutationState;
+            token = Token;
+            timeoutValue = TimeoutValue;
+            retryStrategyValue = RetryStrategyValue;
+            requestSpanValue = RequestSpanValue;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(
+                out int? limit,
+                out int? skip,
+                out bool? explain,
+                out string? highLightStyle,
+                out IReadOnlyList<string> fields,
+                out IReadOnlyList<string>? highLightFields,
+                out IReadOnlyList<ISearchFacet>? facets,
+                out SearchScanConsistency? scanConsistency,
+                out JArray sort,
+                out IReadOnlyDictionary<string, object> rawParameters,
+                out IReadOnlyDictionary<string, Dictionary<string, List<object>>> scanVectors,
+                out bool disableScoring,
+                out string? scopeName,
+                out string[]? collectionNames,
+                out bool includeLocations,
+                out MutationState? mutationState,
+                out CancellationToken token,
+                out TimeSpan? timeoutValue,
+                out IRetryStrategy? retryStrategyValue,
+                out IRequestSpan? requestSpanValue);
+
+            return new ReadOnly(
+                limit,
+                skip,
+                explain,
+                highLightStyle,
+                fields,
+                highLightFields,
+                facets,
+                scanConsistency,
+                sort,
+                rawParameters,
+                scanVectors,
+                disableScoring,
+                scopeName,
+                collectionNames,
+                includeLocations,
+                mutationState,
+                token,
+                timeoutValue,
+                retryStrategyValue,
+                requestSpanValue);
+        }
+
+        public record ReadOnly(
+            int? Limit,
+            int? Skip,
+            bool? Explain,
+            string? HighLightStyle,
+            IReadOnlyList<string> Fields,
+            IReadOnlyList<string>? HighLightFields,
+            IReadOnlyList<ISearchFacet>? Facets,
+            SearchScanConsistency? ScanConsistency,
+            JArray Sort,
+            IReadOnlyDictionary<string, object> RawParameters,
+            IReadOnlyDictionary<string, Dictionary<string, List<object>>> ScanVectors,
+            bool DisableScoring,
+            string? ScopeName,
+            string[]? CollectionNames,
+            bool IncludeLocations,
+            MutationState? MutationState,
+            CancellationToken Token,
+            TimeSpan? TimeoutValue,
+            IRetryStrategy? RetryStrategy,
+            IRequestSpan? RequestSpan);
     }
 }
 
