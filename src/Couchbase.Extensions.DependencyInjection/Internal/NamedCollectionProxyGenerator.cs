@@ -1,8 +1,9 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
@@ -16,24 +17,26 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         private readonly ProxyModuleBuilder _proxyModuleBuilder;
 
         private readonly
-            Dictionary<(Type collectionProviderType, Type bucketProviderType, string scopeName, string collectionName),
-                Type> _proxyTypeCache = new();
+            ConcurrentDictionary<(Type collectionProviderType, Type bucketProviderType, string scopeName, string collectionName),
+                Lazy<Type>> _proxyTypeCache = new();
 
         public NamedCollectionProxyGenerator(ProxyModuleBuilder proxyModuleBuilder)
         {
             _proxyModuleBuilder = proxyModuleBuilder ?? throw new ArgumentNullException(nameof(proxyModuleBuilder));
         }
 
-        public Type GetProxy(Type collectionProviderType, Type bucketProviderType, string scopeName, string collectionName)
-        {
-            if (!_proxyTypeCache.TryGetValue((collectionProviderType, bucketProviderType, scopeName, collectionName), out var proxyType))
-            {
-                proxyType = CreateProxyType(collectionProviderType, bucketProviderType, scopeName, collectionName);
-                _proxyTypeCache.Add((collectionProviderType, bucketProviderType, scopeName, collectionName), proxyType);
-            }
+        public Type GetProxy(Type collectionProviderType, Type bucketProviderType, string scopeName, string collectionName) =>
+            _proxyTypeCache.GetOrAdd((collectionProviderType, bucketProviderType, scopeName, collectionName),
+                args =>
+                {
+                    // This factory method may be called more than once if two callers hit GetOrAdd simultaneously
+                    // with the same key. So we further wrap in a Lazy<T> to ensure we don't try to create the proxy twice.
 
-            return proxyType;
-        }
+                    return new Lazy<Type>(
+                        () => CreateProxyType(args.collectionProviderType, args.bucketProviderType, args.scopeName,
+                            args.collectionName),
+                        LazyThreadSafetyMode.ExecutionAndPublication);
+                }).Value;
 
 #if NET5_0_OR_GREATER
         // Make our use of reflection safe for trimming

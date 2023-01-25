@@ -1,8 +1,9 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading;
 
 namespace Couchbase.Extensions.DependencyInjection.Internal
 {
@@ -14,23 +15,22 @@ namespace Couchbase.Extensions.DependencyInjection.Internal
         public static NamedBucketProxyGenerator Instance { get; } = new(ProxyModuleBuilder.Instance);
 
         private readonly ProxyModuleBuilder _proxyModuleBuilder;
-        private readonly Dictionary<(Type type, string bucketName), Type> _proxyTypeCache = new();
+        private readonly ConcurrentDictionary<(Type type, string bucketName), Lazy<Type>> _proxyTypeCache = new();
 
         public NamedBucketProxyGenerator(ProxyModuleBuilder proxyModuleBuilder)
         {
             _proxyModuleBuilder = proxyModuleBuilder ?? throw new ArgumentNullException(nameof(proxyModuleBuilder));
         }
 
-        public Type GetProxy(Type bucketProviderInterface, string bucketName)
-        {
-            if (!_proxyTypeCache.TryGetValue((bucketProviderInterface, bucketName), out var proxyType))
+        public Type GetProxy(Type bucketProviderInterface, string bucketName) =>
+            _proxyTypeCache.GetOrAdd((bucketProviderInterface, bucketName), args =>
             {
-                proxyType = CreateProxyType(bucketProviderInterface, bucketName);
-                _proxyTypeCache.Add((bucketProviderInterface, bucketName), proxyType);
-            }
+                // This factory method may be called more than once if two callers hit GetOrAdd simultaneously
+                // with the same key. So we further wrap in a Lazy<T> to ensure we don't try to create the proxy twice.
 
-            return proxyType;
-        }
+                return new Lazy<Type>(() => CreateProxyType(args.type, args.bucketName),
+                    LazyThreadSafetyMode.ExecutionAndPublication);
+            }).Value;
 
 #if NET5_0_OR_GREATER
         // Make our use of reflection safe for trimming
