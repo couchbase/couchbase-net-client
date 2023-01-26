@@ -43,7 +43,7 @@ namespace Couchbase.Core.IO.Operations
         private bool _isOrphaned;
         private volatile string? _lastDispatchedFrom;
         private volatile string? _lastDispatchedTo;
-
+        private volatile bool _resilient;
         protected OperationBase()
         {
             Opaque = SequenceGenerator.GetNext();
@@ -669,6 +669,8 @@ namespace Couchbase.Core.IO.Operations
         public string? LastDispatchedFrom => _lastDispatchedFrom;
 
         public string? LastDispatchedTo => _lastDispatchedTo;
+
+        public bool Resilient { get => _resilient; set => _resilient = value; }
 
         #endregion
 

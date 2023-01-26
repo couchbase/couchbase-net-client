@@ -76,8 +76,19 @@ namespace Couchbase.KeyValue
 
         #region Get
 
-        /// <inheritdoc />
         public async Task<IGetResult> GetAsync(string id, GetOptions? options = null)
+        {
+            var result = await GetAsyncInternal(id, resilient: false, options: options).ConfigureAwait(false);
+            return result.Item2;
+        }
+
+        public Task<(bool, IGetResult)> TryGetAsync(string id, GetOptions? options = null)
+        {
+            return GetAsyncInternal(id, resilient: true, options: options);
+        }
+
+        /// <inheritdoc />
+        private async Task<(bool, IGetResult)> GetAsyncInternal(string id, bool resilient, GetOptions? options = null)
         {
             //sanity check for deferred bootstrapping errors
             _bucket.ThrowIfBootStrapFailed();
@@ -108,14 +119,22 @@ namespace Couchbase.KeyValue
                     Cid = Cid,
                     CName = Name,
                     SName = ScopeName,
-                    Span = rootSpan
+                    Span = rootSpan,
+                    Resilient = resilient
                 };
                 _operationConfigurator.Configure(getOp, options);
 
                 using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getOp);
                 await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
 
-                return new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
+                var status = getOp.GetResponseStatus();
+
+                if (status != ResponseStatus.Success)
+                {
+                    return (false, (IGetResult)new GetResult(SlicedMemoryOwner<byte>.Empty, getOp.Transcoder, _getLogger));
+                }
+
+                var getResult = new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
                 {
                     Id = getOp.Key,
                     Cas = getOp.Cas,
@@ -124,6 +143,9 @@ namespace Couchbase.KeyValue
                     Header = getOp.Header,
                     Opaque = getOp.Opaque
                 };
+
+
+                return (true, getResult);
             }
 
             var specs = new List<LookupInSpec>();
@@ -163,7 +185,8 @@ namespace Couchbase.KeyValue
                     specs, lookupInOptions, rootSpan)
                 .ConfigureAwait(false);
             rootSpan.WithOperationId(lookupOp);
-            return new GetResult(lookupOp.ExtractBody(), lookupOp.Transcoder, _getLogger, specs, projectList)
+
+            var result = new GetResult(lookupOp.ExtractBody(), lookupOp.Transcoder, _getLogger, specs, projectList)
             {
                 Id = lookupOp.Key,
                 Cas = lookupOp.Cas,
@@ -172,6 +195,9 @@ namespace Couchbase.KeyValue
                 Header = lookupOp.Header,
                 Opaque = lookupOp.Opaque
             };
+
+
+            return (true, result);
         }
 
         #endregion

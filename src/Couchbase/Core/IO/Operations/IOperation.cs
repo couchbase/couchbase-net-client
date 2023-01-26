@@ -23,6 +23,8 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         OpCode OpCode { get; }
 
+        public bool Resilient { get; set; }
+        
         /// <summary>
         /// Bucket name, if applicable.
         /// </summary>

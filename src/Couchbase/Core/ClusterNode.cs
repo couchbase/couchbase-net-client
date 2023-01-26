@@ -575,6 +575,14 @@ namespace Couchbase.Core
                         DispatchedTo = _remoteHostName,
                         RetryReasons = op.RetryReasons
                     };
+
+                    if (op.Resilient)
+                    {
+                        var exception = status.CreateException(ctx, op);
+                        op.TrySetException(exception);
+                        return;
+                    }
+
                     throw status.CreateException(ctx, op);
                 }
 

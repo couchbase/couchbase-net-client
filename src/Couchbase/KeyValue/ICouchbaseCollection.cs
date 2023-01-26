@@ -46,6 +46,7 @@ namespace Couchbase.KeyValue
         /// <param name="options">Optional parameters.</param>
         /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in an <see cref="IGetResult"></see> API object.</returns>
         Task<IGetResult> GetAsync(string id, GetOptions? options = null);
+        Task<(bool, IGetResult)> TryGetAsync(string id, GetOptions? options = null);
 
         /// <summary>
         /// Returns true if a document exists for a given id, otherwise false.

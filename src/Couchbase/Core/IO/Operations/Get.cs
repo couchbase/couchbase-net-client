@@ -6,7 +6,7 @@ namespace Couchbase.Core.IO.Operations
     internal class Get<T> : OperationBase<T>
     {
         public override OpCode OpCode => OpCode.Get;
-
+        
         protected override void WriteExtras(OperationBuilder builder)
         {
         }
