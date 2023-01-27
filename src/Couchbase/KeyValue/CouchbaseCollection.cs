@@ -259,14 +259,15 @@ namespace Couchbase.KeyValue
                     Cid = Cid,
                     CName = Name,
                     SName = ScopeName,
-                    Span = rootSpan
+                    Span = rootSpan,
+                    PreferReturns = options.PreferReturn
                 };
                 _operationConfigurator.Configure(getOp, options);
 
                 using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getOp);
-                await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
+                var status = await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
 
-                return new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
+                IGetResult result = new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
                 {
                     Id = getOp.Key,
                     Cas = getOp.Cas,
@@ -275,6 +276,8 @@ namespace Couchbase.KeyValue
                     Header = getOp.Header,
                     Opaque = getOp.Opaque
                 };
+                result.Status = status;
+                return result;
             }
 
             var specs = new List<LookupInSpec>();

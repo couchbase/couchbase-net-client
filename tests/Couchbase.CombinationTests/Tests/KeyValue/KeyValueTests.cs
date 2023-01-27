@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
@@ -20,6 +21,27 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
         {
             _fixture = fixture;
             _outputHelper = outputHelper;
+        }
+
+        [Fact]
+        public async Task Test_TryGetAsync_KeyNotFound()
+        {
+            var col = await _fixture.GetDefaultCollection();
+            var doc1 = "NonExistentKey";
+
+            var getResult = await col.TryGetAsync(doc1);
+            Assert.False(getResult.Exists);
+        }
+
+        [Fact]
+        public async Task Test_TryGetAsync_KeyFound()
+        {
+            var col = await _fixture.GetDefaultCollection();
+            var doc1 = "ExistentKey";
+            await col.UpsertAsync(doc1, new { DocThatExists = true });
+
+            var getResult = await col.TryGetAsync(doc1);
+            Assert.True(getResult.Exists);
         }
 
         [Fact]

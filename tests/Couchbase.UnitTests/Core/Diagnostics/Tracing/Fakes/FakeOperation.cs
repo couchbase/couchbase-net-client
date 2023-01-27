@@ -115,6 +115,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
 
         public string LastErrorMessage { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
+        public bool PreferReturns { get; }
         public bool CanStream => throw new NotImplementedException();
 
         public void LogOrphaned()

@@ -251,11 +251,19 @@ namespace Couchbase.Core.Retry
                             }
                             else
                             {
+                                if (operation.PreferReturns && ResponseStatus.KeyNotFound == status)
+                                {
+                                    return status;
+                                }
                                 throw status.CreateException(operation, bucket);
                             }
                         }
                         else
                         {
+                            if (operation.PreferReturns && ResponseStatus.KeyNotFound == status)
+                            {
+                                return status;
+                            }
                             //do not retry just raise the exception
                             throw status.CreateException(operation, bucket);
                         }

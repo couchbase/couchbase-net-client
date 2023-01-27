@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
@@ -30,6 +31,12 @@ namespace Couchbase.KeyValue
             Default = new GetOptions();
             DefaultReadOnly = Default.AsReadOnly();
         }
+
+        /// <summary>
+        /// Used internally to ensure that <see cref="DocumentNotFoundException"/> is not thrown
+        /// when the server returns KeyNotFound for the status.
+        /// </summary>
+        internal bool PreferReturn { get; set; }
 
         internal bool IncludeExpiryValue { get; private set; }
 
@@ -137,7 +144,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out bool includeExpiry, out ReadOnlyCollection<string> projectList, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan)
+        public void Deconstruct(out bool includeExpiry, out ReadOnlyCollection<string> projectList, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn)
         {
             includeExpiry = IncludeExpiryValue;
             projectList = ProjectListValue;
@@ -146,12 +153,13 @@ namespace Couchbase.KeyValue
             transcoder = TranscoderValue;
             retryStrategy = RetryStrategyValue;
             requestSpan = RequestSpanValue;
+            preferReturn = PreferReturn;
         }
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out bool includeExpiry, out ReadOnlyCollection<string> projectList, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan);
-            return new ReadOnly(includeExpiry, projectList, timeout, token, transcoder, timeout, retryStrategy, requestSpan);
+            this.Deconstruct(out bool includeExpiry, out ReadOnlyCollection<string> projectList, out TimeSpan? timeout, out CancellationToken token, out ITypeTranscoder? transcoder, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preferReturn);
+            return new ReadOnly(includeExpiry, projectList, timeout, token, transcoder, timeout, retryStrategy, requestSpan, preferReturn);
         }
 
         public record ReadOnly(
@@ -162,7 +170,8 @@ namespace Couchbase.KeyValue
             ITypeTranscoder? Transcoder,
             TimeSpan? TimeSpan,
             IRetryStrategy? RetryStrategy,
-            IRequestSpan? RequestSpan);
+            IRequestSpan? RequestSpan,
+            bool PreferReturn);
     }
 
     #endregion

@@ -18,6 +18,12 @@ namespace Couchbase.Core.IO.Operations
     {
         public string? LastErrorMessage { get; set; }
 
+        /// <summary>
+        /// If true and the server returns KeyNotFound the DocumentNotFoundException will
+        /// not be thrown; instead the ResponseStatus will be returned for an Exists check.
+        /// </summary>
+        bool PreferReturns { get; }
+
         bool CanStream { get; }
 
         bool PreserveTtl { get; }

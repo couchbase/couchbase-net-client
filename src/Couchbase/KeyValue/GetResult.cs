@@ -47,6 +47,8 @@ namespace Couchbase.KeyValue
             _projectList = projectList;
         }
 
+        ResponseStatus IGetResult.Status { get; set; }
+
         internal OperationHeader Header { get; set; }
 
         internal OpCode OpCode { get; set; }

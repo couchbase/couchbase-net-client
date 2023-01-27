@@ -1,4 +1,5 @@
 using System;
+using Couchbase.Core.IO.Operations;
 
 #nullable enable
 
@@ -12,6 +13,8 @@ namespace Couchbase.KeyValue
         TimeSpan? Expiry { get; }
 
         DateTime? ExpiryTime { get; }
+
+        internal ResponseStatus Status { get; set; }
     }
 }
 
