@@ -4,12 +4,12 @@ using Couchbase.Core.Compatibility;
 namespace Couchbase.Core.Diagnostics.Tracing
 {
     [InterfaceStability(Level.Volatile)]
-    internal static class OuterRequestSpans
+    public static class OuterRequestSpans
     {
         /// <summary>
         /// Span attributes for the outer-request span
         /// </summary>
-        internal static class Attributes
+        public static class Attributes
         {
             /// <summary>
             ///     This attribute is a standard OpenTelemetry attribute and should be placed on all spans to uniquely identify them
@@ -59,7 +59,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// <summary>
         /// Public API Name for the outer-request span
         /// </summary>
-        internal static class ServiceSpan
+        public static class ServiceSpan
         {
             public const string ViewQuery = "views";
             // ReSharper disable once InconsistentNaming
@@ -68,7 +68,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
             public const string SearchQuery = "search";
             public const string Eventing = "eventing";
 
-            internal static class Kv
+            public static class Kv
             {
                 public const string Name = "kv";
                 public const string Management = "management";
@@ -115,9 +115,9 @@ namespace Couchbase.Core.Diagnostics.Tracing
         /// <summary>
         /// Manager API outer-request spans
         /// </summary>
-        internal static class ManagerSpan
+        public static class ManagerSpan
         {
-            internal static class Eventing
+            public static class Eventing
             {
                 public const string UpsertFunction = "manager_eventing_upsert_function";
                 public const string GetFunction = "manager_eventing_get_function";
@@ -130,7 +130,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string FunctionsStatus = "manager_eventing_functions_status";
             }
 
-            internal static class Analytics
+            public static class Analytics
             {
                 public const string ConnectLink = "manager_analytics_connect_link";
                 public const string CreateDataset = "manager_analytics_create_dataset";
@@ -146,7 +146,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string GetAllDataverses = " manager_analytics_get_all_dataverses";
             }
 
-            internal static class Query
+            public static class Query
             {
                 public const string BuildDeferredIndexes = "manager_query_build_deferred_indexes";
                 public const string CreateIndex = "manager_query_create_index";
@@ -157,7 +157,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string WatchIndexes = "manager_query_watch_indexes";
             }
 
-            internal static class Bucket
+            public static class Bucket
             {
                 public const string CreateBucket = "manager_buckets_create_bucket";
                 public const string DropBucket = "manager_buckets_drop_bucket";
@@ -167,7 +167,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string UpdateBucket = "manager_buckets_update_bucket";
             }
 
-            internal static class Collections
+            public static class Collections
             {
                 public const string CreateCollection = "manager_collections_create_collection";
                 public const string CreateScope = "manager_collections_create_scope";
@@ -176,7 +176,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string GetAllScopes = "manager_collections_get_all_scopes";
             }
 
-            internal static class Search
+            public static class Search
             {
                 public const string AllowQuerying = "manager_search_allow_querying";
                 public const string AnalyzeDocument = "manager_search_analyze_document";
@@ -192,7 +192,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string UpsertIndex = "manager_search_upsert_index";
             }
 
-            internal static class Users
+            public static class Users
             {
                 public const string DropGroup = "manager_users_drop_group";
                 public const string DropUser = "manager_users_drop_user";
@@ -205,7 +205,7 @@ namespace Couchbase.Core.Diagnostics.Tracing
                 public const string UpsertUser = "manager_users_upsert_user";
             }
 
-            internal static class Views
+            public static class Views
             {
                 public const string DropDesignDocument = "manager_views_drop_design_document";
                 public const string GetAllDesignDocuments = "manager_views_get_all_design_documents";

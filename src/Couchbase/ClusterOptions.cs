@@ -682,7 +682,7 @@ namespace Couchbase
         /// <summary>
         /// The redaction level for log files.
         /// </summary>
-        /// <remarks>The default is <see cref="RedactionLevel.None"/></remarks>
+        /// <remarks>The default is <see cref="Couchbase.Core.Logging.RedactionLevel.None"/></remarks>
         public RedactionLevel RedactionLevel { get; set; } = RedactionLevel.None;
 
         /// <summary>
