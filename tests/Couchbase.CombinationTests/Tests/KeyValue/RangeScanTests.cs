@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
@@ -52,5 +53,27 @@ public class RangeScanTests
         }
 
         _outputHelper.WriteLine(count.ToString());
+    }
+
+    [Fact]
+    public async Task Test_MaxDocumentSize()
+    {
+        var coll = await _fixture.GetDefaultCollection();
+        var id = "Test_MaxDocumentSize";
+        var doc = new string('*', 20000000);
+        doc = doc.Insert(0, "start");
+        doc = doc.Insert(doc.Length, "end");
+
+        await coll.UpsertAsync(id, doc).ConfigureAwait(false);
+
+        var scan = coll.ScanAsync(
+            new RangeScan(ScanTerm.Inclusive("Test_"), ScanTerm.Inclusive("Test_MaxDocumentSize")),
+            new ScanOptions().Timeout(TimeSpan.FromSeconds(20000)).IdsOnly(false).ItemLimit(1));
+
+        var scanResult = await scan.FirstAsync().ConfigureAwait(false);
+        var content = scanResult.ContentAs<string>();
+        Assert.True(content.StartsWith("\"start"));
+        Assert.True(content.EndsWith("end\""));
+        Assert.Equal(doc.Length, content.Length);
     }
 }

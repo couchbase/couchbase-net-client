@@ -89,9 +89,6 @@ namespace Couchbase.KeyValue.RangeScan
             sb.Append("ScanResult{");
             sb.Append("id = ").Append(Id);
             sb.Append(", content = ").Append(ContentAsString());
-
-
-
             return sb.ToString();
         }
     }
