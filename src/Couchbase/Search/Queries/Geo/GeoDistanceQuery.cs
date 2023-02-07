@@ -64,6 +64,22 @@ namespace Couchbase.Search.Queries.Geo
 
             return json;
         }
+
+        public void Deconstruct(out double? longitude, out double? latitude, out string distance, out string field)
+        {
+            longitude = _longitude;
+            latitude = _latitude;
+            distance = _distance;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out double? longitude, out double? latitude, out string distance, out string field);
+            return new ReadOnly(longitude, latitude, distance, field);
+        }
+
+        public record ReadOnly(double? Longitude, double? Latitude, string Distance, string Field);
     }
 }
 

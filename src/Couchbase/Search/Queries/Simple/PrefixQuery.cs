@@ -44,6 +44,20 @@ namespace Couchbase.Search.Queries.Simple
 
             return json;
         }
+
+        public void Deconstruct(out string prefix, out string field)
+        {
+            prefix = _prefix;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out string prefix, out string field);
+            return new ReadOnly(prefix, field);
+        }
+
+        public record ReadOnly(string Prefix, string Field);
     }
 
     #region [ License information ]

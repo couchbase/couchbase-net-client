@@ -32,6 +32,19 @@ namespace Couchbase.Search.Queries.Simple
 
             return json;
         }
+
+        public void Deconstruct(out string query)
+        {
+            query = _query;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out string query);
+            return new ReadOnly(query);
+        }
+
+        public record ReadOnly(string Query);
     }
 }
 

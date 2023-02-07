@@ -39,6 +39,20 @@ namespace Couchbase.Search.Queries.Simple
 
             return json;
         }
+
+        public void Deconstruct(out bool fieldMatch, out string field)
+        {
+            fieldMatch = _fieldMatch;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out bool fieldMatch, out string field);
+            return new ReadOnly(fieldMatch, field);
+        }
+
+        public record ReadOnly(bool FieldMatch, string Field);
     }
 }
 

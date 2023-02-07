@@ -69,6 +69,20 @@ namespace Couchbase.Search.Queries.Compound
 
             return json;
         }
+
+        public void Deconstruct(out int min, out IReadOnlyList<ISearchQuery> queries)
+        {
+            min = _min;
+            queries = _queries;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out int min, out IReadOnlyList<ISearchQuery> queries);
+            return new ReadOnly(min, queries);
+        }
+
+        public record ReadOnly(int Min, IReadOnlyList<ISearchQuery> Queries);
     }
 }
 

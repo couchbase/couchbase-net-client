@@ -43,6 +43,19 @@ namespace Couchbase.Search.Queries.Simple
 
             return json;
         }
+
+        public void Deconstruct(out IReadOnlyList<string> docIds)
+        {
+            docIds = _docIds;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out IReadOnlyList<string> docIds);
+            return new ReadOnly(docIds);
+        }
+
+        public record ReadOnly(IReadOnlyList<string> DocIds);
     }
 }
 

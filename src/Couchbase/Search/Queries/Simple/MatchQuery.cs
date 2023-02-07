@@ -96,6 +96,24 @@ namespace Couchbase.Search.Queries.Simple
 
             return json;
         }
+
+        public void Deconstruct(out string match, out string analyzer, out int prefixLength, out int fuzziness, out string field, out MatchOperator? matchOperator)
+        {
+            match = _match;
+            analyzer = _analyzer;
+            prefixLength = _prefixLength;
+            fuzziness = _fuzziness;
+            field = _field;
+            matchOperator = _matchOperator;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out string match, out string analyzer, out int prefixLength, out int fuzziness, out string field, out MatchOperator? matchOperator);
+            return new ReadOnly(match, analyzer, prefixLength, fuzziness, field, matchOperator);
+        }
+
+        public record ReadOnly(string Match, string Analyzer, int PrefixLength, int Fuzziness, string Field, MatchOperator? MatchOperator);
     }
 
     #region [ License information ]

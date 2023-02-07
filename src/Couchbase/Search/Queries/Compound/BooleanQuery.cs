@@ -81,6 +81,21 @@ namespace Couchbase.Search.Queries.Compound
 
             return json;
         }
+
+        public void Deconstruct(out ConjunctionQuery mustQueries, out DisjunctionQuery shouldQueries, out DisjunctionQuery mustNotQueries)
+        {
+            mustQueries = _mustQueries;
+            shouldQueries = _shouldQueries;
+            mustNotQueries = _mustNotQueries;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out ConjunctionQuery mustQueries, out DisjunctionQuery shouldQueries, out DisjunctionQuery mustNotQueries);
+            return new ReadOnly(mustQueries, shouldQueries, mustNotQueries);
+        }
+
+        public record ReadOnly(ConjunctionQuery MustQueries, DisjunctionQuery ShouldQueries, DisjunctionQuery MustNotQueries);
     }
 }
 

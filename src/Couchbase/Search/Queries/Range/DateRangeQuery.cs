@@ -85,6 +85,24 @@ namespace Couchbase.Search.Queries.Range
 
             return json;
         }
+
+        public void Deconstruct(out DateTime? startTime, out bool inclusiveStart, out DateTime? endTime, out bool inclusiveEnd, out string parserName, out string field)
+        {
+            startTime = _startTime;
+            inclusiveStart = _inclusiveStart;
+            endTime = _endTime;
+            inclusiveEnd = _inclusiveEnd;
+            parserName = _parserName;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out DateTime? startTime, out bool inclusiveStart, out DateTime? endTime, out bool inclusiveEnd, out string parserName, out string field);
+            return new ReadOnly(startTime, inclusiveStart, endTime, inclusiveEnd, parserName, field);
+        }
+
+        public record ReadOnly(DateTime? StartTime, bool InclusiveStart, DateTime? EndTime, bool InclusiveEnd, string ParserName, string Field);
     }
 }
 

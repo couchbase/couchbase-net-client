@@ -74,6 +74,22 @@ namespace Couchbase.Search.Queries.Simple
 
             return json;
         }
+
+        public void Deconstruct(out string term, out int fuzziness, out int prefixLength, out string field)
+        {
+            term = _term;
+            fuzziness = _fuzziness;
+            prefixLength = _prefixLength;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out string term, out int fuzziness, out int prefixLength, out string field);
+            return new ReadOnly(term, fuzziness, prefixLength, field);
+        }
+
+        public record ReadOnly(string Term, int Fuzziness, int PrefixLength, string Field);
     }
 
     #region [ License information ]

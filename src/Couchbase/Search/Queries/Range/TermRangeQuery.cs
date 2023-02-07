@@ -72,6 +72,24 @@ namespace Couchbase.Search.Queries.Range
 
             return json;
         }
+
+        public void Deconstruct(out string term, out string min, out bool minInclusive, out string max, out bool maxInclusive, out string field)
+        {
+            term = _term;
+            min = _min;
+            minInclusive = _minInclusive;
+            max = _max;
+            maxInclusive = _maxInclusive;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out string term, out string min, out bool minInclusive, out string max, out bool maxInclusive, out string field);
+            return new ReadOnly(term, min, minInclusive, max, maxInclusive, field);
+        }
+
+        public record ReadOnly(string Term, string Min, bool MinInclusive, string Max, bool MaxInclusive, string Field);
     }
 }
 

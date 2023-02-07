@@ -56,6 +56,23 @@ namespace Couchbase.Search.Queries.Geo
 
             return json;
         }
+
+        public void Deconstruct(out double? topLeftLongitude, out double? topLeftLatitude, out double? bottomRightLongitude, out double? bottomRightLatitude, out string field)
+        {
+            topLeftLongitude = _topLeftLongitude;
+            topLeftLatitude = _topLeftLatitude;
+            bottomRightLongitude = _bottomRightLongitude;
+            bottomRightLatitude = _bottomRightLatitude;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out double? topLeftLongitude, out double? topLeftLatitude, out double? bottomRightLongitude, out double? bottomRightLatitude, out string field);
+            return new ReadOnly(topLeftLongitude, topLeftLatitude, bottomRightLongitude, bottomRightLatitude, field);
+        }
+
+        public record ReadOnly(double? TopLeftLongitude, double? TopLeftLatitude, double? BottomRightLongitude, double? BottomRightLatitude, string Field);
     }
 }
 

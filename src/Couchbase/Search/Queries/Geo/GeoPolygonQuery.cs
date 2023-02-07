@@ -61,6 +61,20 @@ namespace Couchbase.Search.Queries.Geo
 
             return json;
         }
+
+        public void Deconstruct(out IReadOnlyList<Coordinate> coordinates, out string field)
+        {
+            coordinates = _coordinates;
+            field = _field;
+        }
+
+        public ReadOnly AsReadOnly()
+        {
+            this.Deconstruct(out IReadOnlyList<Coordinate> coordinates, out string field);
+            return new ReadOnly(coordinates, field);
+        }
+
+        public record ReadOnly(IReadOnlyList<Coordinate> Coordinates, string Field);
     }
 }
 

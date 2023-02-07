@@ -44,6 +44,8 @@ namespace Couchbase.Search.Queries
 
             return json;
         }
+
+        public float BoostValue => (float)_boost;
     }
 }
 
