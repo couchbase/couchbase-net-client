@@ -190,7 +190,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                         await _connectionPool.RemoveConnectionAsync(this).ConfigureAwait(false);
                     }
                     catch {
-
+                        //Ensure that any error thrown by RemoveConnectionAsync will not prevent Connection.CloseAsync
                     }                    
                 }                
                 // Let in-flight operations finish, waiting up to one minute
