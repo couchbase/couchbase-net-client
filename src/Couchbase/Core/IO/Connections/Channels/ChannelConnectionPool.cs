@@ -50,9 +50,25 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="scaleController">Scale controller.</param>
         /// <param name="redactor">Log redactor.</param>
         /// <param name="logger">Logger.</param>
-        /// <param name="sendQueueCapacity">Maximum number of queued operations.</param>
+        /// <param name="sendQueueCapacity">The maximum number of items the channel will store.
+        /// Defaults to 1024 and is configurable via <see cref="Couchbase.ClusterOptions.KvSendQueueCapacity"/></param>
         public ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, int sendQueueCapacity)
+            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, int sendQueueCapacity) :
+            this(connectionInitializer, connectionFactory, scaleController, redactor, logger, CreateDefaultChannel(sendQueueCapacity))
+        {
+        }
+
+        /// <summary>
+        /// Creates a new ChannelConnectionPool.
+        /// </summary>
+        /// <param name="connectionInitializer">Handler for initializing new connections.</param>
+        /// <param name="connectionFactory">Factory for creating new connections.</param>
+        /// <param name="scaleController">Scale controller.</param>
+        /// <param name="redactor">Log redactor.</param>
+        /// <param name="logger">Logger.</param>
+        /// <param name="channel">Channel queue.</param>
+        internal ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
+            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, Channel<ChannelQueueItem> channel)
             : base(connectionInitializer, connectionFactory)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
@@ -62,12 +78,17 @@ namespace Couchbase.Core.IO.Connections.Channels
             MinimumSize = 2;
             MaximumSize = 5;
 
-            _sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(sendQueueCapacity)
+            _sendQueue = channel;
+
+            TrackConnectionPool(this);
+        }
+
+        private static Channel<ChannelQueueItem> CreateDefaultChannel(int sendQueueCapacity)
+        {
+            return Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(sendQueueCapacity)
             {
                 AllowSynchronousContinuations = true
             });
-
-            TrackConnectionPool(this);
         }
 
         /// <inheritdoc />
@@ -263,7 +284,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 _logger.LogDebug("Connection for {endpoint} has been started.", EndPoint);
 
 
-                var processor = new ChannelConnectionProcessor(connection, this, _sendQueue.Reader, _logger);
+                var processor = new ChannelConnectionProcessor(connection, this, _sendQueue.Reader, _logger).Start();
 
                 lock (_connections)
                 {

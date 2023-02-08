@@ -88,17 +88,22 @@ namespace Couchbase.Core.IO.Connections.Channels
             _connectionPool = connectionPool;
             _channelReader = channelReader;
             _logger = logger;
+        }
 
+        public ChannelConnectionProcessor Start()
+        {
             using (ExecutionContext.SuppressFlow())
             {
-                Task.Run(Processor);
+                _ = Process();
             }
+
+            return this;
         }
 
         /// <summary>
         /// Long running task to process items from the queue.
         /// </summary>
-        private async Task Processor()
+        internal async Task Process()
         {
             var token = _cts?.Token ?? default(CancellationToken);
 
@@ -134,7 +139,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                             // ignore request that timed out or was cancelled while in queue
                             if (queueItem.CancellationToken.IsCancellationRequested)
                             {
-                                return;
+                                continue; //avoid closing the Connection because of an item that has timeout while in queue
                             }
 
                             if (traceLogging)
@@ -185,9 +190,16 @@ namespace Couchbase.Core.IO.Connections.Channels
                 // This will cleanup references, and replace the connection if necessary.
                 if (token != CancellationToken.None && !token.IsCancellationRequested)
                 {
-                    await _connectionPool.RemoveConnectionAsync(this).ConfigureAwait(false);
+                    try
+                    {
+                        await _connectionPool.RemoveConnectionAsync(this).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        //Ensure that any error thrown by RemoveConnectionAsync will not prevent Connection.CloseAsync
+                        _logger.LogInformation("Connection {cid} was not removed.", Connection.ConnectionId);
+                    }
                 }
-
                 // Let in-flight operations finish, waiting up to one minute
                 await Connection.CloseAsync(CloseTimeout).ConfigureAwait(false);
             }
