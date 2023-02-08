@@ -96,7 +96,39 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
             public override async Task SendAsync(IConnection connection, CancellationToken cancellationToken = default)
             {
                 await connection.SendAsync(Memory<byte>.Empty, new Noop(), cancellationToken).ConfigureAwait(false);
+                
             }
+        }
+
+
+        [Fact]
+        public async Task Should_CloseConnection_When_RemoveConnectionAsyncThrowsException()
+        {
+            var connectionMock = new Mock<IConnection>();
+            var connectionFactoryMock = new Mock<IConnectionFactory>();
+
+            var sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(3)
+            {
+                AllowSynchronousContinuations = true
+            });
+                        
+            connectionMock
+                .SetupGet(e => e.IsDead)
+                .Returns(true);
+
+            connectionFactoryMock
+                .Setup(e => e.CreateAndConnectAsync(It.IsAny<HostEndpointWithPort>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception());
+
+
+            var pool = CreatePool(sendQueue, connectionFactory: connectionFactoryMock.Object);
+
+            var processor = new ChannelConnectionProcessor(connectionMock.Object, pool, sendQueue, new Logger(_testOutput));
+            await pool.SendAsync(new ChannelProcessorFakeOperation() { }, CancellationToken.None);
+            await processor.Process();
+
+            connectionMock
+                .Verify(e => e.CloseAsync(It.IsAny<TimeSpan>()), times: Times.Once);
         }
 
         [Fact]
