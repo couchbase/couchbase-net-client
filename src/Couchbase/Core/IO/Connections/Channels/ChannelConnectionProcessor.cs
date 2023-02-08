@@ -181,18 +181,20 @@ namespace Couchbase.Core.IO.Connections.Channels
                 // Mark the connection processor complete
                 _completion.SetResult(true);
 
-
-                var connectionCloseTask = Connection.CloseAsync(CloseTimeout);
-
                 // Remove the connection, unless it we're completed (due to the pool closing or shrinking).
                 // This will cleanup references, and replace the connection if necessary.
                 if (token != CancellationToken.None && !token.IsCancellationRequested)
                 {
-                    await _connectionPool.RemoveConnectionAsync(this).ConfigureAwait(false);
-                }
+                    try
+                    {
+                        await _connectionPool.RemoveConnectionAsync(this).ConfigureAwait(false);
+                    }
+                    catch {
 
+                    }                    
+                }                
                 // Let in-flight operations finish, waiting up to one minute
-                await connectionCloseTask.ConfigureAwait(false);
+                await Connection.CloseAsync(CloseTimeout).ConfigureAwait(false); //should we really await here?
             }
         }
 
