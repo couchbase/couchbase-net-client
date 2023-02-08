@@ -134,7 +134,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                             // ignore request that timed out or was cancelled while in queue
                             if (queueItem.CancellationToken.IsCancellationRequested)
                             {
-                                return;
+                                break; //avoid closing the Connection because of an item that has timeout while in queue
                             }
 
                             if (traceLogging)
@@ -181,6 +181,9 @@ namespace Couchbase.Core.IO.Connections.Channels
                 // Mark the connection processor complete
                 _completion.SetResult(true);
 
+
+                var connectionCloseTask = Connection.CloseAsync(CloseTimeout);
+
                 // Remove the connection, unless it we're completed (due to the pool closing or shrinking).
                 // This will cleanup references, and replace the connection if necessary.
                 if (token != CancellationToken.None && !token.IsCancellationRequested)
@@ -189,7 +192,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 }
 
                 // Let in-flight operations finish, waiting up to one minute
-                await Connection.CloseAsync(CloseTimeout).ConfigureAwait(false);
+                await connectionCloseTask.ConfigureAwait(false);
             }
         }
 
