@@ -104,7 +104,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
         {
             var connectionMock = new Mock<IConnection>();
           
-            var sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(2)
+            var sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(3)
             {
                 AllowSynchronousContinuations = true
             });
@@ -118,6 +118,7 @@ namespace Couchbase.UnitTests.Core.IO.Connections.Channels
 
             await pool.SendAsync(new ChannelProcessorFakeOperation() { }, cancellationTokenSource.Token);
             await pool.SendAsync(new ChannelProcessorFakeOperation() { }, CancellationToken.None);
+            await pool.SendAsync(new ChannelProcessorFakeOperation() { }, cancellationTokenSource.Token);
 
             cancellationTokenSource.Cancel();
             sendQueue.Writer.TryComplete();

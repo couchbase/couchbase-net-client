@@ -63,7 +63,7 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="logger">Logger.</param>
         /// <param name="sendQueueCapacity">Maximum number of queued operations.</param>
         /// <param name="channel">Channel queue.</param>
-        public ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
+        internal ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
             IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, int sendQueueCapacity, Channel<ChannelQueueItem> channel)
             : base(connectionInitializer, connectionFactory)
         {
