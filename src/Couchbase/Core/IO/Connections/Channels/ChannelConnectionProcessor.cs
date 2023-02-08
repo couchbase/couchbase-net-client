@@ -87,18 +87,24 @@ namespace Couchbase.Core.IO.Connections.Channels
             Connection = connection;
             _connectionPool = connectionPool;
             _channelReader = channelReader;
-            _logger = logger;
+            _logger = logger;           
+        }
 
+
+        public ChannelConnectionProcessor Start()
+        {
             using (ExecutionContext.SuppressFlow())
             {
-                Task.Run(Processor);
+                Task.Run(Process);
             }
+
+            return this;
         }
 
         /// <summary>
         /// Long running task to process items from the queue.
         /// </summary>
-        private async Task Processor()
+        internal async Task Process()
         {
             var token = _cts?.Token ?? default(CancellationToken);
 
@@ -134,7 +140,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                             // ignore request that timed out or was cancelled while in queue
                             if (queueItem.CancellationToken.IsCancellationRequested)
                             {
-                                break; //avoid closing the Connection because of an item that has timeout while in queue
+                                continue; //avoid closing the Connection because of an item that has timeout while in queue
                             }
 
                             if (traceLogging)

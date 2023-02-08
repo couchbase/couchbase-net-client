@@ -42,6 +42,17 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <inheritdoc />
         public sealed override int PendingSends => _sendQueue.Reader.Count;
 
+        public ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
+           IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, int sendQueueCapacity)
+            : this(connectionInitializer, connectionFactory, scaleController, redactor, logger, sendQueueCapacity, Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(sendQueueCapacity)
+            {
+                AllowSynchronousContinuations = true
+            }))
+        {
+
+        }
+
+
         /// <summary>
         /// Creates a new ChannelConnectionPool.
         /// </summary>
@@ -51,8 +62,9 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <param name="redactor">Log redactor.</param>
         /// <param name="logger">Logger.</param>
         /// <param name="sendQueueCapacity">Maximum number of queued operations.</param>
+        /// <param name="channel">Channel queue.</param>
         public ChannelConnectionPool(IConnectionInitializer connectionInitializer, IConnectionFactory connectionFactory,
-            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, int sendQueueCapacity)
+            IConnectionPoolScaleController scaleController, IRedactor redactor, ILogger<ChannelConnectionPool> logger, int sendQueueCapacity, Channel<ChannelQueueItem> channel)
             : base(connectionInitializer, connectionFactory)
         {
             _scaleController = scaleController ?? throw new ArgumentNullException(nameof(scaleController));
@@ -62,10 +74,7 @@ namespace Couchbase.Core.IO.Connections.Channels
             MinimumSize = 2;
             MaximumSize = 5;
 
-            _sendQueue = Channel.CreateBounded<ChannelQueueItem>(new BoundedChannelOptions(sendQueueCapacity)
-            {
-                AllowSynchronousContinuations = true
-            });
+            _sendQueue = channel;
 
             TrackConnectionPool(this);
         }
@@ -262,7 +271,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 _logger.LogDebug("Connection for {endpoint} has been started.", EndPoint);
 
 
-                var processor = new ChannelConnectionProcessor(connection, this, _sendQueue.Reader, _logger);
+                var processor = new ChannelConnectionProcessor(connection, this, _sendQueue.Reader, _logger).Start();
 
                 lock (_connections)
                 {
