@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.Management.Query;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -122,6 +123,8 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
             throw new NotImplementedException();
         }
 
+        public ICollectionQueryIndexManager QueryIndexes { get; }
+
         public uint? Cid { get; }
         public string Name { get; } = "default";
         public IScope Scope { get; set; } = new Mock<IScope>().Object;
@@ -221,6 +224,8 @@ namespace Couchbase.Transactions.Tests.UnitTests.Mocks
         {
             throw new NotImplementedException();
         }
+
+        public ICollectionQueryIndexManager QueryIndexes { get; }
 
         public Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null)
         {

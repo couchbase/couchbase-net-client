@@ -5,6 +5,7 @@ using Couchbase.KeyValue;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Utils;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.Management.Query;
 using Moq;
 
 #nullable enable
@@ -153,5 +154,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         {
             throw new NotImplementedException();
         }
+
+        public ICollectionQueryIndexManager QueryIndexes { get; }
     }
 }

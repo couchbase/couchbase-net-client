@@ -115,6 +115,10 @@ namespace Couchbase.Query
                     return new RateLimitedException(RateLimitedReason.NetworkIngressRateLimitReached, context);
                 if (error.Code == 1194)
                     return new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, context);
+
+                //query_context was not included in the request and the server requires it
+                if (error.Code == 1197)
+                    return new QueryContextMissingException(context);
             }
 
             return new CouchbaseException(context);

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.Management.Query;
 
 #nullable enable
 
@@ -181,6 +183,16 @@ namespace Couchbase.KeyValue
         #region K/V Range Scan
 
         IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null);
+
+        #endregion
+
+        #region Query Index Manager
+
+        /// <summary>
+        /// Provides access to the indexes at the Collection level.
+        /// </summary>
+        [InterfaceStability(Level.Volatile)]
+        ICollectionQueryIndexManager QueryIndexes { get; }
 
         #endregion
     }

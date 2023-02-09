@@ -128,6 +128,7 @@ namespace Couchbase.Core.DI
                             .Tuning.MaximumOperationBuilderCapacity
                     })));
             yield return (typeof(IHttpClusterMapFactory), new SingletonServiceFactory(typeof(HttpClusterMapFactory)));
+            yield return (typeof(ICollectionQueryIndexManager), new SingletonServiceFactory(typeof(CollectionQueryIndexManager)));
         }
     }
 }

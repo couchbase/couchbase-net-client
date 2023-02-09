@@ -104,22 +104,58 @@ namespace Couchbase.UnitTests.Management.Query
             Assert.Equal(expected, statement);
         }
 
+       /* No collections set, returns all indexes for the given bucket, for all scopes and collections:
+
+        SELECT idx.* FROM system:indexes AS idx
+            WHERE ((bucket_id IS MISSING AND keyspace_id = "bucketName") OR bucket_id = "bucketName") AND `using`="gsi"
+        ORDER BY is_primary DESC, name ASC
+
+            Collection and scope set, returns all indexes for the given collection in the given scope, in the given bucket:
+
+        SELECT idx.* FROM system:indexes AS idx
+            WHERE keyspace_id = "collectionName" AND bucket_id= "bucketName" AND scope_id = "scopeName" AND `using`="gsi"
+        ORDER BY is_primary DESC, name ASC
+
+            Scope only set, returns all indexes for the given scope, in the given bucket:
+
+        SELECT idx.* FROM system:indexes AS idx
+            WHERE bucket_id= "bucketName" AND scope_id = "scopeName" AND `using`="gsi"
+        ORDER BY is_primary DESC, name ASC
+
+
+        If the collection is a default collection (e.g. appears on scope _default, collection _default), then a special case statement must be used to retrieve indexes:
+
+        SELECT idx.* FROM system:indexes AS idx
+        WHERE ((bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName)
+         OR (bucket_id IS MISSING and keyspace_id=$bucketName))
+         AND `using`="gsi"
+        ORDER BY is_primary DESC, name ASC
+
+        Otherwise, this can be used:
+
+        SELECT idx.* FROM system:indexes AS idx
+        WHERE (bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName)
+         AND `using`="gsi"
+        ORDER BY is_primary DESC, name ASC
+        */
+
         [Theory]
-        [InlineData("_default", "_default", "SELECT idx.* FROM system:indexes AS idx WHERE ((((bucket_id = $bucketName) AND scope_id = $scopeName) AND keyspace_id = $collectionName) OR (bucket_id IS MISSING AND keyspace_id = $bucketName)) AND `using` = \"gsi\" ORDER BY is_primary DESC, name ASC")]
-        [InlineData("_default", null, "SELECT idx.* FROM system:indexes AS idx WHERE (((bucket_id = $bucketName) AND scope_id = $scopeName) OR (bucket_id IS MISSING AND keyspace_id = $bucketName)) AND `using` = \"gsi\" ORDER BY is_primary DESC, name ASC")]
-        [InlineData(null, null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id = $bucketName) OR (bucket_id IS MISSING AND keyspace_id = $bucketName)) AND `using` = \"gsi\" ORDER BY is_primary DESC, name ASC")]
-        public void Test_CreateGetAllIndexesStatement(string scopeName, string collectionName, string expected)
+        [InlineData("travel-sample", null, null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData("travel-sample", "_default", null, "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData("travel-sample", "_default", "_default", "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) OR (bucket_id IS MISSING and keyspace_id=$bucketName)) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        [InlineData("travel-sample", "scope", "collection", "SELECT idx.* FROM system:indexes AS idx WHERE (bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC")]
+        public void Test_CreateGetAllIndexesStatement(string bucketName, string scopeName, string collectionName, string expected)
         {
             //arrange
             var options = new GetAllQueryIndexOptions().ScopeName(scopeName).CollectionName(collectionName);
 
             //act
-            var statement = QueryGenerator.CreateGetAllIndexesStatement(options);
+            var actual = QueryGenerator.CreateGetAllIndexesStatement(options);
 
-            _outputHelper.WriteLine(statement);
+            _outputHelper.WriteLine(actual);
 
             //assert
-            Assert.Equal(expected, statement);
+            Assert.Equal(expected, actual);
         }
     }
 }

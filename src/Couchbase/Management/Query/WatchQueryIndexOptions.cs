@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using CancellationTokenCls = System.Threading.CancellationToken;
 
@@ -12,12 +13,15 @@ namespace Couchbase.Management.Query
         internal string? ScopeNameValue { get; set; }
         internal string? CollectionNameValue { get; set; }
 
+        internal string? QueryContext { get; set; }
+
         /// <summary>
         /// Sets the scope name for this query management operation.
         /// </summary>
         /// <remarks>If the scope name is set then the collection name must be set as well.</remarks>
         /// <param name="scopeName">The scope name to use.</param>
         /// <returns>A WatchQueryIndexOptions for chaining options.</returns>
+        [Obsolete("Use collection.QueryIndexes instead.")]
         public WatchQueryIndexOptions ScopeName(string scopeName)
         {
             ScopeNameValue = scopeName;
@@ -30,6 +34,7 @@ namespace Couchbase.Management.Query
         /// <remarks>If the collection name is set then the scope name must be set as well.</remarks>
         /// <param name="collectionName">The collection name to use.</param>
         /// <returns>A WatchQueryIndexOptions for chaining options.</returns>
+        [Obsolete("Use collection.QueryIndexes instead.")]
         public WatchQueryIndexOptions CollectionName(string collectionName)
         {
             CollectionNameValue = collectionName;

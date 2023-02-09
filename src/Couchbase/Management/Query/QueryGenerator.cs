@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Couchbase.Management.Query
 {
-    internal class QueryGenerator
+    internal static class QueryGenerator
     {
         private const string Default = "_default";
         public static string CreateIndexStatement(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options)
@@ -53,29 +53,34 @@ namespace Couchbase.Management.Query
 
         public static string CreateGetAllIndexesStatement(GetAllQueryIndexOptions options)
         {
-            var bucketCondition = "(bucket_id = $bucketName)";
-            var scopeCondition = "(" + bucketCondition + " AND scope_id = $scopeName)";
-            var collectionCondition = "(" + scopeCondition + " AND keyspace_id = $collectionName)";
-
-            string whereCondition;
-            if (options.CollectionNameValue != null)
-                whereCondition = collectionCondition;
-            else if(options.ScopeNameValue != null)
-                whereCondition = scopeCondition;
-            else
-                whereCondition = bucketCondition;
-
-            if(Default.Equals(options.CollectionNameValue) ||
-                string.IsNullOrWhiteSpace(options.CollectionNameValue))
+            if (options.CollectionNameValue != null && options.CollectionNameValue == "_default")
             {
-                var defaultCollectionCondition = "(bucket_id IS MISSING AND keyspace_id = $bucketName)";
-                whereCondition = "(" + whereCondition + " OR " + defaultCollectionCondition + ")";
+                return DefaultCollectionAllIndexesStatement;
             }
 
-            return "SELECT idx.* FROM system:indexes AS idx" +
-                    " WHERE " + whereCondition +
-                    " AND `using` = \"gsi\"" +
-                    " ORDER BY is_primary DESC, name ASC";
+            if (options.CollectionNameValue != null && options.CollectionNameValue != "_default")
+            {
+                return NonDefaultCollectionAllIndexesStatement;
+            }
+
+            if (options.ScopeNameValue != null && options.ScopeNameValue == "_default")
+            {
+                return BucketLevelAllIndexesStatement;
+            }
+
+            return BucketLevelAllIndexesStatement;
         }
+
+        //If the collection is a default collection (e.g. appears on scope _default, collection _default), then a special case statement must be used to retrieve indexes:
+        private const string DefaultCollectionAllIndexesStatement =
+            "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) OR (bucket_id IS MISSING and keyspace_id=$bucketName)) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC";
+
+        //If the collection is not the default collection
+        private const string NonDefaultCollectionAllIndexesStatement =
+            "SELECT idx.* FROM system:indexes AS idx WHERE (bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC";
+
+        //All indexes for all scopes and collections in a bucket
+        private const string BucketLevelAllIndexesStatement =
+            "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC";
     }
 }

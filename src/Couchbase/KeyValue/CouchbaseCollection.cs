@@ -18,6 +18,7 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Sharding;
 using Couchbase.KeyValue.RangeScan;
+using Couchbase.Management.Query;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -42,7 +43,7 @@ namespace Couchbase.KeyValue
         internal CouchbaseCollection(BucketBase bucket, IOperationConfigurator operationConfigurator,
             ILogger<CouchbaseCollection> logger,
             ILogger<GetResult> getLogger, IRedactor redactor,
-            string name, IScope scope, IRequestTracer tracer)
+            string name, IScope scope, IRequestTracer tracer, ICollectionQueryIndexManager queryIndexManager)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
@@ -58,6 +59,10 @@ namespace Couchbase.KeyValue
             {
                 if (_bucket.CurrentConfig.BucketCapabilities.Contains(BucketCapabilities.RANGE_SCAN)) _rangeScanSupported = true;
             }
+
+            queryIndexManager.Collection = this;
+            queryIndexManager.Bucket = _bucket;
+            QueryIndexes = queryIndexManager;
         }
 
         internal IRedactor Redactor { get; }
@@ -1262,6 +1267,12 @@ namespace Couchbase.KeyValue
         private CancellationTokenPairSource CreateRetryTimeoutCancellationTokenSource(
             ITimeoutOptions options, IOperation op) =>
             CancellationTokenPairSource.FromTimeout(GetTimeout(options.Timeout, op), options.Token);
+
+        #endregion
+
+        #region Index Management
+
+        public ICollectionQueryIndexManager QueryIndexes { get; }
 
         #endregion
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Management.Query;
 using Couchbase.Query;
 using Couchbase.UnitTests.Helpers;
@@ -204,7 +206,7 @@ namespace Couchbase.UnitTests.Management.Query
             var manager = CreateManager();
             await Assert.ThrowsAsync<ArgumentNullException>(async () => await manager.DropIndexAsync("default", null, DropQueryIndexOptions.Default.IgnoreIfExists(false)));
         }
-
+        
         private QueryIndexManager CreateManager()
         {
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\Management\query-create-primary-index-exists-5000.json");
@@ -239,6 +241,129 @@ namespace Couchbase.UnitTests.Management.Query
 
             return new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
                 new Redactor(new TypedRedactor(RedactionLevel.None)));
+        }
+
+        [Fact]
+        private async Task Test_BuildDeferredIndexesAsync_QueryContext()
+        {
+            var client = new FakeQueryClient();
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
+
+           await manager.BuildDeferredIndexesAsync("travel-sample");
+
+           Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+        }
+
+        [Fact]
+        private async Task Test_CreateIndexAsync_QueryContext()
+        {
+            var client = new FakeQueryClient();
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
+
+            await manager.CreateIndexAsync("travel-sample", "index1", new[] { "field1" });
+
+            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+        }
+
+        [Fact]
+        private async Task Test_DropIndexAsync_QueryContext()
+        {
+            var client = new FakeQueryClient();
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
+
+            await manager.DropIndexAsync("travel-sample", "index1");
+
+            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+        }
+
+        [Fact]
+        private async Task Test_CreatePrimaryIndexAsync_QueryContext()
+        {
+            var client = new FakeQueryClient();
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
+
+            await manager.CreatePrimaryIndexAsync("travel-sample");
+
+            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+        }
+
+        [Fact]
+        private async Task Test_DropPrimaryIndexAsync_QueryContext()
+        {
+            var client = new FakeQueryClient();
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
+
+            await manager.DropPrimaryIndexAsync("travel-sample");
+
+            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+        }
+
+
+        [Fact]
+        private async Task Test_WatchIndexesAsync_QueryContext()
+        {
+            var client = new FakeQueryClient();
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
+
+            await manager.WatchIndexesAsync("travel-sample", new []{"field1"});
+
+            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+        }
+
+
+        [Fact]
+        private async Task Test_GetAllIndexesAsync_QueryContext()
+        {
+            var client = new FakeQueryClient();
+            var manager = new QueryIndexManager(client, new Mock<ILogger<QueryIndexManager>>().Object,
+                new Redactor(new TypedRedactor(RedactionLevel.None)));
+
+            await manager.GetAllIndexesAsync("travel-sample");
+
+            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+        }
+
+        private class FakeQueryClient : IQueryClient
+        {
+            public int InvalidateQueryCache()
+            {
+                throw new NotImplementedException();
+            }
+
+            public DateTime? LastActivity { get; }
+            public Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options)
+            {
+                options.Statement("SELECT 1;");
+                FormValues = options.GetFormValues();
+                return Task.FromResult((IQueryResult<T>) new FakeQueryResult<T>());
+            }
+
+            public IDictionary<string, object?> FormValues { get; private set; }
+        }
+
+        private class FakeQueryResult<T> : IQueryResult<T>
+        {
+            private IEnumerable<T>? _rows = Enumerable.Empty<T>();
+            public void Dispose()
+            {
+                throw new NotImplementedException();
+            }
+
+            public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = new CancellationToken())
+            {
+                return _rows.ToAsyncEnumerable().GetAsyncEnumerator();
+            }new
+
+            public RetryReason RetryReason { get; }
+            public IAsyncEnumerable<T> Rows => this;
+            public QueryMetaData MetaData { get; }
+            public List<Error> Errors { get; }
         }
     }
 }

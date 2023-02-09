@@ -4,6 +4,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
+using Couchbase.Management.Query;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -20,20 +21,22 @@ namespace Couchbase.Core.DI
         private readonly ILogger<GetResult> _getLogger;
         private readonly IRedactor _redactor;
         private readonly IRequestTracer _tracer;
+        private readonly ICollectionQueryIndexManager _queryIndexManager;
 
         public CollectionFactory(IOperationConfigurator operationConfigurator, ILogger<CouchbaseCollection> logger,
-            ILogger<GetResult> getLogger, IRedactor redactor, IRequestTracer tracer)
+            ILogger<GetResult> getLogger, IRedactor redactor, IRequestTracer tracer, ICollectionQueryIndexManager queryIndexManager)
         {
             _operationConfigurator = operationConfigurator ?? throw new ArgumentNullException(nameof(operationConfigurator));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _getLogger = getLogger ?? throw new ArgumentNullException(nameof(getLogger));
             _redactor = redactor ?? throw new ArgumentNullException(nameof(redactor));
             _tracer = tracer;
+            _queryIndexManager = queryIndexManager;
         }
 
         /// <inheritdoc />
         public ICouchbaseCollection Create(BucketBase bucket, IScope scope, string name) =>
-            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, name, scope, _tracer);
+            new CouchbaseCollection(bucket, _operationConfigurator, _logger, _getLogger, _redactor, name, scope, _tracer, _queryIndexManager);
     }
 }
 

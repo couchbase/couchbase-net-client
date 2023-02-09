@@ -6,6 +6,7 @@ using Couchbase.Core.Exceptions;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry.Query;
 using Couchbase.Query;
+using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 
 #nullable enable
@@ -37,17 +38,24 @@ namespace Couchbase.Management.Query
 
             try
             {
+                var queryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
                 var indexes = await this.GetAllIndexesAsync(bucketName,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                ).ConfigureAwait(false);
+                    queryOptions =>
+                    {
+                        queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.QueryContext = queryContext;
+                    }).ConfigureAwait(false);
 
                 var tasks = new List<Task>();
                 foreach (var index in indexes.Where(i => i.State == "pending" || i.State == "deferred"))
                 {
                     var statement = QueryGenerator.CreateDeferredIndexStatement(bucketName, index.Name, options);
                     tasks.Add(_queryClient.QueryAsync<dynamic>(statement,
-                        queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                    ));
+                        queryOptions =>
+                        {
+                            queryOptions.CancellationToken(options.TokenValue);
+                            queryOptions.QueryContext = queryContext;
+                        }));
                 }
 
                 await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -76,17 +84,22 @@ namespace Couchbase.Management.Query
             {
                 throw new ArgumentNullException(nameof(indexName));
             }
-            if(fields.Count() == 0)
+
+            var enumerable = fields as string[] ?? fields.ToArray();
+            if(!enumerable.Any())
             {
                 throw new ArgumentOutOfRangeException(nameof(fields));
             }
 
             try
             {
-                var statement = QueryGenerator.CreateIndexStatement(bucketName, indexName, fields, options);
+                var statement = QueryGenerator.CreateIndexStatement(bucketName, indexName, enumerable, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                ).ConfigureAwait(false);
+                    queryOptions =>
+                    {
+                        queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                    }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
             {
@@ -116,8 +129,11 @@ namespace Couchbase.Management.Query
             {
                 var statement = QueryGenerator.CreatePrimaryIndexStatement(bucketName, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                ).ConfigureAwait(false);
+                    queryOptions =>
+                    {
+                        queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                    }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
             {
@@ -153,8 +169,11 @@ namespace Couchbase.Management.Query
             {
                 var statement = QueryGenerator.CreateDropIndexStatement(bucketName, indexName, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                ).ConfigureAwait(false);
+                    queryOptions =>
+                    {
+                        queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                    }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
             {
@@ -185,8 +204,11 @@ namespace Couchbase.Management.Query
             {
                 var statement = QueryGenerator.CreateDropPrimaryIndexStatement(bucketName, options);
                 await _queryClient.QueryAsync<dynamic>(statement,
-                    queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                ).ConfigureAwait(false);
+                    queryOptions =>
+                    {
+                        queryOptions.CancellationToken(options.TokenValue);
+                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                    }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
             {
@@ -213,7 +235,10 @@ namespace Couchbase.Management.Query
 
             try
             {
-                var queryOptions = new QueryOptions()
+                var queryOptions = new QueryOptions
+                    {
+                        QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue)
+                    }
                     .Parameter("bucketName", bucketName)
                     .CancellationToken(options.TokenValue);
 
