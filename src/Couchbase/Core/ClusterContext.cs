@@ -671,13 +671,13 @@ namespace Couchbase.Core
                             _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
                         bootstrapNode.Owner = bucket;
+                        bootstrapNode.NodesAdapter = nodeAdapter;
                         if (bootstrapNode.HasKv)
                         {
                             await bootstrapNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
                             await bootstrapNode.HelloHello().ConfigureAwait(false);
                             SupportsPreserveTtl = bootstrapNode.ServerFeatures.PreserveTtl;
                         }
-                        bootstrapNode.NodesAdapter = nodeAdapter;
                         bucket.Nodes.Add(bootstrapNode);
                         continue;
                     }
