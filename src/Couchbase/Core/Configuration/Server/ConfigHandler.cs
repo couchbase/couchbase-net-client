@@ -20,22 +20,16 @@ namespace Couchbase.Core.Configuration.Server
     internal class ConfigHandler : IConfigHandler
     {
         private readonly ILogger<ConfigHandler> _logger;
-
         private BufferBlock<BucketConfig>? _configQueue;
         private ActionBlock<BucketConfig>? _configHandler;
-
-        private readonly ConcurrentDictionary<string, BucketConfig> _configs =
-            new ConcurrentDictionary<string, BucketConfig>();
-
-        private readonly CancellationTokenSource _tokenSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource _tokenSource = new();
         private readonly ClusterContext _context;
         private readonly IHttpStreamingConfigListenerFactory _configListenerFactory;
 
         // Will be set to null when disposed
         private volatile ConcurrentDictionary<string, HttpStreamingConfigListener>? _httpConfigListeners = new();
 
-        private readonly HashSet<IConfigUpdateEventSink> _configChangedSubscribers =
-            new HashSet<IConfigUpdateEventSink>();
+        private readonly HashSet<IConfigUpdateEventSink> _configChangedSubscribers = new();
 
         private volatile bool _running;
         private volatile bool _disposed;
@@ -202,35 +196,15 @@ namespace Couchbase.Core.Configuration.Server
                 //Set the "effective" network resolution that was resolved at bootstrap time.
                 newMap.NetworkResolution = _context.ClusterOptions.EffectiveNetworkResolution;
 
-                _logger.LogDebug(LoggingEvents.ConfigEvent, "Receiving new map revision {revision}", newMap.Rev);
-                var isNewOrUpdate = false;
-                var stored = _configs.AddOrUpdate(newMap.Name, key =>
-                    {
-                        _logger.LogDebug(LoggingEvents.ConfigEvent, "Storing new map revision {revision}", newMap.Rev);
-                        isNewOrUpdate = true;
-                        return newMap;
-                    },
-                    (key, map) =>
-                    {
-                        _logger.LogDebug(LoggingEvents.ConfigEvent, "Updating new map revision {revision}", newMap.Rev);
-                        if (newMap.Equals(map)) return map;
-
-                        isNewOrUpdate = true;
-                        return newMap.Rev > map.Rev ? newMap : map;
-                    });
-
-                if (isNewOrUpdate)
+                List<IConfigUpdateEventSink> subscribers;
+                lock (_configChangedSubscribers)
                 {
-                    _logger.LogDebug("Publishing config revision {revision} to subscribers for processing.", stored.Rev);
-                    List<IConfigUpdateEventSink> subscribers;
-                    lock (_configChangedSubscribers)
-                    {
-                        subscribers = _configChangedSubscribers.ToList();
-                    }
-
-                    var tasks = subscribers.Select(p => p.ConfigUpdatedAsync(stored));
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                    subscribers = _configChangedSubscribers.ToList();
                 }
+
+                _logger.LogDebug(LoggingEvents.ConfigEvent, "Receiving new map revision {revision}", newMap.Rev);
+                var tasks = subscribers.Select(p => p.ConfigUpdatedAsync(newMap));
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -299,31 +273,12 @@ namespace Couchbase.Core.Configuration.Server
 
         public BucketConfig Get(string bucketName)
         {
-            try
-            {
-                if (_configs.TryGetValue(bucketName, out var bucketConfig))
-                {
-                    return bucketConfig;
-                }
-            }
-            catch (ObjectDisposedException e)
-            {
-                throw new ContextStoppedException("ConfigHandler is in stopped mode.", e);
-            }
-
-            throw new BucketMissingException(@"Cannot find bucket: " + bucketName);
+            throw new NotImplementedException();
         }
 
         public void Clear()
         {
-            try
-            {
-                _configs.Clear();
-            }
-            catch (ObjectDisposedException e)
-            {
-                throw new ContextStoppedException("ConfigHandler is in stopped mode.", e);
-            }
+            throw new NotImplementedException();
         }
 
         public void Dispose()

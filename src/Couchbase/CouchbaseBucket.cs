@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
@@ -16,7 +17,6 @@ using Couchbase.Management.Views;
 using Couchbase.Utils;
 using Couchbase.Views;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 #nullable enable
@@ -29,6 +29,7 @@ namespace Couchbase
         private readonly Lazy<IViewClient> _viewClientLazy;
         private readonly Lazy<IViewIndexManager> _viewManagerLazy;
         private readonly Lazy<ICouchbaseCollectionManager> _collectionManagerLazy;
+        private readonly SemaphoreSlim _configMutex = new(1, 1);
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory,
@@ -66,40 +67,57 @@ namespace Couchbase
 
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
-            if (newConfig.Name == Name && newConfig.IsNewerThan(CurrentConfig))
+            using var cts = new CancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
+            await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
+            try
             {
-                if (Logger.IsEnabled(LogLevel.Debug))
+                if (newConfig.HasConfigChanges(CurrentConfig, Name))
                 {
-                    Logger.LogDebug("Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}",
-                        newConfig.Rev, Name, CurrentConfig?.Rev);
-                    Logger.LogDebug(JsonSerializer.Serialize(CurrentConfig, InternalSerializationContext.Default.BucketConfig!));
-                }
-
-                CurrentConfig = newConfig;
-                if (CurrentConfig.VBucketMapChanged || newConfig.IgnoreRev)
-                {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating VB key mapper for rev#{revision} on {bucketName}", newConfig.Rev, Name);
-                    KeyMapper = _vBucketKeyMapperFactory.Create(CurrentConfig);
-                }
-
-                if (CurrentConfig.ClusterNodesChanged || newConfig.IgnoreRev)
-                {
-                    Logger.LogDebug(LoggingEvents.ConfigEvent, "Updating cluster nodes for rev#{revision} on {bucketName}", newConfig.Rev, Name);
-                    await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
-                    var nodes = Context.GetNodes(Name);
-
-                    //update the local nodes collection
-                    lock (Nodes)
+                    if (Logger.IsEnabled(LogLevel.Debug))
                     {
+                        Logger.LogDebug(
+                            "Processing cluster map for rev#{revision} on {bucketName} - old rev#{oldRevision}",
+                            newConfig.Rev, Name, CurrentConfig?.Rev);
+                        Logger.LogDebug(JsonSerializer.Serialize(newConfig,
+                            InternalSerializationContext.Default.BucketConfig!));
+                    }
+
+                    if (newConfig.HasVBucketMapChanged(CurrentConfig) || newConfig.IgnoreRev)
+                    {
+                        Logger.LogDebug(LoggingEvents.ConfigEvent,
+                            "Updating VB key mapper for rev#{revision} on {bucketName}", newConfig.Rev, Name);
+                        KeyMapper = _vBucketKeyMapperFactory.Create(newConfig);
+                    }
+
+                    if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
+                    {
+                        Logger.LogDebug(LoggingEvents.ConfigEvent,
+                            "Updating cluster nodes for rev#{revision} on {bucketName}", newConfig.Rev, Name);
+                        await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
+                        var nodes = Context.GetNodes(Name);
+
+                        //update the local nodes collection
                         Nodes.Clear();
                         foreach (var clusterNode in nodes)
                         {
                             Nodes.Add(clusterNode);
                         }
                     }
+
+                    //only accept the latest version if the processing was successful
+                    CurrentConfig = newConfig;
                 }
             }
-            Logger.LogDebug("Current revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.Rev);
+            catch (Exception ex)
+            {
+                Logger.LogError(LoggingEvents.ConfigEvent, "Error processing cluster map rev#{config}:{ex}",
+                    newConfig.Rev, ex);
+            }
+            finally
+            {
+                _configMutex.Release();
+            }
+            Logger.LogDebug(LoggingEvents.ConfigEvent,"Current revision for {bucketName} is rev#{revision}", Name, CurrentConfig?.Rev);
         }
 
         //TODO move Uri storage to ClusterNode - IBucket owns BucketConfig though

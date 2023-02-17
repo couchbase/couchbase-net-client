@@ -27,6 +27,7 @@ namespace Couchbase
         private readonly IKetamaKeyMapperFactory _ketamaKeyMapperFactory;
         private readonly IHttpClusterMapFactory _httpClusterMapFactory;
         private readonly HttpClusterMapBase _httpClusterMap;
+        private readonly SemaphoreSlim _configMutex = new(1, 1);
 
         internal MemcachedBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator, IKetamaKeyMapperFactory ketamaKeyMapperFactory,
             ILogger<MemcachedBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory, IRequestTracer tracer, IOperationConfigurator operationConfigurator, IRetryStrategy retryStrategy, IHttpClusterMapFactory httpClusterMapFactory, BucketConfig config) :
@@ -71,16 +72,24 @@ namespace Couchbase
 
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
-            if (newConfig.Name == Name && newConfig.IsNewerThan(CurrentConfig))
+            using var cts = new CancellationTokenSource(Context.ClusterOptions.ConfigUpdatingTimeout);
+            await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
+            try
             {
-                CurrentConfig = newConfig;
-
-                KeyMapper = _ketamaKeyMapperFactory.Create(CurrentConfig);
-
-                if (CurrentConfig.ClusterNodesChanged || newConfig.IgnoreRev)
+                if (newConfig.HasConfigChanges(CurrentConfig, Name))
                 {
-                    await Context.ProcessClusterMapAsync(this, CurrentConfig).ConfigureAwait(false);
+                    KeyMapper = _ketamaKeyMapperFactory.Create(newConfig);
+
+                    if (newConfig.HasClusterNodesChanged(CurrentConfig) || newConfig.IgnoreRev)
+                    {
+                        await Context.ProcessClusterMapAsync(this, newConfig).ConfigureAwait(false);
+                    }
+                    CurrentConfig = newConfig;
                 }
+            }
+            finally
+            {
+                _configMutex.Release();
             }
         }
 

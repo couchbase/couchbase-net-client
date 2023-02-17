@@ -341,7 +341,7 @@ namespace Couchbase.Core.Configuration.Server
             VBucketMapChanged = !Equals(VBucketServerMap, other.VBucketServerMap);
             ClusterNodesChanged = !(NodesExt.AreEqual(other.NodesExt) && Nodes.AreEqual(other.Nodes));
 
-            return Rev == other.Rev && string.Equals(Name, other.Name) && string.Equals(Uri, other.Uri) &&
+            return Rev == other.Rev && RevEpoch == other.RevEpoch && string.Equals(Name, other.Name) && string.Equals(Uri, other.Uri) &&
                    string.Equals(StreamingUri, other.StreamingUri) && string.Equals(NodeLocator, other.NodeLocator) &&
                    !ClusterNodesChanged && !VBucketMapChanged;
         }

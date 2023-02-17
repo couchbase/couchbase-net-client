@@ -24,27 +24,27 @@ namespace Couchbase.UnitTests.Core.Configuration
 {
     public class ConfigHandlerTests
     {
-        private static SemaphoreSlim _event;
         private readonly ITestOutputHelper _output;
-        private readonly FakeBucket _bucket;
 
         public ConfigHandlerTests(ITestOutputHelper output)
         {
-            _event = new SemaphoreSlim(0,1);
             _output = output;
-            _bucket = new FakeBucket(_output, _event);
         }
 
         [Fact]
         public void Publish_GreaterRevisionExcepted()
         {
             //arrange
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+
+            var mutex = new SemaphoreSlim(0, 1);
+            var bucket = new FakeBucket(_output, mutex);
+
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
-            handler.Subscribe(_bucket);
+            handler.Subscribe(bucket);
 
             var config1 = new BucketConfig
             {
@@ -61,17 +61,17 @@ namespace Couchbase.UnitTests.Core.Configuration
             //act
             handler.Publish(config1);
 
-            _event.Wait();
+            mutex.Wait();
 
             handler.Publish(config2);
 
-            _event.Wait();
+            mutex.Wait();
 
             //assert
-            Assert.Equal(config2.Rev, handler.Get("default").Rev);
+            Assert.Equal(config2.Rev, bucket.LatestConfig.Rev);
         }
 
-        private Mock<IHttpStreamingConfigListenerFactory> CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context)
+        private Mock<IHttpStreamingConfigListenerFactory> CreateHttpStreamingConfigListenerFactoryMock(BucketBase bucket, out ClusterContext context)
         {
             var clusterOptions = new ClusterOptions();
             context = new ClusterContext(new CancellationTokenSource(), clusterOptions);
@@ -79,7 +79,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             var httpClientFactory = new Mock<ICouchbaseHttpClientFactory>();
             var configHandler = new Mock<IConfigHandler>();
             var logger = new Mock<ILogger<HttpStreamingConfigListener>>();
-            var htpStreamingConfigListener = new HttpStreamingConfigListener(_bucket, clusterOptions, httpClientFactory.Object, configHandler.Object, logger.Object);
+            var htpStreamingConfigListener = new HttpStreamingConfigListener(bucket, clusterOptions, httpClientFactory.Object, configHandler.Object, logger.Object);
             httpStreamingConfigListenerFactory.Setup(x => x.Create(It.IsAny<IBucket>(), It.IsAny<IConfigHandler>())).Returns(htpStreamingConfigListener);
 
             return httpStreamingConfigListenerFactory;
@@ -90,12 +90,15 @@ namespace Couchbase.UnitTests.Core.Configuration
         {
             //arrange
 
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            var mutex = new SemaphoreSlim(0, 1);
+            var bucket = new FakeBucket(_output, mutex);
+
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
-            handler.Subscribe(_bucket);
+            handler.Subscribe(bucket);
 
             var config = new BucketConfig
             {
@@ -105,22 +108,25 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act
             handler.Publish(config);
-            _event.Wait();
+            mutex.Wait();
 
             //assert
-            Assert.Equal(1u, handler.Get("default").Rev);
+            Assert.Equal(1u, bucket.LatestConfig.Rev);
         }
 
         [Fact]
         public void Publish_LesserRevisionIgnored()
         {
             //arrange
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            var mutex = new SemaphoreSlim(0, 1);
+            var bucket = new FakeBucket(_output, mutex);
+
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
-            handler.Subscribe(_bucket);
+            handler.Subscribe(bucket);
 
             //act
             var config1 = new BucketConfig
@@ -136,25 +142,28 @@ namespace Couchbase.UnitTests.Core.Configuration
             };
 
             handler.Publish(config1);
-            _event.Wait();
+            mutex.Wait();
 
             handler.Publish(config2);
-            _event.Wait();
+            mutex.Wait();
 
             //assert
-            Assert.Equal(config1.Rev, handler.Get("default").Rev);
+            Assert.Equal(config1.Rev, bucket.LatestConfig.Rev);
         }
 
         [Fact]
         public void Publish_EqualRevisionIgnored()
         {
             //arrange
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            var mutex = new SemaphoreSlim(0, 1);
+            var bucket = new FakeBucket(_output, mutex);
+
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
-            handler.Subscribe(_bucket);
+            handler.Subscribe(bucket);
 
             var config1 = new BucketConfig
             {
@@ -170,40 +179,28 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             //act
             handler.Publish(config1);
-            _event.Wait();
+            mutex.Wait();
 
             handler.Publish(config2);
 
             //assert
-            Assert.Equal(config1.Rev, handler.Get("default").Rev);
-        }
-
-        [Fact]
-        public void Publish_When_ConfigNotRegistered_Throws_BucketMissingException()
-        {
-            //arrange
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
-            using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
-                new Mock<ILogger<ConfigHandler>>().Object);
-
-            //act
-            handler.Start();
-            handler.Subscribe(_bucket);
-
-            Assert.Throws<BucketMissingException>(() => handler.Get("default"));
+            Assert.Equal(config1.Rev, bucket.LatestConfig.Rev);
         }
 
         [Fact]
         public void Publish_When_Stopped_Throw_ContextStoppedException()
         {
             //arrange
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            var mutex = new SemaphoreSlim(0, 1);
+            var bucket = new FakeBucket(_output, mutex);
+
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             //act
             handler.Start();
-            handler.Subscribe(_bucket);
+            handler.Subscribe(bucket);
             handler.Dispose();
 
             var config = new BucketConfig
@@ -216,7 +213,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             Assert.Throws<ContextStoppedException>(() =>
             {
                 handler.Publish(config);
-                _event.Wait();
+                mutex.Wait();
             });
         }
 
@@ -224,15 +221,18 @@ namespace Couchbase.UnitTests.Core.Configuration
         public void Get_When_Bucket_Not_Subscribed_Throw_BucketMissingException()
         {
             //arrange
-            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(out ClusterContext context);
+            var mutex = new SemaphoreSlim(0, 1);
+            var bucket = new FakeBucket(_output, mutex);
+
+            var httpStreamingConfigListenerFactory = CreateHttpStreamingConfigListenerFactoryMock(bucket, out ClusterContext context);
             using var handler = new ConfigHandler(context, httpStreamingConfigListenerFactory.Object,
                 new Mock<ILogger<ConfigHandler>>().Object);
 
             handler.Start();
-            handler.Subscribe(_bucket);
+            handler.Subscribe(bucket);
 
             //act/assert
-            Assert.Throws<BucketMissingException>(() => handler.Get("default"));
+            Assert.Throws<NotImplementedException>(() => handler.Get("default"));
         }
 
         internal class FakeBucket : BucketBase
@@ -241,7 +241,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             private ITestOutputHelper _output;
 
             public FakeBucket(ITestOutputHelper output, SemaphoreSlim eventSlim)
-                : base("fake", new ClusterContext(), new Mock<IScopeFactory>().Object,
+                : base("default", new ClusterContext(), new Mock<IScopeFactory>().Object,
                     new Mock<IRetryOrchestrator>().Object, new Mock<ILogger>().Object, new TypedRedactor(RedactionLevel.None),
                     new Mock<IBootstrapperFactory>().Object,
                     NoopRequestTracer.Instance,
@@ -276,11 +276,18 @@ namespace Couchbase.UnitTests.Core.Configuration
 
             public override Task ConfigUpdatedAsync(BucketConfig newConfig)
             {
-                _output.WriteLine("recieved newConfig #: {0}", newConfig.Rev);
+                if (newConfig.HasConfigChanges(LatestConfig, Name))
+                {
+                    LatestConfig = newConfig;
+                    _output.WriteLine("received newConfig #: {0}", newConfig.Rev);
+                }
+
                 _event.Release();
 
                 return Task.CompletedTask;
             }
+
+            public BucketConfig LatestConfig { get; set; }
         }
     }
 }

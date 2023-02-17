@@ -520,6 +520,12 @@ namespace Couchbase
         public string? UserName { get; set; }
         public string? Password { get; set; }
 
+        /// <summary>
+        /// The time to wait for a bucket re-configuration to take place after receiving a new cluster map config.
+        /// </summary>
+        /// <remarks>The default is 15s.</remarks>
+        public TimeSpan ConfigUpdatingTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
         //Foundation RFC conformance
         /// <summary>
         /// The time to wait while attempting to connect to a node’s KV service via a socket. Initial connection, reconnecting, node added, etc.

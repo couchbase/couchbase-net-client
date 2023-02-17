@@ -2,11 +2,52 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Management.Analytics;
+using Couchbase.Utils;
 
 namespace Couchbase.Core.Configuration.Server
 {
     internal static class BucketConfigExtensions
     {
+        public static bool HasVBucketMapChanged(this BucketConfig config, BucketConfig? other)
+        {
+            if (other == null)
+            {
+                return true;
+            }
+            return !Equals(config.VBucketServerMap, other.VBucketServerMap);
+        }
+
+        public static bool HasClusterNodesChanged(this BucketConfig config, BucketConfig? other)
+        {
+            if (other == null)
+            {
+                return true;
+            }
+            return !(config.NodesExt.AreEqual(other.NodesExt) && config.Nodes.AreEqual(other.Nodes));
+        }
+        public static bool HasConfigChanges(this BucketConfig newConfig, BucketConfig? oldConfig, string bucketName)
+        {
+            //Wrong bucket name - configs are broadcast so keep on going
+            if (!newConfig.Name.Equals(bucketName))
+            {
+                return false;
+            }
+
+            //first config received matches the bucket name
+            if (oldConfig == null)
+            {
+                return true;
+            }
+
+            //There has been a config change and the newConfig may need to be loaded
+            if (!oldConfig.Equals(newConfig))
+            {
+                return newConfig.IsNewerThan(oldConfig);
+            }
+
+            return false;
+        }
         public static bool IsNewerThan(this BucketConfig newConfig, BucketConfig? oldConfig)
         {
             if (newConfig.IgnoreRev) return true; //in this case, its a DNS SRV refresh so ignore and just accept the config

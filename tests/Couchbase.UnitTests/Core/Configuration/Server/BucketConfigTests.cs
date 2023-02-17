@@ -55,7 +55,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                 InternalSerializationContext.Default.BucketConfig);
 
             Assert.False(config2.Equals(config1));
-            Assert.True(config2.ClusterNodesChanged);
+            Assert.True(config1.HasClusterNodesChanged(config2));
         }
 
         [Fact]
@@ -142,12 +142,12 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
             {
                 config2.Nodes[0].Hostname = "localhost:8091";
                 config2.Equals(config1);
-                Assert.True(config2.ClusterNodesChanged);
+                Assert.True(config1.HasClusterNodesChanged(config2));
             }
             else
             {
                 config2.Equals(config1);
-                Assert.False(config2.ClusterNodesChanged);
+                Assert.False(config1.HasClusterNodesChanged(config2));
             }
         }
 

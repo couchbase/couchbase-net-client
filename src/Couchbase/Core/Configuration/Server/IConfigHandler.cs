@@ -6,11 +6,40 @@ namespace Couchbase.Core.Configuration.Server
 {
     internal interface IConfigHandler : IDisposable
     {
+        /// <summary>
+        /// Starts the config handler
+        /// </summary>
+        /// <param name="withPolling">Enable polling via CCCP.</param>
         void Start(bool withPolling = false);
+
+        /// <summary>
+        /// Publishes a config to the handler and any subscribers
+        /// </summary>
+        /// <param name="config">The <see cref="BucketConfig"/> to publish.</param>
         void Publish(BucketConfig config);
+
+        /// <summary>
+        /// Subscribe to the config handler to receive cluster map updates.
+        /// </summary>
+        /// <param name="bucket">The <see cref="IConfigUpdateEventSink"/> subscriber.</param>
         void Subscribe(BucketBase bucket);
+
+        /// <summary>
+        /// Unsubscribes the subscriber.
+        /// </summary>
+        /// <param name="bucket"></param>
         void Unsubscribe(BucketBase bucket);
+
+        /// <summary>
+        /// Fetch a <see cref="BucketConfig"/> from the listener if they are a subscriber.
+        /// </summary>
+        /// <param name="bucketName">The name of the bucket.</param>
+        /// <returns>A <see cref="BucketConfig"/> for a <see cref="IBucket"/> subscriber.</returns>
         BucketConfig Get(string bucketName);
+
+        /// <summary>
+        /// Clears the subscribers.
+        /// </summary>
         void Clear();
     }
 }
