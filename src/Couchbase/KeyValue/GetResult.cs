@@ -15,7 +15,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.KeyValue
 {
-    internal class GetResult : IGetResult
+    internal class GetResult : IGetResult, IResponseStatus
     {
         private SlicedMemoryOwner<byte> _contentBytes;
         private readonly IList<LookupInSpec> _specs;
@@ -23,9 +23,18 @@ namespace Couchbase.KeyValue
         private readonly ITypeTranscoder _transcoder;
         private readonly ITypeSerializer? _serializer;
         private readonly ILogger<GetResult> _logger;
+        private readonly ResponseStatus _status;
         private bool _isParsed;
         private TimeSpan? _expiry;
         private DateTime? _expiryTime;
+
+        internal GetResult(in SlicedMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder,
+            ILogger<GetResult> logger,
+            ResponseStatus status, List<LookupInSpec>? specs = null, IReadOnlyCollection<string>? projectList = null)
+            : this(contentBytes, transcoder, logger, specs, projectList)
+        {
+            _status = status;
+        }
 
         internal GetResult(in SlicedMemoryOwner<byte> contentBytes, ITypeTranscoder transcoder, ILogger<GetResult> logger,
             List<LookupInSpec>? specs = null, IReadOnlyCollection<string>? projectList = null)
@@ -47,7 +56,7 @@ namespace Couchbase.KeyValue
             _projectList = projectList;
         }
 
-        ResponseStatus IGetResult.Status { get; set; }
+        ResponseStatus IResponseStatus.Status => _status;
 
         internal OperationHeader Header { get; set; }
 

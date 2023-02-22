@@ -13,8 +13,6 @@ namespace Couchbase.KeyValue
         TimeSpan? Expiry { get; }
 
         DateTime? ExpiryTime { get; }
-
-        internal ResponseStatus Status { get; set; }
     }
 }
 

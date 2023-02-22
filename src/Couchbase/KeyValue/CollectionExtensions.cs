@@ -31,7 +31,6 @@ namespace Couchbase.KeyValue
         public static async Task<ITryGetResult> TryGetAsync(this ICouchbaseCollection collection, string id)
         {
             var getResult = await collection.GetAsync(id, GetOptionsPreferReturn).ConfigureAwait(false);
-
             return new TryGetResult(getResult);
         }
 

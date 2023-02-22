@@ -19,7 +19,18 @@ internal class TryGetResult: ITryGetResult
     }
 
     /// <inheritdoc />
-    public bool Exists => _getResult.Status == ResponseStatus.Success;
+    public bool Exists
+    {
+        get
+        {
+            if (_getResult is not IResponseStatus responseStatus)
+            {
+                return true;
+            }
+
+            return responseStatus.Status != ResponseStatus.KeyNotFound;
+        }
+    }
 
     /// <inheritdoc />
     public ulong Cas => _getResult.Cas;
@@ -43,9 +54,5 @@ internal class TryGetResult: ITryGetResult
     /// <inheritdoc />
     public DateTime? ExpiryTime => _getResult.ExpiryTime;
 
-    ResponseStatus IGetResult.Status
-    {
-        get => _getResult.Status;
-        set => throw new NotSupportedException();
-    }
+    public ResponseStatus Status { get; }
 }

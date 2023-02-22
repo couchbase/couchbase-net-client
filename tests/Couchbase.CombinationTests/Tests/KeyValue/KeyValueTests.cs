@@ -40,11 +40,11 @@ namespace Couchbase.CombinationTests.Tests.KeyValue
             var doc1 = "ExistentKey";
             await col.UpsertAsync(doc1, new { DocThatExists = true });
 
-                var getResult = await col.TryGetAsync(doc1);
-                Assert.True(getResult.Exists);
+            var getResult = await col.TryGetAsync(doc1);
+            Assert.True(getResult.Exists);
 
-                var content = getResult.ContentAs<dynamic>();
-                Assert.NotNull(content);
+            var content = getResult.ContentAs<dynamic>();
+            Assert.NotNull(content);
         }
 
         [Fact]

@@ -187,7 +187,7 @@ namespace Couchbase.KeyValue
                 using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getOp);
                 var status = await _bucket.RetryAsync(getOp, ctp.TokenPair).ConfigureAwait(false);
 
-                IGetResult result = new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger)
+                var result = new GetResult(getOp.ExtractBody(), getOp.Transcoder, _getLogger, status)
                 {
                     Id = getOp.Key,
                     Cas = getOp.Cas,
@@ -196,7 +196,6 @@ namespace Couchbase.KeyValue
                     Header = getOp.Header,
                     Opaque = getOp.Opaque
                 };
-                result.Status = status;
                 return result;
             }
 
@@ -539,7 +538,7 @@ namespace Couchbase.KeyValue
             using var ctp = CreateRetryTimeoutCancellationTokenSource(options, getAndTouchOp);
             await _bucket.RetryAsync(getAndTouchOp, ctp.TokenPair).ConfigureAwait(false);
 
-            return new GetResult(getAndTouchOp.ExtractBody(), getAndTouchOp.Transcoder, _getLogger)
+            return new  GetResult(getAndTouchOp.ExtractBody(), getAndTouchOp.Transcoder, _getLogger)
             {
                 Id = getAndTouchOp.Key,
                 Cas = getAndTouchOp.Cas,
@@ -702,7 +701,7 @@ namespace Couchbase.KeyValue
                 _operationConfigurator.Configure(lookup, options);
 
                 using var ctp = CreateRetryTimeoutCancellationTokenSource(options, lookup);
-                await _bucket.RetryAsync(lookup, ctp.TokenPair).ConfigureAwait(false);
+                var status = await _bucket.RetryAsync(lookup, ctp.TokenPair).ConfigureAwait(false);
                 return lookup;
             }
             catch

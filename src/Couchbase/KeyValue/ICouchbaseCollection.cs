@@ -47,7 +47,7 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="id">The id of the document.</param>
         /// <param name="options">Optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in an <see cref="IGetResult"></see> API object.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing the JSON object or scalar encapsulated in an <see cref="IGetResult"></see> API object.</returns>
         Task<IGetResult> GetAsync(string id, GetOptions? options = null);
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="id">The id of the document.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing an <see cref="IExistsResult"/> object with a boolean value indicating the presence of the document.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing an <see cref="IExistsResult"/> object with a boolean value indicating the presence of the document.</returns>
         Task<IExistsResult> ExistsAsync(string id, ExistsOptions? options = null);
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="content">The content or document body.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing an <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing an <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
         Task<IMutationResult> UpsertAsync<T>(string id, T content, UpsertOptions? options = null);
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="content">The content or document body.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing a IMutationResult object if successful otherwise an exception with details for the reason the operation failed.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing a IMutationResult object if successful otherwise an exception with details for the reason the operation failed.</returns>
         Task<IMutationResult> InsertAsync<T>(string id, T content, InsertOptions? options = null);
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="content">The content or document body.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing a <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing a <see cref="IMutationResult"/> object if successful otherwise an exception with details for the reason the operation failed.</returns>
         Task<IMutationResult> ReplaceAsync<T>(string id, T content, ReplaceOptions? options = null);
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="id">The id of the document.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> object for awaiting.</returns>
         Task RemoveAsync(string id, RemoveOptions? options = null);
 
         [Obsolete("Use overload that does not have a Type parameter T.")]
@@ -105,7 +105,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="cas">The CAS from the GetAndLock operation.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> object for awaiting.</returns>
         Task UnlockAsync(string id, ulong cas, UnlockOptions? options = null);
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="expiry">The <see cref="TimeSpan"/> expiry of the new expiration time.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> object for awaiting.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> object for awaiting.</returns>
         Task TouchAsync(string id, TimeSpan expiry, TouchOptions? options = null);
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="expiry">The duration of the lock.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
         Task<IGetResult> GetAndTouchAsync(string id, TimeSpan expiry, GetAndTouchOptions? options = null);
 
         /// <summary>
@@ -132,7 +132,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="expiry">The duration of the lock.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetResult"/> API object.</returns>
         /// <remarks> The maximum amount of time a key can be locked is 30 seconds; any parameter you provide that is more than 30 seconds will be set
         /// to 30 seconds; negative numbers will be interpreted as 30 seconds also.</remarks>
         Task<IGetResult> GetAndLockAsync(string id, TimeSpan expiry, GetAndLockOptions? options = null);
@@ -144,7 +144,7 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="id">The id of the document.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetReplicaResult"/> API object.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> The JSON object or scalar encapsulated in a <see cref="IGetReplicaResult"/> API object.</returns>
         Task<IGetReplicaResult> GetAnyReplicaAsync(string id, GetAnyReplicaOptions? options = null);
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace Couchbase.KeyValue
         /// </summary>
         /// <param name="id">The id of the document.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing the JSON object or scalar encapsulated in a list of <see cref="IGetReplicaResult"/> API objects.</returns>
         IEnumerable<Task<IGetReplicaResult>> GetAllReplicasAsync(string id, GetAllReplicasOptions? options = null);
 
         #endregion
@@ -166,7 +166,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> object.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing the results of the lookup as an <see cref="ILookupInResult"/> object.</returns>
         Task<ILookupInResult> LookupInAsync(string id, IEnumerable<LookupInSpec> specs, LookupInOptions? options = null);
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace Couchbase.KeyValue
         /// <param name="id">The id of the document.</param>
         /// <param name="specs">An array of fetch operations - requires at least one: exists, get, count. There is a server enforced maximum of 16 sub document operations allowed per call.</param>
         /// <param name="options">Any optional parameters.</param>
-        /// <returns>An asychronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
+        /// <returns>An asynchronous <see cref="Task"/> containing the results of the mutation as an <see cref="IMutateInResult"/> object.</returns>
         Task<IMutateInResult> MutateInAsync(string id, IEnumerable<MutateInSpec> specs, MutateInOptions? options = null);
 
         #endregion
