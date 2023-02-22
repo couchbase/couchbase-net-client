@@ -130,5 +130,18 @@ namespace Couchbase.UnitTests
         }
 
         #endregion
+
+        #region NullHostsInConnectionString
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("couchbase://")]
+        [InlineData("couchbases://")]
+        public void Test_Null_Hosts_in_Connection_String(string cstring)
+        {
+            Assert.Throws<ArgumentException>(() => ConnectionString.Parse(cstring));
+        }
+
+        #endregion
     }
 }

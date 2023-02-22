@@ -95,6 +95,9 @@ namespace Couchbase
                 connectionString.Hosts = match.Groups["hosts"].Value.Split(',')
                     .Select(host => HostEndpoint.Parse(host.Trim()))
                     .ToList();
+            } else if (match.Groups["hosts"].Length == 0)
+            {
+                throw new ArgumentException("Hosts list is empty. At least one host is expected in the connection string.");
             }
 
             if (match.Groups["params"].Success)

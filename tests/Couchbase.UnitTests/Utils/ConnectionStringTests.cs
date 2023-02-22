@@ -9,22 +9,19 @@ namespace Couchbase.UnitTests.Utils
         [Fact]
         public void Can_parse_valid_schemes()
         {
-            var parsed = ConnectionString.Parse("http://");
+            var parsed = ConnectionString.Parse("http://localhost:1234");
             Assert.Equal(Scheme.Http, parsed.Scheme);
             Assert.Null(parsed.Username);
-            Assert.Empty(parsed.Hosts);
             Assert.Empty(parsed.Parameters);
 
-            parsed = ConnectionString.Parse("couchbase://");
+            parsed = ConnectionString.Parse("couchbase://localhost:1234");
             Assert.Equal(Scheme.Couchbase, parsed.Scheme);
             Assert.Null(parsed.Username);
-            Assert.Empty(parsed.Hosts);
             Assert.Empty(parsed.Parameters);
 
-            parsed = ConnectionString.Parse("couchbases://");
+            parsed = ConnectionString.Parse("couchbases://localhost:1234");
             Assert.Equal(Scheme.Couchbases, parsed.Scheme);
             Assert.Null(parsed.Username);
-            Assert.Empty(parsed.Hosts);
             Assert.Empty(parsed.Parameters);
         }
 
