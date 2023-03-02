@@ -20,7 +20,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <!-- update this after a release-->
-    <CouchbaseNetClientReleasedVersion>3.3.3</CouchbaseNetClientReleasedVersion>
+    <CouchbaseNetClientReleasedVersion>3.4.3</CouchbaseNetClientReleasedVersion>
   </PropertyGroup>
   <PropertyGroup>
     <!-- libraries typically include NetStandardTargets for widest use cases -->
@@ -29,8 +29,8 @@
     <NetStandardTargets>netstandard2.0;netstandard2.1</NetStandardTargets>
 
     <!-- If you need to build with Visual Studio < 2022, remove net6.0 -->
-    <NetModernTargets>net5.0;net6.0</NetModernTargets>
-    <NetSpecificTargets>netcoreapp3.1;$(NetModernTargets)</NetSpecificTargets>
+    <NetModernTargets>net6.0</NetModernTargets>
+    <NetSpecificTargets>$(NetModernTargets)</NetSpecificTargets>
   </PropertyGroup>
 
   <ItemGroup>
