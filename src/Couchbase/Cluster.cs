@@ -49,7 +49,6 @@ namespace Couchbase
         private readonly IRequestTracer _tracer;
         private readonly IRetryStrategy _retryStrategy;
         private readonly MeterForwarder? _meterForwarder;
-        private readonly string _queryContext;
 
         // Internal is used to provide a seam for unit tests
         internal Lazy<IQueryClient> LazyQueryClient;
@@ -104,8 +103,6 @@ namespace Couchbase
 
             var bootstrapperFactory = _context.ServiceProvider.GetRequiredService<IBootstrapperFactory>();
             _bootstrapper = bootstrapperFactory.Create(clusterOptions.BootstrapPollInterval);
-
-            _queryContext = QueryContext.CreateOrDefault();
         }
 
         /// <inheritdoc />
@@ -332,7 +329,6 @@ namespace Couchbase
         {
             options ??= new QueryOptions();
             options.TimeoutValue ??= _context.ClusterOptions.QueryTimeout;
-            options.QueryContext = _queryContext;
 
             async Task<IQueryResult<T>> Func()
             {

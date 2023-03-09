@@ -30,7 +30,7 @@ namespace Couchbase.KeyValue
             _collectionFactory = collectionFactory ?? throw new ArgumentNullException(nameof(collectionFactory));
 
             _collections = new ConcurrentDictionary<string, ICouchbaseCollection>();
-            _queryContext = $"default:{_bucket.Name.EscapeIfRequired()}.{name.EscapeIfRequired()}";
+            _queryContext = Utils.QueryContext.Create(_bucket.Name.EscapeIfRequired(), name.EscapeIfRequired());
             IsDefaultScope = name == DefaultScopeName;
         }
 
