@@ -17,6 +17,7 @@ namespace Couchbase.Core.Exceptions
         public TimeoutException(string message) : base(message) { }
 
         public TimeoutException(string message, Exception innerException) : base(message, innerException) { }
+        public TimeoutException(string message, IErrorContext errorContext) : base(errorContext, message) { }
     }
 }
 

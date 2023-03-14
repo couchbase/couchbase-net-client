@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Couchbase.Core.Exceptions.Query;
 using Couchbase.Core.Retry;
 
 namespace Couchbase.Core.Exceptions
@@ -15,6 +16,7 @@ namespace Couchbase.Core.Exceptions
         public UnambiguousTimeoutException(string message) : base(message) { }
 
         public UnambiguousTimeoutException(string message, Exception innerException) : base(message, innerException) { }
+        public UnambiguousTimeoutException(string message, QueryErrorContext errorContext) : base(message, errorContext){ }
 
         public List<RetryReason> RetryReasons { get; } = new List<RetryReason>();
 

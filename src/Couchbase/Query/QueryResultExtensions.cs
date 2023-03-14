@@ -117,8 +117,9 @@ namespace Couchbase.Query
                     return new RateLimitedException(RateLimitedReason.NetworkEgressRateLimitReached, context);
 
                 //query_context was not included in the request and the server requires it
-                if (error.Code == 1197)
-                    return new QueryContextMissingException(context);
+                if (error.Code == 1197) return new QueryContextMissingException(context);
+
+                if (error.Code == 1080) return new UnambiguousTimeoutException("Query timed out while streaming/receiving rows.", context);
             }
 
             return new CouchbaseException(context);
