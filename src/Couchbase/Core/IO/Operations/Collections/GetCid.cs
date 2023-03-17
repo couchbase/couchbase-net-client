@@ -30,7 +30,7 @@ namespace Couchbase.Core.IO.Operations.Collections
                 }
             }
 
-            return 0u;
+            return null;
         }
         protected override void WriteExtras(OperationBuilder builder)
         {

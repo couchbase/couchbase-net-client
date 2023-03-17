@@ -100,7 +100,15 @@ namespace Couchbase.Core.Retry
 
                                 LogCappedQueryDuration(request.ClientContextId, cappedDuration.TotalMilliseconds, stopwatch.ElapsedMilliseconds);
 
-                                await Task.Delay(cappedDuration, token).ConfigureAwait(false);
+                                try
+                                {
+                                    await Task.Delay(cappedDuration, token).ConfigureAwait(false);
+                                }
+                                catch
+                                {
+
+                                }
+
                                 request.IncrementAttempts(reason);
 
                                 //temp fix for query unit tests
@@ -173,7 +181,8 @@ namespace Couchbase.Core.Retry
                     {
                         var isExternal = tokenPair.IsExternalCancellation ? "(External)" : string.Empty;
                         var isInternal = tokenPair.IsInternalCancellation ? "(Internal)" : string.Empty;
-                        var msg = $"Operation {operation.Opaque}/{_redactor.UserData(operation.Key)} cancelled {isExternal}{isInternal} after {operation.Elapsed.TotalMilliseconds}ms. ({String.Join(",", operation.RetryReasons)})";
+                        var msg =
+                            $"Operation {operation.Opaque}/{_redactor.UserData(operation.Key)} cancelled {isExternal}{isInternal} after {operation.Elapsed.TotalMilliseconds}ms. ({String.Join(",", operation.RetryReasons)})";
                         throw new OperationCanceledException(msg, lastRetriedException, tokenPair.CanceledToken);
                     }
 
@@ -222,9 +231,9 @@ namespace Couchbase.Core.Retry
                                     // rethrow if we fail to refresh the collection ID so we hit retry logic
                                     // otherwise we'll loop and retry immediately
                                     operation.Reset();
-                                    operation.IncrementAttempts(status == ResponseStatus.UnknownScope ?
-                                        RetryReason.ScopeNotFound :
-                                        RetryReason.CollectionNotFound);
+                                    operation.IncrementAttempts(status == ResponseStatus.UnknownScope
+                                        ? RetryReason.ScopeNotFound
+                                        : RetryReason.CollectionNotFound);
                                     continue;
                                 }
                             }
@@ -241,9 +250,11 @@ namespace Couchbase.Core.Retry
                                 {
                                     operation.Reset();
                                 }
+
                                 operation.IncrementAttempts(reason);
                                 continue;
                             }
+
                             var strategy = operation.RetryStrategy;
                             var action = strategy.RetryAfter(operation, reason);
 
@@ -264,6 +275,7 @@ namespace Couchbase.Core.Retry
                                 {
                                     return status;
                                 }
+
                                 throw status.CreateException(operation, bucket);
                             }
                         }
@@ -273,6 +285,7 @@ namespace Couchbase.Core.Retry
                             {
                                 return status;
                             }
+
                             //do not retry just raise the exception
                             throw status.CreateException(operation, bucket);
                         }
@@ -290,21 +303,17 @@ namespace Couchbase.Core.Retry
                             lastRetriedException = e;
                             LogRetryDueToAlwaysRetry(operation.Opaque, _redactor.UserData(operation.Key), reason);
 
-                            try
-                            {
-                                await backoff.Delay(operation).ConfigureAwait(false);
-                            }
-                            catch (OperationCanceledException)
-                            { }
-
+                            await backoff.Delay(operation).ConfigureAwait(false);
                             // no need to reset op in this case as it was not actually sent
                             if (reason != RetryReason.CircuitBreakerOpen)
                             {
                                 operation.Reset();
                             }
+
                             operation.IncrementAttempts(reason);
                             continue;
                         }
+
                         var strategy = operation.RetryStrategy;
                         var action = strategy.RetryAfter(operation, reason);
                         if (action.Retry)
@@ -315,12 +324,7 @@ namespace Couchbase.Core.Retry
                             operation.Reset();
                             operation.IncrementAttempts(reason);
 
-                            try
-                            {
-                                await backoff.Delay(operation).ConfigureAwait(false);
-                            }
-                            catch (OperationCanceledException)
-                            { }
+                            await backoff.Delay(operation).ConfigureAwait(false);
                         }
                         else
                         {
@@ -355,6 +359,10 @@ namespace Couchbase.Core.Retry
                     RetryReasons = operation.RetryReasons
                 });
             }
+            catch (Exception e)
+            {
+                var ex = e;
+            }
 
             return ResponseStatus.Failure;//what to do here?
         }
@@ -372,7 +380,10 @@ namespace Couchbase.Core.Retry
                     await collection.PopulateCidAsync(false, true).ConfigureAwait(false);
 
                     op.Reset();
-                    op.Cid = collection.Cid;
+                    if (collection.Cid.HasValue)
+                    {
+                        op.Cid = collection.Cid;
+                    }
 
                     return true;
                 }
