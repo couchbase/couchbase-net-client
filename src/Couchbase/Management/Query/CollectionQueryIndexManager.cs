@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
+using Couchbase.Utils;
+
 #pragma warning disable CS0618
 
 namespace Couchbase.Management.Query;
@@ -25,6 +27,7 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
     {
         options.ScopeName(_collection.Scope.Name);
         options.CollectionName(_collection.Name);
+        options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.GetAllIndexesAsync(_bucket.Name, options);
     }
 
@@ -33,6 +36,7 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
     {
         options.ScopeName(_collection.Scope.Name);
         options.CollectionName(_collection.Name);
+        options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.CreateIndexAsync(_bucket.Name, indexName, fields, options);
     }
 
@@ -41,6 +45,7 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
     {
         options.ScopeName(_collection.Scope.Name);
         options.CollectionName(_collection.Name);
+        options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.CreatePrimaryIndexAsync(_bucket.Name, options);
     }
 
@@ -49,6 +54,7 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
     {
         options.ScopeName(_collection.Scope.Name);
         options.CollectionName(_collection.Name);
+        options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.DropIndexAsync(_bucket.Name, indexName, options);
     }
 
@@ -57,6 +63,7 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
     {
         options.ScopeName(_collection.Scope.Name);
         options.CollectionName(_collection.Name);
+        options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.DropPrimaryIndexAsync(_bucket.Name, options);
     }
 
@@ -65,6 +72,7 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
     {
         options.ScopeName(_collection.Scope.Name);
         options.CollectionName(_collection.Name);
+        options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.WatchIndexesAsync(_bucket.Name, indexNames, options);
     }
 
@@ -73,6 +81,7 @@ internal class CollectionQueryIndexManager : ICollectionQueryIndexManager
     {
         options.ScopeName(_collection.Scope.Name);
         options.CollectionName(_collection.Name);
+        options.QueryContext = QueryContext.CreateOrDefault(_bucket.Name, _collection.Scope.Name);
         return _queryIndexManager.BuildDeferredIndexesAsync(_bucket.Name, options);
     }
 

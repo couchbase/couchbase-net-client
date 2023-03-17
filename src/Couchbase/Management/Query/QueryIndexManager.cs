@@ -38,12 +38,11 @@ namespace Couchbase.Management.Query
 
             try
             {
-                var queryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
                 var indexes = await this.GetAllIndexesAsync(bucketName,
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
-                        queryOptions.QueryContext = queryContext;
+                        if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
 
                 var tasks = new List<Task>();
@@ -54,7 +53,7 @@ namespace Couchbase.Management.Query
                         queryOptions =>
                         {
                             queryOptions.CancellationToken(options.TokenValue);
-                            queryOptions.QueryContext = queryContext;
+                            if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                         }));
                 }
 
@@ -98,7 +97,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
-                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                        if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
@@ -132,7 +131,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
-                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                        if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
@@ -172,7 +171,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
-                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                        if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
@@ -207,7 +206,7 @@ namespace Couchbase.Management.Query
                     queryOptions =>
                     {
                         queryOptions.CancellationToken(options.TokenValue);
-                        queryOptions.QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue);
+                        if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
                     }).ConfigureAwait(false);
             }
             catch (IndexExistsException e)
@@ -235,12 +234,11 @@ namespace Couchbase.Management.Query
 
             try
             {
-                var queryOptions = new QueryOptions
-                    {
-                        QueryContext = QueryContext.CreateOrDefault(bucketName, options.ScopeNameValue)
-                    }
+                var queryOptions = new QueryOptions()
                     .Parameter("bucketName", bucketName)
                     .CancellationToken(options.TokenValue);
+
+                if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
 
                 if (!string.IsNullOrWhiteSpace(options.ScopeNameValue))
                 {
@@ -285,8 +283,11 @@ namespace Couchbase.Management.Query
                 while (!options.TokenValue.IsCancellationRequested)
                 {
                     var indexes = await this.GetAllIndexesAsync(bucketName,
-                        queryOptions => queryOptions.CancellationToken(options.TokenValue)
-                    ).ConfigureAwait(false);
+                        queryOptions =>
+                        {
+                            queryOptions.CancellationToken(options.TokenValue);
+                            if (options.QueryContext != null) queryOptions.QueryContext = options.QueryContext;
+                        }).ConfigureAwait(false);
 
                     var pendingIndexes = indexes.Where(index => index.State != "online")
                         .Select(index => index.Name)

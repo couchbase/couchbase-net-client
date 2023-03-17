@@ -15,6 +15,7 @@ namespace Couchbase.Management.Query
         internal CancellationToken TokenValue { get; set; } = CancellationTokenCls.None;
         internal string? ScopeNameValue { get; set; }
         internal string? CollectionNameValue { get; set; }
+        internal string? QueryContext { get; set; }
 
         /// <summary>
         /// Sets the scope name for this query management operation.

@@ -29,6 +29,7 @@ internal static class QueryContext
             return Create();
         if (bucketName != null && scopeName == null)
             return Create(bucketName);
+
         return Create(bucketName ?? "default", scopeName);
     }
 }

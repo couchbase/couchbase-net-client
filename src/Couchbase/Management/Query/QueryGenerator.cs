@@ -19,18 +19,22 @@ namespace Couchbase.Management.Query
         {
             if(options.ScopeNameValue == null)
             {
-                return $"BUILD INDEX ON {bucketName.EscapeIfRequired()}({indexName}) USING GSI;";
+                return $"BUILD INDEX ON {bucketName.EscapeIfRequired()}({indexName.EscapeIfRequired()}) USING GSI;";
             }
-            return $"BUILD INDEX ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()}({indexName}) USING GSI;";
+            return $"BUILD INDEX ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()}({indexName.EscapeIfRequired()}) USING GSI;";
         }
 
         public static string CreatePrimaryIndexStatement(string bucketName, CreatePrimaryQueryIndexOptions options = null)
         {
-            if (options.ScopeNameValue == null)
+            if (options.ScopeNameValue == null && options.IndexNameValue == null)
             {
                 return $"CREATE PRIMARY INDEX ON {bucketName.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
             }
-            return $"CREATE PRIMARY INDEX ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+            if (options.ScopeNameValue != null && options.IndexNameValue == null)
+            {
+                return $"CREATE PRIMARY INDEX ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+            }
+            return $"CREATE PRIMARY INDEX {options.IndexNameValue?.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
         }
 
         public static string CreateDropIndexStatement(string bucketName, string indexName, DropQueryIndexOptions options)

@@ -197,7 +197,7 @@ namespace Couchbase.IntegrationTests.Management
             {
                 //CREATE INDEX idx4 ON default(age MISSING, body)
                 await cluster.QueryIndexes.CreateIndexAsync(
-                    bucket.Name, indexName, new[] { "age MISSING", "body" }).ConfigureAwait(false);
+                    bucket.Name, indexName, new[] { "age INCLUDE MISSING", "body" }).ConfigureAwait(false);
             }
             catch (IndexExistsException)
             {

@@ -27,6 +27,7 @@ public class CollectionQueryIndexManagerTests
         var expected = "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) OR (bucket_id IS MISSING and keyspace_id=$bucketName)) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC";
 
         Assert.Equal(expected, actual);
+        Assert.Equal("default:`default`.`_default`", queryClient.FormValues["query_context"]);
     }
 
     [Fact]
@@ -40,6 +41,7 @@ public class CollectionQueryIndexManagerTests
         var expected = "SELECT idx.* FROM system:indexes AS idx WHERE (bucket_id=$bucketName AND scope_id=$scopeName AND keyspace_id=$collectionName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC";
 
         Assert.Equal(expected, actual);
+        Assert.Equal("default:`bucket`.`scope`", queryClient.FormValues["query_context"]);
     }
 
     [Fact]
@@ -54,6 +56,7 @@ public class CollectionQueryIndexManagerTests
             "SELECT idx.* FROM system:indexes AS idx WHERE ((bucket_id IS MISSING AND keyspace_id = $bucketName) OR bucket_id = $bucketName) AND `using`=\"gsi\" ORDER BY is_primary DESC, name ASC";
 
         Assert.Equal(expected, actual);
+        Assert.Equal("default:`bucket`", queryClient.FormValues["query_context"]);
     }
 
     private ICollectionQueryIndexManager CreateQueryCollectionIndexManager(string bucketName, string scopeName, string collectionName, out FakeQueryClient queryClient)

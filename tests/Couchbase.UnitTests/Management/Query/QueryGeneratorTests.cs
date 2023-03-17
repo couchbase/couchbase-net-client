@@ -33,11 +33,11 @@ namespace Couchbase.UnitTests.Management.Query
         }
 
         [Theory]
-        [InlineData("default", "index1", "_default", "_default", "BUILD INDEX ON `default`.`_default`.`_default`(index1) USING GSI;")]
-        [InlineData("default", "index1", null, null, "BUILD INDEX ON `default`(index1) USING GSI;")]
-        [InlineData("`default`", "index1", null, null, "BUILD INDEX ON `default`(index1) USING GSI;")]
-        [InlineData("`default", "index1", null, null, "BUILD INDEX ON `default`(index1) USING GSI;")]
-        [InlineData("default`", "index1", null, null, "BUILD INDEX ON `default`(index1) USING GSI;")]
+        [InlineData("default", "index1", "_default", "_default", "BUILD INDEX ON `default`.`_default`.`_default`(`index1`) USING GSI;")]
+        [InlineData("default", "index1", null, null, "BUILD INDEX ON `default`(`index1`) USING GSI;")]
+        [InlineData("`default`", "index1", null, null, "BUILD INDEX ON `default`(`index1`) USING GSI;")]
+        [InlineData("`default", "index1", null, null, "BUILD INDEX ON `default`(`index1`) USING GSI;")]
+        [InlineData("default`", "index1", null, null, "BUILD INDEX ON `default`(`index1`) USING GSI;")]
         public void Test_CreateDeferredIndexStatement(string bucketName, string indexName, string scopeName, string collectionName, string expected)
         {
             //arrange

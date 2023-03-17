@@ -206,7 +206,7 @@ namespace Couchbase.UnitTests.Management.Query
             var manager = CreateManager();
             await Assert.ThrowsAsync<ArgumentNullException>(async () => await manager.DropIndexAsync("default", null, DropQueryIndexOptions.Default.IgnoreIfExists(false)));
         }
-        
+
         private QueryIndexManager CreateManager()
         {
             using var response = ResourceHelper.ReadResourceAsStream(@"Documents\Query\Management\query-create-primary-index-exists-5000.json");
@@ -243,6 +243,7 @@ namespace Couchbase.UnitTests.Management.Query
                 new Redactor(new TypedRedactor(RedactionLevel.None)));
         }
 
+        //Check that query_context is not present in QueryIndexManager
         [Fact]
         private async Task Test_BuildDeferredIndexesAsync_QueryContext()
         {
@@ -252,7 +253,7 @@ namespace Couchbase.UnitTests.Management.Query
 
            await manager.BuildDeferredIndexesAsync("travel-sample");
 
-           Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+           Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
         }
 
         [Fact]
@@ -264,7 +265,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             await manager.CreateIndexAsync("travel-sample", "index1", new[] { "field1" });
 
-            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
         }
 
         [Fact]
@@ -276,7 +277,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             await manager.DropIndexAsync("travel-sample", "index1");
 
-            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
         }
 
         [Fact]
@@ -288,7 +289,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             await manager.CreatePrimaryIndexAsync("travel-sample");
 
-            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
         }
 
         [Fact]
@@ -300,7 +301,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             await manager.DropPrimaryIndexAsync("travel-sample");
 
-            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
         }
 
 
@@ -313,7 +314,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             await manager.WatchIndexesAsync("travel-sample", new []{"field1"});
 
-            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
         }
 
 
@@ -326,7 +327,7 @@ namespace Couchbase.UnitTests.Management.Query
 
             await manager.GetAllIndexesAsync("travel-sample");
 
-            Assert.Equal("default:`travel-sample`", client.FormValues["query_context"]);
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => { var qc = client.FormValues["query_context"]; });
         }
 
         private class FakeQueryClient : IQueryClient
