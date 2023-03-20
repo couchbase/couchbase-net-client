@@ -677,7 +677,11 @@ namespace Couchbase.Core
                 using var ctp = CancellationTokenPairSource.FromTimeout(_context.ClusterOptions.KvTimeout, cancellationToken);
                 try
                 {
-                    await ExecuteOp(connection, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
+                    var status = await ExecuteOp(connection, selectBucketOp, ctp.TokenPair).ConfigureAwait(false);
+                    if (status != ResponseStatus.Success)
+                    {
+                        throw status.CreateException(selectBucketOp, bucketName);
+                    }
                 }
                 catch (OperationCanceledException ex)
                 {

@@ -71,11 +71,13 @@ namespace Couchbase.Core.IO
             }
         }
 
-        public static Exception CreateException(this ResponseStatus status, IOperation op, IBucket bucket)
+        public static Exception CreateException(this ResponseStatus status, IOperation op, IBucket bucket) => CreateException(status, op, bucket.Name);
+
+        public static Exception CreateException(this ResponseStatus status, IOperation op, string bucketName)
         {
             var ctx = new KeyValueErrorContext
             {
-                BucketName = bucket.Name,
+                BucketName = bucketName,
                 ClientContextId = op.Opaque.ToStringInvariant(),
                 DocumentKey = op.Key,
                 Cas = op.Cas,
