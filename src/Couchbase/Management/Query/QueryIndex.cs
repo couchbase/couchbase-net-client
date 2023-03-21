@@ -35,6 +35,8 @@ namespace Couchbase.Management.Query
 
         [JsonProperty("bucket_id")]
         public string BucketName { get; set; }
+
+        public string CollectionName => BucketName != null && ScopeName != null ? Keyspace : null;
     }
 }
 

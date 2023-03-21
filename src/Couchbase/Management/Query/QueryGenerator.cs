@@ -34,7 +34,11 @@ namespace Couchbase.Management.Query
             {
                 return $"CREATE PRIMARY INDEX ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
             }
-            return $"CREATE PRIMARY INDEX {options.IndexNameValue?.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+            if (options.ScopeNameValue == null && options.IndexNameValue != null)
+            {
+                return $"CREATE PRIMARY INDEX {options.IndexNameValue!.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+            }
+            return $"CREATE PRIMARY INDEX {options.IndexNameValue!.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()} USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
         }
 
         public static string CreateDropIndexStatement(string bucketName, string indexName, DropQueryIndexOptions options)
