@@ -68,7 +68,7 @@ namespace Couchbase.KeyValue.RangeScan
         }
 
         /// <summary>
-        /// Creates an exlusive scan for the minimum term 0x00.
+        /// Creates an Exclusive scan for the minimum term 0x00.
         /// </summary>
         /// <returns>A <see cref="ScanTerm"/> instance for an exclusive scan.</returns>
         public static ScanTerm Minimum()
@@ -77,7 +77,7 @@ namespace Couchbase.KeyValue.RangeScan
         }
 
         /// <summary>
-        /// Creates an exlusive scan for the maximum term 0xFF.
+        /// Creates an Exclusive scan for the maximum term 0xFF.
         /// </summary>
         /// <returns>A <see cref="ScanTerm"/> instance for an exclusive scan.</returns>
         public static ScanTerm Maximum()

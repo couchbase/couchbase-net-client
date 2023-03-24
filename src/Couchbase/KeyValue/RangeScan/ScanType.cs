@@ -11,7 +11,7 @@ namespace Couchbase.KeyValue.RangeScan
         /// <inheritdoc />
         public SamplingScan SamplingScan(ulong limit)
         {
-            return new SamplingScan(limit, 0);
+            return new SamplingScan(limit);
         }
 
         /// <inheritdoc />
@@ -19,6 +19,5 @@ namespace Couchbase.KeyValue.RangeScan
         {
             return new SamplingScan(limit, seed);
         }
-
     }
 }

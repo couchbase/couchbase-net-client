@@ -55,6 +55,9 @@ internal class PartitionScan
             var scanCreateStatus = await _bucket.RetryAsync(scanCreateOp, ctp.TokenPair).ConfigureAwait(false);
             switch (scanCreateStatus)
             {
+                case ResponseStatus.RangeScanComplete:
+                    CanBeCanceled = false;
+                    return this;
                 case ResponseStatus.KeyNotFound:
                     Status = scanCreateStatus;
                     return this;
@@ -86,7 +89,6 @@ internal class PartitionScan
         }
         else
         {
-            Console.WriteLine($"RangeScanContinue started");
             //this would be a range scan more - it would trigger the next loop through the vbuckets fetching those batches
             var scanContinueOp = new RangeScanContinue
             {
@@ -107,8 +109,31 @@ internal class PartitionScan
             Status = await _bucket.RetryAsync(scanContinueOp, ctp2.TokenPair).ConfigureAwait(false);
             Results = scanContinueOp.Content;
         }
-
         return this;
+    }
+
+    public bool CanBeCanceled
+    {
+        get;
+        private set;
+    } = true;
+
+    public async Task CancelAsync()
+    {
+        if (CanBeCanceled && _uuid.HasValue)
+        {
+            _getLogger.LogDebug("Cancelling range scan for VBID {vbid}", _partitionId);
+            var scanCancelOp = new RangeScanCancel
+            {
+                Content = _uuid.Value,
+                VBucketId = _partitionId
+            };
+
+            _operationConfigurator.Configure(scanCancelOp, _options);
+
+            using var ctp2 = CreateRetryTimeoutCancellationTokenSource(_options, scanCancelOp);
+            Status = await _bucket.RetryAsync(scanCancelOp, ctp2.TokenPair).ConfigureAwait(false);
+        }
     }
 
     private CancellationTokenPairSource CreateRetryTimeoutCancellationTokenSource(

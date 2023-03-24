@@ -3,6 +3,7 @@ using Couchbase.Core;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.KeyValue.RangeScan
 {
@@ -84,10 +85,11 @@ namespace Couchbase.KeyValue.RangeScan
         private static ulong GenerateRandomLong()
         {
             var bytes = new byte[8];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(bytes);
-
-            return Convert.ToUInt64(bytes);
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(bytes);
+            }
+            return ByteConverter.ToUInt64(bytes);
         }
     }
 }

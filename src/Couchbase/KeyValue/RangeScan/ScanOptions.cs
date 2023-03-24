@@ -35,8 +35,6 @@ namespace Couchbase.KeyValue.RangeScan
 
         internal MutationState? ConsistentWithValue { get; set; }
 
-        internal ScanSort SortValue { get; set; }
-
         internal CancellationToken TokenValue { get; private set; }
 
         internal uint BatchItemLimit { get; set; } = 0;
@@ -44,6 +42,8 @@ namespace Couchbase.KeyValue.RangeScan
         internal uint BatchByteLimit { get; set; } = 0;
 
         internal uint BatchTimeLimit { get; set; } = 0;
+
+        internal uint ConcurrencyValue { get; set; } = 1;
 
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
@@ -56,6 +56,18 @@ namespace Couchbase.KeyValue.RangeScan
         #endregion
 
         #region Public setters
+
+        /// <summary>
+        /// The concurrency level for the SDK to use internally.
+        /// </summary>
+        /// <param name="concurrency">The concurrency level the SDK will use.</param>
+        /// <remarks>The default and only currently supported value is 1.</remarks>
+        /// <returns>A <see cref="ScanOptions"/> instance for chaining.</returns>
+        public ScanOptions Concurrency(uint concurrency)
+        {
+            ConcurrencyValue = concurrency;
+            return this;
+        }
 
         /// <summary>
         /// The timeout for the scan.
@@ -123,16 +135,6 @@ namespace Couchbase.KeyValue.RangeScan
             return this;
         }
 
-        /// <summary>
-        /// The sort direction of the scan.
-        /// </summary>
-        /// <param name="scanSort"></param>
-        /// <returns>A <see cref="ScanOptions"/> instance for chaining.</returns>
-        public ScanOptions Sort(ScanSort scanSort)
-        {
-            SortValue = scanSort;
-            return this;
-        }
 
         /// <summary>
         /// A <see cref="CancellationToken"/> for cooperative cancellation.

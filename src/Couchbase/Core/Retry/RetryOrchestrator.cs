@@ -215,7 +215,8 @@ namespace Couchbase.Core.Retry
                             return status;
                         }
 
-                        if (status == ResponseStatus.KeyNotFound && operation.OpCode == OpCode.RangeScanCreate)
+                        if (status == ResponseStatus.KeyNotFound &&
+                            operation.OpCode == OpCode.RangeScanCreate || operation.OpCode == OpCode.RangeScanCancel)
                         {
                             return status;
                         }

@@ -7,8 +7,6 @@ namespace Couchbase.Core.IO.Operations.RangeScan
     {
         public override OpCode OpCode => OpCode.RangeScanCancel;
 
-        public bool KeyOnly { private get; set; }
-
         public override bool RequiresVBucketId => false;
 
         protected override void WriteBody(OperationBuilder builder)

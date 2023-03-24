@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
-using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.KeyValue.RangeScan;
 using Couchbase.Management.Query;
 

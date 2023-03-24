@@ -84,7 +84,6 @@ namespace Couchbase.KeyValue.RangeScan
 
         public override string ToString()
         {
-            //Todo:
             var sb = new StringBuilder();
             sb.Append("ScanResult{");
             sb.Append("id = ").Append(Id);

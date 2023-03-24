@@ -1,18 +1,14 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Couchbase.Core;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
-using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
-using Couchbase.Core.IO.Operations.RangeScan;
 using Couchbase.Core.IO.Operations.SubDocument;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
@@ -119,8 +115,20 @@ namespace Couchbase.KeyValue
 
             }
 
-            // Here we mark complete partitions with RangeScanOver, but we could remove them from the pool
+            //randomize the scan tasks
+            partitionScans.Shuffle();
+
+            //hacky but only sample scans have a global limit
+            var isSamplingScan = false;
+            var limit = 0ul;
+            if (scanType is SamplingScan samplingScan)
+            {
+                isSamplingScan = true;
+                limit = samplingScan.Limit;
+            }
+
             var emptyPartitions = 0;
+            var count = 0ul;
             while (emptyPartitions < partitionCount)
             {
                 foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
@@ -133,7 +141,15 @@ namespace Couchbase.KeyValue
                     {
                         foreach (var scanResult in result.Results.Values)
                         {
+                            var overLimit = isSamplingScan && count >= limit;
+                            if (overLimit || scanResult == null)
+                            {
+                                _getLogger.LogDebug("Closing any leftover scans.");
+                                await CloseAll(partitionScans).ConfigureAwait(false);
+                                yield break;
+                            }
                             yield return scanResult;
+                            count++;
                         }
                     }
                 }
@@ -141,6 +157,12 @@ namespace Couchbase.KeyValue
                     x.Status == ResponseStatus.RangeScanComplete ||
                     x.Status == ResponseStatus.KeyNotFound);
             }
+        }
+
+        private async Task CloseAll(List<PartitionScan> partitionScans)
+        {
+            var partitionsToClose = partitionScans.Where(x => x.CanBeCanceled).Select(x => x.CancelAsync()).ToArray();
+            await Task.WhenAll(partitionsToClose).ConfigureAwait(false);
         }
 
         #endregion

@@ -142,5 +142,12 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
 
             Assert.Equal("coll1", doc.RootElement.GetProperty("collection").GetString());
         }
+
+        [Fact]
+        public void Sampling_Scan_Generates_a_Random_Seed_When_None_Is_Given()
+        {
+            var samplingScan = new SamplingScan(10);
+            Assert.False(0 == samplingScan.Seed);
+        }
     }
 }
