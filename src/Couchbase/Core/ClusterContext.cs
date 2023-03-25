@@ -474,19 +474,27 @@ namespace Couchbase.Core
             }
         }
 
-        public async ValueTask<IBucket> GetOrCreateBucketAsync(string name)
+        public ValueTask<IBucket> GetOrCreateBucketAsync(string name)
         {
             if (Buckets.TryGetValue(name, out var bucket))
             {
-                return bucket;
+                return new ValueTask<IBucket>(bucket);
             }
 
+            // Splitting this method into two parts avoids the expense of building an async state machine
+            // when the bucket is already created, which is the most common scenario.
+            return new ValueTask<IBucket>(GetOrCreateBucketLockedAsync(name));
+        }
+
+        public async Task<IBucket> GetOrCreateBucketLockedAsync(string name)
+        {
             Exception lastException = null;
+
             await _semaphore.WaitAsync(CancellationToken).ConfigureAwait(false);
             try
             {
                 //Bucket was already created by the previously waiting thread
-                if (Buckets.TryGetValue(name, out bucket))
+                if (Buckets.TryGetValue(name, out var bucket))
                 {
                     return bucket;
                 }
@@ -498,8 +506,10 @@ namespace Couchbase.Core
                         bucket = await CreateAndBootStrapBucketAsync(name, server)
                             .ConfigureAwait(false);
 
-                        if ((bucket is Bootstrapping.IBootstrappable bootstrappable) && bootstrappable.IsBootstrapped)
+                        if (bucket is Bootstrapping.IBootstrappable {IsBootstrapped: true})
+                        {
                             return bucket;
+                        }
                     }
                     catch (RateLimitedException)
                     {
