@@ -23,17 +23,17 @@ namespace Couchbase.Search
 
     public class MetaData
     {
-        public long SuccessCount { get; internal set; }
+        public long SuccessCount { get; set; }
 
-        public long ErrorCount { get; internal set; }
+        public long ErrorCount { get; set; }
 
-        public TimeSpan TimeTook { get; internal set; }
+        public TimeSpan TimeTook { get; set; }
 
-        public long TotalHits { get; internal set; }
+        public long TotalHits { get; set; }
 
-        public double MaxScore { get; internal set; }
+        public double MaxScore { get; set; }
 
-        public long TotalCount { get; internal set; }
+        public long TotalCount { get; set; }
 
         public Dictionary<string, string> Errors = new();
     }
