@@ -359,10 +359,6 @@ namespace Couchbase.Core.Retry
                     RetryReasons = operation.RetryReasons
                 });
             }
-            catch (Exception e)
-            {
-                var ex = e;
-            }
 
             return ResponseStatus.Failure;//what to do here?
         }
