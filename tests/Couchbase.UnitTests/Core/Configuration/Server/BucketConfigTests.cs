@@ -16,6 +16,7 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
+using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Couchbase.UnitTests.Utils;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
@@ -203,7 +204,10 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
                     new TypedRedactor(RedactionLevel.None),
                     endPoint,
                     server,
-                    NoopRequestTracer.Instance);
+                    NoopRequestTracer.Instance)
+                {
+                    Owner = new FakeBucket("default", new ClusterOptions())
+                };
 
                 context.AddNode(clusterNode);
                 bucketNodes.TryAdd(endPoint, clusterNode);

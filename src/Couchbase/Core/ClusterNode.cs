@@ -51,6 +51,8 @@ namespace Couchbase.Core
         private volatile bool _disposed;
         private readonly string _localHostName;
         private readonly string _remoteHostName;
+        private string _bucketName = string.Empty;
+        private IBucket _owner;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
             ObjectPool<OperationBuilder> operationBuilderPool, ICircuitBreaker circuitBreaker, ISaslMechanismFactory saslMechanismFactory,
@@ -110,7 +112,18 @@ namespace Couchbase.Core
         }
 
         public bool IsAssigned => Owner != null;
-        public IBucket Owner { get; set; }
+
+        public IBucket Owner
+        {
+            get => _owner;
+            set
+            {
+                _owner = value;
+                _bucketName = _owner.Name;
+            }
+        }
+
+        public string BucketName => _bucketName;
 
         public NodeAdapter NodesAdapter
         {
@@ -826,7 +839,7 @@ namespace Couchbase.Core
 
         public override string ToString()
         {
-            return _cachedToString;
+            return _cachedToString + "-" + _bucketName;
         }
 
         #endregion

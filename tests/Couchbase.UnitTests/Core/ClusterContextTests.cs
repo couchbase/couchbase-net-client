@@ -17,6 +17,7 @@ using Couchbase.Core.IO.Connections;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.Logging;
 using Couchbase.Management.Buckets;
+using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Couchbase.UnitTests.Utils;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ObjectPool;
@@ -107,7 +108,10 @@ namespace Couchbase.UnitTests.Core
                     KeyValue = port
                 },
                 NoopRequestTracer.Instance
-            );
+            )
+            {
+                Owner = new FakeBucket("default", new ClusterOptions())
+            };
 
             return clusterNode;
         }

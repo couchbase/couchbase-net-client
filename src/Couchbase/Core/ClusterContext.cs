@@ -84,7 +84,7 @@ namespace Couchbase.Core
         /// <summary>
         /// Nodes currently being managed.
         /// </summary>
-        public ClusterNodeCollection Nodes { get; } = new ClusterNodeCollection();
+        public ClusterNodeList Nodes { get; } = new ClusterNodeList();
 
         public ClusterOptions ClusterOptions { get; }
 
@@ -262,19 +262,23 @@ namespace Couchbase.Core
 
         public void AddNode(IClusterNode node)
         {
-            _logger.LogDebug("Adding node {endPoint} to {nodes}.", _redactor.SystemData(node.EndPoint), Nodes);
+            _logger.LogDebug(
+                "Adding node {endPoint} on {bucket} to {nodes}.",_redactor.SystemData(node.EndPoint), node.Owner?.Name, Nodes.Count);
             if (Nodes.Add(node))
             {
-                _logger.LogDebug("Added node {endPoint} to {nodes}", _redactor.SystemData(node.EndPoint), Nodes);
+                _logger.LogDebug(
+                    "Added node {endPoint} on {bucket} to {nodes}",  _redactor.SystemData(node.EndPoint), node.Owner?.Name, Nodes.Count);
             }
         }
 
         public bool RemoveNode(IClusterNode removedNode)
         {
-            _logger.LogDebug("Removing node {endPoint} from {nodes}.", _redactor.SystemData(removedNode.EndPoint), Nodes);
-            if (Nodes.Remove(removedNode.EndPoint, out removedNode))
+            _logger.LogDebug(
+                "Removing node {endPoint} from {nodes}.", _redactor.SystemData(removedNode.EndPoint), Nodes);
+            if (Nodes.Remove(removedNode))
             {
-                _logger.LogDebug("Removed node {endPoint} from {nodes}", _redactor.SystemData(removedNode.EndPoint), Nodes);
+                _logger.LogDebug(
+                    "Removed node {endPoint} from {nodes}", _redactor.SystemData(removedNode.EndPoint), Nodes);
                 removedNode.Dispose();
                 return true;
             }
@@ -301,6 +305,11 @@ namespace Couchbase.Core
         {
             return Nodes.FirstOrDefault(
                 x => !x.IsAssigned && x.EndPoint.Equals(endpoint));
+        }
+
+        public IClusterNode GetAnyUnassignedNode()
+        {
+            return Nodes.FirstOrDefault(x => !x.IsAssigned);
         }
 
         public async Task BootstrapGlobalAsync()
@@ -525,11 +534,10 @@ namespace Couchbase.Core
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint)
         {
             BucketBase bucket;
-            var node = GetUnassignedNode(endpoint);
+            var node = GetAnyUnassignedNode();
             if (node == null)
             {
                 node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
-                AddNode(node);
             }
 
             BucketConfig config;
@@ -541,8 +549,8 @@ namespace Couchbase.Core
                 _logger.LogDebug("Bootstrapping: fetching the config using CCCP for bucket {name}.",
                     _redactor.MetaData(name));
 
-               //First try CCCP to fetch the config
-               config = await node.GetClusterMap().ConfigureAwait(false);
+                //First try CCCP to fetch the config
+                config = await node.GetClusterMap().ConfigureAwait(false);
             }
             catch (DocumentNotFoundException)
             {
@@ -560,6 +568,11 @@ namespace Couchbase.Core
             var bucketFactory = ServiceProvider.GetRequiredService<IBucketFactory>();
             bucket = bucketFactory.Create(name, type, config);
             node.Owner = bucket;
+
+            var nodeAdapter = config.GetNodes().Find(x=>HostEndpointWithPort.Create(x, ClusterOptions) == endpoint);
+            node.NodesAdapter = nodeAdapter ??
+                                throw new NullReferenceException($"Could not find an adapter for {endpoint}.");
+            AddNode(node);
 
             _logger.LogInformation("Bootstrapping: created a {bucketType} bucket for {name}.",
                 type.GetDescription(), _redactor.MetaData(name));
@@ -654,71 +667,99 @@ namespace Couchbase.Core
             }
         }
 
+
+        private readonly SemaphoreSlim _configMutex = new(1, 1);
         public async Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
-            foreach (var nodeAdapter in config.GetNodes())
-            {
-                //log any alternate address mapping
-                _logger.LogInformation(nodeAdapter.ToString());
+            using var cts = new CancellationTokenSource();
+            await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
 
-                var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
-                if (Nodes.TryGet(endPoint, out var bootstrapNode))
+            try
+            {
+                foreach (var nodeAdapter in config.GetNodes())
                 {
-                    if (bootstrapNode.Owner == null && bucket.BucketType != BucketType.Memcached)
+                    //log any alternate address mapping
+                    _logger.LogInformation(nodeAdapter.ToString());
+
+                    var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
+                    if (Nodes.TryGet(endPoint, config.Name, out var bootstrapNode))
+                    {
+                        if (bootstrapNode.Owner == null && bucket.BucketType != BucketType.Memcached)
+                        {
+                            _logger.LogDebug(
+                                "Using existing node {endPoint} for bucket {bucket} using rev#{rev}",
+                                _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
+
+                            bootstrapNode.Owner = bucket;
+                            bootstrapNode.NodesAdapter = nodeAdapter;
+                            if (bootstrapNode.HasKv)
+                            {
+                                await bootstrapNode.SelectBucketAsync(bucket.Name, CancellationToken)
+                                    .ConfigureAwait(false);
+                                await bootstrapNode.HelloHello().ConfigureAwait(false);
+                                SupportsPreserveTtl = bootstrapNode.ServerFeatures.PreserveTtl;
+                            }
+
+                            bucket.Nodes.Add(bootstrapNode);
+                            continue;
+                        }
+
+                        var node = GetAnyUnassignedNode();
+                        if (node != null)
+                        {
+                            node.Owner = bucket;
+                            if (node.HasKv)
+                            {
+                                node.NodesAdapter = nodeAdapter;
+                                await node.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
+                                await node.HelloHello().ConfigureAwait(false);
+                                SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    //If the node already exists for the endpoint, ignore it.
+                    if (bucket.Nodes.TryGet(endPoint, out var bucketNode))
                     {
                         _logger.LogDebug(
-                            "Using existing node {endPoint} for bucket {bucket.Name} using rev#{config.Rev}",
-                            _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
-
-                        bootstrapNode.Owner = bucket;
-                        bootstrapNode.NodesAdapter = nodeAdapter;
-                        if (bootstrapNode.HasKv)
-                        {
-                            await bootstrapNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                            await bootstrapNode.HelloHello().ConfigureAwait(false);
-                            SupportsPreserveTtl = bootstrapNode.ServerFeatures.PreserveTtl;
-                        }
-                        bucket.Nodes.Add(bootstrapNode);
+                            "The node already exists for the endpoint {endpoint} using rev#{revision} for bucket {bucketName}.",
+                            _redactor.SystemData(endPoint), config.Rev, _redactor.MetaData(config.Name));
+                        bucketNode.NodesAdapter = nodeAdapter;
                         continue;
                     }
-                    if (bootstrapNode.Owner != null && bootstrapNode.BucketType == BucketType.Memcached)
+
+                    _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
+                        _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
+
+                    var newNode = await _clusterNodeFactory.CreateAndConnectAsync(
+                        // We want the BootstrapEndpoint to use the host name, not just the IP
+                        new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port),
+                        nodeAdapter,
+                        CancellationToken).ConfigureAwait(false);
+
+                    newNode.Owner = bucket;
+                    if (newNode.HasKv)
                     {
-                        _logger.LogDebug("Adding memcached node for endpoint {endpoint} using rev#{revision} for bucket {bucketName}.", _redactor.SystemData(endPoint), config.Rev, _redactor.MetaData(config.Name));
-                        bootstrapNode.NodesAdapter = nodeAdapter;
-                        bucket.Nodes.Add(bootstrapNode);
-                        continue;
+                        await newNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
+                        await newNode.HelloHello().ConfigureAwait(false);
+                        SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
                     }
+
+                    AddNode(newNode);
                 }
 
-                //If the node already exists for the endpoint, ignore it.
-                if (bucket.Nodes.TryGet(endPoint, out var bucketNode))
-                {
-                    _logger.LogDebug("The node already exists for the endpoint {endpoint} using rev#{revision} for bucket {bucketName}.", _redactor.SystemData(endPoint), config.Rev, _redactor.MetaData(config.Name));
-                    bucketNode.NodesAdapter = nodeAdapter;
-                    continue;
-                }
-
-                _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
-                    _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
-
-                var node = await _clusterNodeFactory.CreateAndConnectAsync(
-                    // We want the BootstrapEndpoint to use the host name, not just the IP
-                    new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port),
-                    nodeAdapter,
-                    CancellationToken).ConfigureAwait(false);
-
-                node.Owner = bucket;
-                if (node.HasKv)
-                {
-                    await node.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                    await node.HelloHello().ConfigureAwait(false);
-                    SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
-                }
-
-                AddNode(node);
+                PruneNodes(config);
             }
-
-            PruneNodes(config);
+            catch (Exception e)
+            {
+                _logger.LogError(LoggingEvents.ConfigEvent, "ERROR:{e}", e);
+            }
+            finally
+            {
+                _configMutex.Release();
+            }
         }
 
         public void PruneNodes(BucketConfig config)
@@ -727,12 +768,13 @@ namespace Couchbase.Core
                 .Select(p => HostEndpointWithPort.Create(p, _clusterOptions))
                 .ToList();
 
-            _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision}.", existingEndpoints, config.Rev);
+            _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision} from {bucket}.", existingEndpoints, config.Rev, config.Name);
 
             var removedEndpoints = Nodes.Where(x =>
-                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y))));
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y)))
+                && x.Owner.Name == config.Name);
 
-            _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision}", removedEndpoints, config.Rev);
+            _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
 
             foreach (var node in removedEndpoints)
             {

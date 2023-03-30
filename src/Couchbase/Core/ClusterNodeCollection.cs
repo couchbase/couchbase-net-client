@@ -8,7 +8,6 @@ using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 
-
 #nullable enable
 
 namespace Couchbase.Core
@@ -30,6 +29,11 @@ namespace Couchbase.Core
         /// Simple list of nodes, must be locked before using.
         /// </summary>
         private readonly HashSet<IClusterNode> _nodes = new();
+
+        /// <summary>
+        /// Seam for unit testing
+        /// </summary>
+        internal ConcurrentDictionary<HostEndpointWithPort, IClusterNode> LookupDictionary => _lookupDictionary;
 
         /// <summary>
         /// Number of nodes in the collection.
@@ -95,16 +99,17 @@ namespace Couchbase.Core
         /// Removes a node from the collection, if any.
         /// </summary>
         /// <param name="endPoint"><see cref="IPEndPoint"/> of the node to remove.</param>
+        /// <param name="bucketName">The name of the owner of the <see cref="IClusterNode"/>."></param>
         /// <param name="removedNode">Node which was removed, if any.</param>
         /// <returns>True if the node was removed.</returns>
-        public bool Remove(HostEndpointWithPort endPoint, [NotNullWhen(true)] out IClusterNode? removedNode)
+        public bool Remove(HostEndpointWithPort endPoint, string bucketName, [NotNullWhen(true)] out IClusterNode? removedNode)
         {
             lock (_nodes)
             {
                 if (_lookupDictionary.TryRemove(endPoint, out removedNode))
                 {
                     //remove all nodes for the endpoint as multiple buckets may exist
-                    _nodes.RemoveWhere(x => x.EndPoint.Equals(endPoint));
+                    var numberRemoved = _nodes.RemoveWhere(x => x.EndPoint.Equals(endPoint) && x.Owner.Name == bucketName);
 
                     removedNode.KeyEndPointsChanged -= OnKeyEndPointsChanged;
 

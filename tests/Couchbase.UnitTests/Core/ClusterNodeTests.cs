@@ -53,7 +53,7 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async void External_Cancellation_Is_Not_TimeoutException()
         {
-            var clusterNode = MockClusterNode();
+            var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
             var cancelled = new CancellationToken(canceled: true);
             var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: cancelled, internalToken: CancellationToken.None));
@@ -68,7 +68,7 @@ namespace Couchbase.UnitTests.Core
         [Fact]
         public async void Internal_Cancellation_Is_TimeoutException()
         {
-            var clusterNode = MockClusterNode();
+            var clusterNode = MockClusterNode("default");
             var op = new Get<object>();
             var cancelled = new CancellationToken(canceled: true);
             var cancellationTokenPair = new CancellationTokenPair(new CancellationTokenPairSource(externalToken: CancellationToken.None, internalToken: cancelled));
@@ -80,12 +80,46 @@ namespace Couchbase.UnitTests.Core
             Assert.Equal(elapsedAfterThrow, op.Elapsed.Ticks);
         }
 
-        private ClusterNode MockClusterNode()
+        [Fact]
+        public void Test_ClusterNodeCollection()
+        {
+            var clusterNode1 = MockClusterNode("default1", "localhost1");
+            var clusterNode2 = MockClusterNode("default2", "localhost2");
+            var clusterNode3 = MockClusterNode("default1", "localhost1");
+            var clusterNode4 = MockClusterNode("default2", "localhost2");
+
+            var nodes = new ClusterNodeCollection();
+            nodes.Add(clusterNode3);
+            nodes.Add(clusterNode1);
+            nodes.Add(clusterNode2);
+            nodes.Add(clusterNode4);
+
+            nodes.Remove(clusterNode1.EndPoint, "default1", out var node1);
+            nodes.Remove(clusterNode2.EndPoint, "default2", out var node2);
+            nodes.Remove(clusterNode3.EndPoint, "default1", out var node3);
+            nodes.Remove(clusterNode4.EndPoint, "default2", out var node4);
+
+            nodes.Add(clusterNode3);
+            nodes.Add(clusterNode1);
+            nodes.Add(clusterNode2);
+            nodes.Add(clusterNode4);
+
+            nodes.Remove(clusterNode1.EndPoint, "default1", out node1);
+            nodes.Remove(clusterNode2.EndPoint, "default2", out node2);
+            nodes.Remove(clusterNode3.EndPoint, "default1", out node3);
+            nodes.Remove(clusterNode4.EndPoint, "default2", out node4);
+        }
+
+        private ClusterNode MockClusterNode(string bucketName, string hostname = "localhost")
         {
             var pool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
             var loggerFactory = new TestOutputLoggerFactory(outputHelper);
             var logger = new Logger<ClusterNode>(loggerFactory);
             var mockConnectionPool = new Mock<IConnectionPool>();
+            var owner = new Mock<IBucket>();
+            owner.
+                Setup(x => x.Name).
+                Returns(bucketName);
 
             var mockConnectionPoolFactory = new Mock<IConnectionPoolFactory>();
             mockConnectionPoolFactory
@@ -97,15 +131,15 @@ namespace Couchbase.UnitTests.Core
                 connectionPoolFactory: mockConnectionPoolFactory.Object,
                 logger: logger,
                 operationBuilderPool: pool,
-                circuitBreaker: new CircuitBreaker(new CircuitBreakerConfiguration() { Enabled = true }),
+                circuitBreaker: new CircuitBreaker(new CircuitBreakerConfiguration { Enabled = true }),
                 saslMechanismFactory: new Mock<Couchbase.Core.DI.ISaslMechanismFactory>().Object,
                 redactor: new(Couchbase.Core.Logging.RedactionLevel.None),
-                endPoint: new("localhost", 8091),
-                nodeAdapter: new() { Hostname = "localhost" },
+                endPoint: new(hostname, 8091),
+                nodeAdapter: new() { Hostname = hostname},
                 tracer: new Couchbase.Core.Diagnostics.Tracing.NoopRequestTracer()
                 )
             {
-                Owner = new Mock<IBucket>().Object,
+                Owner = owner.Object,
             };
 
             return node1;

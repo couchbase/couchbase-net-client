@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Net;
 using Couchbase.Core;
+using Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes;
 using Moq;
 using Xunit;
 
@@ -17,7 +18,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1)).Object;
+            var node = CreateMockNode("default", CreateEndpoint(1)).Object;
 
             var nodes = new ClusterNodeCollection();
 
@@ -35,7 +36,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1));
+            var node = CreateMockNode("default",CreateEndpoint(1));
 
             var nodes = new ClusterNodeCollection();
 
@@ -53,7 +54,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1)).Object;
+            var node = CreateMockNode("default",CreateEndpoint(1)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -75,7 +76,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1), CreateEndpoint(2)).Object;
+            var node = CreateMockNode("default",CreateEndpoint(1), CreateEndpoint(2)).Object;
 
             var nodes = new ClusterNodeCollection();
 
@@ -105,7 +106,7 @@ namespace Couchbase.UnitTests.Core
 
             // Act
 
-            var result = nodes.Remove(CreateEndpoint(1), out _);
+            var result = nodes.Remove(CreateEndpoint(1), "default",  out _);
 
             // Assert
 
@@ -117,7 +118,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1)).Object;
+            var node = CreateMockNode("default",CreateEndpoint(1)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -126,7 +127,7 @@ namespace Couchbase.UnitTests.Core
 
             // Act
 
-            var result = nodes.Remove(CreateEndpoint(1), out var removedNode);
+            var result = nodes.Remove(CreateEndpoint(1), "default", out var removedNode);
 
             // Assert
 
@@ -139,7 +140,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1));
+            var node = CreateMockNode("default",CreateEndpoint(1));
 
             var nodes = new ClusterNodeCollection
             {
@@ -148,7 +149,7 @@ namespace Couchbase.UnitTests.Core
 
             // Act
 
-            nodes.Remove(CreateEndpoint(1), out _);
+            nodes.Remove(CreateEndpoint(1), "default", out _);
 
             // Assert
 
@@ -160,7 +161,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1)).Object;
+            var node = CreateMockNode("default",CreateEndpoint(1)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -170,7 +171,7 @@ namespace Couchbase.UnitTests.Core
 
             // Act
 
-            var result = nodes.Remove(CreateEndpoint(1), out _);
+            var result = nodes.Remove(CreateEndpoint(1), "default", out _);
 
             // Assert
 
@@ -182,8 +183,8 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1)).Object;
-            var node1 = CreateMockNode(CreateEndpoint(1)).Object;
+            var node = CreateMockNode("default",CreateEndpoint(1)).Object;
+            var node1 = CreateMockNode("default",CreateEndpoint(1)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -194,7 +195,7 @@ namespace Couchbase.UnitTests.Core
 
             // Act
 
-            var result = nodes.Remove(CreateEndpoint(1), out _);
+            var result = nodes.Remove(CreateEndpoint(1), "default", out _);
 
             // Assert
 
@@ -206,7 +207,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1), CreateEndpoint(2)).Object;
+            var node = CreateMockNode("default",CreateEndpoint(1), CreateEndpoint(2)).Object;
 
             var nodes = new ClusterNodeCollection()
             {
@@ -215,7 +216,7 @@ namespace Couchbase.UnitTests.Core
 
             // Act
 
-            nodes.Remove(CreateEndpoint(1), out _);
+            nodes.Remove(CreateEndpoint(1), "default", out _);
 
             // Assert
 
@@ -232,8 +233,8 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node1 = CreateMockNode(CreateEndpoint(1)).Object;
-            var node2 = CreateMockNode(CreateEndpoint(2)).Object;
+            var node1 = CreateMockNode("default", CreateEndpoint(1)).Object;
+            var node2 = CreateMockNode("default", CreateEndpoint(2)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -256,8 +257,8 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node1 = CreateMockNode(CreateEndpoint(1)).Object;
-            var node2 = CreateMockNode(CreateEndpoint(2)).Object;
+            var node1 = CreateMockNode("default", CreateEndpoint(1)).Object;
+            var node2 = CreateMockNode("default", CreateEndpoint(2)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -282,8 +283,8 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node1 = CreateMockNode(CreateEndpoint(1)).Object;
-            var node2 = CreateMockNode(CreateEndpoint(2)).Object;
+            var node1 = CreateMockNode("default", CreateEndpoint(1)).Object;
+            var node2 = CreateMockNode("default", CreateEndpoint(2)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -307,8 +308,8 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node1 = CreateMockNode(CreateEndpoint(1));
-            var node2 = CreateMockNode(CreateEndpoint(2));
+            var node1 = CreateMockNode("default", CreateEndpoint(1));
+            var node2 = CreateMockNode("default", CreateEndpoint(2));
 
             var nodes = new ClusterNodeCollection
             {
@@ -336,8 +337,8 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node1 = CreateMockNode(CreateEndpoint(1)).Object;
-            var node2 = CreateMockNode(CreateEndpoint(2)).Object;
+            var node1 = CreateMockNode("default",CreateEndpoint(1)).Object;
+            var node2 = CreateMockNode("default",CreateEndpoint(2)).Object;
 
             var nodes = new ClusterNodeCollection
             {
@@ -351,7 +352,7 @@ namespace Couchbase.UnitTests.Core
             using var enumerator = nodes.GetEnumerator();
             Assert.True(enumerator.MoveNext());
 
-            Assert.True(nodes.Remove(CreateEndpoint(1), out _));
+            Assert.True(nodes.Remove(CreateEndpoint(1), "default", out _));
 
             // Assert
 
@@ -368,7 +369,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1));
+            var node = CreateMockNode("default", CreateEndpoint(1));
 
             var nodes = new ClusterNodeCollection
             {
@@ -394,7 +395,7 @@ namespace Couchbase.UnitTests.Core
         {
             // Arrange
 
-            var node = CreateMockNode(CreateEndpoint(1), CreateEndpoint(2));
+            var node = CreateMockNode("default", CreateEndpoint(1), CreateEndpoint(2));
 
             var nodes = new ClusterNodeCollection
             {
@@ -419,12 +420,32 @@ namespace Couchbase.UnitTests.Core
 
         #region Helpers
 
+        [Fact]
+        public void Remove_Endpoint_With_Multiple_Buckets()
+        {
+            var node1 = CreateMockNode("default",CreateEndpoint(1));
+            var node2 = CreateMockNode("default",CreateEndpoint(2));
+            var node3 = CreateMockNode("default2",CreateEndpoint(3));
+            var node4 = CreateMockNode("default2",CreateEndpoint(4));
+
+            var nodes = new ClusterNodeCollection { node1.Object, node2.Object, node3.Object, node4.Object };
+            var result = nodes.Remove(node3.Object.EndPoint, "default2", out IClusterNode oldNode);
+            Assert.True(result);
+            Assert.Equal(3, nodes.Count);
+            Assert.Equal(3, nodes.LookupDictionary.Count);
+
+            result = nodes.Remove(node4.Object.EndPoint, "default2", out IClusterNode oldNode2);
+            Assert.True(result);
+            Assert.Equal(2, nodes.Count);
+            Assert.Equal(2, nodes.LookupDictionary.Count);
+        }
+
         private HostEndpointWithPort CreateEndpoint(byte i)
         {
             return new HostEndpointWithPort($"127.0.0.{i}", 11210);
         }
 
-        private Mock<IClusterNode> CreateMockNode(params HostEndpointWithPort[] endPoints)
+        private Mock<IClusterNode> CreateMockNode( string bucketName, params HostEndpointWithPort[] endPoints)
         {
             var node = new Mock<IClusterNode>();
             node
@@ -437,6 +458,9 @@ namespace Couchbase.UnitTests.Core
                 .SetupAdd(m => m.KeyEndPointsChanged += It.IsAny<NotifyCollectionChangedEventHandler>());
             node
                 .SetupRemove(m => m.KeyEndPointsChanged -= It.IsAny<NotifyCollectionChangedEventHandler>());
+            node
+                .Setup(x => x.Owner)
+                .Returns(new FakeBucket(bucketName, new ClusterOptions()));
 
             return node;
         }

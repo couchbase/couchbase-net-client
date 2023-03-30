@@ -18,6 +18,7 @@ namespace Couchbase.Core
         NodeAdapter NodesAdapter { get; set; }
         HostEndpointWithPort EndPoint { get; }
         BucketType BucketType { get; }
+        string BucketName { get; }
 
         /// <summary>
         /// Endpoints by which this node may be referenced for key/value operations.
