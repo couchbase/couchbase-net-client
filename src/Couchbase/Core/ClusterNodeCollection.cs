@@ -19,6 +19,8 @@ namespace Couchbase.Core
     /// </summary>
     internal class ClusterNodeCollection : IEnumerable<IClusterNode>
     {
+        private readonly object _syncObj = new();
+
         /// <summary>
         /// Optimized dictionary of nodes for rapid, low-lock get operations.
         /// Allows nodes to be keyed by multiple keys.
@@ -42,7 +44,7 @@ namespace Couchbase.Core
         {
             get
             {
-                lock (_nodes)
+                lock (_syncObj)
                 {
                     return _nodes.Count;
                 }
@@ -77,7 +79,7 @@ namespace Couchbase.Core
                 throw new ArgumentNullException(nameof(node));
             }
 
-            lock (_nodes)
+            lock (_syncObj)
             {
                 if (!_nodes.Add(node))
                 {
@@ -104,7 +106,7 @@ namespace Couchbase.Core
         /// <returns>True if the node was removed.</returns>
         public bool Remove(HostEndpointWithPort endPoint, string bucketName, [NotNullWhen(true)] out IClusterNode? removedNode)
         {
-            lock (_nodes)
+            lock (_syncObj)
             {
                 if (_lookupDictionary.TryRemove(endPoint, out removedNode))
                 {
@@ -129,7 +131,7 @@ namespace Couchbase.Core
 
         public IList<IClusterNode> Clear(IBucket bucket)
         {
-            lock (_nodes)
+            lock (_syncObj)
             {
                 var removed = new List<IClusterNode>(_nodes.Where(x=>x.Owner == bucket));
 
@@ -154,7 +156,7 @@ namespace Couchbase.Core
         /// <returns>List of nodes that were removed.</returns>
         public IList<IClusterNode> Clear()
         {
-            lock (_nodes)
+            lock (_syncObj)
             {
                 var removed = new List<IClusterNode>(_nodes);
 
@@ -180,7 +182,7 @@ namespace Couchbase.Core
 
             var node = (IClusterNode) sender!;
 
-            lock (_nodes)
+            lock (_syncObj)
             {
                 // Lock in case we're also in the midst of adding/removing a node right now,
                 // even though _lookupDictionary is thread-safe.
@@ -209,7 +211,7 @@ namespace Couchbase.Core
         /// </remarks>
         public IEnumerator<IClusterNode> GetEnumerator()
         {
-            lock (_nodes)
+            lock (_syncObj)
             {
                 return new List<IClusterNode>(_nodes).GetEnumerator();
             }
