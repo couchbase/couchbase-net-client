@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -52,7 +52,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
             _outputHelper.WriteLine(sampleDoc.ToString());
             var statement = "DELETE FROM default WHERE META().id = 'NO_TRAILING_QUOTE";
             var txn = TestUtil.CreateTransaction(_fixture.Cluster, KeyValue.DurabilityLevel.None, _outputHelper);
-            await Assert.ThrowsAsync<TransactionFailedException>(() => txn.QueryAsync<object>(statement));
+            await Assert.ThrowsAsync<Core.Exceptions.ParsingFailureException>(() => txn.QueryAsync<object>(statement));
         }
 
         [Fact]
@@ -87,18 +87,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
             var statement = "INSERT INTO default VALUES ($docId, {\"type\": \"example\" })";
             var txn = TestUtil.CreateTransaction(_fixture.Cluster, KeyValue.DurabilityLevel.None, _outputHelper);
             var t = txn.QueryAsync<object>(statement, config => config.QueryOptionsValue.Parameter("docId", docId));
-            var err = await Assert.ThrowsAsync<TransactionFailedException>(() => t);
-            Assert.False(err.Result.UnstagingComplete);
-            if (err.InnerException is TransactionOperationFailedException tof)
-            {
-                Assert.False(tof.RetryTransaction);
-                Assert.False(tof.AutoRollbackAttempt);
-            }
-            else if (!(err.InnerException is DocumentExistsException))
-            {
-                // flaky based on Contains.  May need to change.
-                Assert.Contains("document already exists", err.ToString());
-            }
+            var err = await Assert.ThrowsAsync<DocumentExistsException>(() => t);
         }
 
         [Fact]

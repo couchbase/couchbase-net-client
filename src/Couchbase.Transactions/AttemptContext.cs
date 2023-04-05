@@ -75,6 +75,7 @@ namespace Couchbase.Transactions
         private bool _queryMode = false;
         private Uri? _lastDispatchedQueryNode = null;
         private bool _singleQueryTransactionMode = false;
+        private IScope? _queryContextScope = null;
 
 
         /// <summary>
@@ -219,7 +220,7 @@ namespace Couchbase.Transactions
             {
                 var queryOptions = NonStreamingQuery().Parameter(collection.MakeKeyspace())
                                                       .Parameter(id);
-                using var queryResult = await QueryWrapper<QueryGetResult>(0, null, "EXECUTE __get",
+                using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __get",
                     options: queryOptions,
                     hookPoint: ITestHooks.HOOK_QUERY_KV_GET,
                     txdata: JObject.FromObject(new { kv = true }),
@@ -422,7 +423,7 @@ namespace Couchbase.Transactions
                                                .Parameter(doc.Id)
                                                .Parameter(content)
                                                .Parameter(new { });
-                using var queryResult = await QueryWrapper<QueryGetResult>(0, null, "EXECUTE __update",
+                using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __update",
                     options: queryOptions,
                     hookPoint: ITestHooks.HOOK_QUERY_KV_REPLACE,
                     txdata: txdata,
@@ -589,7 +590,7 @@ namespace Couchbase.Transactions
                                                .Parameter(id)
                                                .Parameter(content)
                                                .Parameter(new { });
-                using var queryResult = await QueryWrapper<QueryInsertResult>(0, null, "EXECUTE __insert",
+                using var queryResult = await QueryWrapper<QueryInsertResult>(0, _queryContextScope, "EXECUTE __insert",
                     options: queryOptions,
                     hookPoint: ITestHooks.HOOK_QUERY_KV_INSERT,
                     txdata: JObject.FromObject(new { kv = true }),
@@ -890,7 +891,7 @@ namespace Couchbase.Transactions
                 var queryOptions = NonStreamingQuery().Parameter(doc.Collection.MakeKeyspace())
                                                       .Parameter(doc.Id)
                                                       .Parameter(new { });
-                using var queryResult = await QueryWrapper<QueryGetResult>(0, null, "EXECUTE __delete",
+                using var queryResult = await QueryWrapper<QueryGetResult>(0, _queryContextScope, "EXECUTE __delete",
                     options: queryOptions,
                     hookPoint: ITestHooks.HOOK_QUERY_KV_REMOVE,
                     txdata: txdata,
@@ -1048,7 +1049,7 @@ namespace Couchbase.Transactions
             {
                 await QueryWrapper<object>(
                     statementId: 0,
-                    scope: null,
+                    scope: _queryContextScope,
                     statement: "COMMIT",
                     options: new QueryOptions(),
                     hookPoint: ITestHooks.HOOK_QUERY_COMMIT,
@@ -1568,7 +1569,7 @@ namespace Couchbase.Transactions
         /// <param name="scope">The scope</param>
         /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
         /// <remarks>IMPORTANT: Any KV operations after this query will be run via the query engine, which has performance implications.</remarks>
-        public Task<IQueryResult<T>> QueryAsync<T>(string statement, TransactionQueryConfigBuilder config = null, IScope? scope = null, IRequestSpan? parentSpan = null)
+        public Task<IQueryResult<T>> QueryAsync<T>(string statement, TransactionQueryConfigBuilder? config = null, IScope? scope = null, IRequestSpan? parentSpan = null)
         {
             var options = config?.Build() ?? new TransactionQueryOptions();
             return QueryAsync<T>(statement, options, scope, parentSpan);
@@ -1662,7 +1663,7 @@ namespace Couchbase.Transactions
             try
             {
                 var queryOptions = NonStreamingQuery();
-                _ = await QueryWrapper<object>(0, null, "ROLLBACK", queryOptions,
+                _ = await QueryWrapper<object>(0, _queryContextScope, "ROLLBACK", queryOptions,
                     hookPoint: ITestHooks.HOOK_QUERY_ROLLBACK,
                     parentSpan: traceSpan.Item,
                     existingErrorCheck: false).CAF();
@@ -2013,7 +2014,7 @@ namespace Couchbase.Transactions
             {
                 if (!txImplicit)
                 {
-                    await QueryBeginWork(traceSpan?.Item).CAF();
+                    await QueryBeginWork(traceSpan?.Item, scope).CAF();
                 }
 
                 _queryMode = true;
@@ -2052,7 +2053,11 @@ namespace Couchbase.Transactions
                     IQueryResult<T> results = scope != null
                         ? await scope.QueryAsync<T>(statement, options).CAF()
                         : await _cluster.QueryAsync<T>(statement, options).CAF();
+
+                    // "on success"?  Do we need to check the status, here?
+                    _queryContextScope ??= scope;
                     await _testHooks.AfterQuery(this, statement).CAF();
+
                     if (results.MetaData?.Status == QueryStatus.Fatal)
                     {
                         var err = CreateError(this, ErrorClass.FailOther).Build();
@@ -2177,6 +2182,10 @@ namespace Couchbase.Transactions
                                 return CreateError(this, ErrorClass.FailOther)
                                     .Cause(new FeatureNotAvailableException("Unknown query parameter: note that query support in transactions is available from Couchbase Server 7.0 onwards"))
                                     .Build();
+                            case 1197: // Missing tenant
+                                return CreateError(this, ErrorClass.FailOther)
+                                    .Cause(new FeatureNotAvailableException("This server requires that a Scope be passed to ctx.query()."))
+                                    .Build();
                             case 17004: // Transaction context error
                                 return new AttemptNotFoundOnQueryException();
                             case 1080: // Timeout
@@ -2273,7 +2282,7 @@ namespace Couchbase.Transactions
             return qec.Errors.FirstOrDefault();
         }
 
-        private async Task QueryBeginWork(IRequestSpan? parentSpan)
+        private async Task QueryBeginWork(IRequestSpan? parentSpan, IScope? scope)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
             Logger.LogInformation("[{attemptId}] Entering query mode", AttemptId);
@@ -2293,7 +2302,7 @@ namespace Couchbase.Transactions
 
             var results = await QueryWrapper<QueryBeginWorkResponse>(
                 statementId: 0,
-                scope: null,
+                scope: scope,
                 statement: "BEGIN WORK",
                 options: queryOptions,
                 hookPoint: ITestHooks.HOOK_QUERY_BEGIN_WORK,

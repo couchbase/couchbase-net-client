@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Core.Exceptions;
@@ -108,7 +108,7 @@ namespace Couchbase.Transactions.Error
 
             if (ex is CouchbaseException cbe)
             {
-                if (cbe.Context?.Message.Contains("XATTR_EINVAL") == true)
+                if (cbe.Context?.Message?.Contains("XATTR_EINVAL") == true)
                 {
                     return ErrorClass.FailHard;
                 }

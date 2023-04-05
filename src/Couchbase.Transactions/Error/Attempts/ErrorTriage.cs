@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -84,6 +84,7 @@ namespace Couchbase.Transactions.Error.Attempts
             ErrorBuilder? toThrow = ec switch
             {
                 FailExpiry => Error(ec, new AttemptExpiredException(_ctx), raise: TransactionExpired),
+                FailDocAlreadyExists => Error(ec, err, retry: true), // <-- CasMismatch
                 FailDocNotFound => Error(ec, err, retry: true),
                 FailCasMismatch => Error(ec, err, retry: true),
                 FailTransient => Error(ec, err, retry: true),
