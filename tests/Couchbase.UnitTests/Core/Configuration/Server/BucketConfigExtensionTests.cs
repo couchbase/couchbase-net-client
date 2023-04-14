@@ -292,4 +292,11 @@ public class BucketConfigExtensionTests
             Assert.False(newConfig.HasConfigChanges(oldConfig, "travel-sample"));
         }
     }
+
+    [Fact]
+    public void Test_GlobalConfig_With_No_Nodes()
+    {
+       var bucketConfig = ResourceHelper.ReadResource("config-global-no-nodes.json", InternalSerializationContext.Default.BucketConfig);
+       var nodeAdapters = bucketConfig.GetNodes();
+    }
 }

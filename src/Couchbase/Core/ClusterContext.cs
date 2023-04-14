@@ -24,7 +24,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Core
 {
-    internal class ClusterContext : IDisposable
+    internal class ClusterContext : IDisposable, IConfigUpdateEventSink
     {
         /// <summary>
         /// Transcoder for use on internal key/value operations.
@@ -79,12 +79,12 @@ namespace Couchbase.Core
             _clusterNodeFactory = ServiceProvider.GetRequiredService<IClusterNodeFactory>();
             _httpClusterMapFactory = ServiceProvider.GetRequiredService<IHttpClusterMapFactory>();
             _httpClusterMap = _httpClusterMapFactory.Create(this);
-         }
+        }
 
         /// <summary>
         /// Nodes currently being managed.
         /// </summary>
-        public ClusterNodeList Nodes { get; } = new ClusterNodeList();
+        public ClusterNodeList Nodes { get; } = new();
 
         public ClusterOptions ClusterOptions { get; }
 
@@ -264,10 +264,12 @@ namespace Couchbase.Core
         {
             _logger.LogDebug(
                 "Adding node {endPoint} on {bucket} to {nodes}.",_redactor.SystemData(node.EndPoint), node.Owner?.Name, Nodes.Count);
+
             if (Nodes.Add(node))
             {
                 _logger.LogDebug(
-                    "Added node {endPoint} on {bucket} to {nodes}",  _redactor.SystemData(node.EndPoint), node.Owner?.Name, Nodes.Count);
+                    "Added node {endPoint} on {bucket} to {nodes}",
+                    _redactor.SystemData(node.EndPoint), node.Owner?.Name, Nodes.Count);
             }
         }
 
@@ -307,11 +309,6 @@ namespace Couchbase.Core
                 x => !x.IsAssigned && x.EndPoint.Equals(endpoint));
         }
 
-        public IClusterNode GetAnyUnassignedNode()
-        {
-            return Nodes.FirstOrDefault(x => !x.IsAssigned);
-        }
-
         public async Task BootstrapGlobalAsync()
         {
             if (ClusterOptions.ConnectionStringValue == null)
@@ -319,135 +316,162 @@ namespace Couchbase.Core
                 throw new InvalidOperationException("ConnectionString has not been set.");
             }
 
-            if (ClusterOptions.ConnectionStringValue.IsValidDnsSrv())
+            try
             {
-                try
+                if (ClusterOptions.ConnectionStringValue.IsValidDnsSrv())
                 {
-                    // Always try to use DNS SRV to bootstrap if connection string is valid
-                    // It can be disabled by returning an empty URI list from IDnsResolver
-                    var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
-
-                    //if we have a cached original DNS SRV uri we can use that to bootstrap
-                    var bootstrapUri = ClusterOptions.ConnectionStringValue.IsDnsSrv ?
-                        ClusterOptions.ConnectionStringValue.DnsSrvUri :
-                        ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
-
-                    var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken).ConfigureAwait(false)).ToList();
-                    if (servers.Any())
+                    try
                     {
-                        _logger.LogInformation(
-                            $"Successfully retrieved DNS SRV entries: [{_redactor.SystemData(string.Join(",", servers))}]");
-                        ClusterOptions.ConnectionStringValue =
-                            new ConnectionString(ClusterOptions.ConnectionStringValue, servers, true, bootstrapUri);
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"Bootstrapping: the DNS SRV succeeded, but no records were returned for {bootstrapUri}.");
-                    }
-                }
-                catch (Exception exception)
-                {
-                    _logger.LogInformation(exception, "Error trying to retrieve DNS SRV entries.");
-                }
-            }
+                        // Always try to use DNS SRV to bootstrap if connection string is valid
+                        // It can be disabled by returning an empty URI list from IDnsResolver
+                        var dnsResolver = ServiceProvider.GetRequiredService<IDnsResolver>();
 
-            //defer throwing exceptions until all nodes have been tried.
-            //if this is non null that means and we haven't bootstrapped
-            //then bootstrapping has failed and we can throw the agg exception
-            List<Exception> exceptions = new List<Exception>();
+                        //if we have a cached original DNS SRV uri we can use that to bootstrap
+                        var bootstrapUri = ClusterOptions.ConnectionStringValue.IsDnsSrv
+                            ? ClusterOptions.ConnectionStringValue.DnsSrvUri
+                            : ClusterOptions.ConnectionStringValue.GetDnsBootStrapUri();
 
-            //Try to bootstrap each node in the servers list - either from DNS-SRV lookup or from client configuration
-            foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions.EnableTls))
-            {
-                IClusterNode node = null;
-                try
-                {
-                    _logger.LogDebug("Bootstrapping: global bootstrapping with node {server}", server);
-                    node = await _clusterNodeFactory
-                        .CreateAndConnectAsync(server, CancellationToken)
-                        .ConfigureAwait(false);
-
-                    GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
-                    GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
-
-                    //ignore the exceptions since at least one node bootstrapped
-                    exceptions.Clear();
-                }
-                catch (Exception e)
-                {
-                    if (e is CouchbaseException cbe && cbe.Context is KeyValueErrorContext ctx)
-                    {
-                        if (ctx.Status == ResponseStatus.BucketNotConnected)
+                        var servers = (await dnsResolver.GetDnsSrvEntriesAsync(bootstrapUri, CancellationToken)
+                            .ConfigureAwait(false)).ToList();
+                        if (servers.Any())
                         {
-                            AddNode(node); //GCCCP is not supported - pre-6.5 server fall back to CCCP like SDK 2
-                            return;
-                        }
-                    }
-
-                    // something else failed, try the next hostname
-                    _logger.LogDebug(e, "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
-                        server);
-
-                    //hold on to the exception to create agg exception if none complete.
-                    exceptions.Add(e);
-
-                    //skip to next endpoint and try again
-                    continue;
-                }
-
-                try
-                {
-                    //Server is 6.5 and greater and supports GC3P so loop through the global config and
-                    //create the nodes that are not associated with any buckets via Select Bucket.
-                    GlobalConfig.IsGlobal = true;
-                    foreach (var nodeAdapter in GlobalConfig.GetNodes()) //Initialize cluster nodes for global services
-                    {
-                        //log any alternate address mapping
-                        _logger.LogInformation(nodeAdapter.ToString());
-
-                        var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
-                        if (server.Equals(hostEndpoint)) //this is the bootstrap node so update
-                        {
-                            _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
-                                _redactor.SystemData(hostEndpoint.ToString()));
-
-                            node.NodesAdapter = nodeAdapter;
-                            SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
-                            AddNode(node);
+                            _logger.LogInformation(
+                                $"Successfully retrieved DNS SRV entries: [{_redactor.SystemData(string.Join(",", servers))}]");
+                            ClusterOptions.ConnectionStringValue =
+                                new ConnectionString(ClusterOptions.ConnectionStringValue, servers, true, bootstrapUri);
                         }
                         else
                         {
-                            _logger.LogInformation("Bootstrapping: initializing a global non-bootstrap node [{node}]",
-                                _redactor.SystemData(hostEndpoint.ToString()));
-
-                            var newNode = await _clusterNodeFactory
-                                .CreateAndConnectAsync(hostEndpoint, nodeAdapter,
-                                    CancellationToken).ConfigureAwait(false);
-                            SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
-                            AddNode(newNode);
+                            _logger.LogInformation(
+                                $"Bootstrapping: the DNS SRV succeeded, but no records were returned for {bootstrapUri}.");
                         }
                     }
-                    return;
+                    catch (Exception exception)
+                    {
+                        _logger.LogInformation(exception, "Error trying to retrieve DNS SRV entries.");
+                    }
                 }
-                catch (Exception e)
+
+                //defer throwing exceptions until all nodes have been tried.
+                //if this is non null that means and we haven't bootstrapped
+                //then bootstrapping has failed and we can throw the agg exception
+                List<Exception> exceptions = new List<Exception>();
+
+                //Try to bootstrap each node in the servers list - either from DNS-SRV lookup or from client configuration
+                foreach (var server in ClusterOptions.ConnectionStringValue.GetBootstrapEndpoints(ClusterOptions
+                             .EnableTls))
                 {
-                    _logger.LogDebug(e, "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
-                        _redactor.MetaData(server));
+                    IClusterNode node = null;
+                    try
+                    {
+                        _logger.LogDebug("Bootstrapping: global bootstrapping with node {server}", server);
+                        node = await _clusterNodeFactory
+                            .CreateAndConnectAsync(server, CancellationToken)
+                            .ConfigureAwait(false);
+
+                        GlobalConfig = await node.GetClusterMap().ConfigureAwait(false);
+                        GlobalConfig.Name = "CLUSTER";
+                        GlobalConfig.SetEffectiveNetworkResolution(ClusterOptions);
+                        AddNode(node);
+
+                        //ignore the exceptions since at least one node bootstrapped
+                        exceptions.Clear();
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is CouchbaseException cbe && cbe.Context is KeyValueErrorContext ctx)
+                        {
+                            if (ctx.Status == ResponseStatus.BucketNotConnected)
+                            {
+                                AddNode(node); //GCCCP is not supported - pre-6.5 server fall back to CCCP like SDK 2
+                                return;
+                            }
+                        }
+
+                        // something else failed, try the next hostname
+                        _logger.LogDebug(e,
+                            "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
+                            server);
+
+                        //hold on to the exception to create agg exception if none complete.
+                        exceptions.Add(e);
+
+                        //skip to next endpoint and try again
+                        continue;
+                    }
+
+                    try
+                    {
+                        //Server is 6.5 and greater and supports GC3P so loop through the global config and
+                        //create the nodes that are not associated with any buckets via Select Bucket.
+                        foreach (var nodeAdapter in
+                                 GlobalConfig.GetNodes()) //Initialize cluster nodes for global services
+                        {
+                            //log any alternate address mapping
+                            _logger.LogInformation(nodeAdapter.ToString());
+
+                            var hostEndpoint = HostEndpointWithPort.Create(nodeAdapter, ClusterOptions);
+                            if (server.Equals(hostEndpoint)) //this is the bootstrap node so update
+                            {
+                                _logger.LogInformation("Bootstrapping: initializing global bootstrap node [{node}].",
+                                    _redactor.SystemData(hostEndpoint.ToString()));
+
+                                node.NodesAdapter = nodeAdapter;
+                                if (node.ServerFeatures != null)
+                                {
+                                    SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
+                                }
+
+                                AddNode(node);
+                            }
+                            else
+                            {
+                                _logger.LogInformation(
+                                    "Bootstrapping: initializing a global non-bootstrap node [{node}]",
+                                    _redactor.SystemData(hostEndpoint.ToString()));
+
+                                var newNode = await _clusterNodeFactory
+                                    .CreateAndConnectAsync(hostEndpoint, nodeAdapter,
+                                        CancellationToken).ConfigureAwait(false);
+
+                                if (newNode.ServerFeatures != null)
+                                {
+                                    SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
+                                }
+
+                                AddNode(newNode);
+                            }
+                        }
+
+                        return;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogDebug(e,
+                            "Bootstrapping: attempted global bootstrapping on endpoint {endpoint} has failed.",
+                            _redactor.MetaData(server));
+                    }
+                }
+
+                if (exceptions?.Count > 0)
+                {
+                    //for backwards compatibility return an auth exception if one exists (logs will show others).
+                    var authException =
+                        exceptions.FirstOrDefault(e => e.GetType() == typeof(AuthenticationFailureException));
+                    if (authException != null)
+                    {
+                        ExceptionDispatchInfo.Capture(authException).Throw();
+                    }
+
+                    //Not an auth exception but still cannot bootstrap so return all the exceptions
+                    throw new AggregateException("Bootstrapping has failed!", exceptions);
                 }
             }
-
-            if (exceptions?.Count > 0)
+            finally
             {
-                //for backwards compatibility return an auth exception if one exists (logs will show others).
-                var authException = exceptions.FirstOrDefault(e => e.GetType() == typeof(AuthenticationFailureException));
-                if(authException != null)
-                {
-                    ExceptionDispatchInfo.Capture(authException).Throw();
-                }
-                //Not an auth exception but still cannot bootstrap so return all the exceptions
-                throw new AggregateException("Bootstrapping has failed!", exceptions);
+                //subscribe for config updates
+                _configHandler.Subscribe(this);
             }
-
         }
 
         public async ValueTask<IBucket> GetOrCreateBucketAsync(string name)
@@ -533,11 +557,13 @@ namespace Couchbase.Core
 
         public async Task<BucketBase> CreateAndBootStrapBucketAsync(string name, HostEndpointWithPort endpoint)
         {
+            bool newNode = false;
             BucketBase bucket;
-            var node = GetAnyUnassignedNode();
+            var node = GetUnassignedNode(endpoint);
             if (node == null)
             {
                 node = await _clusterNodeFactory.CreateAndConnectAsync(endpoint, CancellationToken).ConfigureAwait(false);
+                newNode = true;
             }
 
             BucketConfig config;
@@ -572,7 +598,11 @@ namespace Couchbase.Core
             var nodeAdapter = config.GetNodes().Find(x=>HostEndpointWithPort.Create(x, ClusterOptions) == endpoint);
             node.NodesAdapter = nodeAdapter ??
                                 throw new NullReferenceException($"Could not find an adapter for {endpoint}.");
-            AddNode(node);
+
+            if (newNode)
+            {
+                AddNode(node);
+            }
 
             _logger.LogInformation("Bootstrapping: created a {bucketType} bucket for {name}.",
                 type.GetDescription(), _redactor.MetaData(name));
@@ -667,7 +697,6 @@ namespace Couchbase.Core
             }
         }
 
-
         private readonly SemaphoreSlim _configMutex = new(1, 1);
         public async Task ProcessClusterMapAsync(BucketBase bucket, BucketConfig config)
         {
@@ -676,44 +705,46 @@ namespace Couchbase.Core
 
             try
             {
+                IClusterNode clusterNode;
                 foreach (var nodeAdapter in config.GetNodes())
                 {
                     //log any alternate address mapping
                     _logger.LogInformation(nodeAdapter.ToString());
 
                     var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
-                    if (Nodes.TryGet(endPoint, config.Name, out var bootstrapNode))
+                    if (Nodes.TryGet(endPoint, config.Name, out clusterNode))
                     {
-                        if (bootstrapNode.Owner == null && bucket.BucketType != BucketType.Memcached)
+                        clusterNode.NodesAdapter = nodeAdapter;
+                        if (clusterNode.Owner == null && bucket.BucketType != BucketType.Memcached)
                         {
                             _logger.LogDebug(
                                 "Using existing node {endPoint} for bucket {bucket} using rev#{rev}",
                                 _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
 
-                            bootstrapNode.Owner = bucket;
-                            bootstrapNode.NodesAdapter = nodeAdapter;
-                            if (bootstrapNode.HasKv)
+                            clusterNode.Owner = bucket;
+
+                            if (clusterNode.HasKv)
                             {
-                                await bootstrapNode.SelectBucketAsync(bucket.Name, CancellationToken)
-                                    .ConfigureAwait(false);
-                                await bootstrapNode.HelloHello().ConfigureAwait(false);
-                                SupportsPreserveTtl = bootstrapNode.ServerFeatures.PreserveTtl;
+                                await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
+                                await clusterNode.HelloHello().ConfigureAwait(false);
+                                SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
                             }
 
-                            bucket.Nodes.Add(bootstrapNode);
+                            Nodes.Add(clusterNode);
                             continue;
                         }
 
-                        var node = GetAnyUnassignedNode();
-                        if (node != null)
+                        clusterNode = GetUnassignedNode(endPoint);
+                        if (clusterNode != null)
                         {
-                            node.Owner = bucket;
-                            if (node.HasKv)
+                            clusterNode.Owner = bucket;
+                            clusterNode.NodesAdapter = nodeAdapter;
+
+                            if (clusterNode.HasKv)
                             {
-                                node.NodesAdapter = nodeAdapter;
-                                await node.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                                await node.HelloHello().ConfigureAwait(false);
-                                SupportsPreserveTtl = node.ServerFeatures.PreserveTtl;
+                                await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
+                                await clusterNode.HelloHello().ConfigureAwait(false);
+                                SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
                             }
                         }
 
@@ -721,33 +752,50 @@ namespace Couchbase.Core
                     }
 
                     //If the node already exists for the endpoint, ignore it.
-                    if (bucket.Nodes.TryGet(endPoint, out var bucketNode))
+                    if (Nodes.TryGet(endPoint, config.Name, out clusterNode))
                     {
                         _logger.LogDebug(
                             "The node already exists for the endpoint {endpoint} using rev#{revision} for bucket {bucketName}.",
                             _redactor.SystemData(endPoint), config.Rev, _redactor.MetaData(config.Name));
-                        bucketNode.NodesAdapter = nodeAdapter;
+                        clusterNode.NodesAdapter = nodeAdapter;
                         continue;
                     }
 
-                    _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
-                        _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
-
-                    var newNode = await _clusterNodeFactory.CreateAndConnectAsync(
-                        // We want the BootstrapEndpoint to use the host name, not just the IP
-                        new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port),
-                        nodeAdapter,
-                        CancellationToken).ConfigureAwait(false);
-
-                    newNode.Owner = bucket;
-                    if (newNode.HasKv)
+                    clusterNode = GetUnassignedNode(endPoint);
+                    if (clusterNode != null)
                     {
-                        await newNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
-                        await newNode.HelloHello().ConfigureAwait(false);
-                        SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
-                    }
+                        clusterNode.Owner = bucket;
+                        clusterNode.NodesAdapter = nodeAdapter;
 
-                    AddNode(newNode);
+                        if (clusterNode.HasKv)
+                        {
+                            await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
+                            await clusterNode.HelloHello().ConfigureAwait(false);
+                            SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
+                        }
+                    }
+                    else
+                    {
+
+                        _logger.LogDebug("Creating node {endPoint} for bucket {bucketName} using rev#{revision}",
+                            _redactor.SystemData(endPoint), _redactor.MetaData(bucket.Name), config.Rev);
+
+                        clusterNode = await _clusterNodeFactory.CreateAndConnectAsync(
+                            // We want the BootstrapEndpoint to use the host name, not just the IP
+                            new HostEndpointWithPort(nodeAdapter.Hostname, endPoint.Port),
+                            nodeAdapter,
+                            CancellationToken).ConfigureAwait(false);
+
+                        clusterNode.Owner = bucket;
+                        if(clusterNode.HasKv)
+                        {
+                            await clusterNode.SelectBucketAsync(bucket.Name, CancellationToken).ConfigureAwait(false);
+                            await clusterNode.HelloHello().ConfigureAwait(false);
+                            SupportsPreserveTtl = clusterNode.ServerFeatures.PreserveTtl;
+                        }
+
+                        AddNode(clusterNode);
+                    }
                 }
 
                 PruneNodes(config);
@@ -781,6 +829,85 @@ namespace Couchbase.Core
                 RemoveNode(node);
             }
         }
+
+        private void PruneGlobalNodes(BucketConfig config)
+        {
+            var existingEndpoints = config.GetNodes()
+                .Select(p => HostEndpointWithPort.Create(p, _clusterOptions))
+                .ToList();
+
+            _logger.LogDebug("ExistingEndpoints: {endpoints}, revision {revision} from {bucket}.", existingEndpoints, config.Rev, config.Name);
+
+            //The global nodes have no IBucket owner and are named "CLUSTER"
+            var removedEndpoints = Nodes.Where(x =>
+                !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y)))
+                && x.Owner == null && config.Name == Name);
+
+            _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
+
+            foreach (var node in removedEndpoints)
+            {
+                RemoveNode(node);
+            }
+        }
+
+        public async Task ConfigUpdatedAsync(BucketConfig globalConfig)
+        {
+#if DEBUG
+            _logger.LogDebug("Global nodes: {nodes}", this.Nodes.Count);
+            foreach (var bucket in Buckets)
+            {
+                _logger.LogDebug("Bucket {name} nodes: {nodes}", bucket.Key, bucket.Value.ClusterNodes.Count());
+            }
+#endif
+
+            if (globalConfig.Name == Name)
+            {
+                using var cts = new CancellationTokenSource();
+                await _configMutex.WaitAsync(cts.Token).ConfigureAwait(false);
+
+                try
+                {
+                    _logger.LogDebug("Got global config revision: {rev}", globalConfig.Rev);
+
+                    if (!globalConfig.HasConfigChanges(GlobalConfig, Name))
+                    {
+                        return;
+                    }
+
+                    foreach (var nodeAdapter in globalConfig.GetNodes())
+                    {
+                        var endPoint = HostEndpointWithPort.Create(nodeAdapter, _clusterOptions);
+                        if (!Nodes.TryGet(endPoint, globalConfig.Name, out IClusterNode node))
+                        {
+                            var newNode = await _clusterNodeFactory
+                                .CreateAndConnectAsync(endPoint, nodeAdapter,
+                                    CancellationToken).ConfigureAwait(false);
+
+                            SupportsPreserveTtl = newNode.ServerFeatures.PreserveTtl;
+                            AddNode(newNode);
+
+                            //if the global config is updated replace it
+                            globalConfig.SetEffectiveNetworkResolution(ClusterOptions);
+                            GlobalConfig = globalConfig;
+                        }
+                        else
+                        {
+                            node.NodesAdapter = nodeAdapter;
+                        }
+                    }
+
+                    PruneGlobalNodes(globalConfig);
+                }
+                finally
+                {
+                    _configMutex.Release();
+                }
+            }
+        }
+
+        public string Name => "CLUSTER";
+        public IEnumerable<IClusterNode> ClusterNodes => Nodes;
 
         public void Dispose()
         {

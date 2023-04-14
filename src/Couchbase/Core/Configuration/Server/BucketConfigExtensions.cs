@@ -102,7 +102,7 @@ namespace Couchbase.Core.Configuration.Server
                 nodeAdapters.AddRange(nodes!.Select((t, i) => new NodeAdapter(t, nodesExt[i], bucketConfig)));
             else if (nodesExt.Count < nodes?.Count)
                 nodeAdapters.AddRange(nodes!.Select(t => new NodeAdapter(t, null, bucketConfig)));
-            else if (nodesExt.Count > nodes?.Count)
+            else if (nodesExt.Count > nodes?.Count && nodes?.Count > 0)
             {
                 //In certain cases the server will return an evicted node at the end of the NodesExt list
                 //we filter that list to ensure parity between Nodes and NodesExt - see NCBC-2422 for details

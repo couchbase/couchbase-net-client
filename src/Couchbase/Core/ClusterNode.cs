@@ -46,12 +46,12 @@ namespace Couchbase.Core
         private Uri _viewsUri;
         private Uri _eventingUri;
         private NodeAdapter _nodesAdapter;
-        private readonly ObservableCollection<HostEndpointWithPort> _keyEndPoints = new();
         private readonly string _cachedToString;
+        private readonly ObservableCollection<HostEndpointWithPort> _keyEndPoints = new();
         private volatile bool _disposed;
         private readonly string _localHostName;
         private readonly string _remoteHostName;
-        private string _bucketName = string.Empty;
+        private string _bucketName = "CLUSTER";
         private IBucket _owner;
 
         public ClusterNode(ClusterContext context, IConnectionPoolFactory connectionPoolFactory, ILogger<ClusterNode> logger,
@@ -77,7 +77,7 @@ namespace Couchbase.Core
                 LogCannotFetchHostName(e);
             }
 
-            _cachedToString = $"{EndPoint}-{_id}";
+            _cachedToString = $"{EndPoint}-{_bucketName}";
             _remoteHostName = EndPoint.ToString();
 
             KeyEndPoints = new ReadOnlyObservableCollection<HostEndpointWithPort>(_keyEndPoints);
@@ -111,6 +111,11 @@ namespace Couchbase.Core
             _logger = logger;
         }
 
+        /// <summary>
+        /// The current cluster map config revision.
+        /// </summary>
+        public ulong ConfigRevision => NodesAdapter?.ConfigRevision ?? 0;
+
         public bool IsAssigned => Owner != null;
 
         public IBucket Owner
@@ -136,7 +141,11 @@ namespace Couchbase.Core
             }
         }
 
-        public HostEndpointWithPort EndPoint { get; }
+        /// <summary>
+        /// The IP or Hostname of this cluster node.
+        /// </summary>
+        public HostEndpointWithPort EndPoint { get; internal set; }
+
         public BucketType BucketType { get; internal set; }
 
         /// <inheritdoc />
@@ -837,9 +846,18 @@ namespace Couchbase.Core
 
         #region ToString
 
+        /// <summary>
+        /// Provides the string name of the node.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
-            return _cachedToString + "-" + _bucketName;
+#if DEBUG
+            //Unfortunately, we cannot cache the config revision.
+            return $"{EndPoint}-{_bucketName}-Rev#{ConfigRevision}";
+#else
+            return _cachedToString;
+#endif
         }
 
         #endregion

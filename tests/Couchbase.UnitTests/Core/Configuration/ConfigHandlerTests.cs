@@ -80,7 +80,7 @@ namespace Couchbase.UnitTests.Core.Configuration
             var configHandler = new Mock<IConfigHandler>();
             var logger = new Mock<ILogger<HttpStreamingConfigListener>>();
             var htpStreamingConfigListener = new HttpStreamingConfigListener(bucket, clusterOptions, httpClientFactory.Object, configHandler.Object, logger.Object);
-            httpStreamingConfigListenerFactory.Setup(x => x.Create(It.IsAny<IBucket>(), It.IsAny<IConfigHandler>())).Returns(htpStreamingConfigListener);
+            httpStreamingConfigListenerFactory.Setup(x => x.Create(It.IsAny<IConfigUpdateEventSink>(), It.IsAny<IConfigHandler>())).Returns(htpStreamingConfigListener);
 
             return httpStreamingConfigListenerFactory;
         }

@@ -232,7 +232,7 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
-        public void Subscribe(BucketBase bucket)
+        public void Subscribe(IConfigUpdateEventSink bucket)
         {
             lock (_configChangedSubscribers)
             {
@@ -255,16 +255,16 @@ namespace Couchbase.Core.Configuration.Server
             }
         }
 
-        public void Unsubscribe(BucketBase bucket)
+        public void Unsubscribe(IConfigUpdateEventSink configSubscriber)
         {
             lock (_configChangedSubscribers)
             {
-                _configChangedSubscribers.Remove(bucket);
+                _configChangedSubscribers.Remove(configSubscriber);
             }
 
-            if (bucket is MemcachedBucket)
+            if (configSubscriber is MemcachedBucket)
             {
-                if (_httpConfigListeners?.TryRemove(bucket.Name, out var listener) ?? false)
+                if (_httpConfigListeners?.TryRemove(configSubscriber.Name, out var listener) ?? false)
                 {
                     listener.Dispose();
                 }

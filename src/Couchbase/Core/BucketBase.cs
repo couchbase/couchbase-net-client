@@ -77,6 +77,7 @@ namespace Couchbase.Core
         public BucketConfig? CurrentConfig { get; protected set; }
         protected Manifest? Manifest { get; set; }
         public IKeyMapper? KeyMapper { get; protected set; }
+
         protected bool Disposed => _disposed > 0;
 
         //for propagating errors during bootstrapping
@@ -85,6 +86,8 @@ namespace Couchbase.Core
         public BucketType BucketType { get; protected set; }
 
         public virtual string Name { get; protected set; }
+
+        public IEnumerable<IClusterNode> ClusterNodes => Nodes;
 
         /// <inheritdoc />
         public ICluster Cluster => Context.Cluster;

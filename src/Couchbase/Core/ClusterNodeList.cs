@@ -65,7 +65,8 @@ internal class ClusterNodeList : IEnumerable<IClusterNode>
     {
         lock (_syncObj)
         {
-            return _nodes.Remove(nodeToRemove);
+            return _nodes.RemoveWhere(x =>
+                x.ToString() == nodeToRemove.ToString()) > 0;
         }
     }
 

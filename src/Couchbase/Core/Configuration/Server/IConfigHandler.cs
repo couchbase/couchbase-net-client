@@ -21,14 +21,14 @@ namespace Couchbase.Core.Configuration.Server
         /// <summary>
         /// Subscribe to the config handler to receive cluster map updates.
         /// </summary>
-        /// <param name="bucket">The <see cref="IConfigUpdateEventSink"/> subscriber.</param>
-        void Subscribe(BucketBase bucket);
+        /// <param name="configSubscriber">The <see cref="IConfigUpdateEventSink"/> subscriber.</param>
+        void Subscribe(IConfigUpdateEventSink configSubscriber);
 
         /// <summary>
         /// Unsubscribes the subscriber.
         /// </summary>
-        /// <param name="bucket"></param>
-        void Unsubscribe(BucketBase bucket);
+        /// <param name="configSubscriber"></param>
+        void Unsubscribe(IConfigUpdateEventSink configSubscriber);
 
         /// <summary>
         /// Fetch a <see cref="BucketConfig"/> from the listener if they are a subscriber.

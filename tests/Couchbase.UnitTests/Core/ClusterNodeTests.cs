@@ -35,16 +35,25 @@ namespace Couchbase.UnitTests.Core
         {
             var pool = new DefaultObjectPool<OperationBuilder>(new OperationBuilderPoolPolicy());
 
+            var beerSample = new Mock<IBucket>();
+                beerSample
+                    .Setup(x => x.Name)
+                    .Returns("beer-sample");
+
             var node1 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker())
             {
-                Owner = new Mock<IBucket>().Object,
-                //EndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 10210)
+                Owner = beerSample.Object,
+                EndPoint = new HostEndpointWithPort("127.0.0.1", 10210)
             };
 
+            var travelSample = new Mock<IBucket>();
+            travelSample
+                .Setup(x => x.Name)
+                .Returns("travel-sample");
             var node2 = new ClusterNode(new ClusterContext(), pool, new CircuitBreaker())
             {
-                Owner = new Mock<IBucket>().Object,
-                //EndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 10210)
+                Owner = travelSample.Object,
+                EndPoint = new HostEndpointWithPort("127.0.0.1", 10210)
             };
 
             Assert.NotEqual(node1.GetHashCode(), node2.GetHashCode());

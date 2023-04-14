@@ -1179,6 +1179,8 @@ namespace Couchbase.KeyValue
             {
                 Opaque = SequenceGenerator.GetNext(),
                 Span = rootSpan,
+                SName = ScopeName,
+                CName = Name
             };
 
             if (sendAsBody)

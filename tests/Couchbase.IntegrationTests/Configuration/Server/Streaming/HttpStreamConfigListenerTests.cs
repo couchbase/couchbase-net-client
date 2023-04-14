@@ -41,7 +41,7 @@ namespace Couchbase.IntegrationTests.Configuration.Server.Streaming
                     autoResetEvent.Set();
                 });
 
-            var mockBucket = new Mock<IBucket>();
+            var mockBucket = new Mock<IConfigUpdateEventSink>();
             mockBucket.Setup(m => m.Name).Returns("default");
 
             using var listener = new HttpStreamingConfigListener(mockBucket.Object, _fixture.ClusterOptions, httpClientFactory, handler.Object,

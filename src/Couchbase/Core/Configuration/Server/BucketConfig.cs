@@ -309,7 +309,8 @@ namespace Couchbase.Core.Configuration.Server
         /// <summary>
         /// Set to true if a GCCCP config
         /// </summary>
-        [JsonIgnore] public bool IsGlobal { get; set; }
+        [JsonIgnore]
+        public bool IsGlobal => Name == "CLUSTER";
 
         /// <summary>
         ///When true, we want to ignore the config revision and just accept the
@@ -320,7 +321,7 @@ namespace Couchbase.Core.Configuration.Server
 
         [JsonPropertyName("rev")] public ulong Rev { get; set; }
         [JsonPropertyName("revEpoch")] public ulong RevEpoch { get; set; }
-        [JsonPropertyName("name")] public string Name { get; set; }
+        [JsonPropertyName("name")] public string Name { get; set; } = "CLUSTER";
         [JsonPropertyName("uri")] public string Uri { get; set; }
         [JsonPropertyName("streamingUri")] public string StreamingUri { get; set; }
         [JsonPropertyName("nodes")] public List<Node> Nodes { get; set; }

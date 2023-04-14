@@ -10,6 +10,27 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
     public class NodeAdapterTests
     {
         [Fact]
+        public void Test_Config_Has_Query_But_HasQuery_Is_True()
+        {
+            var config = ResourceHelper.ReadResource("config-no-query-for-some-reason.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            var nodeAdapters = config.GetNodes();
+            Assert.NotNull(nodeAdapters);
+            Assert.True(nodeAdapters[2].IsQueryNode);
+        }
+
+        [Fact]
+        public void Test_GlobalConfigWithAltAddresses()
+        {
+            var config = ResourceHelper.ReadResource("global-config-with-alt-addresses.json",
+                InternalSerializationContext.Default.BucketConfig);
+
+            var nodeAdapters = config.GetNodes();
+            Assert.NotNull(nodeAdapters);
+        }
+
+        [Fact]
         public void IsAnalyticsNode_Is_True_When_Port_Is_Provided()
         {
             var node = new Node();
@@ -88,7 +109,7 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
         }
 
         [Fact]
-        public void When_Node_is_null_Kv_service_should_be_disabled()
+        public void When_Node_is_null_Kv_service_should_Not_be_disabled()
         {
             const string hostname = "localhost";
             var nodeExt = new NodesExt
@@ -102,7 +123,8 @@ namespace Couchbase.UnitTests.Core.Configuration.Server
 
             var adapter = new NodeAdapter(null, nodeExt, new BucketConfig());
             Assert.Equal(adapter.Hostname, hostname);
-            Assert.False(adapter.IsKvNode);
+
+            Assert.True(adapter.IsKvNode);
         }
 
         [Theory]

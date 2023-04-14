@@ -23,7 +23,7 @@ namespace Couchbase.Core.Configuration.Server.Streaming
         private readonly ClusterOptions _clusterOptions;
         private readonly ICouchbaseHttpClientFactory _httpClientFactory;
         private readonly IConfigHandler _configHandler;
-        private readonly IBucket _bucket;
+        private readonly IConfigUpdateEventSink _configSubscriber;
         private readonly string _streamingUriPath;
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private Task? _backgroundTask = null;
@@ -33,11 +33,11 @@ namespace Couchbase.Core.Configuration.Server.Streaming
 
         public bool Started { get; private set; }
 
-        public HttpStreamingConfigListener(IBucket bucket, ClusterOptions clusterOptions, ICouchbaseHttpClientFactory httpClientFactory,
+        public HttpStreamingConfigListener(IConfigUpdateEventSink configSubscriber, ClusterOptions clusterOptions, ICouchbaseHttpClientFactory httpClientFactory,
             IConfigHandler configHandler, ILogger<HttpStreamingConfigListener> logger)
         {
-            _bucket = bucket ?? throw new ArgumentNullException(nameof(bucket));
-            _streamingUriPath = "/pools/default/bs/" + _bucket.Name;
+            _configSubscriber = configSubscriber ?? throw new ArgumentNullException(nameof(configSubscriber));
+            _streamingUriPath = "/pools/default/bs/" + _configSubscriber.Name;
             _clusterOptions = clusterOptions ?? throw new ArgumentNullException(nameof(clusterOptions));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _configHandler = configHandler ?? throw new ArgumentNullException(nameof(configHandler));
@@ -75,14 +75,11 @@ namespace Couchbase.Core.Configuration.Server.Streaming
             return Task.Run(async () =>
             {
                 var delayMs = InitialDelayMs;
-
-                var bucket = _bucket as BucketBase;
-
                 while (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     try
                     {
-                        var nodes = bucket?.Nodes.ToList().Shuffle();
+                        var nodes = _configSubscriber?.ClusterNodes.ToList().Shuffle();
                         while (nodes != null && nodes.Any())
                         {
                             try

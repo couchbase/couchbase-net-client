@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 #nullable enable
@@ -7,6 +9,10 @@ namespace Couchbase.Core.Configuration.Server
     internal interface IConfigUpdateEventSink
     {
         Task ConfigUpdatedAsync(BucketConfig newConfig);
+
+        string Name { get; }
+
+        IEnumerable<IClusterNode> ClusterNodes { get; }
     }
 }
 

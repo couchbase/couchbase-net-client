@@ -14,7 +14,7 @@ namespace Couchbase.Core
     /// </summary>
     internal class ServerFeatureSet
     {
-        public static ServerFeatureSet Empty { get; } = new ServerFeatureSet(Array.Empty<ServerFeatures>());
+        public static ServerFeatureSet Empty { get; } = new(Array.Empty<ServerFeatures>());
 
         /// <summary>
         /// List of all available features.
