@@ -28,10 +28,10 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The path.
         /// </value>
-        internal string Path
+        public string Path
         {
             get => _path;
-            set
+            internal set
             {
                 if (value == null)
                 {
@@ -53,7 +53,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The op code.
         /// </value>
-        internal OpCode OpCode { get; set; }
+        public OpCode OpCode { get; internal set; }
 
         /// <summary>
         /// Gets or sets the value that will be written or received. This can be a JSON fragment or a scalar.
@@ -77,7 +77,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The flags.
         /// </value>
-        internal SubdocPathFlags PathFlags { get; set; }
+        public SubdocPathFlags PathFlags { get; internal set; }
 
         /// <summary>
         /// Gets or sets the document flags for the operation.
