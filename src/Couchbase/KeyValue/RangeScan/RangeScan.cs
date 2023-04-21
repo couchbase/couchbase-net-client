@@ -2,7 +2,6 @@ using Couchbase.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 
 namespace Couchbase.KeyValue.RangeScan
@@ -24,7 +23,7 @@ namespace Couchbase.KeyValue.RangeScan
         public RangeScan(ScanTerm from)
         {
             From = from;
-            To = ScanTerm.Exclusive(from.Id.Concat(new byte[] { 0xFF }).ToArray());
+            To = ScanTerm.Exclusive(from + ScanTerm.Maximum().Id);
         }
 
         public RangeScan(ScanTerm from, ScanTerm to, string collectionName) : this(from, to)
@@ -70,20 +69,20 @@ namespace Couchbase.KeyValue.RangeScan
             writer.WriteStartObject("range");
             if (From.IsExclusive)
             {
-                writer.WriteBase64String("excl_start", From.Id);
+                writer.WriteBase64String("excl_start", From.ByteId);
             }
             else
             {
-                writer.WriteBase64String("start", From.Id);
+                writer.WriteBase64String("start", From.ByteId);
             }
 
             if (To.IsExclusive)
             {
-                writer.WriteBase64String("excl_end", To.Id);
+                writer.WriteBase64String("excl_end", To.ByteId);
             }
             else
             {
-                var bytes = new List<byte>(To.Id);
+                var bytes = new List<byte>(To.ByteId);
                // bytes.Add((byte)0xFF);
                 writer.WriteBase64String("end", bytes.ToArray());
             }

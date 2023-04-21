@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
@@ -149,5 +150,43 @@ public class RangeScanTests
         Assert.Equal(body, content);
 
         await collection.RemoveAsync(id).ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task Test_Use_Minimum_And_Maximum_ScanTerms()
+    {
+        var collection = await _fixture.GetDefaultCollection();
+        var body = "hello";
+        var id = System.Guid.NewGuid().ToString();
+
+        for (var xd = 0; xd < 100; xd++)
+        {
+            await collection.UpsertAsync(id + xd, body).ConfigureAwait(false);
+        }
+
+        var min = ScanTerm.Inclusive(id + ScanTerm.Minimum().Id);
+        var max = ScanTerm.Inclusive(id + ScanTerm.Maximum().Id);
+
+        Assert.Equal(id + "\0", min.Id);
+        Assert.Equal(id + "\U0010FFFF", max.Id);
+
+        Thread.Sleep(1500);
+
+        var scan = collection.ScanAsync(new RangeScan(min, max),
+            new ScanOptions().Timeout(TimeSpan.FromSeconds(10)).IdsOnly(false));
+
+        var count = 0;
+        await foreach (var scanResult in scan)
+        {
+            count++;
+        }
+
+        Assert.Equal(100, count);
+
+        for (var xd = 0; xd < 100; xd++)
+        {
+            await collection.RemoveAsync(id + xd).ConfigureAwait(false);
+        }
+
     }
 }

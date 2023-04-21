@@ -9,18 +9,20 @@ namespace Couchbase.KeyValue.RangeScan
     public sealed class ScanTerm
     {
         private static readonly byte[] MinimumPattern = { 0x00 };
-        private static readonly byte[] MaximumPattern = { 0xFF };
+        private static readonly byte[] MaximumPattern = { 0xF4, 0x8F, 0xBF, 0xBF};
 
-        private ScanTerm(byte[] id, bool exclusive)
+        private ScanTerm(string id, bool exclusive)
         {
             Id = id;
             IsExclusive = exclusive;
         }
 
+        internal byte[] ByteId => Encoding.UTF8.GetBytes(Id);
+
         /// <summary>
         /// The term to scan.
         /// </summary>
-        public byte[] Id { get; private set; }
+        public string Id { get; private set; }
 
         /// <summary>
         /// Controls whether the scan is inclusive or exclusive.
@@ -44,7 +46,7 @@ namespace Couchbase.KeyValue.RangeScan
         /// <returns>A <see cref="ScanTerm"/> instance for an exclusive scan.</returns>
         public static ScanTerm Exclusive(byte[] id)
         {
-            return new ScanTerm(id, true);
+            return new ScanTerm(Encoding.UTF8.GetString(id), true);
         }
 
         /// <summary>
@@ -54,7 +56,7 @@ namespace Couchbase.KeyValue.RangeScan
         /// <returns>A <see cref="ScanTerm"/> instance for an inclusive scan.</returns>
         public static ScanTerm Inclusive(string id)
         {
-            return new ScanTerm(Encoding.UTF8.GetBytes(id), false);
+            return new ScanTerm(id, false);
         }
 
         /// <summary>
@@ -64,7 +66,7 @@ namespace Couchbase.KeyValue.RangeScan
         /// <returns>A <see cref="ScanTerm"/> instance for an inclusive scan.</returns>
         public static ScanTerm Inclusive(byte[] id)
         {
-            return new ScanTerm(id, false);
+            return new ScanTerm(Encoding.UTF8.GetString(id), false);
         }
 
         /// <summary>

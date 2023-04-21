@@ -58,7 +58,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
 
             var ranges = doc.RootElement.GetProperty("range");
             Assert.Equal("AA==", ranges.GetProperty("start").GetString());
-            Assert.Equal("/w==", ranges.GetProperty("end").GetString());
+            Assert.Equal("9I+/vw==", ranges.GetProperty("end").GetString());
 
             var snapshot = doc.RootElement.GetProperty("snapshot_requirements");
             Assert.Equal("16627788222", snapshot.GetProperty("vb_uuid").GetString());
@@ -84,7 +84,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         public void SerializeInclusive()
         {
             var scan = new RangeScan(ScanTerm.Inclusive(new byte[] { 0x00 }),
-                ScanTerm.Inclusive(new byte[] { 0xFF })) as IScanTypeExt;
+                ScanTerm.Inclusive(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF})) as IScanTypeExt;
 
             var jsonBytes = scan.Serialize(true,
                 TimeSpan.FromMilliseconds(2000),
@@ -95,7 +95,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
 
             var ranges = doc.RootElement.GetProperty("range");
             Assert.Equal("AA==", ranges.GetProperty("start").GetString());
-            Assert.Equal("/w==", ranges.GetProperty("end").GetString());
+            Assert.Equal("9I+/vw==", ranges.GetProperty("end").GetString());
 
             var snapshot = doc.RootElement.GetProperty("snapshot_requirements");
             Assert.Equal("16627788222", snapshot.GetProperty("vb_uuid").GetString());
@@ -116,7 +116,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         {
             var from = ScanTerm.Inclusive(new byte[] { 0x00 });
             var scan = new RangeScan(from);
-            Assert.True(scan.To.ToString() == ScanTerm.Exclusive(from.Id.Concat(new byte[] { 0xFF }).ToArray()).ToString());
+            Assert.True(scan.To.ToString() == ScanTerm.Exclusive(from.ByteId.Concat(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF}).ToArray()).ToString());
         }
 
         [Fact]
