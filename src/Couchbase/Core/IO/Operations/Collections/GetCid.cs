@@ -4,6 +4,12 @@ namespace Couchbase.Core.IO.Operations.Collections
 {
     internal class GetCid : OperationBase<string>
     {
+        /// <summary>
+        /// Creates a key either by the Key property or the Content property.
+        /// <remarks>Early server versions used the Key for the collection name; later versions use the Content property.</remarks>
+        /// </summary>
+        public string CoerceKey => Key == string.Empty ? Content : Key;
+
         public override bool RequiresVBucketId => false;
 
         public override OpCode OpCode => OpCode.GetCidByName;

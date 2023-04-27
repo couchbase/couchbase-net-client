@@ -381,7 +381,12 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Scan has reached the end of the range.
         /// </summary>
-        RangeScanComplete = 0x00a7
+        RangeScanComplete = 0x00a7,
+
+        /// <summary>
+        /// Command can't be executed in a config-only bucket.
+        /// </summary>
+        EConfigOnly = 0xD
     }
 }
 

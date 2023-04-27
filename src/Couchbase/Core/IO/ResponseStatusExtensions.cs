@@ -26,6 +26,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.OutOfMemory:
                 case ResponseStatus.Busy:
                 case ResponseStatus.NotInitialized:
+                case ResponseStatus.EConfigOnly:
                     return RetryReason.KvTemporaryFailure;
                 case ResponseStatus.TransportFailure: return RetryReason.SocketClosedWhileInFlight;
                 case ResponseStatus.SyncWriteInProgress: return RetryReason.KvSyncWriteInProgress;
@@ -65,6 +66,7 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.UnknownCollection:
                 case ResponseStatus.UnknownScope:
                 case ResponseStatus.CircuitBreakerOpen:
+                case ResponseStatus.EConfigOnly:
                     return true;
                 default:
                     return false;
