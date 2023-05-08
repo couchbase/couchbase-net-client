@@ -41,7 +41,7 @@ namespace Couchbase.Core.Configuration.Server
             }
 
             //There has been a config change and the newConfig may need to be loaded
-            if (!oldConfig.Equals(newConfig))
+            if (!newConfig.Equals(oldConfig))
             {
                 return newConfig.IsNewerThan(oldConfig);
             }

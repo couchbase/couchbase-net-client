@@ -339,17 +339,10 @@ namespace Couchbase.Core.Configuration.Server
         {
             if (other == null) return false;
 
-            VBucketMapChanged = !Equals(VBucketServerMap, other.VBucketServerMap);
-            ClusterNodesChanged = !(NodesExt.AreEqual(other.NodesExt) && Nodes.AreEqual(other.Nodes));
-
             return Rev == other.Rev && RevEpoch == other.RevEpoch && string.Equals(Name, other.Name) && string.Equals(Uri, other.Uri) &&
                    string.Equals(StreamingUri, other.StreamingUri) && string.Equals(NodeLocator, other.NodeLocator) &&
-                   !ClusterNodesChanged && !VBucketMapChanged;
+                   Equals(VBucketServerMap, other.VBucketServerMap) && (NodesExt.AreEqual(other.NodesExt) && Nodes.AreEqual(other.Nodes));
         }
-
-        public bool VBucketMapChanged { get; private set; }
-
-        public bool ClusterNodesChanged { get; private set; }
 
         public override bool Equals(object obj)
         {

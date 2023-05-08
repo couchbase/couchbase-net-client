@@ -1,8 +1,18 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Bootstrapping;
 using Couchbase.Core.Configuration.Server;
+using Couchbase.Core.DI;
+using Couchbase.Core.Diagnostics.Tracing;
+using Couchbase.Core.IO.Operations;
+using Couchbase.Core.Logging;
+using Couchbase.Core.Retry;
 using Couchbase.Core.Sharding;
 using Couchbase.UnitTests.Utils;
+using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic.CompilerServices;
+using Moq;
 using Xunit;
 
 namespace Couchbase.UnitTests.Core.Configuration.Server;
@@ -298,5 +308,226 @@ public class BucketConfigExtensionTests
     {
        var bucketConfig = ResourceHelper.ReadResource("config-global-no-nodes.json", InternalSerializationContext.Default.BucketConfig);
        var nodeAdapters = bucketConfig.GetNodes();
+    }
+
+    [Fact]
+    public async Task Test_HasConfigChanges()
+    {
+        #region Setup configs
+        var configA = new BucketConfig
+        {
+            Rev = 1,
+            Name = "default",
+            Nodes = new List<Node>
+            {
+                new()
+                {
+                    Hostname = "nodeA:8091",
+                    CouchApiBase = "http://nodeA:8092/default%2Ba4b0a6a479ce517c8f5a9d5637addc9f",
+                    Ports = new Ports
+                    {
+                        Direct = 11210,
+                        SslDirect = 11207
+                    }
+                }
+            },
+            NodesExt = new List<NodesExt>
+            {
+                new()
+                {
+                    Hostname = "nodeA",
+                    Services = new Services
+                    {
+                        Kv =  11210,
+                        KvSsl = 11207
+                    }
+                }
+            },
+            VBucketServerMap = new VBucketServerMapDto
+            {
+                HashAlgorithm = "CRC",
+                ServerList = new []{"nodeA:11210"},
+                VBucketMap = new[]
+                {
+                    new short[]{0, -1},
+                    new short[]{0, -1},
+                    new short[]{0, -1},
+                    new short[]{0, -1},
+                    new short[]{0, -1},
+                    new short[]{0, -1},
+                    new short[]{0, -1},
+                    new short[]{0, -1},
+                }
+            }
+        };
+
+        var configB = new BucketConfig
+        {
+            Rev = 2,
+            Name = "default",
+            Nodes = new List<Node>
+            {
+                new()
+                {
+                    Hostname = "nodeA:8091",
+                    CouchApiBase = "http://nodeA:8092/default%2Ba4b0a6a479ce517c8f5a9d5637addc9f",
+                    Ports = new Ports
+                    {
+                        Direct = 11210,
+                        SslDirect = 11207
+                    }
+                },
+                new()
+                {
+                    Hostname = "nodeB:8091",
+                    CouchApiBase = "http://nodeB:8092/default%2Ba4b0a6a479ce517c8f5a9d5637addc9f",
+                    Ports = new Ports
+                    {
+                        Direct = 11210,
+                        SslDirect = 11207
+                    }
+                }
+            },
+            NodesExt = new List<NodesExt>
+            {
+                new()
+                {
+                    Hostname = "nodeA",
+                    Services = new Services
+                    {
+                        Kv =  11210,
+                        KvSsl = 11207
+                    }
+                },
+                new()
+                {
+                    Hostname = "nodeB",
+                    Services = new Services
+                    {
+                        Kv =  11210,
+                        KvSsl = 11207
+                    }
+                }
+            },
+            VBucketServerMap = new VBucketServerMapDto
+            {
+                HashAlgorithm = "CRC",
+                ServerList = new []{"nodeA:11210", "nodeB:11210"},
+                VBucketMap = new[]
+                {
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                }
+            }
+        };
+
+        var configC = new BucketConfig
+        {
+            Rev = 3,
+            Name = "default",
+            Nodes = new List<Node>
+            {
+                new()
+                {
+                    Hostname = "nodeA:8091",
+                    CouchApiBase = "http://nodeA:8092/default%2Ba4b0a6a479ce517c8f5a9d5637addc9f",
+                    Ports = new Ports
+                    {
+                        Direct = 11210,
+                        SslDirect = 11207
+                    }
+                },
+                new()
+                {
+                    Hostname = "nodeB:8091",
+                    CouchApiBase = "http://nodeB:8092/default%2Ba4b0a6a479ce517c8f5a9d5637addc9f",
+                    Ports = new Ports
+                    {
+                        Direct = 11210,
+                        SslDirect = 11207
+                    }
+                }
+            },
+            NodesExt = new List<NodesExt>
+            {
+                new()
+                {
+                    Hostname = "nodeA",
+                    Services = new Services
+                    {
+                        Kv =  11210,
+                        KvSsl = 11207
+                    }
+                },
+                new()
+                {
+                    Hostname = "nodeB",
+                    Services = new Services
+                    {
+                        Kv =  11210,
+                        KvSsl = 11207
+                    }
+                }
+            },
+            VBucketServerMap = new VBucketServerMapDto
+            {
+                HashAlgorithm = "CRC",
+                ServerList = new []{"nodeA:11210", "nodeB:11210"},
+                VBucketMap = new[]
+                {
+                    new short[]{1, 0},
+                    new short[]{1, 0},
+                    new short[]{1, 0},
+                    new short[]{1, 0},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                    new short[]{0, 1},
+                }
+            }
+        };
+        #endregion
+
+        var bucket = CreateBucket(configA);
+        Assert.Equal(configA, bucket.CurrentConfig);
+        Assert.True(configA.HasVBucketMapChanged(null));
+        Assert.True(configA.HasClusterNodesChanged(null));
+
+        await bucket.ConfigUpdatedAsync(configB);
+        Assert.Equal(configB, bucket.CurrentConfig);
+        Assert.True(configB.HasVBucketMapChanged(configA));
+        Assert.True(configB.HasClusterNodesChanged(configA));
+
+        await bucket.ConfigUpdatedAsync(configC);
+        Assert.Equal(configC, bucket.CurrentConfig);
+        Assert.True(configC.HasVBucketMapChanged(configB));
+        Assert.True(configC.HasVBucketMapChanged(configB));
+    }
+
+    CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig)
+    {
+        var bucket = new CouchbaseBucket("default",
+            new ClusterContext
+            {
+                SupportsCollections = true
+            },
+            new Mock<IScopeFactory>().Object,
+            new Mock<IRetryOrchestrator>().Object,
+            new Mock<IVBucketKeyMapperFactory>().Object,
+            new Mock<ILogger<CouchbaseBucket>>().Object,
+            new TypedRedactor(RedactionLevel.None),
+            new Mock<IBootstrapperFactory>().Object,
+            NoopRequestTracer.Instance,
+            new Mock<IOperationConfigurator>().Object,
+            new BestEffortRetryStrategy(),
+            bootstrapConfig);
+
+        return bucket;
     }
 }
