@@ -225,20 +225,15 @@ namespace Couchbase
 
                 op.VBucketId = vBucket.Index;
 
-                try
+                if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
                 {
-                    if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
-                    {
-                        return await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
-                    }
+                    return await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
                 }
-                catch (ArgumentNullException)
-                {
-                    //We could not find a candidate node to send so put into the retry queue
-                    //its likely were between cluster map updates and we'll try again later
-                    throw new NodeNotAvailableException(
-                        $"Cannot find a Couchbase Server node for {endPoint}.");
-                }
+
+                //We could not find a candidate node to send so put into the retry queue
+                //its likely were between cluster map updates and we'll try again later
+                throw new NodeNotAvailableException(
+                    $"Cannot find a Couchbase Server node for {endPoint}.");
             }
 
             //Send CID request only to nodes in the VBucketMap
@@ -248,20 +243,15 @@ namespace Couchbase
                 var vBucket = (VBucket)KeyMapper.MapKey(key);
                 var endPoint = vBucket.LocatePrimary();
 
-                try
+                if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
                 {
-                    if (Nodes.TryGet(endPoint.GetValueOrDefault(), out var clusterNode))
-                    {
-                        return await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
-                    }
+                    return await clusterNode.SendAsync(op, tokenPair).ConfigureAwait(false);
                 }
-                catch (ArgumentNullException)
-                {
-                    //We could not find a candidate node to send so put into the retry queue
-                    //its likely were between cluster map updates and we'll try again later
-                    throw new NodeNotAvailableException(
-                        $"Cannot find a Couchbase Server node for {endPoint}.");
-                }
+
+                //We could not find a candidate node to send so put into the retry queue
+                //its likely were between cluster map updates and we'll try again later
+                throw new NodeNotAvailableException(
+                    $"Cannot find a Couchbase Server node for {endPoint}.");
             }
 
             //Make sure we use a node with the data service

@@ -8,7 +8,7 @@ namespace Couchbase.Core.IO.Operations.Collections
         /// Creates a key either by the Key property or the Content property.
         /// <remarks>Early server versions used the Key for the collection name; later versions use the Content property.</remarks>
         /// </summary>
-        public string CoerceKey => Key == string.Empty ? Content : Key;
+        public string CoerceKey => string.IsNullOrEmpty(Key) ? Content : Key;
 
         public override bool RequiresVBucketId => false;
 
