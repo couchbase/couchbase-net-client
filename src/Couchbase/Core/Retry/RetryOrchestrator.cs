@@ -338,7 +338,7 @@ namespace Couchbase.Core.Retry
             {
                 operation.StopRecording();
 
-                if (operation.Elapsed < operation.Timeout)
+                if (operation.Elapsed < operation.Timeout && !operation.IsCompleted)
                 {
                     // not a true timeout.
                     throw;

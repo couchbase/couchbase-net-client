@@ -39,6 +39,7 @@ namespace Couchbase.Core.IO.Operations
         private bool _isOrphaned;
         private volatile string? _lastDispatchedFrom;
         private volatile string? _lastDispatchedTo;
+        private long _totalExpiredTime;
 
         protected OperationBase()
         {
@@ -202,7 +203,7 @@ namespace Couchbase.Core.IO.Operations
         /// </summary>
         public ObjectPool<OperationBuilder> OperationBuilderPool { get; set; } = null!;  // Assumes we always initialize with OperationConfigurator
 
-        public TimeSpan Elapsed => _stopwatch.Elapsed;
+        public TimeSpan Elapsed => TimeSpan.FromMilliseconds(_totalExpiredTime);
 
         #endregion
 
@@ -278,8 +279,6 @@ namespace Couchbase.Core.IO.Operations
             };
 
             _isSent = false;
-
-            //_valueTaskSource.Reset();
             _isCompleted = 0;
         }
 
@@ -301,7 +300,6 @@ namespace Couchbase.Core.IO.Operations
             };
 
             _isSent = false;
-
             _valueTaskSource.Reset();
             _isCompleted = 0;
         }
@@ -690,6 +688,9 @@ namespace Couchbase.Core.IO.Operations
             {
                 //for measuring latency using an LoggingMeter or similar.
                 StopRecording();
+
+                //Since an operation may be retried, we want to add to the total elapsed time.
+                _totalExpiredTime = Interlocked.Add(ref _totalExpiredTime, _stopwatch.ElapsedMilliseconds);
             }
         }
 
@@ -707,6 +708,8 @@ namespace Couchbase.Core.IO.Operations
 
         public string? LastErrorMessage { get; set; }
         public virtual bool CanStream => false;
+
+        public bool IsCompleted => _isCompleted == 1;
 
         #endregion
 

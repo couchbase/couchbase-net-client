@@ -191,6 +191,8 @@ namespace Couchbase.Core.IO.Operations
         string? LastDispatchedFrom { get; }
 
         string? LastDispatchedTo { get; }
+
+        bool IsCompleted { get; }
     }
 }
 

@@ -112,6 +112,7 @@ namespace Couchbase.UnitTests.Core.Diagnostics.Tracing.Fakes
         public string LastDispatchedFrom => throw new NotImplementedException();
 
         public string LastDispatchedTo => throw new NotImplementedException();
+        public bool IsCompleted { get; }
 
         public string LastErrorMessage { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
