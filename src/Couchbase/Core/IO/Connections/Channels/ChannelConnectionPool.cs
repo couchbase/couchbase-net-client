@@ -116,36 +116,17 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            // We don't need the execution context to flow to sends
-            // so we can reduce heap allocations by not flowing.
-            bool restoreFlow = false;
-            try
+            // Note: Because synchronous continuations are enabled, The ChannelConnectionProcessor's work to process items
+            // from the queue may take place synchronously on this thread and momentarily block the return of this method.
+            // However, this gives us the performance benefit of not queuing the send work on the thread pool. The time
+            // involved is the time to serialize an operation to a buffer and send it to the socket (but not the actual
+            // send over the network). Note, however, that the operation serialized may not be the operation being sent here,
+            // it will be the next operation in the queue. So a large operation may block very briefly, and later a small
+            // operation may block longer.
+            if (!_sendQueue.Writer.TryWrite(new ChannelQueueItem(operation, cancellationToken)))
             {
-                if (!ExecutionContext.IsFlowSuppressed())
-                {
-                    ExecutionContext.SuppressFlow();
-                    restoreFlow = true;
-                }
-
-                // Note: Because synchronous continuations are enabled, The ChannelConnectionProcessor's work to process items
-                // from the queue may take place synchronously on this thread and momentarily block the return of this method.
-                // However, this gives us the performance benefit of not queuing the send work on the thread pool. The time
-                // time involved is the time to serialize an operation to a buffer and send it to the socket (but not the actual
-                // send over the network). Note, however, that the operation serialized may not be the operation being sent here,
-                // it will be the next operation in the queue. So a large operation may block very briefly, and later a small
-                // operation may block longer.
-                if (!_sendQueue.Writer.TryWrite(new ChannelQueueItem(operation, cancellationToken)))
-                {
-                    MetricTracker.KeyValue.TrackSendQueueFull();
-                    ThrowHelper.ThrowSendQueueFullException();
-                }
-            }
-            finally
-            {
-                if (restoreFlow)
-                {
-                    ExecutionContext.RestoreFlow();
-                }
+                MetricTracker.KeyValue.TrackSendQueueFull();
+                ThrowHelper.ThrowSendQueueFullException();
             }
 
             return Task.CompletedTask;

@@ -148,11 +148,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                                     Connection.ConnectionId);
                             }
 
-                            // ReSharper disable once MethodSupportsCancellation
-                            // We don't want to forward the cancellation token for this connection, as that isn't the
-                            // same as the cancellation token for the operation. If this connection is being shutdown
-                            // while the operation is being sent, we'll let it finish sending.
-                            await queueItem.Operation.SendAsync(Connection).ConfigureAwait(false);
+                            await queueItem.SendAsync(Connection).ConfigureAwait(false);
 
                             if (traceLogging)
                             {
