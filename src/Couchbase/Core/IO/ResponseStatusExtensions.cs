@@ -215,9 +215,14 @@ namespace Couchbase.Core.IO
 
         private static SubdocExceptionException SubDocPathException(KeyValueErrorContext ctx, IOperation op)
         {
-            var subdocStatusBody = op.ExtractBody();
-            byte index = subdocStatusBody.Memory.Span[0];
-            var subdocErrorStatus = (ResponseStatus)ByteConverter.ToUInt16(subdocStatusBody.Memory.Span.Slice(1));
+            byte index;
+            ResponseStatus subdocErrorStatus;
+            using (var subdocStatusBody = op.ExtractBody())
+            {
+                index = subdocStatusBody.Memory.Span[0];
+                subdocErrorStatus = (ResponseStatus)ByteConverter.ToUInt16(subdocStatusBody.Memory.Span.Slice(1));
+            }
+
             SubdocExceptionException ex = subdocErrorStatus switch
             {
                 ResponseStatus.SubDocPathExists => new PathExistsException(),
