@@ -76,7 +76,8 @@ namespace Couchbase.Analytics
                     using var dispatchSpan = rootSpan.DispatchSpan(options);
                     using var httpClient = CreateHttpClient(options.TimeoutValue);
 
-                    var response = await httpClient.SendAsync(request, options.Token).ConfigureAwait(false);
+                    var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, options.Token)
+                        .ConfigureAwait(false);
                     dispatchSpan.Dispose();
 
                     var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);

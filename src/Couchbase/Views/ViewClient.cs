@@ -65,7 +65,12 @@ namespace Couchbase.Views
                 // closing part way through
                 httpClient.Timeout = Timeout.InfiniteTimeSpan;
 
-                var response = await httpClient.PostAsync(uri, content).ConfigureAwait(false);
+                var request = new HttpRequestMessage(HttpMethod.Post, uri)
+                {
+                    Content = content
+                };
+                var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, query.Token)
+                    .ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
                 var serializer = query.Serializer ?? _serializer;
