@@ -60,32 +60,6 @@ namespace Couchbase.UnitTests.Core
             Assert.DoesNotContain(context.Nodes, node => node.EndPoint.Equals(removed));
         }
 
-        [Fact]
-        public void PruneNodes_Does_Not_Remove_Single_Service_Nodes()
-        {
-            //Arrange
-
-            var config = ResourceHelper.ReadResource(@"Documents\Configs\rev-36310-service-per-node.json",
-                InternalSerializationContext.Default.BucketConfig);
-            var context = new ClusterContext();
-
-            var hosts = new List<string> { "10.143.194.101", "10.143.194.102", "10.143.194.103", "10.143.194.104" };
-            hosts.ForEach(x => context.AddNode(CreateMockedNode(x, 11210)));
-
-            //Act
-
-            context.PruneNodes(config);
-
-            //Assert
-
-            foreach (var host in hosts)
-            {
-                var removed = new HostEndpointWithPort(host, 11210);
-
-                Assert.Contains(context.Nodes, node => node.EndPoint.Equals(removed));
-            }
-        }
-
         private IClusterNode CreateMockedNode(string hostname, int port)
         {
             var mockConnectionPool = new Mock<IConnectionPool>();

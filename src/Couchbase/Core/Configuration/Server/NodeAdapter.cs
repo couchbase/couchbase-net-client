@@ -186,13 +186,7 @@ namespace Couchbase.Core.Configuration.Server
             AnalyticsSsl = services.CbasSsl;
             Eventing = services.EventingAdminPort;
             EventingSsl = services.EventingSSL;
-
-            if (KeyValue == 0 && KeyValueSsl == 0)
-            {
-                KeyValue = 11210;
-                KeyValueSsl = 11207;
-                IsKvNode = false;
-            }
+            IsKvNode = KeyValue > 0;
         }
 
         public string Hostname { get; set; }
