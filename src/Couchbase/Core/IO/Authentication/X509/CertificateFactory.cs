@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using Couchbase.Core.Compatibility;
 
 #nullable enable
 
@@ -88,12 +89,25 @@ DPFAN/4qZAgD5q3AFNIq2WWADFQGSwVJhg==
             CapellaCaCert,
         };
 
-        internal static bool ValidatorWithIgnoreNameMismatch(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        [InterfaceStability(Level.Volatile)]
+        public static bool ValidatorWithIgnoreNameMismatch(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
         {
-            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
-            sslPolicyErrors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+            sslPolicyErrors = WithoutNameMismatch(sslPolicyErrors);
 
             return sslPolicyErrors == SslPolicyErrors.None;
+        }
+
+        [InterfaceStability(Level.Volatile)]
+        public static SslPolicyErrors WithoutNameMismatch(SslPolicyErrors errors)
+        {
+            if ((errors & SslPolicyErrors.RemoteCertificateNameMismatch) != SslPolicyErrors.None)
+            {
+                // clear the name mismatch
+                errors &= ~SslPolicyErrors.RemoteCertificateNameMismatch;
+                errors &= ~SslPolicyErrors.RemoteCertificateChainErrors;
+            }
+
+            return errors;
         }
 
         internal static RemoteCertificateValidationCallback GetValidatorWithPredefinedCertificates(ICertificateFactory certificateFactory) => GetValidatorWithPredefinedCertificates(certificateFactory.GetCertificates());
