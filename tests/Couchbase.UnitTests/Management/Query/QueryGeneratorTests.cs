@@ -16,8 +16,8 @@ namespace Couchbase.UnitTests.Management.Query
         }
 
         [Theory]
-        [InlineData("default", "index1", new[] {"field1", "field2"}, "_default", "_default", "CREATE INDEX `index1` ON `default`.`_default`.`_default`(field1,field2) USING GSI WITH {\"defer_build\":False};")]
-        [InlineData("default", "index1", new[] { "field1", "field2" }, null, null, "CREATE INDEX `index1` ON `default`(field1,field2) USING GSI WITH {\"defer_build\":False};")]
+        [InlineData("default", "index1", new[] {"field1", "field2"}, "_default", "_default", "CREATE INDEX `index1` ON `default`.`_default`.`_default`(`field1`,`field2`) USING GSI WITH {\"defer_build\":False};")]
+        [InlineData("default", "index1", new[] { "field1", "field2" }, null, null, "CREATE INDEX `index1` ON `default`(`field1`,`field2`) USING GSI WITH {\"defer_build\":False};")]
         public void Test_CreateIndexStatement(string bucketName, string indexName, IEnumerable<string> fields, string scopeName, string collectionName, string expected)
         {
             //arrange

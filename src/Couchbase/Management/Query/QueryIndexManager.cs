@@ -67,7 +67,7 @@ namespace Couchbase.Management.Query
             }
         }
 
-        public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions? options = null)
+        public async Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> indexKeys, CreateQueryIndexOptions? options = null)
         {
             options ??= CreateQueryIndexOptions.Default;
             _logger.LogInformation("Attempting to create query index {indexName} on bucket {bucketName}",
@@ -79,15 +79,15 @@ namespace Couchbase.Management.Query
             {
                 throw new ArgumentNullException(nameof(indexName));
             }
-            if(fields == null)
+            if(indexKeys == null)
             {
-                throw new ArgumentNullException(nameof(indexName));
+                throw new ArgumentNullException(nameof(indexKeys));
             }
 
-            var enumerable = fields as string[] ?? fields.ToArray();
+            var enumerable = indexKeys as string[] ?? indexKeys.ToArray();
             if(!enumerable.Any())
             {
-                throw new ArgumentOutOfRangeException(nameof(fields));
+                throw new ArgumentOutOfRangeException(nameof(indexKeys));
             }
 
             try

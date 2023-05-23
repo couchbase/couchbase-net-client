@@ -10,7 +10,7 @@ namespace Couchbase.Management.Query
     {
         Task<IEnumerable<QueryIndex>> GetAllIndexesAsync(string bucketName, GetAllQueryIndexOptions? options = null);
 
-        Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions? options = null);
+        Task CreateIndexAsync(string bucketName, string indexName, IEnumerable<string> indexKeys, CreateQueryIndexOptions? options = null);
 
         Task CreatePrimaryIndexAsync(string bucketName, CreatePrimaryQueryIndexOptions? options = null);
 

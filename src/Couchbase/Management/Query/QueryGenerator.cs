@@ -1,18 +1,21 @@
 using Couchbase.Core.Utils;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Couchbase.Management.Query
 {
     internal static class QueryGenerator
     {
         private const string Default = "_default";
-        public static string CreateIndexStatement(string bucketName, string indexName, IEnumerable<string> fields, CreateQueryIndexOptions options)
+        public static string CreateIndexStatement(string bucketName, string indexName, IEnumerable<string> indexKeys, CreateQueryIndexOptions options)
         {
+            indexKeys = indexKeys.Select(x => x.EscapeIfRequired());
+
             if(options.ScopeNameValue == null)
             {
-                return $"CREATE INDEX {indexName.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()}({string.Join(",", fields)}) USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+                return $"CREATE INDEX {indexName.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()}({string.Join(",", indexKeys)}) USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
             }
-            return $"CREATE INDEX {indexName.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()}({string.Join(",", fields)}) USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
+            return $"CREATE INDEX {indexName.EscapeIfRequired()} ON {bucketName.EscapeIfRequired()}.{options.ScopeNameValue.EscapeIfRequired()}.{options.CollectionNameValue.EscapeIfRequired()}({string.Join(",", indexKeys)}) USING GSI WITH {{\"defer_build\":{options.DeferredValue}}};";
         }
 
         public static string CreateDeferredIndexStatement(string bucketName, string indexName, BuildDeferredQueryIndexOptions options)
