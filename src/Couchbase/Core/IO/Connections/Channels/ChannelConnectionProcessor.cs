@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Couchbase.Core.Logging;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -14,7 +15,7 @@ namespace Couchbase.Core.IO.Connections.Channels
     /// Reads the queue from a <see cref="ChannelConnectionPool" /> for a specific connection,
     /// greedily processing any operations queued.
     /// </summary>
-    internal class ChannelConnectionProcessor
+    internal partial class ChannelConnectionProcessor
     {
         /// <summary>
         /// Time to wait for a graceful shutdown of a connection.
@@ -122,7 +123,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                 {
                     if (traceLogging)
                     {
-                        _logger.LogTrace("Operations available for {cid}", Connection.ConnectionId);
+                        LogOperationsAvailable(Connection.ConnectionId);
                     }
 
                     // Check the connection to make sure the connection's alive before we take an item from the queue
@@ -144,16 +145,14 @@ namespace Couchbase.Core.IO.Connections.Channels
 
                             if (traceLogging)
                             {
-                                _logger.LogTrace("Sending operation {opaque} on {cid}", queueItem.Operation.Opaque,
-                                    Connection.ConnectionId);
+                                LogSendOperations("Sending", queueItem.Operation.Opaque, Connection.ConnectionId);
                             }
 
                             await queueItem.SendAsync(Connection).ConfigureAwait(false);
 
                             if (traceLogging)
                             {
-                                _logger.LogTrace("Sent operation {opaque} on {cid}", queueItem.Operation.Opaque,
-                                    Connection.ConnectionId);
+                                LogSendOperations("Sent", queueItem.Operation.Opaque, Connection.ConnectionId);
                             }
                         }
                         catch (OperationCanceledException)
@@ -177,7 +176,7 @@ namespace Couchbase.Core.IO.Connections.Channels
             }
             finally
             {
-                _logger.LogInformation("Done processing operations on {cid}, IsDead: {isDead}", Connection.ConnectionId, Connection.IsDead);
+                LogDoneProcessingOperations(Connection.ConnectionId, Connection.IsDead);
 
                 // Mark the connection processor complete
                 _completion.SetResult(true);
@@ -193,7 +192,7 @@ namespace Couchbase.Core.IO.Connections.Channels
                     catch
                     {
                         //Ensure that any error thrown by RemoveConnectionAsync will not prevent Connection.CloseAsync
-                        _logger.LogInformation("Connection {cid} was not removed.", Connection.ConnectionId);
+                        LogConnectionNotRemoved(Connection.ConnectionId);
                     }
                 }
                 // Let in-flight operations finish, waiting up to one minute
@@ -216,6 +215,22 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             return Completion;
         }
+
+        #region Logging
+
+        [LoggerMessage(200, LogLevel.Information, "Connection {cid} was not removed.")]
+        private partial void LogConnectionNotRemoved(ulong cid);
+
+        [LoggerMessage(201, LogLevel.Information, "Done processing operations on {cid}, IsDead: {isDead}")]
+        private partial void LogDoneProcessingOperations(ulong cid, bool isDead);
+
+        [LoggerMessage(202, LogLevel.Trace, "{status} operation {opaque} on {cid}.")]
+        private partial void LogSendOperations(string status, uint opaque, ulong cid);
+
+        [LoggerMessage(LoggingEvents.ChannelConnectionEvent, LogLevel.Trace, "Operations available for {cid}.")]
+        private partial void LogOperationsAvailable(ulong cid);
+
+        #endregion
     }
 }
 

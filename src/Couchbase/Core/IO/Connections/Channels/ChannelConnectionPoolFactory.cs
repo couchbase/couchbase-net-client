@@ -1,5 +1,4 @@
 using System;
-using Couchbase.Core.IO.Connections.Channels;
 using Couchbase.Core.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +9,7 @@ namespace Couchbase.Core.IO.Connections.Channels
     /// <summary>
     /// Default implementation of <see cref="IConnectionPoolFactory"/>.
     /// </summary>
-    internal class ChannelConnectionPoolFactory : IConnectionPoolFactory
+    internal partial class ChannelConnectionPoolFactory : IConnectionPoolFactory
     {
         private readonly IConnectionFactory _connectionFactory;
         private readonly ClusterOptions _clusterOptions;
@@ -34,13 +33,12 @@ namespace Couchbase.Core.IO.Connections.Channels
         {
             if (_clusterOptions.NumKvConnections <= 1 && _clusterOptions.MaxKvConnections <= 1)
             {
-                _channelPoolLogger.LogInformation("Using the SingleConnectionPool.");
-
+                LogUsingConnectionPool("Single");
                 return new SingleConnectionPool(clusterNode, _connectionFactory);
             }
             else
             {
-                _channelPoolLogger.LogInformation("Using the ChannelConnectionPool.");
+                LogUsingConnectionPool("Channel");
 
                 var scaleController = _scaleControllerFactory.Create();
 
@@ -52,6 +50,14 @@ namespace Couchbase.Core.IO.Connections.Channels
                 };
             }
         }
+
+        #region Logging
+
+        [LoggerMessage(LoggingEvents.ChannelConnectionEvent, LogLevel.Information, "Using the {type}ConnectionPool.")]
+        private partial void LogUsingConnectionPool(string type);
+
+        #endregion
+
     }
 }
 

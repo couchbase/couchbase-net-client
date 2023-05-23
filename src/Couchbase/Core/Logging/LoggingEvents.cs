@@ -19,6 +19,8 @@ namespace Couchbase.Core.Logging
         public const int BootstrapEvent = 8000;
 
         public const int ThresholdEvent = 9000;
+
+        public const int ChannelConnectionEvent = 10_000;
     }
 }
 

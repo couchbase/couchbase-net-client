@@ -17,7 +17,7 @@ namespace Couchbase.Core.IO.Connections.Channels
     /// <summary>
     /// Connection pool based on queuing operations via the TPL data flows library.
     /// </summary>
-    internal class ChannelConnectionPool : ConnectionPoolBase
+    internal partial class ChannelConnectionPool : ConnectionPoolBase
     {
         private readonly IConnectionPoolScaleController _scaleController;
         private readonly IRedactor _redactor;
@@ -103,11 +103,11 @@ namespace Couchbase.Core.IO.Connections.Channels
 
             _scaleController.Start(this);
 
-            _logger.LogDebug("Connection pool for {endpoint} initialized with {size} connections.",
-                _redactor.SystemData(EndPoint), MinimumSize);
+            InitializedConnectionPool(_redactor.SystemData(EndPoint), MinimumSize);
 
             _initialized = true;
         }
+
 
         /// <inheritdoc />
         public override Task SendAsync(IOperation operation, CancellationToken cancellationToken = default)
@@ -201,7 +201,8 @@ namespace Couchbase.Core.IO.Connections.Channels
         /// <inheritdoc />
         public override void Dispose()
         {
-            _logger.LogDebug("Disposing pool for {endpoint}.", EndPoint);
+            LogDisposeConnectionPool(EndPoint);
+
             if (_cts.IsCancellationRequested)
             {
                 return;
@@ -259,11 +260,11 @@ namespace Couchbase.Core.IO.Connections.Channels
 
                 if (connection.IsDead)
                 {
-                    _logger.LogDebug("Connection for {endpoint} could not be started.", EndPoint);
+                    LogConnectionToEndpointError(EndPoint);
                     return;
                 }
-                _logger.LogDebug("Connection for {endpoint} has been started.", EndPoint);
 
+                LogConnectionToEndpointSuccess(EndPoint);
 
                 var processor = new ChannelConnectionProcessor(connection, this, _sendQueue.Reader, _logger).Start();
 
@@ -325,6 +326,22 @@ namespace Couchbase.Core.IO.Connections.Channels
                 return default;
             }
         }
+
+        #region Logging
+
+        [LoggerMessage(1, LogLevel.Debug, "Connection pool for {endpoint} initialized with {size} connections.")]
+        private partial void InitializedConnectionPool(object endpoint, int size);
+
+        [LoggerMessage(LoggingEvents.ChannelConnectionEvent, LogLevel.Debug, "Connection for {endpoint} has been started.")]
+        private partial void LogConnectionToEndpointSuccess(HostEndpointWithPort endpoint);
+
+        [LoggerMessage(100, LogLevel.Debug, "Connection for {endpoint} could not be started.")]
+        private partial void LogConnectionToEndpointError(HostEndpointWithPort endpoint);
+
+        [LoggerMessage(101, LogLevel.Debug, "Disposing pool for {endpoint}.")]
+        private partial void LogDisposeConnectionPool(HostEndpointWithPort endpoint);
+
+        #endregion
     }
 }
 
