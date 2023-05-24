@@ -61,7 +61,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// <value>
         /// The value.
         /// </value>
-        internal object? Value { get; set; }
+        public object? Value { get; internal set; }
 
         /// <summary>
         /// Gets or sets the bytes.
