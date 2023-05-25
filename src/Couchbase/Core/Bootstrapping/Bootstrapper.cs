@@ -79,7 +79,7 @@ namespace Couchbase.Core.Bootstrapping
                     }
                     catch (Exception e)
                     {
-                        _logger.LogDebug("The subject has not successfully bootstrapped.", e);
+                        _logger.LogDebug(e, "The subject has not successfully bootstrapped.");
 
                         //catch any errors not caught in the bootstrap catch clause
                         subject.DeferredExceptions.Add(e);

@@ -82,25 +82,24 @@ namespace Couchbase.Core.Configuration.Server
             bool restoreFlow = false;
             try
             {
-                if (ExecutionContext.IsFlowSuppressed())
+                if (!ExecutionContext.IsFlowSuppressed())
                 {
                     ExecutionContext.SuppressFlow();
                     restoreFlow = true;
                 }
 
-                _ = Poll();
+                _ = PollAsync();
             }
             finally
             {
                 if (restoreFlow)
-
                 {
                     ExecutionContext.RestoreFlow();
                 }
             }
         }
 
-        private async Task Poll()
+        private async Task PollAsync()
         {
             try
             {
