@@ -2349,7 +2349,7 @@ namespace Couchbase.KeyValue
 
         internal DurabilityLevel DurabilityLevel { get; private set; }
 
-        internal TimeSpan TimeoutValue { get; private set; }
+        internal TimeSpan? TimeoutValue { get; private set; }
         TimeSpan? ITimeoutOptions.Timeout => TimeoutValue;
 
         internal CancellationToken TokenValue { get; private set; }
@@ -2539,7 +2539,7 @@ namespace Couchbase.KeyValue
             return this;
         }
 
-        public void Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder)
+        public void Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder)
         {
             expiry = ExpiryValue;
             storeSemantics = StoreSemanticsValue;
@@ -2559,7 +2559,7 @@ namespace Couchbase.KeyValue
 
         public ReadOnly AsReadOnly()
         {
-            this.Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder);
+            this.Deconstruct(out TimeSpan expiry, out StoreSemantics storeSemantics, out ulong cas, out (PersistTo, ReplicateTo) durability, out DurabilityLevel durabilityLevel, out TimeSpan? timeout, out CancellationToken token, out ITypeSerializer? serializer, out bool createAsDeleted, out bool accessDeleted, out IRetryStrategy? retryStrategy, out IRequestSpan? requestSpan, out bool preserveTtl, out ITypeTranscoder? transcoder);
             return new ReadOnly(expiry, storeSemantics, cas, durability, durabilityLevel, timeout, token, serializer, createAsDeleted, accessDeleted, retryStrategy, requestSpan, preserveTtl, transcoder);
         }
 
@@ -2569,7 +2569,7 @@ namespace Couchbase.KeyValue
             ulong Cas,
             (PersistTo, ReplicateTo) Durability,
             DurabilityLevel DurabilityLevel,
-            TimeSpan Timeout,
+            TimeSpan? Timeout,
             CancellationToken Token,
             ITypeSerializer? Serializer,
             bool CreateAsDeleted,
