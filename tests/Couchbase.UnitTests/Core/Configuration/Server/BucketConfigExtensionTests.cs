@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.Bootstrapping;
@@ -512,11 +513,24 @@ public class BucketConfigExtensionTests
 
     CouchbaseBucket CreateBucket(BucketConfig bootstrapConfig)
     {
+        var clusterNodeFactory = new Mock<IClusterNodeFactory>();
+        var node = new Mock<IClusterNode>();
+        node.Setup(x => x.KeyEndPoints).Returns(new List<HostEndpointWithPort>
+            { new("127.0.0.1", 11210) });
+
+        clusterNodeFactory.Setup(x => x.CreateAndConnectAsync(
+                It.IsAny<HostEndpointWithPort>(), It.IsAny<NodeAdapter>(),
+                It.IsAny<CancellationToken>())).
+            Returns(Task.FromResult(node.Object));
+
+        var options = new ClusterOptions().AddClusterService(clusterNodeFactory.Object);
+        var clusterCtx = new ClusterContext(new CancellationTokenSource(), options)
+        {
+            SupportsCollections = true
+        };
+
         var bucket = new CouchbaseBucket("default",
-            new ClusterContext
-            {
-                SupportsCollections = true
-            },
+            clusterCtx,
             new Mock<IScopeFactory>().Object,
             new Mock<IRetryOrchestrator>().Object,
             new Mock<IVBucketKeyMapperFactory>().Object,
@@ -527,6 +541,9 @@ public class BucketConfigExtensionTests
             new Mock<IOperationConfigurator>().Object,
             new BestEffortRetryStrategy(),
             bootstrapConfig);
+
+        node.Setup(x => x.Owner).Returns(bucket);
+
 
         return bucket;
     }

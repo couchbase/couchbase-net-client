@@ -14,6 +14,11 @@ namespace Couchbase.Core.Retry
         List<RetryReason> RetryReasons { get; set; }
         IRetryStrategy RetryStrategy { get; set; }
         TimeSpan Timeout { get; set; }
+
+        /// <summary>
+        /// The total time expired at the time the operation is called. If another retry happens,
+        /// it will be updated once the response is received.
+        /// </summary>
         TimeSpan Elapsed { get; }
         CancellationToken Token
         {

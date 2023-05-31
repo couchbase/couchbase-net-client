@@ -813,6 +813,7 @@ namespace Couchbase.Core
             catch (Exception e)
             {
                 _logger.LogError(LoggingEvents.ConfigEvent, "ERROR:{e}", e);
+                throw;
             }
             finally
             {
