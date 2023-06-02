@@ -3,7 +3,10 @@ using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using Couchbase.Core;
 
 #nullable enable
 
@@ -36,6 +39,8 @@ namespace Couchbase.KeyValue.RangeScan
         internal MutationState? ConsistentWithValue { get; set; }
 
         internal CancellationToken TokenValue { get; private set; }
+
+        internal Dictionary<short, MutationToken>? ConsistencyTokens => ConsistentWithValue?.GroupBy(x => x.VBucketId).ToDictionary(x => x.Key, x => x.OrderByDescending(x => x.SequenceNumber).First());
 
         internal uint BatchItemLimit { get; set; } = 0;
 

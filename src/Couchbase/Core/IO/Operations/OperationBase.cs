@@ -185,7 +185,7 @@ namespace Couchbase.Core.IO.Operations
         /// <summary>
         /// Mutation token returned by mutation operations, if any.
         /// </summary>
-        public MutationToken? MutationToken { get; private set; }
+        public MutationToken? MutationToken { get; set; }
 
         /// <summary>
         /// Transcoder used for reading and writing the body of the operation.

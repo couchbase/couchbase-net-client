@@ -31,6 +31,8 @@ internal class PartitionScan
     private readonly short _partitionId;
     private SlicedMemoryOwner<byte>? _uuid;
 
+    public MutationToken MutationToken { get; set; }
+
     public IDictionary<string, IScanResult> Results { get; private set; }
 
     public ResponseStatus Status { get; set; }
@@ -46,7 +48,8 @@ internal class PartitionScan
                 Cid = _collection.Cid,
                 CName = _collection.Name,
                 SName = _collection.Scope.Name,
-                VBucketId = _partitionId
+                VBucketId = _partitionId,
+                MutationToken = MutationToken
             };
 
             _operationConfigurator.Configure(scanCreateOp, _options);

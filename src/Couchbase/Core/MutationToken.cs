@@ -51,7 +51,7 @@ namespace Couchbase.Core
             return sb.ToString();
         }
 
-        internal bool IsSet => BucketRef != null && VBucketId > 0 && VBucketUuid > 0 && SequenceNumber > 0;
+        internal bool IsSet => BucketRef != null && VBucketId >= 0 && VBucketUuid > 0 && SequenceNumber >= 0;
 
         public static MutationToken Empty => new MutationToken("",0,0,0);
     }

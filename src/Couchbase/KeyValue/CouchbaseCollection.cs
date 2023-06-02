@@ -106,12 +106,19 @@ namespace Couchbase.KeyValue
 
             options ??= ScanOptions.Default;
 
+            var mutationTokens = options.ConsistencyTokens;
+
             var partitionCount = (short)_bucket.CurrentConfig!.VBucketServerMap.VBucketMap.Length;
             var partitionScans = new List<PartitionScan>(partitionCount);
-            for (var partitionId = 0; partitionId < partitionCount; partitionId++)
+            for (short partitionId = 0; partitionId < partitionCount; partitionId++)
             {
-                partitionScans.Add(new PartitionScan(_operationConfigurator, _bucket,
-                    this, _getLogger, options, scanType, (short)partitionId));
+                var partitionScan = new PartitionScan(_operationConfigurator, _bucket, this, _getLogger, options, scanType,partitionId);
+
+                if (mutationTokens != null && mutationTokens.ContainsKey(partitionId))
+                {
+                    partitionScan.MutationToken = mutationTokens[partitionId];
+                }
+                partitionScans.Add(partitionScan);
 
             }
 
