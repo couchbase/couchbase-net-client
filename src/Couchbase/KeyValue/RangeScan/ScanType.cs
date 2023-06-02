@@ -9,6 +9,12 @@ namespace Couchbase.KeyValue.RangeScan
         }
 
         /// <inheritdoc />
+        public PrefixScan PrefixScan(string prefix)
+        {
+            return new PrefixScan(prefix);
+        }
+
+        /// <inheritdoc />
         public SamplingScan SamplingScan(ulong limit)
         {
             return new SamplingScan(limit);

@@ -23,7 +23,13 @@ namespace Couchbase.KeyValue.RangeScan
         public RangeScan(ScanTerm from)
         {
             From = from;
-            To = ScanTerm.Exclusive(from + ScanTerm.Maximum().Id);
+            To = ScanTerm.Maximum();
+        }
+
+        public RangeScan()
+        {
+            From = ScanTerm.Minimum();
+            To = ScanTerm.Maximum();
         }
 
         public RangeScan(ScanTerm from, ScanTerm to, string collectionName) : this(from, to)

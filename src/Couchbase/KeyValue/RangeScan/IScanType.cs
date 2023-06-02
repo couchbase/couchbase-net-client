@@ -1,5 +1,3 @@
-using Couchbase.KeyValue.RangeScan;
-
 namespace Couchbase.KeyValue.RangeScan
 {
     #nullable enable
@@ -16,6 +14,13 @@ namespace Couchbase.KeyValue.RangeScan
         /// <param name="to"> To the <see cref="ScanTerm"/> to scan to.</param>
         /// <returns> A newly created <see cref="RangeScan"/> to be passed into the Collection API.</returns>
         RangeScan? RangeScan(ScanTerm from, ScanTerm to);
+
+        /// <summary>
+        /// Creates a new KV range scan, scanning all document IDs starting with the given Prefix.
+        /// </summary>
+        /// <param name="prefix"> The Prefix <see cref="ScanTerm"/> to start scanning from. </param>
+        /// <returns> A newly created <see cref="PrefixScan"/> to be passed into the Collection API.</returns>
+        PrefixScan? PrefixScan(string prefix);
 
         /// <summary>
         /// Creates a new KV sampling scan, which randomly samples documents up until the configured limit with a default seed.
