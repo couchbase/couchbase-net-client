@@ -3,6 +3,7 @@ using Couchbase.Core;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Converters;
 
 namespace Couchbase.KeyValue.RangeScan
@@ -14,12 +15,12 @@ namespace Couchbase.KeyValue.RangeScan
     {
         public SamplingScan(ulong limit)
         {
-            Limit = limit;
+            Limit = limit > 0 ? limit : throw new InvalidArgumentException($"{nameof(Limit)} must > 0.");
             Seed = GenerateRandomLong();
         }
         public SamplingScan(ulong limit, ulong seed)
         {
-            Limit = limit;
+            Limit = limit > 0 ? limit : throw new InvalidArgumentException($"{nameof(Limit)} must > 0.");
             Seed = seed;
         }
 
