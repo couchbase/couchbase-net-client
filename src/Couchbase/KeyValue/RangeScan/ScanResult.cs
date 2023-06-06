@@ -87,7 +87,11 @@ namespace Couchbase.KeyValue.RangeScan
             var sb = new StringBuilder();
             sb.Append("ScanResult{");
             sb.Append("id = ").Append(Id);
-            sb.Append(", content = ").Append(ContentAsString());
+            if (!_idOnly) sb.Append(", content = ").Append(ContentAsString());
+            if (_flags.HasValue) sb.Append(", flags = 0x").Append(_flags.Value);
+            sb.Append(", cas = ").Append(Cas);
+            if (ExpiryTime.HasValue) sb.Append(", expiry = ").Append(ExpiryTime.Value);
+            sb.Append('}');
             return sb.ToString();
         }
     }

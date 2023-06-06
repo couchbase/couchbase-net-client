@@ -120,7 +120,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
                             .Slice(processed += keyLength.Length, (int)keyLength.Value).Memory.Span);
                         processed += (int)keyLength.Item1;
 
-                        scanResult = new ScanResult(SlicedMemoryOwner<byte>.Empty, key, true, DateTime.UtcNow, 0, 0,
+                        scanResult = new ScanResult(SlicedMemoryOwner<byte>.Empty, key, true, null, 0, 0,
                             OpCode, Transcoder);
                     }
                     catch(Exception e)
@@ -159,8 +159,8 @@ namespace Couchbase.Core.IO.Operations.RangeScan
                     {
                         var flags = ByteConverter.ToInt32(response.Slice(processed, 4).Memory.Span);
                         var expiry = ByteConverter.ToUInt32(response.Slice(processed += 4, 4).Memory.Span);
-                        var seqno = ByteConverter.ToUInt32(response.Slice(processed += 4, 8).Memory.Span);
-                        var cas = ByteConverter.ToUInt32(response.Slice(processed += 8, 8).Memory.Span);
+                        var seqno = ByteConverter.ToUInt64(response.Slice(processed += 4, 8).Memory.Span);
+                        var cas = ByteConverter.ToUInt64(response.Slice(processed += 8, 8).Memory.Span);
                         var dataType = response.Slice(processed += 8, 1).Memory.Span;
 
                         var keyLength = Leb128.Read(response.Slice(processed += 1).Memory.Span);
@@ -172,7 +172,7 @@ namespace Couchbase.Core.IO.Operations.RangeScan
                         SlicedMemoryOwner<byte> body = response.Slice(processed += bodyLength.Length, (int)bodyLength.Value);
                         processed += (int)bodyLength.Value;
 
-                        scanResult = new ScanResult(body, key, false, DateTime.UtcNow.AddTicks(expiry), (int)seqno, cas,
+                        scanResult = new ScanResult(body, key, false, expiry != 0 ? DateTime.UtcNow.AddTicks(expiry) : null, (int)seqno, cas,
                             OpCode, Transcoder, null);
                     }
                     catch(Exception e)
