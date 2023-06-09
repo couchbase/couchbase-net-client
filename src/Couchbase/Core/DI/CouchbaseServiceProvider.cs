@@ -15,7 +15,7 @@ namespace Couchbase.Core.DI
     /// In this example, any request for ILogger&lt;T&gt; will hit that factory, regardless of
     /// the specific T requested, unless a more specific factory is also registered.
     /// </remarks>
-    internal class CouchbaseServiceProvider : IServiceProvider
+    internal class CouchbaseServiceProvider : ICouchbaseServiceProvider
     {
         private readonly IReadOnlyDictionary<Type, IServiceFactory> _services;
 
@@ -55,6 +55,22 @@ namespace Couchbase.Core.DI
             }
 
             return null;
+        }
+
+        /// <inheritdoc />
+        public bool IsService(Type serviceType)
+        {
+            if (_services.ContainsKey(serviceType))
+            {
+                return true;
+            }
+
+            if (serviceType.IsGenericType && _services.ContainsKey(serviceType.GetGenericTypeDefinition()))
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

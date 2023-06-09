@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable enable
 
@@ -16,7 +17,7 @@ namespace Couchbase
         /// <typeparam name="TImplementation">The type of the service implementation which is returned.</typeparam>
         /// <param name="clusterOptions">The <see cref="ClusterOptions"/>.</param>
         /// <returns>The <see cref="ClusterOptions"/>.</returns>
-        public static ClusterOptions AddTransientService<TService, TImplementation>(
+        public static ClusterOptions AddTransientService<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(
             this ClusterOptions clusterOptions)
             where TImplementation : TService =>
             clusterOptions.AddService<TService, TImplementation>(ClusterServiceLifetime.Transient);
@@ -29,7 +30,7 @@ namespace Couchbase
         /// <param name="clusterOptions">The <see cref="ClusterOptions"/>.</param>
         /// <param name="factory">Factory which creates the service each time it is requested.</param>
         /// <returns>The <see cref="ClusterOptions"/>.</returns>
-        public static ClusterOptions AddTransientService<TService, TImplementation>(
+        public static ClusterOptions AddTransientService<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(
             this ClusterOptions clusterOptions,
             Func<IServiceProvider, TImplementation> factory)
             where TImplementation : notnull, TService =>
@@ -56,7 +57,7 @@ namespace Couchbase
         /// <param name="clusterOptions">The <see cref="ClusterOptions"/>.</param>
         /// <param name="singleton">Singleton instance which is always returned.</param>
         /// <returns>The <see cref="ClusterOptions"/>.</returns>
-        public static ClusterOptions AddClusterService<TService, TImplementation>(
+        public static ClusterOptions AddClusterService<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(
             this ClusterOptions clusterOptions,
             TImplementation singleton)
             where TImplementation : notnull, TService =>
@@ -69,7 +70,7 @@ namespace Couchbase
         /// <typeparam name="TImplementation">The type of the service implementation which is returned.</typeparam>
         /// <param name="clusterOptions">The <see cref="ClusterOptions"/>.</param>
         /// <returns>The <see cref="ClusterOptions"/>.</returns>
-        public static ClusterOptions AddClusterService<TService, TImplementation>(
+        public static ClusterOptions AddClusterService<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(
             this ClusterOptions clusterOptions)
             where TImplementation : TService =>
             clusterOptions.AddService<TService, TImplementation>(ClusterServiceLifetime.Cluster);
@@ -82,7 +83,7 @@ namespace Couchbase
         /// <param name="clusterOptions">The <see cref="ClusterOptions"/>.</param>
         /// <param name="factory">Factory which creates the service the first time it is requested.</param>
         /// <returns>The <see cref="ClusterOptions"/>.</returns>
-        public static ClusterOptions AddClusterService<TService, TImplementation>(
+        public static ClusterOptions AddClusterService<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(
             this ClusterOptions clusterOptions,
             Func<IServiceProvider, TImplementation> factory)
             where TImplementation : notnull, TService =>

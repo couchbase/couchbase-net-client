@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -21,7 +23,13 @@ namespace Couchbase.Core.DI
         /// <param name="singleton">Singleton to return on each call to <see cref="CreateService"/>.</param>
         public SingletonServiceFactory(object singleton)
         {
-            _singleton = singleton ?? throw new ArgumentNullException(nameof(singleton));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (singleton is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(singleton));
+            }
+
+            _singleton = singleton;
         }
 
         /// <summary>
@@ -32,7 +40,8 @@ namespace Couchbase.Core.DI
         /// Delays construction until the first request for the type.
         /// Uses the constructor with the most parameters.
         /// </remarks>
-        public SingletonServiceFactory(Type implementationType)
+        public SingletonServiceFactory(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
             : this(CreateFactory(implementationType))
         {
         }
@@ -43,13 +52,25 @@ namespace Couchbase.Core.DI
         /// <param name="lambda">Lambda function which creates the object.</param>
         public SingletonServiceFactory(Func<IServiceProvider, object> lambda)
         {
-            _lambda = lambda ?? throw new ArgumentNullException(nameof(lambda));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (lambda is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(lambda));
+            }
+
+            _lambda = lambda;
         }
 
         /// <inheritdoc />
         public void Initialize(IServiceProvider serviceProvider)
         {
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (serviceProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(serviceProvider));
+            }
+
+            _serviceProvider = serviceProvider;
         }
 
         /// <inheritdoc />
@@ -58,7 +79,8 @@ namespace Couchbase.Core.DI
             return _singleton ??= _lambda!.Invoke(_serviceProvider ?? throw new InvalidOperationException("Not initialized."));
         }
 
-        private static Func<IServiceProvider, object> CreateFactory(Type implementationType)
+        private static Func<IServiceProvider, object> CreateFactory(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
         {
             var constructor = implementationType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
                 .OrderByDescending(p => p.GetParameters().Length)

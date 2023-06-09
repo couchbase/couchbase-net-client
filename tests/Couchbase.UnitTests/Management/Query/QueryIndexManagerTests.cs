@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Serializers;
@@ -365,6 +366,10 @@ namespace Couchbase.UnitTests.Management.Query
                 options.Statement("SELECT 1;");
                 FormValues = options.GetFormValues();
                 return Task.FromResult((IQueryResult<T>) new FakeQueryResult<T>());
+            }
+
+            public void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
+            {
             }
 
             public IDictionary<string, object?> FormValues { get; private set; }

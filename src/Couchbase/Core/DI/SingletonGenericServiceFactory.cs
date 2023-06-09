@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -22,46 +24,75 @@ namespace Couchbase.Core.DI
     /// This factory must be registered against a generic type with the same number of type arguments
     /// and the same or stricter type argument constraints.
     /// </para>
+    /// <para>
+    /// For trimming compatibility, it is imperative that the interface registered as the service in DI
+    /// have DynamicallyAccessedMembers annotations on the type arguments that match the ones on the concrete
+    /// implementation. For example, if <c>interface IMyInterface&lt;T&gt;</c> is the type being requested from DI and the concrete
+    /// implementation passed to this factory is <c>class MyClass&lt;[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T&gt;</c>
+    /// then <c>IMyInterface&lt;T&gt;</c> must have the same annotation on the type argument <c>T</c>.
+    /// See https://github.com/dotnet/runtime/blob/7c00b17be1b2ffb6ed49ad68cf36e9a056323152/src/libraries/Microsoft.Extensions.DependencyInjection/src/ServiceLookup/CallSiteFactory.cs#L94-L98
+    /// </para>
     /// </remarks>
     internal class SingletonGenericServiceFactory : IServiceFactory
     {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)]
         private readonly Type _genericType;
         private readonly ConcurrentDictionary<Type, object> _singletons = new ConcurrentDictionary<Type, object>();
 
         private IServiceProvider? _serviceProvider;
+        private Func<Type, object>? _factoryDelegateCache;
 
         /// <summary>
         /// Creates a new SingletonGenericServiceFactory.
         /// </summary>
         /// <param name="genericType">Non-specific generic type, i.e. Logger&lt;&gt; to construct.</param>
         /// <exception cref="ArgumentException">Not a generic type definition.</exception>
-        public SingletonGenericServiceFactory(Type genericType)
+        public SingletonGenericServiceFactory([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type genericType)
         {
-            _genericType = genericType ?? throw new ArgumentNullException(nameof(genericType));
-
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (genericType is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(genericType));
+            }
             if (!genericType.IsGenericTypeDefinition)
             {
-                throw new ArgumentException("Not a generic type definition.", nameof(genericType));
+                ThrowHelper.ThrowArgumentException("Not a generic type definition.", nameof(genericType));
             }
+
+            _genericType = genericType;
         }
 
         /// <inheritdoc />
         public void Initialize(IServiceProvider serviceProvider)
         {
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (serviceProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(serviceProvider));
+            }
+
+            _serviceProvider = serviceProvider;
         }
 
         /// <inheritdoc />
         public object CreateService(Type requestedType)
         {
-            return _singletons.GetOrAdd(requestedType, Factory);
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (requestedType is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(requestedType));
+            }
+
+            return _singletons.GetOrAdd(requestedType, _factoryDelegateCache ??= Factory);
         }
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2055",
+            Justification = "The generic interface type arguments should have matching DynamicallyAccessedMembers to the implementation's type arguments.")]
         private object Factory(Type requestedType)
         {
             if (_serviceProvider == null)
             {
-                throw new InvalidOperationException("Not initialized");
+                ThrowHelper.ThrowInvalidOperationException("Not initialized");
             }
 
             var typeArgs = requestedType.GetGenericArguments();

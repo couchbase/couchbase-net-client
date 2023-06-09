@@ -89,9 +89,9 @@ namespace Couchbase.Core
         public ClusterOptions ClusterOptions { get; }
 
         /// <summary>
-        /// <seealso cref="IServiceProvider"/> for dependency injection within the context of this cluster.
+        /// <seealso cref="ICouchbaseServiceProvider"/> for dependency injection within the context of this cluster.
         /// </summary>
-        public IServiceProvider ServiceProvider { get; }
+        public ICouchbaseServiceProvider ServiceProvider { get; }
 
         public BucketConfig GlobalConfig { get; set; }
 

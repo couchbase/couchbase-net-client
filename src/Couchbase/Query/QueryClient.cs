@@ -319,7 +319,7 @@ namespace Couchbase.Query
             return queryResult;
         }
 
-        internal void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
+        public void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
         {
             if (!EnhancedPreparedStatementsEnabled && clusterCapabilities.EnhancedPreparedStatementsEnabled)
             {

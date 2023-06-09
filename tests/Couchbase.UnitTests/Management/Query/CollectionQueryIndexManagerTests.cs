@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Logging;
 using Couchbase.Core.Retry;
 using Couchbase.Management.Query;
@@ -91,6 +92,10 @@ public class CollectionQueryIndexManagerTests
             LastStatement = statement;
             FormValues = options.GetFormValues();
             return Task.FromResult((IQueryResult<T>) new FakeQueryResult<T>());
+        }
+
+        public void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities)
+        {
         }
 
         public IDictionary<string, object?> FormValues { get; private set; }

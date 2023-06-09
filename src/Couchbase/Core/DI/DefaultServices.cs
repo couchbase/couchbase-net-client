@@ -21,10 +21,12 @@ using Couchbase.Core.Sharding;
 using Couchbase.Core.Version;
 using Couchbase.Management.Analytics;
 using Couchbase.Management.Buckets;
+using Couchbase.Management.Collections;
 using Couchbase.Management.Eventing;
 using Couchbase.Management.Query;
 using Couchbase.Management.Search;
 using Couchbase.Management.Users;
+using Couchbase.Management.Views;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Utils;
@@ -103,7 +105,9 @@ namespace Couchbase.Core.DI
             yield return (typeof(IEventingFunctionService), new SingletonServiceFactory(typeof(EventingFunctionService)));
 
             yield return (typeof(IBucketManager), new SingletonServiceFactory(typeof(BucketManager)));
+            yield return (typeof(ICollectionManagerFactory), new SingletonServiceFactory(typeof(CollectionManagerFactory)));
             yield return (typeof(IQueryIndexManager), new SingletonServiceFactory(typeof(QueryIndexManager)));
+            yield return (typeof(IViewIndexManagerFactory), new SingletonServiceFactory(typeof(ViewIndexManagerFactory)));
             yield return (typeof(ISearchIndexManager), new SingletonServiceFactory(typeof(SearchIndexManager)));
             yield return (typeof(IUserManager), new SingletonServiceFactory(typeof(UserManager)));
             yield return (typeof(IAnalyticsIndexManager), new SingletonServiceFactory(typeof(AnalyticsIndexManager)));

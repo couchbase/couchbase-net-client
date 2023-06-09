@@ -51,15 +51,15 @@ namespace Couchbase
         private readonly MeterForwarder? _meterForwarder;
 
         // Internal is used to provide a seam for unit tests
-        internal Lazy<IQueryClient> LazyQueryClient;
-        internal Lazy<ISearchClient> LazySearchClient;
-        internal Lazy<IAnalyticsClient> LazyAnalyticsClient;
-        internal Lazy<IUserManager> LazyUserManager;
-        internal Lazy<IBucketManager> LazyBucketManager;
-        internal Lazy<IQueryIndexManager> LazyQueryManager;
-        internal Lazy<ISearchIndexManager> LazySearchManager;
-        internal Lazy<IAnalyticsIndexManager> LazyAnalyticsIndexManager;
-        internal Lazy<IEventingFunctionManager> LazyEventingFunctionManager;
+        internal LazyService<IQueryClient> LazyQueryClient;
+        internal LazyService<ISearchClient> LazySearchClient;
+        internal LazyService<IAnalyticsClient> LazyAnalyticsClient;
+        internal LazyService<IUserManager> LazyUserManager;
+        internal LazyService<IBucketManager> LazyBucketManager;
+        internal LazyService<IQueryIndexManager> LazyQueryManager;
+        internal LazyService<ISearchIndexManager> LazySearchManager;
+        internal LazyService<IAnalyticsIndexManager> LazyAnalyticsIndexManager;
+        internal LazyService<IEventingFunctionManager> LazyEventingFunctionManager;
 
         internal Cluster(ClusterOptions clusterOptions)
         {
@@ -76,15 +76,15 @@ namespace Couchbase
             _context = new ClusterContext(this, configTokenSource, clusterOptions);
             _context.Start();
 
-            LazyQueryClient = new Lazy<IQueryClient>(() => _context.ServiceProvider.GetRequiredService<IQueryClient>());
-            LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => _context.ServiceProvider.GetRequiredService<IAnalyticsClient>());
-            LazySearchClient = new Lazy<ISearchClient>(() => _context.ServiceProvider.GetRequiredService<ISearchClient>());
-            LazyQueryManager = new Lazy<IQueryIndexManager>(() => _context.ServiceProvider.GetRequiredService<IQueryIndexManager>());
-            LazyBucketManager = new Lazy<IBucketManager>(() => _context.ServiceProvider.GetRequiredService<IBucketManager>());
-            LazyUserManager = new Lazy<IUserManager>(() => _context.ServiceProvider.GetRequiredService<IUserManager>());
-            LazySearchManager = new Lazy<ISearchIndexManager>(() => _context.ServiceProvider.GetRequiredService<ISearchIndexManager>());
-            LazyAnalyticsIndexManager = new Lazy<IAnalyticsIndexManager>(()=> _context.ServiceProvider.GetRequiredService<IAnalyticsIndexManager>());
-            LazyEventingFunctionManager = new Lazy<IEventingFunctionManager>(() => _context.ServiceProvider.GetRequiredService<IEventingFunctionManager>());
+            LazyQueryClient = new LazyService<IQueryClient>(_context.ServiceProvider);
+            LazyAnalyticsClient = new LazyService<IAnalyticsClient>(_context.ServiceProvider);
+            LazySearchClient = new LazyService<ISearchClient>(_context.ServiceProvider);
+            LazyQueryManager = new LazyService<IQueryIndexManager>(_context.ServiceProvider);
+            LazyBucketManager = new LazyService<IBucketManager>(_context.ServiceProvider);
+            LazyUserManager = new LazyService<IUserManager>(_context.ServiceProvider);
+            LazySearchManager = new LazyService<ISearchIndexManager>(_context.ServiceProvider);
+            LazyAnalyticsIndexManager = new LazyService<IAnalyticsIndexManager>(_context.ServiceProvider);
+            LazyEventingFunctionManager = new LazyService<IEventingFunctionManager>(_context.ServiceProvider);
 
             _logger = _context.ServiceProvider.GetRequiredService<ILogger<Cluster>>();
             _retryOrchestrator = _context.ServiceProvider.GetRequiredService<IRetryOrchestrator>();
@@ -332,7 +332,7 @@ namespace Couchbase
 
             async Task<IQueryResult<T>> Func()
             {
-                var client1 = LazyQueryClient.Value;
+                var client1 = LazyQueryClient.GetValueOrThrow();
                 var statement1 = statement;
                 var options1 = options!;
                 return await client1.QueryAsync<T>(statement1, options1).ConfigureAwait(false);
@@ -375,7 +375,7 @@ namespace Couchbase
 
             async Task<IAnalyticsResult<T>> Func()
             {
-                var client1 = LazyAnalyticsClient.Value;
+                var client1 = LazyAnalyticsClient.GetValueOrThrow();
                 var options1 = options;
                 return await client1.QueryAsync<T>(statement, options1).ConfigureAwait(false);
             }
@@ -406,7 +406,7 @@ namespace Couchbase
 
             async Task<ISearchResult> Func()
             {
-                var client1 = LazySearchClient.Value;
+                var client1 = LazySearchClient.GetValueOrThrow();
                 var request1 = searchRequest;
                 return await client1.QueryAsync(request1, request1.Token).ConfigureAwait(false);
             }
@@ -419,22 +419,22 @@ namespace Couchbase
         #region Management
 
         /// <inheritdoc />
-        public IQueryIndexManager QueryIndexes => LazyQueryManager.Value;
+        public IQueryIndexManager QueryIndexes => LazyQueryManager.GetValueOrThrow();
 
         /// <inheritdoc />
-        public IAnalyticsIndexManager AnalyticsIndexes => LazyAnalyticsIndexManager.Value;
+        public IAnalyticsIndexManager AnalyticsIndexes => LazyAnalyticsIndexManager.GetValueOrThrow();
 
         /// <inheritdoc />
-        public ISearchIndexManager SearchIndexes => LazySearchManager.Value;
+        public ISearchIndexManager SearchIndexes => LazySearchManager.GetValueOrThrow();
 
         /// <inheritdoc />
-        public IBucketManager Buckets => LazyBucketManager.Value;
+        public IBucketManager Buckets => LazyBucketManager.GetValueOrThrow();
 
         /// <inheritdoc />
-        public IUserManager Users => LazyUserManager.Value;
+        public IUserManager Users => LazyUserManager.GetValueOrThrow();
 
         /// <inheritdoc />
-        public IEventingFunctionManager EventingFunctions => LazyEventingFunctionManager.Value;
+        public IEventingFunctionManager EventingFunctions => LazyEventingFunctionManager.GetValueOrThrow();
 
         #endregion
 
@@ -442,12 +442,10 @@ namespace Couchbase
 
         internal void UpdateClusterCapabilities()
         {
-            if (LazyQueryClient.Value is QueryClient client)
+            if (_context.GlobalConfig is not null)
             {
-                if (_context.GlobalConfig != null)
-                {
-                    client.UpdateClusterCapabilities(_context.GlobalConfig.GetClusterCapabilities());
-                }
+                // Client may be null if the service was not registered
+                LazyQueryClient.Value?.UpdateClusterCapabilities(_context.GlobalConfig.GetClusterCapabilities());
             }
         }
 

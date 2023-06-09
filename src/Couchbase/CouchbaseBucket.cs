@@ -7,7 +7,6 @@ using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.DI;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.IO.HTTP;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Operations.Collections;
 using Couchbase.Core.Logging;
@@ -27,10 +26,16 @@ namespace Couchbase
     internal class CouchbaseBucket : BucketBase
     {
         private readonly IVBucketKeyMapperFactory _vBucketKeyMapperFactory;
-        private readonly Lazy<IViewClient> _viewClientLazy;
-        private readonly Lazy<IViewIndexManager> _viewManagerLazy;
-        private readonly Lazy<ICouchbaseCollectionManager> _collectionManagerLazy;
+        private readonly LazyService<IViewClient> _viewClientLazy;
+        private readonly LazyService<IViewIndexManagerFactory> _viewManagerLazy;
+        private readonly LazyService<ICollectionManagerFactory> _collectionManagerLazy;
         private readonly SemaphoreSlim _configMutex = new(1, 1);
+
+        // It isn't imperative that race conditions accessing these fields the first time must
+        // always return the same singleton. In the unlikely event two threads access them the
+        // first time simultaneously one may receive a temporary extra instance but that's okay.
+        private IViewIndexManager? _viewIndexManager;
+        private ICouchbaseCollectionManager? _collectionManager;
 
         internal CouchbaseBucket(string name, ClusterContext context, IScopeFactory scopeFactory, IRetryOrchestrator retryOrchestrator,
             IVBucketKeyMapperFactory vBucketKeyMapperFactory, ILogger<CouchbaseBucket> logger, TypedRedactor redactor, IBootstrapperFactory bootstrapperFactory,
@@ -39,32 +44,20 @@ namespace Couchbase
         {
             _vBucketKeyMapperFactory = vBucketKeyMapperFactory ?? throw new ArgumentNullException(nameof(vBucketKeyMapperFactory));
 
-            _viewClientLazy = new Lazy<IViewClient>(() =>
-                context.ServiceProvider.GetRequiredService<IViewClient>()
-            );
-            _viewManagerLazy = new Lazy<IViewIndexManager>(() =>
-                new ViewIndexManager(name,
-                    context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
-                    context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
-                    context.ServiceProvider.GetRequiredService<ILogger<ViewIndexManager>>(),
-                    context.ServiceProvider.GetRequiredService<IRedactor>()));
-
-            _collectionManagerLazy = new Lazy<ICouchbaseCollectionManager>(() =>
-                new CollectionManager(name,
-                    context.ServiceProvider.GetRequiredService<IServiceUriProvider>(),
-                    context.ServiceProvider.GetRequiredService<ICouchbaseHttpClientFactory>(),
-                    context.ServiceProvider.GetRequiredService<ILogger<CollectionManager>>(),
-                    context.ServiceProvider.GetRequiredService<IRedactor>())
-            );
+            _viewClientLazy = new LazyService<IViewClient>(context.ServiceProvider);
+            _viewManagerLazy = new LazyService<IViewIndexManagerFactory>(context.ServiceProvider);
+            _collectionManagerLazy = new LazyService<ICollectionManagerFactory>(context.ServiceProvider);
         }
 
-        public override IViewIndexManager ViewIndexes => _viewManagerLazy.Value;
+        public override IViewIndexManager ViewIndexes =>
+            _viewIndexManager ??= _viewManagerLazy.GetValueOrThrow().Create(Name);
 
         /// <summary>
         /// The Collection Management API.
         /// </summary>
         /// <remarks>Volatile</remarks>
-        public override ICouchbaseCollectionManager Collections => _collectionManagerLazy.Value;
+        public override ICouchbaseCollectionManager Collections =>
+            _collectionManager ??= _collectionManagerLazy.GetValueOrThrow().Create(Name);
 
         public override async Task ConfigUpdatedAsync(BucketConfig newConfig)
         {
@@ -204,7 +197,7 @@ namespace Couchbase
 
             async Task<IViewResult<TKey, TValue>> Func()
             {
-                var client1 = _viewClientLazy.Value;
+                var client1 = _viewClientLazy.GetValueOrThrow();
                 return await client1.ExecuteAsync<TKey, TValue>(query).ConfigureAwait(false);
             }
 

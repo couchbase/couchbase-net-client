@@ -1,3 +1,4 @@
+using Couchbase.Core.Configuration.Server;
 using System;
 using System.Threading.Tasks;
 
@@ -23,6 +24,8 @@ namespace Couchbase.Query
         /// <param name="options">The <see cref="QueryOptions"/> to execute.</param>
         /// <returns>A <see cref="Task{T}"/> that can be awaited on for the results.</returns>
         Task<IQueryResult<T>> QueryAsync<T>(string statement, QueryOptions options);
+
+        void UpdateClusterCapabilities(ClusterCapabilities clusterCapabilities);
     }
 }
 

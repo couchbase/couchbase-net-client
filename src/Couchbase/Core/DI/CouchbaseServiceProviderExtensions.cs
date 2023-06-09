@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Couchbase.Utils;
 
 #nullable enable
@@ -57,6 +56,23 @@ namespace Couchbase.Core.DI
         /// <returns>The service.</returns>
         public static T GetRequiredService<T>(this IServiceProvider serviceProvider) =>
             (T) serviceProvider.GetRequiredService(typeof(T));
+
+        /// <summary>
+        /// Determines if the specified service type is available from the <see cref="ICouchbaseServiceProvider"/>.
+        /// </summary>
+        /// <typeparam name="T">Service being tested.</typeparam>
+        /// <param name="serviceProvider">The <see cref="ICouchbaseServiceProvider"/>.</param>
+        /// <returns>true if the specified service is a available, false if it is not.</returns>
+        public static bool IsService<T>(this ICouchbaseServiceProvider serviceProvider)
+        {
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (serviceProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(serviceProvider));
+            }
+
+            return serviceProvider.IsService(typeof(T));
+        }
     }
 }
 

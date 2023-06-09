@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using Couchbase.Utils;
 
 #nullable enable
 
@@ -22,14 +24,20 @@ namespace Couchbase.Core.DI
         /// <param name="factory">Lambda to invoke on each call to <see cref="CreateService"/>.</param>
         public TransientServiceFactory(Func<IServiceProvider, object?> factory)
         {
-            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (factory is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(factory));
+            }
+
+            _factory = factory;
         }
 
         /// <summary>
         /// Creates a new TransientServiceFactory which uses a type's constructor on each call to <see cref="CreateService"/>.
         /// </summary>
         /// <param name="type">Type to create on each call to <seealso cref="CreateService"/>.</param>
-        public TransientServiceFactory(Type type)
+        public TransientServiceFactory([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
             : this(CreateFactory(type))
         {
         }
@@ -37,7 +45,13 @@ namespace Couchbase.Core.DI
         /// <inheritdoc />
         public void Initialize(IServiceProvider serviceProvider)
         {
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (serviceProvider is null)
+            {
+                ThrowHelper.ThrowArgumentNullException(nameof(serviceProvider));
+            }
+
+            _serviceProvider = serviceProvider;
         }
 
         /// <inheritdoc />
@@ -45,13 +59,13 @@ namespace Couchbase.Core.DI
         {
             if (_serviceProvider == null)
             {
-                throw new InvalidOperationException("Not initialized.");
+                ThrowHelper.ThrowInvalidOperationException("Not initialized.");
             }
 
             return _factory(_serviceProvider);
         }
 
-        private static Func<IServiceProvider, object> CreateFactory(Type implementationType)
+        private static Func<IServiceProvider, object> CreateFactory([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type implementationType)
         {
             var constructor = implementationType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
                 .OrderByDescending(p => p.GetParameters().Length)

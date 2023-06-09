@@ -17,6 +17,7 @@ using Couchbase.Core.RateLimiting;
 using Couchbase.Query;
 using Couchbase.Search;
 using Couchbase.Search.Queries;
+using Couchbase.Views;
 
 namespace Couchbase.Diagnostics
 {
@@ -100,7 +101,7 @@ namespace Couchbase.Diagnostics
 
                if (serviceTypes.Contains(ServiceType.Views) && clusterNode.HasViews)
                {
-                   if (clusterNode.Owner is CouchbaseBucket bucket)
+                   if (clusterNode.Owner is CouchbaseBucket bucket && context.ServiceProvider.IsService<IViewClient>())
                    {
                        var kvEndpoints = (List<IEndpointDiagnostics>) endpoints.GetOrAdd("view", new List<IEndpointDiagnostics>());
                        var endPointDiagnostics = CreateEndpointHealth(bucket.Name, ServiceType.Views, DateTime.UtcNow, clusterNode.LastViewActivity, clusterNode.EndPoint, ping);
@@ -116,7 +117,8 @@ namespace Couchbase.Diagnostics
                    }
                }
 
-               if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery)
+               if (serviceTypes.Contains(ServiceType.Query) && clusterNode.HasQuery &&
+                   context.ServiceProvider.IsService<IQueryClient>())
                {
                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("n1ql", new List<IEndpointDiagnostics>());
                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Query, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
@@ -138,7 +140,8 @@ namespace Couchbase.Diagnostics
                    kvEndpoints.Add(endPointDiagnostics);
                }
 
-               if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics)
+               if (serviceTypes.Contains(ServiceType.Analytics) && clusterNode.HasAnalytics &&
+                   context.ServiceProvider.IsService<IAnalyticsClient>())
                {
                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("cbas", new List<IEndpointDiagnostics>());
                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Analytics, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);
@@ -160,7 +163,8 @@ namespace Couchbase.Diagnostics
                    kvEndpoints.Add(endPointDiagnostics);
                }
 
-               if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch)
+               if (serviceTypes.Contains(ServiceType.Search) && clusterNode.HasSearch &&
+                   context.ServiceProvider.IsService<ISearchClient>())
                {
                    var kvEndpoints = (List<IEndpointDiagnostics>)endpoints.GetOrAdd("fts", new List<IEndpointDiagnostics>());
                    var endPointDiagnostics = CreateEndpointHealth("Cluster", ServiceType.Search, DateTime.UtcNow, clusterNode.LastQueryActivity, clusterNode.EndPoint, ping);

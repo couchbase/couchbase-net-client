@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -364,7 +365,7 @@ namespace Couchbase
         /// A reference to this <see cref="ClusterOptions"/> object for method chaining.
         /// </returns>
         [InterfaceStability(Level.Volatile)]
-        public ClusterOptions WithCompressionAlgorithm<TImplementation>()
+        public ClusterOptions WithCompressionAlgorithm<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>()
             where TImplementation : class, ICompressionAlgorithm
         {
             _services[typeof(ICompressionAlgorithm)] = new SingletonServiceFactory(typeof(TImplementation));
@@ -891,7 +892,7 @@ namespace Couchbase
         /// Build a <see cref="IServiceProvider"/> from the currently registered services.
         /// </summary>
         /// <returns>The new <see cref="IServiceProvider"/>.</returns>
-        internal IServiceProvider BuildServiceProvider()
+        internal ICouchbaseServiceProvider BuildServiceProvider()
         {
             this.AddClusterService(this);
             this.AddClusterService(Logging ??= new NullLoggerFactory());
@@ -979,7 +980,7 @@ namespace Couchbase
         /// <typeparam name="TImplementation">The type of the service implementation which is returned.</typeparam>
         /// <param name="lifetime">Lifetime of the service.</param>
         /// <returns>The <see cref="ClusterOptions"/>.</returns>
-        public ClusterOptions AddService<TService, TImplementation>(
+        public ClusterOptions AddService<TService, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TImplementation>(
             ClusterServiceLifetime lifetime)
             where TImplementation : TService
         {

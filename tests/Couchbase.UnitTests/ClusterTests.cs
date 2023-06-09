@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Couchbase.Analytics;
 using Couchbase.Core.Retry;
 using Couchbase.Query;
+using Couchbase.Test.Common.Utils;
 using Moq;
 using Xunit;
 
@@ -108,7 +109,7 @@ namespace Couchbase.UnitTests
             cluster
                 .Setup(m => m.EnsureBootstrapped())
                 .Returns(Task.CompletedTask);
-            cluster.Object.LazyQueryClient = new Lazy<IQueryClient>(() => queryClient.Object);
+            cluster.Object.LazyQueryClient = LazyServiceShimFactory.Create(queryClient.Object);
 
             // Act
 
@@ -154,7 +155,7 @@ namespace Couchbase.UnitTests
             cluster
                 .Setup(m => m.EnsureBootstrapped())
                 .Returns(Task.CompletedTask);
-            cluster.Object.LazyAnalyticsClient = new Lazy<IAnalyticsClient>(() => analyticsClient.Object);
+            cluster.Object.LazyAnalyticsClient = LazyServiceShimFactory.Create(analyticsClient.Object);
 
             // Act
 
