@@ -12,6 +12,7 @@ namespace Couchbase.Core.IO.Transcoders
 {
     public class JsonTranscoder : BaseTranscoder
     {
+        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         public JsonTranscoder()
             : this(DefaultSerializer.Instance)
         {

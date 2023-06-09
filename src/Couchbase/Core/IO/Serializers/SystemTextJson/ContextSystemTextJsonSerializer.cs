@@ -100,21 +100,21 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         #region Serialize
 
         /// <inheritdoc />
-        /// <remarks>
-        /// This overload does not make use of <see cref="Context"/>.
-        /// </remarks>
         public override void Serialize(Stream stream, object? obj)
         {
             JsonSerializer.Serialize(stream, obj, obj?.GetType() ?? typeof(object), Context);
         }
 
         /// <inheritdoc />
-        /// <remarks>
-        /// This overload does not make use of <see cref="Context"/>.
-        /// </remarks>
         public override ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default)
         {
             return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, obj?.GetType() ?? typeof(object), Context, cancellationToken));
+        }
+
+        /// <inheritdoc />
+        public override void Serialize(Utf8JsonWriter writer, object? obj)
+        {
+            JsonSerializer.Serialize(writer, obj, obj?.GetType() ?? typeof(object), Context);
         }
 
         /// <inheritdoc />
@@ -131,6 +131,14 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
             var typeInfo = Context.GetTypeInfo<T>();
 
             return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, typeInfo, cancellationToken));
+        }
+
+        /// <inheritdoc />
+        public override void Serialize<T>(Utf8JsonWriter writer, T obj)
+        {
+            var typeInfo = Context.GetTypeInfo<T>();
+
+            JsonSerializer.Serialize(writer, obj, typeInfo);
         }
 
         #endregion

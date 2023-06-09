@@ -12,11 +12,12 @@ using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
 namespace Couchbase.Core.IO.Transcoders
 {
-     /// <summary>
+    /// <summary>
     /// Provides the legacy implementation for <see cref="ITypeTranscoder"/> interface that matches sdk2 behavior.
     /// </summary>
     public class LegacyTranscoder : BaseTranscoder
-     {
+    {
+        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         public LegacyTranscoder()
             : this(DefaultSerializer.Instance)
         {

@@ -35,7 +35,8 @@ namespace Couchbase.KeyValue
         private readonly ILogger<GetResult> _getLogger;
         private readonly IOperationConfigurator _operationConfigurator;
         private readonly IRequestTracer _tracer;
-        private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder();
+        private readonly ITypeTranscoder _rawStringTranscoder = new RawStringTranscoder(
+            InternalSerializationContext.DefaultTypeSerializer);
         private Lazy<Task<uint?>>? GetCidLazyRetry = null;
         private Lazy<Task<uint?>>? GetCidLazyNoRetry = null;
 

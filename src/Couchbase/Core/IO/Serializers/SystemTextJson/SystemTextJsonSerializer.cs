@@ -99,6 +99,13 @@ namespace Couchbase.Core.IO.Serializers
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Serializes the specified object onto a <see cref="Utf8JsonWriter"/>.
+        /// </summary>
+        /// <param name="stream">The writer to receive the serialized object.</param>
+        /// <param name="obj">The object to serialize.</param>
+        public abstract void Serialize(Utf8JsonWriter stream, object? obj);
+
+        /// <summary>
         /// Serializes the specified object onto a stream.
         /// </summary>
         /// <typeparam name="T">Type of object to serialize.</typeparam>
@@ -114,6 +121,14 @@ namespace Couchbase.Core.IO.Serializers
         /// <param name="obj">The object to serialize.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         public abstract ValueTask SerializeAsync<T>(Stream stream, T obj, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Serializes the specified object onto a <see cref="Utf8JsonWriter"/>.
+        /// </summary>
+        /// <typeparam name="T">Type of object to serialize.</typeparam>
+        /// <param name="stream">The writer to receive the serialized object.</param>
+        /// <param name="obj">The object to serialize.</param>
+        public abstract void Serialize<T>(Utf8JsonWriter stream, T obj);
 
         #endregion
 
@@ -173,6 +188,7 @@ namespace Couchbase.Core.IO.Serializers
         /// </remarks>
         /// <returns>A new SystemTextJsonSerializer.</returns>
         [RequiresUnreferencedCode(ReflectionSystemTextJsonSerializer.SerializationUnreferencedCodeMessage)]
+        [RequiresDynamicCode(ReflectionSystemTextJsonSerializer.SerializationDynamicCodeMessage)]
         public static SystemTextJsonSerializer Create(bool increasedNewtonsoftCompatibility = false) =>
             new ReflectionSystemTextJsonSerializer(increasedNewtonsoftCompatibility);
 
@@ -182,6 +198,7 @@ namespace Couchbase.Core.IO.Serializers
         /// <param name="options"><see cref="JsonSerializerOptions"/> to control serialization and deserialization.</param>
         /// <returns>A new SystemTextJsonSerializer.</returns>
         [RequiresUnreferencedCode(ReflectionSystemTextJsonSerializer.SerializationUnreferencedCodeMessage)]
+        [RequiresDynamicCode(ReflectionSystemTextJsonSerializer.SerializationDynamicCodeMessage)]
         public static SystemTextJsonSerializer Create(JsonSerializerOptions options) =>
             new ReflectionSystemTextJsonSerializer(options);
 

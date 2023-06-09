@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -20,10 +21,30 @@ namespace Couchbase.Core.IO.Serializers
     /// </summary>
     public class DefaultSerializer : IExtendedTypeSerializer, IStreamingTypeDeserializer, IProjectableTypeDeserializer
     {
-        internal static DefaultSerializer Instance { get; } = new();
+        public const string UnreferencedCodeMessage =
+            "The DefaultSerializer uses Newtonsoft.Json which requires unreferenced code and is incompatible with trimming.";
+
+        private static DefaultSerializer? _instance;
+        internal static DefaultSerializer Instance
+        {
+            [RequiresUnreferencedCode(UnreferencedCodeMessage)]
+            get
+            {
+                // First do a lock (and interlock) free check to see if the default serializer has been set.
+                var instance = _instance;
+                if (instance is not null)
+                {
+                    return instance;
+                }
+
+                // Not set yet, or very recently set by another thread, so set using Interlocked.CompareExchange to ensure only a single instance is ever returned.
+                return Interlocked.CompareExchange(ref _instance, new DefaultSerializer(), null) ?? _instance;
+            }
+        }
 
         #region Constructors
 
+        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         public DefaultSerializer() : this(
             new JsonSerializerSettings
             {
@@ -39,6 +60,7 @@ namespace Couchbase.Core.IO.Serializers
         {
         }
 
+        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         public DefaultSerializer(JsonSerializerSettings deserializationSettings, JsonSerializerSettings serializerSettings)
         {
             if (deserializationSettings == null)
@@ -58,6 +80,7 @@ namespace Couchbase.Core.IO.Serializers
             SerializerSettings = serializerSettings;
         }
 
+        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         private static IContractResolver GetDefaultContractResolver()
         {
             var defaultResolver = JsonConvert.DefaultSettings?.Invoke()?.ContractResolver;
@@ -121,6 +144,8 @@ namespace Couchbase.Core.IO.Serializers
         /// </value>
         public JsonSerializerSettings DeserializationSettings {
             get => _deserializationSettings;
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+                Justification = "This type may not be constructed without encountering a warning.")]
             private set
             {
                 _deserializationSettings = value ?? throw new ArgumentNullException(nameof(value));
@@ -139,6 +164,8 @@ namespace Couchbase.Core.IO.Serializers
         public DeserializationOptions? DeserializationOptions
         {
             get { return _deserializationOptions; }
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+                Justification = "This type may not be constructed without encountering a warning.")]
             set
             {
                 _deserializationOptions = value;
@@ -273,14 +300,20 @@ namespace Couchbase.Core.IO.Serializers
         }
 
         /// <inheritdoc />
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public IJsonStreamReader CreateJsonStreamReader(Stream stream)
         {
             return new DefaultJsonStreamReader(stream, _deserializer);
         }
 
         /// <inheritdoc />
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public IProjectionBuilder CreateProjectionBuilder(ILogger logger) => new NewtonsoftProjectionBuilder(this, logger);
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
         protected internal virtual JsonSerializerSettings GetDeserializationSettings(JsonSerializerSettings baseSettings, DeserializationOptions? options)
         {
             if ((options == null) || !options.HasSettings)

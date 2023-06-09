@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 
 namespace Couchbase.Core.IO.Serializers
@@ -9,6 +10,7 @@ namespace Couchbase.Core.IO.Serializers
     /// <remarks>
     /// Used by <see cref="DefaultSerializer"/> if an <see cref="ICustomObjectCreator"/> is supplied.
     /// </remarks>
+    [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
     internal class JsonNetCustomObjectCreatorWrapper : JsonConverter
     {
         private readonly ICustomObjectCreator _creator;

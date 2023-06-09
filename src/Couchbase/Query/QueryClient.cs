@@ -161,7 +161,7 @@ namespace Couchbase.Query
                 return new()
                 {
                     ClientContextId = options.CurrentContextId,
-                    Parameters = options.GetAllParametersAsJson(),
+                    Parameters = options.GetAllParametersAsJson(serializer),
                     Statement = options.ToString(),
                     Message = GetErrorMessage(failedQueryResult, currentContextId, statusCode),
                     Errors = failedQueryResult.Errors,
@@ -284,7 +284,7 @@ namespace Couchbase.Query
                 var context = new QueryErrorContext
                 {
                     ClientContextId = options.CurrentContextId,
-                    Parameters = options.GetAllParametersAsJson(),
+                    Parameters = options.GetAllParametersAsJson(serializer),
                     Statement = options.ToString(),
                     HttpStatus = HttpStatusCode.RequestTimeout,
                     QueryStatus = QueryStatus.Fatal
@@ -313,7 +313,7 @@ namespace Couchbase.Query
                 var context = new QueryErrorContext
                 {
                     ClientContextId = options.CurrentContextId,
-                    Parameters = options.GetAllParametersAsJson(),
+                    Parameters = options.GetAllParametersAsJson(serializer),
                     Statement = options.ToString(),
                     HttpStatus = HttpStatusCode.RequestTimeout,
                     QueryStatus = QueryStatus.Fatal

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Couchbase.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -11,6 +12,7 @@ namespace Couchbase.Core.IO.Serializers
     /// Newtonsoft.Json implementation of <seealso cref="IJsonToken"/>
     /// which wraps a <seealso cref="JToken"/>.
     /// </summary>
+    [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
     internal class NewtonsoftJsonToken : IJsonToken
     {
         private readonly JToken _token;

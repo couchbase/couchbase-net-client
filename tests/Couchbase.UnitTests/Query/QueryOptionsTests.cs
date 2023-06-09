@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
 using Couchbase.Core.IO.Serializers;
+using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.KeyValue;
 using Couchbase.Query;
 using Moq;
@@ -137,6 +138,65 @@ namespace Couchbase.UnitTests.Query
             var vBucketComponent2 = bucketVectors["210"];
             Assert.Equal(12345L, vBucketComponent2.SequenceNumber);
             Assert.Equal(210, vBucketComponent2.VBucketUuid);
+        }
+
+        #endregion
+
+        #region GetAllParametersAsJson
+
+        public static IEnumerable<object[]> TypeSerializers()
+        {
+            yield return new object[] {new ReflectionSystemTextJsonSerializer(new JsonSerializerOptions()
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            })};
+
+            yield return new object[] {new DefaultSerializer()};
+        }
+
+        [Theory]
+        [MemberData(nameof(TypeSerializers))]
+        public void GetAllParametersAsJson_With_PositionParameters(ITypeSerializer serializer)
+        {
+            var options = new QueryOptions("SELECT * FROM `$1` WHERE name=$2").
+                Parameter("default").
+                Parameter("bill");
+
+            var result = options.GetAllParametersAsJson(serializer);
+
+            Assert.Equal(
+                "{\"Named\":{},\"Raw\":{},\"Positional\":[\"default\",\"bill\"]}",
+                result);
+        }
+
+        [Theory]
+        [MemberData(nameof(TypeSerializers))]
+        public void GetAllParametersAsJson_With_NamedParameters(ITypeSerializer serializer)
+        {
+            var options = new QueryOptions("SELECT * FROM `$bucket` WHERE name=$name").
+                Parameter("bucket","default").
+                Parameter("name","bill");
+
+            var result = options.GetAllParametersAsJson(serializer);
+
+            Assert.Equal(
+                "{\"Named\":{\"bucket\":\"default\",\"name\":\"bill\"},\"Raw\":{},\"Positional\":[]}",
+                result);
+        }
+
+        [Theory]
+        [MemberData(nameof(TypeSerializers))]
+        public void GetAllParametersAsJson_With_RawParameters(ITypeSerializer serializer)
+        {
+            var options = new QueryOptions("SELECT * FROM `$bucket` WHERE name=$name").
+                Raw("bucket","default").
+                Raw("name","bill");
+
+            var result = options.GetAllParametersAsJson(serializer);
+
+            Assert.Equal(
+                "{\"Named\":{},\"Raw\":{\"bucket\":\"default\",\"name\":\"bill\"},\"Positional\":[]}",
+                result);
         }
 
         #endregion

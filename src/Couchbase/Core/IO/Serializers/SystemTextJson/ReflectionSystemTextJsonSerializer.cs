@@ -18,7 +18,10 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
     /// </summary>
     internal class ReflectionSystemTextJsonSerializer : SystemTextJsonSerializer
     {
-        internal const string SerializationUnreferencedCodeMessage = "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonTypeInfo or JsonSerializerContext, or make sure all of the required types are preserved.";
+        internal const string SerializationUnreferencedCodeMessage =
+            "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonSerializerContext, or make sure all of the required types are preserved.";
+        internal const string SerializationDynamicCodeMessage =
+            "JSON serialization and deserialization might require types that cannot be statically analyzed. Use the overload that takes a JsonSerializerContext.";
 
         /// <inheritdoc />
         public override JsonSerializerOptions Options { get; }
@@ -36,6 +39,7 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-migrate-from-newtonsoft-how-to
         /// </remarks>
         [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
+        [RequiresDynamicCode(SerializationDynamicCodeMessage)]
         public ReflectionSystemTextJsonSerializer(bool increasedNewtonsoftCompatibility = false)
             : this(new JsonSerializerOptions
             {
@@ -53,6 +57,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// Create a new SystemTextJsonSerializer with supplied <see cref="JsonSerializerOptions"/>.
         /// </summary>
         /// <param name="options"><see cref="JsonSerializerOptions"/> to control serialization and deserialization.</param>
+        [RequiresUnreferencedCode(SerializationUnreferencedCodeMessage)]
+        [RequiresDynamicCode(SerializationDynamicCodeMessage)]
         public ReflectionSystemTextJsonSerializer(JsonSerializerOptions options)
         {
             // ReSharper disable once ConditionIsAlwaysTrueOrFalse
@@ -71,6 +77,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
             Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public override T? Deserialize<T>(ReadOnlyMemory<byte> buffer) where T : default
         {
             // Non-stream overloads of JsonSerializer.Deserialize do not trim the BOM automatically, do this for consistency with Newtonsoft.Json
@@ -88,6 +96,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
             Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public override T? Deserialize<T>(Stream stream) where T : default
         {
             if (stream.CanSeek && stream.Length == 0)
@@ -101,6 +111,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
 
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
         public override ValueTask<T?> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default) where T : default
         {
@@ -120,6 +132,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
             Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public override void Serialize(Stream stream, object? obj)
         {
             JsonSerializer.Serialize(stream, obj, Options);
@@ -127,6 +141,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
 
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
         public override ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default)
         {
@@ -136,6 +152,18 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
             Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        public override void Serialize(Utf8JsonWriter writer, object? obj)
+        {
+            JsonSerializer.Serialize(writer, obj, Options);
+        }
+
+        /// <inheritdoc />
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public override void Serialize<T>(Stream stream, T obj)
         {
             JsonSerializer.Serialize(stream, obj, Options);
@@ -144,9 +172,21 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
             Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public override ValueTask SerializeAsync<T>(Stream stream, T obj, CancellationToken cancellationToken = default)
         {
             return new ValueTask(JsonSerializer.SerializeAsync(stream, obj, Options, cancellationToken));
+        }
+
+        /// <inheritdoc />
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        public override void Serialize<T>(Utf8JsonWriter writer, T obj)
+        {
+            JsonSerializer.Serialize(writer, obj, Options);
         }
 
         #endregion
@@ -154,6 +194,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         #region Projection
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
         public override IProjectionBuilder CreateProjectionBuilder(ILogger logger) =>
             new ReflectionSystemTextJsonProjectionBuilder(Options, logger);
@@ -163,6 +205,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
         #region Streaming
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
         public override IJsonStreamReader CreateJsonStreamReader(Stream stream) =>
             new ReflectionSystemTextJsonStreamReader(stream, Options);

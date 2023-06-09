@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Core.Exceptions;
+using Couchbase.Core.IO.Serializers;
 using Couchbase.IntegrationTests.Fixtures;
 using Couchbase.IntegrationTests.Utils;
 using Couchbase.Query;
@@ -227,7 +228,7 @@ namespace Couchbase.IntegrationTests.Services.Query
             }
 
             _testOutputHelper.WriteLine(options.StatementValue);
-            _testOutputHelper.WriteLine(options.GetAllParametersAsJson());
+            _testOutputHelper.WriteLine(options.GetAllParametersAsJson(DefaultSerializer.Instance));
         }
 
         [Fact]

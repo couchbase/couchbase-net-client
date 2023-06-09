@@ -11,12 +11,15 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
     internal sealed class ReflectionSystemTextJsonProjectionBuilder : SystemTextJsonProjectionBuilder
     {
         [RequiresUnreferencedCode(ReflectionSystemTextJsonSerializer.SerializationUnreferencedCodeMessage)]
+        [RequiresDynamicCode(ReflectionSystemTextJsonSerializer.SerializationDynamicCodeMessage)]
         public ReflectionSystemTextJsonProjectionBuilder(JsonSerializerOptions options, ILogger logger) : base(options, logger)
         {
         }
 
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
         public override T? ToObject<T>() where T : default
         {
@@ -25,6 +28,8 @@ namespace Couchbase.Core.IO.Serializers.SystemTextJson
 
         /// <inheritdoc />
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "This type may not be constructed without encountering a warning.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050",
             Justification = "This type may not be constructed without encountering a warning.")]
         public override T? ToPrimitive<T>() where T : default
         {

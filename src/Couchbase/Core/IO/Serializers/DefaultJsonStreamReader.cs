@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -14,6 +15,7 @@ namespace Couchbase.Core.IO.Serializers
     /// <summary>
     /// Newtonsoft.Json based implementation of <see cref="IJsonStreamReader"/>.
     /// </summary>
+    [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
     public class DefaultJsonStreamReader : IJsonStreamReader
     {
         private readonly JsonTextReader _reader;

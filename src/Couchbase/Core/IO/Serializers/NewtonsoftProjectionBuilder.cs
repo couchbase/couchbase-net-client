@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -11,6 +12,7 @@ namespace Couchbase.Core.IO.Serializers
     /// <summary>
     /// Implementation of <see cref="IProjectionBuilder"/> for <see cref="DefaultSerializer"/>.
     /// </summary>
+    [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
     internal class NewtonsoftProjectionBuilder : IProjectionBuilder
     {
         private readonly DefaultSerializer _serializer;

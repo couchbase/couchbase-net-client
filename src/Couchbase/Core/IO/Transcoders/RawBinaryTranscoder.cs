@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
@@ -11,6 +12,7 @@ namespace Couchbase.Core.IO.Transcoders
 {
     public class RawBinaryTranscoder : BaseTranscoder
     {
+        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         public RawBinaryTranscoder() : this(DefaultSerializer.Instance)
         {
         }

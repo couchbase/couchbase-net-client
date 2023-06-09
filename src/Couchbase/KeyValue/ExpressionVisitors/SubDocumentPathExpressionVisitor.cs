@@ -213,6 +213,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
             return node.Update(expression);
         }
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2075", Justification = "Only checks for default members and getters for properties which are not trimmed.")]
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             EnsureNotInSpecialExpression();
@@ -451,6 +452,7 @@ namespace Couchbase.KeyValue.ExpressionVisitors
         /// <summary>
         /// For unit testing of WriteEscapedString only.
         /// </summary>
+        [RequiresUnreferencedCode(DefaultSerializer.UnreferencedCodeMessage)]
         internal static string GetEscapedString(string str)
         {
             var visitor = new SubDocumentPathExpressionVisitor(DefaultSerializer.Instance);

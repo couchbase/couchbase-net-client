@@ -1,7 +1,5 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using Couchbase.Core;
@@ -11,7 +9,6 @@ using Couchbase.Core.IO.Serializers;
 using Couchbase.Core.IO.Transcoders;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 #nullable enable
 

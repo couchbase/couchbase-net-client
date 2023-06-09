@@ -181,7 +181,7 @@ namespace Couchbase.Core.IO.Operations.SubDocument
         /// </returns>
         public override string ToString()
         {
-            return JsonSerializer.Serialize(this);
+            return $"Path:{Path} OpCode:{OpCode} Value:{Value}";
         }
 
         internal static XattrFirstComparer ByXattr { get; } = new XattrFirstComparer();

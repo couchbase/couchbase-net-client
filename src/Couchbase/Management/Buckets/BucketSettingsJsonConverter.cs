@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Couchbase.KeyValue;
@@ -200,7 +201,7 @@ namespace Couchbase.Management.Buckets
             return false;
         }
 
-        private static T ReadEnumIfNotNull<T>(ref Utf8JsonReader reader)
+        private static T ReadEnumIfNotNull<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>(ref Utf8JsonReader reader)
             where T : struct, Enum =>
             reader.TokenType switch
             {

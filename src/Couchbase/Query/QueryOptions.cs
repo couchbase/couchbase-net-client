@@ -18,6 +18,7 @@ using Couchbase.Core.IO.Serializers.SystemTextJson;
 using Couchbase.Core.Retry;
 using Couchbase.Core.Utils;
 using Couchbase.Utils;
+using ByteConverter = Couchbase.Core.IO.Converters.ByteConverter;
 
 #nullable enable
 
@@ -242,16 +243,89 @@ namespace Couchbase.Query
         [InterfaceStability(Level.Volatile)]
         public Uri? LastDispatchedNode { get; set; }
 
-        internal string GetAllParametersAsJson()
+        internal string GetAllParametersAsJson(ITypeSerializer serializer)
         {
-            var allParameters = new
-            {
-                Named = _parameters,
-                Raw = _rawParameters,
-                Positional = _arguments
-            };
+            using var stream = new MemoryStream();
 
-            return JsonSerializer.Serialize(allParameters);
+            using (var writer = new Utf8JsonWriter(stream))
+            {
+                if (serializer is SystemTextJsonSerializer stjSerializer)
+                {
+                    WriteAllParametersAsSystemTextJson(writer, stjSerializer);
+                }
+                else
+                {
+                    WriteAllParametersAsGenericJson(writer, serializer);
+                }
+            }
+
+            if (stream.TryGetBuffer(out ArraySegment<byte> arraySegment))
+            {
+                return ByteConverter.ToString(arraySegment.AsSpan());
+            }
+
+            // Fallback to extracting a new array from the MemoryStream
+            return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        private void WriteAllParametersAsSystemTextJson(Utf8JsonWriter writer, SystemTextJsonSerializer serializer)
+        {
+            writer.WriteStartObject();
+
+            writer.WriteStartObject("Named");
+            foreach (var parameter in _parameters)
+            {
+                writer.WritePropertyName(parameter.Key);
+                serializer.Serialize(writer, parameter.Value);
+            }
+            writer.WriteEndObject();
+
+            writer.WriteStartObject("Raw");
+            foreach (var parameter in _rawParameters)
+            {
+                writer.WritePropertyName(parameter.Key);
+                serializer.Serialize(writer, parameter.Value);
+            }
+            writer.WriteEndObject();
+
+            writer.WriteStartArray("Positional");
+            foreach (var parameter in _arguments)
+            {
+                serializer.Serialize(writer, parameter);
+            }
+            writer.WriteEndArray();
+
+            writer.WriteEndObject();
+        }
+
+        private void WriteAllParametersAsGenericJson(Utf8JsonWriter writer, ITypeSerializer serializer)
+        {
+            writer.WriteStartObject();
+
+            writer.WriteStartObject("Named");
+            foreach (var parameter in _parameters)
+            {
+                writer.WritePropertyName(parameter.Key);
+                writer.WriteRawValue(serializer.Serialize(parameter.Value));
+            }
+            writer.WriteEndObject();
+
+            writer.WriteStartObject("Raw");
+            foreach (var parameter in _rawParameters)
+            {
+                writer.WritePropertyName(parameter.Key);
+                writer.WriteRawValue(serializer.Serialize(parameter.Value));
+            }
+            writer.WriteEndObject();
+
+            writer.WriteStartArray("Positional");
+            foreach (var parameter in _arguments)
+            {
+                writer.WriteRawValue(serializer.Serialize(parameter));
+            }
+            writer.WriteEndArray();
+
+            writer.WriteEndObject();
         }
 
         /// <summary>

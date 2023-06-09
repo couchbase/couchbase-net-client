@@ -123,6 +123,8 @@ namespace Couchbase.Query
         #region ToDictionary
 
         [DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(QueryOptionsDto))]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2072",
+            Justification = "Activator.CreateInstance is only used on value types, which won't be trimmed when their properties are referenced.")]
         public Dictionary<string, object?> ToDictionary()
         {
             // This method isn't very efficient, but it's primarily here for backward compatibility and isn't normally used

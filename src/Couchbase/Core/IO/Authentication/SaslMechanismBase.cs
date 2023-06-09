@@ -118,7 +118,9 @@ namespace Couchbase.Core.IO.Authentication
         {
             public static SaslOptions Instance { get; } = new();
 
-            public ITypeTranscoder? Transcoder { get; } = new LegacyTranscoder(); //required so that SASL strings are not JSON encoded
+            //required so that SASL strings are not JSON encoded
+            public ITypeTranscoder? Transcoder { get; } = new RawStringTranscoder(
+                InternalSerializationContext.DefaultTypeSerializer);
 
             internal IRetryStrategy? RetryStrategyValue { get; private set; }
             IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
