@@ -831,7 +831,7 @@ namespace Couchbase.Core
 
             var removedEndpoints = Nodes.Where(x =>
                 !existingEndpoints.Any(y => x.KeyEndPoints.Any(z => z.Equals(y)))
-                && x.Owner.Name == config.Name);
+                && x.Owner != null && x.Owner.Name == config.Name);
 
             _logger.LogDebug("RemovedEndpoints: {endpoints}, revision {revision} from {bucket}", removedEndpoints, config.Rev, config.Name);
 
