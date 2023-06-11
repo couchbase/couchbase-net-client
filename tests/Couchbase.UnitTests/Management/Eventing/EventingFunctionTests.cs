@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Text.Json;
 using Couchbase.Management.Eventing;
+using Couchbase.Management.Eventing.Internal;
 using Couchbase.UnitTests.Utils;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Couchbase.UnitTests.Management.Eventing
@@ -73,7 +71,7 @@ namespace Couchbase.UnitTests.Management.Eventing
             var json =
                 ResourceHelper.ReadResource(@"Documents\Eventing\eventing-function.json");
 
-            var eventingFunction = JsonConvert.DeserializeObject<EventingFunction>(json);
+            var eventingFunction = JsonSerializer.Deserialize(json, EventingSerializerContext.Primary.EventingFunction);
 
         }
     }

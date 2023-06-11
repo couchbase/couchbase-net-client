@@ -1,5 +1,9 @@
 using System;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Management.Eventing.Internal
 {
@@ -8,20 +12,19 @@ namespace Couchbase.Management.Eventing.Internal
     /// </summary>
     internal class BucketAccessConverter : JsonConverter<EventingFunctionBucketAccess>
     {
-        public override void WriteJson(JsonWriter writer, EventingFunctionBucketAccess value, JsonSerializer serializer)
+        public override EventingFunctionBucketAccess Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            //This JSON is read only
-        }
-
-        public override EventingFunctionBucketAccess ReadJson(JsonReader reader, Type objectType, EventingFunctionBucketAccess existingValue,
-            bool hasExistingValue, JsonSerializer serializer)
-        {
-            if (reader.Value.ToString() == "r")
+            if (reader.TokenType == JsonTokenType.String && reader.ValueTextEquals("r"))
             {
                 return EventingFunctionBucketAccess.ReadOnly;
             }
 
             return EventingFunctionBucketAccess.ReadWrite;
+        }
+
+        public override void Write(Utf8JsonWriter writer, EventingFunctionBucketAccess value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.GetDescription());
         }
     }
 }

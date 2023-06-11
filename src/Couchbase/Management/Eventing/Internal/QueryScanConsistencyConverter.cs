@@ -1,6 +1,10 @@
 using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Query;
-using Newtonsoft.Json;
+using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Management.Eventing.Internal
 {
@@ -10,20 +14,19 @@ namespace Couchbase.Management.Eventing.Internal
     /// </summary>
     internal class QueryScanConsistencyConverter : JsonConverter<QueryScanConsistency>
     {
-        public override void WriteJson(JsonWriter writer, QueryScanConsistency value, JsonSerializer serializer)
+        public override QueryScanConsistency Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            //This JSON is read only
-        }
-
-        public override QueryScanConsistency ReadJson(JsonReader reader, Type objectType, QueryScanConsistency existingValue,
-            bool hasExistingValue, JsonSerializer serializer)
-        {
-            if (reader.Value.ToString() == "none")
+            if (reader.TokenType == JsonTokenType.String && reader.ValueTextEquals("none"))
             {
                 return QueryScanConsistency.NotBounded;
             }
 
             return QueryScanConsistency.RequestPlus;
+        }
+
+        public override void Write(Utf8JsonWriter writer, QueryScanConsistency value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.GetDescription());
         }
     }
 }

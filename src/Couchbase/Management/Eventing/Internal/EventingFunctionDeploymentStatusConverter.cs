@@ -1,24 +1,24 @@
 using System;
-using System.Diagnostics;
-using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+#nullable enable
 
 namespace Couchbase.Management.Eventing.Internal
 {
     internal class EventingFunctionDeploymentStatusConverter : JsonConverter<EventingFunctionDeploymentStatus>
     {
-        public override void WriteJson(JsonWriter writer, EventingFunctionDeploymentStatus value,
-            JsonSerializer serializer)
-        {
-            //This JSON is read only
-        }
+        public override EventingFunctionDeploymentStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
+            reader.TokenType switch
+            {
+                JsonTokenType.True => EventingFunctionDeploymentStatus.Deployed,
+                JsonTokenType.False => EventingFunctionDeploymentStatus.Undeployed,
+                _ => throw new JsonException()
+            };
 
-        public override EventingFunctionDeploymentStatus ReadJson(JsonReader reader, Type objectType,
-            EventingFunctionDeploymentStatus existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override void Write(Utf8JsonWriter writer, EventingFunctionDeploymentStatus value, JsonSerializerOptions options)
         {
-            var value = Convert.ToBoolean(reader.Value);
-            return value
-                    ? EventingFunctionDeploymentStatus.Deployed
-                    : EventingFunctionDeploymentStatus.Undeployed;
+            writer.WriteBooleanValue(value == EventingFunctionDeploymentStatus.Deployed);
         }
     }
 }

@@ -1,21 +1,26 @@
 using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Core.Exceptions;
-using Newtonsoft.Json;
+using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Management.Eventing.Internal
 {
     internal class EventingFunctionStatusConverter : JsonConverter<EventingFunctionStatus>
     {
-        public override void WriteJson(JsonWriter writer, EventingFunctionStatus value, JsonSerializer serializer)
+        public override EventingFunctionStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            //This JSON is read only
-        }
+            const string invalidMessage =
+                "The EventingFunctionStatus value returned by the server is not supported by the client.";
 
-        public override EventingFunctionStatus ReadJson(JsonReader reader, Type objectType,
-            EventingFunctionStatus existingValue,
-            bool hasExistingValue, JsonSerializer serializer)
-        {
-            return reader.Value.ToString() switch
+            if (reader.TokenType != JsonTokenType.String)
+            {
+                throw new InvalidArgumentException(invalidMessage);
+            }
+
+            return reader.GetString() switch
             {
                 "deployed" => EventingFunctionStatus.Deployed,
                 "deploying" => EventingFunctionStatus.Deploying,
@@ -23,9 +28,13 @@ namespace Couchbase.Management.Eventing.Internal
                 "pausing" => EventingFunctionStatus.Pausing,
                 "undeploying" => EventingFunctionStatus.UnDeploying,
                 "undeployed" => EventingFunctionStatus.Undeployed,
-                _ => throw new InvalidArgumentException(
-                    "The EventingFunctionStatus value returned by the server is not supported by the client.")
+                _ => throw new InvalidArgumentException(invalidMessage)
             };
+        }
+
+        public override void Write(Utf8JsonWriter writer, EventingFunctionStatus value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.ToString().ToLower());
         }
     }
 }

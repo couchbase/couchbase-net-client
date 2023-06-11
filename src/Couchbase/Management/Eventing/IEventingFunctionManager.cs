@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Management.Eventing.Internal;
-using Newtonsoft.Json;
 
 namespace Couchbase.Management.Eventing
 {
@@ -82,35 +82,34 @@ namespace Couchbase.Management.Eventing
 
     public class EventingStatus
     {
-        [JsonProperty("num_eventing_nodes")]
-        public int NumEventingNodes { get; internal set; }
+        [JsonPropertyName("num_eventing_nodes")]
+        public int NumEventingNodes { get; set; }
 
-        [JsonProperty("apps")]
-        public List<EventingFunctionState> Functions { get; internal set; }
+        [JsonPropertyName("apps")]
+        public List<EventingFunctionState> Functions { get; set; }
     }
 
     public class EventingFunctionState
     {
-        [JsonProperty("name")]
-        public string Name { get; internal set; }
+        public string Name { get; set; }
 
-        [JsonProperty("composite_status")]
+        [JsonPropertyName("composite_status")]
         [JsonConverter(typeof(EventingFunctionStatusConverter))]
-        public EventingFunctionStatus Status { get; internal set; }
+        public EventingFunctionStatus Status { get; set; }
 
-        [JsonProperty("num_bootstrapping_nodes")]
-        public int NumBootstrappingNodes { get; internal set; }
+        [JsonPropertyName("num_bootstrapping_nodes")]
+        public int NumBootstrappingNodes { get; set; }
 
-        [JsonProperty("num_deployed_nodes")]
-        public int NumDeployedNodes { get; internal set; }
+        [JsonPropertyName("num_deployed_nodes")]
+        public int NumDeployedNodes { get; set; }
 
-        [JsonProperty("deployment_status")]
+        [JsonPropertyName("deployment_status")]
         [JsonConverter(typeof(EventingFunctionDeploymentStatusConverter))]
-        public EventingFunctionDeploymentStatus DeploymentStatus { get; internal set; }
+        public EventingFunctionDeploymentStatus DeploymentStatus { get; set; }
 
-        [JsonProperty("processing_status")]
+        [JsonPropertyName("processing_status")]
         [JsonConverter(typeof(EventingFunctionProcessingStatusConverter))]
-        public EventingFunctionProcessingStatus ProcessingStatus { get; internal set; }
+        public EventingFunctionProcessingStatus ProcessingStatus { get; set; }
     }
 
     public enum EventingFunctionStatus

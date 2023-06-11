@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Text.Encodings.Web;
-using System.Threading;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
@@ -10,8 +8,6 @@ using Couchbase.Core.IO.Operations;
 using Couchbase.Management.Eventing.Internal;
 using Couchbase.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using CollectionNotFoundException = Couchbase.Management.Collections.CollectionNotFoundException;
 
 namespace Couchbase.Management.Eventing
@@ -55,7 +51,7 @@ namespace Couchbase.Management.Eventing
                     if (response.IsSuccessStatusCode) return;
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
                     {
                         switch (errorResponse.Name)
                         {
@@ -106,16 +102,16 @@ namespace Couchbase.Management.Eventing
                     if (response.IsSuccessStatusCode) return;
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
                     {
                         switch (errorResponse.Name)
                         {
                             case "ERR_APP_NOT_DEPLOYED":
-                                throw new EventingFunctionNotDeployedException(errorResponse.Description);
+                                throw new EventingFunctionNotDeployedException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_UNDEPLOYED":
-                                throw new EventingFunctionDeployedException(errorResponse.Description);
+                                throw new EventingFunctionDeployedException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_FOUND_TS":
-                                throw new EventingFunctionNotFoundException(errorResponse.Description);
+                                throw new EventingFunctionNotFoundException(errorResponse.GetDescription());
                         }
                     }
 
@@ -152,9 +148,9 @@ namespace Couchbase.Management.Eventing
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
-                    var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    var result = JToken.Parse(rawJson);
-                    return result.ToObject<IEnumerable<EventingFunction>>();
+                    using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                    return await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunctionList)
+                        .ConfigureAwait(false);
                 }
             }
             catch (Exception e)
@@ -187,22 +183,22 @@ namespace Couchbase.Management.Eventing
 
                     if (response.IsSuccessStatusCode)
                     {
-                        var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        var result = JToken.Parse(rawJson);
-                        return result.ToObject<EventingFunction>();
+                        using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                        return await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingFunction)
+                            .ConfigureAwait(false);
                     }
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
                     {
                         switch (errorResponse.Name)
                         {
                             case "ERR_APP_NOT_BOOTSTRAPPED":
-                                throw new EventingFunctionNotBootstrappedException(errorResponse.Description);
+                                throw new EventingFunctionNotBootstrappedException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_FOUND_TS":
-                                throw new EventingFunctionNotFoundException(errorResponse.Description);
+                                throw new EventingFunctionNotFoundException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_DEPLOYED":
-                                throw new EventingFunctionNotDeployedException(errorResponse.Description);
+                                throw new EventingFunctionNotDeployedException(errorResponse.GetDescription());
                         }
                     }
 
@@ -241,16 +237,16 @@ namespace Couchbase.Management.Eventing
                     if (response.IsSuccessStatusCode) return;
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
                     {
                         switch (errorResponse.Name)
                         {
                             case "ERR_APP_NOT_BOOTSTRAPPED":
-                                throw new EventingFunctionNotBootstrappedException(errorResponse.Description);
+                                throw new EventingFunctionNotBootstrappedException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_FOUND_TS":
-                                throw new EventingFunctionNotFoundException(errorResponse.Description);
+                                throw new EventingFunctionNotFoundException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_DEPLOYED":
-                                throw new EventingFunctionNotDeployedException(errorResponse.Description);
+                                throw new EventingFunctionNotDeployedException(errorResponse.GetDescription());
                         }
                     }
 
@@ -288,14 +284,14 @@ namespace Couchbase.Management.Eventing
                     if (response.IsSuccessStatusCode) return;
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
                     {
                         switch (errorResponse.Name)
                         {
                             case "ERR_APP_NOT_DEPLOYED":
-                                throw new EventingFunctionNotDeployedException(errorResponse.Description);
+                                throw new EventingFunctionNotDeployedException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_FOUND_TS":
-                                throw new EventingFunctionNotFoundException(errorResponse.Description);
+                                throw new EventingFunctionNotFoundException(errorResponse.GetDescription());
                         }
                     }
 
@@ -333,14 +329,14 @@ namespace Couchbase.Management.Eventing
                     if (response.IsSuccessStatusCode) return;
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
                     {
                         switch (errorResponse.Name)
                         {
                             case "ERR_APP_NOT_BOOTSTRAPPED":
-                                throw new EventingFunctionNotBootstrappedException(errorResponse.Description);
+                                throw new EventingFunctionNotBootstrappedException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_FOUND_TS":
-                                throw new EventingFunctionNotFoundException(errorResponse.Description);
+                                throw new EventingFunctionNotFoundException(errorResponse.GetDescription());
                         }
                     }
 
@@ -378,14 +374,14 @@ namespace Couchbase.Management.Eventing
                     if (response.IsSuccessStatusCode) return;
 
                     var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (content.TryDeserialize<ErrorResponse>(out var errorResponse))
+                    if (content.TryDeserialize(EventingSerializerContext.Primary.ErrorResponse, out var errorResponse))
                     {
                         switch (errorResponse.Name)
                         {
                             case "ERR_APP_NOT_DEPLOYED":
-                                throw new EventingFunctionNotDeployedException(errorResponse.Description);
+                                throw new EventingFunctionNotDeployedException(errorResponse.GetDescription());
                             case "ERR_APP_NOT_FOUND_TS":
-                                throw new EventingFunctionNotFoundException(errorResponse.Description);
+                                throw new EventingFunctionNotFoundException(errorResponse.GetDescription());
                         }
                     }
 
@@ -422,8 +418,10 @@ namespace Couchbase.Management.Eventing
                         .ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
-                    var rawJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    return JsonConvert.DeserializeObject<EventingStatus>(rawJson);
+                    using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+                    return await JsonSerializer.DeserializeAsync(stream, EventingSerializerContext.Primary.EventingStatus)
+                        .ConfigureAwait(false);
                 }
             }
             catch (Exception e)

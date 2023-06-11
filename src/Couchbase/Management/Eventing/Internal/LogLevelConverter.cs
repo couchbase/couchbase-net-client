@@ -1,29 +1,39 @@
 using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Couchbase.Core.Exceptions;
-using Newtonsoft.Json;
+using Couchbase.Utils;
+
+#nullable enable
 
 namespace Couchbase.Management.Eventing.Internal
 {
     internal class LogLevelConverter : JsonConverter<EventingFunctionLogLevel>
     {
-        public override void WriteJson(JsonWriter writer, EventingFunctionLogLevel value, JsonSerializer serializer)
+        public override EventingFunctionLogLevel Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-           //read-only
-        }
+            const string invalidMessage =
+                "The EventingFunctionLogLevel value returned by the server is not supported by the client.";
 
-        public override EventingFunctionLogLevel ReadJson(JsonReader reader, Type objectType, EventingFunctionLogLevel existingValue,
-            bool hasExistingValue, JsonSerializer serializer)
-        {
-            return reader.Value.ToString() switch
+            if (reader.TokenType != JsonTokenType.String)
+            {
+                throw new InvalidArgumentException(invalidMessage);
+            }
+
+            return reader.GetString() switch
             {
                 "INFO" => EventingFunctionLogLevel.Info,
                 "ERROR" => EventingFunctionLogLevel.Error,
                 "WARNING" => EventingFunctionLogLevel.Warning,
                 "DEBUG" => EventingFunctionLogLevel.Debug,
                 "TRACE" => EventingFunctionLogLevel.Trace,
-                _ => throw new InvalidArgumentException(
-                    "The EventingFunctionLogLevel value returned by the server is not supported by the client.")
+                _ => throw new InvalidArgumentException(invalidMessage)
             };
+        }
+
+        public override void Write(Utf8JsonWriter writer, EventingFunctionLogLevel value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.GetDescription());
         }
     }
 }
