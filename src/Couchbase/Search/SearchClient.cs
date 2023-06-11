@@ -84,7 +84,12 @@ namespace Couchbase.Search
                 encodingSpan.Dispose();
                 using var dispatchSpan = rootSpan.DispatchSpan(searchRequest);
                 using var httpClient = CreateHttpClient();
-                var response = await httpClient.PostAsync(uriBuilder.Uri, content, cancellationToken).ConfigureAwait(false);
+                var httpRequestMessage = new HttpRequestMessage(HttpMethod.Post, uriBuilder.Uri)
+                {
+                    Content = content
+                };
+
+                using var response = await httpClient.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                 dispatchSpan.Dispose();
 
                 using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
@@ -95,9 +100,8 @@ namespace Couchbase.Search
                     }
                     else
                     {
-                        using var reader = new StreamReader(stream);
-                        errors = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        var json = JsonConvert.DeserializeObject<JObject>(errors);
+                        using var reader = new JsonTextReader(new StreamReader(stream));
+                        var json = await JObject.LoadAsync(reader, cancellationToken).ConfigureAwait(false);
                         var queryError = json?.SelectToken("error");
 
                         //If the query service returned a top level error then
@@ -119,7 +123,7 @@ namespace Couchbase.Search
                         };
 
                         //Rate limiting errors
-                        if (response.StatusCode == (HttpStatusCode) 429)
+                        if (response.StatusCode == (HttpStatusCode)429 && errors != null)
                         {
                             if (errors.Contains("num_concurrent_requests"))
                             {
@@ -143,7 +147,7 @@ namespace Couchbase.Search
                             }
                         }
                         //Quota limiting errors
-                        if (response.StatusCode == HttpStatusCode.BadRequest)
+                        if (response.StatusCode == HttpStatusCode.BadRequest && errors != null)
                         {
                             if (errors.Contains("index not found"))
                             {
@@ -172,7 +176,7 @@ namespace Couchbase.Search
                             throw new AuthenticationFailureException(ctx);
                         }
 
-                        throw new CouchbaseException(errors) { Context = ctx };
+                        throw new CouchbaseException(errors ?? "") { Context = ctx };
                     }
                 }
 
