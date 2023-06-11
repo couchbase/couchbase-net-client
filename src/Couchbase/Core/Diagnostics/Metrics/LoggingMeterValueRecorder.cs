@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using App.Metrics;
 
 namespace Couchbase.Core.Diagnostics.Metrics
@@ -12,12 +13,16 @@ namespace Couchbase.Core.Diagnostics.Metrics
     {
         private readonly IMetricsRoot? _metrics;
 
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
         public LoggingMeterValueRecorder(IMetricsRoot? metrics)
         {
             _metrics = metrics;
         }
 
         /// <inheritdoc />
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public void RecordValue(uint value, KeyValuePair<string, string>? tag = null)
         {
 #pragma warning disable CS0618

@@ -1,5 +1,4 @@
 using System;
-using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Core.Diagnostics.Metrics
 {
@@ -8,6 +7,9 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// </summary>
     public class LoggingMeterOptions
     {
+        internal const string LoggingMeterRequiresUnreferencedCodeMessage =
+            "LoggingMeter requires unreferenced code and is not compatible with trimming.";
+
         internal TimeSpan EmitIntervalValue { get; set; } = TimeSpan.FromSeconds(600);
 
         /// <summary>
@@ -53,15 +55,6 @@ namespace Couchbase.Core.Diagnostics.Metrics
         {
             LoggingMeterValue = meter;
             return this;
-        }
-
-        internal IMeter CreateMeter(ILoggerFactory loggerFactory)
-        {
-            if (loggerFactory == null)
-            {
-                throw new NullReferenceException(nameof(loggerFactory));
-            }
-            return LoggingMeterValue ??= new LoggingMeter(loggerFactory, this);
         }
     }
 }

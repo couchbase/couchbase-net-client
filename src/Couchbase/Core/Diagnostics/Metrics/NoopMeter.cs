@@ -7,14 +7,10 @@ namespace Couchbase.Core.Diagnostics.Metrics
     /// </summary>
     internal class NoopMeter : IMeter
     {
-        private readonly IValueRecorder _valueRecorder = new NoopValueRecorder();
-
         public static IMeter Instance { get; } = new NoopMeter();
 
-        public IValueRecorder ValueRecorder(string name, IDictionary<string, string> tags)
-        {
-            return _valueRecorder;
-        }
+        public IValueRecorder ValueRecorder(string name, IDictionary<string, string> tags) =>
+            NoopValueRecorder.Instance;
 
         public void Dispose()
         {

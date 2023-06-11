@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using App.Metrics;
@@ -22,6 +23,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
         private readonly ConcurrentDictionary<string, Tuple<LoggingMeterValueRecorder, IMetricsRoot>> _histograms = new();
         private readonly uint _intervalMilliseconds;
 
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
         public LoggingMeter(ILoggerFactory loggerFactory, LoggingMeterOptions options)
         {
             _logger = loggerFactory.CreateLogger<LoggingMeter>();
@@ -31,6 +33,7 @@ namespace Couchbase.Core.Diagnostics.Metrics
             _timer = TimerFactory.CreateWithFlowSuppressed(GenerateReport, null, options.EmitIntervalValue, options.EmitIntervalValue);
         }
 
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
         private void GenerateReport(object? state)
         {
             // Note: The use of Interlocked/volatile here to synchronize against Dispose is imperfect,
@@ -65,6 +68,9 @@ namespace Couchbase.Core.Diagnostics.Metrics
         }
 
         /// <inheritdoc />
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public IValueRecorder ValueRecorder(string name, IDictionary<string, string>? tags = default)
         {
             var recorder = _histograms.GetOrAdd(name, _ =>

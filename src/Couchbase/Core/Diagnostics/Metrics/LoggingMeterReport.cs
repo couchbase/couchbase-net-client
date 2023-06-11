@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using App.Metrics;
 using App.Metrics.Histogram;
 using Couchbase.Core.Diagnostics.Tracing;
@@ -13,6 +14,12 @@ namespace Couchbase.Core.Diagnostics.Metrics
         public Meta? meta { get; set; }
         public Operations? operations { get; set; }
 
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
+        public LoggingMeterReport()
+        {
+        }
+
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
         public static LoggingMeterReport Generate(ReadOnlyDictionary<string, IMetricsRoot?> histograms, uint interval)
         {
             var report = new LoggingMeterReport
@@ -76,6 +83,9 @@ namespace Couchbase.Core.Diagnostics.Metrics
             return report;
         }
 
+        [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2046",
+            Justification = "This type may not be constructed without encountering a warning.")]
         public override string ToString()
         {
             return JsonConvert.SerializeObject(this, Formatting.None,

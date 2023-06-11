@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using App.Metrics;
 using App.Metrics.ReservoirSampling.SlidingWindow;
 using App.Metrics.Timer;
@@ -14,14 +15,18 @@ namespace Couchbase.Core.Diagnostics.Metrics
     [Obsolete("The dependency on App.Metrics may be removed in a future release.")]
     public static class MetricsRegistry
     {
-        public static TimerOptions KvTimerHistogram => new()
+        public static TimerOptions KvTimerHistogram
         {
-            Name = "Request Timer",
-            MeasurementUnit = Unit.Requests,
-            DurationUnit = TimeUnit.Microseconds,
-            RateUnit = TimeUnit.Microseconds,
-            Reservoir = () => new DefaultSlidingWindowReservoir(1048),
-        };
+            [RequiresUnreferencedCode(LoggingMeterOptions.LoggingMeterRequiresUnreferencedCodeMessage)]
+            get => new()
+            {
+                Name = "Request Timer",
+                MeasurementUnit = Unit.Requests,
+                DurationUnit = TimeUnit.Microseconds,
+                RateUnit = TimeUnit.Microseconds,
+                Reservoir = () => new DefaultSlidingWindowReservoir(1048),
+            };
+        }
     }
 }
 
