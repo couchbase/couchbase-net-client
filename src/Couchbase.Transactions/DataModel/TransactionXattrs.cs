@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Couchbase.Transactions.Components;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions.DataModel
 {

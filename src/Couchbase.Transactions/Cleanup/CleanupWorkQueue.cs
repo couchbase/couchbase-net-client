@@ -1,19 +1,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Transcoders;
-using Couchbase.KeyValue;
-using Couchbase.Transactions.Components;
-using Couchbase.Transactions.Error;
-using Couchbase.Transactions.Error.External;
 using Couchbase.Transactions.Internal.Test;
-using Couchbase.Transactions.Support;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions.Cleanup
 {

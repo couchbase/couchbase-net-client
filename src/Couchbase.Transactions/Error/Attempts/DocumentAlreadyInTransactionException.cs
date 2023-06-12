@@ -1,12 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Couchbase.Core.Retry;
+﻿using Couchbase.Core.Retry;
 
 namespace Couchbase.Transactions.Error.Attempts
 {
+    /// <summary>
+    /// Indicates a document being modified is already being modified in the same transaction.
+    /// </summary>
     public class DocumentAlreadyInTransactionException : AttemptException, IRetryable
     {
+        /// <summary>
+        /// Gets the document in question.
+        /// </summary>
         public TransactionGetResult Doc { get; }
 
         private DocumentAlreadyInTransactionException(AttemptContext ctx, TransactionGetResult doc, string msg)
@@ -15,6 +18,12 @@ namespace Couchbase.Transactions.Error.Attempts
             Doc = doc;
         }
 
+        /// <summary>
+        /// Creates an instance of the DocumentAlreadyInTransactionException.
+        /// </summary>
+        /// <param name="ctx">The AttemptContext.</param>
+        /// <param name="doc">The document in question.</param>
+        /// <returns>An initialized instance.</returns>
         public static DocumentAlreadyInTransactionException Create(AttemptContext ctx, TransactionGetResult doc)
         {
             var msg =

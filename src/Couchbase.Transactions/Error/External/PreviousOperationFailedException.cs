@@ -19,10 +19,12 @@ namespace Couchbase.Transactions.Error.External
     {
         private IEnumerable<Exception> Causes { get; } = Enumerable.Empty<Exception>();
 
+        /// <inheritdoc />
         public PreviousOperationFailedException()
         {
         }
 
+        /// <inheritdoc />
         public PreviousOperationFailedException(IEnumerable<Exception> causes)
         {
             Causes = causes;

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Transactions.LogUtil
@@ -20,14 +17,17 @@ namespace Couchbase.Transactions.LogUtil
             _overallContext = overallContext;
         }
 
+        /// <inheritdoc />
         public IDisposable BeginScope<TState>(TState state)
         {
             return _otherLogger.BeginScope(state);
         }
 
+        /// <inheritdoc />
         public bool IsEnabled(LogLevel logLevel) => _otherLogger.IsEnabled(logLevel);
 
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        /// <inheritdoc />
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             _otherLogger.Log(logLevel, eventId, state, exception, formatter);
             if (IsEnabled(logLevel))

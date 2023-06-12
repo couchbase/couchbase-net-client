@@ -2,24 +2,18 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Transactions;
 using Couchbase.Core;
 using Couchbase.Core.Compatibility;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Core.Exceptions.Query;
-using Couchbase.Core.IO.Operations;
 using Couchbase.Core.IO.Serializers;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.Core.Logging;
 using Couchbase.KeyValue;
 using Couchbase.Query;
@@ -38,17 +32,17 @@ using Couchbase.Transactions.Internal;
 using Couchbase.Transactions.Internal.Test;
 using Couchbase.Transactions.LogUtil;
 using Couchbase.Transactions.Support;
-using DnsClient.Internal;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using static Couchbase.Transactions.Error.ErrorBuilder;
 using Exception = System.Exception;
 using ILoggerFactory = Microsoft.Extensions.Logging.ILoggerFactory;
-using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace Couchbase.Transactions
 {
+    /// <summary>
+    /// Provides methods that allow an application's transaction logic to read, mutate, insert, and delete documents.
+    /// </summary>
     public class AttemptContext
     {
         private static readonly TimeSpan ExpiryThreshold = TimeSpan.FromMilliseconds(10);
@@ -63,7 +57,7 @@ namespace Couchbase.Transactions
         private readonly StagedMutationCollection _stagedMutations = new StagedMutationCollection();
         private readonly object _initAtrLock = new();
         private IAtrRepository? _atr = null;
-        private IDocumentRepository _docs;
+        private readonly IDocumentRepository _docs;
         private readonly DurabilityLevel _effectiveDurabilityLevel;
         private readonly List<MutationToken> _finalMutations = new List<MutationToken>();
         private readonly ConcurrentDictionary<long, TransactionOperationFailedException> _previousErrors = new ConcurrentDictionary<long, TransactionOperationFailedException>();
@@ -122,6 +116,9 @@ namespace Couchbase.Transactions
             }
         }
 
+        /// <summary>
+        /// Gets the logger instance used for this AttemptContext.
+        /// </summary>
         public ILogger<AttemptContext> Logger { get; }
 
         /// <summary>
@@ -1003,6 +1000,10 @@ namespace Couchbase.Transactions
             }
         }
 
+        /// <summary>
+        /// Commits the transaction.
+        /// </summary>
+        /// <param name="parentSpan">(optional) RequestSpan to use as a parent for tracing.</param>
         public async Task CommitAsync(IRequestSpan? parentSpan = null)
         {
             if (!_previousErrors.IsEmpty)
@@ -1191,7 +1192,7 @@ namespace Couchbase.Transactions
             await _testHooks.AfterDocRemovedPostRetry(this, sm.Doc.Id).CAF();
         }
 
-        private Task<(ulong cas, object content)> FetchIfNeededBeforeUnstage(StagedMutation sm)
+        private Task<(ulong cas, object? content)> FetchIfNeededBeforeUnstage(StagedMutation sm)
         {
             // https://hackmd.io/Eaf20XhtRhi8aGEn_xIH8A#FetchIfNeededBeforeUnstage
             // TODO: consider implementing ExtMemoryOptUnstaging mode
@@ -1567,6 +1568,7 @@ namespace Couchbase.Transactions
         /// <param name="statement">The statement to execute.</param>
         /// <param name="config">The configuration to use for this query.</param>
         /// <param name="scope">The scope</param>
+        /// <param name="parentSpan">The optional parent tracing span.</param>
         /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
         /// <remarks>IMPORTANT: Any KV operations after this query will be run via the query engine, which has performance implications.</remarks>
         public Task<IQueryResult<T>> QueryAsync<T>(string statement, TransactionQueryConfigBuilder? config = null, IScope? scope = null, IRequestSpan? parentSpan = null)
@@ -1582,6 +1584,7 @@ namespace Couchbase.Transactions
         /// <param name="statement">The statement to execute.</param>
         /// <param name="options">The query options to use for this query.</param>
         /// <param name="scope">The scope</param>
+        /// <param name="parentSpan">The optional parent tracing span.</param>
         /// <returns>A <see cref="SingleQueryTransactionResult{T}"/> with the query results, if any.</returns>
         /// <remarks>IMPORTANT: Any KV operations after this query will be run via the query engine, which has performance implications.</remarks>
         public Task<IQueryResult<T>> QueryAsync<T>(string statement, TransactionQueryOptions options, IScope? scope = null, IRequestSpan? parentSpan = null)
@@ -1776,7 +1779,7 @@ namespace Couchbase.Transactions
             }).CAF();
         }
 
-        protected void DoneCheck()
+        private void DoneCheck()
         {
             var isDoneState = !(_state == AttemptStates.NOTHING_WRITTEN || _state == AttemptStates.PENDING);
             if (IsDone || isDoneState)
@@ -1788,7 +1791,7 @@ namespace Couchbase.Transactions
             }
         }
 
-        protected void BailoutIfInOvertime(bool rollback, [CallerMemberName] string caller = nameof(BailoutIfInOvertime))
+        private void BailoutIfInOvertime(bool rollback, [CallerMemberName] string caller = nameof(BailoutIfInOvertime))
         {
             if (_expirationOvertimeMode)
             {
@@ -1804,7 +1807,7 @@ namespace Couchbase.Transactions
             }
         }
 
-        protected async Task InitAtrIfNeeded(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan)
+        private async Task InitAtrIfNeeded(ICouchbaseCollection collection, string id, IRequestSpan? parentSpan)
         {
             using var traceSpan = TraceSpan(parent: parentSpan);
             var atrCollection = _config.MetadataCollection ?? collection.Scope.Bucket.DefaultCollection();
@@ -1824,7 +1827,7 @@ namespace Couchbase.Transactions
             }
         }
 
-        protected void CheckExpiryAndThrow(string? docId, string hookPoint)
+        private void CheckExpiryAndThrow(string? docId, string hookPoint)
         {
             if (HasExpiredClientSide(docId, hookPoint))
             {
@@ -1836,7 +1839,7 @@ namespace Couchbase.Transactions
             }
         }
 
-        protected void ErrorIfExpiredAndNotInExpiryOvertimeMode(string hookPoint, string? docId = null, [CallerMemberName] string caller = "")
+        private void ErrorIfExpiredAndNotInExpiryOvertimeMode(string hookPoint, string? docId = null, [CallerMemberName] string caller = "")
         {
             if (_expirationOvertimeMode)
             {
@@ -2204,49 +2207,42 @@ namespace Couchbase.Transactions
 
                         if (chosenError.AdditionalData != null && chosenError.AdditionalData.TryGetValue("cause", out var causeObj))
                         {
-                            try
+                            var errorCause = causeObj switch
                             {
-                                var errorCause = causeObj switch
-                                {
-                                    JToken jToken => jToken.ToObject<QueryErrorCause>(),
-                                    JsonElement jsonElement => jsonElement.Deserialize(DataModelSerializerContext.Default.QueryErrorCause),
-                                    _ => new QueryErrorCause(null, null, null, null)
-                                };
+                                JToken jToken => jToken.ToObject<QueryErrorCause>(),
+                                JsonElement jsonElement => jsonElement.Deserialize(DataModelSerializerContext.Default.QueryErrorCause),
+                                _ => new QueryErrorCause(null, null, null, null)
+                            };
 
-                                Logger.LogWarning("query code={code} cause={cause} raise={raise}",
-                                    code,
-                                    Redactor.UserData(errorCause.cause),
-                                    errorCause.raise
-                                    );
+                            Logger.LogWarning("query code={code} cause={cause} raise={raise}",
+                                code,
+                                Redactor.UserData(errorCause?.cause ?? string.Empty),
+                                errorCause?.raise ?? string.Empty
+                            );
 
-                                var builder = CreateError(this, ErrorClass.FailOther, err);
-                                TransactionOperationFailedException.FinalError toRaise = errorCause.raise switch
-                                {
-                                    "failed_post_commit" => TransactionOperationFailedException.FinalError.TransactionFailedPostCommit,
-                                    "commit_ambiguous" => TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous,
-                                    "expired" => TransactionOperationFailedException.FinalError.TransactionExpired,
-                                    "failed" => TransactionOperationFailedException.FinalError.TransactionFailed,
-                                    _ => TransactionOperationFailedException.FinalError.TransactionFailed
-                                };
-
-                                builder = builder.RaiseException(toRaise);
-
-                                if (errorCause.retry == true)
-                                {
-                                    builder = builder.RetryTransaction();
-                                }
-
-                                if (errorCause.rollback == false)
-                                {
-                                    builder.DoNotRollbackAttempt();
-                                }
-
-                                return builder.Build();
-                            }
-                            catch (Exception ex)
+                            var builder = CreateError(this, ErrorClass.FailOther, err);
+                            TransactionOperationFailedException.FinalError toRaise = errorCause?.raise switch
                             {
-                                throw;
+                                "failed_post_commit" => TransactionOperationFailedException.FinalError.TransactionFailedPostCommit,
+                                "commit_ambiguous" => TransactionOperationFailedException.FinalError.TransactionCommitAmbiguous,
+                                "expired" => TransactionOperationFailedException.FinalError.TransactionExpired,
+                                "failed" => TransactionOperationFailedException.FinalError.TransactionFailed,
+                                _ => TransactionOperationFailedException.FinalError.TransactionFailed
+                            };
+
+                            builder = builder.RaiseException(toRaise);
+
+                            if (errorCause?.retry == true)
+                            {
+                                builder = builder.RetryTransaction();
                             }
+
+                            if (errorCause?.rollback == false)
+                            {
+                                builder.DoNotRollbackAttempt();
+                            }
+
+                            return builder.Build();
                         }
                     }
                 }

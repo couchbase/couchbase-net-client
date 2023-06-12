@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using Couchbase.Core.IO.Operations;
-using Couchbase.Core.IO.Transcoders;
-using Couchbase.KeyValue;
+﻿using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.DataModel;
 using Couchbase.Transactions.Internal;
@@ -12,10 +6,16 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions
 {
+    /// <summary>
+    /// The result of a Get or GetOptional operation an a transaction context."/>
+    /// </summary>
     public class TransactionGetResult
     {
         private readonly IContentAsWrapper _content;
 
+        /// <summary>
+        /// Placeholder for an empty result.
+        /// </summary>
         public static readonly TransactionGetResult? Empty = null;
 
         private TransactionGetResult(
@@ -41,15 +41,38 @@ namespace Couchbase.Transactions
 
         internal TransactionXattrs? TransactionXattrs { get; }
 
+        /// <summary>
+        /// Gets the ID of the document.
+        /// </summary>
         public string Id { get; }
         internal string FullyQualifiedId { get; }
+
+        /// <summary>
+        /// Gets the CAS value of the document for future mutations.
+        /// </summary>
         public ulong Cas { get; internal set; }
+
+        /// <summary>
+        /// Gets the document metadata.
+        /// </summary>
         public DocumentMetadata? DocumentMetadata { get; }
+
+        /// <summary>
+        /// Gets the collection the document belongs to.
+        /// </summary>
         public ICouchbaseCollection Collection { get; }
 
+        /// <summary>
+        /// Gets the transactional metadata of the document.
+        /// </summary>
         internal JObject? TxnMeta { get; set; } = null;
 
-        public T ContentAs<T>() => _content.ContentAs<T>();
+        /// <summary>
+        /// Deserialize the content of the document.
+        /// </summary>
+        /// <typeparam name="T">The type of document contained.</typeparam>
+        /// <returns>A deserialized instance, or null.</returns>
+        public T? ContentAs<T>() => _content.ContentAs<T>();
 
         internal static string GetFullyQualifiedId(ICouchbaseCollection collection, string id) =>
             $"{collection.Scope.Bucket.Name}::{collection.Scope.Name}::{collection.Name}::{id}";
@@ -111,7 +134,7 @@ namespace Couchbase.Transactions
                 );
         }
 
-        internal static TransactionGetResult FromNonTransactionDoc(ICouchbaseCollection collection, string id, IContentAsWrapper content, ulong cas, DocumentMetadata documentMetadata, bool isDeleted, TransactionXattrs? transactionXattrs)
+        internal static TransactionGetResult FromNonTransactionDoc(ICouchbaseCollection collection, string id, IContentAsWrapper content, ulong cas, DocumentMetadata? documentMetadata, bool isDeleted, TransactionXattrs? transactionXattrs)
         {
             return new TransactionGetResult(
                 id: id,
@@ -124,7 +147,7 @@ namespace Couchbase.Transactions
             );
         }
 
-        internal static TransactionGetResult FromStaged(ICouchbaseCollection collection, string id, IContentAsWrapper? stagedContent, ulong cas, DocumentMetadata documentMetadata, TransactionXattrs? txn, bool isTombstone)
+        internal static TransactionGetResult FromStaged(ICouchbaseCollection collection, string id, IContentAsWrapper? stagedContent, ulong cas, DocumentMetadata? documentMetadata, TransactionXattrs? txn, bool isTombstone)
         {
             return new TransactionGetResult(
                 id,

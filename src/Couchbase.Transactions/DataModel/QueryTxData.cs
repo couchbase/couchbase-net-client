@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Couchbase.KeyValue;
-using Couchbase.Transactions.Components;
-using Newtonsoft.Json;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions.DataModel

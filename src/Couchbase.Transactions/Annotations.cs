@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace System.Runtime.CompilerServices
+﻿namespace System.Runtime.CompilerServices
 {
+    /// <summary>
+    /// A workaround for init-only properties and older frameworks.
+    /// </summary>
     public class IsExternalInit { }
 }
 

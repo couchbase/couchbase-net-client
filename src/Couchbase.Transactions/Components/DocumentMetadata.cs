@@ -1,21 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace Couchbase.Transactions.Components
 {
+    /// <summary>
+    /// A POCO to serialize transactions metadata on a document for rollback / unstaging purposes.
+    /// </summary>
     public class DocumentMetadata
     {
+        /// <summary>
+        /// Gets the stringified CAS value.
+        /// </summary>
         [JsonProperty("CAS")]
         public string? Cas { get; internal set; }
 
+        /// <summary>
+        /// Gets the Revision ID.
+        /// </summary>
         [JsonProperty("revid")]
         public string? RevId { get; internal set; }
 
+        /// <summary>
+        /// Gets the expiration time
+        /// </summary>
         [JsonProperty("exptime")]
         public ulong? ExpTime { get; internal set; }
 
+        /// <summary>
+        /// Gets the CRC32 checksum.
+        /// </summary>
         [JsonProperty("value_crc32c")]
         public string? Crc32c { get; internal set; }
     }

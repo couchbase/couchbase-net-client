@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Couchbase.KeyValue;
+﻿using Couchbase.KeyValue;
 
 namespace Couchbase.Transactions.DataModel
 {

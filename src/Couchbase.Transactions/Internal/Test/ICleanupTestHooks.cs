@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Transactions.Cleanup.LostTransactions;
+﻿using System.Threading.Tasks;
+using Couchbase.Core.Compatibility;
+
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions.Internal.Test
 {
+    [InterfaceStability(Level.Volatile)]
     public interface ICleanupTestHooks
     {
         public Task<int?> BeforeCommitDoc(string id) => Task.FromResult((int?)1);

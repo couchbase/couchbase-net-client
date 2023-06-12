@@ -1,13 +1,18 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Transactions.Error
 {
+    /// <summary>
+    /// A generic exception thrown internally that indicates that a transaction failed.
+    /// </summary>
     public class TransactionFailedException : CouchbaseException
     {
+        /// <summary>
+        /// Gets the final result of the transaction.
+        /// </summary>
         public TransactionResult? Result { get; }
 
+        /// <inheritdoc />
         public TransactionFailedException(string message, Exception innerException, TransactionResult? result) : base(message, innerException)
         {
             Result = result;

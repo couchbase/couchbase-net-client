@@ -1,15 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.Retry;
 using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
-using Couchbase.Transactions.Config;
 using Couchbase.Transactions.DataModel;
-using Couchbase.Transactions.Error.External;
 using Couchbase.Transactions.LogUtil;
 using Couchbase.Transactions.Support;
 using Microsoft.Extensions.Logging;
@@ -94,7 +89,7 @@ namespace Couchbase.Transactions.DataAccess
             }
 
             var asJson = lookupInResult.ContentAs<JObject>(0);
-            if (asJson.TryGetValue(attemptId, out var entry))
+            if (asJson?.TryGetValue(attemptId, out var entry) == true)
             {
                 var atrEntry = AtrEntry.CreateFrom(entry);
                 if (atrEntry?.Cas == null && atrEntry?.State == default)
@@ -222,7 +217,7 @@ namespace Couchbase.Transactions.DataAccess
             _logger.LogDebug("Removed ATR {atr}/{atrRoot} (cas = {cas})", AtrId, _atrRoot, mutateResult.Cas);
         }
 
-        public async Task<string> LookupAtrState()
+        public async Task<string?> LookupAtrState()
         {
             var lookupInResult = await Collection!.LookupInAsync(AtrId,
                     specs => specs.Get(_prefixedAtrFieldStatus, isXattr: true),

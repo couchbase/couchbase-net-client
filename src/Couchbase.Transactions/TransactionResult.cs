@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Couchbase.Core;
-using Couchbase.Query;
-using DnsClient.Internal;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions
@@ -32,6 +25,9 @@ namespace Couchbase.Transactions
             return JObject.FromObject(this).ToString();
         }
 
+        /// <summary>
+        /// Gets the logs associated with this transaction.
+        /// </summary>
         public IEnumerable<string> Logs { get; internal set; } = Enumerable.Empty<string>();
     }
 }

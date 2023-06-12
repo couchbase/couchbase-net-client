@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Couchbase.KeyValue;
 
 namespace Couchbase.Transactions.Config
@@ -14,6 +12,10 @@ namespace Couchbase.Transactions.Config
         {
         }
 
+        /// <summary>
+        /// Create a default SingleQueryTransactionConfigBuilder.
+        /// </summary>
+        /// <returns>A default instance of this type.</returns>
         public static SingleQueryTransactionConfigBuilder Create() => new();
 
         /// <summary>

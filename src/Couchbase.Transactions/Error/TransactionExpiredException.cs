@@ -1,16 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Couchbase.Transactions.Error.Internal;
 
 namespace Couchbase.Transactions.Error
 {
+    /// <summary>
+    /// Indicates that a transaction ran past its overall allotted time.
+    /// </summary>
     public class TransactionExpiredException : TransactionFailedException, IClassifiedTransactionError
     {
+        /// <inheritdoc />
         public TransactionExpiredException(string message, Exception innerException, TransactionResult result) : base(message, innerException, result)
         {
         }
 
+        /// <inheritdoc />
         public ErrorClass CausingErrorClass => ErrorClass.FailExpiry;
     }
 }

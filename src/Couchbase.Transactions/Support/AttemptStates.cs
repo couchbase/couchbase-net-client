@@ -1,26 +1,47 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text;
+﻿
 
 // ReSharper disable InconsistentNaming
 
 namespace Couchbase.Transactions.Support
 {
+    /// <summary>
+    /// The various states of a transaction attempt.
+    /// </summary>
     public enum AttemptStates
     {
+        /// <summary>
+        /// Nothing has been written yet.
+        /// </summary>
         NOTHING_WRITTEN = 0,
 
+        /// <summary>
+        /// Mutations are pending.
+        /// </summary>
         PENDING = 1,
 
+        /// <summary>
+        /// The transaction has been aborted.
+        /// </summary>
         ABORTED = 2,
 
+        /// <summary>
+        /// The transaction has been completed.
+        /// </summary>
         COMMITTED = 3,
 
+        /// <summary>
+        /// The transaction has been completed and the metadata cleaned up.
+        /// </summary>
         COMPLETED = 4,
 
+        /// <summary>
+        /// The transaction was rolled back.
+        /// </summary>
         ROLLED_BACK = 5,
 
+        /// <summary>
+        /// The transaction is in an unknown state.
+        /// </summary>
         UNKNOWN = 6,
     }
 }

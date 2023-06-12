@@ -2,8 +2,12 @@
 
 namespace Couchbase.Transactions.Error.External
 {
+    /// <summary>
+    /// Indicates this transaction was aborted due to an outside actor.
+    /// </summary>
     public class TransactionAbortedExternallyException : Exception
     {
+        /// <inheritdoc />
         public TransactionAbortedExternallyException()
             : base("This transaction was aborted by another actor, and was unable to commit")
         {

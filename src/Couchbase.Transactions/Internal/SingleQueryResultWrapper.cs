@@ -5,7 +5,6 @@ using Couchbase.Transactions.Error;
 using Couchbase.Transactions.Error.External;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,18 +33,18 @@ namespace Couchbase.Transactions.Internal
 
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => new QueryErrorHandlingEnumeratorWrapper<T>(_wrapped.GetAsyncEnumerator(cancellationToken), _ctx);
 
-        private class QueryErrorHandlingEnumeratorWrapper<T> : IAsyncEnumerator<T>
+        private class QueryErrorHandlingEnumeratorWrapper<TItem> : IAsyncEnumerator<TItem>
         {
-            private readonly IAsyncEnumerator<T> _enumerator;
+            private readonly IAsyncEnumerator<TItem> _enumerator;
             private readonly AttemptContext _ctx;
 
-            public QueryErrorHandlingEnumeratorWrapper(IAsyncEnumerator<T> enumerator, AttemptContext ctx)
+            public QueryErrorHandlingEnumeratorWrapper(IAsyncEnumerator<TItem> enumerator, AttemptContext ctx)
             {
                 _enumerator = enumerator;
                 _ctx = ctx;
             }
 
-            public T Current => _enumerator.Current;
+            public TItem Current => _enumerator.Current;
 
             public ValueTask DisposeAsync() => _enumerator.DisposeAsync();
 

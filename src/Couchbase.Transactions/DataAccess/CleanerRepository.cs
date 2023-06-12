@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
-using Couchbase.Transactions.Cleanup.LostTransactions;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.DataModel;
 using Couchbase.Transactions.Support;
@@ -46,7 +44,7 @@ namespace Couchbase.Transactions.DataAccess
             _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
 
-        public async Task<(ClientRecordsIndex? clientRecord, ParsedHLC parsedHlc, ulong? cas)> GetClientRecord()
+        public async Task<(ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas)> GetClientRecord()
         {
             var opts = new LookupInOptions().Timeout(_keyValueTimeout).Serializer(DefaultSerializer);
             var specs = new LookupInSpec[]
@@ -61,7 +59,7 @@ namespace Couchbase.Transactions.DataAccess
             return (parsedRecord, parsedHlc, lookupInResult.Cas);
         }
 
-        public async Task<(Dictionary<string, AtrEntry> attempts, ParsedHLC parsedHlc)> LookupAttempts(string atrId)
+        public async Task<(Dictionary<string, AtrEntry>? attempts, ParsedHLC? parsedHlc)> LookupAttempts(string atrId)
         {
             var opts = new LookupInOptions().Timeout(_keyValueTimeout).Serializer(DefaultSerializer);
             var specs = new LookupInSpec[]
@@ -106,14 +104,7 @@ namespace Couchbase.Transactions.DataAccess
                 specs.Add(spec);
             }
 
-            try
-            {
-                var mutateInReuslt = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
-            }
-            catch (Core.Exceptions.KeyValue.XattrException ex)
-            {
-                throw;
-            }
+            _ = await Collection.MutateInAsync(ClientRecordsIndex.CLIENT_RECORD_DOC_ID, specs, opts).CAF();
         }
     }
 }

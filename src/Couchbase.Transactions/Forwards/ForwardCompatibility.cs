@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using System.Threading.Tasks;
 using Couchbase.Transactions.Error;
 using Couchbase.Transactions.Error.External;
@@ -37,7 +35,7 @@ namespace Couchbase.Transactions.Forwards
                     }
 
                     var checks = prop.Value.ToObject<CompatibilityCheck[]>();
-                    foreach (var check in checks)
+                    foreach (var check in checks ?? Enumerable.Empty<CompatibilityCheck>())
                     {
                         string? failureMessage = null;
                         if (check.ProtocolVersion != null)

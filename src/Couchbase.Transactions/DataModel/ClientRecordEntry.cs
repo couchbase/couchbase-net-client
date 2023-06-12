@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Couchbase.Transactions.Components;
 using Newtonsoft.Json;
 

@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Couchbase.Query;
+﻿using Couchbase.Query;
 
 namespace Couchbase.Transactions.Config
 {
+    /// <summary>
+    /// A configuration builder for Transactional Queries.
+    /// </summary>
     public sealed class TransactionQueryConfigBuilder
     {
         internal QueryScanConsistency ScanConsistencyValue { get; set; }
@@ -13,6 +13,10 @@ namespace Couchbase.Transactions.Config
         {
         }
 
+        /// <summary>
+        /// Creates an instance of this class.
+        /// </summary>
+        /// <returns>A default instance of this class.</returns>
         public static TransactionQueryConfigBuilder Create() => new();
 
         /// <summary>

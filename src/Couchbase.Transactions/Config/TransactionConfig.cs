@@ -1,11 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using Couchbase.KeyValue;
 using Couchbase.Query;
-using Couchbase.Transactions.Cleanup;
-using Couchbase.Transactions.Support;
 using Microsoft.Extensions.Logging;
 
 namespace Couchbase.Transactions.Config

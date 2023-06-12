@@ -405,6 +405,10 @@ namespace Couchbase.Transactions
             }
         }
 
+        /// <summary>
+        /// Dispose with the Disposing pattern.
+        /// </summary>
+        /// <param name="disposing">The Disposing pattern.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposedValue)
@@ -427,6 +431,7 @@ namespace Couchbase.Transactions
         //     Dispose(disposing: false);
         // }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             _cleanupWorkQueue.Dispose();
@@ -436,6 +441,7 @@ namespace Couchbase.Transactions
             GC.SuppressFinalize(this);
         }
 
+        /// <inheritdoc />
         public async ValueTask DisposeAsync()
         {
             if (Config.CleanupClientAttempts)

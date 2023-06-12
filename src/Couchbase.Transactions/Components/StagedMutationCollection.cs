@@ -1,17 +1,14 @@
 ﻿#nullable enable
-using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Couchbase.KeyValue;
 
 namespace Couchbase.Transactions.Components
 {
     internal class StagedMutationCollection
     {
-        private Dictionary<string, StagedMutation> _stagedMutations = new();
-        private object _smLock = new();
+        private readonly Dictionary<string, StagedMutation> _stagedMutations = new();
+        private readonly object _smLock = new();
 
         public bool IsEmpty
         {

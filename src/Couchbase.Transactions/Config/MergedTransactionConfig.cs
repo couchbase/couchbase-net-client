@@ -2,8 +2,6 @@ using Couchbase.KeyValue;
 using Couchbase.Query;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Transactions.Config
 {
@@ -18,7 +16,7 @@ namespace Couchbase.Transactions.Config
             ICouchbaseCollection? MetadataCollection,
             QueryScanConsistency? ScanConsistency)
     {
-        public static MergedTransactionConfig Create(TransactionConfig config, PerTransactionConfig perConfig) =>
+        public static MergedTransactionConfig Create(TransactionConfig config, PerTransactionConfig? perConfig) =>
             new(
                 CleanupClientAttempts: config.CleanupClientAttempts,
                 CleanupLostAttempts: config.CleanupLostAttempts,

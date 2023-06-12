@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using System.Threading.Tasks;
+using Couchbase.Core.Compatibility;
+
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions.Internal.Test
 {
@@ -13,6 +12,7 @@ namespace Couchbase.Transactions.Internal.Test
     /// library.
     /// </summary>
     /// <remarks>All methods have default no-op implementations.</remarks>
+    [InterfaceStability(Level.Volatile)]
     internal interface ITestHooks
     {
         public const string HOOK_ROLLBACK = "rollback";

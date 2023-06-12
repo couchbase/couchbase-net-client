@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Couchbase.Transactions.Error.Internal
+﻿namespace Couchbase.Transactions.Error.Internal
 {
+    /// <summary>
+    /// An error with a clear classification.
+    /// </summary>
     public interface IClassifiedTransactionError
     {
+        /// <summary>
+        /// The class of error that caused the failure.
+        /// </summary>
         ErrorClass CausingErrorClass { get; }
     }
 }

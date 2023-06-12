@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.KeyValue;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions.DataModel
 {
+    // TODO: this class should be made internal
     public class AtrRef
     {
         [JsonProperty("id")]

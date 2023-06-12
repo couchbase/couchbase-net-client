@@ -1,13 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core.Diagnostics.Tracing;
-using Couchbase.KeyValue;
-using Couchbase.Transactions.Config;
-using Couchbase.Transactions.LogUtil;
-using Couchbase.Transactions.Support;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 

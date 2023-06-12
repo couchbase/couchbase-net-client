@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
 using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.DataModel;

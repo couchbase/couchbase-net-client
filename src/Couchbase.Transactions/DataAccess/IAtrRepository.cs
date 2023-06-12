@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.DataModel;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions.DataAccess
 {
@@ -34,7 +30,7 @@ namespace Couchbase.Transactions.DataAccess
 
         Task<ICouchbaseCollection?> GetAtrCollection(AtrRef atrRef);
 
-        Task<string> LookupAtrState();
+        Task<string?> LookupAtrState();
 
         Task MutateAtrComplete();
 

@@ -1,13 +1,13 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.Exceptions.KeyValue;
 using Couchbase.Transactions.Error.Attempts;
 using Couchbase.Transactions.Error.Internal;
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions.Error
 {
+    // TODO: this should be made internal
     public enum ErrorClass
     {
         Undefined = 0,

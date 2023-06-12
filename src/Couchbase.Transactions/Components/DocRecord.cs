@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Couchbase.KeyValue;
-using Couchbase.Transactions.LogUtil;
 using Newtonsoft.Json;
 
 namespace Couchbase.Transactions.Components

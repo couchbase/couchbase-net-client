@@ -139,10 +139,6 @@ namespace Couchbase.Transactions.Tests.IntegrationTests.Fixtures
             {
                 // why did it fail?
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
 
             try
             {

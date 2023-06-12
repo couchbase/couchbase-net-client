@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using Couchbase.Transactions.Config;
 
 namespace Couchbase.Transactions
 {
     internal class TransactionContext
     {
-        private ConcurrentQueue<string> _logs = new ConcurrentQueue<string>();
+        private readonly ConcurrentQueue<string> _logs = new ConcurrentQueue<string>();
 
         public string TransactionId { get; }
         public DateTimeOffset StartTime { get; }

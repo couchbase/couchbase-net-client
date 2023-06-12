@@ -1,19 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Transactions.Error.External
 {
+    /// <summary>
+    /// Indicates that an error due to an incompatibility with a later protocol version requires a retry.
+    /// </summary>
     public class ForwardCompatibilityFailureRequiresRetryException : Exception
     {
+        /// <inheritdoc />
         public ForwardCompatibilityFailureRequiresRetryException() : base()
         {
         }
 
+        /// <inheritdoc />
         public ForwardCompatibilityFailureRequiresRetryException(string message) : base(message)
         {
         }
 
+        /// <inheritdoc />
         public ForwardCompatibilityFailureRequiresRetryException(string message, Exception innerException) : base(message, innerException)
         {
         }

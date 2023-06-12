@@ -1,8 +1,6 @@
 ﻿#nullable enable
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Serializers;
@@ -40,14 +38,14 @@ namespace Couchbase.Transactions.Internal
             return clusterSerializer;
         }
 
-        public T Deserialize<T>(ReadOnlyMemory<byte> buffer) => _serializer.Deserialize<T>(buffer);
+        public T? Deserialize<T>(ReadOnlyMemory<byte> buffer) => _serializer.Deserialize<T>(buffer);
 
-        public T Deserialize<T>(Stream stream) => _serializer.Deserialize<T>(stream);
+        public T? Deserialize<T>(Stream stream) => _serializer.Deserialize<T>(stream);
 
-        public ValueTask<T> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default) => _serializer.DeserializeAsync<T>(stream, cancellationToken);
+        public ValueTask<T?> DeserializeAsync<T>(Stream stream, CancellationToken cancellationToken = default) => _serializer.DeserializeAsync<T>(stream, cancellationToken);
 
-        public void Serialize(Stream stream, object obj) => _serializer.Serialize(stream, obj);
+        public void Serialize(Stream stream, object? obj) => _serializer.Serialize(stream, obj);
 
-        public ValueTask SerializeAsync(Stream stream, object obj, CancellationToken cancellationToken = default) => _serializer.SerializeAsync(stream, obj, cancellationToken);
+        public ValueTask SerializeAsync(Stream stream, object? obj, CancellationToken cancellationToken = default) => _serializer.SerializeAsync(stream, obj, cancellationToken);
     }
 }

@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Couchbase.Core.Exceptions.KeyValue;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.Internal;
-using Couchbase.Transactions.Support;
-using Newtonsoft.Json.Linq;
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions.DataModel
 {
+    // TODO:  This should be made internal
     public class DocumentLookupResult
     {
         internal DocumentLookupResult(
@@ -19,7 +14,7 @@ namespace Couchbase.Transactions.DataModel
             IContentAsWrapper? unstagedContent,
             IContentAsWrapper? stagedContent,
             ILookupInResult lookupInResult,
-            DocumentMetadata documentMetadata,
+            DocumentMetadata? documentMetadata,
             ICouchbaseCollection documentCollection)
         {
             Id = id;
@@ -36,7 +31,7 @@ namespace Couchbase.Transactions.DataModel
 
         public TransactionXattrs? TransactionXattrs { get; set; } = null;
 
-        public DocumentMetadata DocumentMetadata { get; }
+        public DocumentMetadata? DocumentMetadata { get; }
 
         public bool IsDeleted => LookupInResult.IsDeleted;
 

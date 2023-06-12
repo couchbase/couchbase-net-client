@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions.DataModel
 {
+    // TODO: this class should be made internal
     public class StagedOperation
     {
         [JsonProperty("type")]

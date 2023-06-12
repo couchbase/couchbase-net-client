@@ -3,10 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.DataAccess;
 using Couchbase.Transactions.DataModel;
@@ -31,7 +29,7 @@ namespace Couchbase.Transactions.Cleanup.LostTransactions
         private readonly Random _jitter = new Random();
         private readonly SemaphoreSlim _timerCallbackMutex = new SemaphoreSlim(1);
         private long _runCount = 0;
-        private object _atrsToCleanLock = new();
+        private readonly object _atrsToCleanLock = new();
         private ConcurrentBag<string> _atrsToClean = new ConcurrentBag<string>();
 
         public ICleanupTestHooks TestHooks { get; set; } = DefaultCleanupTestHooks.Instance;
@@ -169,8 +167,7 @@ namespace Couchbase.Transactions.Cleanup.LostTransactions
                 while (cleanedThisCycle < ActiveTransactionRecords.AtrIds.NumAtrs)
                 {
                     var checkAtrLimitWatch = Stopwatch.StartNew();
-                    string atrId;
-                    if (!_atrsToClean.TryTake(out atrId))
+                    if (!_atrsToClean.TryTake(out var atrId))
                     {
                         lock (_atrsToCleanLock)
                         {
@@ -227,7 +224,7 @@ namespace Couchbase.Transactions.Cleanup.LostTransactions
                 {
                     // Parse the client record.
                     await TestHooks.BeforeGetRecord(ClientUuid).CAF();
-                    (ClientRecordsIndex? clientRecord, ParsedHLC parsedHlc, ulong? cas) = await _repository.GetClientRecord().CAF();
+                    (ClientRecordsIndex? clientRecord, ParsedHLC? parsedHlc, ulong? cas) = await _repository.GetClientRecord().CAF();
                     if (clientRecord == null)
                     {
                         _logger.LogDebug("No client record found on '{bkt}', cas = {cas}", this, cas);
@@ -412,7 +409,7 @@ namespace Couchbase.Transactions.Cleanup.LostTransactions
                     _logger.LogDebug("Cannot continue cleanup after underlying data access has been disposed for {bkt}", FullBucketName);
                     return;
                 }
-                catch (AuthenticationFailureException err)
+                catch (AuthenticationFailureException)
                 {
                     // BF-CBD-3794
                     _logger.LogWarning("Failed to remove client for '{bkt}' due to auth error", FullBucketName);

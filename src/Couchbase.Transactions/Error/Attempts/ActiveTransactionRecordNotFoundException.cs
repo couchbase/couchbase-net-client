@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Couchbase.Transactions.Error.Attempts
+﻿namespace Couchbase.Transactions.Error.Attempts
 {
+    /// <summary>
+    /// Indicates an Active Transaction Record was not found when expected.
+    /// </summary>
     public class ActiveTransactionRecordNotFoundException : CouchbaseException
     {
     }

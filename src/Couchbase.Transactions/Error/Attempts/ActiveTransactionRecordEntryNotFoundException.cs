@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Couchbase.Transactions.Error.Attempts
+﻿namespace Couchbase.Transactions.Error.Attempts
 {
+    /// <summary>
+    /// An exception indicating that a specific entry in an Active Transaction Record was not found when it should have existd.
+    /// </summary>
     public class ActiveTransactionRecordEntryNotFoundException : CouchbaseException
     {
+        /// <summary>
+        /// Gets the ID of the entry that was supposed to exist.
+        /// </summary>
         public string? Id { get; init; } = null;
     }
 }

@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using Couchbase.Transactions.Error.Attempts;
 using Couchbase.Transactions.Error.External;
-using Couchbase.Transactions.Error.Internal;
 
 namespace Couchbase.Transactions.Error
 {

@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Couchbase.Transactions.Error.Attempts
+﻿namespace Couchbase.Transactions.Error.Attempts
 {
+    /// <summary>
+    /// An error indicating that an Active Transaction Record is full.  This suggests that one or more transactions clients are not cleaning up properly.
+    /// </summary>
     public class ActiveTransactionRecordsFullException : AttemptException
     {
         internal ActiveTransactionRecordsFullException(AttemptContext ctx, string? msg = null) : base(ctx, msg ?? "Active Transaction Record full")

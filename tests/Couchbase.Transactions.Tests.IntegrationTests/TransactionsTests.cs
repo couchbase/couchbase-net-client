@@ -66,12 +66,14 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     Assert.NotNull(getResult);
                     var asJobj = getResult!.ContentAs<JObject>();
-                    Assert.Equal("bar", asJobj["foo"].Value<string>());
+                    Assert.NotNull(asJobj);
+                    Assert.Equal("bar", asJobj!["foo"]?.Value<string>() ?? string.Empty);
                 });
 
                 var postTxnGetResult = await defaultCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<dynamic>();
-                Assert.Equal("100", postTxnDoc.revision.ToString());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal("100", postTxnDoc?.revision.ToString());
 
                 var postTxnLookupInResult =
                     await defaultCollection.LookupInAsync(docId, spec => spec.Get("txn", isXattr: true));
@@ -120,12 +122,14 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                     var getResult = await ctx.GetAsync(customCollection, docId);
                     Assert.NotNull(getResult);
                     var asJobj = getResult!.ContentAs<JObject>();
-                    Assert.Equal("bar", asJobj["foo"].Value<string>());
+                    Assert.NotNull(asJobj);
+                    Assert.Equal("bar", asJobj!["foo"]?.Value<string>());
                 });
 
                 var postTxnGetResult = await customCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<dynamic>();
-                Assert.Equal("100", postTxnDoc.revision.ToString());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal("100", postTxnDoc?.revision?.ToString());
 
                 var postTxnLookupInResult =
                     await customCollection.LookupInAsync(docId, spec => spec.Get("txn", isXattr: true));
@@ -175,13 +179,15 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     Assert.NotNull(getResult);
                     var asJobj = getResult!.ContentAs<JObject>();
-                    Assert.Equal("bar", asJobj["foo"].Value<string>());
+                    Assert.NotNull(asJobj);
+                    Assert.Equal("bar", asJobj!["foo"]?.Value<string>());
                     Assert.Equal(ClusterFixture.CustomCollectionName, getResult?.TransactionXattrs?.AtrRef?.CollectionName);
                 });
 
                 var postTxnGetResult = await defaultCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<dynamic>();
-                Assert.Equal("100", postTxnDoc.revision.ToString());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal("100", postTxnDoc?.revision?.ToString());
 
                 var postTxnLookupInResult =
                     await defaultCollection.LookupInAsync(docId, spec => spec.Get("txn", isXattr: true));
@@ -223,8 +229,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                 {
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     var docGet = getResult.ContentAs<dynamic>();
-
-                    docGet.revision = docGet.revision + 1;
+                    Assert.NotNull(docGet);
+                    docGet!.revision = docGet.revision + 1;
                     var replaceResult = await ctx.ReplaceAsync(getResult, docGet);
                 });
 
@@ -232,7 +238,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 var postTxnGetResult = await defaultCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<dynamic>();
-                Assert.Equal("101", postTxnDoc.revision.ToString());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal("101", postTxnDoc?.revision?.ToString());
 
                 await txn.DisposeAsync();
             }
@@ -266,8 +273,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     Assert.NotNull(getResult);
                     var docGet = getResult!.ContentAs<dynamic>();
-
-                    docGet.revision = docGet.revision + 1;
+                    Assert.NotNull(docGet);
+                    docGet!.revision = docGet.revision + 1;
                     var replaceResult = await ctx.ReplaceAsync(getResult, docGet);
 
                     var replacedDoc = replaceResult.ContentAs<dynamic>();
@@ -277,8 +284,9 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 var postTxnGetResult = await defaultCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<JObject>();
-                Assert.Equal(101, postTxnDoc["revision"].Value<int>());
-                Assert.Equal("replaced_foo", postTxnDoc["foo"].Value<string>());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal(101, postTxnDoc!["revision"]?.Value<int>());
+                Assert.Equal("replaced_foo", postTxnDoc["foo"]?.Value<string>());
 
                 await txn.DisposeAsync();
             }
@@ -316,8 +324,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                 {
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     var docGet = getResult.ContentAs<dynamic>();
-
-                    docGet.revision = docGet.revision + 1;
+                    Assert.NotNull(docGet);
+                    docGet!.revision = docGet.revision + 1;
                     await ctx.RemoveAsync(getResult);
                 });
 
@@ -359,15 +367,16 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                 {
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     var docGet = getResult.ContentAs<dynamic>();
-
-                    docGet.revision = docGet.revision + 1;
+                    Assert.NotNull(docGet);
+                    docGet!.revision = docGet.revision + 1;
                     var replaceResult = await ctx.ReplaceAsync(getResult, docGet);
                     await ctx.RollbackAsync();
                 });
 
                 var postTxnGetResult = await defaultCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<dynamic>();
-                Assert.Equal("100", postTxnDoc.revision.ToString());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal("100", postTxnDoc?.revision?.ToString());
             }
             finally
             {
@@ -403,7 +412,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
             var transactionFailedException = await Assert.ThrowsAsync<TransactionFailedException>(() => runTask);
             var result = transactionFailedException.Result;
-            Assert.False(result.UnstagingComplete);
+            Assert.False(result?.UnstagingComplete);
 
             var postTxnGetTask = defaultCollection.GetAsync(docId);
             _ = await Assert.ThrowsAsync<DocumentNotFoundException>(() => postTxnGetTask);
@@ -429,8 +438,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                     attemptCount++;
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     var docGet = getResult.ContentAs<dynamic>();
-
-                    docGet.revision = docGet.revision + 1;
+                    Assert.NotNull(docGet);
+                    docGet!.revision = docGet.revision + 1;
                     var replaceResult = await ctx.ReplaceAsync(getResult, docGet);
                     throw new InvalidOperationException("Forcing rollback.");
                 });
@@ -440,7 +449,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 var postTxnGetResult = await defaultCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<dynamic>();
-                Assert.Equal("100", postTxnDoc.revision.ToString());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal("100", postTxnDoc?.revision?.ToString());
             }
             finally
             {
@@ -487,8 +497,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
                     attemptCount++;
                     var getResult = await ctx.GetAsync(defaultCollection, docId);
                     var docGet = getResult.ContentAs<dynamic>();
-
-                    docGet.revision = docGet.revision + 1;
+                    Assert.NotNull(docGet);
+                    docGet!.revision = docGet.revision + 1;
                     var replaceResult = await ctx.ReplaceAsync(getResult, docGet);
                     if (attemptCount < 3)
                     {
@@ -500,7 +510,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 var postTxnGetResult = await defaultCollection.GetAsync(docId);
                 var postTxnDoc = postTxnGetResult.ContentAs<dynamic>();
-                Assert.Equal("101", postTxnDoc.revision.ToString());
+                Assert.NotNull(postTxnDoc);
+                Assert.Equal("101", postTxnDoc?.revision?.ToString());
             }
             catch (Exception ex)
             {
@@ -553,7 +564,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
             var transactionFailedException = await Assert.ThrowsAsync<TransactionFailedException>(() => runTask);
             Assert.NotNull(transactionFailedException.Result);
-            Assert.False(transactionFailedException.Result.UnstagingComplete);
+            Assert.False(transactionFailedException.Result?.UnstagingComplete);
         }
 
         [Fact]
@@ -572,8 +583,43 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
             });
 
             var transactionFailedException = await Assert.ThrowsAsync<TransactionFailedException>(() => runTask);
-            Assert.NotNull(transactionFailedException.Result);
-            Assert.False(transactionFailedException.Result.UnstagingComplete);
+            Assert.NotNull(transactionFailedException?.Result);
+            Assert.False(transactionFailedException?.Result?.UnstagingComplete);
+        }
+
+        [Fact]
+        public async Task Get_Tombstone_Throws_DocumentNotFound()
+        {
+            var defaultCollection = await _fixture.OpenDefaultCollection(_outputHelper);
+            var docId = Guid.NewGuid().ToString();
+            var sampleDoc = new { type = nameof(Get_Tombstone_Throws_DocumentNotFound), foo = "bar", revision = 100 };
+
+            var txn = Transactions.Create(_fixture.Cluster);
+
+            var runTask = txn.RunAsync(async ctx =>
+            {
+                var insertResult = await ctx.InsertAsync(defaultCollection, docId, sampleDoc);
+                await ctx.RemoveAsync(insertResult!);
+                try
+                {
+                    var getResult = await ctx.GetAsync(defaultCollection, docId);
+                    var docGet = getResult?.ContentAs<dynamic>();
+                    Assert.False(true, "Should never have reached here.");
+                }
+                catch (DocumentNotFoundException)
+                {
+                    _outputHelper.WriteLine("Got expected DocumentNotFound");
+                    throw;
+                }
+                catch (Exception)
+                {
+                    Assert.False(true, "Should have failed with DocNotFound earlier");
+                }
+            });
+
+            var transactionFailedException = await Assert.ThrowsAsync<TransactionFailedException>(() => runTask);
+            Assert.NotNull(transactionFailedException?.Result);
+            Assert.False(transactionFailedException?.Result?.UnstagingComplete);
         }
 
 
@@ -619,8 +665,8 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
             {
                 var getResult = await ctx.GetAsync(defaultCollection, docId);
                 var docGet = getResult!.ContentAs<dynamic>();
-
-                docGet.revision = docGet.revision + 1;
+                Assert.NotNull(docGet);
+                docGet!.revision = docGet.revision + 1;
                 var replaceResult = await ctx.ReplaceAsync(getResult, docGet);
 
                 var documentLookupResult =
@@ -628,7 +674,7 @@ namespace Couchbase.Transactions.Tests.IntegrationTests
 
                 Assert.NotNull(documentLookupResult?.TransactionXattrs);
                 Assert.NotNull(documentLookupResult?.StagedContent?.ContentAs<object>());
-                _outputHelper.WriteLine(JObject.FromObject(documentLookupResult!.TransactionXattrs).ToString());
+                _outputHelper.WriteLine(JObject.FromObject(documentLookupResult!.TransactionXattrs!).ToString());
             });
         }
 

@@ -1,11 +1,13 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Transactions.Error
 {
+    /// <summary>
+    /// Indicates a transaction failed in a way that the client cannot know if it successfully committed.
+    /// </summary>
     public class TransactionCommitAmbiguousException : TransactionFailedException
     {
+        /// <inheritdoc />
         public TransactionCommitAmbiguousException(string message, Exception innerException, TransactionResult? result)
             : base(message, innerException, result)
         {

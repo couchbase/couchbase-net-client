@@ -1,8 +1,12 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+#pragma warning disable CS1591
 
 namespace Couchbase.Transactions
 {
+    /// <summary>
+    /// Extension methods to the <see cref="Task"/> and <see cref="ValueTask"/> classes.
+    /// </summary>
     public static class TaskExtensions
     {
         public static ConfiguredTaskAwaitable CAF(this Task awaitable) => awaitable.ConfigureAwait(false);

@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-using Couchbase.Core.IO.Operations;
 using Couchbase.KeyValue;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +10,6 @@ namespace Couchbase.Transactions.Config
     public class TransactionConfigBuilder
     {
         private readonly TransactionConfig _config;
-        private TransactionQueryConfigBuilder? _queryConfigBuilder = null;
 
         private TransactionConfigBuilder()
         {

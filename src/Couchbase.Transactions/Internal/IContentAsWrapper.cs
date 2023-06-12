@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Couchbase.KeyValue;
+﻿using Couchbase.KeyValue;
 using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions.Internal
@@ -11,20 +8,25 @@ namespace Couchbase.Transactions.Internal
     /// </summary>
     internal interface IContentAsWrapper
     {
-        T ContentAs<T>();
+        T? ContentAs<T>();
     }
 
     internal class JObjectContentWrapper : IContentAsWrapper
     {
-        private readonly object _originalContent;
+        private readonly object? _originalContent;
 
-        public JObjectContentWrapper(object originalContent)
+        public JObjectContentWrapper(object? originalContent)
         {
             _originalContent = originalContent;
         }
 
-        public T ContentAs<T>() =>
-            _originalContent is T asTyped ? asTyped : JObject.FromObject(_originalContent).ToObject<T>();
+        public T? ContentAs<T>() =>
+            _originalContent switch
+            {
+                T asTyped => asTyped,
+                null => default,
+                _ => JObject.FromObject(_originalContent).ToObject<T>()
+            };
     }
 
     internal class LookupInContentAsWrapper : IContentAsWrapper
@@ -38,7 +40,7 @@ namespace Couchbase.Transactions.Internal
             _specIndex = specIndex;
         }
 
-        public T ContentAs<T>() => _lookupInResult.ContentAs<T>(_specIndex);
+        public T? ContentAs<T>() => _lookupInResult.ContentAs<T>(_specIndex);
     }
 }
 

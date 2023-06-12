@@ -2,9 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
-using Couchbase.Core.IO.Transcoders;
 using Couchbase.KeyValue;
 using Couchbase.Transactions.Components;
 using Couchbase.Transactions.DataAccess;
@@ -14,7 +12,6 @@ using Couchbase.Transactions.Internal.Test;
 using Couchbase.Transactions.LogUtil;
 using Couchbase.Transactions.Support;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Transactions.Cleanup
 {

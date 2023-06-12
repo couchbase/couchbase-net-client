@@ -1,16 +1,28 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Transactions.Error.Attempts
 {
+    /// <summary>
+    /// Indicates an attempt exceeded the allotted time.
+    /// </summary>
     public class AttemptExpiredException : AttemptException
     {
+        /// <summary>
+        /// Initializes a new instance of the AttemptExpiredException class.
+        /// </summary>
+        /// <param name="ctx">The AttemptContext.</param>
+        /// <param name="msg">The message.</param>
         public AttemptExpiredException(AttemptContext ctx, string? msg = null)
             : base(ctx, msg ?? "Attempt Expired")
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the AttemptExpiredException class.
+        /// </summary>
+        /// <param name="ctx">The AttemptContext.</param>
+        /// <param name="msg">The message.</param>
+        /// <param name="innerException">The inner exception.</param>
         public AttemptExpiredException(AttemptContext ctx, string msg, Exception innerException)
             : base(ctx, msg, innerException)
         {

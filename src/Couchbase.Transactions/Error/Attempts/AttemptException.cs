@@ -1,19 +1,31 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Transactions.Error.Attempts
 {
+    /// <summary>
+    /// Indicates an error during an individual transaction attempt.
+    /// </summary>
     public class AttemptException : CouchbaseException
     {
         private AttemptContext _ctx;
 
+        /// <summary>
+        /// Initializes a new instance of the AttemptException class.
+        /// </summary>
+        /// <param name="ctx">The Attempt Context.</param>
+        /// <param name="msg">The message.</param>
         public AttemptException(AttemptContext ctx, string msg)
             : base(msg)
         {
             _ctx = ctx;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the AttemptException class.
+        /// </summary>
+        /// <param name="ctx">The AttemptContext.</param>
+        /// <param name="msg">The message.</param>
+        /// <param name="innerException">The inner exception.</param>
         public AttemptException(AttemptContext ctx, string msg, Exception innerException)
             : base(msg, innerException)
         {

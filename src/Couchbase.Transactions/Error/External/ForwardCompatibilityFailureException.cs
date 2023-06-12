@@ -1,19 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Couchbase.Transactions.Error.External
 {
+    /// <summary>
+    /// Indicates that this version of the transactions protocol encountered a document with metadata from a later
+    /// version which it cannot safely interact with.
+    /// </summary>
     public class ForwardCompatibilityFailureException : Exception
     {
+        /// <inheritdoc />
         public ForwardCompatibilityFailureException() : base()
         {
         }
 
+        /// <inheritdoc />
         public ForwardCompatibilityFailureException(string message) : base(message)
         {
         }
 
+        /// <inheritdoc />
         public ForwardCompatibilityFailureException(string message, Exception innerException) : base(message, innerException)
         {
         }
