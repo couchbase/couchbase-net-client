@@ -1,12 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Core;
 using Couchbase.KeyValue;
 using Couchbase.KeyValue.RangeScan;
-using Microsoft.VisualBasic;
+using Couchbase.Query;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -37,17 +38,22 @@ public class RangeScanTests
 
         var coll = await _fixture.GetDefaultCollection();
 
+        IMutationResult[] mutationResults = new IMutationResult[10_000];
         for (var xd = 0; xd < 10_000; xd++)
         {
             var doc = new String('*', random.Next(100, 2048));
             doc = doc.Insert(0, "start");
             doc = doc.Insert(doc.Length, "end");
-            await coll.UpsertAsync($"key{xd}", doc, new UpsertOptions().Timeout(TimeSpan.FromSeconds(20))).ConfigureAwait(false);
+            var result = await coll.UpsertAsync($"key{xd}", doc, new UpsertOptions().Timeout(TimeSpan.FromSeconds(20))).ConfigureAwait(false);
+            mutationResults[xd] = result;
         }
+
+        var mutationState = new MutationState();
+        mutationState.Add(mutationResults);
 
         var scan = coll.ScanAsync(
             new RangeScan(ScanTerm.Inclusive("key"), ScanTerm.Inclusive("key9999")),
-            new ScanOptions().Timeout(TimeSpan.FromSeconds(20_000)).IdsOnly(false));
+            new ScanOptions().Timeout(TimeSpan.FromSeconds(20_000)).IdsOnly(false).ConsistentWith(mutationState));
 
         var count = 0;
         await foreach (var scanResult in scan)
@@ -164,8 +170,8 @@ public class RangeScanTests
             await collection.UpsertAsync(id + xd, body).ConfigureAwait(false);
         }
 
-        var min = ScanTerm.Inclusive(id + ScanTerm.Minimum().Id);
-        var max = ScanTerm.Inclusive(id + ScanTerm.Maximum().Id);
+        var min = ScanTerm.Inclusive(id + Encoding.UTF8.GetString(new byte[] { 0x00 }));
+        var max = ScanTerm.Inclusive(id + Encoding.UTF8.GetString(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF }));
 
         Assert.Equal(id + "\0", min.Id);
         Assert.Equal(id + "\U0010FFFF", max.Id);

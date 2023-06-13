@@ -215,10 +215,43 @@ namespace Couchbase.Core.Retry
                             return status;
                         }
 
-                        if (status == ResponseStatus.KeyNotFound &&
-                            operation.OpCode == OpCode.RangeScanCreate || operation.OpCode == OpCode.RangeScanCancel)
+                        if (status == ResponseStatus.KeyNotFound && (operation.OpCode is OpCode.RangeScanCreate or OpCode.RangeScanCancel))
                         {
                             return status;
+                        }
+
+                        if (status == ResponseStatus.RangeScanCanceled && (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCancel))
+                        {
+                            var kvc = new KeyValueErrorContext
+                            {
+                                BucketName = bucket.Name,
+                                Cas = operation.Cas,
+                                ClientContextId = operation.ClientContextId,
+                                CollectionName = operation.CName,
+                                DispatchedFrom = operation.LastDispatchedFrom,
+                                DispatchedTo = operation.LastDispatchedTo,
+                                DocumentKey = operation.Key,
+                                Message = operation.LastErrorMessage,
+                                OpCode = operation.OpCode
+                            };
+                            status.CreateException(kvc, operation);
+                        }
+
+                        if (status == ResponseStatus.UnknownCollection && (operation.OpCode is OpCode.RangeScanContinue or OpCode.RangeScanCreate))
+                        {
+                            var kvc = new KeyValueErrorContext
+                            {
+                                BucketName = bucket.Name,
+                                Cas = operation.Cas,
+                                ClientContextId = operation.ClientContextId,
+                                CollectionName = operation.CName,
+                                DispatchedFrom = operation.LastDispatchedFrom,
+                                DispatchedTo = operation.LastDispatchedTo,
+                                DocumentKey = operation.Key,
+                                Message = operation.LastErrorMessage,
+                                OpCode = operation.OpCode
+                            };
+                            status.CreateException(kvc, operation);
                         }
 
                         if (status.IsRetriable(operation))

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Couchbase.Core;
+using Couchbase.Core.Compatibility;
 
 #nullable enable
 
@@ -15,6 +16,7 @@ namespace Couchbase.KeyValue.RangeScan
     /// <summary>
     /// Options for a KV Range Scan.
     /// </summary>
+    [InterfaceStability(Level.Volatile)]
     public class ScanOptions : ITranscoderOverrideOptions, ITimeoutOptions
     {
         internal static ScanOptions Default { get; }
@@ -26,7 +28,7 @@ namespace Couchbase.KeyValue.RangeScan
 
         #region Internal Accessors
 
-        internal TimeSpan? TimeoutValue { get; set; }
+        internal TimeSpan TimeoutValue { get; set; } = TimeSpan.FromSeconds(75);
 
         internal ITypeTranscoder? TranscoderValue { get; set; }
 
@@ -48,8 +50,6 @@ namespace Couchbase.KeyValue.RangeScan
 
         internal uint BatchTimeLimit { get; set; } = 0;
 
-        internal uint ConcurrencyValue { get; set; } = 1;
-
         ITypeTranscoder? ITranscoderOverrideOptions.Transcoder => TranscoderValue;
 
         IRetryStrategy? IKeyValueOptions.RetryStrategy => RetryStrategyValue;
@@ -61,18 +61,6 @@ namespace Couchbase.KeyValue.RangeScan
         #endregion
 
         #region Public setters
-
-        /// <summary>
-        /// The concurrency level for the SDK to use internally.
-        /// </summary>
-        /// <param name="concurrency">The concurrency level the SDK will use.</param>
-        /// <remarks>The default and only currently supported value is 1.</remarks>
-        /// <returns>A <see cref="ScanOptions"/> instance for chaining.</returns>
-        public ScanOptions Concurrency(uint concurrency)
-        {
-            ConcurrencyValue = concurrency;
-            return this;
-        }
 
         /// <summary>
         /// The timeout for the scan.

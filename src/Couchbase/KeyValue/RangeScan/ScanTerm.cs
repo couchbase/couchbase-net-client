@@ -1,4 +1,6 @@
 using System.Text;
+using Couchbase.Core.Compatibility;
+using Couchbase.Utils;
 
 namespace Couchbase.KeyValue.RangeScan
 {
@@ -6,10 +8,11 @@ namespace Couchbase.KeyValue.RangeScan
     ///  A single <see cref="ScanTerm"/>identifying either the point to scan from or to scan to
     ///  when performing a Range Scan.
     /// </summary>
+    [InterfaceStability(Level.Volatile)]
     public sealed class ScanTerm
     {
-        private static readonly byte[] MinimumPattern = { 0x00 };
-        private static readonly byte[] MaximumPattern = { 0xF4, 0x8F, 0xBF, 0xBF};
+        internal static readonly ScanTerm Minimum = new(CouchbaseStrings.MinimumPattern, false);
+        internal static readonly ScanTerm Maximum = new(CouchbaseStrings.MaximumPattern, false);
 
         private ScanTerm(string id, bool exclusive)
         {
@@ -36,17 +39,7 @@ namespace Couchbase.KeyValue.RangeScan
         /// <returns>A <see cref="ScanTerm"/> instance for an exclusive scan.</returns>
         public static ScanTerm Exclusive(string id)
         {
-            return Exclusive(Encoding.UTF8.GetBytes(id));
-        }
-
-        /// <summary>
-        /// Creates an exclusive scan for a term.
-        /// </summary>
-        /// <param name="id">The term to scan.</param>
-        /// <returns>A <see cref="ScanTerm"/> instance for an exclusive scan.</returns>
-        public static ScanTerm Exclusive(byte[] id)
-        {
-            return new ScanTerm(Encoding.UTF8.GetString(id), true);
+            return new ScanTerm(id, true);
         }
 
         /// <summary>
@@ -57,34 +50,6 @@ namespace Couchbase.KeyValue.RangeScan
         public static ScanTerm Inclusive(string id)
         {
             return new ScanTerm(id, false);
-        }
-
-        /// <summary>
-        /// Creates an Inclusive scan for a term.
-        /// </summary>
-        /// <param name="id">The term to scan.</param>
-        /// <returns>A <see cref="ScanTerm"/> instance for an inclusive scan.</returns>
-        public static ScanTerm Inclusive(byte[] id)
-        {
-            return new ScanTerm(Encoding.UTF8.GetString(id), false);
-        }
-
-        /// <summary>
-        /// Creates an Exclusive scan for the minimum term 0x00.
-        /// </summary>
-        /// <returns>A <see cref="ScanTerm"/> instance for an exclusive scan.</returns>
-        public static ScanTerm Minimum()
-        {
-            return Inclusive(MinimumPattern);
-        }
-
-        /// <summary>
-        /// Creates an Exclusive scan for the maximum term 0xFF.
-        /// </summary>
-        /// <returns>A <see cref="ScanTerm"/> instance for an exclusive scan.</returns>
-        public static ScanTerm Maximum()
-        {
-            return Inclusive(MaximumPattern);
         }
     }
 }

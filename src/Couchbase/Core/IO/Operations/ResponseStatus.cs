@@ -343,6 +343,11 @@ namespace Couchbase.Core.IO.Operations
         SyncWriteReCommitInProgress = 0xa4,
 
         /// <summary>
+        ///The RangeScan (or PrefixScan) operation was canceled.
+        /// </summary>
+        RangeScanCanceled = 0xa5,
+
+        /// <summary>
         /// No collections manifest has been set. The server does not support scopes or collections.
         /// </summary>
         NoCollectionsManifest = 0x89,

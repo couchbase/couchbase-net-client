@@ -183,7 +183,7 @@ namespace Couchbase.IntegrationTests
                 var bucket = await cluster.BucketAsync(bucketName);
                 var collection = bucket.DefaultCollection();
 
-                var scan = collection.ScanAsync(new RangeScan(ScanTerm.Minimum(), ScanTerm.Maximum()));
+                var scan = collection.ScanAsync(new RangeScan(ScanTerm.Minimum, ScanTerm.Maximum));
 
                 await foreach(var i in scan)
                 {

@@ -1,5 +1,8 @@
+using Couchbase.Core.Compatibility;
+
 namespace Couchbase.KeyValue.RangeScan
 {
+    [InterfaceStability(Level.Volatile)]
     public abstract class ScanType : IScanType
     {
         /// <inheritdoc />

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Couchbase.Core;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Configuration.Server;
 using Couchbase.Core.Diagnostics.Tracing;
 using Couchbase.Core.Exceptions;
@@ -85,6 +86,7 @@ namespace Couchbase.KeyValue
 
         #region KV Range Scan
 
+        [InterfaceStability(Level.Volatile)]
         public async IAsyncEnumerable<IScanResult> ScanAsync(IScanType scanType, ScanOptions? options = null)
         {
             //fail-fast if the server doesn't support range scans
@@ -136,7 +138,7 @@ namespace Couchbase.KeyValue
 
             var emptyPartitions = 0;
             var count = 0ul;
-            while (emptyPartitions < partitionCount)
+            while (emptyPartitions < partitionCount && !options.TokenValue.IsCancellationRequested)
             {
                 foreach (var partitionScan in partitionScans.Where(x => x.Status != ResponseStatus.RangeScanComplete))
                 {

@@ -4,13 +4,11 @@ using Couchbase.KeyValue.RangeScan;
 using Moq;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Couchbase.Core.IO.Operations;
+using Couchbase.Utils;
 using Xunit;
-using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Couchbase.UnitTests.KeyValue.KeyRange
 {
@@ -35,7 +33,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
                 });
 
             var result = collectionMock.Object.ScanAsync(
-                new RangeScan(ScanTerm.Minimum(), ScanTerm.Maximum()), new ScanOptions());
+                new RangeScan(), new ScanOptions());
 
             await foreach (var item in result)
             {
@@ -46,7 +44,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         [Fact]
         public void SerializeKeyOnlyIsTrue()
         {
-            var scan = new RangeScan(ScanTerm.Minimum(), ScanTerm.Maximum()) as IScanTypeExt;
+            var scan = new RangeScan() as IScanTypeExt;
             var jsonBytes = scan.Serialize(true,
                 TimeSpan.FromMilliseconds(2000),
                 new MutationToken("default", 10, 16627788222, 1000));
@@ -69,7 +67,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         [Fact]
         public void SerializeKeyOnlyIsFalse()
         {
-            var scan = new RangeScan(ScanTerm.Minimum(), ScanTerm.Maximum()) as IScanTypeExt;
+            var scan = new RangeScan() as IScanTypeExt;
             var jsonBytes = scan.Serialize(false,
                 TimeSpan.FromMilliseconds(2000),
                 new MutationToken("default", 10, 16627788222, 1000));
@@ -83,8 +81,7 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         [Fact]
         public void SerializeInclusive()
         {
-            var scan = new RangeScan(ScanTerm.Inclusive(new byte[] { 0x00 }),
-                ScanTerm.Inclusive(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF})) as IScanTypeExt;
+            var scan = new RangeScan(ScanTerm.Minimum, ScanTerm.Maximum) as IScanTypeExt;
 
             var jsonBytes = scan.Serialize(true,
                 TimeSpan.FromMilliseconds(2000),
@@ -106,31 +103,30 @@ namespace Couchbase.UnitTests.KeyValue.KeyRange
         [Fact]
         public void MissingFromTermIsMinimum()
         {
-            var scan = new RangeScan(null, ScanTerm.Inclusive(new byte[] { 0xFF }));
-            Assert.True(scan.From.ToString() == ScanTerm.Minimum().ToString());
+            var scan = new RangeScan(null, ScanTerm.Maximum);
+            Assert.True(scan.From.Id == ScanTerm.Minimum.Id);
 
         }
 
         [Fact]
         public void MissingToTermIsFromTermWithMaximumConcatenated()
         {
-            var from = ScanTerm.Inclusive(new byte[] { 0x00 });
+            var from = ScanTerm.Minimum;
             var scan = new RangeScan(from);
-            Assert.True(scan.To.ToString() == ScanTerm.Exclusive(from.ByteId.Concat(new byte[] { 0xF4, 0x8F, 0xBF, 0xBF}).ToArray()).ToString());
+            Assert.True(scan.To.Id == ScanTerm.Maximum.Id);
         }
 
         [Fact]
         public void MixingExclusiveInclusiveIsSuccessful()
         {
-            var exception = Record.Exception(() => new RangeScan(ScanTerm.Exclusive(new byte[] { 0x00 }), ScanTerm.Inclusive(new byte[] { 0xFF })));
+            var exception = Record.Exception(() => new RangeScan(ScanTerm.Exclusive(CouchbaseStrings.MinimumPattern), ScanTerm.Inclusive(CouchbaseStrings.MaximumPattern)));
             Assert.Null(exception);
         }
 
         [Fact]
         public void IncludeCollectionIfExists()
         {
-            var scan = new RangeScan(ScanTerm.Inclusive(new byte[] { 0x00 }),
-               ScanTerm.Inclusive(new byte[] { 0xFF })) as IScanTypeExt;
+            var scan = new RangeScan() as IScanTypeExt;
             scan.CollectionName = "coll1";
 
             var jsonBytes = scan.Serialize(true,

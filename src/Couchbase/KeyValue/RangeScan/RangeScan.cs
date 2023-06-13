@@ -3,33 +3,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using Couchbase.Core.Compatibility;
 
 namespace Couchbase.KeyValue.RangeScan
 {
     /// <summary>
     /// A range scan.
     /// </summary>
+    [InterfaceStability(Level.Volatile)]
     public class RangeScan : ScanType, IScanTypeExt
     {
-        public RangeScan(ScanTerm from, ScanTerm to)
+        public RangeScan(ScanTerm from = null, ScanTerm to = null)
         {
-            from ??= ScanTerm.Minimum();
-            to ??= ScanTerm.Maximum();
-
-            From = from;
-            To = to;
-        }
-
-        public RangeScan(ScanTerm from)
-        {
-            From = from;
-            To = ScanTerm.Maximum();
-        }
-
-        public RangeScan()
-        {
-            From = ScanTerm.Minimum();
-            To = ScanTerm.Maximum();
+            From = from ?? ScanTerm.Minimum;
+            To = to ?? ScanTerm.Maximum;
         }
 
         public RangeScan(ScanTerm from, ScanTerm to, string collectionName) : this(from, to)

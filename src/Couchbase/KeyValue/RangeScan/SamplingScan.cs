@@ -3,6 +3,7 @@ using Couchbase.Core;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Couchbase.Core.Compatibility;
 using Couchbase.Core.Exceptions;
 using Couchbase.Core.IO.Converters;
 
@@ -11,6 +12,7 @@ namespace Couchbase.KeyValue.RangeScan
     /// <summary>
     /// A random sampling scan
     /// </summary>
+    [InterfaceStability(Level.Volatile)]
     public class SamplingScan : ScanType, IScanTypeExt
     {
         public SamplingScan(ulong limit)
