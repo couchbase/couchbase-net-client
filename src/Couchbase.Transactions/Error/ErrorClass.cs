@@ -55,7 +55,7 @@ namespace Couchbase.Transactions.Error
                 return ErrorClass.FailDocAlreadyExists;
             }
 
-            if (ex is PathInvalidException pathInvalid)
+            if (ex is SubdocExceptionException pathInvalid)
             {
                 switch (pathInvalid.SubDocumentStatus)
                 {
@@ -65,7 +65,12 @@ namespace Couchbase.Transactions.Error
                     case Core.IO.Operations.ResponseStatus.SubDocPathNotFound:
                         return ErrorClass.FailPathNotFound;
                     default:
-                        return ErrorClass.FailOther;
+                        if (pathInvalid is PathInvalidException)
+                        {
+                            return ErrorClass.FailOther;
+                        }
+
+                        break;
                 }
             }
 

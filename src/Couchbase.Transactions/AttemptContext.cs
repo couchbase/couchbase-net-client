@@ -261,7 +261,8 @@ namespace Couchbase.Transactions
                 // Do a Sub-Document lookup, getting all transactional metadata, the “$document” virtual xattr,
                 // and the document’s body. Timeout is set as in Timeouts.
                 var docLookupResult = await _docs.LookupDocumentAsync(collection, id, fullDocument: true).CAF();
-                Logger.LogDebug("{method} for {redactedId}, attemptId={attemptId}, postCas={postCas}", nameof(GetWithMav), Redactor.UserData(id), AttemptId, docLookupResult.Cas);
+                Logger.LogDebug("{method} for {redactedId}, attemptId={attemptId}, postCas={postCas}",
+                    nameof(GetWithMav), Redactor.UserData(id), AttemptId, docLookupResult.Cas);
                 if (docLookupResult == null)
                 {
                     return TransactionGetResult.Empty;
@@ -295,12 +296,22 @@ namespace Couchbase.Transactions
                 var getCollectionTask = _atr?.GetAtrCollection(txn.AtrRef)
                                         ?? AtrRepository.GetAtrCollection(txn.AtrRef, collection);
                 var docAtrCollection = await getCollectionTask.CAF()
-                                        ?? throw new ActiveTransactionRecordNotFoundException();
+                                       ?? throw new ActiveTransactionRecordNotFoundException();
 
                 var findEntryTask = _atr?.FindEntryForTransaction(docAtrCollection, txn.AtrRef.Id!, txn.Id!.AttemptId)
-                    ?? AtrRepository.FindEntryForTransaction(docAtrCollection, txn.AtrRef.Id!, txn.Id!.AttemptId, _config.KeyValueTimeout);
-                var atrEntry = await findEntryTask.CAF()
-                                ?? throw new ActiveTransactionRecordEntryNotFoundException();
+                                    ?? AtrRepository.FindEntryForTransaction(docAtrCollection, txn.AtrRef.Id!,
+                                        txn.Id!.AttemptId, _config.KeyValueTimeout);
+                AtrEntry? atrEntry = null;
+                try
+                {
+                    atrEntry = await findEntryTask.CAF()
+                               ?? throw new ActiveTransactionRecordEntryNotFoundException();
+                }
+                catch (Exception atrLookupException)
+                {
+                    var atrLookupTriage = _triage.TriageAtrLookupInMavErrors(atrLookupException);
+                    throw _triage.AssertNotNull(atrLookupTriage, atrLookupException);
+                }
 
                 if (txn.Id!.AttemptId == AttemptId)
                 {
@@ -314,7 +325,8 @@ namespace Couchbase.Transactions
                     }
                 }
 
-                await ForwardCompatibility.Check(this, ForwardCompatibility.GetsReadingAtr, atrEntry.ForwardCompatibility).CAF();
+                await ForwardCompatibility
+                    .Check(this, ForwardCompatibility.GetsReadingAtr, atrEntry.ForwardCompatibility).CAF();
 
                 if (atrEntry.State == AttemptStates.COMMITTED || atrEntry.State == AttemptStates.COMPLETED)
                 {
@@ -353,10 +365,17 @@ namespace Couchbase.Transactions
 
                 return await GetWithMav(collection, id, resolveMissingAtrEntry).CAF();
             }
-            catch (Exception atrLookupException)
+            catch (SubdocExceptionException sdEx)
             {
-                var atrLookupTriage = _triage.TriageAtrLookupInMavErrors(atrLookupException);
-                throw _triage.AssertNotNull(atrLookupTriage, atrLookupException);
+                var ec = sdEx.Classify();
+                switch (ec)
+                {
+                    case ErrorClass.FailDocNotFound:
+                    case ErrorClass.FailPathNotFound:
+                        throw new DocumentNotFoundException(sdEx.Context);
+                }
+
+                throw;
             }
         }
 

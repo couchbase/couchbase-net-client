@@ -157,8 +157,6 @@ namespace Couchbase.Core.IO
                 case ResponseStatus.SubDocPathNotFound:
                 case ResponseStatus.SubDocPathMismatch:
                 case ResponseStatus.SubDocPathInvalid:
-                    // Shouldn't be possible at this point, since these are body-level codes, not top-level
-                    // but just in case
                     return new SubdocExceptionException() { Context = ctx, SubDocumentErrorIndex = null, SubDocumentStatus = status };
                 case ResponseStatus.SubDocPathTooBig:
                     return new PathTooDeepException { Context = ctx };
