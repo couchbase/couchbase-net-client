@@ -860,11 +860,20 @@ namespace Couchbase
         /// <remarks>The default is true and the IP Address will be sent as the target host.</remarks>
         public bool ForceIpAsTargetHost { get; set; } = true;
 
+#if NET6_0_OR_GREATER
         /// <summary>
         /// Enabled SSL Protocols
         /// </summary>
-        /// <remarks>The defaults are Tls, Tls1 nd Tls3</remarks>
+        /// <remarks>The defaults are TLS, TLS1.1, TLS1.2 and TLS1.3</remarks>
+        public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12 | SslProtocols.Tls13;
+#else
+        /// <summary>
+        /// Enabled SSL Protocols
+        /// </summary>
+        /// <remarks>The defaults are TlS, TLS1.1 and TLS1.2</remarks>
         public SslProtocols EnabledSslProtocols { get; set; } = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+
+#endif
 
 #if NETCOREAPP3_1_OR_GREATER
         /// <summary>
